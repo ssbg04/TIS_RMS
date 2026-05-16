@@ -1,0 +1,6 @@
+.claude
+.vscode
+assets
+
+backend/node_modules
+requirements

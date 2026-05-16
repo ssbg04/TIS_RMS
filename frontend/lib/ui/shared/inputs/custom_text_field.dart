@@ -1,0 +1,58 @@
+import 'package:flutter/material.dart';
+
+class CustomTextField extends StatelessWidget {
+  final String hintText;
+  final IconData prefixIcon;
+  final bool isPassword;
+  final bool obscureText;
+  final VoidCallback? onToggleVisibility;
+  final TextEditingController? controller;
+  final bool readOnly;
+  final void Function(String)? onChanged;
+  final String? Function(String?)? validator;
+  final int? maxLines;
+  final TextInputType? keyboardType;
+
+  const CustomTextField({
+    super.key,
+    required this.hintText,
+    required this.prefixIcon,
+    this.isPassword = false,
+    this.obscureText = false,
+    this.onToggleVisibility,
+    this.controller,
+    this.readOnly = false,
+    this.onChanged,
+    this.validator,
+    this.maxLines = 1,
+    this.keyboardType,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return TextFormField(
+      controller: controller,
+      obscureText: obscureText,
+      readOnly: readOnly,
+      onChanged: onChanged,
+      validator: validator,
+      maxLines: maxLines,
+      keyboardType: keyboardType,
+      decoration: InputDecoration(
+        hintText: hintText,
+        prefixIcon: Icon(prefixIcon, color: Colors.grey.shade600),
+        border: const OutlineInputBorder(),
+        // Suffix icon only shows if it's a password field
+        suffixIcon: isPassword
+            ? IconButton(
+                icon: Icon(
+                  obscureText ? Icons.visibility_off : Icons.visibility,
+                  color: Colors.grey.shade600,
+                ),
+                onPressed: onToggleVisibility,
+              )
+            : null,
+      ),
+    );
+  }
+}
