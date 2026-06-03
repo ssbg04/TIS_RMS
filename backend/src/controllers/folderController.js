@@ -15,40 +15,84 @@ const sanitizeFolderName = (str) =>
 // ============================================================
 exports.getFolders = (req, res) => {
     const { studentId, parentId, search = '' } = req.query;
+    const isTeacher = req.user?.role === 'teacher';
+    const teacherId = req.user?.id;
 
     try {
         const conditions = [];
         const params = [];
 
         if (studentId) {
-            conditions.push('student_id = ?');
+            conditions.push('f.student_id = ?');
             params.push(studentId);
         }
 
         if (parentId !== undefined) {
             if (parentId === 'null' || parentId === '') {
-                conditions.push('parent_id IS NULL');
+                conditions.push('f.parent_id IS NULL');
             } else {
-                conditions.push('parent_id = ?');
+                conditions.push('f.parent_id = ?');
                 params.push(parseInt(parentId));
             }
         }
 
         if (search.trim()) {
-            conditions.push('name LIKE ?');
+            conditions.push('f.name LIKE ?');
             params.push(`%${search.trim()}%`);
         }
 
+        // Only show folders for Enrolled students (or manual subfolders)
+        conditions.push("(f.student_id IS NULL OR s.status = 'Enrolled')");
+
         const whereClause = conditions.length ? `WHERE ${conditions.join(' AND ')}` : '';
+
+        // When the caller is a teacher, restrict to folders for students in
+        // the teacher's assigned sections only. Uses a parameterised sub-select.
+        let teacherJoinSql = '';
+        if (isTeacher) {
+            teacherJoinSql = `JOIN (
+                SELECT DISTINCT e2.student_id FROM enrollments e2
+                JOIN teacher_sections ts2 ON ts2.section_id = e2.section_id
+                WHERE ts2.teacher_id = ?
+            ) scoped ON scoped.student_id = f.student_id`;
+            params.unshift(teacherId);
+        }
 
         const sql = `
             SELECT f.*,
                    s.lrn, s.first_name, s.last_name,
-                   u.username as created_by_username,
-                   (SELECT COUNT(*) FROM documents d WHERE d.student_id = f.student_id) as document_count
+                   COALESCE(u.username, dh.username, 'Deleted User') as created_by_username,
+                   (SELECT COUNT(*) FROM documents d WHERE d.student_id = f.student_id AND d.deleted_at IS NULL) as document_count,
+                   -- Which tier (JHS/SHS) applies to this student based on latest enrollment
+                   (
+                       SELECT CASE WHEN e_tier.grade_level <= 10 THEN 'JHS' ELSE 'SHS' END
+                       FROM enrollments e_tier
+                       WHERE e_tier.student_id = f.student_id
+                       ORDER BY e_tier.id DESC LIMIT 1
+                   ) as student_tier,
+                   -- Total enabled mandatory JHS requirements
+                   (SELECT COUNT(*) FROM document_requirements WHERE category='JHS' AND is_mandatory=1 AND is_enabled=1) as jhs_total,
+                   -- JHS docs completed by this student
+                   (
+                       SELECT COUNT(DISTINCT d2.requirement_id) FROM documents d2
+                       JOIN document_requirements dr2 ON dr2.id = d2.requirement_id
+                       WHERE d2.student_id = f.student_id AND d2.status IN ('Completed', 'Archived') AND d2.deleted_at IS NULL
+                         AND dr2.category = 'JHS' AND dr2.is_mandatory = 1 AND dr2.is_enabled = 1
+                   ) as jhs_completed,
+                   -- Total enabled mandatory SHS requirements
+                   (SELECT COUNT(*) FROM document_requirements WHERE category='SHS' AND is_mandatory=1 AND is_enabled=1) as shs_total,
+                   -- SHS docs completed by this student
+                   (
+                       SELECT COUNT(DISTINCT d3.requirement_id) FROM documents d3
+                       JOIN document_requirements dr3 ON dr3.id = d3.requirement_id
+                       WHERE d3.student_id = f.student_id AND d3.status IN ('Completed', 'Archived') AND d3.deleted_at IS NULL
+                         AND dr3.category = 'SHS' AND dr3.is_mandatory = 1 AND dr3.is_enabled = 1
+                   ) as shs_completed
             FROM document_folders f
+            ${teacherJoinSql}
             LEFT JOIN students s ON f.student_id = s.id
             LEFT JOIN users u ON f.created_by = u.id
+            LEFT JOIN deleted_users_history dh ON f.created_by = dh.deleted_user_id
             ${whereClause}
             ORDER BY f.name ASC
         `;
@@ -178,7 +222,7 @@ exports.renameFolder = (req, res) => {
 
     try {
         db.prepare(`
-            UPDATE document_folders SET name = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?
+            UPDATE document_folders SET name = ?, updated_at = (strftime('%Y-%m-%dT%H:%M:%SZ', 'now')) WHERE id = ?
         `).run(name.trim(), id);
 
         res.json({ message: 'Folder renamed successfully' });

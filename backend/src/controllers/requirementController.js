@@ -33,7 +33,8 @@ exports.getRequirements = (req, res) => {
         const whereClause = conditions.length ? `WHERE ${conditions.join(' AND ')}` : '';
 
         const sql = `
-            SELECT * FROM document_requirements
+            SELECT id, category || ' - ' || name as name, description, category, is_mandatory, is_enabled, due_date, accepted_file_types, school_levels, created_at, updated_at
+            FROM document_requirements
             ${whereClause}
             ORDER BY category ASC, name ASC
         `;
@@ -162,7 +163,7 @@ exports.updateRequirement = (req, res) => {
                 due_date = ?,
                 accepted_file_types = COALESCE(?, accepted_file_types),
                 school_levels = COALESCE(?, school_levels),
-                updated_at = CURRENT_TIMESTAMP
+                updated_at = (strftime('%Y-%m-%dT%H:%M:%SZ', 'now'))
             WHERE id = ?
         `).run(
             name?.trim(),
@@ -232,7 +233,7 @@ exports.getRequirementsSettings = (req, res) => {
 
         // Get document types for dropdown
         const documentTypes = db.prepare(`
-            SELECT DISTINCT name FROM document_requirements
+            SELECT DISTINCT category || ' - ' || name as name FROM document_requirements
             ORDER BY name ASC
         `).all();
 
@@ -263,7 +264,7 @@ exports.bulkUpdateRequirements = (req, res) => {
                 is_mandatory = ?,
                 is_enabled = ?,
                 due_date = ?,
-                updated_at = CURRENT_TIMESTAMP
+                updated_at = (strftime('%Y-%m-%dT%H:%M:%SZ', 'now'))
             WHERE id = ?
         `);
 
@@ -294,7 +295,7 @@ exports.getMissingRequirements = (req, res) => {
     const { studentId } = req.params;
 
     try {
-        // Get student's current grade level
+        // Get student's current grade level (for highlighting "current level" on the frontend)
         const enrollment = db.prepare(`
             SELECT grade_level FROM enrollments
             WHERE student_id = ?
@@ -305,50 +306,43 @@ exports.getMissingRequirements = (req, res) => {
             return res.status(404).json({ message: 'Student has no enrollment records' });
         }
 
-        const category = enrollment.grade_level <= 10 ? 'JHS' : 'SHS';
+        const currentCategory = enrollment.grade_level <= 10 ? 'JHS' : 'SHS';
 
-        // Get mandatory requirements not yet fulfilled
+        // ── Fetch ALL categories so frontend can split into JHS and SHS panels ──
+        // Missing = mandatory requirements that have no Completed document yet
         const missing = db.prepare(`
-            SELECT dr.* FROM document_requirements dr
-            WHERE dr.category = ?
-              AND dr.is_mandatory = 1
+            SELECT dr.id, dr.name, dr.description, dr.category,
+                   dr.is_mandatory, dr.is_enabled, dr.due_date,
+                   dr.accepted_file_types, dr.school_levels, dr.created_at, dr.updated_at
+            FROM document_requirements dr
+            WHERE dr.is_mandatory = 1
               AND dr.is_enabled = 1
               AND dr.id NOT IN (
                   SELECT requirement_id FROM documents
-                  WHERE student_id = ? AND status = 'Verified' AND requirement_id IS NOT NULL
+                  WHERE student_id = ? AND status IN ('Completed', 'Archived') AND requirement_id IS NOT NULL
               )
-            ORDER BY dr.name ASC
-        `).all(category, studentId);
+            ORDER BY dr.category ASC, dr.name ASC
+        `).all(studentId);
 
-        // Get requirements with documents but not verified
-        const pending = db.prepare(`
-            SELECT dr.*, d.id as doc_id, d.file_name, d.status as doc_status
-            FROM document_requirements dr
-            JOIN documents d ON d.requirement_id = dr.id
-            WHERE dr.category = ?
-              AND d.student_id = ?
-              AND d.status != 'Verified'
-            ORDER BY dr.name ASC
-        `).all(category, studentId);
-
-        // Get all verified documents
+        // Verified = requirement has at least one Completed document
         const verified = db.prepare(`
-            SELECT dr.*, d.id as doc_id, d.file_name
+            SELECT DISTINCT dr.id, dr.name, dr.description, dr.category,
+                   dr.is_mandatory, dr.is_enabled, dr.due_date,
+                   dr.accepted_file_types, dr.school_levels, dr.created_at, dr.updated_at
             FROM document_requirements dr
             JOIN documents d ON d.requirement_id = dr.id
-            WHERE dr.category = ?
-              AND d.student_id = ?
-              AND d.status = 'Verified'
-            ORDER BY dr.name ASC
-        `).all(category, studentId);
+            WHERE d.student_id = ?
+              AND d.status IN ('Completed', 'Archived')
+            ORDER BY dr.category ASC, dr.name ASC
+        `).all(studentId);
 
         res.json({
-            category,
+            category: currentCategory,
             gradeLevel: enrollment.grade_level,
             missing,
-            pending,
+            pending: [],
             verified,
-            totalRequired: missing.length + pending.length,
+            totalRequired: missing.length + verified.length,
             totalVerified: verified.length
         });
     } catch (error) {

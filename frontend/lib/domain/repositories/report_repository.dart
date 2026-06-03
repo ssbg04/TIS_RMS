@@ -21,11 +21,22 @@ class ReportRepository {
     }
   }
 
-  Future<ReportStats> getStats({int? academicYearId}) async {
+  Future<ReportStats> getStats({
+    int? academicYearId,
+    int? gradeLevel,
+    int? sectionId,
+    String? status,
+  }) async {
     try {
+      final queryParams = <String, dynamic>{};
+      if (academicYearId != null) queryParams['academicYearId'] = academicYearId;
+      if (gradeLevel != null) queryParams['gradeLevel'] = gradeLevel;
+      if (sectionId != null) queryParams['sectionId'] = sectionId;
+      if (status != null) queryParams['status'] = status;
+
       final res = await _dio.get(
         '/reports/stats',
-        queryParameters: academicYearId != null ? {'academicYearId': academicYearId} : null,
+        queryParameters: queryParams.isNotEmpty ? queryParams : null,
         options: await _authOptions(),
       );
       return ReportStats.fromJson(res.data as Map<String, dynamic>);
@@ -34,38 +45,23 @@ class ReportRepository {
     }
   }
 
-  Future<List<GradeEnrollment>> getEnrollmentByGrade({int? academicYearId}) async {
+  Future<List<Map<String, dynamic>>> getSections(int academicYearId) async {
     try {
       final res = await _dio.get(
-        '/reports/enrollment-by-grade',
-        queryParameters: academicYearId != null ? {'academicYearId': academicYearId} : null,
+        '/setup/academic-years/$academicYearId/sections',
         options: await _authOptions(),
       );
-      return (res.data as List).map((e) => GradeEnrollment.fromJson(e as Map<String, dynamic>)).toList();
+      return (res.data as List).map((e) => e as Map<String, dynamic>).toList();
     } on DioException catch (e) {
-      throw Exception(e.response?.data['message'] ?? 'Failed to fetch enrollment data.');
+      throw Exception(e.response?.data['message'] ?? 'Failed to fetch sections.');
     }
   }
-
-  Future<DocumentStatus> getDocumentStatus() async {
+  Future<List<YearlyComparisonData>> getYearlyComparison() async {
     try {
-      final res = await _dio.get('/reports/document-status', options: await _authOptions());
-      return DocumentStatus.fromJson(res.data as Map<String, dynamic>);
+      final res = await _dio.get('/reports/yearly-comparison', options: await _authOptions());
+      return (res.data as List).map((e) => YearlyComparisonData.fromJson(e as Map<String, dynamic>)).toList();
     } on DioException catch (e) {
-      throw Exception(e.response?.data['message'] ?? 'Failed to fetch document status.');
-    }
-  }
-
-  Future<ReportExportData> getExportData({int? academicYearId}) async {
-    try {
-      final res = await _dio.get(
-        '/reports/export-data',
-        queryParameters: academicYearId != null ? {'academicYearId': academicYearId} : null,
-        options: await _authOptions(),
-      );
-      return ReportExportData.fromJson(res.data as Map<String, dynamic>);
-    } on DioException catch (e) {
-      throw Exception(e.response?.data['message'] ?? 'Failed to fetch export data.');
+      throw Exception(e.response?.data['message'] ?? 'Failed to fetch yearly comparison.');
     }
   }
 }

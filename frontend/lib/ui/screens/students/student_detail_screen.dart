@@ -26,9 +26,10 @@ class StudentDetailScreen extends ConsumerWidget {
       appBar: AppBar(
         backgroundColor: AppColors.primaryGreen,
         foregroundColor: Colors.white,
-        title: const Text('Student Profile'),
+        iconTheme: const IconThemeData(color: Colors.white),
+        title: const Text('Student Profile', style: TextStyle(color: Colors.white)),
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
+          icon: const Icon(Icons.arrow_back, color: Colors.white),
           onPressed: () => Navigator.of(context).pop(),
         ),
       ),
@@ -57,7 +58,12 @@ class StudentDetailScreen extends ConsumerWidget {
               if (student.enrollments != null && student.enrollments!.isNotEmpty) ...[
                 const Text('Enrollments', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
                 const SizedBox(height: AppSizes.p12),
-                ...student.enrollments!.map<Widget>((e) => _buildEnrollmentCard(e)).toList(),
+                ...(() {
+                  final sorted = List.from(student.enrollments!);
+                  // Ensure they are sorted descending by gradeLevel
+                  sorted.sort((a, b) => (b.gradeLevel ?? 0).compareTo(a.gradeLevel ?? 0));
+                  return sorted.map<Widget>((e) => _buildEnrollmentCard(e)).toList();
+                })(),
                 const SizedBox(height: AppSizes.p24),
               ],
 
@@ -105,7 +111,7 @@ class StudentDetailScreen extends ConsumerWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      '${student.firstName} ${student.middleName != null ? student.middleName + ' ' : ''}${student.lastName} ${student.extension ?? ''}',
+                      '${student.firstName} ${student.middleName != null ? student.middleName! + ' ' : ''}${student.lastName}${student.extension?.isNotEmpty == true ? ', ${student.extension}' : ''}',
                       style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
                     ),
                     Text(
@@ -132,10 +138,11 @@ class StudentDetailScreen extends ConsumerWidget {
             ],
           ),
           const Divider(height: 32),
-          Row(
+          Wrap(
+            spacing: AppSizes.p24,
+            runSpacing: AppSizes.p12,
             children: [
               _buildInfoItem('Sex', student.sex),
-              const SizedBox(width: AppSizes.p24),
               _buildInfoItem('Birth Date', _formatDate(student.birthDate)),
             ],
           ),
@@ -200,77 +207,209 @@ class StudentDetailScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildRequirementsStatus(MissingRequirements missing) {
+  Widget _buildRequirementsStatus(MissingRequirements data) {
+    // Group requirements by category
+    final jhsMissing   = data.missing.where((r) => r.category == 'JHS').toList();
+    final shsMissing   = data.missing.where((r) => r.category == 'SHS').toList();
+    final jhsVerified  = data.verified.where((r) => r.category == 'JHS').toList();
+    final shsVerified  = data.verified.where((r) => r.category == 'SHS').toList();
+
+    final jhsTotal     = jhsMissing.length + jhsVerified.length;
+    final shsTotal     = shsMissing.length + shsVerified.length;
+
+    final hasJhs = jhsTotal > 0;
+    final hasShs = shsTotal > 0;
+
+    if (!hasJhs && !hasShs) {
+      return Container(
+        padding: const EdgeInsets.all(AppSizes.p24),
+        decoration: BoxDecoration(
+          color: AppColors.surfaceWhite,
+          borderRadius: BorderRadius.circular(AppSizes.radiusMedium),
+          border: Border.all(color: Colors.grey.shade200),
+        ),
+        child: const Center(
+          child: Text('No document requirements for this student.',
+              style: TextStyle(color: AppColors.textSecondary)),
+        ),
+      );
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        if (hasJhs) ...[
+          _buildLevelSection(
+            label: 'JHS',
+            color: Colors.teal,
+            isCurrent: data.category == 'JHS',
+            missing: jhsMissing,
+            verified: jhsVerified,
+            total: jhsTotal,
+          ),
+          if (hasShs) const SizedBox(height: AppSizes.p16),
+        ],
+        if (hasShs)
+          _buildLevelSection(
+            label: 'SHS',
+            color: Colors.purple,
+            isCurrent: data.category == 'SHS',
+            missing: shsMissing,
+            verified: shsVerified,
+            total: shsTotal,
+          ),
+      ],
+    );
+  }
+
+  Widget _buildLevelSection({
+    required String label,
+    required Color color,
+    required bool isCurrent,
+    required List<dynamic> missing,
+    required List<dynamic> verified,
+    required int total,
+  }) {
+    final completed = verified.length;
+    final missingCount = missing.length;
+    final isDone = missingCount == 0 && total > 0;
+
     return Container(
-      padding: const EdgeInsets.all(AppSizes.p16),
       decoration: BoxDecoration(
         color: AppColors.surfaceWhite,
         borderRadius: BorderRadius.circular(AppSizes.radiusMedium),
-        border: Border.all(color: Colors.grey.shade200),
+        border: Border.all(
+          color: isDone ? AppColors.success.withValues(alpha: 0.4) : color.withValues(alpha: 0.25),
+          width: isCurrent ? 1.5 : 1,
+        ),
+        boxShadow: [
+          BoxShadow(color: Colors.black.withValues(alpha: 0.03), blurRadius: 8, offset: const Offset(0, 2)),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Summary
-          Row(
-            children: [
-              _buildStatusChip(
-                'Total Required',
-                '${missing.totalRequired}',
-                AppColors.primaryGreen,
+          // ── Section Header ──
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: AppSizes.p16, vertical: AppSizes.p12),
+            decoration: BoxDecoration(
+              color: color.withValues(alpha: 0.06),
+              borderRadius: const BorderRadius.only(
+                topLeft: Radius.circular(AppSizes.radiusMedium),
+                topRight: Radius.circular(AppSizes.radiusMedium),
               ),
-              const SizedBox(width: AppSizes.p8),
-              _buildStatusChip(
-                'Verified',
-                '${missing.totalVerified}',
-                AppColors.success,
-              ),
-              const SizedBox(width: AppSizes.p8),
-              _buildStatusChip(
-                'Missing',
-                '${missing.totalRequired - missing.totalVerified}',
-                missing.totalRequired - missing.totalVerified > 0
-                    ? AppColors.error
-                    : AppColors.success,
-              ),
-            ],
+            ),
+            child: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: color.withValues(alpha: 0.15),
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: Text(
+                    label,
+                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: color),
+                  ),
+                ),
+                if (isCurrent) ...[
+                  const SizedBox(width: 8),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                    decoration: BoxDecoration(
+                      color: AppColors.primaryGreen.withValues(alpha: 0.12),
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: const Text('Current Level',
+                        style: TextStyle(fontSize: 10, color: AppColors.primaryGreen, fontWeight: FontWeight.w600)),
+                  ),
+                ],
+                const Spacer(),
+                // Compact summary
+                if (isDone)
+                  Row(mainAxisSize: MainAxisSize.min, children: [
+                    const Icon(Icons.check_circle, size: 14, color: AppColors.success),
+                    const SizedBox(width: 4),
+                    Text('Complete', style: const TextStyle(fontSize: 12, color: AppColors.success, fontWeight: FontWeight.bold)),
+                  ])
+                else
+                  Text(
+                    '$completed/$total done',
+                    style: TextStyle(fontSize: 12, color: color, fontWeight: FontWeight.w600),
+                  ),
+              ],
+            ),
           ),
-          const SizedBox(height: AppSizes.p16),
 
-          // Missing Documents
-          if (missing.missing.isNotEmpty) ...[
-            const Text('Missing Documents', style: TextStyle(fontWeight: FontWeight.w600, color: AppColors.error)),
-            const SizedBox(height: AppSizes.p8),
-            ...missing.missing.map((req) => _buildRequirementItem(req.name, 'Missing', AppColors.error)),
-            const SizedBox(height: AppSizes.p12),
-          ],
+          // ── Summary chips ──
+          Padding(
+            padding: const EdgeInsets.fromLTRB(AppSizes.p16, AppSizes.p12, AppSizes.p16, 0),
+            child: Wrap(
+              spacing: AppSizes.p8,
+              runSpacing: AppSizes.p8,
+              children: [
+                _buildStatusChip('Total', '$total', color),
+                _buildStatusChip('Completed', '$completed', AppColors.success),
+                _buildStatusChip('Missing', '$missingCount',
+                    missingCount > 0 ? AppColors.error : AppColors.success),
+              ],
+            ),
+          ),
 
-          // Pending Documents
-          if (missing.pending.isNotEmpty) ...[
-            const Text('Pending Documents', style: TextStyle(fontWeight: FontWeight.w600, color: Colors.orange)),
+          const Padding(
+            padding: EdgeInsets.symmetric(horizontal: AppSizes.p16),
+            child: Divider(height: 24),
+          ),
+
+          // ── Missing list ──
+          if (missing.isNotEmpty) ...[
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: AppSizes.p16),
+              child: Text('Not Yet Submitted',
+                  style: TextStyle(fontWeight: FontWeight.w600, color: Colors.orange.shade700, fontSize: 13)),
+            ),
             const SizedBox(height: AppSizes.p8),
-            ...missing.pending.map((req) => _buildRequirementItem(
-              req.name,
-              'Pending',
-              Colors.orange,
+            ...missing.map((req) => Padding(
+              padding: const EdgeInsets.symmetric(horizontal: AppSizes.p16),
+              child: _buildRequirementItem(
+                req.name,
+                'Missing',
+                Colors.orange.shade700,
+                Icons.pending_actions,
+                isMandatory: req.isMandatory ?? false,
+              ),
             )),
             const SizedBox(height: AppSizes.p12),
           ],
 
-          // Verified Documents
-          if (missing.verified.isNotEmpty) ...[
-            const Text('Verified Documents', style: TextStyle(fontWeight: FontWeight.w600, color: AppColors.success)),
+          // ── Verified list ──
+          if (verified.isNotEmpty) ...[
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: AppSizes.p16),
+              child: const Text('Completed',
+                  style: TextStyle(fontWeight: FontWeight.w600, color: AppColors.success, fontSize: 13)),
+            ),
             const SizedBox(height: AppSizes.p8),
-            ...missing.verified.map((req) => _buildRequirementItem(req.name, 'Verified', AppColors.success)),
+            ...verified.map((req) => Padding(
+              padding: const EdgeInsets.symmetric(horizontal: AppSizes.p16),
+              child: _buildRequirementItem(
+                req.name,
+                'Completed',
+                AppColors.success,
+                Icons.check_circle,
+                isMandatory: req.isMandatory ?? false,
+              ),
+            )),
           ],
 
-          if (missing.missing.isEmpty && missing.pending.isEmpty && missing.verified.isEmpty)
-            const Center(
-              child: Padding(
-                padding: EdgeInsets.all(AppSizes.p24),
-                child: Text('No document requirements for this student', style: TextStyle(color: AppColors.textSecondary)),
-              ),
+          if (missing.isEmpty && verified.isEmpty)
+            const Padding(
+              padding: EdgeInsets.all(AppSizes.p16),
+              child: Text('No requirements configured for this level.',
+                  style: TextStyle(color: AppColors.textSecondary)),
             ),
+
+          const SizedBox(height: AppSizes.p16),
         ],
       ),
     );
@@ -294,18 +433,31 @@ class StudentDetailScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildRequirementItem(String name, String status, Color color) {
+  Widget _buildRequirementItem(String name, String status, Color color, IconData icon, {bool isMandatory = false}) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 6),
       child: Row(
         children: [
-          Icon(
-            status == 'Verified' ? Icons.check_circle : Icons.warning,
-            size: 16,
-            color: color,
-          ),
+          Icon(icon, size: 16, color: color),
           const SizedBox(width: 8),
-          Expanded(child: Text(name)),
+          Expanded(
+            child: RichText(
+              text: TextSpan(
+                style: const TextStyle(color: AppColors.textPrimary, fontSize: 14),
+                children: [
+                  TextSpan(text: name),
+                  TextSpan(
+                    text: isMandatory ? ' (Mandatory)' : ' (Optional)',
+                    style: TextStyle(
+                      color: isMandatory ? Colors.red : Colors.grey,
+                      fontWeight: isMandatory ? FontWeight.bold : FontWeight.normal,
+                      fontSize: 12,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
           Text(status, style: TextStyle(color: color, fontSize: 12, fontWeight: FontWeight.w500)),
         ],
       ),
@@ -318,7 +470,7 @@ class StudentDetailScreen extends ConsumerWidget {
         return AppColors.success;
       case 'Graduated':
         return Colors.blue;
-      case 'Transferred Out':
+      case 'Transferred':
         return Colors.orange;
       case 'Dropped':
         return AppColors.error;

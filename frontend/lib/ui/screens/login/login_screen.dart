@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_sizes.dart';
 import '../../shared/inputs/custom_text_field.dart';
@@ -7,6 +9,10 @@ import '../../shared/buttons/primary_button.dart';
 import '../../layouts/windows_sidebar_layout.dart';
 import '../../layouts/android_bottom_nav_layout.dart';
 import '../../providers/auth_provider.dart';
+import 'package:frontend/ui/providers/navigation_provider.dart';
+import '../../shared/dialogs/error_dialog.dart';
+import '../../shared/dialogs/success_dialog.dart';
+import '../../../core/utils/validators.dart';
 
 class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key});
@@ -22,6 +28,27 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   bool _rememberMe = false;
 
   @override
+  void initState() {
+    super.initState();
+    _loadRememberMe(); // Load saved credentials on startup
+  }
+
+  // --- Added: Load saved credentials for Remember Me ---
+  Future<void> _loadRememberMe() async {
+    final prefs = await SharedPreferences.getInstance();
+    final isRemembered = prefs.getBool('rememberMe') ?? false;
+    
+    if (isRemembered) {
+      setState(() {
+        _rememberMe = true;
+        _usernameController.text = prefs.getString('saved_username') ?? '';
+        // Note: For a production app, use 'flutter_secure_storage' to save passwords securely.
+        _passwordController.text = prefs.getString('saved_password') ?? '';
+      });
+    }
+  }
+
+  @override
   void dispose() {
     _usernameController.dispose();
     _passwordController.dispose();
@@ -30,8 +57,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
   void _handleLogin() async {
     if (_usernameController.text.trim().isEmpty || _passwordController.text.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please enter both username and password.')),
+      showErrorDialog(
+        context,
+        'Missing Credentials', 
+        'Please enter both your username and password to continue.'
       );
       return;
     }
@@ -47,8 +76,23 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     if (!mounted) return;
 
     if (success) {
+      // --- Added: Save or clear credentials based on checkbox ---
+      final prefs = await SharedPreferences.getInstance();
+      if (_rememberMe) {
+        await prefs.setBool('rememberMe', true);
+        await prefs.setString('saved_username', _usernameController.text.trim());
+      } else {
+        await prefs.remove('rememberMe');
+        await prefs.remove('saved_username');
+        await prefs.remove('saved_password');
+      }
+
       final user = ref.read(authProvider).value;
       final isDesktop = MediaQuery.of(context).size.width >= 800;
+      
+      // Ensure we always redirect to Dashboard after a successful login
+      ref.read(activeTabProvider.notifier).setTab('Dashboard');
+      
       Navigator.of(context).pushReplacement(
         MaterialPageRoute(
           builder: (_) => isDesktop
@@ -58,11 +102,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       );
     } else {
       final error = ref.read(authProvider).error.toString();
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(error.replaceAll('Exception: ', '')),
-          backgroundColor: AppColors.error,
-        ),
+      showErrorDialog(
+        context,
+        'Login Failed', 
+        error.replaceAll('Exception: ', '')
       );
     }
   }
@@ -73,9 +116,12 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       builder: (ctx) => _ForgotPasswordDialog(
         onSuccess: (msg) {
           Navigator.pop(ctx);
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(msg), backgroundColor: AppColors.success),
-          );
+          showSuccessDialog(
+            context, 
+            title: 'Request Submitted', 
+            message: msg, 
+            ///onDismissed: () {}
+            );
         },
       ),
     );
@@ -156,7 +202,11 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     final authState = ref.watch(authProvider);
     final isLoading = authState.isLoading;
 
-    return Column(
+    return CallbackShortcuts(
+      bindings:{
+        const SingleActivator(LogicalKeyboardKey.enter): _handleLogin,
+        const SingleActivator(LogicalKeyboardKey.numpadEnter): _handleLogin,
+      }, child: Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       mainAxisSize: MainAxisSize.min,
       children: [
@@ -164,6 +214,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
           hintText: 'Username',
           prefixIcon: Icons.person_outline,
           controller: _usernameController,
+          textInputAction: TextInputAction.next,
+          onSubmitted: (_) => FocusScope.of(context).nextFocus(),
         ),
         const SizedBox(height: AppSizes.p16),
         CustomTextField(
@@ -173,6 +225,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
           isPassword: true,
           obscureText: _obscurePassword,
           onToggleVisibility: () => setState(() => _obscurePassword = !_obscurePassword),
+          textInputAction: TextInputAction.done,
+          onSubmitted: (_) => _handleLogin(),
         ),
         const SizedBox(height: AppSizes.p8),
 
@@ -204,6 +258,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
           onPressed: _handleLogin,
         ),
       ],
+    )
     );
   }
 }
@@ -220,13 +275,12 @@ class _ForgotPasswordDialog extends ConsumerStatefulWidget {
 }
 
 class _ForgotPasswordDialogState extends ConsumerState<_ForgotPasswordDialog> {
+  final _formKey = GlobalKey<FormState>();
   final _usernameCtrl = TextEditingController();
   final _newPassCtrl = TextEditingController();
   final _confirmPassCtrl = TextEditingController();
-  bool _obscureNew = true;
-  bool _obscureConfirm = true;
+  bool _obscurePasswords = true;
   bool _isLoading = false;
-  String? _error;
 
   @override
   void dispose() {
@@ -237,24 +291,18 @@ class _ForgotPasswordDialogState extends ConsumerState<_ForgotPasswordDialog> {
   }
 
   Future<void> _handleSubmit() async {
+    if (!_formKey.currentState!.validate()) return;
+
     final username = _usernameCtrl.text.trim();
     final newPass = _newPassCtrl.text;
     final confirmPass = _confirmPassCtrl.text;
 
-    if (username.isEmpty || newPass.isEmpty || confirmPass.isEmpty) {
-      setState(() => _error = 'All fields are required.');
-      return;
-    }
     if (newPass != confirmPass) {
-      setState(() => _error = 'Passwords do not match.');
-      return;
-    }
-    if (newPass.length < 6) {
-      setState(() => _error = 'Password must be at least 6 characters.');
+      showErrorDialog(context, 'Password Mismatch', 'Passwords do not match.', );
       return;
     }
 
-    setState(() { _isLoading = true; _error = null; });
+    setState(() { _isLoading = true;});
 
     try {
       final repo = ref.read(authRepositoryProvider);
@@ -264,11 +312,11 @@ class _ForgotPasswordDialogState extends ConsumerState<_ForgotPasswordDialog> {
         confirmPassword: confirmPass,
       );
       if (mounted) {
-        widget.onSuccess('Reset request submitted. Awaiting Super Admin approval.');
+        widget.onSuccess('Reset request submitted. Awaiting Admin approval.');
       }
     } catch (e) {
       if (mounted) {
-        setState(() => _error = e.toString().replaceAll('Exception: ', ''));
+        showErrorDialog(context, 'Request Failed', e.toString().replaceAll('Exception: ', ''));
       }
     } finally {
       if (mounted) setState(() => _isLoading = false);
@@ -277,87 +325,97 @@ class _ForgotPasswordDialogState extends ConsumerState<_ForgotPasswordDialog> {
 
   @override
   Widget build(BuildContext context) {
+    final isMobile = MediaQuery.of(context).size.width < 600;
+    
     return Dialog(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppSizes.radiusLarge)),
+      insetPadding: EdgeInsets.all(isMobile ? 16 : 24),
       child: ConstrainedBox(
         constraints: const BoxConstraints(maxWidth: 420),
         child: Padding(
-          padding: const EdgeInsets.all(AppSizes.p24),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
+          padding: EdgeInsets.all(isMobile ? 16 : 24),
+          child: Form(
+            key: _formKey,
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Icon(Icons.lock_reset, color: AppColors.primaryGreen),
-                  const SizedBox(width: 10),
-                  const Expanded(
-                    child: Text('Forgot Password', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+                  Row(
+                    children: [
+                      Icon(Icons.lock_reset, color: AppColors.primaryGreen, size: isMobile ? 24 : 28),
+                      SizedBox(width: isMobile ? 8 : 12),
+                      Expanded(
+                        child: Text('Forgot Password', style: TextStyle(fontSize: isMobile ? 18 : 22, fontWeight: FontWeight.bold)),
+                      ),
+                      if (!isMobile)
+                        TextButton.icon(
+                          onPressed: () => setState(() => _obscurePasswords = !_obscurePasswords),
+                          icon: Icon(_obscurePasswords ? Icons.visibility_off : Icons.visibility, size: 18),
+                          label: Text(_obscurePasswords ? 'Show Passwords' : 'Hide Passwords'),
+                          style: TextButton.styleFrom(foregroundColor: AppColors.textSecondary),
+                        ),
+                      if (isMobile)
+                        IconButton(
+                          onPressed: () => setState(() => _obscurePasswords = !_obscurePasswords),
+                          icon: Icon(_obscurePasswords ? Icons.visibility_off : Icons.visibility, size: 20),
+                          color: AppColors.textSecondary,
+                          tooltip: _obscurePasswords ? 'Show Passwords' : 'Hide Passwords',
+                        ),
+                      IconButton(icon: Icon(Icons.close, size: isMobile ? 20 : 24), onPressed: () => Navigator.pop(context)),
+                    ],
                   ),
-                  IconButton(icon: const Icon(Icons.close), onPressed: () => Navigator.pop(context)),
+                  SizedBox(height: isMobile ? 4 : 8),
+                  Text(
+                    'Admin and Teacher accounts only. Your request will be reviewed by the Admin.',
+                    style: TextStyle(fontSize: isMobile ? 12 : 14, color: AppColors.textSecondary),
+                  ),
+                  Divider(height: isMobile ? 20 : 28),
+  
+                  CustomTextField(
+                    hintText: 'Your Username', 
+                    prefixIcon: Icons.person_outline, 
+                    controller: _usernameCtrl,
+                    validator: (v) => AppValidators.validateRequired(v, 'Username'),
+                  ),
+                  const SizedBox(height: AppSizes.p12),
+                  CustomTextField(
+                    hintText: 'New Password',
+                    prefixIcon: Icons.lock_outline,
+                    controller: _newPassCtrl,
+                    isPassword: true,
+                    obscureText: _obscurePasswords,
+                    validator: AppValidators.validatePasswordComplexity,
+                  ),
+                  const SizedBox(height: AppSizes.p12),
+                  CustomTextField(
+                    hintText: 'Confirm New Password',
+                    prefixIcon: Icons.lock_outline,
+                    controller: _confirmPassCtrl,
+                    isPassword: true,
+                    obscureText: _obscurePasswords,
+                    validator: (v) => AppValidators.validateRequired(v, 'Confirm Password'),
+                  ),
+  
+                  SizedBox(height: isMobile ? 16 : 24),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.end,
+                    children: [
+                      TextButton(onPressed: () => Navigator.pop(context), child: const Text('CANCEL')),
+                      const SizedBox(width: 12),
+                      SizedBox(
+                        width: isMobile ? 130 : 140,
+                        child: PrimaryButton(
+                          label: 'SUBMIT REQUEST',
+                          isLoading: _isLoading,
+                          onPressed: _handleSubmit,
+                        ),
+                      ),
+                    ],
+                  ),
                 ],
               ),
-              const SizedBox(height: 8),
-              const Text(
-                'Admin and Teacher accounts only. Your request will be reviewed by the Super Admin.',
-                style: TextStyle(fontSize: 13, color: AppColors.textSecondary),
-              ),
-              const Divider(height: 28),
-
-              CustomTextField(hintText: 'Your Username', prefixIcon: Icons.person_outline, controller: _usernameCtrl),
-              const SizedBox(height: AppSizes.p12),
-              CustomTextField(
-                hintText: 'New Password',
-                prefixIcon: Icons.lock_outline,
-                controller: _newPassCtrl,
-                isPassword: true,
-                obscureText: _obscureNew,
-                onToggleVisibility: () => setState(() => _obscureNew = !_obscureNew),
-              ),
-              const SizedBox(height: AppSizes.p12),
-              CustomTextField(
-                hintText: 'Confirm New Password',
-                prefixIcon: Icons.lock_outline,
-                controller: _confirmPassCtrl,
-                isPassword: true,
-                obscureText: _obscureConfirm,
-                onToggleVisibility: () => setState(() => _obscureConfirm = !_obscureConfirm),
-              ),
-
-              if (_error != null) ...[
-                const SizedBox(height: 12),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                  decoration: BoxDecoration(
-                    color: Colors.red.shade50,
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: Colors.red.shade200),
-                  ),
-                  child: Row(children: [
-                    Icon(Icons.error_outline, color: Colors.red.shade600, size: 16),
-                    const SizedBox(width: 8),
-                    Expanded(child: Text(_error!, style: TextStyle(color: Colors.red.shade700, fontSize: 13))),
-                  ]),
-                ),
-              ],
-
-              const SizedBox(height: AppSizes.p24),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.end,
-                children: [
-                  TextButton(onPressed: () => Navigator.pop(context), child: const Text('CANCEL')),
-                  const SizedBox(width: 12),
-                  SizedBox(
-                    width: 140,
-                    child: PrimaryButton(
-                      label: 'SUBMIT REQUEST',
-                      isLoading: _isLoading,
-                      onPressed: _handleSubmit,
-                    ),
-                  ),
-                ],
-              ),
-            ],
+            ),
           ),
         ),
       ),

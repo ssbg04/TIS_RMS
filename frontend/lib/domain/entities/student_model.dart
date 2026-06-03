@@ -7,8 +7,9 @@ class StudentModel {
   final String? extension;
   final String sex;
   final DateTime birthDate;
-  final String status; // 'Enrolled', 'Graduated', 'Transferred Out', 'Dropped'
+  final String status; // 'Enrolled', 'Graduated', 'Transferred', 'Dropped'
   final int missingDocumentsCount;
+  final int totalDocumentsCount;
   final int? latestGradeLevel;
   final String? latestSection;
   final List<EnrollmentModel>? enrollments;
@@ -24,6 +25,7 @@ class StudentModel {
     required this.birthDate,
     this.status = 'Enrolled',
     this.missingDocumentsCount = 0,
+    this.totalDocumentsCount = 0,
     this.latestGradeLevel,
     this.latestSection,
     this.enrollments,
@@ -55,6 +57,7 @@ class StudentModel {
       birthDate:            DateTime.parse(json['birth_date'] as String),
       status:               json['status']      as String? ?? 'Enrolled',
       missingDocumentsCount: (json['missingDocumentsCount'] as num?)?.toInt() ?? 0,
+      totalDocumentsCount: (json['totalDocumentsCount'] as num?)?.toInt() ?? 0,
       latestGradeLevel:     (json['latest_grade_level'] as num?)?.toInt(),
       latestSection:        json['latest_section'] as String?,
       enrollments:          json['enrollments'] != null

@@ -90,10 +90,20 @@ class UserRepository {
     }
   }
 
-  Future<void> deleteUser(int id) async {
+  Future<void> deleteUser(int id, {required String reason, required String password}) async {
     try {
       final options = await _getAuthOptions();
-      await _dio.delete('/users/$id', options: options);
+      
+      // ✅ Send the reason and password in the request body
+      await _dio.delete(
+        '/users/$id', 
+        options: options,
+        data: {
+          'reason': reason,
+          'password': password,
+        },
+      );
+      
     } on DioException catch (e) {
       throw Exception(e.response?.data['message'] ?? 'Failed to delete user.');
     }

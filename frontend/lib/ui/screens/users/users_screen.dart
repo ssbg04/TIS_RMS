@@ -3,11 +3,17 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_sizes.dart';
+import '../../../core/utils/validators.dart';
 import '../../../domain/entities/system_user.dart';
 import '../../shared/inputs/custom_text_field.dart';
+import '../../shared/inputs/app_search_bar.dart';
 import '../../shared/buttons/primary_button.dart';
 import '../../providers/users_provider.dart';
 import '../../providers/auth_provider.dart';
+
+// --- NEW IMPORTS FOR CUSTOM DIALOGS ---
+import '../../shared/dialogs/error_dialog.dart';
+import '../../shared/dialogs/success_dialog.dart';
 
 class UsersScreen extends ConsumerStatefulWidget {
   const UsersScreen({super.key});
@@ -19,7 +25,7 @@ class UsersScreen extends ConsumerStatefulWidget {
 class _UsersScreenState extends ConsumerState<UsersScreen> {
   final TextEditingController _searchController = TextEditingController();
   String _searchQuery = '';
-  String _roleFilter = 'all'; // 'all', 'super_admin', 'admin', 'teacher'
+  String _roleFilter = 'all'; // 'all', 'admin', 'teacher'
 
   @override
   void initState() {
@@ -84,50 +90,54 @@ class _UsersScreenState extends ConsumerState<UsersScreen> {
     try {
       await ref.read(usersProvider.notifier).resetPassword(user.id);
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Password for "${user.username}" reset to "changeme123".'), backgroundColor: AppColors.success),
+      
+      // ✅ Replaced SnackBar with Success Dialog
+      showSuccessDialog(
+        context, 
+        title: 'Password Reset',
+        message: 'Password for "${user.username}" reset to "changeme123".'
       );
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
-      );
+      
+      // ✅ Replaced SnackBar with Error Dialog
+      showErrorDialog(context, 'Reset Failed',  e.toString());
     }
   }
 
   Future<void> _confirmDelete(SystemUser user) async {
-    final confirmed = await showDialog<bool>(
+    // Show our new custom delete dialog that collects Reason and Password
+    final result = await showDialog<Map<String, String>>(
       context: context,
-      builder: (ctx) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppSizes.radiusLarge)),
-        title: const Row(children: [
-          Icon(Icons.delete_outline, color: Colors.red),
-          SizedBox(width: 8),
-          Text('Delete User'),
-        ]),
-        content: Text('Are you sure you want to permanently delete "${user.username}"? This action cannot be undone.'),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('CANCEL')),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.red, foregroundColor: Colors.white),
-            onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('DELETE'),
-          ),
-        ],
-      ),
+      builder: (ctx) => _DeleteConfirmationDialog(user: user),
     );
-    if (confirmed != true || !mounted) return;
+
+    if (result == null || !mounted) return;
 
     try {
-      await ref.read(usersProvider.notifier).deleteUser(user.id);
+      // ✅ Note: You will need to update `usersProvider.deleteUser` to accept these new parameters!
+      await ref.read(usersProvider.notifier).deleteUser(
+        user.id,
+        reason: result['reason']!,
+        password: result['password']!,
+      );
+      
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('User "${user.username}" deleted.'), backgroundColor: AppColors.success),
+      
+      // ✅ Replaced SnackBar with Success Dialog
+      showSuccessDialog(
+        context, 
+        title: 'User Deleted',
+        message: 'User "${user.username}" was permanently deleted.'
       );
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
+      
+      // ✅ Replaced SnackBar with Error Dialog
+      showErrorDialog(
+        context, 
+         'Deletion Failed', 
+         e.toString().replaceAll('Exception: ', '')
       );
     }
   }
@@ -187,9 +197,6 @@ class _UsersScreenState extends ConsumerState<UsersScreen> {
                             children: [
                               _buildFilterChip('All', 'all', users.length, Colors.grey),
                               const SizedBox(width: 8),
-                              _buildFilterChip('Super Admin', 'super_admin',
-                                users.where((u) => u.role == 'super_admin').length, Colors.purple),
-                              const SizedBox(width: 8),
                               _buildFilterChip('Admin', 'admin',
                                 users.where((u) => u.role == 'admin').length, Colors.blue),
                               const SizedBox(width: 8),
@@ -228,7 +235,7 @@ class _UsersScreenState extends ConsumerState<UsersScreen> {
   Widget _buildResetRequestsPanel() {
     final requestsAsync = ref.watch(resetRequestsProvider);
     final currentUser = ref.watch(authProvider).value;
-    if (currentUser?.role != 'super_admin') return const SizedBox.shrink();
+    if (currentUser?.role != 'admin') return const SizedBox.shrink();
 
     return requestsAsync.when(
       loading: () => const SizedBox.shrink(),
@@ -264,12 +271,14 @@ class _UsersScreenState extends ConsumerState<UsersScreen> {
                           await repo.approveResetRequest(req['id'] as int);
                           ref.invalidate(resetRequestsProvider);
                           if (!mounted) return;
-                          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-                            content: Text('Password reset approved.'), backgroundColor: AppColors.success,
-                          ));
+                          
+                          // ✅ Replaced SnackBar with Success Dialog
+                          showSuccessDialog(context, title: 'Approved', message: 'Password reset approved.');
                         } catch (e) {
                           if (!mounted) return;
-                          ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('$e'), backgroundColor: Colors.red));
+                          
+                          // ✅ Replaced SnackBar with Error Dialog
+                          showErrorDialog(context, 'Approval Failed',  e.toString());
                         }
                       },
                     ),
@@ -282,12 +291,14 @@ class _UsersScreenState extends ConsumerState<UsersScreen> {
                           await repo.rejectResetRequest(req['id'] as int);
                           ref.invalidate(resetRequestsProvider);
                           if (!mounted) return;
-                          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-                            content: Text('Request rejected.'), backgroundColor: Colors.grey,
-                          ));
+                          
+                          // ✅ Replaced SnackBar with Success Dialog
+                          showSuccessDialog(context, title: 'Rejected', message: 'Request rejected.');
                         } catch (e) {
                           if (!mounted) return;
-                          ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('$e'), backgroundColor: Colors.red));
+                          
+                          // ✅ Replaced SnackBar with Error Dialog
+                          showErrorDialog(context,  'Rejection Failed', e.toString());
                         }
                       },
                     ),
@@ -316,10 +327,10 @@ class _UsersScreenState extends ConsumerState<UsersScreen> {
           children: [
             Expanded(
               flex: 2,
-              child: CustomTextField(
-                hintText: 'Search by username, name or role...',
-                prefixIcon: Icons.search,
+              child: AppSearchBar(
+                hint: 'Search by username, name or role...',
                 controller: _searchController,
+                maxWidth: double.infinity,
               ),
             ),
             const SizedBox(width: AppSizes.p16),
@@ -361,7 +372,7 @@ class _UsersScreenState extends ConsumerState<UsersScreen> {
           mainAxisSize: MainAxisSize.min,
           children: [
             if (isActive) ...[
-              Icon(Icons.check, color: Colors.white, size: 13),
+              const Icon(Icons.check, color: Colors.white, size: 13),
               const SizedBox(width: 4),
             ],
             Text(
@@ -494,12 +505,12 @@ class _UsersScreenState extends ConsumerState<UsersScreen> {
   }
 
   Color _roleColor(String role) {
-    if (role == 'super_admin') return Colors.purple;
     if (role == 'admin') return Colors.blue;
     return AppColors.primaryGreen;
   }
 
   Widget _buildActions(SystemUser user) {
+    final currentUser = ref.watch(authProvider).value;
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
@@ -513,7 +524,7 @@ class _UsersScreenState extends ConsumerState<UsersScreen> {
           tooltip: 'Edit User',
           onPressed: () => _openModal(user: user),
         ),
-        if (user.role != 'super_admin')
+        if (user.id != currentUser?.id)
           IconButton(
             icon: const Icon(Icons.delete_outline, color: Colors.red),
             tooltip: 'Delete User',
@@ -525,7 +536,7 @@ class _UsersScreenState extends ConsumerState<UsersScreen> {
 }
 
 // ============================================================
-// ADD / EDIT MODAL (moved inline for clean imports)
+// ADD / EDIT MODAL
 // ============================================================
 class AddEditUserModal extends ConsumerStatefulWidget {
   final SystemUser? user;
@@ -548,6 +559,11 @@ class _AddEditUserModalState extends ConsumerState<AddEditUserModal> {
   bool _isLoading = false;
 
   bool get _isEdit => widget.user != null;
+
+  Color _roleColor(String role) {
+    if (role == 'admin') return Colors.blue;
+    return AppColors.primaryGreen;
+  }
 
   @override
   void initState() {
@@ -590,10 +606,9 @@ class _AddEditUserModalState extends ConsumerState<AddEditUserModal> {
         );
         if (!mounted) return;
         Navigator.of(context).pop();
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-          content: Text('User updated successfully!'),
-          backgroundColor: AppColors.success,
-        ));
+        
+        // ✅ Replaced SnackBar with Success Dialog
+        showSuccessDialog(context, title: 'User Updated', message: 'User updated successfully!');
       } else {
         // Create — backend auto-generates a temporary password
         final username = _usernameCtrl.text.trim();
@@ -608,17 +623,18 @@ class _AddEditUserModalState extends ConsumerState<AddEditUserModal> {
           phone: _phoneCtrl.text.trim(),
         );
         if (!mounted) return;
-        // Close create modal first
         Navigator.of(context).pop();
-        // Show one-time credentials dialog
         _showCredentialsDialog(context, username: username, tempPassword: tempPassword);
       }
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-        content: Text('Error: ${e.toString().replaceAll('Exception: ', '')}'),
-        backgroundColor: Colors.red,
-      ));
+      
+      // ✅ Replaced SnackBar with Error Dialog
+      showErrorDialog(
+        context, 
+         'Error', 
+         e.toString().replaceAll('Exception: ', '')
+      );
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
@@ -628,7 +644,7 @@ class _AddEditUserModalState extends ConsumerState<AddEditUserModal> {
     bool copied = false;
     showDialog(
       context: ctx,
-      barrierDismissible: false, // Must explicitly dismiss
+      barrierDismissible: false, 
       builder: (dialogCtx) => StatefulBuilder(
         builder: (dialogCtx, setDialogState) => AlertDialog(
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppSizes.radiusLarge)),
@@ -706,6 +722,7 @@ class _AddEditUserModalState extends ConsumerState<AddEditUserModal> {
 
   @override
   Widget build(BuildContext context) {
+    final currentUser = ref.watch(authProvider).value;
     return Dialog(
       backgroundColor: AppColors.surfaceWhite,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppSizes.radiusLarge)),
@@ -737,26 +754,22 @@ class _AddEditUserModalState extends ConsumerState<AddEditUserModal> {
                   ),
                   const Divider(height: 28),
 
-                  // Name row
-                  Row(children: [
-                    Expanded(child: _field('First Name', Icons.badge_outlined, _firstNameCtrl, required: true)),
-                    const SizedBox(width: 12),
-                    Expanded(child: _field('Middle Name', Icons.badge_outlined, _middleNameCtrl)),
-                  ]),
+                  // Name fields
+                  _field('First Name', Icons.badge, _firstNameCtrl, required: true),
                   const SizedBox(height: AppSizes.p12),
-                  Row(children: [
-                    Expanded(flex: 3, child: _field('Last Name', Icons.badge_outlined, _lastNameCtrl, required: true)),
-                    const SizedBox(width: 12),
-                    Expanded(flex: 1, child: _field('Ext.', Icons.text_format, _extCtrl)),
-                  ]),
+                  _field('Middle Name', Icons.badge, _middleNameCtrl),
+                  const SizedBox(height: AppSizes.p12),
+                  _field('Last Name', Icons.badge, _lastNameCtrl, required: true),
+                  const SizedBox(height: AppSizes.p12),
+                  _field('Ext. (Jr, Sr, III)', Icons.text_fields, _extCtrl),
                   const SizedBox(height: AppSizes.p12),
 
-                  // Username (locked on edit)
-                  _field('Username', Icons.person_outline, _usernameCtrl, required: !_isEdit, readOnly: _isEdit),
+                  // Username
+                  _field('Username', Icons.person, _usernameCtrl, required: !_isEdit, readOnly: _isEdit),
                   const SizedBox(height: AppSizes.p12),
 
-                  // Role dropdown — locked for super_admin
-                  if (_isEdit && widget.user?.role == 'super_admin')
+                  // Role dropdown
+                  if (_isEdit && widget.user?.id == currentUser?.id)
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
                       decoration: BoxDecoration(
@@ -764,14 +777,14 @@ class _AddEditUserModalState extends ConsumerState<AddEditUserModal> {
                         borderRadius: BorderRadius.circular(AppSizes.radiusMedium),
                         border: Border.all(color: Colors.grey.shade300),
                       ),
-                      child: const Row(children: [
-                        Icon(Icons.shield, color: Colors.purple, size: 20),
-                        SizedBox(width: 12),
-                        Text('Super Admin', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.purple)),
-                        SizedBox(width: 8),
-                        Icon(Icons.lock, color: Colors.grey, size: 14),
-                        SizedBox(width: 4),
-                        Text('(Role cannot be changed)', style: TextStyle(fontSize: 12, color: Colors.grey)),
+                      child: Row(children: [
+                        Icon(Icons.shield, color: _roleColor(widget.user!.role), size: 20),
+                        const SizedBox(width: 12),
+                        Text(widget.user!.role.toUpperCase(), style: TextStyle(fontWeight: FontWeight.bold, color: _roleColor(widget.user!.role))),
+                        const SizedBox(width: 8),
+                        const Icon(Icons.lock, color: Colors.grey, size: 14),
+                        const SizedBox(width: 4),
+                        const Text('(Your own role cannot be changed)', style: TextStyle(fontSize: 12, color: Colors.grey)),
                       ]),
                     )
                   else
@@ -786,15 +799,12 @@ class _AddEditUserModalState extends ConsumerState<AddEditUserModal> {
                     ),
                   const SizedBox(height: AppSizes.p12),
 
-                  // Email & Phone
-                  Row(children: [
-                    Expanded(child: _field('Email', Icons.email_outlined, _emailCtrl)),
-                    const SizedBox(width: 12),
-                    Expanded(child: _field('Phone', Icons.phone_outlined, _phoneCtrl)),
-                  ]),
+                  // Contact
+                  _field('Email Address', Icons.email_outlined, _emailCtrl, validator: AppValidators.validateEmail),
+                  const SizedBox(height: AppSizes.p12),
+                  _field('Phone Number (Starts with 09)', Icons.phone_outlined, _phoneCtrl, validator: AppValidators.validatePhone),
                   const SizedBox(height: AppSizes.p12),
 
-                  // Auto-generate notice (create only)
                   if (!_isEdit)
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
@@ -840,12 +850,132 @@ class _AddEditUserModalState extends ConsumerState<AddEditUserModal> {
     );
   }
 
-  Widget _field(String hint, IconData icon, TextEditingController ctrl, {bool required = false, bool readOnly = false}) {
+  Widget _field(String hint, IconData icon, TextEditingController ctrl, {bool required = false, bool readOnly = false, String? Function(String?)? validator}) {
     return CustomTextField(
       hintText: hint,
       prefixIcon: icon,
       controller: ctrl,
       readOnly: readOnly,
+      validator: validator ?? (required ? (v) => AppValidators.validateRequired(v, hint) : null),
+    );
+  }
+}
+
+// ============================================================
+// NEW: CUSTOM DELETE CONFIRMATION DIALOG 
+// ============================================================
+class _DeleteConfirmationDialog extends StatefulWidget {
+  final SystemUser user;
+  const _DeleteConfirmationDialog({required this.user});
+
+  @override
+  State<_DeleteConfirmationDialog> createState() => _DeleteConfirmationDialogState();
+}
+
+class _DeleteConfirmationDialogState extends State<_DeleteConfirmationDialog> {
+  final _reasonCtrl = TextEditingController();
+  final _passwordCtrl = TextEditingController();
+  bool _obscurePassword = true;
+
+  @override
+  void dispose() {
+    _reasonCtrl.dispose();
+    _passwordCtrl.dispose();
+    super.dispose();
+  }
+
+  void _submit() {
+    final reason = _reasonCtrl.text.trim();
+    final password = _passwordCtrl.text;
+
+    if (reason.isEmpty || password.isEmpty) {
+      showErrorDialog(
+        context, 
+        'Missing Fields', 
+        'You must provide a reason and confirm your password to delete a user.'
+      );
+      return;
+    }
+
+    // Return the collected reason and password back to the _confirmDelete handler
+    Navigator.pop(context, {
+      'reason': reason,
+      'password': password,
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Dialog(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppSizes.radiusLarge)),
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 420),
+        child: Padding(
+          padding: const EdgeInsets.all(AppSizes.p24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  const Icon(Icons.delete_forever, color: Colors.red),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'Delete @${widget.user.username}?',
+                      style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.red),
+                    ),
+                  ),
+                  IconButton(icon: const Icon(Icons.close), onPressed: () => Navigator.pop(context)),
+                ],
+              ),
+              const SizedBox(height: 8),
+              const Text(
+                'This action is irreversible. For security auditing, please provide a reason and confirm using your admin password.',
+                style: TextStyle(fontSize: 13, color: AppColors.textSecondary),
+              ),
+              const Divider(height: 28),
+              
+              // 1. Reason Field
+              CustomTextField(
+                hintText: 'Reason for deletion',
+                prefixIcon: Icons.warning_amber_rounded,
+                controller: _reasonCtrl,
+              ),
+              const SizedBox(height: 12),
+              
+              // 2. Admin Password Field
+              CustomTextField(
+                hintText: 'Your Admin Password',
+                prefixIcon: Icons.lock_outline,
+                controller: _passwordCtrl,
+                isPassword: true,
+                obscureText: _obscurePassword,
+                onToggleVisibility: () => setState(() => _obscurePassword = !_obscurePassword),
+              ),
+              
+              const SizedBox(height: 24),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  TextButton(onPressed: () => Navigator.pop(context), child: const Text('CANCEL')),
+                  const SizedBox(width: 12),
+                  ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.red,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppSizes.radiusMedium)),
+                    ),
+                    onPressed: _submit,
+                    child: const Text('DELETE USER', style: TextStyle(fontWeight: FontWeight.bold)),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }

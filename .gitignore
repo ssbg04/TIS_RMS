@@ -1,6 +1,10 @@
 .claude
 .vscode
-assets
+/assets
+
+
+backend_build
 
 backend/node_modules
 requirements
+TIS*

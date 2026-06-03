@@ -16,7 +16,7 @@ class RequirementsSettingsModal extends ConsumerStatefulWidget {
 class _RequirementsSettingsModalState extends ConsumerState<RequirementsSettingsModal> {
   @override
   Widget build(BuildContext context) {
-    final settingsAsync = ref.watch(documentRequirementsSettingsProvider);
+    final settingsAsync = ref.watch(requirementsSettingsProvider);
 
     return Dialog(
       backgroundColor: AppColors.surfaceWhite,
@@ -157,8 +157,8 @@ class _RequirementsSettingsModalState extends ConsumerState<RequirementsSettings
         acceptedFileTypes: req.acceptedFileTypes,
         schoolLevels: req.schoolLevels,
       );
-      await ref.read(documentRequirementsMutationProvider.notifier).updateRequirement(updatedReq);
-      ref.invalidate(documentRequirementsSettingsProvider);
+      await ref.read(requirementMutationProvider.notifier).updateRequirement(updatedReq);
+      ref.invalidate(requirementsSettingsProvider);
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
@@ -167,8 +167,8 @@ class _RequirementsSettingsModalState extends ConsumerState<RequirementsSettings
 
   void _deleteRequirement(int id) async {
     try {
-      await ref.read(documentRequirementsMutationProvider.notifier).deleteRequirement(id);
-      ref.invalidate(documentRequirementsSettingsProvider);
+      await ref.read(requirementMutationProvider.notifier).deleteRequirement(id);
+      ref.invalidate(requirementsSettingsProvider);
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));

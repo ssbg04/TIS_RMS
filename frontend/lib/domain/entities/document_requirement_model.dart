@@ -33,11 +33,17 @@ class DocumentRequirementModel {
       category: json['category'] as String,
       isMandatory: json['is_mandatory'] == 1 || json['is_mandatory'] == true,
       isEnabled: json['is_enabled'] == 1 || json['is_enabled'] == true,
-      dueDate: json['due_date'] != null ? DateTime.parse(json['due_date']) : null,
+      dueDate: (json['due_date'] != null && json['due_date'].toString().isNotEmpty)
+          ? DateTime.parse(json['due_date'])
+          : null,
       acceptedFileTypes: json['accepted_file_types'] ?? 'pdf,jpg,jpeg,png',
       schoolLevels: json['school_levels'] ?? 'JHS,SHS',
-      createdAt: json['created_at'] != null ? DateTime.parse(json['created_at']) : null,
-      updatedAt: json['updated_at'] != null ? DateTime.parse(json['updated_at']) : null,
+      createdAt: (json['created_at'] != null && json['created_at'].toString().isNotEmpty)
+          ? DateTime.parse(json['created_at'])
+          : null,
+      updatedAt: (json['updated_at'] != null && json['updated_at'].toString().isNotEmpty)
+          ? DateTime.parse(json['updated_at'])
+          : null,
     );
   }
 

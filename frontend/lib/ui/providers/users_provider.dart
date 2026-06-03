@@ -70,9 +70,15 @@ class UsersNotifier extends AsyncNotifier<List<SystemUser>> {
     }
   }
 
-  Future<bool> deleteUser(int id) async {
+  Future<bool> deleteUser(int id, {required String reason, required String password}) async {
     try {
-      await ref.read(userRepositoryProvider).deleteUser(id);
+      // ✅ Pass the reason and password down to the repository!
+      await ref.read(userRepositoryProvider).deleteUser(
+        id, 
+        reason: reason, 
+        password: password,
+      );
+      
       await refresh();
       return true;
     } catch (e) {

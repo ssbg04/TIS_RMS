@@ -74,7 +74,49 @@ class PrintQueueItem {
   }
 }
 
+class TrashDocumentModel {
+  final int id;
+  final int? studentId;
+  final String fileName;
+  final String? documentType;
+  final String status;
+  final DateTime createdAt;
+  final String? studentLrn;
+  final String? studentName;
+  final String deletedAt;
+  final int daysRemaining;
+  final String filePath;
 
+  const TrashDocumentModel({
+    required this.id,
+    this.studentId,
+    required this.fileName,
+    this.documentType,
+    required this.status,
+    required this.createdAt,
+    this.studentLrn,
+    this.studentName,
+    required this.deletedAt,
+    required this.daysRemaining,
+    required this.filePath,
+  });
+
+  factory TrashDocumentModel.fromJson(Map<String, dynamic> json) {
+    return TrashDocumentModel(
+      id: json['id'] as int,
+      studentId: json['studentId'] as int?,
+      fileName: json['fileName'] as String? ?? '',
+      documentType: json['documentType'] as String?,
+      status: json['status'] as String? ?? 'Completed',
+      createdAt: DateTime.parse(json['createdAt'] as String),
+      studentLrn: json['studentLrn'] as String?,
+      studentName: json['studentName'] as String?,
+      deletedAt: json['deletedAt'] as String? ?? '',
+      daysRemaining: json['daysRemaining'] as int? ?? 30,
+      filePath: json['filePath'] as String? ?? '',
+    );
+  }
+}
 
 class RequirementsSettings {
   final List<DocumentRequirementModel> jhs;
@@ -150,6 +192,17 @@ class DocumentRepository {
   }
 
   // Documents
+  Future<List<String>> getStatuses() async {
+    try {
+      final options = await _getAuthOptions();
+      final response = await _dio.get('/documents/statuses', options: options);
+      return (response.data as List).map((s) => s as String).toList();
+    } on DioException catch (e) {
+      final msg = e.response?.data?['message'] ?? 'Failed to fetch statuses.';
+      throw Exception(msg);
+    }
+  }
+
   Future<DocumentPage> getDocuments({
     String search = '',
     int page = 1,
@@ -158,6 +211,7 @@ class DocumentRepository {
     String documentType = 'All Types',
     String gradeLevel = '',
     String schoolYear = '',
+    int? studentId,
   }) async {
     try {
       final options = await _getAuthOptions();
@@ -169,6 +223,7 @@ class DocumentRepository {
           if (documentType.trim().isNotEmpty && documentType != 'All Types') 'documentType': documentType.trim(),
           if (gradeLevel.trim().isNotEmpty) 'gradeLevel': gradeLevel.trim(),
           if (schoolYear.trim().isNotEmpty) 'schoolYear': schoolYear.trim(),
+          if (studentId != null) 'studentId': studentId,
           'page': page,
           'limit': limit,
         },
@@ -197,6 +252,56 @@ class DocumentRepository {
       await _dio.delete('/documents/$id', options: options);
     } on DioException catch (e) {
       final msg = e.response?.data?['message'] ?? 'Failed to delete document.';
+      throw Exception(msg);
+    }
+  }
+
+  Future<void> copyDocument(int id) async {
+    try {
+      final options = await _getAuthOptions();
+      await _dio.post('/documents/$id/copy', options: options);
+    } on DioException catch (e) {
+      final msg = e.response?.data?['message'] ?? 'Failed to copy document.';
+      throw Exception(msg);
+    }
+  }
+
+  Future<void> bulkDeleteDocuments(List<int> ids) async {
+    try {
+      final options = await _getAuthOptions();
+      await _dio.post('/documents/bulk-delete', data: {'ids': ids}, options: options);
+    } on DioException catch (e) {
+      final msg = e.response?.data?['message'] ?? 'Failed to bulk delete documents.';
+      throw Exception(msg);
+    }
+  }
+
+  Future<void> bulkUpdateStatus(List<int> ids, String status) async {
+    try {
+      final options = await _getAuthOptions();
+      await _dio.post('/documents/bulk-status', data: {'ids': ids, 'status': status}, options: options);
+    } on DioException catch (e) {
+      final msg = e.response?.data?['message'] ?? 'Failed to bulk update status.';
+      throw Exception(msg);
+    }
+  }
+
+  Future<void> bulkAddToPrintQueue(List<int> ids) async {
+    try {
+      final options = await _getAuthOptions();
+      await _dio.post('/documents/bulk-print', data: {'ids': ids}, options: options);
+    } on DioException catch (e) {
+      final msg = e.response?.data?['message'] ?? 'Failed to bulk add to print queue.';
+      throw Exception(msg);
+    }
+  }
+
+  Future<void> bulkCopyDocuments(List<int> ids) async {
+    try {
+      final options = await _getAuthOptions();
+      await _dio.post('/documents/bulk-copy', data: {'ids': ids}, options: options);
+    } on DioException catch (e) {
+      final msg = e.response?.data?['message'] ?? 'Failed to bulk copy documents.';
       throw Exception(msg);
     }
   }
@@ -428,6 +533,70 @@ class DocumentRepository {
       await _dio.delete('/documents/print-queue/clear', options: options);
     } on DioException catch (e) {
       final msg = e.response?.data?['message'] ?? 'Failed to clear print queue.';
+      throw Exception(msg);
+    }
+  }
+
+  Future<void> executePrintQueue() async {
+    try {
+      final options = await _getAuthOptions();
+      await _dio.post('/documents/print-queue/print', options: options);
+    } on DioException catch (e) {
+      final msg = e.response?.data?['message'] ?? 'Failed to log print list execution.';
+      throw Exception(msg);
+    }
+  }
+
+  // Recycle Bin / Trash
+  Future<List<TrashDocumentModel>> getTrashDocuments() async {
+    try {
+      final options = await _getAuthOptions();
+      final response = await _dio.get('/documents/trash', options: options);
+      return (response.data as List)
+          .map((i) => TrashDocumentModel.fromJson(i as Map<String, dynamic>))
+          .toList();
+    } on DioException catch (e) {
+      final msg = e.response?.data?['message'] ?? 'Failed to fetch Recycle Bin.';
+      throw Exception(msg);
+    }
+  }
+
+  Future<void> restoreDocument(int id) async {
+    try {
+      final options = await _getAuthOptions();
+      await _dio.post('/documents/$id/restore', options: options);
+    } on DioException catch (e) {
+      final msg = e.response?.data?['message'] ?? 'Failed to restore document.';
+      throw Exception(msg);
+    }
+  }
+
+  Future<void> bulkRestoreDocuments(List<int> ids) async {
+    try {
+      final options = await _getAuthOptions();
+      await _dio.post('/documents/bulk-restore', data: {'ids': ids}, options: options);
+    } on DioException catch (e) {
+      final msg = e.response?.data?['message'] ?? 'Failed to bulk restore documents.';
+      throw Exception(msg);
+    }
+  }
+
+  Future<void> permanentDeleteDocument(int id) async {
+    try {
+      final options = await _getAuthOptions();
+      await _dio.delete('/documents/$id/permanent', options: options);
+    } on DioException catch (e) {
+      final msg = e.response?.data?['message'] ?? 'Failed to permanently delete document.';
+      throw Exception(msg);
+    }
+  }
+
+  Future<void> bulkPermanentDeleteDocuments(List<int> ids) async {
+    try {
+      final options = await _getAuthOptions();
+      await _dio.post('/documents/bulk-permanent-delete', data: {'ids': ids}, options: options);
+    } on DioException catch (e) {
+      final msg = e.response?.data?['message'] ?? 'Failed to bulk permanently delete documents.';
       throw Exception(msg);
     }
   }

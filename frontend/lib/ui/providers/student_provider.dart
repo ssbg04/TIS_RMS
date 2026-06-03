@@ -71,6 +71,8 @@ class StudentQueryParams {
   final int    limit;
   final String gradeLevel; // '' = All
   final String status;     // '' = All
+  final String section;    // '' = All
+  final String schoolYear; // '' = All
 
   const StudentQueryParams({
     this.search     = '',
@@ -78,6 +80,8 @@ class StudentQueryParams {
     this.limit      = 10,
     this.gradeLevel = '',
     this.status     = '',
+    this.section    = '',
+    this.schoolYear = '',
   });
 
   StudentQueryParams copyWith({
@@ -86,6 +90,8 @@ class StudentQueryParams {
     int?    limit,
     String? gradeLevel,
     String? status,
+    String? section,
+    String? schoolYear,
   }) {
     return StudentQueryParams(
       search:     search     ?? this.search,
@@ -93,6 +99,8 @@ class StudentQueryParams {
       limit:      limit      ?? this.limit,
       gradeLevel: gradeLevel ?? this.gradeLevel,
       status:     status     ?? this.status,
+      section:    section    ?? this.section,
+      schoolYear: schoolYear ?? this.schoolYear,
     );
   }
 }
@@ -119,10 +127,16 @@ class StudentQueryNotifier extends Notifier<StudentQueryParams> {
   void setLimit(int limit) => state = state.copyWith(limit: limit, page: 1);
 
   void setGradeLevel(String grade) =>
-      state = state.copyWith(gradeLevel: grade, page: 1);
+      state = state.copyWith(gradeLevel: grade, section: '', page: 1);
 
   void setStatus(String status) =>
       state = state.copyWith(status: status, page: 1);
+
+  void setSection(String section) =>
+      state = state.copyWith(section: section, page: 1);
+
+  void setSchoolYear(String schoolYear) =>
+      state = state.copyWith(schoolYear: schoolYear, gradeLevel: '', section: '', page: 1);
 
   void reset() => state = const StudentQueryParams();
 }
@@ -134,12 +148,20 @@ final studentPageProvider = FutureProvider.autoDispose<StudentPage>((ref) async 
   final query = ref.watch(studentQueryProvider);
   final repo  = ref.read(studentRepositoryProvider);
 
+  final sub = repo.onStudentChanged.listen((_) {
+    ref.invalidateSelf();
+  });
+
+  ref.onDispose(() => sub.cancel());
+
   return repo.getStudents(
     search:     query.search,
     page:       query.page,
     limit:      query.limit,
     gradeLevel: query.gradeLevel,
     status:     query.status,
+    section:    query.section,
+    schoolYear: query.schoolYear,
   );
 });
 
@@ -163,18 +185,26 @@ class StudentMutationNotifier extends AsyncNotifier<void> {
     String?           extension,
     required String   sex,
     required DateTime birthDate,
+    required int      academicYearId,
+    required int      gradeLevel,
+    required int      sectionId,
+    String?           trackStrand,
   }) async {
     state = const AsyncLoading();
     try {
       final repo = ref.read(studentRepositoryProvider);
       await repo.createStudent(
-        lrn:        lrn,
-        firstName:  firstName,
-        middleName: middleName,
-        lastName:   lastName,
-        extension:  extension,
-        sex:        sex,
-        birthDate:  birthDate,
+        lrn:            lrn,
+        firstName:      firstName,
+        middleName:     middleName,
+        lastName:       lastName,
+        extension:      extension,
+        sex:            sex,
+        birthDate:      birthDate,
+        academicYearId: academicYearId,
+        gradeLevel:     gradeLevel,
+        sectionId:      sectionId,
+        trackStrand:    trackStrand,
       );
       state = const AsyncData(null);
       // Invalidate to refresh the list
@@ -194,21 +224,29 @@ class StudentMutationNotifier extends AsyncNotifier<void> {
     String?           extension,
     required String   sex,
     required DateTime birthDate,
+    required int      academicYearId,
+    required int      gradeLevel,
+    required int      sectionId,
+    String?           trackStrand,
     String            status = 'Enrolled',
   }) async {
     state = const AsyncLoading();
     try {
       final repo = ref.read(studentRepositoryProvider);
       await repo.updateStudent(
-        id:         id,
-        lrn:        lrn,
-        firstName:  firstName,
-        middleName: middleName,
-        lastName:   lastName,
-        extension:  extension,
-        sex:        sex,
-        birthDate:  birthDate,
-        status:     status,
+        id:             id,
+        lrn:            lrn,
+        firstName:      firstName,
+        middleName:     middleName,
+        lastName:       lastName,
+        extension:      extension,
+        sex:            sex,
+        birthDate:      birthDate,
+        status:         status,
+        academicYearId: academicYearId,
+        gradeLevel:     gradeLevel,
+        sectionId:      sectionId,
+        trackStrand:    trackStrand,
       );
       state = const AsyncData(null);
       ref.invalidate(studentPageProvider);
@@ -223,6 +261,44 @@ class StudentMutationNotifier extends AsyncNotifier<void> {
     try {
       final repo = ref.read(studentRepositoryProvider);
       await repo.deleteStudent(id);
+      state = const AsyncData(null);
+      ref.invalidate(studentPageProvider);
+    } catch (e, st) {
+      state = AsyncError(e, st);
+      rethrow;
+    }
+  }
+
+  Future<void> bulkEnroll({
+    required List<int> studentIds,
+    required int       academicYearId,
+    required int       gradeLevel,
+    required int       sectionId,
+    String?            trackStrand,
+  }) async {
+    state = const AsyncLoading();
+    try {
+      final repo = ref.read(studentRepositoryProvider);
+      await repo.bulkEnroll(
+        studentIds:     studentIds,
+        academicYearId: academicYearId,
+        gradeLevel:     gradeLevel,
+        sectionId:      sectionId,
+        trackStrand:    trackStrand,
+      );
+      state = const AsyncData(null);
+      ref.invalidate(studentPageProvider);
+    } catch (e, st) {
+      state = AsyncError(e, st);
+      rethrow;
+    }
+  }
+
+  Future<void> bulkGraduate(List<int> studentIds) async {
+    state = const AsyncLoading();
+    try {
+      final repo = ref.read(studentRepositoryProvider);
+      await repo.bulkGraduate(studentIds);
       state = const AsyncData(null);
       ref.invalidate(studentPageProvider);
     } catch (e, st) {

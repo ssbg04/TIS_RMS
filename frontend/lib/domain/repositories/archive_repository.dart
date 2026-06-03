@@ -2,6 +2,8 @@ import 'package:dio/dio.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import '../../core/network/api_constants.dart';
 import '../entities/archive_model.dart';
+import '../entities/folder_model.dart';
+import 'document_repository.dart';
 
 class ArchivePage {
   final List<ArchiveModel> archives;
@@ -82,6 +84,66 @@ class ArchiveRepository {
       await _dio.delete('/archives/$id', options: options);
     } on DioException catch (e) {
       final msg = e.response?.data?['message'] ?? 'Failed to purge archive.';
+      throw Exception(msg);
+    }
+  }
+
+  // ----------------------------------------------------------------
+  // New document-centric endpoints (for redesigned Archive screen)
+  // ----------------------------------------------------------------
+
+  Future<DocumentPage> getArchivedDocuments({
+    String search = '',
+    int page = 1,
+    int limit = 20,
+    String status = 'All Statuses',
+    String documentType = 'All Types',
+    String gradeLevel = '',
+    String schoolYear = '',
+    int? studentId,
+  }) async {
+    try {
+      final options = await _getAuthOptions();
+      final response = await _dio.get(
+        '/archives/documents',
+        queryParameters: {
+          if (search.trim().isNotEmpty) 'search': search.trim(),
+          if (status.trim().isNotEmpty && status != 'All Statuses') 'status': status.trim(),
+          if (documentType.trim().isNotEmpty && documentType != 'All Types') 'documentType': documentType.trim(),
+          if (gradeLevel.trim().isNotEmpty) 'gradeLevel': gradeLevel.trim(),
+          if (schoolYear.trim().isNotEmpty) 'schoolYear': schoolYear.trim(),
+          'studentId': ?studentId,
+          'page': page,
+          'limit': limit,
+        },
+        options: options,
+      );
+      return DocumentPage.fromJson(response.data as Map<String, dynamic>);
+    } on DioException catch (e) {
+      final msg = e.response?.data?['message'] ?? 'Failed to fetch archived documents.';
+      throw Exception(msg);
+    }
+  }
+
+  Future<List<FolderModel>> getArchivedStudentFolders({
+    String search = '',
+    String status = 'All Statuses',
+  }) async {
+    try {
+      final options = await _getAuthOptions();
+      final response = await _dio.get(
+        '/archives/student-folders',
+        queryParameters: {
+          if (search.trim().isNotEmpty) 'search': search.trim(),
+          if (status.trim().isNotEmpty && status != 'All Statuses') 'status': status.trim(),
+        },
+        options: options,
+      );
+      return (response.data as List)
+          .map((f) => FolderModel.fromJson(f as Map<String, dynamic>))
+          .toList();
+    } on DioException catch (e) {
+      final msg = e.response?.data?['message'] ?? 'Failed to fetch archived student folders.';
       throw Exception(msg);
     }
   }

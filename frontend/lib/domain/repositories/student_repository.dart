@@ -1,5 +1,7 @@
 import 'package:dio/dio.dart';
+import 'dart:async';  
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:socket_io_client/socket_io_client.dart' as IO;
 import '../../core/network/api_constants.dart';
 import '../entities/student_model.dart';
 
@@ -37,9 +39,48 @@ class StudentRepository {
   final Dio _dio = Dio(BaseOptions(baseUrl: ApiConstants.baseUrl));
   final FlutterSecureStorage _storage = const FlutterSecureStorage();
 
+  IO.Socket? _socket;
+  final StreamController<void> _studentUpdateController = StreamController.broadcast();
+
+  Stream<void> get onStudentChanged => _studentUpdateController.stream;
+
   Future<Options> _getAuthOptions() async {
     final token = await _storage.read(key: 'jwt_token');
     return Options(headers: {'Authorization': 'Bearer $token'});
+  }
+
+  // ----------------------------------------------------------------
+  // Initialize WebSocket for Real-Time LAN Sync
+  // ----------------------------------------------------------------
+  void _initRealTimeSocket() async {
+    final token = await _storage.read(key: 'jwt_token');
+
+    // Assumes your ApiConstants.baseUrl looks like 'http://192.168.1.10:3000/api'
+    // Sockets usually connect to the root domain 'http://192.168.1.10:3000'
+    final socketUrl = ApiConstants.baseUrl.replaceAll('/api', '');
+
+    _socket = IO.io(socketUrl, IO.OptionBuilder()
+        .setTransports(['websocket'])
+        .setAuth({'token': token}) // Pass token for secure backend verification
+        .disableAutoConnect()
+        .build()
+    );
+
+    _socket?.connect();
+
+    _socket?.onConnect((_) {
+      print('Real-time sync connected to LAN server');
+    });
+
+    // Listen for database changes broadcasted by the Node.js server
+    _socket?.on('student_added', (_) => _studentUpdateController.add(null));
+    _socket?.on('student_updated', (_) => _studentUpdateController.add(null));
+    _socket?.on('student_deleted', (_) => _studentUpdateController.add(null));
+  }
+
+  void dispose() {  
+    _socket?.dispose();
+    _studentUpdateController.close();
   }
 
   // ----------------------------------------------------------------
@@ -51,6 +92,8 @@ class StudentRepository {
     int    limit      = 10,
     String gradeLevel = '',
     String status     = '',
+    String section    = '',
+    String schoolYear = '',
   }) async {
     try {
       final options = await _getAuthOptions();
@@ -60,6 +103,8 @@ class StudentRepository {
           if (search.trim().isNotEmpty)     'search':     search.trim(),
           if (gradeLevel.trim().isNotEmpty) 'gradeLevel': gradeLevel.trim(),
           if (status.trim().isNotEmpty)     'status':     status.trim(),
+          if (section.trim().isNotEmpty)    'section':    section.trim(),
+          if (schoolYear.trim().isNotEmpty) 'schoolYear': schoolYear.trim(),
           'page':  page,
           'limit': limit,
         },
@@ -97,19 +142,27 @@ class StudentRepository {
     String?         extension,
     required String sex,
     required DateTime birthDate,
+    required int academicYearId,
+    required int gradeLevel,
+    required int sectionId,
+    String? trackStrand,
   }) async {
     try {
       final options  = await _getAuthOptions();
       final response = await _dio.post(
         '/students',
         data: {
-          'lrn':        lrn.trim(),
-          'firstName':  firstName.trim(),
-          'middleName': middleName?.trim(),
-          'lastName':   lastName.trim(),
-          'extension':  extension?.trim(),
-          'sex':        sex,
-          'birthDate':  '${birthDate.year}-${birthDate.month.toString().padLeft(2, '0')}-${birthDate.day.toString().padLeft(2, '0')}',
+          'lrn':            lrn.trim(),
+          'firstName':      firstName.trim(),
+          'middleName':     middleName?.trim(),
+          'lastName':       lastName.trim(),
+          'extension':      extension?.trim(),
+          'sex':            sex,
+          'birthDate':      '${birthDate.year}-${birthDate.month.toString().padLeft(2, '0')}-${birthDate.day.toString().padLeft(2, '0')}',
+          'academicYearId': academicYearId,
+          'gradeLevel':     gradeLevel,
+          'sectionId':      sectionId,
+          'trackStrand':    trackStrand,
         },
         options: options,
       );
@@ -132,6 +185,10 @@ class StudentRepository {
     String?         extension,
     required String sex,
     required DateTime birthDate,
+    required int academicYearId,
+    required int gradeLevel,
+    required int sectionId,
+    String? trackStrand,
     String          status = 'Enrolled',
   }) async {
     try {
@@ -139,14 +196,18 @@ class StudentRepository {
       await _dio.put(
         '/students/$id',
         data: {
-          'lrn':        lrn.trim(),
-          'firstName':  firstName.trim(),
-          'middleName': middleName?.trim(),
-          'lastName':   lastName.trim(),
-          'extension':  extension?.trim(),
-          'sex':        sex,
-          'birthDate':  '${birthDate.year}-${birthDate.month.toString().padLeft(2, '0')}-${birthDate.day.toString().padLeft(2, '0')}',
-          'status':     status,
+          'lrn':            lrn.trim(),
+          'firstName':      firstName.trim(),
+          'middleName':     middleName?.trim(),
+          'lastName':       lastName.trim(),
+          'extension':      extension?.trim(),
+          'sex':            sex,
+          'birthDate':      '${birthDate.year}-${birthDate.month.toString().padLeft(2, '0')}-${birthDate.day.toString().padLeft(2, '0')}',
+          'status':         status,
+          'academicYearId': academicYearId,
+          'gradeLevel':     gradeLevel,
+          'sectionId':      sectionId,
+          'trackStrand':    trackStrand,
         },
         options: options,
       );
@@ -165,6 +226,52 @@ class StudentRepository {
       await _dio.delete('/students/$id', options: options);
     } on DioException catch (e) {
       final msg = e.response?.data?['message'] ?? 'Failed to delete student.';
+      throw Exception(msg);
+    }
+  }
+
+  // ----------------------------------------------------------------
+  // Bulk Enroll Students
+  // ----------------------------------------------------------------
+  Future<void> bulkEnroll({
+    required List<int> studentIds,
+    required int academicYearId,
+    required int gradeLevel,
+    required int sectionId,
+    String? trackStrand,
+  }) async {
+    try {
+      final options = await _getAuthOptions();
+      await _dio.post(
+        '/students/bulk-enroll',
+        data: {
+          'studentIds':     studentIds,
+          'academicYearId': academicYearId,
+          'gradeLevel':     gradeLevel,
+          'sectionId':      sectionId,
+          'trackStrand':    trackStrand,
+        },
+        options: options,
+      );
+    } on DioException catch (e) {
+      final msg = e.response?.data?['message'] ?? 'Failed to bulk enroll students.';
+      throw Exception(msg);
+    }
+  }
+
+  // ----------------------------------------------------------------
+  // Bulk Graduate Students
+  // ----------------------------------------------------------------
+  Future<void> bulkGraduate(List<int> studentIds) async {
+    try {
+      final options = await _getAuthOptions();
+      await _dio.put(
+        '/students/bulk-graduate',
+        data: {'studentIds': studentIds},
+        options: options,
+      );
+    } on DioException catch (e) {
+      final msg = e.response?.data?['message'] ?? 'Failed to bulk graduate students.';
       throw Exception(msg);
     }
   }

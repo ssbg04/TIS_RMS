@@ -84,6 +84,7 @@ class AuthRepository {
     String? extension,
     String? phone,
     String? email,
+    required String currentPassword,
   }) async {
     try {
       final options = await _getAuthOptions();
@@ -94,6 +95,7 @@ class AuthRepository {
         'extension': extension,
         'phone': phone,
         'email': email,
+        'currentPassword': currentPassword,
       });
     } on DioException catch (e) {
       final errorMessage = e.response?.data['message'] ?? 'Failed to update profile.';
@@ -168,6 +170,19 @@ class AuthRepository {
     } on DioException catch (e) {
       final errorMessage = e.response?.data['message'] ?? 'Failed to reject.';
       throw Exception(errorMessage);
+    }
+  }
+
+  /// Verify current user's password
+  Future<bool> verifyPassword(String password) async {
+    try {
+      final options = await _getAuthOptions();
+      await _dio.post('/auth/verify-password', options: options, data: {
+        'password': password,
+      });
+      return true;
+    } catch (e) {
+      return false;
     }
   }
 }

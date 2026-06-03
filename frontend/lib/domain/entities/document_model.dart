@@ -5,8 +5,7 @@ class DocumentModel {
   final String fileName;
   final String filePath;
   final String? documentType;
-  final String status; // 'Pending', 'Verified', 'Draft', 'Archived', 'Rejected'
-  final DateTime? retentionDate;
+  final String status; // 'Completed', 'Archived'
   final DateTime createdAt;
   
   // Extra fields for UI display
@@ -22,7 +21,6 @@ class DocumentModel {
     required this.filePath,
     this.documentType,
     required this.status,
-    this.retentionDate,
     required this.createdAt,
     this.studentLrn,
     this.studentName,
@@ -32,16 +30,15 @@ class DocumentModel {
   factory DocumentModel.fromJson(Map<String, dynamic> json) {
     return DocumentModel(
       id: json['id'] as int,
-      studentId: json['student_id'] as int?,
-      requirementId: json['requirement_id'] as int?,
+      studentId: json['studentId'] ?? json['student_id'] as int?,
+      requirementId: json['requirementId'] ?? json['requirement_id'] as int?,
       fileName: json['fileName'] ?? json['file_name'] ?? '',
       filePath: json['filePath'] ?? json['file_path'] ?? '',
       documentType: json['documentType'] ?? json['document_type'],
-      status: json['status'] as String? ?? 'Pending',
-      retentionDate: json['retention_date'] != null ? DateTime.parse(json['retention_date']) : null,
+      status: json['status'] as String? ?? 'Completed',
       createdAt: json['createdAt'] != null ? DateTime.parse(json['createdAt']) : (json['created_at'] != null ? DateTime.parse(json['created_at']) : DateTime.now()),
-      studentLrn: json['studentLrn'],
-      studentName: json['studentName'],
+      studentLrn: json['studentLrn'] ?? json['student_lrn'],
+      studentName: json['studentName'] ?? json['student_name'],
       size: json['size'],
     );
   }
@@ -55,7 +52,7 @@ class DocumentModel {
       'file_path': filePath,
       'document_type': documentType,
       'status': status,
-      'retention_date': retentionDate?.toIso8601String(),
+      'created_at': createdAt.toIso8601String(),
     };
   }
 }

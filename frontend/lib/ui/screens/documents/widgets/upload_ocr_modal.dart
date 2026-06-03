@@ -1,7 +1,6 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:file_picker/file_picker.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import '../../../../core/constants/app_colors.dart';
@@ -9,10 +8,17 @@ import '../../../../core/constants/app_sizes.dart';
 import '../../../../core/network/api_constants.dart';
 import '../../../shared/inputs/custom_text_field.dart';
 import '../../../shared/buttons/primary_button.dart';
+import '../../../shared/inputs/document_source_picker.dart';
 import '../../../providers/document_provider.dart';
+import '../../../providers/student_provider.dart';
+import '../../../shared/dialogs/success_dialog.dart';
+import '../../../shared/dialogs/error_dialog.dart';
 
 class UploadOcrModal extends ConsumerStatefulWidget {
-  const UploadOcrModal({super.key});
+  /// If provided, the modal will automatically fetch and fill this student's LRN
+  final int? prefilledStudentId;
+
+  const UploadOcrModal({super.key, this.prefilledStudentId});
 
   @override
   ConsumerState<UploadOcrModal> createState() => _UploadOcrModalState();
@@ -26,70 +32,79 @@ class _UploadOcrModalState extends ConsumerState<UploadOcrModal> {
   String? _fileSize;
 
   final TextEditingController _lrnController = TextEditingController();
-  final TextEditingController _remarksController = TextEditingController();
   
   String? _selectedDocumentType;
   int? _selectedRequirementId;
   int? _matchedStudentId;
 
   bool _isSubmitting = false;
-  bool _isValidating = false;
-  String? _errorMessage;
+
+  @override
+  void initState() {
+    super.initState();
+    // If we opened this from a specific student's folder, fetch their LRN automatically
+    if (widget.prefilledStudentId != null) {
+      _matchedStudentId = widget.prefilledStudentId;
+      _fetchPrefilledStudentLrn();
+    }
+  }
 
   @override
   void dispose() {
     _lrnController.dispose();
-    _remarksController.dispose();
     super.dispose();
   }
 
-  void _pickFile() async {
-    FilePickerResult? result = await FilePicker.pickFiles(
-      type: FileType.custom,
-      allowedExtensions: ['pdf', 'jpg', 'png', 'jpeg'],
-    );
-
-    if (result != null) {
-      final file = File(result.files.single.path!);
-      final size = (file.lengthSync() / (1024 * 1024)).toStringAsFixed(2);
-      
-      setState(() {
-        _selectedFile = file;
-        _fileName = result.files.single.name;
-        _fileSize = '$size MB';
-        _currentStep = 1; 
-      });
-
-      _processOCR();
+  Future<void> _fetchPrefilledStudentLrn() async {
+    try {
+      final student = await ref.read(studentDetailProvider(widget.prefilledStudentId!).future);
+      if (mounted) {
+        setState(() {
+          _lrnController.text = student.lrn; // Auto-fill the LRN
+        });
+      }
+    } catch (e) {
+      // Fails silently, the user can still type it manually if needed
     }
   }
 
-  void _processOCR() async {
-    // Simulate OCR delay
-    await Future.delayed(const Duration(milliseconds: 1500));
-    if (!mounted) return;
+  void _handleFileSelected(File file, String fileName, String fileSize) {
     setState(() {
-      _currentStep = 2; 
+      _selectedFile = file;
+      _fileName = fileName;
+      _fileSize = fileSize;
+      
+      // Skip the OCR scanning entirely and go straight to the form
+      _currentStep = 1; 
     });
   }
 
   Future<void> _validateAndUpload() async {
-    setState(() {
-      _errorMessage = null;
-    });
-
     final lrn = _lrnController.text.trim();
     if (lrn.isEmpty || lrn.length != 12) {
-      setState(() => _errorMessage = 'Valid 12-digit LRN is required.');
+      showErrorDialog(context, 'Invalid LRN', 'A valid 12-digit LRN is required.');
       return;
     }
-    if (_selectedDocumentType == null) {
-      setState(() => _errorMessage = 'Please select a Document Type.');
+    if (_selectedRequirementId == null) {
+      showErrorDialog(context, 'Missing Document Type', 'Please select a Document Type before uploading.');
       return;
     }
     if (_selectedFile == null) {
-      setState(() => _errorMessage = 'No file selected.');
+      showErrorDialog(context, 'No File Selected', 'Please select a file to upload.');
       return;
+    }
+
+    final ext = _fileName?.split('.').last.toLowerCase() ?? _selectedFile!.path.split('.').last.toLowerCase();
+    final requirementsAsync = ref.read(documentRequirementsProvider);
+    final reqs = requirementsAsync.value;
+    if (reqs != null) {
+      final req = reqs.firstWhere((r) => r.id == _selectedRequirementId);
+      final allowedExts = req.acceptedFileTypes.split(',').map((e) => e.trim().toLowerCase()).toList();
+      
+      if (!allowedExts.contains(ext)) {
+        showErrorDialog(context, 'Invalid File Type', 'This requirement only accepts: ${req.acceptedFileTypes}. Your file is a $ext.');
+        return;
+      }
     }
 
     setState(() => _isSubmitting = true);
@@ -99,97 +114,155 @@ class _UploadOcrModalState extends ConsumerState<UploadOcrModal> {
       final token = await storage.read(key: 'jwt_token');
       final dio = Dio(BaseOptions(baseUrl: ApiConstants.baseUrl, headers: {'Authorization': 'Bearer $token'}));
 
-      // 1. Validate LRN and get Student ID
-      final studentsRes = await dio.get('/students', queryParameters: {'search': lrn});
-      final students = studentsRes.data['students'] as List;
-      if (students.isEmpty) {
-        setState(() {
-          _errorMessage = 'Student with LRN $lrn not found.';
-          _isSubmitting = false;
-        });
-        return;
+      int finalStudentId;
+
+      // 1. Determine Student ID (Use pre-matched if available, otherwise search API by LRN)
+      if (_matchedStudentId != null) {
+        finalStudentId = _matchedStudentId!;
+      } else {
+        final studentsRes = await dio.get('/students', queryParameters: {'search': lrn});
+        final students = studentsRes.data['students'] as List;
+        if (students.isEmpty) {
+          setState(() => _isSubmitting = false);
+          if (!mounted) return;
+          showErrorDialog(context, 'Student Not Found', 'No student found with LRN $lrn. Please check the LRN and try again.');
+          return;
+        }
+        finalStudentId = students[0]['id'];
       }
-      final studentId = students[0]['id'];
 
       // 2. Upload Document
+      final ext = _fileName?.split('.').last ?? _selectedFile!.path.split('.').last;
+      final newFileName = '${lrn}_$_selectedDocumentType.$ext';
+
       final formData = FormData.fromMap({
-        'studentId': studentId,
+        'studentId': finalStudentId,
         'documentType': _selectedDocumentType,
         'requirementId': _selectedRequirementId,
-        'remarks': _remarksController.text.trim(),
-        'document': await MultipartFile.fromFile(_selectedFile!.path, filename: _fileName),
+        'document': await MultipartFile.fromFile(_selectedFile!.path, filename: newFileName),
       });
 
       await dio.post('/documents/upload', data: formData);
 
       if (!mounted) return;
-      ref.invalidate(documentPageProvider); // Refresh list
-      Navigator.of(context).pop(); 
+      ref.invalidate(documentPageProvider); // Refresh the documents list
+      ref.invalidate(foldersProvider);
+      ref.invalidate(studentFoldersProvider);
       
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Document uploaded successfully.'),
-          backgroundColor: AppColors.success,
-        ),
-      );
+      // Show Success Dialog
+      _showSuccessDialog();
 
     } on DioException catch (e) {
-      setState(() {
-        _errorMessage = e.response?.data?['message'] ?? 'Failed to upload document.';
-        _isSubmitting = false;
-      });
+      setState(() => _isSubmitting = false);
+      if (!mounted) return;
+      showErrorDialog(
+        context,
+        'Upload Failed',
+        e.response?.data?['message'] ?? 'Failed to upload document.',
+      );
     } catch (e) {
-      setState(() {
-        _errorMessage = 'An unexpected error occurred.';
-        _isSubmitting = false;
-      });
+      setState(() => _isSubmitting = false);
+      if (!mounted) return;
+      showErrorDialog(
+        context,
+        'Unexpected Error',
+        'An unexpected error occurred. Please try again.',
+      );
     }
   }
 
+  // ----------------------------------------------------------------
+  // SHOW SUCCESS DIALOG (uses shared dialog)
+  // ----------------------------------------------------------------
+  void _showSuccessDialog() {
+    showSuccessDialog(
+      context,
+      title: 'Upload Successful!',
+      message: '$_fileName has been securely saved to the student\'s records.',
+      buttonLabel: 'DONE',
+      onDismissed: () => Navigator.of(context).pop(), // Close the upload modal
+    );
+  }
+
+  // ----------------------------------------------------------------
+  // BUILD
+  // ----------------------------------------------------------------
   @override
   Widget build(BuildContext context) {
+    final screenSize = MediaQuery.of(context).size;
+    final isSmall = screenSize.width < 600 || screenSize.height < 600;
+
+    // Compute adaptive constraints
+    final double maxW = isSmall ? screenSize.width * 0.98 : 600;
+    final double maxH = isSmall
+        ? screenSize.height * 0.92
+        : screenSize.height * 0.85;
+
     return Dialog(
       backgroundColor: AppColors.surfaceWhite,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppSizes.radiusLarge)),
+      insetPadding: EdgeInsets.symmetric(
+        horizontal: isSmall ? 8 : 24,
+        vertical: isSmall ? 16 : 40,
+      ),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(
+          isSmall ? AppSizes.radiusMedium : AppSizes.radiusLarge,
+        ),
+      ),
       child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 600, minHeight: 400),
+        constraints: BoxConstraints(
+          maxWidth: maxW,
+          maxHeight: maxH,
+        ),
         child: Padding(
-          padding: const EdgeInsets.all(AppSizes.p24),
+          padding: EdgeInsets.all(isSmall ? AppSizes.p16 : AppSizes.p24),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              // ── Header ──
               Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  const Text(
-                    'Upload & Scan Document',
-                    style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: AppColors.primaryGreen),
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: AppColors.primaryGreen.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: const Icon(Icons.cloud_upload_rounded,
+                        color: AppColors.primaryGreen, size: 22),
+                  ),
+                  const SizedBox(width: 12),
+                  const Expanded(
+                    child: Text(
+                      'Upload Document',
+                      style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                        color: AppColors.textPrimary,
+                      ),
+                    ),
                   ),
                   IconButton(
-                    icon: const Icon(Icons.close, color: AppColors.textSecondary),
+                    icon: const Icon(Icons.close_rounded, color: AppColors.textSecondary),
                     onPressed: () => Navigator.of(context).pop(),
+                    tooltip: 'Close',
                   ),
                 ],
               ),
-              const Divider(height: 32),
+              const SizedBox(height: 4),
+              // Step indicator
+              Row(
+                children: [
+                  _buildStepChip(1, 'Select File', _currentStep >= 0),
+                  _buildStepConnector(_currentStep >= 1),
+                  _buildStepChip(2, 'Document Info', _currentStep >= 1),
+                ],
+              ),
+              const Divider(height: 20),
 
-              if (_errorMessage != null)
-                Container(
-                  padding: const EdgeInsets.all(AppSizes.p12),
-                  margin: const EdgeInsets.only(bottom: AppSizes.p16),
-                  color: AppColors.error.withOpacity(0.1),
-                  child: Row(
-                    children: [
-                      const Icon(Icons.error_outline, color: AppColors.error),
-                      const SizedBox(width: AppSizes.p8),
-                      Expanded(child: Text(_errorMessage!, style: const TextStyle(color: AppColors.error))),
-                    ],
-                  ),
-                ),
-
-              Expanded(
-                flex: _currentStep == 2 ? 1 : 0, 
+              // ── Content (scrollable) ──
+              Flexible(
                 child: AnimatedSwitcher(
                   duration: const Duration(milliseconds: 300),
                   child: _buildCurrentStep(),
@@ -202,88 +275,66 @@ class _UploadOcrModalState extends ConsumerState<UploadOcrModal> {
     );
   }
 
+  Widget _buildStepChip(int step, String label, bool active) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        AnimatedContainer(
+          duration: const Duration(milliseconds: 250),
+          width: 22,
+          height: 22,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            color: active ? AppColors.primaryGreen : Colors.grey.shade300,
+          ),
+          child: Center(
+            child: Text(
+              '$step',
+              style: TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.bold,
+                color: active ? Colors.white : Colors.grey.shade600,
+              ),
+            ),
+          ),
+        ),
+        const SizedBox(width: 5),
+        Text(
+          label,
+          style: TextStyle(
+            fontSize: 12,
+            fontWeight: active ? FontWeight.w600 : FontWeight.normal,
+            color: active ? AppColors.primaryGreen : AppColors.textSecondary,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildStepConnector(bool active) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 8),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 250),
+        width: 28,
+        height: 2,
+        color: active ? AppColors.primaryGreen : Colors.grey.shade300,
+      ),
+    );
+  }
+
   Widget _buildCurrentStep() {
     switch (_currentStep) {
-      case 0: return _buildStep0Upload();
-      case 1: return _buildStep1Processing();
-      case 2: return _buildStep2Review();
+      case 0: return DocumentSourcePicker(
+        allowedExtensions: const ['pdf', 'jpg', 'png', 'jpeg'],
+        onFileSelected: _handleFileSelected,
+      );
+      case 1: return _buildStep1Form();
       default: return const SizedBox.shrink();
     }
   }
 
-  Widget _buildStep0Upload() {
-    return InkWell(
-      onTap: _pickFile,
-      borderRadius: BorderRadius.circular(AppSizes.radiusLarge),
-      child: Container(
-        width: double.infinity,
-        height: 250,
-        decoration: BoxDecoration(
-          color: AppColors.primaryGreen.withOpacity(0.05),
-          border: Border.all(color: AppColors.primaryGreen.withOpacity(0.3), width: 2),
-          borderRadius: BorderRadius.circular(AppSizes.radiusLarge),
-        ),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Container(
-              padding: const EdgeInsets.all(AppSizes.p16),
-              decoration: BoxDecoration(
-                color: AppColors.primaryGreen.withOpacity(0.1),
-                shape: BoxShape.circle,
-              ),
-              child: const Icon(Icons.cloud_upload_outlined, size: 64, color: AppColors.primaryGreen),
-            ),
-            const SizedBox(height: AppSizes.p16),
-            const Text(
-              'Click to browse or drag file here',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppColors.textPrimary),
-            ),
-            const SizedBox(height: AppSizes.p8),
-            const Text(
-              'Supports PDF, JPG, PNG (Max 10MB)',
-              style: TextStyle(color: AppColors.textSecondary),
-            ),
-            const SizedBox(height: AppSizes.p24),
-            ElevatedButton(
-              onPressed: _pickFile,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.primaryGreen,
-                foregroundColor: Colors.white,
-                elevation: 0,
-              ),
-              child: const Text('Select Document'),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildStep1Processing() {
-    return SizedBox(
-      width: double.infinity,
-      height: 250,
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          const CircularProgressIndicator(color: AppColors.primaryGreen),
-          const SizedBox(height: AppSizes.p24),
-          const Text(
-            'Running OCR Engine...',
-            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-          ),
-          const SizedBox(height: AppSizes.p8),
-          Text(
-            'Analyzing $_fileName',
-            style: const TextStyle(color: AppColors.textSecondary),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildStep2Review() {
+  Widget _buildStep1Form() {
     final requirementsAsync = ref.watch(documentRequirementsProvider);
 
     return SingleChildScrollView(
@@ -303,7 +354,7 @@ class _UploadOcrModalState extends ConsumerState<UploadOcrModal> {
                 const SizedBox(width: AppSizes.p12),
                 Expanded(
                   child: Text(
-                    'File: $_fileName ($_fileSize). Please select the document type and enter the student LRN.',
+                    'File: $_fileName ($_fileSize). Please select the document type.',
                     style: const TextStyle(color: Color(0xFF0D47A1), fontSize: 13),
                   ),
                 ),
@@ -312,6 +363,7 @@ class _UploadOcrModalState extends ConsumerState<UploadOcrModal> {
           ),
           const SizedBox(height: AppSizes.p24),
 
+          // LRN FIELD (Auto-filled if opened from a specific student's folder!)
           CustomTextField(
             hintText: 'Student LRN (12 Digits)',
             prefixIcon: Icons.pin_outlined,
@@ -319,8 +371,56 @@ class _UploadOcrModalState extends ConsumerState<UploadOcrModal> {
           ),
           const SizedBox(height: AppSizes.p16),
           
+          // DOCUMENT TYPE DROPDOWN (Grouped by JHS / SHS)
           requirementsAsync.when(
             data: (requirements) {
+              final jhsReqs = requirements.where((r) => r.category == 'JHS').toList();
+              final shsReqs = requirements.where((r) => r.category == 'SHS').toList();
+
+              List<DropdownMenuItem<int>> items = [];
+              int _headerIndex = -1;
+
+              void addGroup(String groupLabel, Color groupColor, List<dynamic> reqs) {
+                if (reqs.isEmpty) return;
+                // Section header (non-selectable)
+                items.add(DropdownMenuItem<int>(
+                  value: _headerIndex--, // Guaranteed unique negative value
+                  enabled: false,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(vertical: 4),
+                    decoration: BoxDecoration(
+                      border: Border(bottom: BorderSide(color: groupColor.withOpacity(0.3))),
+                    ),
+                    child: Row(children: [
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: groupColor.withOpacity(0.15),
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                        child: Text(groupLabel,
+                            style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: groupColor)),
+                      ),
+                      const SizedBox(width: 6),
+                      Text('Requirements', style: TextStyle(fontSize: 11, color: groupColor)),
+                    ]),
+                  ),
+                ));
+                // Actual requirement items
+                for (final req in reqs) {
+                  items.add(DropdownMenuItem<int>(
+                    value: req.id,
+                    child: Padding(
+                      padding: const EdgeInsets.only(left: 8),
+                      child: Text(req.name, style: const TextStyle(fontSize: 13)),
+                    ),
+                  ));
+                }
+              }
+
+              addGroup('JHS', Colors.teal, jhsReqs);
+              addGroup('SHS', Colors.purple, shsReqs);
+
               return Container(
                 padding: const EdgeInsets.symmetric(horizontal: AppSizes.p16),
                 decoration: BoxDecoration(
@@ -329,36 +429,25 @@ class _UploadOcrModalState extends ConsumerState<UploadOcrModal> {
                   border: Border.all(color: Colors.grey.shade300),
                 ),
                 child: DropdownButtonHideUnderline(
-                  child: DropdownButton<String>(
-                    value: _selectedDocumentType,
+                  child: DropdownButton<int>(
+                    value: _selectedRequirementId,
                     hint: const Text('Select Document Type'),
                     isExpanded: true,
-                    items: requirements.map((req) {
-                      return DropdownMenuItem<String>(
-                        value: req.name,
-                        child: Text('${req.name} (${req.category})'),
-                      );
-                    }).toList(),
+                    items: items,
                     onChanged: (val) {
+                      if (val == null || val < 0) return; // ignore headers
                       setState(() {
-                        _selectedDocumentType = val;
-                        final reqMatch = requirements.firstWhere((r) => r.name == val);
-                        _selectedRequirementId = reqMatch.id;
+                        _selectedRequirementId = val;
+                        final reqMatch = requirements.firstWhere((r) => r.id == val);
+                        _selectedDocumentType = reqMatch.name;
                       });
                     },
                   ),
                 ),
               );
             },
-            loading: () => const CircularProgressIndicator(),
+            loading: () => const Center(child: CircularProgressIndicator(color: AppColors.primaryGreen)),
             error: (e, st) => Text('Failed to load types: $e', style: const TextStyle(color: AppColors.error)),
-          ),
-
-          const SizedBox(height: AppSizes.p16),
-          CustomTextField(
-            hintText: 'Remarks (Optional)',
-            prefixIcon: Icons.comment_outlined,
-            controller: _remarksController,
           ),
           
           const SizedBox(height: AppSizes.p32),

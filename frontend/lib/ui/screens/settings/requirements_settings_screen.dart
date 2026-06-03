@@ -4,6 +4,8 @@ import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_sizes.dart';
 import '../../shared/inputs/custom_text_field.dart';
 import '../../shared/buttons/primary_button.dart';
+import '../../shared/dialogs/success_dialog.dart';
+import '../../shared/dialogs/error_dialog.dart';
 import '../../providers/document_provider.dart';
 import '../../../domain/entities/document_requirement_model.dart';
 
@@ -35,7 +37,7 @@ class _RequirementsSettingsScreenState extends ConsumerState<RequirementsSetting
     final settingsAsync = ref.watch(requirementsSettingsProvider);
 
     return Scaffold(
-      backgroundColor: Colors.transparent,
+      backgroundColor: AppColors.surfaceWhite,
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.all(AppSizes.p24),
@@ -341,14 +343,10 @@ class _RequirementsSettingsScreenState extends ConsumerState<RequirementsSetting
               try {
                 await ref.read(requirementMutationProvider.notifier).deleteRequirement(req.id);
                 if (!mounted) return;
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Requirement deleted'), backgroundColor: AppColors.success),
-                );
+                showSuccessDialog(context, message: 'Requirement deleted successfully');
               } catch (e) {
                 if (!mounted) return;
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text('Failed: $e'), backgroundColor: AppColors.error),
-                );
+                showErrorDialog(context, 'Failed to delete requirement', e.toString());
               }
             },
             child: const Text('DELETE'),
@@ -398,7 +396,23 @@ class _RequirementFormModalState extends ConsumerState<RequirementFormModal> {
     _category = req?.category ?? widget.category;
     _isMandatory = req?.isMandatory ?? true;
     _isEnabled = req?.isEnabled ?? true;
-    _acceptedFileTypes = req?.acceptedFileTypes ?? 'pdf,jpg,jpeg,png';
+
+    String savedTypes = (req?.acceptedFileTypes ?? 'pdf,jpg,jpeg,png').replaceAll(' ', '');
+    final validItems = [
+      'pdf',
+      'pdf,jpg,jpeg,png',
+      'pdf,doc,docx',
+      'pdf,doc,docx,xls,xlsx',
+      'pdf,jpg,jpeg,png,doc,docx,xls,xlsx',
+    ];
+    
+    if (savedTypes == 'pdf,jpg,jpeg,png,doc,docx') {
+      savedTypes = 'pdf,jpg,jpeg,png,doc,docx,xls,xlsx'; // Map old 'All' to new 'All Formats'
+    } else if (!validItems.contains(savedTypes)) {
+      savedTypes = 'pdf,jpg,jpeg,png,doc,docx,xls,xlsx'; // Fallback
+    }
+    
+    _acceptedFileTypes = savedTypes;
   }
 
   @override
@@ -413,86 +427,141 @@ class _RequirementFormModalState extends ConsumerState<RequirementFormModal> {
   Widget build(BuildContext context) {
     final isEditing = widget.requirement != null;
 
-    return AlertDialog(
-      title: Text(isEditing ? 'Edit Document Type' : 'Add Document Type'),
-      content: SizedBox(
-        width: 400,
+    return Dialog(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppSizes.radiusLarge)),
+      child: Container(
+        width: 450,
+        padding: const EdgeInsets.all(AppSizes.p24),
+        decoration: BoxDecoration(
+          color: AppColors.surfaceWhite,
+          borderRadius: BorderRadius.circular(AppSizes.radiusLarge),
+        ),
         child: Form(
           key: _formKey,
-          child: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: AppColors.primaryGreen.withValues(alpha: 0.1),
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(Icons.document_scanner, color: AppColors.primaryGreen),
+                  ),
+                  const SizedBox(width: AppSizes.p12),
+                  Text(
+                    isEditing ? 'Edit ${widget.category} Requirement' : 'Add ${widget.category} Requirement',
+                    style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: AppColors.textPrimary),
+                  ),
+                ],
+              ),
+              const SizedBox(height: AppSizes.p24),
+              Flexible(
+                child: SingleChildScrollView(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
                 CustomTextField(
                   hintText: 'Document Name',
                   controller: _nameController,
                   prefixIcon: Icons.description,
                   validator: (v) => v?.trim().isEmpty == true ? 'Name is required' : null,
                 ),
-                const SizedBox(height: AppSizes.p12),
+                const SizedBox(height: AppSizes.p16),
                 CustomTextField(
                   hintText: 'Description',
                   controller: _descController,
                   prefixIcon: Icons.notes,
-                  maxLines: 2,
+                  maxLines: 3,
                 ),
-                const SizedBox(height: AppSizes.p12),
-                DropdownButtonFormField<String>(
-                  value: _category,
-                  decoration: const InputDecoration(
-                    prefixIcon: Icon(Icons.school),
-                    border: OutlineInputBorder(),
-                  ),
-                  items: ['JHS', 'SHS'].map((c) => DropdownMenuItem(value: c, child: Text(c))).toList(),
-                  onChanged: (v) => setState(() => _category = v!),
-                ),
-                const SizedBox(height: AppSizes.p12),
+                const SizedBox(height: AppSizes.p16),
                 CustomTextField(
                   hintText: 'Due Date (MM/DD/YYYY)',
                   controller: _dueDateController,
                   prefixIcon: Icons.calendar_today,
                 ),
-                const SizedBox(height: AppSizes.p12),
+                const SizedBox(height: AppSizes.p16),
                 DropdownButtonFormField<String>(
                   value: _acceptedFileTypes,
-                  decoration: const InputDecoration(
-                    prefixIcon: Icon(Icons.attach_file),
-                    border: OutlineInputBorder(),
+                  decoration: InputDecoration(
+                    labelText: 'Accepted File Types',
+                    prefixIcon: const Icon(Icons.attach_file, color: AppColors.primaryGreen),
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                    enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide(color: Colors.grey.shade300)),
+                    focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: AppColors.primaryGreen, width: 2)),
+                    filled: true,
+                    fillColor: Colors.grey.shade50,
                   ),
                   items: const [
                     DropdownMenuItem(value: 'pdf', child: Text('PDF only')),
                     DropdownMenuItem(value: 'pdf,jpg,jpeg,png', child: Text('PDF, JPG, PNG')),
-                    DropdownMenuItem(value: 'pdf,doc,docx', child: Text('PDF, Word')),
-                    DropdownMenuItem(value: 'pdf,jpg,jpeg,png,doc,docx', child: Text('All')),
+                    DropdownMenuItem(value: 'pdf,doc,docx', child: Text('PDF & Word')),
+                    DropdownMenuItem(value: 'pdf,doc,docx,xls,xlsx', child: Text('PDF, Word & Excel')),
+                    DropdownMenuItem(value: 'pdf,jpg,jpeg,png,doc,docx,xls,xlsx', child: Text('All Formats')),
                   ],
                   onChanged: (v) => setState(() => _acceptedFileTypes = v!),
                 ),
-                const SizedBox(height: AppSizes.p16),
-                SwitchListTile(
-                  title: const Text('Mandatory'),
-                  value: _isMandatory,
-                  onChanged: (v) => setState(() => _isMandatory = v),
-                  activeColor: AppColors.error,
+                const SizedBox(height: AppSizes.p24),
+                Material(
+                  color: Colors.transparent,
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: Colors.grey.shade50,
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: Colors.grey.shade200),
+                    ),
+                    child: Column(
+                      children: [
+                        SwitchListTile(
+                          title: const Text('Mandatory Requirement', style: TextStyle(fontWeight: FontWeight.w500)),
+                          subtitle: const Text('Students must upload this document', style: TextStyle(fontSize: 12)),
+                          value: _isMandatory,
+                          onChanged: (v) => setState(() => _isMandatory = v),
+                          activeColor: AppColors.error,
+                        ),
+                        const Divider(height: 1),
+                        SwitchListTile(
+                          title: const Text('Enabled', style: TextStyle(fontWeight: FontWeight.w500)),
+                          subtitle: const Text('Show this requirement in the system', style: TextStyle(fontSize: 12)),
+                          value: _isEnabled,
+                          onChanged: (v) => setState(() => _isEnabled = v),
+                          activeColor: AppColors.success,
+                        ),
+                      ],
+                    ),
+                  ),
                 ),
-                SwitchListTile(
-                  title: const Text('Enabled'),
-                  value: _isEnabled,
-                  onChanged: (v) => setState(() => _isEnabled = v),
-                  activeColor: AppColors.success,
+                    ],
+                  ),
                 ),
-              ],
-            ),
+              ),
+              const SizedBox(height: AppSizes.p24),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  TextButton(
+                    onPressed: () => Navigator.pop(context),
+                    child: const Text('CANCEL', style: TextStyle(color: AppColors.textSecondary)),
+                  ),
+                  const SizedBox(width: AppSizes.p12),
+                  SizedBox(
+                    width: 120,
+                    child: PrimaryButton(
+                      label: isEditing ? 'UPDATE' : 'CREATE',
+                      isLoading: _isLoading,
+                      onPressed: _handleSubmit,
+                    ),
+                  ),
+                ],
+              ),
+            ],
           ),
         ),
       ),
-      actions: [
-        TextButton(onPressed: () => Navigator.pop(context), child: const Text('CANCEL')),
-        PrimaryButton(
-          label: isEditing ? 'UPDATE' : 'CREATE',
-          isLoading: _isLoading,
-          onPressed: _handleSubmit,
-        ),
-      ],
     );
   }
 
@@ -534,17 +603,13 @@ class _RequirementFormModalState extends ConsumerState<RequirementFormModal> {
 
       if (!mounted) return;
       Navigator.pop(context);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(widget.requirement != null ? 'Requirement updated' : 'Requirement created'),
-          backgroundColor: AppColors.success,
-        ),
+      showSuccessDialog(
+        context,
+        message: widget.requirement != null ? 'Requirement updated successfully' : 'Requirement created successfully',
       );
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed: $e'), backgroundColor: AppColors.error),
-      );
+      showErrorDialog(context, 'Failed to save requirement', e.toString());
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }

@@ -14,141 +14,132 @@ class AcademicYear {
 }
 
 /// KPI summary numbers for the Reports screen.
-class ReportStats {
-  final int totalStudents;
-  final int pendingDocs;
-  final int verifiedDocs;
-  final int printQueueCount;
-  final int verificationRate; // 0-100 %
+class StudentCounts {
+  final int active;
+  final int dropped;
+  final int transferee;
+  final int graduated;
 
-  const ReportStats({
-    required this.totalStudents,
-    required this.pendingDocs,
-    required this.verifiedDocs,
-    required this.printQueueCount,
-    required this.verificationRate,
+  const StudentCounts({
+    required this.active,
+    required this.dropped,
+    required this.transferee,
+    required this.graduated,
   });
 
-  factory ReportStats.fromJson(Map<String, dynamic> j) => ReportStats(
-        totalStudents: (j['totalStudents'] as num).toInt(),
-        pendingDocs: (j['pendingDocs'] as num).toInt(),
-        verifiedDocs: (j['verifiedDocs'] as num).toInt(),
-        printQueueCount: (j['printQueueCount'] as num).toInt(),
-        verificationRate: (j['verificationRate'] as num).toInt(),
+  factory StudentCounts.fromJson(Map<String, dynamic> j) => StudentCounts(
+        active: (j['active'] as num?)?.toInt() ?? 0,
+        dropped: (j['dropped'] as num?)?.toInt() ?? 0,
+        transferee: (j['transferee'] as num?)?.toInt() ?? 0,
+        graduated: (j['graduated'] as num?)?.toInt() ?? 0,
       );
 }
 
-/// One bar in the "Enrollment by Grade" chart.
-class GradeEnrollment {
-  final int gradeLevel;
+/// One row in the missing documents breakdown chart.
+class MissingDocBreakdown {
+  final int requirementId;
+  final String name;
   final int count;
 
-  const GradeEnrollment({required this.gradeLevel, required this.count});
-
-  factory GradeEnrollment.fromJson(Map<String, dynamic> j) => GradeEnrollment(
-        gradeLevel: (j['grade_level'] as num).toInt(),
-        count: (j['count'] as num).toInt(),
-      );
-
-  String get label => gradeLevel <= 10 ? 'G$gradeLevel' : 'G$gradeLevel';
-  String get fullLabel => 'Grade $gradeLevel';
-}
-
-/// Document verification status breakdown.
-class DocumentStatus {
-  final int pending;
-  final int verified;
-  final int draft;
-  final int archived;
-
-  const DocumentStatus({
-    required this.pending,
-    required this.verified,
-    required this.draft,
-    required this.archived,
+  const MissingDocBreakdown({
+    required this.requirementId,
+    required this.name,
+    required this.count,
   });
 
-  int get total => pending + verified + draft + archived;
-  double get verificationRate => total > 0 ? verified / total : 0.0;
-  double get pendingRate => total > 0 ? pending / total : 0.0;
-
-  factory DocumentStatus.fromJson(Map<String, dynamic> j) => DocumentStatus(
-        pending: (j['Pending'] as num?)?.toInt() ?? 0,
-        verified: (j['Verified'] as num?)?.toInt() ?? 0,
-        draft: (j['Draft'] as num?)?.toInt() ?? 0,
-        archived: (j['Archived'] as num?)?.toInt() ?? 0,
+  factory MissingDocBreakdown.fromJson(Map<String, dynamic> j) => MissingDocBreakdown(
+        requirementId: (j['requirementId'] as num).toInt(),
+        name: j['name'] as String? ?? 'Unknown',
+        count: (j['count'] as num).toInt(),
       );
 }
 
-/// One student row for the Excel export detail sheet.
+/// One student row for compliance list, report previews and Excel export sheets.
 class ReportStudent {
+  final int id;
   final String lrn;
   final String firstName;
   final String lastName;
   final String sex;
+  final String status;
   final int? gradeLevel;
-  final int verifiedDocs;
-  final int pendingDocs;
+  final String? sectionName;
+  final int missingCount;
+  final String? missingRequirements;
 
   const ReportStudent({
+    required this.id,
     required this.lrn,
     required this.firstName,
     required this.lastName,
     required this.sex,
+    required this.status,
     this.gradeLevel,
-    required this.verifiedDocs,
-    required this.pendingDocs,
+    this.sectionName,
+    required this.missingCount,
+    this.missingRequirements,
   });
 
+  String get fullName => '$lastName, $firstName';
+
   factory ReportStudent.fromJson(Map<String, dynamic> j) => ReportStudent(
+        id: (j['id'] as num).toInt(),
         lrn: j['lrn'] as String? ?? '',
         firstName: j['first_name'] as String? ?? '',
         lastName: j['last_name'] as String? ?? '',
         sex: j['sex'] as String? ?? '',
+        status: j['status'] as String? ?? 'Enrolled',
         gradeLevel: (j['grade_level'] as num?)?.toInt(),
-        verifiedDocs: (j['verified_docs'] as num?)?.toInt() ?? 0,
-        pendingDocs: (j['pending_docs'] as num?)?.toInt() ?? 0,
+        sectionName: j['section_name'] as String?,
+        missingCount: (j['missing_count'] as num?)?.toInt() ?? 0,
+        missingRequirements: j['missing_requirements'] as String?,
       );
 }
 
-/// Grade-level summary row for the Excel export.
-class GradeExportRow {
-  final int gradeLevel;
-  final int totalStudents;
-  final String yearRange;
-
-  const GradeExportRow({
-    required this.gradeLevel,
-    required this.totalStudents,
-    required this.yearRange,
-  });
-
-  factory GradeExportRow.fromJson(Map<String, dynamic> j) => GradeExportRow(
-        gradeLevel: (j['grade_level'] as num).toInt(),
-        totalStudents: (j['total_students'] as num).toInt(),
-        yearRange: j['year_range'] as String? ?? 'All Years',
-      );
-}
-
-/// Full export payload from /api/reports/export-data.
-class ReportExportData {
-  final List<GradeExportRow> enrollmentByGrade;
-  final DocumentStatus documentStatus;
+/// Complete report payload containing counts, breakdown, and student compliance rows.
+class ReportStats {
+  final StudentCounts studentCounts;
+  final List<MissingDocBreakdown> missingDocsBreakdown;
   final List<ReportStudent> students;
 
-  const ReportExportData({
-    required this.enrollmentByGrade,
-    required this.documentStatus,
+  const ReportStats({
+    required this.studentCounts,
+    required this.missingDocsBreakdown,
     required this.students,
   });
 
-  factory ReportExportData.fromJson(Map<String, dynamic> j) => ReportExportData(
-        enrollmentByGrade: (j['enrollmentByGrade'] as List)
-            .map((e) => GradeExportRow.fromJson(e as Map<String, dynamic>))
+  factory ReportStats.fromJson(Map<String, dynamic> j) => ReportStats(
+        studentCounts: StudentCounts.fromJson(j['studentCounts'] as Map<String, dynamic>),
+        missingDocsBreakdown: (j['missingDocsBreakdown'] as List? ?? [])
+            .map((e) => MissingDocBreakdown.fromJson(e as Map<String, dynamic>))
             .toList(),
-        documentStatus: DocumentStatus.fromJson(j['documentStatus'] as Map<String, dynamic>),
-        students: (j['students'] as List)
+        students: (j['students'] as List? ?? [])
             .map((e) => ReportStudent.fromJson(e as Map<String, dynamic>))
             .toList(),
+      );
+}
+
+/// Yearly comparison data for the bar chart.
+class YearlyComparisonData {
+  final String year;
+  final int enrolled;
+  final int dropped;
+  final int graduated;
+  final int transferred;
+
+  const YearlyComparisonData({
+    required this.year,
+    required this.enrolled,
+    required this.dropped,
+    required this.graduated,
+    required this.transferred,
+  });
+
+  factory YearlyComparisonData.fromJson(Map<String, dynamic> j) => YearlyComparisonData(
+        year: j['year'] as String? ?? '',
+        enrolled: (j['enrolled'] as num?)?.toInt() ?? 0,
+        dropped: (j['dropped'] as num?)?.toInt() ?? 0,
+        graduated: (j['graduated'] as num?)?.toInt() ?? 0,
+        transferred: (j['transferred'] as num?)?.toInt() ?? 0,
       );
 }

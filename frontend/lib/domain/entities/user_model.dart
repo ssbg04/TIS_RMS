@@ -5,7 +5,7 @@ class UserModel {
   final String? middleName;
   final String lastName;
   final String? extension;
-  final String role; // 'super_admin', 'admin', 'teacher'
+  final String role; // 'admin', 'teacher'
   final String? email;
   final String? phone;
 

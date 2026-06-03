@@ -15,6 +15,14 @@ class FolderModel {
   final String? createdByUsername;
   final int? documentCount;
 
+  // JHS / SHS completion tracking
+  /// 'JHS' or 'SHS' — the tier that applies to this student
+  final String? studentTier;
+  final int jhsTotal;
+  final int jhsCompleted;
+  final int shsTotal;
+  final int shsCompleted;
+
   // For student folder view
   final StudentInfo? student;
   final List<FolderModel>? subfolders;
@@ -36,12 +44,36 @@ class FolderModel {
     this.studentLastName,
     this.createdByUsername,
     this.documentCount,
+    this.studentTier,
+    this.jhsTotal = 0,
+    this.jhsCompleted = 0,
+    this.shsTotal = 0,
+    this.shsCompleted = 0,
     this.student,
     this.subfolders,
     this.physicalFolders,
     this.physicalFiles,
     this.folderPath,
   });
+
+  /// Returns the completion ratio (0.0–1.0) for the student's applicable tier.
+  double get tierCompletionRatio {
+    if (studentTier == 'JHS') {
+      return jhsTotal == 0 ? 0.0 : jhsCompleted / jhsTotal;
+    } else if (studentTier == 'SHS') {
+      return shsTotal == 0 ? 0.0 : shsCompleted / shsTotal;
+    }
+    return 0.0;
+  }
+
+  /// Total required for the student's tier.
+  int get tierTotal => studentTier == 'SHS' ? shsTotal : jhsTotal;
+
+  /// Completed count for the student's tier.
+  int get tierCompleted => studentTier == 'SHS' ? shsCompleted : jhsCompleted;
+
+  /// True when all mandatory enabled requirements for the student's tier are met.
+  bool get isComplete => tierTotal > 0 && tierCompleted >= tierTotal;
 
   factory FolderModel.fromJson(Map<String, dynamic> json) {
     return FolderModel(
@@ -62,6 +94,11 @@ class FolderModel {
       studentLastName: json['last_name'] as String?,
       createdByUsername: json['created_by_username'] as String?,
       documentCount: json['document_count'] as int?,
+      studentTier: json['student_tier'] as String?,
+      jhsTotal: (json['jhs_total'] as num?)?.toInt() ?? 0,
+      jhsCompleted: (json['jhs_completed'] as num?)?.toInt() ?? 0,
+      shsTotal: (json['shs_total'] as num?)?.toInt() ?? 0,
+      shsCompleted: (json['shs_completed'] as num?)?.toInt() ?? 0,
       student: json['student'] != null
           ? StudentInfo.fromJson(json['student'] as Map<String, dynamic>)
           : null,

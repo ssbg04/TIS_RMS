@@ -1,3 +1,5 @@
+import 'dart:async';
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -6,19 +8,30 @@ import '../../../../core/constants/app_sizes.dart';
 import '../../../../domain/entities/student_model.dart';
 
 import '../../../shared/buttons/primary_button.dart';
+import '../../../providers/ocr_provider.dart';
+import '../../../shared/inputs/document_source_picker.dart';
 import '../../../providers/student_provider.dart';
+import '../../../providers/setup_provider.dart';
+import '../../../../domain/entities/setup_models.dart';
+import '../../../shared/dialogs/success_dialog.dart';
+import '../../../shared/dialogs/info_dialog.dart';
+import 'package:syncfusion_flutter_pdfviewer/pdfviewer.dart';
 
 class AddEditStudentModal extends ConsumerStatefulWidget {
-  final StudentModel? student; // null → Add mode, non-null → Edit mode
+  final StudentModel? student;
 
   const AddEditStudentModal({super.key, this.student});
 
   @override
-  ConsumerState<AddEditStudentModal> createState() => _AddEditStudentModalState();
+  ConsumerState<AddEditStudentModal> createState() =>
+      _AddEditStudentModalState();
 }
 
-class _AddEditStudentModalState extends ConsumerState<AddEditStudentModal> {
+class _AddEditStudentModalState extends ConsumerState<AddEditStudentModal>
+    with SingleTickerProviderStateMixin {
   final _formKey = GlobalKey<FormState>();
+  final _scrollCtrl = ScrollController();
+  late TabController _tabController;
 
   late TextEditingController _lrnController;
   late TextEditingController _firstNameController;
@@ -26,38 +39,119 @@ class _AddEditStudentModalState extends ConsumerState<AddEditStudentModal> {
   late TextEditingController _lastNameController;
   late TextEditingController _extController;
 
-  String    _selectedSex    = 'Male';
-  String    _selectedStatus = 'Enrolled';
+  String _selectedSex = 'Male';
+  String _selectedStatus = 'Enrolled';
   DateTime? _selectedDob;
-  bool      _isLoading      = false;
-  String?   _errorMessage;
+  bool _isLoading = false;
+  String? _errorMessage;
 
-  static const _statuses = ['Enrolled', 'Graduated', 'Transferred Out', 'Dropped'];
+  int? _selectedAcademicYearId;
+  int? _selectedGradeLevel;
+  int? _selectedSectionId;
+  String? _trackStrand;
+  bool _isEnrollmentInitialized = false;
+
+  static const _statuses = ['Enrolled', 'Graduated', 'Transferred', 'Dropped'];
+
+  bool _showOcrStep = false;
+  String? _selectedOcrDocType;
+  File? _ocrScannedFile;
 
   @override
   void initState() {
     super.initState();
+    _tabController = TabController(length: 2, vsync: this);
     final s = widget.student;
-    _lrnController        = TextEditingController(text: s?.lrn ?? '');
-    _firstNameController  = TextEditingController(text: s?.firstName ?? '');
+    _lrnController = TextEditingController(text: s?.lrn ?? '');
+    _firstNameController = TextEditingController(text: s?.firstName ?? '');
     _middleNameController = TextEditingController(text: s?.middleName ?? '');
-    _lastNameController   = TextEditingController(text: s?.lastName ?? '');
-    _extController        = TextEditingController(text: s?.extension ?? '');
+    _lastNameController = TextEditingController(text: s?.lastName ?? '');
+    _extController = TextEditingController(text: s?.extension ?? '');
     if (s != null) {
-      _selectedSex    = s.sex;
-      _selectedDob    = s.birthDate;
+      _selectedSex = s.sex;
+      _selectedDob = s.birthDate;
       _selectedStatus = s.status;
+      _showOcrStep = false;
+    } else {
+      _showOcrStep = true;
     }
   }
 
   @override
   void dispose() {
+    _tabController.dispose();
     _lrnController.dispose();
     _firstNameController.dispose();
     _middleNameController.dispose();
     _lastNameController.dispose();
     _extController.dispose();
+    _scrollCtrl.dispose();
     super.dispose();
+  }
+
+  // ----------------------------------------------------------------
+  // OCR PROCESSING
+  // ----------------------------------------------------------------
+  Future<void> _handleOcrScan(
+    File file,
+    String fileName,
+    String fileSize,
+  ) async {
+    setState(() {
+      _errorMessage = null;
+      _ocrScannedFile = file;
+    });
+    try {
+      final ocrResult = await ref
+          .read(ocrProvider.notifier)
+          .processDocument(
+            file: file,
+            fileName: fileName,
+            docType: _selectedOcrDocType!,
+          );
+      if (!mounted || ocrResult == null) return;
+      setState(() {
+        if (ocrResult.lrn.isNotEmpty) _lrnController.text = ocrResult.lrn;
+        if (ocrResult.firstName.isNotEmpty)
+          _firstNameController.text = ocrResult.firstName;
+        if (ocrResult.lastName.isNotEmpty)
+          _lastNameController.text = ocrResult.lastName;
+        if (ocrResult.middleName.isNotEmpty)
+          _middleNameController.text = ocrResult.middleName;
+        if (ocrResult.extension.isNotEmpty)
+          _extController.text = ocrResult.extension;
+        if (ocrResult.sex == 'Male' || ocrResult.sex == 'Female') {
+          _selectedSex = ocrResult.sex;
+        }
+        if (ocrResult.dob != null && ocrResult.dob!.isNotEmpty) {
+          try {
+            _selectedDob = DateTime.parse(ocrResult.dob!);
+          } catch (e) {
+            print('Could not parse DOB: ${ocrResult.dob}');
+          }
+        } else {
+          _selectedDob = null;
+        }
+        _showOcrStep = false;
+      });
+      if (!mounted) return;
+      showInfoDialog(
+        context,
+        title: 'Scan Complete',
+        icon: Icons.document_scanner_outlined,
+        iconColor: AppColors.info,
+        buttonLabel: 'Review Data',
+        message:
+            'OCR extracted the data from your document.\n\n'
+            'Please review and correct all fields before saving — '
+            'auto-filled values may contain errors.',
+      );
+    } catch (e) {
+      if (!mounted) return;
+      final raw = e.toString();
+      final msg = raw.startsWith('Exception: ') ? raw.substring(11) : raw;
+      setState(() => _errorMessage = msg);
+    }
   }
 
   // ----------------------------------------------------------------
@@ -73,7 +167,8 @@ class _AddEditStudentModalState extends ConsumerState<AddEditStudentModal> {
 
   String? _validateRequired(String? value, String fieldName) {
     if (value == null || value.trim().isEmpty) return '$fieldName is required.';
-    if (value.trim().length < 2) return '$fieldName must be at least 2 characters.';
+    if (value.trim().length < 2)
+      return '$fieldName must be at least 2 characters.';
     return null;
   }
 
@@ -86,7 +181,7 @@ class _AddEditStudentModalState extends ConsumerState<AddEditStudentModal> {
       builder: (ctx, child) => Theme(
         data: Theme.of(ctx).copyWith(
           colorScheme: const ColorScheme.light(
-            primary:   AppColors.primaryGreen,
+            primary: AppColors.primaryGreen,
             onPrimary: Colors.white,
             onSurface: AppColors.textPrimary,
           ),
@@ -103,329 +198,1103 @@ class _AddEditStudentModalState extends ConsumerState<AddEditStudentModal> {
   Future<void> _handleSave() async {
     setState(() => _errorMessage = null);
 
-    // 1. Form validation
-    if (!_formKey.currentState!.validate()) return;
+    // Validate Tab 0: Student Details
+    final lrnErr = _validateLRN(_lrnController.text);
+    final fnErr = _validateRequired(_firstNameController.text, 'First name');
+    final lnErr = _validateRequired(_lastNameController.text, 'Last name');
 
-    // 2. DOB required check
-    if (_selectedDob == null) {
-      setState(() => _errorMessage = 'Please select a Date of Birth.');
+    if (lrnErr != null ||
+        fnErr != null ||
+        lnErr != null ||
+        _selectedDob == null) {
+      _tabController.animateTo(0);
+      _formKey.currentState!.validate();
+      if (_selectedDob == null) {
+        setState(() => _errorMessage = 'Please select a Date of Birth.');
+      }
+      return;
+    }
+
+    // Validate Tab 1: Enrollment Details
+    if (_selectedAcademicYearId == null ||
+        _selectedGradeLevel == null ||
+        _selectedSectionId == null) {
+      _tabController.animateTo(1);
+      _formKey.currentState!.validate();
+      setState(
+        () => _errorMessage =
+            'Academic Year, Grade Level, and Section are mandatory.',
+      );
+      return;
+    }
+
+    // Validate graduation restriction: status 'Graduated' is only allowed if grade is 10 or 12
+    if (_selectedStatus == 'Graduated' &&
+        _selectedGradeLevel != 10 &&
+        _selectedGradeLevel != 12) {
+      _tabController.animateTo(1);
+      setState(
+        () => _errorMessage =
+            'Graduation status is only applicable for Grade 10 and Grade 12 students.',
+      );
       return;
     }
 
     setState(() => _isLoading = true);
-
     try {
       final notifier = ref.read(studentMutationProvider.notifier);
-
       if (widget.student == null) {
-        // ---- CREATE ----
         await notifier.createStudent(
-          lrn:        _lrnController.text.trim(),
-          firstName:  _firstNameController.text.trim(),
+          lrn: _lrnController.text.trim(),
+          firstName: _firstNameController.text.trim(),
           middleName: _middleNameController.text.trim().isEmpty
               ? null
               : _middleNameController.text.trim(),
-          lastName:   _lastNameController.text.trim(),
-          extension:  _extController.text.trim().isEmpty
+          lastName: _lastNameController.text.trim(),
+          extension: _extController.text.trim().isEmpty
               ? null
               : _extController.text.trim(),
-          sex:        _selectedSex,
-          birthDate:  _selectedDob!,
+          sex: _selectedSex,
+          birthDate: _selectedDob!,
+          academicYearId: _selectedAcademicYearId!,
+          gradeLevel: _selectedGradeLevel!,
+          sectionId: _selectedSectionId!,
+          trackStrand: _trackStrand,
         );
       } else {
-        // ---- UPDATE ----
         await notifier.updateStudent(
-          id:         widget.student!.id,
-          lrn:        _lrnController.text.trim(),
-          firstName:  _firstNameController.text.trim(),
+          id: widget.student!.id,
+          lrn: _lrnController.text.trim(),
+          firstName: _firstNameController.text.trim(),
           middleName: _middleNameController.text.trim().isEmpty
               ? null
               : _middleNameController.text.trim(),
-          lastName:   _lastNameController.text.trim(),
-          extension:  _extController.text.trim().isEmpty
+          lastName: _lastNameController.text.trim(),
+          extension: _extController.text.trim().isEmpty
               ? null
               : _extController.text.trim(),
-          sex:        _selectedSex,
-          birthDate:  _selectedDob!,
-          status:     _selectedStatus,
+          sex: _selectedSex,
+          birthDate: _selectedDob!,
+          status: _selectedStatus,
+          academicYearId: _selectedAcademicYearId!,
+          gradeLevel: _selectedGradeLevel!,
+          sectionId: _selectedSectionId!,
+          trackStrand: _trackStrand,
         );
       }
-
       if (!mounted) return;
       Navigator.of(context).pop(true);
-      _showSuccessSnack();
+      showSuccessDialog(
+        context,
+        message: widget.student == null
+            ? 'Student added successfully!'
+            : 'Student updated successfully!',
+      );
     } catch (e) {
       if (!mounted) return;
-      // Extract clean message from "Exception: ..." string
       final raw = e.toString();
       final msg = raw.startsWith('Exception: ') ? raw.substring(11) : raw;
       setState(() {
-        _isLoading    = false;
+        _isLoading = false;
         _errorMessage = msg;
       });
     }
   }
 
-  void _showSuccessSnack() {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-          widget.student == null
-              ? 'Student added successfully!'
-              : 'Student updated successfully!',
-        ),
-        backgroundColor: AppColors.success,
-      ),
-    );
-  }
-
   // ----------------------------------------------------------------
-  // BUILD
+  // BUILD — viewport-aware, keyboard-safe dialog
   // ----------------------------------------------------------------
   @override
   Widget build(BuildContext context) {
-    final isEdit = widget.student != null;
+    final yearsAsync = ref.watch(academicYearsListProvider);
+    final gradeLevelsAsync = ref.watch(gradeLevelsListProvider);
+    final sectionsAsync = ref.watch(sectionsListProvider);
+
+    if (widget.student != null && !_isEnrollmentInitialized) {
+      final detailsAsync = ref.watch(studentDetailProvider(widget.student!.id));
+      detailsAsync.whenData((fullStudent) {
+        if (fullStudent.enrollments != null &&
+            fullStudent.enrollments!.isNotEmpty) {
+          final latestEnrollment = fullStudent.enrollments!.reduce(
+            (a, b) => a.gradeLevel > b.gradeLevel ? a : b,
+          );
+          Future.microtask(() {
+            if (mounted && !_isEnrollmentInitialized) {
+              setState(() {
+                _selectedAcademicYearId = latestEnrollment.academicYearId;
+                _selectedGradeLevel = latestEnrollment.gradeLevel;
+                _selectedSectionId = latestEnrollment.sectionId;
+                _trackStrand = latestEnrollment.trackStrand;
+                _isEnrollmentInitialized = true;
+              });
+            }
+          });
+        }
+      });
+    }
+
+    final viewInsets = MediaQuery.viewInsetsOf(context);
+    final screenHeight = MediaQuery.sizeOf(context).height;
+    final screenWidth = MediaQuery.sizeOf(context).width;
+    final isMobile = screenWidth < 600;
+
+    double maxDialogHeight = isMobile ? (screenHeight * 0.82) : 550;
+    double dialogHeight = maxDialogHeight.clamp(
+      200.0,
+      screenHeight - viewInsets.bottom - 24.0,
+    );
+
+    bool showSideBySide = _ocrScannedFile != null && !isMobile && !_showOcrStep;
+    double maxDialogWidth = isMobile ? 380 : (showSideBySide ? 1000 : 620);
 
     return Dialog(
+      insetPadding: EdgeInsets.symmetric(
+        horizontal: isMobile ? 12 : 24,
+        vertical: 12 + viewInsets.bottom * 0.05,
+      ),
       backgroundColor: AppColors.surfaceWhite,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(AppSizes.radiusLarge),
       ),
       child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 620),
+        constraints: BoxConstraints(
+          maxWidth: maxDialogWidth,
+          maxHeight: dialogHeight,
+        ),
         child: Padding(
-          padding: const EdgeInsets.all(AppSizes.p24),
-          child: Form(
-            key: _formKey,
-            child: SingleChildScrollView(
-              child: Column(
-                mainAxisSize:     MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
+          padding: EdgeInsets.all(isMobile ? 12 : AppSizes.p24),
+          child: AnimatedSwitcher(
+            duration: const Duration(milliseconds: 300),
+            child: _showOcrStep
+                ? _buildOcrStep()
+                : (showSideBySide
+                      ? Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Expanded(
+                              flex: 5,
+                              child: _buildManualForm(
+                                widget.student != null,
+                                yearsAsync,
+                                gradeLevelsAsync,
+                                sectionsAsync,
+                                isMobile,
+                              ),
+                            ),
+                            const VerticalDivider(width: 32),
+                            Expanded(
+                              flex: 4,
+                              child: _buildLocalFilePreview(_ocrScannedFile!),
+                            ),
+                          ],
+                        )
+                      : _buildManualForm(
+                          widget.student != null,
+                          yearsAsync,
+                          gradeLevelsAsync,
+                          sectionsAsync,
+                          isMobile,
+                        )),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildLocalFilePreview(File file) {
+    final ext = file.path.split('.').last.toLowerCase();
+    final isPdf = ext == 'pdf';
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            const Icon(
+              Icons.preview_rounded,
+              color: AppColors.primaryGreen,
+              size: 20,
+            ),
+            const SizedBox(width: 8),
+            const Text(
+              'Document Preview',
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+                color: AppColors.textPrimary,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 12),
+        Expanded(
+          child: Container(
+            decoration: BoxDecoration(
+              border: Border.all(color: Colors.grey.shade300),
+              borderRadius: BorderRadius.circular(AppSizes.radiusMedium),
+              color: Colors.grey.shade100,
+            ),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(AppSizes.radiusMedium),
+              child: isPdf
+                  ? SfPdfViewer.file(
+                      file,
+                      canShowScrollHead: false,
+                      canShowScrollStatus: false,
+                    )
+                  : InteractiveViewer(
+                      minScale: 0.5,
+                      maxScale: 4.0,
+                      child: Center(
+                        child: Image.file(file, fit: BoxFit.contain),
+                      ),
+                    ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  void _showMobilePreviewDialog() {
+    if (_ocrScannedFile == null) return;
+    showDialog(
+      context: context,
+      builder: (ctx) => Dialog(
+        insetPadding: const EdgeInsets.all(12),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        child: Container(
+          width: double.infinity,
+          height: MediaQuery.of(context).size.height * 0.8,
+          padding: const EdgeInsets.all(12),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  // ---- Header ----
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(
-                        isEdit ? 'Update Student Record' : 'Add New Student',
-                        style: const TextStyle(
-                          fontSize:   22,
-                          fontWeight: FontWeight.bold,
-                          color:      AppColors.primaryGreen,
-                        ),
-                      ),
-                      IconButton(
-                        icon:      const Icon(Icons.close, color: AppColors.textSecondary),
-                        onPressed: () => Navigator.of(context).pop(),
-                      ),
-                    ],
+                  const Text(
+                    'Scanned Document',
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                   ),
-                  const Divider(height: 32),
+                  IconButton(
+                    icon: const Icon(Icons.close),
+                    onPressed: () => Navigator.of(ctx).pop(),
+                  ),
+                ],
+              ),
+              const Divider(),
+              Expanded(child: _buildLocalFilePreview(_ocrScannedFile!)),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
 
-                  // ---- Error Banner ----
-                  if (_errorMessage != null) ...[
-                    _ErrorBanner(message: _errorMessage!),
-                    const SizedBox(height: AppSizes.p16),
-                  ],
+  // ================================================================
+  // STEP 1: OCR SELECTION UI
+  // ================================================================
+  Widget _buildOcrStep() {
+    final ocrState = ref.watch(ocrProvider);
 
-                  // ---- LRN ----
-                  TextFormField(
-                    controller:        _lrnController,
-                    keyboardType:      TextInputType.number,
-                    maxLength:         12,
-                    inputFormatters:   [FilteringTextInputFormatter.digitsOnly],
-                    validator:         _validateLRN,
-                    decoration: const InputDecoration(
-                      labelText:   'LRN (Learner Reference Number)',
-                      hintText:    '12-digit number',
-                      prefixIcon:  Icon(Icons.pin_outlined),
-                      counterText: '',
+    if (ocrState.isLoading) {
+      return _OcrProgressLoader(docType: _selectedOcrDocType ?? 'Document');
+    }
+
+    return SingleChildScrollView(
+      key: const ValueKey('ocr-step'),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Flexible(
+                child: Text(
+                  'Auto-Fill with OCR',
+                  style: TextStyle(
+                    fontSize: 22,
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.primaryGreen,
+                  ),
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+              IconButton(
+                icon: const Icon(Icons.close),
+                onPressed: () => Navigator.of(context).pop(),
+              ),
+            ],
+          ),
+          const Divider(height: 32),
+
+          if (_errorMessage != null) ...[
+            _ErrorBanner(message: _errorMessage!),
+            const SizedBox(height: AppSizes.p16),
+          ],
+
+          const Text(
+            'Select supported document format to extract data:',
+            style: TextStyle(fontWeight: FontWeight.w600),
+          ),
+          const SizedBox(height: AppSizes.p8),
+
+          DropdownButtonFormField<String>(
+            value: _selectedOcrDocType,
+            hint: const Text(
+              'Choose SF9 (Report Card) or SF10 (Permanent Record)',
+            ),
+            isExpanded: true,
+            decoration: InputDecoration(
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(AppSizes.radiusMedium),
+              ),
+              contentPadding: const EdgeInsets.symmetric(
+                horizontal: 16,
+                vertical: 12,
+              ),
+            ),
+            items: ['SF9', 'SF10']
+                .map((type) => DropdownMenuItem(value: type, child: Text(type)))
+                .toList(),
+            onChanged: (val) => setState(() => _selectedOcrDocType = val),
+          ),
+
+          const SizedBox(height: AppSizes.p24),
+
+          if (_selectedOcrDocType != null)
+            DocumentSourcePicker(
+              allowedExtensions: const ['pdf', 'jpg', 'png', 'jpeg'],
+              onFileSelected: _handleOcrScan,
+              onError: (err) => setState(() => _errorMessage = err),
+            ),
+
+          const SizedBox(height: AppSizes.p24),
+
+          Center(
+            child: TextButton.icon(
+              onPressed: () => setState(() {
+                _showOcrStep = false;
+                _errorMessage = null;
+              }),
+              icon: const Icon(
+                Icons.keyboard_alt_outlined,
+                color: AppColors.textSecondary,
+              ),
+              label: const Text(
+                'Skip OCR & Enter Manually',
+                style: TextStyle(
+                  color: AppColors.textSecondary,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ================================================================
+  // STEP 2: MANUAL FORM UI
+  // ================================================================
+  Widget _buildManualForm(
+    bool isEdit,
+    AsyncValue<List<AcademicYearModel>> yearsAsync,
+    AsyncValue<List<GradeLevelModel>> gradeLevelsAsync,
+    AsyncValue<List<SectionModel>> sectionsAsync,
+    bool isMobile,
+  ) {
+    final compactTheme = Theme.of(context).copyWith(
+      inputDecorationTheme: Theme.of(context).inputDecorationTheme.copyWith(
+        isDense: true,
+        contentPadding: EdgeInsets.symmetric(
+          horizontal: isMobile ? 10 : 16,
+          vertical: isMobile ? 8 : 16,
+        ),
+        labelStyle: TextStyle(fontSize: isMobile ? 12 : 14),
+        hintStyle: TextStyle(fontSize: isMobile ? 11 : 14),
+      ),
+    );
+
+    return Theme(
+      data: compactTheme,
+      child: Form(
+        key: _formKey,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // ---- Header ----
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Flexible(
+                  child: Text(
+                    isEdit
+                        ? 'Update Student Record'
+                        : 'Student Details Validation',
+                    style: const TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                      color: AppColors.primaryGreen,
+                    ),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+                IconButton(
+                  icon: const Icon(Icons.close, color: AppColors.textSecondary),
+                  onPressed: () => Navigator.of(context).pop(),
+                ),
+              ],
+            ),
+            const Divider(height: 16),
+
+            // ---- Tab Bar ----
+            TabBar(
+              controller: _tabController,
+              labelColor: AppColors.primaryGreen,
+              unselectedLabelColor: AppColors.textSecondary,
+              indicatorColor: AppColors.primaryGreen,
+              indicatorSize: TabBarIndicatorSize.tab,
+              labelStyle: const TextStyle(
+                fontWeight: FontWeight.bold,
+                fontSize: 13,
+              ),
+              tabs: const [
+                Tab(
+                  text: 'Student Details',
+                  icon: Icon(Icons.person, size: 18),
+                ),
+                Tab(
+                  text: 'Enrollment Details',
+                  icon: Icon(Icons.school, size: 18),
+                ),
+              ],
+            ),
+            SizedBox(height: isMobile ? 36 : 12),
+
+            // ---- Tab Bar View Content (Responsive Expanded) ----
+            Expanded(
+              child: TabBarView(
+                controller: _tabController,
+                children: [
+                  // Tab 0: Student Details
+                  SingleChildScrollView(
+                    key: const ValueKey('student-details-tab'),
+                    padding: const EdgeInsets.only(right: 6, bottom: 12),
+                    child: Column(
+                      children: [
+                        // LRN
+                        TextFormField(
+                          controller: _lrnController,
+                          keyboardType: TextInputType.number,
+                          maxLength: 12,
+                          inputFormatters: [
+                            FilteringTextInputFormatter.digitsOnly,
+                          ],
+                          validator: _validateLRN,
+                          decoration: const InputDecoration(
+                            labelText: 'LRN (Learner Reference Number)',
+                            hintText: '12-digit number',
+                            prefixIcon: Icon(Icons.pin_outlined),
+                            counterText: '',
+                          ),
+                        ),
+                        const SizedBox(height: AppSizes.p12),
+
+                        // Names & Ext
+                        LayoutBuilder(
+                          builder: (ctx, c) {
+                            final wide = c.maxWidth > 480;
+                            if (wide) {
+                              return Column(
+                                children: [
+                                  Row(
+                                    children: [
+                                      Expanded(
+                                        child: TextFormField(
+                                          controller: _firstNameController,
+                                          validator: (v) => _validateRequired(
+                                            v,
+                                            'First name',
+                                          ),
+                                          decoration: const InputDecoration(
+                                            labelText: 'First Name',
+                                            prefixIcon: Icon(
+                                              Icons.badge_outlined,
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                      const SizedBox(width: AppSizes.p12),
+                                      Expanded(
+                                        child: TextFormField(
+                                          controller: _middleNameController,
+                                          decoration: const InputDecoration(
+                                            labelText: 'Middle Name (optional)',
+                                            prefixIcon: Icon(
+                                              Icons.badge_outlined,
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  const SizedBox(height: AppSizes.p12),
+                                  Row(
+                                    children: [
+                                      Expanded(
+                                        flex: 3,
+                                        child: TextFormField(
+                                          controller: _lastNameController,
+                                          validator: (v) =>
+                                              _validateRequired(v, 'Last name'),
+                                          decoration: const InputDecoration(
+                                            labelText: 'Last Name',
+                                            prefixIcon: Icon(
+                                              Icons.badge_outlined,
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                      const SizedBox(width: AppSizes.p12),
+                                      Expanded(
+                                        child: TextFormField(
+                                          controller: _extController,
+                                          decoration: const InputDecoration(
+                                            labelText: 'Ext.',
+                                            hintText: 'Jr / III',
+                                            prefixIcon: Icon(Icons.text_format),
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ],
+                              );
+                            } else {
+                              return Column(
+                                children: [
+                                  TextFormField(
+                                    controller: _firstNameController,
+                                    validator: (v) =>
+                                        _validateRequired(v, 'First name'),
+                                    decoration: const InputDecoration(
+                                      labelText: 'First Name',
+                                    ),
+                                  ),
+                                  const SizedBox(height: AppSizes.p12),
+                                  TextFormField(
+                                    controller: _middleNameController,
+                                    decoration: const InputDecoration(
+                                      labelText: 'Middle Name',
+                                    ),
+                                  ),
+                                  const SizedBox(height: AppSizes.p12),
+                                  TextFormField(
+                                    controller: _lastNameController,
+                                    validator: (v) =>
+                                        _validateRequired(v, 'Last name'),
+                                    decoration: const InputDecoration(
+                                      labelText: 'Last Name',
+                                    ),
+                                  ),
+                                  const SizedBox(height: AppSizes.p12),
+                                  TextFormField(
+                                    controller: _extController,
+                                    decoration: const InputDecoration(
+                                      labelText: 'Extension (Jr / III)',
+                                    ),
+                                  ),
+                                ],
+                              );
+                            }
+                          },
+                        ),
+                        const SizedBox(height: AppSizes.p12),
+
+                        // Sex
+                        DropdownButtonFormField<String>(
+                          value: _selectedSex,
+                          validator: (v) =>
+                              v == null ? 'Please select sex.' : null,
+                          isExpanded: true,
+                          decoration: const InputDecoration(
+                            labelText: 'Sex',
+                            prefixIcon: Icon(Icons.wc),
+                          ),
+                          items: ['Male', 'Female']
+                              .map(
+                                (s) =>
+                                    DropdownMenuItem(value: s, child: Text(s)),
+                              )
+                              .toList(),
+                          onChanged: (v) => setState(() => _selectedSex = v!),
+                        ),
+                        const SizedBox(height: AppSizes.p12),
+
+                        // DOB
+                        GestureDetector(
+                          onTap: _selectDate,
+                          child: InputDecorator(
+                            decoration: InputDecoration(
+                              labelText: 'Date of Birth',
+                              prefixIcon: const Icon(
+                                Icons.calendar_today,
+                                color: AppColors.textSecondary,
+                              ),
+                              errorText:
+                                  (!_isLoading &&
+                                      _errorMessage != null &&
+                                      _selectedDob == null)
+                                  ? ''
+                                  : null,
+                            ),
+                            child: Text(
+                              _selectedDob == null
+                                  ? 'Select date…'
+                                  : '${_selectedDob!.year}-'
+                                        '${_selectedDob!.month.toString().padLeft(2, '0')}-'
+                                        '${_selectedDob!.day.toString().padLeft(2, '0')}',
+                              style: TextStyle(
+                                color: _selectedDob == null
+                                    ? AppColors.textMuted
+                                    : AppColors.textPrimary,
+                                fontSize: 16,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
                   ),
-                  const SizedBox(height: AppSizes.p16),
 
-                  // ---- Name fields ----
-                  LayoutBuilder(builder: (ctx, c) {
-                    final wide = c.maxWidth > 400;
-                    if (wide) {
-                      return Column(children: [
-                        Row(children: [
-                          Expanded(
-                            child: TextFormField(
-                              controller: _firstNameController,
-                              validator: (v) => _validateRequired(v, 'First name'),
+                  // Tab 1: Enrollment Details
+                  SingleChildScrollView(
+                    key: const ValueKey('enrollment-details-tab'),
+                    padding: const EdgeInsets.only(right: 6, bottom: 12),
+                    child: Column(
+                      children: [
+                        yearsAsync.when(
+                          data: (years) {
+                            return DropdownButtonFormField<int>(
+                              value: _selectedAcademicYearId,
                               decoration: const InputDecoration(
-                                labelText:  'First Name',
-                                prefixIcon: Icon(Icons.badge_outlined),
+                                labelText: 'Academic Year',
+                                prefixIcon: Icon(Icons.calendar_today),
                               ),
-                            ),
+                              items: years
+                                  .map(
+                                    (y) => DropdownMenuItem<int>(
+                                      value: y.id,
+                                      child: Text(y.yearRange),
+                                    ),
+                                  )
+                                  .toList(),
+                              onChanged: (val) {
+                                setState(() {
+                                  _selectedAcademicYearId = val;
+                                  _selectedSectionId = null;
+                                });
+                              },
+                              validator: (v) => v == null
+                                  ? 'Academic year is required.'
+                                  : null,
+                            );
+                          },
+                          loading: () =>
+                              const Center(child: CircularProgressIndicator()),
+                          error: (err, _) => Text(
+                            'Error: $err',
+                            style: const TextStyle(color: Colors.red),
                           ),
-                          const SizedBox(width: AppSizes.p16),
-                          Expanded(
-                            child: TextFormField(
-                              controller: _middleNameController,
-                              decoration: const InputDecoration(
-                                labelText:  'Middle Name (optional)',
-                                prefixIcon: Icon(Icons.badge_outlined),
-                              ),
-                            ),
-                          ),
-                        ]),
-                        const SizedBox(height: AppSizes.p16),
-                        Row(children: [
-                          Expanded(
-                            flex: 3,
-                            child: TextFormField(
-                              controller: _lastNameController,
-                              validator: (v) => _validateRequired(v, 'Last name'),
-                              decoration: const InputDecoration(
-                                labelText:  'Last Name',
-                                prefixIcon: Icon(Icons.badge_outlined),
-                              ),
-                            ),
-                          ),
-                          const SizedBox(width: AppSizes.p16),
-                          Expanded(
-                            flex: 1,
-                            child: TextFormField(
-                              controller: _extController,
-                              decoration: const InputDecoration(
-                                labelText:  'Ext.',
-                                hintText:   'Jr / III',
-                                prefixIcon: Icon(Icons.text_format),
-                              ),
-                            ),
-                          ),
-                        ]),
-                      ]);
-                    } else {
-                      return Column(children: [
-                        TextFormField(
-                          controller: _firstNameController,
-                          validator: (v) => _validateRequired(v, 'First name'),
-                          decoration: const InputDecoration(labelText: 'First Name'),
                         ),
                         const SizedBox(height: AppSizes.p12),
-                        TextFormField(
-                          controller: _middleNameController,
-                          decoration: const InputDecoration(labelText: 'Middle Name'),
-                        ),
-                        const SizedBox(height: AppSizes.p12),
-                        TextFormField(
-                          controller: _lastNameController,
-                          validator: (v) => _validateRequired(v, 'Last name'),
-                          decoration: const InputDecoration(labelText: 'Last Name'),
-                        ),
-                        const SizedBox(height: AppSizes.p12),
-                        TextFormField(
-                          controller: _extController,
-                          decoration: const InputDecoration(labelText: 'Extension (Jr / III)'),
-                        ),
-                      ]);
-                    }
-                  }),
-                  const SizedBox(height: AppSizes.p16),
 
-                  // ---- Sex + DOB ----
-                  Row(children: [
-                    Expanded(
-                      child: DropdownButtonFormField<String>(
-                        initialValue: _selectedSex,
-                        validator: (v) => v == null ? 'Please select sex.' : null,
-                        decoration: const InputDecoration(
-                          labelText:  'Sex',
-                          prefixIcon: Icon(Icons.wc),
-                        ),
-                        items: ['Male', 'Female']
-                            .map((s) => DropdownMenuItem(value: s, child: Text(s)))
-                            .toList(),
-                        onChanged: (v) => setState(() => _selectedSex = v!),
-                      ),
-                    ),
-                    const SizedBox(width: AppSizes.p16),
-                    Expanded(
-                      child: GestureDetector(
-                        onTap: _selectDate,
-                        child: InputDecorator(
-                          decoration: InputDecoration(
-                            labelText:  'Date of Birth',
-                            prefixIcon: const Icon(Icons.calendar_today, color: AppColors.textSecondary),
-                            errorText:  (_isLoading == false && _errorMessage != null && _selectedDob == null)
-                                        ? '' : null,
+                        gradeLevelsAsync.when(
+                          data: (grades) {
+                            return DropdownButtonFormField<int>(
+                              value: _selectedGradeLevel,
+                              decoration: const InputDecoration(
+                                labelText: 'Grade Level',
+                                prefixIcon: Icon(Icons.grade),
+                              ),
+                              items: grades
+                                  .map(
+                                    (g) => DropdownMenuItem<int>(
+                                      value: g.level,
+                                      child: Text(g.name),
+                                    ),
+                                  )
+                                  .toList(),
+                              onChanged: (val) {
+                                setState(() {
+                                  _selectedGradeLevel = val;
+                                  _selectedSectionId = null;
+                                });
+                              },
+                              validator: (v) =>
+                                  v == null ? 'Grade level is required.' : null,
+                            );
+                          },
+                          loading: () =>
+                              const Center(child: CircularProgressIndicator()),
+                          error: (err, _) => Text(
+                            'Error: $err',
+                            style: const TextStyle(color: Colors.red),
                           ),
-                          child: Text(
-                            _selectedDob == null
-                                ? 'Select date…'
-                                : '${_selectedDob!.year}-'
-                                  '${_selectedDob!.month.toString().padLeft(2, '0')}-'
-                                  '${_selectedDob!.day.toString().padLeft(2, '0')}',
-                            style: TextStyle(
-                              color:    _selectedDob == null
-                                        ? AppColors.textMuted
-                                        : AppColors.textPrimary,
-                              fontSize: 16,
+                        ),
+                        const SizedBox(height: AppSizes.p12),
+
+                        sectionsAsync.when(
+                          data: (sections) {
+                            final filtered = sections
+                                .where(
+                                  (sec) =>
+                                      sec.academicYearId ==
+                                          _selectedAcademicYearId &&
+                                      sec.gradeLevel == _selectedGradeLevel,
+                                )
+                                .toList();
+
+                            return DropdownButtonFormField<int>(
+                              value: _selectedSectionId,
+                              decoration: const InputDecoration(
+                                labelText: 'Section',
+                                prefixIcon: Icon(Icons.segment),
+                              ),
+                              items: filtered
+                                  .map(
+                                    (s) => DropdownMenuItem<int>(
+                                      value: s.id,
+                                      child: Text(s.name),
+                                    ),
+                                  )
+                                  .toList(),
+                              onChanged: (val) =>
+                                  setState(() => _selectedSectionId = val),
+                              validator: (v) =>
+                                  v == null ? 'Section is required.' : null,
+                            );
+                          },
+                          loading: () =>
+                              const Center(child: CircularProgressIndicator()),
+                          error: (err, _) => Text(
+                            'Error: $err',
+                            style: const TextStyle(color: Colors.red),
+                          ),
+                        ),
+
+                        if (_selectedGradeLevel != null &&
+                            _selectedGradeLevel! >= 11) ...[
+                          const SizedBox(height: AppSizes.p12),
+                          TextFormField(
+                            initialValue: _trackStrand,
+                            decoration: const InputDecoration(
+                              labelText: 'Track & Strand (for SHS)',
+                              prefixIcon: Icon(Icons.school_outlined),
                             ),
+                            onChanged: (val) => _trackStrand =
+                                val.trim().isEmpty ? null : val.trim(),
                           ),
-                        ),
-                      ),
-                    ),
-                  ]),
-                  const SizedBox(height: AppSizes.p16),
+                        ],
 
-                  // ---- Status (edit only) ----
-                  if (isEdit) ...[
-                    DropdownButtonFormField<String>(
-                      initialValue: _selectedStatus,
-                      decoration: const InputDecoration(
-                        labelText:  'Status',
-                        prefixIcon: Icon(Icons.info_outline),
-                      ),
-                      items: _statuses
-                          .map((s) => DropdownMenuItem(value: s, child: Text(s)))
-                          .toList(),
-                      onChanged: (v) => setState(() => _selectedStatus = v!),
-                    ),
-                    const SizedBox(height: AppSizes.p16),
-                  ],
-
-                  const SizedBox(height: AppSizes.p16),
-
-                  // ---- Actions ----
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.end,
-                    children: [
-                      TextButton(
-                        onPressed: _isLoading ? null : () => Navigator.of(context).pop(),
-                        child: const Text(
-                          'CANCEL',
-                          style: TextStyle(
-                            color:      AppColors.textSecondary,
-                            fontWeight: FontWeight.bold,
+                        if (isEdit) ...[
+                          const SizedBox(height: AppSizes.p12),
+                          DropdownButtonFormField<String>(
+                            value: _selectedStatus,
+                            isExpanded: true,
+                            decoration: const InputDecoration(
+                              labelText: 'Status',
+                              prefixIcon: Icon(Icons.info_outline),
+                            ),
+                            items: _statuses
+                                .map(
+                                  (s) => DropdownMenuItem(
+                                    value: s,
+                                    child: Text(s),
+                                  ),
+                                )
+                                .toList(),
+                            onChanged: (v) =>
+                                setState(() => _selectedStatus = v!),
+                            validator: (v) {
+                              if (v == 'Graduated' &&
+                                  _selectedGradeLevel != 10 &&
+                                  _selectedGradeLevel != 12) {
+                                return 'Graduation only allowed for Grade 10 and Grade 12.';
+                              }
+                              return null;
+                            },
                           ),
-                        ),
-                      ),
-                      const SizedBox(width: AppSizes.p16),
-                      SizedBox(
-                        width: 180,
-                        child: PrimaryButton(
-                          label:     isEdit ? 'UPDATE RECORD' : 'SAVE STUDENT',
-                          isLoading: _isLoading,
-                          onPressed: _handleSave,
-                        ),
-                      ),
-                    ],
+                        ],
+                      ],
+                    ),
                   ),
                 ],
               ),
             ),
-          ),
+            const SizedBox(height: 8),
+
+            if (_errorMessage != null) ...[
+              _ErrorBanner(message: _errorMessage!),
+              const SizedBox(height: AppSizes.p12),
+            ],
+
+            // ---- Actions ----
+            if (isMobile)
+              Padding(
+                padding: const EdgeInsets.only(top: 8.0),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    PrimaryButton(
+                      label: isEdit ? 'UPDATE RECORD' : 'SAVE STUDENT',
+                      isLoading: _isLoading,
+                      onPressed: _handleSave,
+                    ),
+                    const SizedBox(height: 8),
+                    if (!isEdit && _ocrScannedFile != null) ...[
+                      OutlinedButton.icon(
+                        onPressed: () => setState(() {
+                          _lrnController.clear();
+                          _firstNameController.clear();
+                          _middleNameController.clear();
+                          _lastNameController.clear();
+                          _extController.clear();
+                          _showOcrStep = true;
+                        }),
+                        icon: const Icon(Icons.refresh, size: 18),
+                        label: const Text('RE-SCAN', style: TextStyle(fontSize: 12)),
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: Colors.orange,
+                          side: const BorderSide(color: Colors.orange),
+                          padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 8),
+                        ),
+                      ),
+                      const SizedBox(height: 6),
+                      OutlinedButton.icon(
+                        onPressed: _showMobilePreviewDialog,
+                        icon: const Icon(Icons.preview_outlined, size: 16),
+                        label: const Text('VIEW SCANNED DOCUMENT', style: TextStyle(fontSize: 12)),
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: AppColors.primaryGreen,
+                          side: const BorderSide(color: AppColors.primaryGreen),
+                          padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 8),
+                        ),
+                      ),
+                      const SizedBox(height: 6),
+                    ],
+                    TextButton(
+                      onPressed: _isLoading
+                          ? null
+                          : () => Navigator.of(context).pop(),
+                      child: const Text(
+                        'CANCEL',
+                        style: TextStyle(
+                          color: AppColors.textSecondary,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 14,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              )
+            else
+              Wrap(
+                alignment: WrapAlignment.end,
+                crossAxisAlignment: WrapCrossAlignment.center,
+                spacing: AppSizes.p12,
+                runSpacing: AppSizes.p8,
+                children: [
+                  if (!isEdit && _ocrScannedFile != null)
+                    TextButton.icon(
+                      onPressed: () => setState(() {
+                        _lrnController.clear();
+                        _firstNameController.clear();
+                        _middleNameController.clear();
+                        _lastNameController.clear();
+                        _extController.clear();
+                        _showOcrStep = true;
+                      }),
+                      icon: const Icon(Icons.refresh),
+                      label: const Text('RE-SCAN'),
+                      style: TextButton.styleFrom(
+                        foregroundColor: Colors.orange,
+                      ),
+                    ),
+                  TextButton(
+                    onPressed: _isLoading
+                        ? null
+                        : () => Navigator.of(context).pop(),
+                    child: const Text(
+                      'CANCEL',
+                      style: TextStyle(
+                        color: AppColors.textSecondary,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                  SizedBox(
+                    width: 170,
+                    child: PrimaryButton(
+                      label: isEdit ? 'UPDATE RECORD' : 'SAVE STUDENT',
+                      isLoading: _isLoading,
+                      onPressed: _handleSave,
+                    ),
+                  ),
+                ],
+              ),
+          ],
         ),
       ),
     );
   }
 }
 
-/// A clean inline error banner
+// ================================================================
+// OCR PROGRESS LOADER — simulated progress bar with estimated time
+// ================================================================
+class _OcrProgressLoader extends StatefulWidget {
+  final String docType;
+  const _OcrProgressLoader({required this.docType});
+
+  @override
+  State<_OcrProgressLoader> createState() => _OcrProgressLoaderState();
+}
+
+class _OcrProgressLoaderState extends State<_OcrProgressLoader> {
+  static const int _maxSeconds = 30;
+
+  double _progress = 0.0;
+  int _elapsed = 0;
+  Timer? _timer;
+
+  @override
+  void initState() {
+    super.initState();
+    _timer = Timer.periodic(const Duration(seconds: 1), (_) {
+      if (!mounted) return;
+      setState(() {
+        _elapsed = (_elapsed + 1).clamp(0, _maxSeconds);
+        _progress = 0.85 * (1 - (1 / (1 + _elapsed / 8)));
+      });
+    });
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    super.dispose();
+  }
+
+  String get _etaLabel {
+    final remaining = (_maxSeconds - _elapsed).clamp(0, _maxSeconds);
+    if (remaining <= 0) return 'Almost done…';
+    return 'Est. ~$remaining s remaining';
+  }
+
+  String get _phaseLabel {
+    if (_progress < 0.25) return 'Uploading document…';
+    if (_progress < 0.55) return 'Running OCR engine…';
+    if (_progress < 0.78) return 'Parsing extracted text…';
+    return 'Finalizing data…';
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final pct = (_progress * 100).toStringAsFixed(0);
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: AppSizes.p24),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            padding: const EdgeInsets.all(AppSizes.p16),
+            decoration: BoxDecoration(
+              color: AppColors.primaryGreen.withValues(alpha: 0.08),
+              shape: BoxShape.circle,
+            ),
+            child: const Icon(
+              Icons.document_scanner_outlined,
+              size: 48,
+              color: AppColors.primaryGreen,
+            ),
+          ),
+          const SizedBox(height: AppSizes.p16),
+
+          Text(
+            'Scanning ${widget.docType}…',
+            style: const TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: AppColors.textPrimary,
+            ),
+          ),
+          const SizedBox(height: AppSizes.p4),
+
+          Text(
+            _phaseLabel,
+            style: const TextStyle(
+              color: AppColors.textSecondary,
+              fontSize: 13,
+            ),
+          ),
+          const SizedBox(height: AppSizes.p24),
+
+          Row(
+            children: [
+              Expanded(
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(AppSizes.radiusCircular),
+                  child: LinearProgressIndicator(
+                    value: _progress,
+                    minHeight: 10,
+                    backgroundColor: AppColors.primaryGreen.withValues(
+                      alpha: 0.12,
+                    ),
+                    valueColor: const AlwaysStoppedAnimation<Color>(
+                      AppColors.primaryGreen,
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(width: AppSizes.p12),
+              SizedBox(
+                width: 38,
+                child: Text(
+                  '$pct%',
+                  textAlign: TextAlign.right,
+                  style: const TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 13,
+                    color: AppColors.primaryGreen,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: AppSizes.p8),
+
+          Align(
+            alignment: Alignment.centerRight,
+            child: Text(
+              _etaLabel,
+              style: const TextStyle(fontSize: 11, color: AppColors.textMuted),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 class _ErrorBanner extends StatelessWidget {
   final String message;
   const _ErrorBanner({required this.message});
@@ -435,8 +1304,8 @@ class _ErrorBanner extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       decoration: BoxDecoration(
-        color:        AppColors.error.withValues(alpha: 0.08),
-        border:       Border.all(color: AppColors.error.withValues(alpha: 0.4)),
+        color: AppColors.error.withValues(alpha: 0.08),
+        border: Border.all(color: AppColors.error.withValues(alpha: 0.4)),
         borderRadius: BorderRadius.circular(AppSizes.radiusMedium),
       ),
       child: Row(
@@ -447,10 +1316,7 @@ class _ErrorBanner extends StatelessWidget {
           Expanded(
             child: Text(
               message,
-              style: const TextStyle(
-                color:    AppColors.error,
-                fontSize: 14,
-              ),
+              style: const TextStyle(color: AppColors.error, fontSize: 14),
             ),
           ),
         ],

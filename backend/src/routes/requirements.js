@@ -9,10 +9,10 @@ router.get('/settings', authenticateToken, requirementController.getRequirements
 router.get('/missing/:studentId', authenticateToken, requirementController.getMissingRequirements);
 router.get('/:id', authenticateToken, requirementController.getRequirementById);
 
-// Super Admin routes only
-router.post('/', authenticateToken, authorizeRoles('super_admin'), requirementController.createRequirement);
-router.put('/bulk', authenticateToken, authorizeRoles('super_admin'), requirementController.bulkUpdateRequirements);
-router.put('/:id', authenticateToken, authorizeRoles('super_admin'), requirementController.updateRequirement);
-router.delete('/:id', authenticateToken, authorizeRoles('super_admin'), requirementController.deleteRequirement);
+// Admin routes only
+router.post('/', authenticateToken, authorizeRoles('admin'), requirementController.createRequirement);
+router.put('/bulk', authenticateToken, authorizeRoles('admin'), requirementController.bulkUpdateRequirements);
+router.put('/:id', authenticateToken, authorizeRoles('admin'), requirementController.updateRequirement);
+router.delete('/:id', authenticateToken, authorizeRoles('admin'), requirementController.deleteRequirement);
 
 module.exports = router;

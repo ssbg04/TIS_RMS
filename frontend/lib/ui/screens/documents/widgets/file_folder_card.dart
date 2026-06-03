@@ -11,6 +11,11 @@ class FileFolderCard extends StatelessWidget {
   final void Function(String)? onActionSelected;
   final void Function(int studentId)? onViewProfile;
 
+  // Multi-select features
+  final bool isMultiSelectMode;
+  final bool isSelected;
+  final ValueChanged<bool?>? onSelectedChanged;
+
   const FileFolderCard({
     super.key,
     required this.document,
@@ -19,38 +24,43 @@ class FileFolderCard extends StatelessWidget {
     required this.onTap,
     this.onActionSelected,
     this.onViewProfile,
+    this.isMultiSelectMode = false,
+    this.isSelected = false,
+    this.onSelectedChanged,
   });
 
   IconData get _fileIcon {
     final name = document.fileName.toLowerCase();
-    if (name.endsWith('.pdf')) return Icons.picture_as_pdf;
+    if (name.endsWith('.pdf')) {
+      return Icons.picture_as_pdf;
+    }
     if (name.endsWith('.png') ||
         name.endsWith('.jpg') ||
-        name.endsWith('.jpeg')) return Icons.image;
+        name.endsWith('.jpeg')) {
+      return Icons.image;
+    }
     return Icons.insert_drive_file;
   }
 
   Color get _fileColor {
     final name = document.fileName.toLowerCase();
-    if (name.endsWith('.pdf')) return Colors.redAccent;
+    if (name.endsWith('.pdf')) {
+      return Colors.redAccent;
+    }
     if (name.endsWith('.png') ||
         name.endsWith('.jpg') ||
-        name.endsWith('.jpeg')) return Colors.blueAccent;
+        name.endsWith('.jpeg')) {
+      return Colors.blueAccent;
+    }
     return AppColors.primaryGreen;
   }
 
   Color get _statusColor {
     switch (document.status) {
-      case 'Verified':
+      case 'Completed':
         return AppColors.success;
-      case 'Pending':
-        return Colors.orange;
-      case 'Draft':
-        return Colors.grey;
       case 'Archived':
         return Colors.blue;
-      case 'Rejected':
-        return AppColors.error;
       default:
         return Colors.grey;
     }
@@ -59,46 +69,70 @@ class FileFolderCard extends StatelessWidget {
   List<PopupMenuEntry<String>> _buildMenuItems() {
     final items = <PopupMenuEntry<String>>[
       const PopupMenuItem(
-          value: 'preview',
-          child: ListTile(
-              dense: true,
-              leading: Icon(Icons.visibility, size: 18),
-              title: Text('Preview', style: TextStyle(fontSize: 14)))),
+        value: 'preview',
+        child: Row(
+          children: [
+            Icon(Icons.visibility, size: 18),
+            SizedBox(width: 12),
+            Text('Preview', style: TextStyle(fontSize: 14)),
+          ],
+        ),
+      ),
       const PopupMenuItem(
-          value: 'queue',
-          child: ListTile(
-              dense: true,
-              leading: Icon(Icons.print, size: 18),
-              title: Text('Add to Print Queue',
-                  style: TextStyle(fontSize: 14)))),
+        value: 'queue',
+        child: Row(
+          children: [
+            Icon(Icons.print, size: 18),
+            SizedBox(width: 12),
+            Text('Add to Print List', style: TextStyle(fontSize: 14)),
+          ],
+        ),
+      ),
       const PopupMenuItem(
-          value: 'download',
-          child: ListTile(
-              dense: true,
-              leading: Icon(Icons.download, size: 18),
-              title: Text('Download', style: TextStyle(fontSize: 14)))),
+        value: 'copy',
+        child: Row(
+          children: [
+            Icon(Icons.copy, size: 18),
+            SizedBox(width: 12),
+            Text('Copy', style: TextStyle(fontSize: 14)),
+          ],
+        ),
+      ),
+      const PopupMenuItem(
+        value: 'download',
+        child: Row(
+          children: [
+            Icon(Icons.download, size: 18),
+            SizedBox(width: 12),
+            Text('Download', style: TextStyle(fontSize: 14)),
+          ],
+        ),
+      ),
       const PopupMenuDivider(),
       const PopupMenuItem(
-          value: 'view_profile',
-          child: ListTile(
-              dense: true,
-              leading:
-                  Icon(Icons.person, size: 18, color: AppColors.primaryGreen),
-              title: Text('View Student Profile',
-                  style: TextStyle(fontSize: 14)))),
+        value: 'view_profile',
+        child: Row(
+          children: [
+            Icon(Icons.person, size: 18, color: AppColors.primaryGreen),
+            SizedBox(width: 12),
+            Text('View Student Profile', style: TextStyle(fontSize: 14)),
+          ],
+        ),
+      ),
     ];
 
     if (userRole != 'teacher') {
       items.add(const PopupMenuDivider());
       items.add(const PopupMenuItem(
-          value: 'delete',
-          child: ListTile(
-              dense: true,
-              leading:
-                  Icon(Icons.delete_outline, size: 18, color: AppColors.error),
-              title: Text('Delete',
-                  style:
-                      TextStyle(fontSize: 14, color: AppColors.error)))));
+        value: 'delete',
+        child: Row(
+          children: [
+            Icon(Icons.delete, size: 18, color: AppColors.error),
+            SizedBox(width: 12),
+            Text('Delete', style: TextStyle(fontSize: 14, color: AppColors.error)),
+          ],
+        ),
+      ));
     }
     return items;
   }
@@ -114,13 +148,18 @@ class FileFolderCard extends StatelessWidget {
   // ════════════════════════════════════════
   Widget _buildGridCard() {
     return InkWell(
-      onTap: onTap,
+      onTap: isMultiSelectMode ? () => onSelectedChanged?.call(!isSelected) : onTap,
       borderRadius: BorderRadius.circular(AppSizes.radiusLarge),
       child: Container(
         decoration: BoxDecoration(
-          color: AppColors.surfaceWhite,
+          color: isSelected
+              ? AppColors.primaryGreen.withValues(alpha: 0.05)
+              : AppColors.surfaceWhite,
           borderRadius: BorderRadius.circular(AppSizes.radiusLarge),
-          border: Border.all(color: Colors.grey.shade200),
+          border: Border.all(
+            color: isSelected ? AppColors.primaryGreen : Colors.grey.shade200,
+            width: isSelected ? 1.5 : 1.0,
+          ),
           boxShadow: [
             BoxShadow(
                 color: Colors.black.withValues(alpha: 0.03),
@@ -130,6 +169,16 @@ class FileFolderCard extends StatelessWidget {
         ),
         child: Stack(
           children: [
+            if (isMultiSelectMode)
+              Positioned(
+                top: 4,
+                left: 4,
+                child: Checkbox(
+                  value: isSelected,
+                  activeColor: AppColors.primaryGreen,
+                  onChanged: onSelectedChanged,
+                ),
+              ),
             Padding(
               padding: const EdgeInsets.all(12),
               child: Column(
@@ -167,16 +216,17 @@ class FileFolderCard extends StatelessWidget {
                 ],
               ),
             ),
-            Positioned(
-              top: 2,
-              right: 2,
-              child: PopupMenuButton<String>(
-                icon: const Icon(Icons.more_vert,
-                    color: AppColors.textSecondary, size: 18),
-                onSelected: onActionSelected,
-                itemBuilder: (_) => _buildMenuItems(),
+            if (!isMultiSelectMode)
+              Positioned(
+                top: 2,
+                right: 2,
+                child: PopupMenuButton<String>(
+                  icon: const Icon(Icons.more_vert,
+                      color: AppColors.textSecondary, size: 18),
+                  onSelected: onActionSelected,
+                  itemBuilder: (_) => _buildMenuItems(),
+                ),
               ),
-            ),
           ],
         ),
       ),
@@ -188,11 +238,22 @@ class FileFolderCard extends StatelessWidget {
   // ════════════════════════════════════════
   Widget _buildListRow() {
     return InkWell(
-      onTap: onTap,
-      child: Padding(
+      onTap: isMultiSelectMode ? () => onSelectedChanged?.call(!isSelected) : onTap,
+      child: Container(
+        color: isSelected ? AppColors.primaryGreen.withValues(alpha: 0.05) : null,
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
         child: Row(
           children: [
+            if (isMultiSelectMode) ...[
+              Checkbox(
+                value: isSelected,
+                activeColor: AppColors.primaryGreen,
+                onChanged: onSelectedChanged,
+              ),
+              const SizedBox(width: 8),
+            ] else ...[
+              const SizedBox(width: 4),
+            ],
             // File icon
             Container(
               width: 36,
@@ -252,12 +313,14 @@ class FileFolderCard extends StatelessWidget {
             // Actions
             SizedBox(
               width: 40,
-              child: PopupMenuButton<String>(
-                icon: const Icon(Icons.more_vert,
-                    size: 18, color: AppColors.textSecondary),
-                onSelected: onActionSelected,
-                itemBuilder: (_) => _buildMenuItems(),
-              ),
+              child: isMultiSelectMode
+                  ? const SizedBox.shrink()
+                  : PopupMenuButton<String>(
+                      icon: const Icon(Icons.more_vert,
+                          size: 18, color: AppColors.textSecondary),
+                      onSelected: onActionSelected,
+                      itemBuilder: (_) => _buildMenuItems(),
+                    ),
             ),
           ],
         ),

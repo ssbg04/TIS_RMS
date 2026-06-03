@@ -5,6 +5,8 @@ import '../../../../core/constants/app_sizes.dart';
 import '../../../../domain/repositories/document_repository.dart'
     show PrintQueueItem;
 import '../../../shared/buttons/primary_button.dart';
+import '../../../shared/dialogs/success_dialog.dart';
+import '../../../shared/dialogs/error_dialog.dart';
 import '../../../providers/document_provider.dart';
 
 class PrintQueueModal extends ConsumerStatefulWidget {
@@ -21,18 +23,26 @@ class _PrintQueueModalState extends ConsumerState<PrintQueueModal> {
     if (items.isEmpty) return;
     setState(() => _isPrinting = true);
 
-    // Simulate sending batch to printer (replace with real print service when available)
-    await Future.delayed(const Duration(seconds: 2));
+    try {
+      await ref.read(printQueueMutationProvider.notifier).executePrint();
 
-    if (!mounted) return;
-    setState(() => _isPrinting = false);
-    Navigator.of(context).pop();
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Batch sent to printer successfully!'),
-        backgroundColor: AppColors.success,
-      ),
-    );
+      if (!mounted) return;
+      setState(() => _isPrinting = false);
+      Navigator.of(context).pop();
+      showSuccessDialog(
+        context,
+        title: 'Sent to Printer',
+        message: 'Batch of ${items.length} document${items.length > 1 ? "s" : ""} logged and sent to printer successfully!',
+      );
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _isPrinting = false);
+      showErrorDialog(
+        context,
+        'Print Failed',
+        e.toString().replaceFirst('Exception: ', ''),
+      );
+    }
   }
 
   Future<void> _removeItem(int queueId) async {
@@ -42,37 +52,51 @@ class _PrintQueueModalState extends ConsumerState<PrintQueueModal> {
           .removeFromQueue(queueId);
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-        content: Text('Failed to remove: $e'),
-        backgroundColor: AppColors.error,
-      ));
+      showErrorDialog(
+        context,
+        'Remove Failed',
+        e.toString().replaceFirst('Exception: ', ''),
+        buttonLabel: 'OK',
+      );
     }
   }
 
   Future<void> _clearAll() async {
     try {
       await ref.read(printQueueMutationProvider.notifier).clearQueue();
+      if (!mounted) return;
+      showSuccessDialog(
+        context,
+        title: 'List Cleared',
+        message: 'The print list has been cleared.',
+      );
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-        content: Text('Failed to clear queue: $e'),
-        backgroundColor: AppColors.error,
-      ));
+      showErrorDialog(
+        context,
+        'Clear Failed',
+        e.toString().replaceFirst('Exception: ', ''),
+        buttonLabel: 'OK',
+      );
     }
   }
 
   @override
   Widget build(BuildContext context) {
     final queueAsync = ref.watch(printQueueProvider);
+    final isMobile = MediaQuery.of(context).size.width < 600;
 
     return Dialog(
       backgroundColor: AppColors.surfaceWhite,
+      insetPadding: EdgeInsets.all(isMobile ? 16 : 24),
       shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(AppSizes.radiusLarge)),
       child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 520, maxHeight: 620),
+        constraints: BoxConstraints(
+            maxWidth: 520,
+            maxHeight: isMobile ? MediaQuery.of(context).size.height * 0.85 : 620),
         child: Padding(
-          padding: const EdgeInsets.all(AppSizes.p24),
+          padding: EdgeInsets.all(isMobile ? 16 : AppSizes.p24),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -93,15 +117,16 @@ class _PrintQueueModalState extends ConsumerState<PrintQueueModal> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text('Print Queue',
+                        Text('Print List',
                             style: TextStyle(
                                 fontSize: 20,
                                 fontWeight: FontWeight.bold,
                                 color: AppColors.textPrimary)),
-                        Text('Documents staged for batch printing',
+                        Text('Staged documents. Note: This is only a list of documents to be printed or requested.',
                             style: TextStyle(
-                                fontSize: 12,
-                                color: AppColors.textSecondary)),
+                                fontSize: 11,
+                                color: AppColors.textSecondary,
+                                fontStyle: FontStyle.italic)),
                       ],
                     ),
                   ),
@@ -130,7 +155,7 @@ class _PrintQueueModalState extends ConsumerState<PrintQueueModal> {
               // ── Footer ──
               queueAsync.maybeWhen(
                 data: (items) => items.isNotEmpty
-                    ? _buildFooter(items)
+                    ? _buildFooter(items, isMobile)
                     : const SizedBox.shrink(),
                 orElse: () => const SizedBox.shrink(),
               ),
@@ -144,7 +169,7 @@ class _PrintQueueModalState extends ConsumerState<PrintQueueModal> {
   Widget _buildQueueList(List<PrintQueueItem> items) {
     return ListView.separated(
       itemCount: items.length,
-      separatorBuilder: (_, __) =>
+      separatorBuilder: (context, index) =>
           Divider(height: 1, color: Colors.grey.shade100),
       itemBuilder: (ctx, i) {
         final item = items[i];
@@ -193,7 +218,7 @@ class _PrintQueueModalState extends ConsumerState<PrintQueueModal> {
               IconButton(
                 icon: const Icon(Icons.remove_circle_outline,
                     color: AppColors.error, size: 20),
-                tooltip: 'Remove from Queue',
+                tooltip: 'Remove from List',
                 onPressed: () => _removeItem(item.queueId),
               ),
             ],
@@ -206,11 +231,11 @@ class _PrintQueueModalState extends ConsumerState<PrintQueueModal> {
   Widget _buildStatusChip(String status) {
     Color color;
     switch (status) {
-      case 'Verified':
+      case 'Completed':
         color = AppColors.success;
         break;
-      case 'Pending':
-        color = Colors.orange;
+      case 'Archived':
+        color = Colors.blue;
         break;
       default:
         color = Colors.grey;
@@ -228,47 +253,83 @@ class _PrintQueueModalState extends ConsumerState<PrintQueueModal> {
     );
   }
 
-  Widget _buildFooter(List<PrintQueueItem> items) {
+
+  Widget _buildFooter(List<PrintQueueItem> items, bool isMobile) {
     return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         const Divider(height: AppSizes.p32),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text('${items.length} document${items.length > 1 ? 's' : ''}',
-                    style: const TextStyle(
-                        fontWeight: FontWeight.bold,
-                        color: AppColors.textPrimary)),
-                const Text('Ready for batch print',
-                    style: TextStyle(
-                        color: AppColors.textSecondary, fontSize: 12)),
-              ],
-            ),
-            Row(
-              children: [
-                TextButton(
+        if (isMobile) ...[
+          // Mobile layout: Stacked info and buttons
+          Text('${items.length} document${items.length > 1 ? 's' : ''}',
+              style: const TextStyle(
+                  fontWeight: FontWeight.bold,
+                  color: AppColors.textPrimary)),
+          const Text('Ready for batch print',
+              style: TextStyle(
+                  color: AppColors.textSecondary, fontSize: 12)),
+          const SizedBox(height: 16),
+          Row(
+            children: [
+              Expanded(
+                child: TextButton(
                   onPressed: _isPrinting ? null : _clearAll,
                   child: const Text('CLEAR ALL',
                       style: TextStyle(
                           color: AppColors.textSecondary,
                           fontWeight: FontWeight.bold)),
                 ),
-                const SizedBox(width: AppSizes.p8),
-                SizedBox(
-                  width: 130,
-                  child: PrimaryButton(
-                    label: 'PRINT ALL',
-                    isLoading: _isPrinting,
-                    onPressed: () => _handlePrintAll(items),
-                  ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: PrimaryButton(
+                  label: 'PRINT ALL',
+                  isLoading: _isPrinting,
+                  onPressed: () => _handlePrintAll(items),
                 ),
-              ],
-            ),
-          ],
-        ),
+              ),
+            ],
+          ),
+        ] else ...[
+          // Desktop layout: Horizontal row
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('${items.length} document${items.length > 1 ? 's' : ''}',
+                      style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          color: AppColors.textPrimary)),
+                  const Text('Ready for batch print',
+                      style: TextStyle(
+                          color: AppColors.textSecondary, fontSize: 12)),
+                ],
+              ),
+              Row(
+                children: [
+                  TextButton(
+                    onPressed: _isPrinting ? null : _clearAll,
+                    child: const Text('CLEAR ALL',
+                        style: TextStyle(
+                            color: AppColors.textSecondary,
+                            fontWeight: FontWeight.bold)),
+                  ),
+                  const SizedBox(width: AppSizes.p8),
+                  SizedBox(
+                    width: 130,
+                    child: PrimaryButton(
+                      label: 'PRINT ALL',
+                      isLoading: _isPrinting,
+                      onPressed: () => _handlePrintAll(items),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ],
       ],
     );
   }
@@ -280,14 +341,14 @@ class _PrintQueueModalState extends ConsumerState<PrintQueueModal> {
         children: [
           Icon(Icons.print_disabled, size: 64, color: Colors.grey.shade300),
           const SizedBox(height: AppSizes.p16),
-          const Text('Queue is empty',
+          const Text('List is empty',
               style: TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.bold,
                   color: AppColors.textSecondary)),
           const SizedBox(height: AppSizes.p8),
           const Text(
-            'Open a document\'s menu and select\n"Add to Print Queue" to batch print.',
+            'Open a document\'s menu and select\n"Add to Print List" to batch print.',
             textAlign: TextAlign.center,
             style: TextStyle(color: AppColors.textMuted, fontSize: 13),
           ),
@@ -303,7 +364,7 @@ class _PrintQueueModalState extends ConsumerState<PrintQueueModal> {
         children: [
           const Icon(Icons.error_outline, size: 48, color: AppColors.error),
           const SizedBox(height: 12),
-          const Text('Failed to load print queue',
+          const Text('Failed to load print list',
               style: TextStyle(color: AppColors.error)),
           const SizedBox(height: 8),
           TextButton(

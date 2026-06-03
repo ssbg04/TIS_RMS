@@ -43,6 +43,12 @@ dependencies:
   path_provider: ^2.1.5
   file_picker: ^11.0.2
   permission_handler: ^12.0.1
+  socket_io_client: ^3.1.4
+  image_picker: ^1.2.2
+  shared_preferences: ^2.5.5
+  fl_chart: ^1.2.0
+  url_launcher: ^6.3.1
+  syncfusion_flutter_pdfviewer: ^33.2.8
 
 dev_dependencies:
   flutter_test:
@@ -56,6 +62,7 @@ dev_dependencies:
   # rules and activating additional ones.
   flutter_lints: ^6.0.0
   change_app_package_name: ^1.5.0
+  msix: ^3.16.13
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec
@@ -116,3 +123,11 @@ flutter_native_splash:
   android_12:
     image: "assets/images/logo.png"
     icon_background_color: "#F9F9F9"
+
+msix_config:
+  display_name: TIS RMS
+  publisher_display_name: BSIT3DSB
+  identity_name: plsp.bsit3dsb.tisrms
+  msix_version: 1.0.0.1
+  logo_path: "assets/images/logo.png"
+  capabilities: internetClient

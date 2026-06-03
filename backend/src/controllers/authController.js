@@ -2,6 +2,7 @@ const db = require('../config/db');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 require('dotenv').config();
+const { createNotification } = require('./notificationController');
 
 // POST /api/auth/login
 exports.login = (req, res) => {
@@ -47,13 +48,25 @@ exports.getProfile = (req, res) => {
 
 // PUT /api/auth/profile
 exports.updateProfile = (req, res) => {
-    const { firstName, middleName, lastName, extension, phone, email } = req.body;
+    const { firstName, middleName, lastName, extension, phone, email, currentPassword } = req.body;
+    
+    if (!currentPassword) {
+        return res.status(400).json({ message: 'Current password is required to save changes.' });
+    }
+
     try {
+        const user = db.prepare('SELECT password FROM users WHERE id = ?').get(req.user.id);
+        
+        if (!user || !bcrypt.compareSync(currentPassword, user.password)) {
+            return res.status(401).json({ message: 'Incorrect current password.' });
+        }
+
         db.prepare(`
             UPDATE users 
-            SET first_name = ?, middle_name = ?, last_name = ?, extension = ?, phone = ?, email = ?, updated_at = CURRENT_TIMESTAMP
+            SET first_name = ?, middle_name = ?, last_name = ?, extension = ?, phone = ?, email = ?, updated_at = (strftime('%Y-%m-%dT%H:%M:%SZ', 'now'))
             WHERE id = ?
         `).run(firstName, middleName, lastName, extension, phone, email, req.user.id);
+        
         res.json({ message: 'Profile updated successfully' });
     } catch (error) {
         res.status(500).json({ message: 'Failed to update profile', error: error.message });
@@ -82,7 +95,7 @@ exports.changePassword = (req, res) => {
         }
 
         const hashedNewPassword = bcrypt.hashSync(newPassword, 10);
-        db.prepare('UPDATE users SET password = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?')
+        db.prepare("UPDATE users SET password = ?, updated_at = (strftime('%Y-%m-%dT%H:%M:%SZ', 'now')) WHERE id = ?")
             .run(hashedNewPassword, req.user.id);
 
         res.json({ message: 'Password changed successfully.' });
@@ -110,8 +123,8 @@ exports.requestPasswordReset = (req, res) => {
         if (!user) {
             return res.status(404).json({ message: 'Username not found.' });
         }
-        if (user.role === 'super_admin') {
-            return res.status(403).json({ message: 'Super Admin cannot submit password reset requests.' });
+        if (user.role === 'admin') {
+            return res.status(403).json({ message: 'Admin cannot submit password reset requests.' });
         }
 
         // Cancel any existing pending request for this user
@@ -122,8 +135,9 @@ exports.requestPasswordReset = (req, res) => {
             INSERT INTO password_reset_requests (user_id, new_password_hash)
             VALUES (?, ?)
         `).run(user.id, hashedPassword);
+        createNotification(null, 'Password Reset Request', `User "${username}" has requested a password reset.`, 'system');
 
-        res.json({ message: 'Password reset request submitted. Awaiting Super Admin approval.' });
+        res.json({ message: 'Password reset request submitted. Awaiting Admin approval.' });
     } catch (error) {
         res.status(500).json({ message: 'Failed to submit request', error: error.message });
     }
@@ -153,10 +167,11 @@ exports.approveResetRequest = (req, res) => {
         const request = db.prepare("SELECT * FROM password_reset_requests WHERE id = ? AND status = 'pending'").get(id);
         if (!request) return res.status(404).json({ message: 'Request not found or already reviewed.' });
 
-        db.prepare('UPDATE users SET password = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?')
+        db.prepare("UPDATE users SET password = ?, updated_at = (strftime('%Y-%m-%dT%H:%M:%SZ', 'now')) WHERE id = ?")
             .run(request.new_password_hash, request.user_id);
-        db.prepare(`UPDATE password_reset_requests SET status = 'approved', reviewed_at = CURRENT_TIMESTAMP, reviewed_by = ? WHERE id = ?`)
+        db.prepare(`UPDATE password_reset_requests SET status = 'approved', reviewed_at = (strftime('%Y-%m-%dT%H:%M:%SZ', 'now')), reviewed_by = ? WHERE id = ?`)
             .run(req.user.id, id);
+        createNotification(request.user_id, 'Password Reset Approved', 'Your password reset request has been approved.', 'system');
 
         res.json({ message: 'Password reset approved and applied.' });
     } catch (error) {
@@ -171,11 +186,29 @@ exports.rejectResetRequest = (req, res) => {
         const request = db.prepare("SELECT * FROM password_reset_requests WHERE id = ? AND status = 'pending'").get(id);
         if (!request) return res.status(404).json({ message: 'Request not found or already reviewed.' });
 
-        db.prepare(`UPDATE password_reset_requests SET status = 'rejected', reviewed_at = CURRENT_TIMESTAMP, reviewed_by = ? WHERE id = ?`)
+        db.prepare(`UPDATE password_reset_requests SET status = 'rejected', reviewed_at = (strftime('%Y-%m-%dT%H:%M:%SZ', 'now')), reviewed_by = ? WHERE id = ?`)
             .run(req.user.id, id);
+        createNotification(request.user_id, 'Password Reset Rejected', 'Your password reset request was rejected by the administrator.', 'system');
 
         res.json({ message: 'Password reset request rejected.' });
     } catch (error) {
         res.status(500).json({ message: 'Failed to reject request', error: error.message });
+    }
+};
+
+// POST /api/auth/verify-password
+exports.verifyPassword = (req, res) => {
+    const { password } = req.body;
+    if (!password) {
+        return res.status(400).json({ message: 'Password is required.' });
+    }
+    try {
+        const user = db.prepare('SELECT password FROM users WHERE id = ?').get(req.user.id);
+        if (!user || !bcrypt.compareSync(password, user.password)) {
+            return res.status(401).json({ message: 'Incorrect password.' });
+        }
+        res.json({ success: true });
+    } catch (error) {
+        res.status(500).json({ message: 'Verification failed', error: error.message });
     }
 };

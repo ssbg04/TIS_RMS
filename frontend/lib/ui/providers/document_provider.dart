@@ -57,6 +57,19 @@ class DocumentQueryParams {
   }
 }
 
+// ============================================================
+// Opened Folder State
+// ============================================================
+final openedFolderStudentIdProvider = NotifierProvider<OpenedFolderStudentIdNotifier, int?>(
+  OpenedFolderStudentIdNotifier.new,
+);
+
+class OpenedFolderStudentIdNotifier extends Notifier<int?> {
+  @override
+  int? build() => null;
+  void setStudentId(int? id) => state = id;
+}
+
 final documentQueryProvider =
     NotifierProvider<DocumentQueryNotifier, DocumentQueryParams>(
         DocumentQueryNotifier.new);
@@ -95,18 +108,6 @@ final documentPageProvider =
   final query = ref.watch(documentQueryProvider);
   final repo = ref.read(documentRepositoryProvider);
 
-  // If filtering by a specific student, use the student-specific endpoint
-  if (query.studentId != null) {
-    final docs = await repo.getDocumentsByStudent(query.studentId!);
-    return DocumentPage(
-      documents: docs,
-      total: docs.length,
-      page: 1,
-      limit: docs.length,
-      totalPages: 1,
-    );
-  }
-
   return repo.getDocuments(
     search: query.search,
     page: query.page,
@@ -115,6 +116,7 @@ final documentPageProvider =
     documentType: query.documentType,
     gradeLevel: query.gradeLevel,
     schoolYear: query.schoolYear,
+    studentId: query.studentId,
   );
 });
 
@@ -139,12 +141,22 @@ final studentFoldersProvider =
 });
 
 // ============================================================
+// Document statuses provider — fetches distinct statuses from backend
+// ============================================================
+final documentStatusesProvider =
+    FutureProvider.autoDispose<List<String>>((ref) async {
+  final repo = ref.read(documentRepositoryProvider);
+  return repo.getStatuses();
+});
+
+// ============================================================
 // Requirements providers
 // ============================================================
 final documentRequirementsProvider =
     FutureProvider.autoDispose<List<DocumentRequirementModel>>((ref) async {
   final repo = ref.read(documentRepositoryProvider);
-  return repo.getRequirements();
+  // Only show enabled requirements in the upload dropdown
+  return repo.getRequirements(isEnabled: true);
 });
 
 final requirementsSettingsProvider =
@@ -229,6 +241,19 @@ class PrintQueueMutationNotifier extends AsyncNotifier<void> {
       rethrow;
     }
   }
+
+  Future<void> executePrint() async {
+    state = const AsyncLoading();
+    try {
+      final repo = ref.read(documentRepositoryProvider);
+      await repo.executePrintQueue();
+      state = const AsyncData(null);
+      ref.invalidate(printQueueProvider);
+    } catch (e, st) {
+      state = AsyncError(e, st);
+      rethrow;
+    }
+  }
 }
 
 // ============================================================
@@ -249,6 +274,8 @@ class DocumentMutationNotifier extends AsyncNotifier<void> {
       await repo.updateDocumentStatus(id, status);
       state = const AsyncData(null);
       ref.invalidate(documentPageProvider);
+      ref.invalidate(foldersProvider);
+      ref.invalidate(studentFoldersProvider);
     } catch (e, st) {
       state = AsyncError(e, st);
       rethrow;
@@ -260,6 +287,80 @@ class DocumentMutationNotifier extends AsyncNotifier<void> {
     try {
       final repo = ref.read(documentRepositoryProvider);
       await repo.deleteDocument(id);
+      state = const AsyncData(null);
+      ref.invalidate(documentPageProvider);
+      ref.invalidate(foldersProvider);
+      ref.invalidate(studentFoldersProvider);
+    } catch (e, st) {
+      state = AsyncError(e, st);
+      rethrow;
+    }
+  }
+
+  Future<void> copyDocument(int id) async {
+    state = const AsyncLoading();
+    try {
+      final repo = ref.read(documentRepositoryProvider);
+      await repo.copyDocument(id);
+      state = const AsyncData(null);
+      ref.invalidate(documentPageProvider);
+      ref.invalidate(foldersProvider);
+      ref.invalidate(studentFoldersProvider);
+    } catch (e, st) {
+      state = AsyncError(e, st);
+      rethrow;
+    }
+  }
+
+  Future<void> bulkDelete(List<int> ids) async {
+    state = const AsyncLoading();
+    try {
+      final repo = ref.read(documentRepositoryProvider);
+      await repo.bulkDeleteDocuments(ids);
+      state = const AsyncData(null);
+      ref.invalidate(documentPageProvider);
+      ref.invalidate(foldersProvider);
+      ref.invalidate(studentFoldersProvider);
+    } catch (e, st) {
+      state = AsyncError(e, st);
+      rethrow;
+    }
+  }
+
+  Future<void> bulkUpdateStatus(List<int> ids, String status) async {
+    state = const AsyncLoading();
+    try {
+      final repo = ref.read(documentRepositoryProvider);
+      await repo.bulkUpdateStatus(ids, status);
+      state = const AsyncData(null);
+      ref.invalidate(documentPageProvider);
+      ref.invalidate(foldersProvider);
+      ref.invalidate(studentFoldersProvider);
+    } catch (e, st) {
+      state = AsyncError(e, st);
+      rethrow;
+    }
+  }
+
+  Future<void> bulkAddToPrintQueue(List<int> ids) async {
+    state = const AsyncLoading();
+    try {
+      final repo = ref.read(documentRepositoryProvider);
+      await repo.bulkAddToPrintQueue(ids);
+      state = const AsyncData(null);
+      ref.invalidate(documentPageProvider);
+      ref.invalidate(printQueueProvider);
+    } catch (e, st) {
+      state = AsyncError(e, st);
+      rethrow;
+    }
+  }
+
+  Future<void> bulkCopy(List<int> ids) async {
+    state = const AsyncLoading();
+    try {
+      final repo = ref.read(documentRepositoryProvider);
+      await repo.bulkCopyDocuments(ids);
       state = const AsyncData(null);
       ref.invalidate(documentPageProvider);
     } catch (e, st) {
@@ -416,6 +517,82 @@ class FolderMutationNotifier extends AsyncNotifier<void> {
       ref.invalidate(studentFolderProvider(studentId));
       ref.invalidate(foldersProvider);
       ref.invalidate(studentFoldersProvider);
+    } catch (e, st) {
+      state = AsyncError(e, st);
+      rethrow;
+    }
+  }
+}
+
+// ============================================================
+// Recycle Bin / Trash providers
+// ============================================================
+final trashDocumentsProvider =
+    FutureProvider.autoDispose<List<TrashDocumentModel>>((ref) async {
+  final repo = ref.read(documentRepositoryProvider);
+  return repo.getTrashDocuments();
+});
+
+final trashMutationProvider =
+    AsyncNotifierProvider<TrashMutationNotifier, void>(
+        TrashMutationNotifier.new);
+
+class TrashMutationNotifier extends AsyncNotifier<void> {
+  @override
+  FutureOr<void> build() {}
+
+  Future<void> restoreDocument(int id) async {
+    state = const AsyncLoading();
+    try {
+      final repo = ref.read(documentRepositoryProvider);
+      await repo.restoreDocument(id);
+      state = const AsyncData(null);
+      ref.invalidate(trashDocumentsProvider);
+      ref.invalidate(documentPageProvider);
+      ref.invalidate(foldersProvider);
+      ref.invalidate(studentFoldersProvider);
+    } catch (e, st) {
+      state = AsyncError(e, st);
+      rethrow;
+    }
+  }
+
+  Future<void> bulkRestore(List<int> ids) async {
+    state = const AsyncLoading();
+    try {
+      final repo = ref.read(documentRepositoryProvider);
+      await repo.bulkRestoreDocuments(ids);
+      state = const AsyncData(null);
+      ref.invalidate(trashDocumentsProvider);
+      ref.invalidate(documentPageProvider);
+      ref.invalidate(foldersProvider);
+      ref.invalidate(studentFoldersProvider);
+    } catch (e, st) {
+      state = AsyncError(e, st);
+      rethrow;
+    }
+  }
+
+  Future<void> permanentDelete(int id) async {
+    state = const AsyncLoading();
+    try {
+      final repo = ref.read(documentRepositoryProvider);
+      await repo.permanentDeleteDocument(id);
+      state = const AsyncData(null);
+      ref.invalidate(trashDocumentsProvider);
+    } catch (e, st) {
+      state = AsyncError(e, st);
+      rethrow;
+    }
+  }
+
+  Future<void> bulkPermanentDelete(List<int> ids) async {
+    state = const AsyncLoading();
+    try {
+      final repo = ref.read(documentRepositoryProvider);
+      await repo.bulkPermanentDeleteDocuments(ids);
+      state = const AsyncData(null);
+      ref.invalidate(trashDocumentsProvider);
     } catch (e, st) {
       state = AsyncError(e, st);
       rethrow;

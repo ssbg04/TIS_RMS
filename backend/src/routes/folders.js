@@ -6,11 +6,11 @@ const { authenticateToken, authorizeRoles } = require('../middleware/auth');
 // Public routes (with auth)
 router.get('/', authenticateToken, folderController.getFolders);
 router.get('/student/:studentId', authenticateToken, folderController.getStudentFolder);
-router.post('/sync', authenticateToken, authorizeRoles('super_admin', 'admin'), folderController.syncFolders);
+router.post('/sync', authenticateToken, authorizeRoles('admin'), folderController.syncFolders);
 
-// Admin/Super Admin routes
-router.post('/', authenticateToken, authorizeRoles('super_admin', 'admin'), folderController.createFolder);
-router.put('/:id', authenticateToken, authorizeRoles('super_admin', 'admin'), folderController.renameFolder);
-router.delete('/:id', authenticateToken, authorizeRoles('super_admin', 'admin'), folderController.deleteFolder);
+// Admin & Teacher routes
+router.post('/', authenticateToken, authorizeRoles('admin', 'teacher'), folderController.createFolder);
+router.put('/:id', authenticateToken, authorizeRoles('admin', 'teacher'), folderController.renameFolder);
+router.delete('/:id', authenticateToken, authorizeRoles('admin', 'teacher'), folderController.deleteFolder);
 
 module.exports = router;
