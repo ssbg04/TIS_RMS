@@ -17,6 +17,29 @@ import '../../../shared/dialogs/success_dialog.dart';
 import '../../../shared/dialogs/info_dialog.dart';
 import 'package:syncfusion_flutter_pdfviewer/pdfviewer.dart';
 
+// ----------------------------------------------------------------
+// Capitalizes the first letter of each word automatically
+// ----------------------------------------------------------------
+class _UpperCaseWordsFormatter extends TextInputFormatter {
+  @override
+  TextEditingValue formatEditUpdate(
+    TextEditingValue oldValue,
+    TextEditingValue newValue,
+  ) {
+    final text = newValue.text;
+    if (text.isEmpty) return newValue;
+    final capitalized = text.replaceAllMapped(
+      RegExp(r'(^|\s)(\S)'),
+      (m) => '${m[1]}${m[2]!.toUpperCase()}',
+    );
+    return newValue.copyWith(
+      text: capitalized,
+      selection: newValue.selection,
+      composing: TextRange.empty,
+    );
+  }
+}
+
 class AddEditStudentModal extends ConsumerStatefulWidget {
   final StudentModel? student;
 
@@ -38,6 +61,8 @@ class _AddEditStudentModalState extends ConsumerState<AddEditStudentModal>
   late TextEditingController _middleNameController;
   late TextEditingController _lastNameController;
   late TextEditingController _extController;
+
+  final PdfViewerController _pdfViewerController = PdfViewerController();
 
   String _selectedSex = 'Male';
   String _selectedStatus = 'Enrolled';
@@ -85,6 +110,7 @@ class _AddEditStudentModalState extends ConsumerState<AddEditStudentModal>
     _middleNameController.dispose();
     _lastNameController.dispose();
     _extController.dispose();
+    _pdfViewerController.dispose();
     _scrollCtrl.dispose();
     super.dispose();
   }
@@ -190,6 +216,51 @@ class _AddEditStudentModalState extends ConsumerState<AddEditStudentModal>
       ),
     );
     if (picked != null) setState(() => _selectedDob = picked);
+  }
+
+  // ----------------------------------------------------------------
+  // EXIT CONFIRMATION
+  // ----------------------------------------------------------------
+  bool get _hasAnyData =>
+      _lrnController.text.isNotEmpty ||
+      _firstNameController.text.isNotEmpty ||
+      _middleNameController.text.isNotEmpty ||
+      _lastNameController.text.isNotEmpty ||
+      _selectedDob != null;
+
+  Future<void> _confirmClose() async {
+    // If editing or no data entered, just close
+    if (widget.student != null || !_hasAnyData) {
+      if (mounted) Navigator.of(context).pop();
+      return;
+    }
+    final shouldClose = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        title: const Row(
+          children: [
+            Icon(Icons.warning_amber_rounded, color: Colors.orange),
+            SizedBox(width: 8),
+            Text('Discard Changes?'),
+          ],
+        ),
+        content: const Text(
+          'You have unsaved data. Are you sure you want to close without saving?',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: const Text('KEEP EDITING', style: TextStyle(color: AppColors.primaryGreen, fontWeight: FontWeight.bold)),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(true),
+            child: const Text('DISCARD', style: TextStyle(color: Colors.redAccent, fontWeight: FontWeight.bold)),
+          ),
+        ],
+      ),
+    );
+    if (shouldClose == true && mounted) Navigator.of(context).pop();
   }
 
   // ----------------------------------------------------------------
@@ -373,12 +444,13 @@ class _AddEditStudentModalState extends ConsumerState<AddEditStudentModal>
                           children: [
                             Expanded(
                               flex: 5,
-                              child: _buildManualForm(
+                               child: _buildManualForm(
                                 widget.student != null,
                                 yearsAsync,
                                 gradeLevelsAsync,
                                 sectionsAsync,
                                 isMobile,
+                                viewInsets.bottom,
                               ),
                             ),
                             const VerticalDivider(width: 32),
@@ -394,6 +466,7 @@ class _AddEditStudentModalState extends ConsumerState<AddEditStudentModal>
                           gradeLevelsAsync,
                           sectionsAsync,
                           isMobile,
+                          viewInsets.bottom,
                         )),
           ),
         ),
@@ -437,10 +510,42 @@ class _AddEditStudentModalState extends ConsumerState<AddEditStudentModal>
             child: ClipRRect(
               borderRadius: BorderRadius.circular(AppSizes.radiusMedium),
               child: isPdf
-                  ? SfPdfViewer.file(
-                      file,
-                      canShowScrollHead: false,
-                      canShowScrollStatus: false,
+                  ? Stack(
+                      children: [
+                        SfPdfViewer.file(
+                          file,
+                          controller: _pdfViewerController,
+                          canShowScrollHead: false,
+                          canShowScrollStatus: false,
+                          interactionMode: PdfInteractionMode.pan,
+                        ),
+                        Positioned(
+                          bottom: 16,
+                          right: 16,
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              FloatingActionButton.small(
+                                heroTag: null,
+                                backgroundColor: AppColors.primaryGreen,
+                                onPressed: () {
+                                  _pdfViewerController.zoomLevel = (_pdfViewerController.zoomLevel - 0.5).clamp(1.0, 5.0);
+                                },
+                                child: const Icon(Icons.zoom_out, color: Colors.white),
+                              ),
+                              const SizedBox(width: 8),
+                              FloatingActionButton.small(
+                                heroTag: null,
+                                backgroundColor: AppColors.primaryGreen,
+                                onPressed: () {
+                                  _pdfViewerController.zoomLevel = (_pdfViewerController.zoomLevel + 0.5).clamp(1.0, 5.0);
+                                },
+                                child: const Icon(Icons.zoom_in, color: Colors.white),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
                     )
                   : InteractiveViewer(
                       minScale: 0.5,
@@ -606,6 +711,7 @@ class _AddEditStudentModalState extends ConsumerState<AddEditStudentModal>
     AsyncValue<List<GradeLevelModel>> gradeLevelsAsync,
     AsyncValue<List<SectionModel>> sectionsAsync,
     bool isMobile,
+    double keyboardBottomInset,
   ) {
     final compactTheme = Theme.of(context).copyWith(
       inputDecorationTheme: Theme.of(context).inputDecorationTheme.copyWith(
@@ -646,7 +752,7 @@ class _AddEditStudentModalState extends ConsumerState<AddEditStudentModal>
                 ),
                 IconButton(
                   icon: const Icon(Icons.close, color: AppColors.textSecondary),
-                  onPressed: () => Navigator.of(context).pop(),
+                  onPressed: _confirmClose,
                 ),
               ],
             ),
@@ -717,6 +823,8 @@ class _AddEditStudentModalState extends ConsumerState<AddEditStudentModal>
                                       Expanded(
                                         child: TextFormField(
                                           controller: _firstNameController,
+                                          textCapitalization: TextCapitalization.words,
+                                          inputFormatters: [_UpperCaseWordsFormatter()],
                                           validator: (v) => _validateRequired(
                                             v,
                                             'First name',
@@ -733,6 +841,8 @@ class _AddEditStudentModalState extends ConsumerState<AddEditStudentModal>
                                       Expanded(
                                         child: TextFormField(
                                           controller: _middleNameController,
+                                          textCapitalization: TextCapitalization.words,
+                                          inputFormatters: [_UpperCaseWordsFormatter()],
                                           decoration: const InputDecoration(
                                             labelText: 'Middle Name (optional)',
                                             prefixIcon: Icon(
@@ -750,6 +860,8 @@ class _AddEditStudentModalState extends ConsumerState<AddEditStudentModal>
                                         flex: 3,
                                         child: TextFormField(
                                           controller: _lastNameController,
+                                          textCapitalization: TextCapitalization.words,
+                                          inputFormatters: [_UpperCaseWordsFormatter()],
                                           validator: (v) =>
                                               _validateRequired(v, 'Last name'),
                                           decoration: const InputDecoration(
@@ -764,6 +876,8 @@ class _AddEditStudentModalState extends ConsumerState<AddEditStudentModal>
                                       Expanded(
                                         child: TextFormField(
                                           controller: _extController,
+                                          textCapitalization: TextCapitalization.words,
+                                          inputFormatters: [_UpperCaseWordsFormatter()],
                                           decoration: const InputDecoration(
                                             labelText: 'Ext.',
                                             hintText: 'Jr / III',
@@ -780,6 +894,8 @@ class _AddEditStudentModalState extends ConsumerState<AddEditStudentModal>
                                 children: [
                                   TextFormField(
                                     controller: _firstNameController,
+                                    textCapitalization: TextCapitalization.words,
+                                    inputFormatters: [_UpperCaseWordsFormatter()],
                                     validator: (v) =>
                                         _validateRequired(v, 'First name'),
                                     decoration: const InputDecoration(
@@ -789,6 +905,8 @@ class _AddEditStudentModalState extends ConsumerState<AddEditStudentModal>
                                   const SizedBox(height: AppSizes.p12),
                                   TextFormField(
                                     controller: _middleNameController,
+                                    textCapitalization: TextCapitalization.words,
+                                    inputFormatters: [_UpperCaseWordsFormatter()],
                                     decoration: const InputDecoration(
                                       labelText: 'Middle Name',
                                     ),
@@ -796,6 +914,8 @@ class _AddEditStudentModalState extends ConsumerState<AddEditStudentModal>
                                   const SizedBox(height: AppSizes.p12),
                                   TextFormField(
                                     controller: _lastNameController,
+                                    textCapitalization: TextCapitalization.words,
+                                    inputFormatters: [_UpperCaseWordsFormatter()],
                                     validator: (v) =>
                                         _validateRequired(v, 'Last name'),
                                     decoration: const InputDecoration(
@@ -805,6 +925,8 @@ class _AddEditStudentModalState extends ConsumerState<AddEditStudentModal>
                                   const SizedBox(height: AppSizes.p12),
                                   TextFormField(
                                     controller: _extController,
+                                    textCapitalization: TextCapitalization.words,
+                                    inputFormatters: [_UpperCaseWordsFormatter()],
                                     decoration: const InputDecoration(
                                       labelText: 'Extension (Jr / III)',
                                     ),
@@ -1044,7 +1166,8 @@ class _AddEditStudentModalState extends ConsumerState<AddEditStudentModal>
               const SizedBox(height: AppSizes.p12),
             ],
 
-            // ---- Actions ----
+            // ---- Actions: hidden when keyboard is open on mobile ----
+            if (!isMobile || keyboardBottomInset == 0)
             if (isMobile)
               Padding(
                 padding: const EdgeInsets.only(top: 8.0),
@@ -1092,7 +1215,7 @@ class _AddEditStudentModalState extends ConsumerState<AddEditStudentModal>
                     TextButton(
                       onPressed: _isLoading
                           ? null
-                          : () => Navigator.of(context).pop(),
+                          : _confirmClose,
                       child: const Text(
                         'CANCEL',
                         style: TextStyle(
@@ -1131,7 +1254,7 @@ class _AddEditStudentModalState extends ConsumerState<AddEditStudentModal>
                   TextButton(
                     onPressed: _isLoading
                         ? null
-                        : () => Navigator.of(context).pop(),
+                        : _confirmClose,
                     child: const Text(
                       'CANCEL',
                       style: TextStyle(
