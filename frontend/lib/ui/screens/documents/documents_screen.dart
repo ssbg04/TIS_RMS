@@ -302,7 +302,7 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
                 showErrorDialog(context, 'Delete Failed', e.toString());
               }
             },
-            child: const Text('MOVE TO RECYCLE BIN'),
+            child: const Text('DELETE'),
           ),
         ],
       ),
@@ -536,7 +536,7 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
                         ),
                         _batchActionBtn(
                           icon: Icons.delete_forever,
-                          label: 'Delete Forever',
+                          label: 'Delete',
                           color: AppColors.error,
                           onTap: count == 0
                               ? () {}
@@ -644,7 +644,7 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
             ),
             IconButton(
               icon: const Icon(Icons.delete_forever, color: AppColors.error),
-              tooltip: 'Delete Forever',
+              tooltip: 'Delete',
               onPressed: count == 0
                   ? null
                   : () =>
@@ -2443,7 +2443,7 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
                               ),
                               const PopupMenuItem(
                                 value: 'delete',
-                                child: Text('Delete Permanently', style: TextStyle(color: AppColors.error)),
+                                child: Text('DELETE', style: TextStyle(color: AppColors.error)),
                               ),
                             ],
                           )
@@ -2526,7 +2526,7 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(true),
             style: TextButton.styleFrom(foregroundColor: AppColors.error),
-            child: const Text('DELETE FOREVER'),
+            child: const Text('DELETE'),
           ),
         ],
       ),
@@ -2562,7 +2562,7 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(true),
             style: TextButton.styleFrom(foregroundColor: AppColors.error),
-            child: const Text('DELETE ALL FOREVER'),
+            child: const Text('DELETE'),
           ),
         ],
       ),

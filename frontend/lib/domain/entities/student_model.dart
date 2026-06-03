@@ -10,6 +10,7 @@ class StudentModel {
   final String status; // 'Enrolled', 'Graduated', 'Transferred', 'Dropped'
   final int missingDocumentsCount;
   final int totalDocumentsCount;
+  final List<String> missingDocuments;
   final int? latestGradeLevel;
   final String? latestSection;
   final List<EnrollmentModel>? enrollments;
@@ -26,6 +27,7 @@ class StudentModel {
     this.status = 'Enrolled',
     this.missingDocumentsCount = 0,
     this.totalDocumentsCount = 0,
+    this.missingDocuments = const [],
     this.latestGradeLevel,
     this.latestSection,
     this.enrollments,
@@ -58,6 +60,7 @@ class StudentModel {
       status:               json['status']      as String? ?? 'Enrolled',
       missingDocumentsCount: (json['missingDocumentsCount'] as num?)?.toInt() ?? 0,
       totalDocumentsCount: (json['totalDocumentsCount'] as num?)?.toInt() ?? 0,
+      missingDocuments:    (json['missingDocuments'] as List<dynamic>?)?.map((e) => e as String).toList() ?? [],
       latestGradeLevel:     (json['latest_grade_level'] as num?)?.toInt(),
       latestSection:        json['latest_section'] as String?,
       enrollments:          json['enrollments'] != null
@@ -107,8 +110,11 @@ class StudentModel {
     DateTime? birthDate,
     String? status,
     int?    missingDocumentsCount,
+    int?    totalDocumentsCount,
+    List<String>? missingDocuments,
     int?    latestGradeLevel,
     String? latestSection,
+    List<EnrollmentModel>? enrollments,
   }) {
     return StudentModel(
       id:                   id                   ?? this.id,
@@ -121,6 +127,8 @@ class StudentModel {
       birthDate:            birthDate             ?? this.birthDate,
       status:               status               ?? this.status,
       missingDocumentsCount: missingDocumentsCount ?? this.missingDocumentsCount,
+      totalDocumentsCount:  totalDocumentsCount ?? this.totalDocumentsCount,
+      missingDocuments:     missingDocuments     ?? this.missingDocuments,
       latestGradeLevel:     latestGradeLevel      ?? this.latestGradeLevel,
       latestSection:        latestSection         ?? this.latestSection,
       enrollments:          enrollments           ?? this.enrollments,

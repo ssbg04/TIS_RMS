@@ -98,7 +98,7 @@ class _RequirementsSettingsScreenState extends ConsumerState<RequirementsSetting
         backgroundColor: AppColors.primaryGreen,
         onPressed: () => _showAddRequirementModal(context),
         icon: const Icon(Icons.add, color: Colors.white),
-        label: const Text('Add Document Type', style: TextStyle(color: Colors.white)),
+        label: const Text('ADD', style: TextStyle(color: Colors.white)),
       ),
     );
   }

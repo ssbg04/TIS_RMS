@@ -468,7 +468,7 @@ class _UploadOcrModalState extends ConsumerState<UploadOcrModal> {
               SizedBox(
                 width: 200,
                 child: PrimaryButton(
-                  label: 'UPLOAD DOCUMENT',
+                  label: 'UPLOAD',
                   isLoading: _isSubmitting,
                   onPressed: _validateAndUpload,
                 ),

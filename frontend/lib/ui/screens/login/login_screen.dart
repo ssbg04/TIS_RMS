@@ -406,7 +406,7 @@ class _ForgotPasswordDialogState extends ConsumerState<_ForgotPasswordDialog> {
                       SizedBox(
                         width: isMobile ? 130 : 140,
                         child: PrimaryButton(
-                          label: 'SUBMIT REQUEST',
+                          label: 'SUBMIT',
                           isLoading: _isLoading,
                           onPressed: _handleSubmit,
                         ),

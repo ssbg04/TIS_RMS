@@ -337,7 +337,10 @@ class _UsersScreenState extends ConsumerState<UsersScreen> {
             SizedBox(
               width: isDesktop ? 180 : 50,
               child: isDesktop
-                  ? PrimaryButton(label: '+ NEW USER', onPressed: () => _openModal())
+                  ? PrimaryButton(
+                      label: 'ADD', 
+                      onPressed: () => _openModal(),
+                    )
                   : ElevatedButton(
                       onPressed: () => _openModal(),
                       style: ElevatedButton.styleFrom(
@@ -968,7 +971,7 @@ class _DeleteConfirmationDialogState extends State<_DeleteConfirmationDialog> {
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppSizes.radiusMedium)),
                     ),
                     onPressed: _submit,
-                    child: const Text('DELETE USER', style: TextStyle(fontWeight: FontWeight.bold)),
+                    child: const Text('DELETE', style: TextStyle(fontWeight: FontWeight.bold)),
                   ),
                 ],
               ),

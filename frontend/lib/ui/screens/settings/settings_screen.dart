@@ -297,7 +297,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                                 alignment: Alignment.centerRight,
                                 child: SizedBox(
                                   width: 200,
-                                  child: PrimaryButton(label: 'SAVE CHANGES', isLoading: _isProfileLoading, onPressed: _handleUpdateProfile),
+                                  child: PrimaryButton(label: 'SAVE', isLoading: _isProfileLoading, onPressed: _handleUpdateProfile),
                                 ),
                               ),
                             ],
@@ -472,7 +472,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                                 alignment: Alignment.centerRight,
                                 child: SizedBox(
                                   width: 200,
-                                  child: PrimaryButton(label: 'UPDATE PASSWORD', isLoading: _isPasswordLoading, onPressed: _handleChangePassword),
+                                  child: PrimaryButton(label: 'UPDATE', isLoading: _isPasswordLoading, onPressed: _handleChangePassword),
                                 ),
                               ),
                             ],

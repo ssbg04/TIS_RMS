@@ -62,7 +62,7 @@ exports.getAllStudents = (req, res) => {
         const needsEnrollmentJoin = gradeLevel.trim() || section.trim() || schoolYear.trim();
         const enrollmentJoin = needsEnrollmentJoin
             ? `JOIN enrollments e_latest ON e_latest.student_id = s.id
-               AND e_latest.id = (SELECT id FROM enrollments WHERE student_id = s.id ORDER BY grade_level DESC, id DESC LIMIT 1)
+               AND e_latest.id = (SELECT id FROM enrollments WHERE student_id = s.id ORDER BY academic_year_id DESC, grade_level DESC LIMIT 1)
                JOIN sections sec ON sec.id = e_latest.section_id
                JOIN academic_years ay ON ay.id = e_latest.academic_year_id`
             : '';
@@ -108,12 +108,12 @@ exports.getAllStudents = (req, res) => {
                 s.extension, s.sex, s.birth_date, s.status, s.created_at,
                 (
                     SELECT grade_level FROM enrollments
-                    WHERE student_id = s.id ORDER BY grade_level DESC, id DESC LIMIT 1
+                    WHERE student_id = s.id ORDER BY academic_year_id DESC, grade_level DESC LIMIT 1
                 ) as latest_grade_level,
                 (
                     SELECT sec.name FROM enrollments enr
                     JOIN sections sec ON sec.id = enr.section_id
-                    WHERE enr.student_id = s.id ORDER BY enr.grade_level DESC, enr.id DESC LIMIT 1
+                    WHERE enr.student_id = s.id ORDER BY enr.academic_year_id DESC, enr.grade_level DESC LIMIT 1
                 ) as latest_section
             FROM students s
             ${teacherJoin}
@@ -135,27 +135,35 @@ exports.getAllStudents = (req, res) => {
                   AND dr.is_enabled = 1
                   AND dr.category = (
                       SELECT CASE WHEN grade_level <= 10 THEN 'JHS' ELSE 'SHS' END
-                      FROM enrollments WHERE student_id = ? ORDER BY grade_level DESC, id DESC LIMIT 1
+                      FROM enrollments WHERE student_id = ? ORDER BY academic_year_id DESC, grade_level DESC LIMIT 1
                   )
             `).get(student.id)?.count ?? 0;
 
             // 2. Get missing documents
-            const missingDocs = db.prepare(`
-                SELECT COUNT(*) as count
+            const missingDocsQuery = db.prepare(`
+                SELECT dr.name
                 FROM document_requirements dr
                 WHERE dr.is_mandatory = 1
                   AND dr.is_enabled = 1
                   AND dr.category = (
                       SELECT CASE WHEN grade_level <= 10 THEN 'JHS' ELSE 'SHS' END
-                      FROM enrollments WHERE student_id = ? ORDER BY grade_level DESC, id DESC LIMIT 1
+                      FROM enrollments WHERE student_id = ? ORDER BY academic_year_id DESC, grade_level DESC LIMIT 1
                   )
                   AND dr.id NOT IN (
                       SELECT requirement_id FROM documents
                       WHERE student_id = ? AND status IN ('Completed', 'Archived') AND requirement_id IS NOT NULL
                   )
-            `).get(student.id, student.id)?.count ?? 0;
+            `).all(student.id, student.id);
+            
+            const missingDocsCount = missingDocsQuery.length;
+            const missingDocsNames = missingDocsQuery.map(d => d.name);
 
-            return { ...student, missingDocumentsCount: missingDocs, totalDocumentsCount: totalDocs };
+            return { 
+                ...student, 
+                missingDocumentsCount: missingDocsCount, 
+                totalDocumentsCount: totalDocs,
+                missingDocuments: missingDocsNames
+            };
         });
 
         res.json({

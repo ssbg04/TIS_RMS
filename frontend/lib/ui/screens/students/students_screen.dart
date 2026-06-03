@@ -347,7 +347,7 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
                 SizedBox(
                   width: 180,
                   child: PrimaryButton(
-                    label: '+ ADD STUDENT',
+                    label: 'ADD',
                     onPressed: () => _openModal(),
                   ),
                 ),
@@ -742,6 +742,7 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
                     DataCell(_DocumentProgressBar(
                       missingCount: student.missingDocumentsCount,
                       totalCount: student.totalDocumentsCount,
+                      missingDocuments: student.missingDocuments,
                     )),
                     DataCell(_ActionButtons(
                       student:          student,
@@ -885,6 +886,7 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
                         _DocumentProgressBar(
                           missingCount: s.missingDocumentsCount,
                           totalCount: s.totalDocumentsCount,
+                          missingDocuments: s.missingDocuments,
                         ),
                       ],
                     ),
@@ -1063,10 +1065,12 @@ class _StatusChip extends StatelessWidget {
 class _DocumentProgressBar extends StatelessWidget {
   final int missingCount;
   final int totalCount;
+  final List<String> missingDocuments;
 
   const _DocumentProgressBar({
     required this.missingCount,
     required this.totalCount,
+    required this.missingDocuments,
   });
 
   @override
@@ -1078,40 +1082,52 @@ class _DocumentProgressBar extends StatelessWidget {
     final double progress = totalCount == 0 ? 1.0 : completedCount / totalCount;
     final bool isComplete = missingCount == 0 && totalCount > 0;
 
-    return Column(
-      mainAxisAlignment: MainAxisAlignment.center,
-      crossAxisAlignment: CrossAxisAlignment.start,
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              '$completedCount / $totalCount Docs',
-              style: TextStyle(
-                fontSize: 12,
-                fontWeight: FontWeight.bold,
-                color: isComplete ? AppColors.primaryGreen : AppColors.textPrimary,
+    String tooltipMessage = '';
+    if (!isComplete && missingDocuments.isNotEmpty) {
+      tooltipMessage = 'Missing Documents:\n${missingDocuments.map((d) => '• $d').join('\n')}';
+    } else if (isComplete) {
+      tooltipMessage = 'All documents completed';
+    } else {
+      tooltipMessage = 'No documents required';
+    }
+
+    return Tooltip(
+      message: tooltipMessage,
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                '$completedCount / $totalCount Docs',
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.bold,
+                  color: isComplete ? AppColors.primaryGreen : AppColors.textPrimary,
+                ),
               ),
-            ),
-            if (isComplete) ...[
-              const SizedBox(width: 4),
-              const Icon(Icons.check_circle, color: AppColors.primaryGreen, size: 14),
-            ]
-          ],
-        ),
-        const SizedBox(height: 6),
-        SizedBox(
-          width: 100, // Fixed width to keep column formatting tidy
-          child: LinearProgressIndicator(
-            value: progress,
-            backgroundColor: Colors.grey.shade200,
-            color: isComplete ? AppColors.primaryGreen : Colors.orange, // Orange indicates pending docs
-            minHeight: 6,
-            borderRadius: BorderRadius.circular(AppSizes.radiusCircular),
+              if (isComplete) ...[
+                const SizedBox(width: 4),
+                const Icon(Icons.check_circle, color: AppColors.primaryGreen, size: 14),
+              ]
+            ],
           ),
-        ),
-      ],
+          const SizedBox(height: 6),
+          SizedBox(
+            width: 100, // Fixed width to keep column formatting tidy
+            child: LinearProgressIndicator(
+              value: progress,
+              backgroundColor: Colors.grey.shade200,
+              color: isComplete ? AppColors.primaryGreen : Colors.orange, // Orange indicates pending docs
+              minHeight: 6,
+              borderRadius: BorderRadius.circular(AppSizes.radiusCircular),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

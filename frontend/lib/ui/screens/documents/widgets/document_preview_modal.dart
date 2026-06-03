@@ -340,13 +340,13 @@ class _DocumentPreviewDialogState extends State<_DocumentPreviewDialog> {
       actions: [
         _actionButton(
           icon: Icons.open_in_browser_rounded,
-          label: 'Download & Open',
+          label: 'DOWNLOAD',
           color: _typeColor,
           onTap: _openInBrowser,
         ),
         _actionButton(
           icon: Icons.view_in_ar_rounded,
-          label: 'Google Docs Viewer',
+          label: 'VIEWER',
           color: AppColors.primaryGreen,
           onTap: _openInGoogleDocs,
         ),
@@ -365,7 +365,7 @@ class _DocumentPreviewDialogState extends State<_DocumentPreviewDialog> {
       actions: [
         _actionButton(
           icon: Icons.open_in_browser_rounded,
-          label: 'Open File',
+          label: 'OPEN',
           color: AppColors.primaryGreen,
           onTap: _openInBrowser,
         ),

@@ -1053,7 +1053,7 @@ class _AddEditStudentModalState extends ConsumerState<AddEditStudentModal>
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
                     PrimaryButton(
-                      label: isEdit ? 'UPDATE RECORD' : 'SAVE STUDENT',
+                      label: isEdit ? 'UPDATE' : 'SAVE',
                       isLoading: _isLoading,
                       onPressed: _handleSave,
                     ),
@@ -1143,7 +1143,7 @@ class _AddEditStudentModalState extends ConsumerState<AddEditStudentModal>
                   SizedBox(
                     width: 170,
                     child: PrimaryButton(
-                      label: isEdit ? 'UPDATE RECORD' : 'SAVE STUDENT',
+                      label: isEdit ? 'UPDATE' : 'SAVE',
                       isLoading: _isLoading,
                       onPressed: _handleSave,
                     ),

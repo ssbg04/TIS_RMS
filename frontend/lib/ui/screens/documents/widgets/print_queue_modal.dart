@@ -283,7 +283,7 @@ class _PrintQueueModalState extends ConsumerState<PrintQueueModal> {
               const SizedBox(width: 8),
               Expanded(
                 child: PrimaryButton(
-                  label: 'PRINT ALL',
+                  label: 'PRINT',
                   isLoading: _isPrinting,
                   onPressed: () => _handlePrintAll(items),
                 ),
@@ -320,7 +320,7 @@ class _PrintQueueModalState extends ConsumerState<PrintQueueModal> {
                   SizedBox(
                     width: 130,
                     child: PrimaryButton(
-                      label: 'PRINT ALL',
+                      label: 'PRINT',
                       isLoading: _isPrinting,
                       onPressed: () => _handlePrintAll(items),
                     ),

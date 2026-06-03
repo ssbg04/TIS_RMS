@@ -441,7 +441,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
               SizedBox(
                 width: 185,
                 child: PrimaryButton(
-                  label: 'EXPORT TO EXCEL',
+                  label: 'EXPORT',
                   isLoading: _isExporting,
                   onPressed: () => _handleExportExcel(statsAsync.value!),
                 ),
@@ -457,7 +457,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
 
               Expanded(
                 child: PrimaryButton(
-                  label: 'EXPORT EXCEL',
+                  label: 'EXPORT',
                   isLoading: _isExporting,
                   onPressed: () => _handleExportExcel(statsAsync.value!),
                 ),
