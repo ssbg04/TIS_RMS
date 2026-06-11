@@ -2,7 +2,6 @@
 .vscode
 /assets
 
-
 backend_build
 
 backend/node_modules
