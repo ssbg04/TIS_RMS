@@ -33,10 +33,8 @@ Future<void> showLogoutConfirmationDialog(BuildContext context) async {
                 // 1. Close the dialog immediately for responsiveness
                 navigator.pop();
 
-                // 2. Remove ALL saved credentials for security
+                // 2. Remove the saved password for security (keep username intact)
                 final prefs = await SharedPreferences.getInstance();
-                await prefs.remove('rememberMe');
-                await prefs.remove('saved_username');
                 await prefs.remove('saved_password');
 
                 // 3. Navigate FIRST to LoginScreen and destroy routing history.

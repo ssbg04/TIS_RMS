@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_sizes.dart';
@@ -877,7 +876,6 @@ class _GradeLevelFormModalState extends ConsumerState<GradeLevelFormModal> {
               controller: _levelController,
               prefixIcon: Icons.numbers,
               keyboardType: TextInputType.number,
-              inputFormatters: [FilteringTextInputFormatter.digitsOnly],
               validator: (v) {
                 if (v == null || v.trim().isEmpty) return 'Level is required';
                 if (int.tryParse(v) == null) return 'Must be a valid integer';

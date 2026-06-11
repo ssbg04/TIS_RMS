@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 
 class CustomTextField extends StatelessWidget {
   final String hintText;
@@ -15,8 +14,6 @@ class CustomTextField extends StatelessWidget {
   final TextInputType? keyboardType;
   final TextInputAction? textInputAction;
   final void Function(String)? onSubmitted;
-  final List<TextInputFormatter>? inputFormatters;
-  final int? maxLength;
 
   const CustomTextField({
     super.key,
@@ -33,8 +30,6 @@ class CustomTextField extends StatelessWidget {
     this.keyboardType,
     this.textInputAction,
     this.onSubmitted,
-    this.inputFormatters,
-    this.maxLength,
   });
 
   @override
@@ -49,12 +44,9 @@ class CustomTextField extends StatelessWidget {
       keyboardType: keyboardType,
       textInputAction: textInputAction,
       onFieldSubmitted: onSubmitted,
-      inputFormatters: inputFormatters,
-      maxLength: maxLength,
       decoration: InputDecoration(
         labelText: hintText,
         prefixIcon: Icon(prefixIcon, color: Colors.grey.shade600),
-        counterText: maxLength != null ? null : '',
         // Suffix icon only shows if it's a password field
         suffixIcon: isPassword
             ? IconButton(
