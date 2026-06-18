@@ -67,93 +67,9 @@ class _AndroidBottomNavLayoutState extends ConsumerState<AndroidBottomNavLayout>
     }
   }
 
-  void _onNavTapped(int index, List<Map<String, dynamic>> allowedPrimary, List<Map<String, dynamic>> allowedSecondary) {
-    if (index < allowedPrimary.length) {
-      final label = allowedPrimary[index]['label'] as String;
-      
-      // ✅ NEW: Update global state instead of local setState
-      ref.read(activeTabProvider.notifier).setTab(label);
-      _reloadTabContent(label);
-    } else {
-      _showMoreBottomSheet(allowedPrimary, allowedSecondary);
-    }
-  }
-
-  void _showMoreBottomSheet(List<Map<String, dynamic>> allowedPrimary, List<Map<String, dynamic>> allowedSecondary) {
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: AppColors.surfaceWhite,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(AppSizes.radiusLarge)),
-      ),
-      builder: (sheetContext) {
-        return SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.symmetric(vertical: AppSizes.p12),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                // Drag Handle
-                Container(
-                  width: 40,
-                  height: 5,
-                  margin: const EdgeInsets.only(bottom: AppSizes.p16),
-                  decoration: BoxDecoration(
-                    color: Colors.grey.shade300,
-                    borderRadius: BorderRadius.circular(AppSizes.radiusSmall),
-                  ),
-                ),
-                // Build Secondary Tabs
-                ...allowedSecondary.asMap().entries.map((entry) {
-                  int secondaryIndex = entry.key;
-                  var tab = entry.value;
-                  
-                  return ListTile(
-                    leading: Container(
-                      padding: const EdgeInsets.all(AppSizes.p8),
-                      decoration: BoxDecoration(
-                        color: AppColors.primaryGreen.withOpacity(0.1),
-                        borderRadius: BorderRadius.circular(AppSizes.radiusMedium),
-                      ),
-                      child: Icon(tab['icon'] as IconData, color: AppColors.primaryGreen),
-                    ),
-                    title: Text(
-                      tab['label'] as String,
-                      style: const TextStyle(fontWeight: FontWeight.w600, color: AppColors.textPrimary),
-                    ),
-                    trailing: const Icon(Icons.chevron_right, color: AppColors.textMuted),
-                    onTap: () {
-                      Navigator.pop(sheetContext); 
-                      final label = tab['label'] as String;
-                      // ✅ NEW: Update global state when a "More" option is clicked
-                      ref.read(activeTabProvider.notifier).setTab(label);
-                      _reloadTabContent(label);
-                    },
-                  );
-                }),
-                const Divider(),
-                // Logout Option in the More Menu
-                ListTile(
-                  leading: const Padding(
-                    padding: EdgeInsets.all(AppSizes.p8),
-                    child: Icon(Icons.exit_to_app, color: AppColors.error),
-                  ),
-                  title: const Text(
-                    'Logout',
-                    style: TextStyle(fontWeight: FontWeight.w600, color: AppColors.error),
-                  ),
-                  onTap: () {
-                    // DO NOT pop the bottom sheet here. 
-                    // Just show the dialog directly!
-                    showLogoutConfirmationDialog(context);
-                  },
-                ),
-              ],
-            ),
-          ),
-        );
-      },
-    );
+  void _onNavTapped(String label) {
+    ref.read(activeTabProvider.notifier).setTab(label);
+    _reloadTabContent(label);
   }
 
   @override
@@ -179,28 +95,6 @@ class _AndroidBottomNavLayoutState extends ConsumerState<AndroidBottomNavLayout>
     if (currentIndex == -1) currentIndex = 0; // Fallback to Dashboard
 
     _visitedIndices.add(currentIndex);
-
-    int selectedBottomNavIndex = allowedPrimary.indexWhere((t) => t['label'] == activeTab);
-    if (selectedBottomNavIndex == -1) {
-      // If the active tab is NOT in the primary list (e.g., Settings), highlight the "More" tab
-      selectedBottomNavIndex = allowedPrimary.length;
-    }
-
-    List<BottomNavigationBarItem> bottomNavItems = allowedPrimary.map((tab) {
-      return BottomNavigationBarItem(
-        icon: Icon(tab['icon'] as IconData),
-        label: tab['label'] as String,
-      );
-    }).toList();
-
-    if (allowedSecondary.isNotEmpty) {
-      bottomNavItems.add(
-        const BottomNavigationBarItem(
-          icon: Icon(Icons.more_horiz),
-          label: 'More',
-        ),
-      );
-    }
 
     return PopScope(
       canPop: false,
@@ -238,6 +132,69 @@ class _AndroidBottomNavLayoutState extends ConsumerState<AndroidBottomNavLayout>
       },
       child: Scaffold(
         backgroundColor: AppColors.pageBackground,
+        appBar: AppBar(
+          backgroundColor: AppColors.primaryGreen,
+          foregroundColor: Colors.white,
+          iconTheme: const IconThemeData(color: Colors.white),
+          title: Text(
+            tabs[currentIndex]['label'] as String, 
+            style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.white),
+          ),
+          elevation: 0,
+        ),
+        drawer: Drawer(
+          child: Column(
+            children: [
+              UserAccountsDrawerHeader(
+                decoration: const BoxDecoration(color: AppColors.primaryGreen),
+                accountName: Text(
+                  'TIS RMS', 
+                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: Colors.white),
+                ),
+                accountEmail: Text(
+                  'Role: ${widget.userRole.toUpperCase()}',
+                  style: const TextStyle(color: Colors.white70),
+                ),
+                currentAccountPicture: const CircleAvatar(
+                  backgroundColor: Colors.transparent,
+                  backgroundImage: AssetImage('assets/images/logo.png'),
+                ),
+              ),
+              Expanded(
+                child: ListView(
+                  padding: EdgeInsets.zero,
+                  children: [
+                    if (allowedPrimary.isNotEmpty) ...[
+                      const Padding(
+                        padding: EdgeInsets.fromLTRB(16, 16, 16, 8),
+                        child: Text('MAIN', style: TextStyle(color: AppColors.textSecondary, fontWeight: FontWeight.bold, fontSize: 12)),
+                      ),
+                      ...allowedPrimary.map((tab) => _buildDrawerItem(tab, currentIndex, tabs)),
+                    ],
+                    if (allowedSecondary.isNotEmpty) ...[
+                      const Divider(),
+                      const Padding(
+                        padding: EdgeInsets.fromLTRB(16, 16, 16, 8),
+                        child: Text('OTHER', style: TextStyle(color: AppColors.textSecondary, fontWeight: FontWeight.bold, fontSize: 12)),
+                      ),
+                      ...allowedSecondary.map((tab) => _buildDrawerItem(tab, currentIndex, tabs)),
+                    ],
+                  ],
+                ),
+              ),
+              const Divider(),
+              ListTile(
+                leading: const Icon(Icons.exit_to_app, color: AppColors.error),
+                title: const Text('Logout', style: TextStyle(fontWeight: FontWeight.bold, color: AppColors.error)),
+                onTap: () {
+                  Navigator.pop(context); // Close drawer first
+                  showLogoutConfirmationDialog(context);
+                },
+              ),
+              const SizedBox(height: 16),
+            ],
+          ),
+        ),
         body: IndexedStack(
           index: currentIndex,
           children: tabs.asMap().entries.map((entry) {
@@ -246,30 +203,31 @@ class _AndroidBottomNavLayoutState extends ConsumerState<AndroidBottomNavLayout>
                 : const SizedBox.shrink();
           }).toList(),
         ),
-        bottomNavigationBar: Container(
-          decoration: BoxDecoration(
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.1),
-                blurRadius: 10,
-                offset: const Offset(0, -5),
-              ),
-            ],
-          ),
-          child: BottomNavigationBar(
-            currentIndex: selectedBottomNavIndex,
-            onTap: (i) => _onNavTapped(i, allowedPrimary, allowedSecondary),
-            backgroundColor: AppColors.primaryGreen,
-            selectedItemColor: Colors.white,
-            unselectedItemColor: Colors.white70,
-            showUnselectedLabels: true,
-            type: BottomNavigationBarType.fixed,
-            selectedLabelStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
-            unselectedLabelStyle: const TextStyle(fontWeight: FontWeight.w500, fontSize: 11),
-            items: bottomNavItems,
-          ),
+      ),
+    );
+  }
+
+  Widget _buildDrawerItem(Map<String, dynamic> tab, int currentIndex, List<Map<String, dynamic>> allTabs) {
+    final label = tab['label'] as String;
+    final icon = tab['icon'] as IconData;
+    final index = allTabs.indexWhere((t) => t['label'] == label);
+    final isSelected = index == currentIndex;
+
+    return ListTile(
+      leading: Icon(icon, color: isSelected ? AppColors.primaryGreen : AppColors.textSecondary),
+      title: Text(
+        label,
+        style: TextStyle(
+          fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+          color: isSelected ? AppColors.primaryGreen : AppColors.textSecondary,
         ),
       ),
+      selected: isSelected,
+      selectedTileColor: AppColors.primaryGreen.withOpacity(0.1),
+      onTap: () {
+        Navigator.pop(context); // Close drawer
+        _onNavTapped(label);
+      },
     );
   }
 }
