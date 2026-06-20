@@ -359,10 +359,15 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
           const SizedBox(height: AppSizes.p16),
 
           // Search bar (full width)
-          AppSearchBar(
-            controller: _searchController,
-            hint: 'Search by LRN or name...',
-            maxWidth: double.infinity,
+          LayoutBuilder(
+            builder: (context, constraints) => Align(
+              alignment: Alignment.centerLeft,
+              child: AppSearchBar(
+                controller: _searchController,
+                hint: 'Search by LRN or name...',
+                maxWidth: constraints.maxWidth,
+              ),
+            ),
           ),
           const SizedBox(height: AppSizes.p12),
 

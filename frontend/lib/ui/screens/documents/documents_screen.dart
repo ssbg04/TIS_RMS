@@ -1028,11 +1028,16 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
             children: [
               // Custom search bar (expands to fill available width)
               Expanded(
-                child: AppSearchBar(
-                  hint: 'Search by name, LRN, file…',
-                  controller: _searchController,
-                  onChanged: _onSearchChanged,
-                  maxWidth: double.infinity,
+                child: LayoutBuilder(
+                  builder: (context, constraints) => Align(
+                    alignment: Alignment.centerLeft,
+                    child: AppSearchBar(
+                      hint: 'Search by name, LRN, file…',
+                      controller: _searchController,
+                      onChanged: _onSearchChanged,
+                      maxWidth: constraints.maxWidth,
+                    ),
+                  ),
                 ),
               ),
               const SizedBox(width: 8),

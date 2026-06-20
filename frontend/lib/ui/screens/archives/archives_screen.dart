@@ -532,11 +532,16 @@ class _ArchivesScreenState extends ConsumerState<ArchivesScreen>
           Row(
             children: [
               Expanded(
-                child: AppSearchBar(
-                  hint: 'Search by name, LRN, file…',
-                  controller: _searchController,
-                  onChanged: _onSearchChanged,
-                  maxWidth: double.infinity,
+                child: LayoutBuilder(
+                  builder: (context, constraints) => Align(
+                    alignment: Alignment.centerLeft,
+                    child: AppSearchBar(
+                      hint: 'Search by name, LRN, file…',
+                      controller: _searchController,
+                      onChanged: _onSearchChanged,
+                      maxWidth: constraints.maxWidth,
+                    ),
+                  ),
                 ),
               ),
               const SizedBox(width: 8),

@@ -327,10 +327,15 @@ class _UsersScreenState extends ConsumerState<UsersScreen> {
           children: [
             Expanded(
               flex: 2,
-              child: AppSearchBar(
-                hint: 'Search by username, name or role...',
-                controller: _searchController,
-                maxWidth: double.infinity,
+              child: LayoutBuilder(
+                builder: (context, constraints) => Align(
+                  alignment: Alignment.centerLeft,
+                  child: AppSearchBar(
+                    hint: 'Search by username, name or role...',
+                    controller: _searchController,
+                    maxWidth: constraints.maxWidth,
+                  ),
+                ),
               ),
             ),
             const SizedBox(width: AppSizes.p16),

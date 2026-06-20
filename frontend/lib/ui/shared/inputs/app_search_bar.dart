@@ -45,13 +45,16 @@ class AppSearchBar extends StatefulWidget {
 
 class _AppSearchBarState extends State<AppSearchBar> {
   late final TextEditingController _controller;
+  final FocusNode _focusNode = FocusNode();
   bool _hasText = false;
+  bool _isExpanded = false;
 
   @override
   void initState() {
     super.initState();
     _controller = widget.controller ?? TextEditingController();
     _controller.addListener(_onTextChanged);
+    _focusNode.addListener(_onFocusChanged);
   }
 
   void _onTextChanged() {
@@ -59,58 +62,84 @@ class _AppSearchBarState extends State<AppSearchBar> {
     if (hasText != _hasText) setState(() => _hasText = hasText);
   }
 
+  void _onFocusChanged() {
+    if (!_focusNode.hasFocus && _controller.text.isEmpty) {
+      setState(() => _isExpanded = false);
+    }
+  }
+
   @override
   void dispose() {
     if (widget.controller == null) _controller.dispose();
+    _focusNode.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    return ConstrainedBox(
-      constraints: BoxConstraints(maxWidth: widget.maxWidth),
-      child: TextField(
-        controller: _controller,
-        textInputAction: TextInputAction.search,
-        onSubmitted: (val) {
-          if (val.trim().isNotEmpty) {
-            widget.onSubmitted?.call(val.trim());
-          }
-        },
-        onChanged: widget.onChanged,
-        style: const TextStyle(fontSize: 14),
-        decoration: InputDecoration(
-          hintText: widget.hint,
-          hintStyle: TextStyle(fontSize: 13, color: Colors.grey.shade500),
-          prefixIcon: const Padding(
-            padding: EdgeInsets.symmetric(horizontal: 10),
-            child: Icon(Icons.search_rounded, size: 20, color: AppColors.primaryGreen),
-          ),
-          prefixIconConstraints: const BoxConstraints(minWidth: 40, minHeight: 40),
-          suffixIcon: widget.showClear && _hasText
-              ? IconButton(
-                  icon: Icon(Icons.close_rounded, size: 18, color: Colors.grey.shade500),
-                  splashRadius: 16,
-                  onPressed: () {
-                    _controller.clear();
-                    widget.onChanged?.call('');
-                  },
-                )
-              : null,
-          filled: true,
-          fillColor: Colors.white,
-          contentPadding: const EdgeInsets.symmetric(vertical: 10, horizontal: 12),
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(12),
-            borderSide: BorderSide(color: Colors.grey.shade200),
-          ),
-          enabledBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(12),
-            borderSide: BorderSide(color: Colors.grey.shade200),
-          ),
-          focusedBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(12),
-            borderSide: const BorderSide(color: AppColors.primaryGreen, width: 1.5),
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 250),
+      curve: Curves.easeOutCubic,
+      width: _isExpanded ? widget.maxWidth : 42.0,
+      height: 42.0,
+      clipBehavior: Clip.antiAlias,
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: _focusNode.hasFocus ? AppColors.primaryGreen : Colors.grey.shade200,
+          width: _focusNode.hasFocus ? 1.5 : 1.0,
+        ),
+      ),
+      child: OverflowBox(
+        alignment: Alignment.centerLeft,
+        maxWidth: widget.maxWidth,
+        minWidth: widget.maxWidth,
+        maxHeight: 42.0,
+        minHeight: 42.0,
+        child: TextField(
+          controller: _controller,
+          focusNode: _focusNode,
+          textInputAction: TextInputAction.search,
+          onSubmitted: (val) {
+            if (val.trim().isNotEmpty) {
+              widget.onSubmitted?.call(val.trim());
+            }
+          },
+          onChanged: widget.onChanged,
+          style: const TextStyle(fontSize: 14),
+          decoration: InputDecoration(
+            hintText: widget.hint,
+            hintStyle: TextStyle(fontSize: 13, color: Colors.grey.shade500),
+            prefixIcon: GestureDetector(
+              onTap: () {
+                if (!_isExpanded) {
+                  setState(() => _isExpanded = true);
+                  _focusNode.requestFocus();
+                }
+              },
+              child: Container(
+                color: Colors.transparent,
+                child: const Icon(Icons.search_rounded, size: 20, color: AppColors.primaryGreen),
+              ),
+            ),
+            prefixIconConstraints: const BoxConstraints(minWidth: 42, minHeight: 42),
+            suffixIcon: widget.showClear && _hasText
+                ? IconButton(
+                    icon: Icon(Icons.close_rounded, size: 18, color: Colors.grey.shade500),
+                    splashRadius: 16,
+                    onPressed: () {
+                      _controller.clear();
+                      widget.onChanged?.call('');
+                    },
+                  )
+                : null,
+            filled: false,
+            isDense: true,
+            contentPadding: const EdgeInsets.only(top: 11, bottom: 11, right: 12),
+            border: InputBorder.none,
+            enabledBorder: InputBorder.none,
+            focusedBorder: InputBorder.none,
           ),
         ),
       ),

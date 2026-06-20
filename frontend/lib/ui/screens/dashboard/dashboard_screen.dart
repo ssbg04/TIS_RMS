@@ -505,15 +505,20 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
         Expanded(
-          child: AppSearchBar(
-            controller: _searchController,
-            hint: 'Search students by LRN or Name...',
-            maxWidth: 420,
-            onSubmitted: (value) {
-              ref.read(studentQueryProvider.notifier).setSearch(value);
-              ref.read(activeTabProvider.notifier).setTab('Students');
-              _searchController.clear();
-            },
+          child: LayoutBuilder(
+            builder: (context, constraints) => Align(
+              alignment: Alignment.centerLeft,
+              child: AppSearchBar(
+                controller: _searchController,
+                hint: 'Search students by LRN or Name...',
+                maxWidth: constraints.maxWidth > 420 ? 420 : constraints.maxWidth,
+                onSubmitted: (value) {
+                  ref.read(studentQueryProvider.notifier).setSearch(value);
+                  ref.read(activeTabProvider.notifier).setTab('Students');
+                  _searchController.clear();
+                },
+              ),
+            ),
           ),
         ),
         const SizedBox(width: 16),
