@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../../core/constants/app_colors.dart';
@@ -40,6 +41,7 @@ class AndroidBottomNavLayout extends ConsumerStatefulWidget {
 
 class _AndroidBottomNavLayoutState extends ConsumerState<AndroidBottomNavLayout> {
   final Set<int> _visitedIndices = {};
+  Timer? _holdTimer;
 
   void _reloadTabContent(String label) {
     switch (label) {
@@ -71,6 +73,59 @@ class _AndroidBottomNavLayoutState extends ConsumerState<AndroidBottomNavLayout>
   void _onNavTapped(String label) {
     ref.read(activeTabProvider.notifier).setTab(label);
     _reloadTabContent(label);
+  }
+
+  void _showCapstoneMembers(BuildContext context) {
+    const members = [
+      'Alibutod, Rhina Mhay C.',
+      'Antonio, Clara Maris B.',
+      'De Vera, Ermhar A.',
+      'Ellio, James Young G.',
+      'Garcia, Cris Charles V.',
+      'Pasigan, Chinee R.',
+    ];
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Row(
+          children: [
+            Icon(Icons.groups_rounded, color: AppColors.primaryGreen),
+            SizedBox(width: 8),
+            Text('Capstone Members', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: members
+              .map((name) => Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 5),
+                    child: Row(
+                      children: [
+                        const Icon(Icons.person_outline, size: 16, color: AppColors.primaryGreen),
+                        const SizedBox(width: 10),
+                        Text(name, style: const TextStyle(fontSize: 13)),
+                      ],
+                    ),
+                  ))
+              .toList(),
+        ),
+        actions: [
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.primaryGreen,
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+              ),
+              onPressed: () => Navigator.of(ctx).pop(),
+              child: const Text('Close'),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
   @override
@@ -155,10 +210,19 @@ class _AndroidBottomNavLayoutState extends ConsumerState<AndroidBottomNavLayout>
                   children: [
                     Row(
                       children: [
-                        const CircleAvatar(
-                          backgroundColor: Colors.transparent,
-                          radius: 24,
-                          backgroundImage: AssetImage('assets/images/logo.png'),
+                        GestureDetector(
+                          onLongPressStart: (_) {
+                            _holdTimer = Timer(const Duration(seconds: 3), () {
+                              _showCapstoneMembers(context);
+                            });
+                          },
+                          onLongPressEnd: (_) => _holdTimer?.cancel(),
+                          onLongPressCancel: () => _holdTimer?.cancel(),
+                          child: const CircleAvatar(
+                            backgroundColor: Colors.transparent,
+                            radius: 24,
+                            backgroundImage: AssetImage('assets/images/logo.png'),
+                          ),
                         ),
                         const SizedBox(width: 12),
                         Expanded(
@@ -246,12 +310,12 @@ class _AndroidBottomNavLayoutState extends ConsumerState<AndroidBottomNavLayout>
             : null,
       ),
       child: ListTile(
-        leading: Icon(icon, color: isSelected ? AppColors.primaryGreen : AppColors.textPrimary),
+        leading: Icon(icon, color: isSelected ? AppColors.primaryGreen : Colors.grey.shade800),
         title: Text(
           label,
           style: TextStyle(
-            fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
-            color: isSelected ? AppColors.primaryGreen : AppColors.textPrimary,
+            fontWeight: isSelected ? FontWeight.bold : FontWeight.w400,
+            color: isSelected ? AppColors.primaryGreen : Colors.grey.shade800,
           ),
         ),
         selected: isSelected,

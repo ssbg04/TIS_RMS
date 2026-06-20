@@ -13,7 +13,7 @@ import '../../shared/cards/stat_card.dart';
 import '../../providers/reports_provider.dart';
 import '../../providers/navigation_provider.dart';
 import '../../shared/dialogs/file_save_preview_dialog.dart';
-import '../students/student_detail_screen.dart';
+import '../documents/widgets/student_profile_modal.dart';
 import 'package:fl_chart/fl_chart.dart';
 
 class ReportsScreen extends ConsumerStatefulWidget {
@@ -942,7 +942,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                     : filteredStudents.map((student) {
                         return DataRow(
                           onSelectChanged: (_) {
-                            StudentProfileModal.show(context, student.id, widget.userRole);
+                            showStudentProfileModal(context, studentId: student.id, userRole: widget.userRole);
                           },
                           cells: [
                             DataCell(Text(student.lrn, style: const TextStyle(fontWeight: FontWeight.w500))),

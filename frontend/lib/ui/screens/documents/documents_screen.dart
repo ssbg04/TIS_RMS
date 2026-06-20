@@ -10,7 +10,7 @@ import '../../shared/buttons/primary_button.dart';
 import '../../providers/document_provider.dart';
 import '../../providers/student_provider.dart';
 import '../../providers/navigation_provider.dart';
-import '../students/student_detail_screen.dart';
+
 import '../../shared/dialogs/success_dialog.dart';
 import '../../shared/dialogs/error_dialog.dart';
 import 'widgets/file_folder_card.dart';
@@ -1742,7 +1742,7 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
               }
             },
             onActionSelected: (a) => _handleAction(a, documents[i]),
-            onViewProfile: (sid) => StudentProfileModal.show(context, sid, widget.userRole),
+            onViewProfile: (sid) => showStudentProfileModal(context, studentId: sid, userRole: widget.userRole),
           ),
         );
       },
@@ -1877,7 +1877,7 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
                           }
                         },
                         onActionSelected: (a) => _handleAction(a, documents[i]),
-                        onViewProfile: (sid) => StudentProfileModal.show(context, sid, widget.userRole),
+                        onViewProfile: (sid) => showStudentProfileModal(context, studentId: sid, userRole: widget.userRole),
                       ),
               ),
             ),

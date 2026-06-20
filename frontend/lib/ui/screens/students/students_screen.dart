@@ -7,7 +7,7 @@ import '../../../domain/entities/student_model.dart';
 import '../../shared/buttons/primary_button.dart';
 import '../../providers/student_provider.dart';
 import '../documents/documents_screen.dart';
-import '../students/student_detail_screen.dart';
+import '../documents/widgets/student_profile_modal.dart';
 import 'widgets/add_edit_student_modal.dart';
 import '../../providers/setup_provider.dart';
 import '../../shared/inputs/app_search_bar.dart';
@@ -242,7 +242,7 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
   // NAVIGATION HELPERS
   // ----------------------------------------------------------------
   void _viewProfile(int studentId) {
-    StudentProfileModal.show(context, studentId, widget.userRole);
+    showStudentProfileModal(context, studentId: studentId, userRole: widget.userRole);
   }
 
   void _openDocumentsFolder(StudentModel student) {

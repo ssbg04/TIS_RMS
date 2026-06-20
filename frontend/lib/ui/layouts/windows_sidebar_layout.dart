@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../../core/constants/app_colors.dart';
@@ -16,6 +17,7 @@ import '../providers/document_provider.dart';
 import '../providers/archives_provider.dart';
 import '../providers/reports_provider.dart';
 import '../providers/users_provider.dart';  
+import '../providers/auth_provider.dart';
 import '../shared/dialogs/logout_dialog.dart';
 import '../providers/navigation_provider.dart';
 
@@ -38,6 +40,7 @@ class WindowsSidebarLayout extends ConsumerStatefulWidget {
 
 class _WindowsSidebarLayoutState extends ConsumerState<WindowsSidebarLayout> {
   final Set<int> _visitedIndices = {};
+  Timer? _holdTimer;
 
   void _reloadTabContent(String label) {
     switch (label) {
@@ -64,6 +67,59 @@ class _WindowsSidebarLayoutState extends ConsumerState<WindowsSidebarLayout> {
         ref.invalidate(usersProvider);
         break;
     }
+  }
+
+  void _showCapstoneMembers(BuildContext context) {
+    const members = [
+      'Alibutod, Rhina Mhay C.',
+      'Antonio, Clara Maris B.',
+      'De Vera, Ermhar A.',
+      'Ellio, James Young G.',
+      'Garcia, Cris Charles V.',
+      'Pasigan, Chinee R.',
+    ];
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Row(
+          children: [
+            Icon(Icons.groups_rounded, color: AppColors.primaryGreen),
+            SizedBox(width: 8),
+            Text('Capstone Members', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: members
+              .map((name) => Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 5),
+                    child: Row(
+                      children: [
+                        const Icon(Icons.person_outline, size: 16, color: AppColors.primaryGreen),
+                        const SizedBox(width: 10),
+                        Text(name, style: const TextStyle(fontSize: 13)),
+                      ],
+                    ),
+                  ))
+              .toList(),
+        ),
+        actions: [
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.primaryGreen,
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+              ),
+              onPressed: () => Navigator.of(ctx).pop(),
+              child: const Text('Close'),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
   @override
@@ -144,25 +200,77 @@ class _WindowsSidebarLayoutState extends ConsumerState<WindowsSidebarLayout> {
               ),
               child: Column(
                 children: [
-                  // Branding Header
                   Padding(
-                    padding: const EdgeInsets.symmetric(
-                      vertical: AppSizes.p32, 
-                      horizontal: AppSizes.p24
-                    ),
-                    child: Row(
+                    padding: const EdgeInsets.fromLTRB(
+                        AppSizes.p24, AppSizes.p32, AppSizes.p24, AppSizes.p20),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Image.asset('assets/images/logo.png', width: 42, height: 42),
-                        const SizedBox(width: AppSizes.p12),
-                        const Expanded(
-                          child: Text(
-                            'TIS RMS',
-                            style: TextStyle(
-                              fontSize: 22,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.white,
-                              letterSpacing: 1.0,
+                        // Logo row with easter egg
+                        Row(
+                          children: [
+                            GestureDetector(
+                              onLongPressStart: (_) {
+                                _holdTimer = Timer(const Duration(seconds: 3), () {
+                                  _showCapstoneMembers(context);
+                                });
+                              },
+                              onLongPressEnd: (_) => _holdTimer?.cancel(),
+                              onLongPressCancel: () => _holdTimer?.cancel(),
+                              child: Image.asset(
+                                'assets/images/logo.png',
+                                width: 42,
+                                height: 42,
+                              ),
                             ),
+                            const SizedBox(width: AppSizes.p12),
+                            const Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    'TIS',
+                                    style: TextStyle(
+                                      fontSize: 22,
+                                      fontWeight: FontWeight.bold,
+                                      color: Colors.white,
+                                      letterSpacing: 1.0,
+                                    ),
+                                  ),
+                                  Text(
+                                    'Record Management System',
+                                    style: TextStyle(
+                                      fontSize: 10,
+                                      color: Colors.white70,
+                                      letterSpacing: 0.3,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 20),
+                        const Divider(height: 1, color: Colors.white24),
+                        const SizedBox(height: 14),
+                        // User info
+                        Text(
+                          ref.watch(authProvider).value?.fullName ?? 'Unknown User',
+                          style: const TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 14,
+                            color: Colors.white,
+                          ),
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          widget.userRole.toUpperCase(),
+                          style: const TextStyle(
+                            fontSize: 11,
+                            color: Colors.white70,
+                            letterSpacing: 0.5,
                           ),
                         ),
                       ],
