@@ -6,77 +6,105 @@ import '../../../domain/repositories/document_repository.dart' show MissingRequi
 import '../../providers/student_provider.dart';
 import '../../providers/document_provider.dart';
 
-class StudentDetailScreen extends ConsumerWidget {
+class StudentProfileModal extends ConsumerWidget {
   final int studentId;
   final String userRole;
 
-  const StudentDetailScreen({
+  const StudentProfileModal({
     super.key,
     required this.studentId,
     required this.userRole,
   });
+
+  static void show(BuildContext context, int studentId, String userRole) {
+    showDialog(
+      context: context,
+      builder: (context) => StudentProfileModal(studentId: studentId, userRole: userRole),
+    );
+  }
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final studentAsync = ref.watch(studentDetailProvider(studentId));
     final missingReqsAsync = ref.watch(missingRequirementsProvider(studentId));
 
-    return Scaffold(
+    return Dialog(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppSizes.radiusLarge)),
       backgroundColor: AppColors.pageBackground,
-      appBar: AppBar(
-        backgroundColor: AppColors.primaryGreen,
-        foregroundColor: Colors.white,
-        iconTheme: const IconThemeData(color: Colors.white),
-        title: const Text('Student Profile', style: TextStyle(color: Colors.white)),
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.white),
-          onPressed: () => Navigator.of(context).pop(),
-        ),
-      ),
-      body: studentAsync.when(
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (e, st) => Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              const Icon(Icons.error_outline, size: 48, color: AppColors.error),
-              const SizedBox(height: AppSizes.p16),
-              Text('Error: $e', style: const TextStyle(color: AppColors.error)),
-            ],
-          ),
-        ),
-        data: (student) => SingleChildScrollView(
-          padding: const EdgeInsets.all(AppSizes.p24),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Student Info Card
-              _buildInfoCard(student),
-              const SizedBox(height: AppSizes.p24),
-
-              // Enrollments
-              if (student.enrollments != null && student.enrollments!.isNotEmpty) ...[
-                const Text('Enrollments', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-                const SizedBox(height: AppSizes.p12),
-                ...(() {
-                  final sorted = List.from(student.enrollments!);
-                  // Ensure they are sorted descending by gradeLevel
-                  sorted.sort((a, b) => (b.gradeLevel ?? 0).compareTo(a.gradeLevel ?? 0));
-                  return sorted.map<Widget>((e) => _buildEnrollmentCard(e)).toList();
-                })(),
-                const SizedBox(height: AppSizes.p24),
-              ],
-
-              // Document Requirements Status
-              const Text('Document Requirements', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-              const SizedBox(height: AppSizes.p12),
-              missingReqsAsync.when(
-                loading: () => const Center(child: CircularProgressIndicator()),
-                error: (e, _) => Text('Error loading requirements: $e', style: const TextStyle(color: AppColors.error)),
-                data: (missing) => _buildRequirementsStatus(missing),
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 800, maxHeight: 850),
+        child: Column(
+          children: [
+            // Header
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: AppSizes.p24, vertical: AppSizes.p16),
+              decoration: const BoxDecoration(
+                color: AppColors.primaryGreen,
+                borderRadius: BorderRadius.vertical(top: Radius.circular(AppSizes.radiusLarge)),
               ),
-            ],
-          ),
+              child: Row(
+                children: [
+                  const Icon(Icons.person, color: Colors.white),
+                  const SizedBox(width: 12),
+                  const Text('Student Profile', style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
+                  const Spacer(),
+                  IconButton(
+                    icon: const Icon(Icons.close, color: Colors.white),
+                    onPressed: () => Navigator.of(context).pop(),
+                  ),
+                ],
+              ),
+            ),
+            // Body
+            Expanded(
+              child: studentAsync.when(
+                loading: () => const Center(child: CircularProgressIndicator()),
+                error: (e, st) => Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const Icon(Icons.error_outline, size: 48, color: AppColors.error),
+                      const SizedBox(height: AppSizes.p16),
+                      Text('Error: $e', style: const TextStyle(color: AppColors.error)),
+                    ],
+                  ),
+                ),
+                data: (student) => SingleChildScrollView(
+                  padding: const EdgeInsets.all(AppSizes.p24),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Student Info Card
+                      _buildInfoCard(student),
+                      const SizedBox(height: AppSizes.p24),
+
+                      // Enrollments
+                      if (student.enrollments != null && student.enrollments!.isNotEmpty) ...[
+                        const Text('Enrollments', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                        const SizedBox(height: AppSizes.p12),
+                        ...(() {
+                          final sorted = List.from(student.enrollments!);
+                          // Ensure they are sorted descending by gradeLevel
+                          sorted.sort((a, b) => (b.gradeLevel ?? 0).compareTo(a.gradeLevel ?? 0));
+                          return sorted.map<Widget>((e) => _buildEnrollmentCard(e)).toList();
+                        })(),
+                        const SizedBox(height: AppSizes.p24),
+                      ],
+
+                      // Document Requirements Status
+                      const Text('Document Requirements', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                      const SizedBox(height: AppSizes.p12),
+                      missingReqsAsync.when(
+                        loading: () => const Center(child: CircularProgressIndicator()),
+                        error: (e, _) => Text('Error loading requirements: $e', style: const TextStyle(color: AppColors.error)),
+                        data: (missing) => _buildRequirementsStatus(missing),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ],
         ),
       ),
     );

@@ -65,7 +65,7 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
 
   Timer? _pollingTimer;
   ProviderSubscription<String>? _tabListener;
-  ProviderSubscription<int?>? _folderListener;
+  ProviderSubscription<OpenedFolderData?>? _folderListener;
 
   @override
   void initState() {
@@ -87,7 +87,14 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
     });
 
     // If a specific student was passed, jump to Folders tab and open that folder
-    if (widget.initialStudentId != null) {
+    final initialFolder = ref.read(openedFolderProvider);
+    if (initialFolder != null) {
+      _openedFolderStudentId = initialFolder.id;
+      _openedFolderName = initialFolder.name;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        ref.read(documentQueryProvider.notifier).setStudentId(initialFolder.id);
+      });
+    } else if (widget.initialStudentId != null) {
       _openedFolderStudentId = widget.initialStudentId;
       _openedFolderName = 'Student Documents';
       WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -120,7 +127,7 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
             _openedFolderStudentId = null;
             _openedFolderName = null;
           });
-          ref.read(openedFolderStudentIdProvider.notifier).setStudentId(null);
+          ref.read(openedFolderProvider.notifier).setFolder(null);
           ref.read(documentQueryProvider.notifier).setStudentId(null);
         }
       }
@@ -132,7 +139,7 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
       _tabListener = ref.listenManual<String>(activeTabProvider, (previous, next) {
         if (!mounted) return;
         if (next != 'Documents') {
-          ref.read(openedFolderStudentIdProvider.notifier).setStudentId(null);
+          ref.read(openedFolderProvider.notifier).setFolder(null);
           setState(() {
             _openedFolderStudentId = null;
             _openedFolderName = null;
@@ -148,19 +155,19 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
         }
       });
 
-      _folderListener = ref.listenManual<int?>(openedFolderStudentIdProvider, (previous, current) {
+      _folderListener = ref.listenManual<OpenedFolderData?>(openedFolderProvider, (previous, current) {
         if (!mounted) return;
-        if (current != null && current != _openedFolderStudentId) {
+        if (current != null && current.id != _openedFolderStudentId) {
           setState(() {
-            _openedFolderStudentId = current;
-            _openedFolderName = 'Student Documents';
+            _openedFolderStudentId = current.id;
+            _openedFolderName = current.name;
           });
           if (mounted && _tabController.index != 0) {
             _tabController.index = 0;
           }
           WidgetsBinding.instance.addPostFrameCallback((_) {
             if (!mounted) return;
-            ref.read(documentQueryProvider.notifier).setStudentId(current);
+            ref.read(documentQueryProvider.notifier).setStudentId(current.id);
           });
         }
       });
@@ -800,8 +807,8 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
                           _openedFolderName = null;
                         });
                         ref
-                            .read(openedFolderStudentIdProvider.notifier)
-                            .setStudentId(null);
+                            .read(openedFolderProvider.notifier)
+                            .setFolder(null);
                         ref
                             .read(documentQueryProvider.notifier)
                             .setStudentId(null);
@@ -940,8 +947,8 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
                           _openedFolderName = null;
                         });
                         ref
-                            .read(openedFolderStudentIdProvider.notifier)
-                            .setStudentId(null);
+                            .read(openedFolderProvider.notifier)
+                            .setFolder(null);
                         ref
                             .read(documentQueryProvider.notifier)
                             .setStudentId(null);
@@ -1730,17 +1737,12 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
                     _selectedDocumentIds.add(documents[i].id);
                   }
                 });
+              } else {
+                showDocumentPreview(context, documents[i]);
               }
             },
             onActionSelected: (a) => _handleAction(a, documents[i]),
-            onViewProfile: (sid) => Navigator.of(context).push(
-              MaterialPageRoute(
-                builder: (_) => StudentDetailScreen(
-                  studentId: sid,
-                  userRole: widget.userRole,
-                ),
-              ),
-            ),
+            onViewProfile: (sid) => StudentProfileModal.show(context, sid, widget.userRole),
           ),
         );
       },
@@ -1870,17 +1872,12 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
                                 _selectedDocumentIds.add(documents[i].id);
                               }
                             });
+                          } else {
+                            showDocumentPreview(context, documents[i]);
                           }
                         },
                         onActionSelected: (a) => _handleAction(a, documents[i]),
-                        onViewProfile: (sid) => Navigator.of(context).push(
-                          MaterialPageRoute(
-                            builder: (_) => StudentDetailScreen(
-                              studentId: sid,
-                              userRole: widget.userRole,
-                            ),
-                          ),
-                        ),
+                        onViewProfile: (sid) => StudentProfileModal.show(context, sid, widget.userRole),
                       ),
               ),
             ),
@@ -1932,6 +1929,8 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
               _selectedDocumentIds.add(doc.id);
             }
           });
+        } else {
+          showDocumentPreview(context, doc as DocumentModel);
         }
       },
       child: Container(
@@ -2051,16 +2050,7 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
                   padding: EdgeInsets.zero,
                   onSelected: (a) => _handleAction(a, doc as DocumentModel),
                   itemBuilder: (_) => [
-                    const PopupMenuItem(
-                      value: 'preview',
-                      child: Row(
-                        children: [
-                          Icon(Icons.visibility, size: 16),
-                          SizedBox(width: 10),
-                          Text('Preview', style: TextStyle(fontSize: 13)),
-                        ],
-                      ),
-                    ),
+                    // removed preview
                     const PopupMenuItem(
                       value: 'queue',
                       child: Row(

@@ -26,14 +26,8 @@ class _UpperCaseWordsFormatter extends TextInputFormatter {
     TextEditingValue oldValue,
     TextEditingValue newValue,
   ) {
-    final text = newValue.text;
-    if (text.isEmpty) return newValue;
-    final capitalized = text.replaceAllMapped(
-      RegExp(r'(^|\s)(\S)'),
-      (m) => '${m[1]}${m[2]!.toUpperCase()}',
-    );
     return newValue.copyWith(
-      text: capitalized,
+      text: newValue.text.toUpperCase(),
       selection: newValue.selection,
       composing: TextRange.empty,
     );
@@ -800,7 +794,7 @@ class _AddEditStudentModalState extends ConsumerState<AddEditStudentModal>
                                       Expanded(
                                         child: TextFormField(
                                           controller: _firstNameController,
-                                          textCapitalization: TextCapitalization.words,
+                                          textCapitalization: TextCapitalization.characters,
                                           inputFormatters: [_UpperCaseWordsFormatter()],
                                           validator: (v) => _validateRequired(
                                             v,
@@ -818,7 +812,7 @@ class _AddEditStudentModalState extends ConsumerState<AddEditStudentModal>
                                       Expanded(
                                         child: TextFormField(
                                           controller: _middleNameController,
-                                          textCapitalization: TextCapitalization.words,
+                                          textCapitalization: TextCapitalization.characters,
                                           inputFormatters: [_UpperCaseWordsFormatter()],
                                           decoration: const InputDecoration(
                                             labelText: 'Middle Name (optional)',
@@ -837,7 +831,7 @@ class _AddEditStudentModalState extends ConsumerState<AddEditStudentModal>
                                         flex: 3,
                                         child: TextFormField(
                                           controller: _lastNameController,
-                                          textCapitalization: TextCapitalization.words,
+                                          textCapitalization: TextCapitalization.characters,
                                           inputFormatters: [_UpperCaseWordsFormatter()],
                                           validator: (v) =>
                                               _validateRequired(v, 'Last name'),
@@ -853,7 +847,7 @@ class _AddEditStudentModalState extends ConsumerState<AddEditStudentModal>
                                       Expanded(
                                         child: TextFormField(
                                           controller: _extController,
-                                          textCapitalization: TextCapitalization.words,
+                                          textCapitalization: TextCapitalization.characters,
                                           inputFormatters: [_UpperCaseWordsFormatter()],
                                           decoration: const InputDecoration(
                                             labelText: 'Ext.',
@@ -871,7 +865,7 @@ class _AddEditStudentModalState extends ConsumerState<AddEditStudentModal>
                                 children: [
                                   TextFormField(
                                     controller: _firstNameController,
-                                    textCapitalization: TextCapitalization.words,
+                                    textCapitalization: TextCapitalization.characters,
                                     inputFormatters: [_UpperCaseWordsFormatter()],
                                     validator: (v) =>
                                         _validateRequired(v, 'First name'),
@@ -882,7 +876,7 @@ class _AddEditStudentModalState extends ConsumerState<AddEditStudentModal>
                                   const SizedBox(height: AppSizes.p12),
                                   TextFormField(
                                     controller: _middleNameController,
-                                    textCapitalization: TextCapitalization.words,
+                                    textCapitalization: TextCapitalization.characters,
                                     inputFormatters: [_UpperCaseWordsFormatter()],
                                     decoration: const InputDecoration(
                                       labelText: 'Middle Name',
@@ -891,7 +885,7 @@ class _AddEditStudentModalState extends ConsumerState<AddEditStudentModal>
                                   const SizedBox(height: AppSizes.p12),
                                   TextFormField(
                                     controller: _lastNameController,
-                                    textCapitalization: TextCapitalization.words,
+                                    textCapitalization: TextCapitalization.characters,
                                     inputFormatters: [_UpperCaseWordsFormatter()],
                                     validator: (v) =>
                                         _validateRequired(v, 'Last name'),
@@ -902,7 +896,7 @@ class _AddEditStudentModalState extends ConsumerState<AddEditStudentModal>
                                   const SizedBox(height: AppSizes.p12),
                                   TextFormField(
                                     controller: _extController,
-                                    textCapitalization: TextCapitalization.words,
+                                    textCapitalization: TextCapitalization.characters,
                                     inputFormatters: [_UpperCaseWordsFormatter()],
                                     decoration: const InputDecoration(
                                       labelText: 'Extension (Jr / III)',

@@ -69,16 +69,6 @@ class FileFolderCard extends StatelessWidget {
   List<PopupMenuEntry<String>> _buildMenuItems() {
     final items = <PopupMenuEntry<String>>[
       const PopupMenuItem(
-        value: 'preview',
-        child: Row(
-          children: [
-            Icon(Icons.visibility, size: 18),
-            SizedBox(width: 12),
-            Text('Preview', style: TextStyle(fontSize: 14)),
-          ],
-        ),
-      ),
-      const PopupMenuItem(
         value: 'queue',
         child: Row(
           children: [

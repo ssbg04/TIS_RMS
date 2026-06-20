@@ -17,6 +17,7 @@ import '../providers/document_provider.dart';
 import '../providers/archives_provider.dart';
 import '../providers/reports_provider.dart';
 import '../providers/users_provider.dart';
+import '../providers/auth_provider.dart';
 import '../shared/dialogs/logout_dialog.dart';
 import '../providers/navigation_provider.dart';
 
@@ -145,19 +146,39 @@ class _AndroidBottomNavLayoutState extends ConsumerState<AndroidBottomNavLayout>
         drawer: Drawer(
           child: Column(
             children: [
-              UserAccountsDrawerHeader(
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.only(top: 48, bottom: 24, left: 16, right: 16),
                 decoration: const BoxDecoration(color: AppColors.primaryGreen),
-                accountName: Text(
-                  'TIS RMS', 
-                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: Colors.white),
-                ),
-                accountEmail: Text(
-                  'Role: ${widget.userRole.toUpperCase()}',
-                  style: const TextStyle(color: Colors.white70),
-                ),
-                currentAccountPicture: const CircleAvatar(
-                  backgroundColor: Colors.transparent,
-                  backgroundImage: AssetImage('assets/images/logo.png'),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        const CircleAvatar(
+                          backgroundColor: Colors.transparent,
+                          radius: 24,
+                          backgroundImage: AssetImage('assets/images/logo.png'),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: const [
+                              Text('TIS', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 24, color: Colors.white)),
+                              Text('Record Management System', style: TextStyle(fontSize: 12, color: Colors.white70)),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 24),
+                    Text(
+                      ref.watch(authProvider).value?.fullName ?? 'Unknown User', 
+                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Colors.white),
+                    ),
+                    Text('Role: ${widget.userRole.toUpperCase()}', style: const TextStyle(color: Colors.white70, fontSize: 13)),
+                  ],
                 ),
               ),
               Expanded(
@@ -213,21 +234,33 @@ class _AndroidBottomNavLayoutState extends ConsumerState<AndroidBottomNavLayout>
     final index = allTabs.indexWhere((t) => t['label'] == label);
     final isSelected = index == currentIndex;
 
-    return ListTile(
-      leading: Icon(icon, color: isSelected ? AppColors.primaryGreen : AppColors.textSecondary),
-      title: Text(
-        label,
-        style: TextStyle(
-          fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-          color: isSelected ? AppColors.primaryGreen : AppColors.textSecondary,
-        ),
+    return Container(
+      decoration: BoxDecoration(
+        border: isSelected
+            ? const Border(
+                right: BorderSide(
+                  color: AppColors.primaryGreen,
+                  width: 4.0,
+                ),
+              )
+            : null,
       ),
-      selected: isSelected,
-      selectedTileColor: AppColors.primaryGreen.withOpacity(0.1),
-      onTap: () {
-        Navigator.pop(context); // Close drawer
-        _onNavTapped(label);
-      },
+      child: ListTile(
+        leading: Icon(icon, color: isSelected ? AppColors.primaryGreen : AppColors.textPrimary),
+        title: Text(
+          label,
+          style: TextStyle(
+            fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+            color: isSelected ? AppColors.primaryGreen : AppColors.textPrimary,
+          ),
+        ),
+        selected: isSelected,
+        selectedTileColor: AppColors.primaryGreen.withOpacity(0.1),
+        onTap: () {
+          Navigator.pop(context); // Close drawer
+          _onNavTapped(label);
+        },
+      ),
     );
   }
 }

@@ -80,7 +80,7 @@ class AuthNotifier extends AsyncNotifier<UserModel?> {
     ref.invalidate(trashMutationProvider);
     ref.invalidate(requirementMutationProvider);
     ref.invalidate(folderMutationProvider);
-    ref.invalidate(openedFolderStudentIdProvider);
+    ref.invalidate(openedFolderProvider);
 
     // Archives
     ref.invalidate(archiveQueryProvider);

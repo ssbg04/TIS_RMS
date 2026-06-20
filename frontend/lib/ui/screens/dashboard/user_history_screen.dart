@@ -4,6 +4,7 @@ import '../../../core/constants/app_colors.dart';
 import '../../../core/utils/date_utils.dart' as pht;
 import '../../../domain/entities/dashboard_models.dart';
 import '../../providers/activity_provider.dart';
+import '../../shared/modals/view_activity_modal.dart';
 
 /// Admin-only screen — accessible from Dashboard only (not main nav).
 class UserHistoryScreen extends ConsumerStatefulWidget {
@@ -171,6 +172,7 @@ class _UserHistoryScreenState extends ConsumerState<UserHistoryScreen> {
           side: BorderSide(color: Colors.grey.shade200),
         ),
         child: DataTable(
+          showCheckboxColumn: false,
           columnSpacing: 20,
           headingRowColor: WidgetStateProperty.all(Colors.grey.shade50),
           columns: const [
@@ -214,6 +216,18 @@ class _UserHistoryScreenState extends ConsumerState<UserHistoryScreen> {
           rows: history
               .map(
                 (h) => DataRow(
+                  onSelectChanged: (_) {
+                    ViewActivityModal.show(
+                      context: context,
+                      title: 'USER ACTIVITY',
+                      description: 'Action performed on ${h.fullName} (@${h.username})',
+                      date: _formatDate(h.createdAt),
+                      performedBy: h.performedByName ?? h.performedByUsername ?? 'System',
+                      action: h.action,
+                      actionColor: _actionColor(h.action),
+                      icon: _actionIcon(h.action),
+                    );
+                  },
                   cells: [
                     DataCell(_actionChip(h.action)),
                     DataCell(
@@ -260,8 +274,21 @@ class _UserHistoryScreenState extends ConsumerState<UserHistoryScreen> {
       separatorBuilder: (_, _s) => const SizedBox(height: 8),
       itemBuilder: (context, i) {
         final h = history[i];
-        return Card(
-          elevation: 0,
+        return InkWell(
+          onTap: () {
+            ViewActivityModal.show(
+              context: context,
+              title: 'USER ACTIVITY',
+              description: 'Action performed on ${h.fullName} (@${h.username})',
+              date: _formatDate(h.createdAt),
+              performedBy: h.performedByName ?? h.performedByUsername ?? 'System',
+              action: h.action,
+              actionColor: _actionColor(h.action),
+              icon: _actionIcon(h.action),
+            );
+          },
+          child: Card(
+            elevation: 0,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(10),
             side: BorderSide(color: Colors.grey.shade200),
@@ -315,10 +342,11 @@ class _UserHistoryScreenState extends ConsumerState<UserHistoryScreen> {
               ],
             ),
           ),
-        );
-      },
-    );
-  }
+        ),
+      );
+    },
+  );
+}
 
   Widget _buildPagination(PaginatedUserHistory data, int currentPage) {
     if (data.totalPages <= 1) return const SizedBox.shrink();
@@ -400,6 +428,17 @@ class _UserHistoryScreenState extends ConsumerState<UserHistoryScreen> {
         return Colors.red;
       default:
         return Colors.orange;
+    }
+  }
+
+  IconData _actionIcon(String action) {
+    switch (action.toLowerCase()) {
+      case 'created':
+        return Icons.person_add;
+      case 'deleted':
+        return Icons.person_off;
+      default:
+        return Icons.manage_accounts;
     }
   }
 

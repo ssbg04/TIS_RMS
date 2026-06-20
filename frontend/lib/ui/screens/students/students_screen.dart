@@ -242,17 +242,20 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
   // NAVIGATION HELPERS
   // ----------------------------------------------------------------
   void _viewProfile(int studentId) {
-    Navigator.of(context).push(MaterialPageRoute(
-      builder: (_) => StudentDetailScreen(
-        studentId: studentId,
-        userRole: widget.userRole,
-      ),
-    ));
+    StudentProfileModal.show(context, studentId, widget.userRole);
   }
 
-  void _openDocumentsFolder(int studentId) {
-    ref.read(openedFolderStudentIdProvider.notifier).setStudentId(studentId);
+  void _openDocumentsFolder(StudentModel student) {
+    // Navigate first
     ref.read(activeTabProvider.notifier).setTab('Documents');
+    // Allow the UI to process the tab switch before updating the folder state
+    Future.microtask(() {
+      if (mounted) {
+        ref.read(openedFolderProvider.notifier).setFolder(
+          OpenedFolderData(id: student.id, name: student.fullName)
+        );
+      }
+    });
   }
 
   // ================================================================
@@ -750,7 +753,7 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
                       onEdit:           () => _openModal(student: student),
                       onDelete:         () => _confirmDelete(student),
                       onViewProfile:    () => _viewProfile(student.id),
-                      onOpenDocuments:  () => _openDocumentsFolder(student.id),
+                      onOpenDocuments:  () => _openDocumentsFolder(student),
                     )),
                   ],
                 );
@@ -896,7 +899,7 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
                       onEdit: () => _openModal(student: s),
                       onDelete: () => _confirmDelete(s),
                       onViewProfile: () => _viewProfile(s.id),
-                      onOpenDocuments: () => _openDocumentsFolder(s.id),
+                      onOpenDocuments: () => _openDocumentsFolder(s),
                     ),
                   ],
                 ),
@@ -1162,7 +1165,7 @@ class _ActionButtons extends StatelessWidget {
           ),
         ),
         Tooltip(
-          message:  'Open Documents Folder',
+          message:  'Open Folder',
           child:    IconButton(
             icon:      const Icon(Icons.folder_open, color: Colors.orange),
             onPressed: onOpenDocuments,

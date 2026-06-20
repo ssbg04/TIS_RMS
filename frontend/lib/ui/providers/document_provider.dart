@@ -60,14 +60,20 @@ class DocumentQueryParams {
 // ============================================================
 // Opened Folder State
 // ============================================================
-final openedFolderStudentIdProvider = NotifierProvider<OpenedFolderStudentIdNotifier, int?>(
-  OpenedFolderStudentIdNotifier.new,
+class OpenedFolderData {
+  final int id;
+  final String name;
+  OpenedFolderData({required this.id, required this.name});
+}
+
+final openedFolderProvider = NotifierProvider<OpenedFolderNotifier, OpenedFolderData?>(
+  OpenedFolderNotifier.new,
 );
 
-class OpenedFolderStudentIdNotifier extends Notifier<int?> {
+class OpenedFolderNotifier extends Notifier<OpenedFolderData?> {
   @override
-  int? build() => null;
-  void setStudentId(int? id) => state = id;
+  OpenedFolderData? build() => null;
+  void setFolder(OpenedFolderData? data) => state = data;
 }
 
 final documentQueryProvider =

@@ -16,6 +16,7 @@ import '../../shared/menus/profile_dropdown_menu.dart';
 import '../../shared/inputs/app_search_bar.dart';
 import '../settings/teacher_management_screen.dart';
 import '../settings/requirements_settings_screen.dart';
+import '../../shared/modals/view_activity_modal.dart';
 
 class DashboardScreen extends ConsumerStatefulWidget {
   const DashboardScreen({super.key});
@@ -167,6 +168,18 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
           ...list.take(5).map((note) => PopupMenuItem(
             onTap: () {
               ref.read(notificationsProvider.notifier).markAsRead(note.id);
+              Future.delayed(const Duration(milliseconds: 100), () {
+                if (context.mounted) {
+                  ViewActivityModal.show(
+                    context: context,
+                    title: note.title,
+                    description: note.message,
+                    date: _formatDate(note.createdAt),
+                    icon: _getNotificationIcon(note.title),
+                    actionColor: _getNotificationColor(note.title),
+                  );
+                }
+              });
             },
             child: SizedBox(
               width: 300,
@@ -557,9 +570,20 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
           mainAxisExtent: 110,
         ),
         children: [
-          StatCard(title: 'Total Students',    value: stats.totalStudents.toString(),      icon: Icons.school),
+          StatCard(
+            title: 'Total Students',    
+            value: stats.totalStudents.toString(),      
+            icon: Icons.school,
+            onTap: () => ref.read(activeTabProvider.notifier).setTab('Students'),
+          ),
           if (isAdmin)
-            StatCard(title: 'Active Users',      value: stats.activeUsers.toString(),        icon: Icons.badge,        iconColor: Colors.blue),
+            StatCard(
+              title: 'Active Users',      
+              value: stats.activeUsers.toString(),        
+              icon: Icons.badge,        
+              iconColor: Colors.blue,
+              onTap: () => ref.read(activeTabProvider.notifier).setTab('Users'),
+            ),
           StatCard(title: 'Complete Docs',     value: stats.completedDocuments.toString(), icon: Icons.task_alt,     iconColor: AppColors.primaryGreen),
           StatCard(title: 'Missing Docs',      value: stats.missingDocuments.toString(),   icon: Icons.folder_off,   iconColor: Colors.orange),
         ],
@@ -680,7 +704,18 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
           final a = activities[index];
 
           if (isMobile) {
-            return Padding(
+          return InkWell(
+            onTap: () => ViewActivityModal.show(
+              context: context,
+              title: a.entityType.toUpperCase(),
+              description: a.description,
+              date: _formatDate(a.createdAt),
+              performedBy: a.performedBy ?? a.username ?? 'System',
+              action: a.action,
+              actionColor: _actionColor(a.action),
+              icon: _actionIcon(a.action, a.entityType),
+            ),
+            child: Padding(
               padding: const EdgeInsets.all(16),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -711,11 +746,23 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                   ),
                 ],
               ),
-            );
-          }
+            ),
+          );
+        }
 
-          return Material(
-            color: Colors.transparent,
+        return Material(
+          color: Colors.transparent,
+          child: InkWell(
+            onTap: () => ViewActivityModal.show(
+              context: context,
+              title: a.entityType.toUpperCase(),
+              description: a.description,
+              date: _formatDate(a.createdAt),
+              performedBy: a.performedBy ?? a.username ?? 'System',
+              action: a.action,
+              actionColor: _actionColor(a.action),
+              icon: _actionIcon(a.action, a.entityType),
+            ),
             child: ListTile(
               contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
               leading: CircleAvatar(
@@ -729,8 +776,9 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
               ),
               trailing: _buildActionChip(a.action),
             ),
-          );
-        },
+          ),
+        );
+      },
       ),
     );
   }

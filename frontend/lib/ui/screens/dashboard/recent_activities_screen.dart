@@ -5,6 +5,7 @@ import '../../../core/utils/date_utils.dart' as pht;
 
 import '../../../domain/entities/dashboard_models.dart';
 import '../../providers/dashboard_provider.dart';
+import '../../shared/modals/view_activity_modal.dart';
 
 class RecentActivitiesScreen extends ConsumerStatefulWidget {
   const RecentActivitiesScreen({super.key});
@@ -173,6 +174,7 @@ class _RecentActivitiesScreenState
           side: BorderSide(color: Colors.grey.shade200),
         ),
         child: DataTable(
+          showCheckboxColumn: false,
           columnSpacing: 20,
           headingRowColor: WidgetStateProperty.all(Colors.grey.shade50),
           columns: const [
@@ -207,6 +209,18 @@ class _RecentActivitiesScreenState
           rows: activities
               .map(
                 (a) => DataRow(
+                  onSelectChanged: (_) {
+                    ViewActivityModal.show(
+                      context: context,
+                      title: a.entityType.toUpperCase(),
+                      description: a.description,
+                      date: _formatDate(a.createdAt),
+                      performedBy: a.performedBy ?? a.username ?? 'System',
+                      action: a.action,
+                      actionColor: _actionColor(a.action),
+                      icon: _actionIcon(a.action, a.entityType),
+                    );
+                  },
                   cells: [
                     DataCell(_actionChip(a.action)),
                     DataCell(
@@ -253,8 +267,21 @@ class _RecentActivitiesScreenState
       separatorBuilder: (_, _s) => const SizedBox(height: 8),
       itemBuilder: (context, i) {
         final a = activities[i];
-        return Card(
-          elevation: 0,
+        return InkWell(
+          onTap: () {
+            ViewActivityModal.show(
+              context: context,
+              title: a.entityType.toUpperCase(),
+              description: a.description,
+              date: _formatDate(a.createdAt),
+              performedBy: a.performedBy ?? a.username ?? 'System',
+              action: a.action,
+              actionColor: _actionColor(a.action),
+              icon: _actionIcon(a.action, a.entityType),
+            );
+          },
+          child: Card(
+            elevation: 0,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(10),
             side: BorderSide(color: Colors.grey.shade200),
@@ -317,10 +344,11 @@ class _RecentActivitiesScreenState
               ],
             ),
           ),
-        );
-      },
-    );
-  }
+        ),
+      );
+    },
+  );
+}
 
   Widget _buildPagination(PaginatedActivities data, int currentPage) {
     if (data.totalPages <= 1) return const SizedBox.shrink();
@@ -382,6 +410,28 @@ class _RecentActivitiesScreenState
         return Colors.red;
       default:
         return Colors.blue;
+    }
+  }
+
+  IconData _actionIcon(String action, String entityType) {
+    if (entityType == 'user') {
+      switch (action.toUpperCase()) {
+        case 'CREATE': return Icons.person_add;
+        case 'DELETE': return Icons.person_off;
+        default:       return Icons.manage_accounts;
+      }
+    }
+    if (entityType == 'student') {
+      switch (action.toUpperCase()) {
+        case 'CREATE': return Icons.school;
+        case 'DELETE': return Icons.delete_forever;
+        default:       return Icons.edit;
+      }
+    }
+    switch (action.toUpperCase()) {
+      case 'CREATE': return Icons.upload_file;
+      case 'DELETE': return Icons.delete;
+      default:       return Icons.description;
     }
   }
 

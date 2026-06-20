@@ -942,18 +942,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                     : filteredStudents.map((student) {
                         return DataRow(
                           onSelectChanged: (_) {
-                            showDialog(
-                              context: context,
-                              builder: (ctx) => Dialog(
-                                child: Container(
-                                  width: 800,
-                                  height: 600,
-                                  clipBehavior: Clip.antiAlias,
-                                  decoration: BoxDecoration(borderRadius: BorderRadius.circular(12)),
-                                  child: StudentDetailScreen(studentId: student.id, userRole: widget.userRole),
-                                ),
-                              ),
-                            );
+                            StudentProfileModal.show(context, student.id, widget.userRole);
                           },
                           cells: [
                             DataCell(Text(student.lrn, style: const TextStyle(fontWeight: FontWeight.w500))),
