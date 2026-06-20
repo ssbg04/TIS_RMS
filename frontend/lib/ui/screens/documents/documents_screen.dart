@@ -722,38 +722,55 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
       child: Scaffold(
         backgroundColor: Colors.transparent,
         // FAB: visible on mobile only (Windows desktop uses the header Upload button)
-        floatingActionButton:
-            defaultTargetPlatform != TargetPlatform.windows &&
+        floatingActionButton: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.end,
+          children: [
+            if (_tabController.index == 1 || isFolderOpened)
+              FloatingActionButton(
+                heroTag: 'filter_fab',
+                backgroundColor: AppColors.surfaceWhite,
+                foregroundColor: AppColors.primaryGreen,
+                onPressed: () => _openFilterDialog(
+                  requirementsAsync,
+                  academicYearsAsync,
+                  statusesAsync,
+                ),
+                child: Badge(
+                  isLabelVisible: _getActiveFilterCount() > 0,
+                  label: Text(_getActiveFilterCount().toString()),
+                  child: const Icon(Icons.tune_rounded),
+                ),
+              ),
+            if (defaultTargetPlatform != TargetPlatform.windows &&
                 (_tabController.index == 1 || isFolderOpened) &&
-                !_isMultiSelectMode
-            ? Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  FloatingActionButton(
-                    heroTag: 'print_fab',
-                    backgroundColor: AppColors.surfaceWhite,
-                    onPressed: () => showDialog(
-                      context: context,
-                      builder: (_) => const PrintQueueModal(),
-                    ),
-                    child: const Icon(Icons.print, color: AppColors.primaryGreen),
+                !_isMultiSelectMode) ...[
+              const SizedBox(height: 12),
+              FloatingActionButton(
+                heroTag: 'print_fab',
+                backgroundColor: AppColors.surfaceWhite,
+                onPressed: () => showDialog(
+                  context: context,
+                  builder: (_) => const PrintQueueModal(),
+                ),
+                child: const Icon(Icons.print, color: AppColors.primaryGreen),
+              ),
+              const SizedBox(height: 12),
+              FloatingActionButton(
+                heroTag: 'upload_fab',
+                backgroundColor: AppColors.primaryGreen,
+                onPressed: () => showDialog(
+                  context: context,
+                  builder: (_) => UploadOcrModal(
+                    prefilledStudentId:
+                        _openedFolderStudentId ?? widget.initialStudentId,
                   ),
-                  const SizedBox(height: 12),
-                  FloatingActionButton(
-                    heroTag: 'upload_fab',
-                    backgroundColor: AppColors.primaryGreen,
-                    onPressed: () => showDialog(
-                      context: context,
-                      builder: (_) => UploadOcrModal(
-                        prefilledStudentId:
-                            _openedFolderStudentId ?? widget.initialStudentId,
-                      ),
-                    ),
-                    child: const Icon(Icons.cloud_upload, color: Colors.white),
-                  ),
-                ],
-              )
-            : null,
+                ),
+                child: const Icon(Icons.cloud_upload, color: Colors.white),
+              ),
+            ]
+          ],
+        ),
         bottomNavigationBar: _isMultiSelectMode
             ? _buildBatchActionsBar()
             : null,
@@ -925,18 +942,67 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
 
               // Screen title
               Expanded(
-                child: Text(
-                  _openedFolderName ??
-                      (isStudentFiltered
-                          ? 'Student Documents'
-                          : 'Document Manager'),
-                  style: TextStyle(
-                    fontSize: isMobile ? 17 : 21,
-                    fontWeight: FontWeight.bold,
-                    color: AppColors.textPrimary,
-                  ),
-                  overflow: TextOverflow.ellipsis,
-                ),
+                child: _openedFolderName != null
+                    ? Row(
+                        children: [
+                          InkWell(
+                            onTap: () {
+                              setState(() {
+                                _openedFolderStudentId = null;
+                                _openedFolderName = null;
+                              });
+                              ref
+                                  .read(openedFolderProvider.notifier)
+                                  .setFolder(null);
+                              ref
+                                  .read(documentQueryProvider.notifier)
+                                  .setStudentId(null);
+                            },
+                            child: Text(
+                              'Student Folders',
+                              style: TextStyle(
+                                fontSize: isMobile ? 17 : 21,
+                                fontWeight: FontWeight.w500,
+                                color: AppColors.textSecondary,
+                              ),
+                            ),
+                          ),
+                          Text(
+                            ' / ',
+                            style: TextStyle(
+                              fontSize: isMobile ? 17 : 21,
+                              fontWeight: FontWeight.w500,
+                              color: AppColors.textSecondary,
+                            ),
+                          ),
+                          Expanded(
+                            child: Text(
+                              _openedFolderName!,
+                              style: TextStyle(
+                                fontSize: isMobile ? 17 : 21,
+                                fontWeight: FontWeight.bold,
+                                color: AppColors.textPrimary,
+                              ),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                        ],
+                      )
+                    : Text(
+                        _tabController.index == 0
+                            ? 'Student Folders'
+                            : _tabController.index == 1
+                                ? (isStudentFiltered
+                                    ? 'Student Documents'
+                                    : 'All Documents')
+                                : 'Recycle Bin',
+                        style: TextStyle(
+                          fontSize: isMobile ? 17 : 21,
+                          fontWeight: FontWeight.bold,
+                          color: AppColors.textPrimary,
+                        ),
+                        overflow: TextOverflow.ellipsis,
+                      ),
               ),
 
               // Clear student filter chip (compact)
@@ -993,35 +1059,27 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
           Row(
             children: [
               // Custom search bar (expands to fill available width)
-              Flexible(
-                child: LayoutBuilder(
-                  builder: (context, constraints) => AppSearchBar(
-                    hint: 'Search by name, LRN, file…',
-                    controller: _searchController,
-                    focusNode: _searchFocusNode,
-                    onChanged: _onSearchChanged,
-                    maxWidth: isMobile ? constraints.maxWidth : 420,
-                  ),
+              Expanded(
+                child: AppSearchBar(
+                  hint: 'Search by name, LRN, file…',
+                  controller: _searchController,
+                  focusNode: _searchFocusNode,
+                  onChanged: _onSearchChanged,
+                  maxWidth: double.infinity,
                 ),
               ),
               const SizedBox(width: 8),
 
-              // Filter and Multi-select toggles (Documents tab, opened folder, or Recycle Bin)
-              if (_tabController.index == 1 || isFolderOpened) ...[
-                _buildFilterButton(
-                  requirementsAsync,
-                  academicYearsAsync,
-                  statusesAsync,
-                  _searchFocusNode.hasFocus,
-                ),
-                const SizedBox(width: 6),
-                _buildMultiSelectToggle(_searchFocusNode.hasFocus),
+              if (!_searchFocusNode.hasFocus) ...[
+                // Multi-select toggle (Documents tab, opened folder, or Recycle Bin)
+                if (_tabController.index == 1 || isFolderOpened) ...[
+                  _buildMultiSelectToggle(true),
+                  const SizedBox(width: 8),
+                ],
+
+                // Dropdown Menu
+                _buildMoreOptionsDropdown(isMobile),
               ],
-
-              const Spacer(),
-
-              // Dropdown Menu
-              _buildMoreOptionsDropdown(isMobile),
             ],
           ),
         ],
@@ -1038,90 +1096,6 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
     return count;
   }
 
-  Widget _buildFilterButton(
-    AsyncValue<List<dynamic>> requirementsAsync,
-    AsyncValue<List<dynamic>> academicYearsAsync,
-    AsyncValue<List<String>> statusesAsync,
-    bool isIconOnly,
-  ) {
-    final activeCount = _getActiveFilterCount();
-
-    return Tooltip(
-      message: 'Filter Documents',
-      child: GestureDetector(
-        onTap: () => _openFilterDialog(
-          requirementsAsync,
-          academicYearsAsync,
-          statusesAsync,
-        ),
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 250),
-          padding: EdgeInsets.symmetric(
-            horizontal: isIconOnly ? 12 : 14,
-            vertical: 8,
-          ),
-          height: 42,
-          decoration: BoxDecoration(
-            color: activeCount > 0
-                ? AppColors.primaryGreen.withValues(alpha: 0.08)
-                : AppColors.surfaceWhite,
-            border: Border.all(
-              color: activeCount > 0
-                  ? AppColors.primaryGreen
-                  : Colors.grey.shade300,
-              width: 1.2,
-            ),
-            borderRadius: BorderRadius.circular(8),
-          ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(
-                Icons.tune_rounded,
-                size: 16,
-                color: activeCount > 0
-                    ? AppColors.primaryGreen
-                    : AppColors.textSecondary,
-              ),
-              if (!isIconOnly) ...[
-                const SizedBox(width: 6),
-                Text(
-                  'Filter',
-                  style: TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w600,
-                    color: activeCount > 0
-                        ? AppColors.primaryGreen
-                        : AppColors.textSecondary,
-                  ),
-                ),
-              ],
-              if (activeCount > 0) ...[
-                const SizedBox(width: 6),
-                Container(
-                  width: 18,
-                  height: 18,
-                  decoration: const BoxDecoration(
-                    color: AppColors.primaryGreen,
-                    shape: BoxShape.circle,
-                  ),
-                  alignment: Alignment.center,
-                  child: Text(
-                    '$activeCount',
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 10,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ),
-              ],
-            ],
-          ),
-        ),
-      ),
-    );
-  }
 
   Widget _buildMultiSelectToggle(bool isIconOnly) {
     return Tooltip(
@@ -1190,7 +1164,7 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
     return PopupMenuButton<String>(
       icon: const Icon(Icons.more_vert, color: AppColors.textSecondary),
       tooltip: 'More Options',
-      offset: const Offset(0, 45),
+      position: PopupMenuPosition.under,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
       onSelected: (value) {
         if (value == 'grid_list') {
@@ -2103,7 +2077,7 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
                     const Expanded(
                       flex: 2,
                       child: Text(
-                        'Student',
+                        'Folder Path',
                         style: TextStyle(
                           fontWeight: FontWeight.bold,
                           fontSize: 12,
@@ -2506,58 +2480,63 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
   Widget _buildPagination(int totalPages, int currentPage) {
     return Container(
       color: AppColors.surfaceWhite,
-      padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          IconButton(
-            icon: const Icon(Icons.chevron_left),
-            onPressed: currentPage > 1
-                ? () => ref
-                      .read(documentQueryProvider.notifier)
-                      .setPage(currentPage - 1)
-                : null,
-          ),
-          ...List.generate(
-            totalPages,
-            (i) => i + 1,
-          ).where((p) => (p - currentPage).abs() <= 2).map((p) {
-            final isActive = p == currentPage;
-            return GestureDetector(
-              onTap: () => ref.read(documentQueryProvider.notifier).setPage(p),
-              child: Container(
-                width: 32,
-                height: 32,
-                margin: const EdgeInsets.symmetric(horizontal: 2),
-                decoration: BoxDecoration(
-                  color: isActive ? AppColors.primaryGreen : Colors.transparent,
-                  borderRadius: BorderRadius.circular(6),
-                  border: isActive
-                      ? null
-                      : Border.all(color: Colors.grey.shade300),
-                ),
-                child: Center(
-                  child: Text(
-                    '$p',
-                    style: TextStyle(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w600,
-                      color: isActive ? Colors.white : AppColors.textSecondary,
+      child: SafeArea(
+        top: false,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              IconButton(
+                icon: const Icon(Icons.chevron_left),
+                onPressed: currentPage > 1
+                    ? () => ref
+                          .read(documentQueryProvider.notifier)
+                          .setPage(currentPage - 1)
+                    : null,
+              ),
+              ...List.generate(
+                totalPages,
+                (i) => i + 1,
+              ).where((p) => (p - currentPage).abs() <= 2).map((p) {
+                final isActive = p == currentPage;
+                return GestureDetector(
+                  onTap: () => ref.read(documentQueryProvider.notifier).setPage(p),
+                  child: Container(
+                    width: 32,
+                    height: 32,
+                    margin: const EdgeInsets.symmetric(horizontal: 2),
+                    decoration: BoxDecoration(
+                      color: isActive ? AppColors.primaryGreen : Colors.transparent,
+                      borderRadius: BorderRadius.circular(6),
+                      border: isActive
+                          ? null
+                          : Border.all(color: Colors.grey.shade300),
+                    ),
+                    child: Center(
+                      child: Text(
+                        '$p',
+                        style: TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                          color: isActive ? Colors.white : AppColors.textSecondary,
+                        ),
+                      ),
                     ),
                   ),
-                ),
+                );
+              }),
+              IconButton(
+                icon: const Icon(Icons.chevron_right),
+                onPressed: currentPage < totalPages
+                    ? () => ref
+                          .read(documentQueryProvider.notifier)
+                          .setPage(currentPage + 1)
+                    : null,
               ),
-            );
-          }),
-          IconButton(
-            icon: const Icon(Icons.chevron_right),
-            onPressed: currentPage < totalPages
-                ? () => ref
-                      .read(documentQueryProvider.notifier)
-                      .setPage(currentPage + 1)
-                : null,
+            ],
           ),
-        ],
+        ),
       ),
     );
   }

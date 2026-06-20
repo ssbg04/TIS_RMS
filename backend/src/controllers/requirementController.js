@@ -27,7 +27,7 @@ exports.getRequirements = (req, res) => {
 
         if (search.trim()) {
             conditions.push('(name LIKE ? OR description LIKE ?)');
-            params.push(`%${search.trim()}%`, `%${search.trim()}%`);
+            params.push(`%${search.trim().split('').join('%' )}%`, `%${search.trim().split('').join('%' )}%`);
         }
 
         const whereClause = conditions.length ? `WHERE ${conditions.join(' AND ')}` : '';

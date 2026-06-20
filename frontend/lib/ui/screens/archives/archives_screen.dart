@@ -45,6 +45,20 @@ class _ArchivesScreenState extends ConsumerState<ArchivesScreen>
   String _selectedGradeLevel = 'All Grades';
   String _selectedSchoolYear = 'All Years';
 
+  String _pendingStatus = 'All Statuses';
+  String _pendingDocumentType = 'All Types';
+  String _pendingGradeLevel = 'All Grades';
+  String _pendingSchoolYear = 'All Years';
+
+  int _getActiveFilterCount() {
+    int count = 0;
+    if (_selectedStatus != 'All Statuses') count++;
+    if (_selectedDocumentType != 'All Types') count++;
+    if (_selectedGradeLevel != 'All Grades') count++;
+    if (_selectedSchoolYear != 'All Years') count++;
+    return count;
+  }
+
   // Cached doc type lists for filter expansion
   List<String> _jhsItems = [];
   List<String> _shsItems = [];
@@ -71,7 +85,6 @@ class _ArchivesScreenState extends ConsumerState<ArchivesScreen>
     _tabController.addListener(() {
       if (!_tabController.indexIsChanging) {
         setState(() {
-          _showFilters = false;
           _isMultiSelectMode = false;
           _selectedDocumentIds.clear();
         });
@@ -364,6 +377,24 @@ class _ArchivesScreenState extends ConsumerState<ArchivesScreen>
       onTap: () => FocusScope.of(context).unfocus(),
       child: Scaffold(
         backgroundColor: Colors.transparent,
+        floatingActionButton: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.end,
+          children: [
+            if (_tabController.index == 1 || isFolderOpened)
+              FloatingActionButton(
+                heroTag: 'archive_filter_fab',
+                backgroundColor: AppColors.surfaceWhite,
+                foregroundColor: AppColors.primaryGreen,
+                onPressed: () => _openFilterDialog(),
+                child: Badge(
+                  isLabelVisible: _getActiveFilterCount() > 0,
+                  label: Text(_getActiveFilterCount().toString()),
+                  child: const Icon(Icons.tune_rounded),
+                ),
+              ),
+          ],
+        ),
         bottomNavigationBar: _isMultiSelectMode
             ? _buildBatchActionsBar(isMobile)
             : null,
@@ -416,8 +447,6 @@ class _ArchivesScreenState extends ConsumerState<ArchivesScreen>
                 ),
               ),
 
-              // ── Filter Panel ──
-              if (_showFilters) _buildFilterPanel(isMobile),
 
               const Divider(height: 1),
 
@@ -473,7 +502,6 @@ class _ArchivesScreenState extends ConsumerState<ArchivesScreen>
                         setState(() {
                           _openedFolderStudentId = null;
                           _openedFolderName = null;
-                          _showFilters = false;
                           _isMultiSelectMode = false;
                           _selectedDocumentIds.clear();
                         });
@@ -546,16 +574,7 @@ class _ArchivesScreenState extends ConsumerState<ArchivesScreen>
               ),
               const SizedBox(width: 8),
 
-              // Filter toggle (only on documents tab or when a folder is opened)
-              if (_tabController.index == 1 || isFolderOpened) ...[
-                _buildIconToggle(
-                  icon: Icons.tune_rounded,
-                  isActive: _showFilters,
-                  tooltip: 'Toggle Filters',
-                  onTap: () => setState(() => _showFilters = !_showFilters),
-                ),
-                const SizedBox(width: 6),
-              ],
+
 
               // Multi-select toggle (docs tab or folder opened) - Hidden per user request
               /*
@@ -598,7 +617,33 @@ class _ArchivesScreenState extends ConsumerState<ArchivesScreen>
   // ════════════════════════════════════════════════════════════════
   // FILTER PANEL
   // ════════════════════════════════════════════════════════════════
-  Widget _buildFilterPanel(bool isMobile) {
+  void _openFilterDialog() {
+    setState(() {
+      _pendingStatus = _selectedStatus;
+      _pendingDocumentType = _selectedDocumentType;
+      _pendingGradeLevel = _selectedGradeLevel;
+      _pendingSchoolYear = _selectedSchoolYear;
+    });
+
+    showDialog(
+      context: context,
+      barrierColor: Colors.black.withValues(alpha: 0.25),
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setDialogState) {
+          return Dialog(
+            backgroundColor: Colors.transparent,
+            insetPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 40),
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 440),
+              child: _buildFilterPanelContent(setDialogState, () => Navigator.of(ctx).pop()),
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _buildFilterPanelContent(StateSetter setDialogState, VoidCallback onApply) {
     final academicYearsAsync = ref.watch(academicYearsProvider);
     final requirementsAsync = ref.watch(documentRequirementsProvider);
 
@@ -614,7 +659,6 @@ class _ArchivesScreenState extends ConsumerState<ArchivesScreen>
       error: (_, _) => <String>[],
     );
 
-    // Cache for use in _applyFilters
     if (jhsItems.isNotEmpty) _jhsItems = jhsItems;
     if (shsItems.isNotEmpty) _shsItems = shsItems;
 
@@ -627,120 +671,217 @@ class _ArchivesScreenState extends ConsumerState<ArchivesScreen>
     );
 
     return Container(
-      color: Colors.grey.shade50,
-      padding: EdgeInsets.symmetric(
-        horizontal: isMobile ? 12 : 20,
-        vertical: 12,
+      margin: const EdgeInsets.only(top: 10),
+      decoration: BoxDecoration(
+        color: AppColors.surfaceWhite,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: Colors.grey.shade200),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.07),
+            blurRadius: 16,
+            offset: const Offset(0, 4),
+          ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
         children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              const Text(
-                'Filters',
-                style: TextStyle(
-                  fontWeight: FontWeight.w600,
-                  fontSize: 13,
-                  color: AppColors.textSecondary,
-                ),
-              ),
-              TextButton.icon(
-                onPressed: _clearFilters,
-                icon: const Icon(Icons.clear, size: 16, color: AppColors.error),
-                label: const Text(
-                  'Clear Filters',
-                  style: TextStyle(color: AppColors.error, fontSize: 12),
-                ),
-                style: TextButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 8,
-                    vertical: 4,
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
+            child: Row(
+              children: [
+                const Icon(Icons.tune_rounded, size: 18, color: AppColors.primaryGreen),
+                const SizedBox(width: 8),
+                const Text(
+                  'Filter Archives',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.textPrimary,
                   ),
-                  minimumSize: Size.zero,
-                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
-          const SizedBox(height: 10),
-          Wrap(
-            spacing: 16,
-            runSpacing: 10,
-            children: [
-              _buildDropdown(
-                label: 'Student Status',
-                value: _selectedStatus,
-                items: const [
-                  'All Statuses',
-                  'Graduated',
-                  'Transferred',
-                  'Dropped',
-                ],
-                onChanged: (v) {
-                  setState(() => _selectedStatus = v!);
-                  _applyFilters();
-                },
-              ),
-              _buildDropdown(
-                label: 'Document Type',
-                value: _selectedDocumentType,
-                items: docTypes,
-                onChanged: (v) {
-                  setState(() => _selectedDocumentType = v!);
-                  _applyFilters();
-                },
-              ),
-              _buildDropdown(
-                label: 'Grade Level',
-                value: _selectedGradeLevel,
-                items: const ['All Grades', '7', '8', '9', '10', '11', '12'],
-                onChanged: (v) {
-                  setState(() => _selectedGradeLevel = v!);
-                  _applyFilters();
-                },
-              ),
-              _buildDropdown(
-                label: 'School Year',
-                value: _selectedSchoolYear,
-                items: years,
-                onChanged: (v) {
-                  setState(() => _selectedSchoolYear = v!);
-                  _applyFilters();
-                },
-              ),
-            ],
+
+          const Divider(height: 20),
+
+          _buildFilterSection(
+            label: 'Student Status',
+            onReset: () => setDialogState(() => _pendingStatus = 'All Statuses'),
+            child: _buildFilterDropdown(
+              value: _pendingStatus,
+              items: const ['All Statuses', 'Graduated', 'Transferred', 'Dropped'],
+              onChanged: (v) => setDialogState(() => _pendingStatus = v!),
+            ),
+          ),
+
+          const Divider(height: 1, indent: 20, endIndent: 20),
+
+          _buildFilterSection(
+            label: 'Document Type',
+            onReset: () => setDialogState(() => _pendingDocumentType = 'All Types'),
+            child: _buildFilterDropdown(
+              value: docTypes.contains(_pendingDocumentType) ? _pendingDocumentType : 'All Types',
+              items: docTypes,
+              onChanged: (v) => setDialogState(() => _pendingDocumentType = v!),
+            ),
+          ),
+
+          const Divider(height: 1, indent: 20, endIndent: 20),
+
+          _buildFilterSection(
+            label: 'Grade Level',
+            onReset: () => setDialogState(() => _pendingGradeLevel = 'All Grades'),
+            child: _buildFilterDropdown(
+              value: _pendingGradeLevel,
+              items: const ['All Grades', '7', '8', '9', '10', '11', '12'],
+              onChanged: (v) => setDialogState(() => _pendingGradeLevel = v!),
+            ),
+          ),
+
+          const Divider(height: 1, indent: 20, endIndent: 20),
+
+          _buildFilterSection(
+            label: 'School Year',
+            onReset: () => setDialogState(() => _pendingSchoolYear = 'All Years'),
+            child: _buildFilterDropdown(
+              value: years.contains(_pendingSchoolYear) ? _pendingSchoolYear : 'All Years',
+              items: years,
+              onChanged: (v) => setDialogState(() => _pendingSchoolYear = v!),
+            ),
+          ),
+
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
+            child: Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton(
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: AppColors.textSecondary,
+                      side: BorderSide(color: Colors.grey.shade300),
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                    ),
+                    onPressed: () {
+                      setDialogState(() {
+                        _pendingStatus = 'All Statuses';
+                        _pendingDocumentType = 'All Types';
+                        _pendingGradeLevel = 'All Grades';
+                        _pendingSchoolYear = 'All Years';
+                      });
+                      setState(() {
+                        _selectedStatus = 'All Statuses';
+                        _selectedDocumentType = 'All Types';
+                        _selectedGradeLevel = 'All Grades';
+                        _selectedSchoolYear = 'All Years';
+                      });
+                      _applyFilters();
+                    },
+                    child: const Text('Reset all', style: TextStyle(fontWeight: FontWeight.w600)),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  flex: 2,
+                  child: ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.primaryGreen,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                      elevation: 0,
+                    ),
+                    onPressed: () {
+                      setState(() {
+                        _selectedStatus = _pendingStatus;
+                        _selectedDocumentType = _pendingDocumentType;
+                        _selectedGradeLevel = _pendingGradeLevel;
+                        _selectedSchoolYear = _pendingSchoolYear;
+                      });
+                      _applyFilters();
+                      onApply();
+                    },
+                    child: const Text('Apply now', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 14)),
+                  ),
+                ),
+              ],
+            ),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildDropdown({
+  Widget _buildFilterSection({
     required String label,
+    required VoidCallback onReset,
+    required Widget child,
+  }) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                label,
+                style: const TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.textPrimary,
+                ),
+              ),
+              InkWell(
+                onTap: onReset,
+                borderRadius: BorderRadius.circular(4),
+                child: const Text(
+                  'Reset',
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w500,
+                    color: AppColors.textMuted,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          child,
+        ],
+      ),
+    );
+  }
+
+  Widget _buildFilterDropdown({
     required String value,
     required List<String> items,
     required ValueChanged<String?> onChanged,
   }) {
     final safeValue = items.contains(value) ? value : items.first;
     return Container(
-      constraints: const BoxConstraints(minWidth: 150),
-      child: DropdownButton<String>(
-        value: safeValue,
-        hint: Text(label, style: const TextStyle(fontSize: 13)),
-        isExpanded: false,
-        isDense: false,
-        underline: Container(height: 1, color: Colors.grey.shade400),
-        items: items
-            .map(
-              (i) => DropdownMenuItem(
-                value: i,
-                child: Text(i, style: const TextStyle(fontSize: 13)),
-              ),
-            )
-            .toList(),
-        onChanged: onChanged,
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
+      decoration: BoxDecoration(
+        color: AppColors.surfaceWhite,
+        border: Border.all(color: Colors.grey.shade300),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: DropdownButtonHideUnderline(
+        child: DropdownButton<String>(
+          value: safeValue,
+          isExpanded: true,
+          isDense: true,
+          style: const TextStyle(fontSize: 14, color: AppColors.textPrimary),
+          icon: const Icon(Icons.keyboard_arrow_down, color: AppColors.textMuted, size: 20),
+          items: items.map((i) => DropdownMenuItem(value: i, child: Text(i, style: const TextStyle(fontSize: 14)))).toList(),
+          onChanged: onChanged,
+        ),
       ),
     );
   }
@@ -1701,32 +1842,63 @@ class _ArchivesScreenState extends ConsumerState<ArchivesScreen>
   // PAGINATION
   // ════════════════════════════════════════════════════════════════
   Widget _buildPagination(int totalPages, int currentPage) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 12),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          IconButton(
-            icon: const Icon(Icons.chevron_left),
-            onPressed: currentPage > 1
-                ? () => ref
-                      .read(archiveDocumentQueryProvider.notifier)
-                      .setPage(currentPage - 1)
-                : null,
+    return Container(
+      color: AppColors.surfaceWhite,
+      child: SafeArea(
+        top: false,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              IconButton(
+                icon: const Icon(Icons.chevron_left),
+                onPressed: currentPage > 1
+                    ? () => ref
+                          .read(archiveDocumentQueryProvider.notifier)
+                          .setPage(currentPage - 1)
+                    : null,
+              ),
+              ...List.generate(totalPages, (i) => i + 1)
+                  .where((p) => (p - currentPage).abs() <= 2)
+                  .map((p) {
+                final isActive = p == currentPage;
+                return GestureDetector(
+                  onTap: () =>
+                      ref.read(archiveDocumentQueryProvider.notifier).setPage(p),
+                  child: Container(
+                    width: 32,
+                    height: 32,
+                    margin: const EdgeInsets.symmetric(horizontal: 2),
+                    decoration: BoxDecoration(
+                      color: isActive ? AppColors.primaryGreen : Colors.transparent,
+                      borderRadius: BorderRadius.circular(6),
+                      border: isActive ? null : Border.all(color: Colors.grey.shade300),
+                    ),
+                    child: Center(
+                      child: Text(
+                        '$p',
+                        style: TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                          color: isActive ? Colors.white : AppColors.textSecondary,
+                        ),
+                      ),
+                    ),
+                  ),
+                );
+              }),
+              IconButton(
+                icon: const Icon(Icons.chevron_right),
+                onPressed: currentPage < totalPages
+                    ? () => ref
+                          .read(archiveDocumentQueryProvider.notifier)
+                          .setPage(currentPage + 1)
+                    : null,
+              ),
+            ],
           ),
-          Text(
-            'Page $currentPage of $totalPages',
-            style: const TextStyle(fontWeight: FontWeight.bold),
-          ),
-          IconButton(
-            icon: const Icon(Icons.chevron_right),
-            onPressed: currentPage < totalPages
-                ? () => ref
-                      .read(archiveDocumentQueryProvider.notifier)
-                      .setPage(currentPage + 1)
-                : null,
-          ),
-        ],
+        ),
       ),
     );
   }

@@ -195,7 +195,11 @@ class FileFolderCard extends StatelessWidget {
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    document.studentName ?? document.studentLrn ?? 'Unknown',
+                    document.studentName != null
+                        ? 'Student Folders / ${document.studentName}'
+                        : (document.studentLrn != null
+                            ? 'Student Folders / LRN: ${document.studentLrn}'
+                            : '—'),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: const TextStyle(
@@ -274,9 +278,10 @@ class FileFolderCard extends StatelessWidget {
             Expanded(
               flex: 2,
               child: Text(
-                document.studentName ??
-                    (document.studentLrn != null
-                        ? 'LRN: ${document.studentLrn}'
+                document.studentName != null
+                    ? 'Student Folders / ${document.studentName}'
+                    : (document.studentLrn != null
+                        ? 'Student Folders / LRN: ${document.studentLrn}'
                         : '—'),
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,

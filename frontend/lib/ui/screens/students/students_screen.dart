@@ -15,6 +15,9 @@ import '../../providers/navigation_provider.dart';
 import '../../providers/document_provider.dart';
 import '../../providers/auth_provider.dart';
 
+import '../../shared/dialogs/error_dialog.dart';
+import '../../shared/dialogs/success_dialog.dart';
+
 class StudentsScreen extends ConsumerStatefulWidget {
   final String userRole;
   const StudentsScreen({super.key, this.userRole = 'teacher'});
@@ -233,20 +236,13 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
       try {
         await ref.read(studentMutationProvider.notifier).deleteStudent(student.id);
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content:         Text('Student deleted successfully.'),
-              backgroundColor: AppColors.success,
-            ),
-          );
+          showSuccessDialog(context, message: 'Student deleted successfully.');
         }
       } catch (e) {
         if (mounted) {
           final raw = e.toString();
           final msg = raw.startsWith('Exception: ') ? raw.substring(11) : raw;
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(msg), backgroundColor: AppColors.error),
-          );
+          showErrorDialog(context, 'Error', msg);
         }
       }
     }
@@ -280,51 +276,88 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
     final query    = ref.watch(studentQueryProvider);
     final pageAsync = ref.watch(studentPageProvider);
     final isMobile = MediaQuery.of(context).size.width <= 800;
+    
+    final academicYearsAsync = ref.watch(academicYearsListProvider);
+    final sectionsAsync = ref.watch(sectionsListProvider);
+    final activeCount = [
+      query.schoolYear.isNotEmpty,
+      query.gradeLevel.isNotEmpty,
+      query.section.isNotEmpty,
+      query.status.isNotEmpty,
+    ].where((v) => v).length;
 
     return Scaffold(
       backgroundColor: Colors.transparent,
-      // Floating Add Student button (mobile)
-      floatingActionButton: (widget.userRole != 'teacher' && isMobile)
-          ? FloatingActionButton(
+      floatingActionButton: _searchFocusNode.hasFocus ? null : Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.end,
+        children: [
+          FloatingActionButton(
+            heroTag: 'filter_fab',
+            backgroundColor: AppColors.surfaceWhite,
+            foregroundColor: AppColors.primaryGreen,
+            onPressed: () => _openFilterDialog(query, academicYearsAsync, sectionsAsync),
+            child: Badge(
+              isLabelVisible: activeCount > 0,
+              label: Text(activeCount.toString()),
+              child: const Icon(Icons.tune_rounded),
+            ),
+          ),
+          if (widget.userRole != 'teacher' && isMobile) ...[
+            const SizedBox(height: 12),
+            FloatingActionButton(
+              heroTag: 'add_student_fab',
               backgroundColor: AppColors.primaryGreen,
               foregroundColor: Colors.white,
               onPressed: () => _openModal(),
               child: const Icon(Icons.person_add),
-            )
-          : null,
+            ),
+          ],
+        ],
+      ),
       body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.all(AppSizes.p24),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // ── Header + Controls ──
-              _buildHeaderControls(context, query, ref),
-              const SizedBox(height: AppSizes.p24),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.only(
+                  left: AppSizes.p24,
+                  right: AppSizes.p24,
+                  top: AppSizes.p24,
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // ── Header + Controls ──
+                    _buildHeaderControls(context, query, ref),
+                    const SizedBox(height: AppSizes.p24),
 
-              // ── Data Table / Cards ──
-              Expanded(
-                child: pageAsync.when(
-                  loading: () => const Center(
-                    child: CircularProgressIndicator(color: AppColors.primaryGreen),
-                  ),
-                  error: (err, _) => _buildError(err.toString()),
-                  data: (page) => LayoutBuilder(
-                    builder: (ctx, c) => c.maxWidth > 800
-                        ? _buildDesktopTable(page.students)
-                        : _buildMobileCardList(page.students),
-                  ),
+                    // ── Data Table / Cards ──
+                    Expanded(
+                      child: pageAsync.when(
+                        loading: () => const Center(
+                          child: CircularProgressIndicator(color: AppColors.primaryGreen),
+                        ),
+                        error: (err, _) => _buildError(err.toString()),
+                        data: (page) => LayoutBuilder(
+                          builder: (ctx, c) => c.maxWidth > 800
+                              ? _buildDesktopTable(page.students)
+                              : _buildMobileCardList(page.students),
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ),
+            ),
 
-              // ── Pagination ──
-              const SizedBox(height: AppSizes.p16),
-              pageAsync.maybeWhen(
-                data:   (page) => _buildPagination(query, page),
-                orElse: () => const SizedBox.shrink(),
-              ),
-            ],
-          ),
+            // ── Pagination ──
+            pageAsync.maybeWhen(
+              data:   (page) => _buildPagination(query, page),
+              orElse: () => const SizedBox.shrink(),
+            ),
+          ],
         ),
       ),
     );
@@ -334,9 +367,6 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
   // HEADER + CONTROLS
   // ================================================================
   Widget _buildHeaderControls(BuildContext context, StudentQueryParams query, WidgetRef ref) {
-    final academicYearsAsync = ref.watch(academicYearsListProvider);
-    final sectionsAsync = ref.watch(sectionsListProvider);
-    final isSearchActive = _searchFocusNode.hasFocus || _searchController.text.isNotEmpty;
 
     return LayoutBuilder(builder: (_, c) {
       final isDesktop = c.maxWidth > 800;
@@ -368,7 +398,7 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
           ),
           const SizedBox(height: AppSizes.p16),
 
-          // ── Search bar, Filter button + multi-select ──
+          // ── Search bar + multi-select ──
           Row(
             children: [
               Flexible(
@@ -379,11 +409,9 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
                   maxWidth: isDesktop ? 420 : c.maxWidth,
                 ),
               ),
-              const SizedBox(width: 12),
-              _buildFilterButton(query, academicYearsAsync, sectionsAsync, isSearchActive),
-              if (widget.userRole != 'teacher') ...[
-                const SizedBox(width: 12),
-                _buildMultiSelectToggle(isSearchActive),
+              if (widget.userRole != 'teacher' && !_searchFocusNode.hasFocus) ...[
+                const SizedBox(width: 8),
+                _buildMultiSelectToggle(false),
               ],
             ],
           ),
@@ -585,82 +613,6 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
     );
   }
 
-  Widget _buildFilterButton(
-    StudentQueryParams query,
-    AsyncValue<dynamic> academicYearsAsync,
-    AsyncValue<dynamic> sectionsAsync,
-    bool isIconOnly,
-  ) {
-    final activeCount = [
-      query.schoolYear.isNotEmpty,
-      query.gradeLevel.isNotEmpty,
-      query.section.isNotEmpty,
-      query.status.isNotEmpty,
-    ].where((v) => v).length;
-
-    return Tooltip(
-      message: 'Filter Students',
-      child: GestureDetector(
-        onTap: () => _openFilterDialog(query, academicYearsAsync, sectionsAsync),
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 250),
-          padding: EdgeInsets.symmetric(horizontal: isIconOnly ? 12 : 14, vertical: 8),
-          height: 42,
-          decoration: BoxDecoration(
-            color: activeCount > 0
-                ? AppColors.primaryGreen.withValues(alpha: 0.08)
-                : AppColors.surfaceWhite,
-            border: Border.all(
-              color: activeCount > 0 ? AppColors.primaryGreen : Colors.grey.shade300,
-              width: 1.2,
-            ),
-            borderRadius: BorderRadius.circular(8),
-          ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(
-                Icons.tune_rounded,
-                size: 16,
-                color: activeCount > 0 ? AppColors.primaryGreen : AppColors.textSecondary,
-              ),
-              if (!isIconOnly) ...[
-                const SizedBox(width: 6),
-                Text(
-                  'Filter',
-                  style: TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w600,
-                    color: activeCount > 0 ? AppColors.primaryGreen : AppColors.textSecondary,
-                  ),
-                ),
-              ],
-              if (activeCount > 0) ...[
-              const SizedBox(width: 6),
-              Container(
-                width: 18,
-                height: 18,
-                decoration: const BoxDecoration(
-                  color: AppColors.primaryGreen,
-                  shape: BoxShape.circle,
-                ),
-                alignment: Alignment.center,
-                child: Text(
-                  '$activeCount',
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 10,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ),
-            ],
-          ],
-        ),
-      ),
-    ),
-  );
-}
 
   // ================================================================
   // MULTI-SELECT TOGGLE
@@ -1246,58 +1198,61 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
   // PAGINATION CONTROLS
   // ================================================================
   Widget _buildPagination(StudentQueryParams query, dynamic page) {
-    final total      = page.total as int;
     final totalPages = page.totalPages as int;
     final current    = query.page;
 
-    final from = total == 0 ? 0 : ((current - 1) * query.limit) + 1;
-    final to   = (current * query.limit).clamp(0, total);
-
-    return SingleChildScrollView(
-      scrollDirection: Axis.horizontal,
-      reverse: true, // keeps the right-aligned controls visible first
+    return Container(
+      color: AppColors.surfaceWhite,
+      padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
       child: Row(
-        mainAxisAlignment: MainAxisAlignment.end,
+        mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Text(
-            'Showing $from–$to of $total',
-            style: const TextStyle(color: AppColors.textSecondary, fontSize: 13),
+          IconButton(
+            icon: const Icon(Icons.chevron_left),
+            onPressed: current > 1
+                ? () => ref
+                      .read(studentQueryProvider.notifier)
+                      .setPage(current - 1)
+                : null,
           ),
-          const SizedBox(width: AppSizes.p12),
-
-          // First page
-          _PaginationButton(
-            icon:    Icons.first_page,
-            enabled: current > 1,
-            onTap:   () => ref.read(studentQueryProvider.notifier).setPage(1),
-          ),
-          // Prev
-          _PaginationButton(
-            icon:    Icons.chevron_left,
-            enabled: current > 1,
-            onTap:   () => ref.read(studentQueryProvider.notifier).setPage(current - 1),
-          ),
-
-          // Page number chips
-          ...List.generate(totalPages, (i) => i + 1)
-              .where((p) => (p - current).abs() <= 2)
-              .map((p) => _PageChip(
-                    page:    p,
-                    current: current,
-                    onTap:   () => ref.read(studentQueryProvider.notifier).setPage(p),
-                  )),
-
-          // Next
-          _PaginationButton(
-            icon:    Icons.chevron_right,
-            enabled: current < totalPages,
-            onTap:   () => ref.read(studentQueryProvider.notifier).setPage(current + 1),
-          ),
-          // Last page
-          _PaginationButton(
-            icon:    Icons.last_page,
-            enabled: current < totalPages,
-            onTap:   () => ref.read(studentQueryProvider.notifier).setPage(totalPages),
+          ...List.generate(
+            totalPages,
+            (i) => i + 1,
+          ).where((p) => (p - current).abs() <= 2).map((p) {
+            final isActive = p == current;
+            return GestureDetector(
+              onTap: () => ref.read(studentQueryProvider.notifier).setPage(p),
+              child: Container(
+                width: 32,
+                height: 32,
+                margin: const EdgeInsets.symmetric(horizontal: 2),
+                decoration: BoxDecoration(
+                  color: isActive ? AppColors.primaryGreen : Colors.transparent,
+                  borderRadius: BorderRadius.circular(6),
+                  border: isActive
+                      ? null
+                      : Border.all(color: Colors.grey.shade300),
+                ),
+                child: Center(
+                  child: Text(
+                    '$p',
+                    style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                      color: isActive ? Colors.white : AppColors.textSecondary,
+                    ),
+                  ),
+                ),
+              ),
+            );
+          }),
+          IconButton(
+            icon: const Icon(Icons.chevron_right),
+            onPressed: current < totalPages
+                ? () => ref
+                      .read(studentQueryProvider.notifier)
+                      .setPage(current + 1)
+                : null,
           ),
         ],
       ),
@@ -1523,57 +1478,7 @@ class _ActionButtons extends StatelessWidget {
   }
 }
 
-class _PaginationButton extends StatelessWidget {
-  final IconData     icon;
-  final bool         enabled;
-  final VoidCallback onTap;
-  const _PaginationButton({required this.icon, required this.enabled, required this.onTap});
-
-  @override
-  Widget build(BuildContext context) {
-    return IconButton(
-      icon:      Icon(icon, size: 20, color: enabled ? AppColors.primaryGreen : Colors.grey.shade300),
-      onPressed: enabled ? onTap : null,
-    );
-  }
-}
-
-class _PageChip extends StatelessWidget {
-  final int          page;
-  final int          current;
-  final VoidCallback onTap;
-  const _PageChip({required this.page, required this.current, required this.onTap});
-
-  @override
-  Widget build(BuildContext context) {
-    final isActive = page == current;
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        width:  34,
-        height: 34,
-        margin: const EdgeInsets.symmetric(horizontal: 2),
-        decoration: BoxDecoration(
-          color:        isActive ? AppColors.primaryGreen : Colors.transparent,
-          borderRadius: BorderRadius.circular(8),
-          border:       isActive ? null : Border.all(color: Colors.grey.shade300),
-        ),
-        child: Center(
-          child: Text(
-            '$page',
-            style: TextStyle(
-              fontSize:   13,
-              fontWeight: FontWeight.w600,
-              color:      isActive ? Colors.white : AppColors.textSecondary,
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-// ============================================================
+  // ============================================================
 // BULK ENROLLMENT MODAL DIALOG
 // ============================================================
 class BulkEnrollDialog extends ConsumerStatefulWidget {

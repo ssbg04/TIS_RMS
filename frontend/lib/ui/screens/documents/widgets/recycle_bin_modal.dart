@@ -18,6 +18,7 @@ class _RecycleBinModalState extends ConsumerState<RecycleBinModal> {
   final FocusNode _searchFocusNode = FocusNode();
   bool _isMultiSelectMode = false;
   final Set<int> _selectedTrashIds = {};
+  String _selectedDocumentType = 'All Types';
 
   @override
   void initState() {
@@ -94,7 +95,25 @@ class _RecycleBinModalState extends ConsumerState<RecycleBinModal> {
                     ),
                   ),
                   const SizedBox(width: 8),
-                  _buildMultiSelectToggle(_searchFocusNode.hasFocus),
+                  if (!_searchFocusNode.hasFocus) ...[
+                    IconButton(
+                      icon: Badge(
+                        isLabelVisible: _selectedDocumentType != 'All Types',
+                        child: const Icon(Icons.tune_rounded),
+                      ),
+                      tooltip: 'Filter by Document Type',
+                      onPressed: () {
+                        final items = trashAsync.value ?? [];
+                        final docTypes = items
+                            .map((e) => e.documentType ?? 'Unknown')
+                            .toSet()
+                            .toList()
+                            ..sort();
+                        _showFilterDialog(docTypes);
+                      },
+                    ),
+                    _buildMultiSelectToggle(false),
+                  ],
                 ],
               ),
             ),
@@ -121,9 +140,16 @@ class _RecycleBinModalState extends ConsumerState<RecycleBinModal> {
                 ),
                 data: (items) {
                   var filteredItems = items;
+                  
+                  if (_selectedDocumentType != 'All Types') {
+                    filteredItems = filteredItems
+                        .where((i) => (i.documentType ?? 'Unknown') == _selectedDocumentType)
+                        .toList();
+                  }
+
                   if (_searchController.text.isNotEmpty) {
                     final s = _searchController.text.toLowerCase();
-                    filteredItems = items
+                    filteredItems = filteredItems
                         .where(
                           (i) =>
                               i.fileName.toLowerCase().contains(s) ||
@@ -505,5 +531,61 @@ class _RecycleBinModalState extends ConsumerState<RecycleBinModal> {
         );
       }
     }
+  }
+
+  void _showFilterDialog(List<String> availableDocTypes) {
+    String tempType = _selectedDocumentType;
+    final options = ['All Types', ...availableDocTypes];
+
+    showDialog(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
+          title: const Row(
+            children: [
+              Icon(Icons.tune_rounded, color: AppColors.primaryGreen),
+              SizedBox(width: 8),
+              Text('Filter Recycle Bin'),
+            ],
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text('Document Type', style: TextStyle(fontWeight: FontWeight.bold)),
+              const SizedBox(height: 8),
+              DropdownButtonFormField<String>(
+                value: tempType,
+                isExpanded: true,
+                decoration: const InputDecoration(border: OutlineInputBorder()),
+                items: options.map((e) => DropdownMenuItem(value: e, child: Text(e))).toList(),
+                onChanged: (v) => setDialogState(() => tempType = v!),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(ctx).pop(),
+              child: const Text('CANCEL'),
+            ),
+            TextButton(
+              onPressed: () {
+                setState(() => _selectedDocumentType = 'All Types');
+                Navigator.of(ctx).pop();
+              },
+              child: const Text('RESET', style: TextStyle(color: AppColors.error)),
+            ),
+            FilledButton(
+              onPressed: () {
+                setState(() => _selectedDocumentType = tempType);
+                Navigator.of(ctx).pop();
+              },
+              style: FilledButton.styleFrom(backgroundColor: AppColors.primaryGreen),
+              child: const Text('APPLY'),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 }

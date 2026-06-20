@@ -701,7 +701,7 @@ class _AddEditStudentModalState extends ConsumerState<AddEditStudentModal>
       child: Form(
         key: _formKey,
         child: Column(
-          mainAxisSize: MainAxisSize.min,
+          mainAxisSize: MainAxisSize.max,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             // ---- Header ----
@@ -1139,13 +1139,12 @@ class _AddEditStudentModalState extends ConsumerState<AddEditStudentModal>
 
             // ---- Actions ----
             if (isMobile)
-              if (keyboardInset == 0) // Hide when keyboard is open
-                Padding(
-                  padding: const EdgeInsets.only(top: 8.0),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
+              Padding(
+                padding: const EdgeInsets.only(top: 8.0),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
                     PrimaryButton(
                       label: isEdit ? 'UPDATE' : 'SAVE',
                       isLoading: _isLoading,

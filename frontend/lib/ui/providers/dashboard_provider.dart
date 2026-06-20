@@ -17,7 +17,7 @@ class DashboardData {
 
 final dashboardDataProvider = FutureProvider<DashboardData>((ref) async {
   final repository = ref.read(dashboardRepositoryProvider);
-  final user = ref.watch(authProvider).value;
+  final user = ref.read(authProvider).value;
   final isTeacher = user?.role == 'teacher';
 
   final stats = await repository.getStats();
@@ -78,7 +78,7 @@ final recentActivitiesPageProvider =
     FutureProvider.autoDispose<PaginatedActivities>((ref) async {
       final query = ref.watch(activityQueryProvider);
       final repo = ref.read(dashboardRepositoryProvider);
-      final user = ref.watch(authProvider).value;
+      final user = ref.read(authProvider).value;
       final isTeacher = user?.role == 'teacher';
 
       return repo.getRecentActivities(

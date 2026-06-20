@@ -47,12 +47,23 @@ class _UsersScreenState extends ConsumerState<UsersScreen> {
     if (_roleFilter != 'all') {
       result = result.where((u) => u.role == _roleFilter).toList();
     }
+    bool isFuzzyMatch(String text, String query) {
+      if (query.isEmpty) return true;
+      int j = 0;
+      for (int i = 0; i < text.length && j < query.length; i++) {
+        if (text[i] == query[j]) {
+          j++;
+        }
+      }
+      return j == query.length;
+    }
+
     // Then apply search filter
     if (_searchQuery.isNotEmpty) {
       result = result.where((u) =>
-        u.username.toLowerCase().contains(_searchQuery) ||
-        u.fullName.toLowerCase().contains(_searchQuery) ||
-        u.role.toLowerCase().contains(_searchQuery)
+        isFuzzyMatch(u.username.toLowerCase(), _searchQuery) ||
+        isFuzzyMatch(u.fullName.toLowerCase(), _searchQuery) ||
+        isFuzzyMatch(u.role.toLowerCase(), _searchQuery)
       ).toList();
     }
     return result;

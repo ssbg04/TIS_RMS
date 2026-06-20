@@ -15,7 +15,8 @@ import '../../shared/dialogs/success_dialog.dart';
 import '../../../core/utils/validators.dart';
 
 class LoginScreen extends ConsumerStatefulWidget {
-  const LoginScreen({super.key});
+  final bool sessionExpired;
+  const LoginScreen({super.key, this.sessionExpired = false});
 
   @override
   ConsumerState<LoginScreen> createState() => _LoginScreenState();
@@ -31,6 +32,30 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   void initState() {
     super.initState();
     _loadRememberMe(); // Load saved credentials on startup
+    if (widget.sessionExpired) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        showDialog(
+          context: context,
+          barrierDismissible: false,
+          builder: (ctx) => AlertDialog(
+            title: const Row(
+              children: [
+                Icon(Icons.info_outline, color: AppColors.primaryGreen),
+                SizedBox(width: 8),
+                Text('Session Expired'),
+              ],
+            ),
+            content: const Text('You have been logged out due to 5 minutes of inactivity.'),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(ctx).pop(),
+                child: const Text('OK'),
+              ),
+            ],
+          ),
+        );
+      });
+    }
   }
 
   // --- Added: Load saved credentials for Remember Me ---

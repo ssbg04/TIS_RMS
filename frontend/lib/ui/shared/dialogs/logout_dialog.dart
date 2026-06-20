@@ -39,7 +39,10 @@ Future<void> showLogoutConfirmationDialog(BuildContext context) async {
                 await prefs.remove('saved_username');
                 await prefs.remove('saved_password');
 
-                // 3. Navigate FIRST to LoginScreen and destroy routing history.
+                // 3. Capture notifier BEFORE unmounting to prevent ProviderException
+                final authNotifier = ref.read(authProvider.notifier);
+
+                // 4. Navigate FIRST to LoginScreen and destroy routing history.
                 //    This unmounts all active screens BEFORE providers are invalidated,
                 //    preventing "ref used after unmount" / ProviderException errors
                 //    when logging out from non-dashboard tabs.
@@ -48,14 +51,14 @@ Future<void> showLogoutConfirmationDialog(BuildContext context) async {
                   (route) => false,
                 );
 
-                // 4. Wait for the route transition animation to finish.
+                // 5. Wait for the route transition animation to finish.
                 //    This guarantees the old screens are fully unmounted before their
                 //    providers are invalidated, preventing "used after unmount" or 
                 //    "multiple tickers" exceptions during the transition.
                 await Future.delayed(const Duration(milliseconds: 500));
 
-                // 5. Invalidate all persistent providers safely in the background.
-                await ref.read(authProvider.notifier).logout();
+                // 6. Invalidate all persistent providers safely in the background.
+                await authNotifier.logout();
               },
               child: const Text('LOGOUT', style: TextStyle(color: Colors.redAccent, fontWeight: FontWeight.bold)),
             ),

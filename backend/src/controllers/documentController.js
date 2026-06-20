@@ -162,7 +162,7 @@ exports.getAllDocuments = (req, res) => {
         const params = [];
 
         if (search.trim()) {
-            const like = `%${search.trim()}%`;
+            const like = `%${search.trim().split('').join('%' )}%`;
             conditions.push(`(s.lrn LIKE ? OR s.first_name LIKE ? OR s.last_name LIKE ? OR d.file_name LIKE ?)`);
             params.push(like, like, like, like);
         }

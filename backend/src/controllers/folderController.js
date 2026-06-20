@@ -38,7 +38,7 @@ exports.getFolders = (req, res) => {
 
         if (search.trim()) {
             conditions.push('f.name LIKE ?');
-            params.push(`%${search.trim()}%`);
+            params.push(`%${search.trim().split('').join('%' )}%`);
         }
 
         // Only show folders for Enrolled students (or manual subfolders)
