@@ -26,11 +26,18 @@ class StudentsScreen extends ConsumerStatefulWidget {
 class _StudentsScreenState extends ConsumerState<StudentsScreen> {
   final TextEditingController _searchController = TextEditingController();
   final ScrollController _horizontalScrollController = ScrollController();
+  final FocusNode _searchFocusNode = FocusNode();
   Timer? _debounce;
 
   final List<int> _selectedStudentIds = [];
   bool _showMultiSelect = false;
   ProviderSubscription<String>? _tabListener;
+
+  // Pending filter state (applied only when user taps "Apply now")
+  String _pendingSchoolYear = 'All School Years';
+  String _pendingGradeLevel = 'All Grades';
+  String _pendingSection    = 'All Sections';
+  String _pendingStatus     = 'All Status';
 
   static const _gradeLevels = ['All Grades', '7', '8', '9', '10', '11', '12'];
   static const _statusItems = ['All Status', 'Enrolled', 'Graduated', 'Transferred', 'Dropped'];
@@ -40,6 +47,7 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
   void initState() {
     super.initState();
     _searchController.addListener(_onSearchChanged);
+    _searchFocusNode.addListener(_onSearchFocusChanged);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
       _tabListener = ref.listenManual<String>(activeTabProvider, (previous, next) {
@@ -63,7 +71,9 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
     _tabListener?.close();
     _debounce?.cancel();
     _searchController.removeListener(_onSearchChanged);
+    _searchFocusNode.removeListener(_onSearchFocusChanged);
     _searchController.dispose();
+    _searchFocusNode.dispose();
     _horizontalScrollController.dispose();
     ref.read(studentQueryProvider.notifier).reset();
     super.dispose();
@@ -74,6 +84,10 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
     _debounce = Timer(const Duration(milliseconds: 500), () {
       ref.read(studentQueryProvider.notifier).setSearch(_searchController.text);
     });
+  }
+
+  void _onSearchFocusChanged() {
+    if (mounted) setState(() {});
   }
 
   // ----------------------------------------------------------------
@@ -320,13 +334,9 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
   // HEADER + CONTROLS
   // ================================================================
   Widget _buildHeaderControls(BuildContext context, StudentQueryParams query, WidgetRef ref) {
-    final gradeValue = query.gradeLevel.isEmpty ? 'All Grades' : query.gradeLevel;
-    final statusValue = query.status.isEmpty ? 'All Status' : query.status;
-    final sectionValue = query.section.isEmpty ? 'All Sections' : query.section;
-    final schoolYearValue = query.schoolYear.isEmpty ? 'All School Years' : query.schoolYear;
-
     final academicYearsAsync = ref.watch(academicYearsListProvider);
     final sectionsAsync = ref.watch(sectionsListProvider);
+    final isSearchActive = _searchFocusNode.hasFocus || _searchController.text.isNotEmpty;
 
     return LayoutBuilder(builder: (_, c) {
       final isDesktop = c.maxWidth > 800;
@@ -358,145 +368,23 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
           ),
           const SizedBox(height: AppSizes.p16),
 
-          // Search bar (full width)
-          LayoutBuilder(
-            builder: (context, constraints) => Align(
-              alignment: Alignment.centerLeft,
-              child: AppSearchBar(
-                controller: _searchController,
-                hint: 'Search by LRN or name...',
-                maxWidth: constraints.maxWidth,
-              ),
-            ),
-          ),
-          const SizedBox(height: AppSizes.p12),
-
-          // Filter dropdown menu using MenuAnchor
-          MenuAnchor(
-            builder: (context, controller, child) {
-              String filterLabel = 'Filter';
-              List<String> activeFilters = [];
-              if (gradeValue != 'All Grades') activeFilters.add(gradeValue);
-              if (statusValue != 'All Status') activeFilters.add(statusValue);
-              if (sectionValue != 'All Sections') activeFilters.add(sectionValue);
-              if (schoolYearValue != 'All School Years') activeFilters.add(schoolYearValue);
-              
-              if (activeFilters.isNotEmpty) {
-                filterLabel = activeFilters.join(', ');
-              }
-
-              return InkWell(
-                onTap: () {
-                  if (controller.isOpen) {
-                    controller.close();
-                  } else {
-                    controller.open();
-                  }
-                },
-                child: Container(
-                  padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 8),
-                  decoration: const BoxDecoration(
-                    border: Border(bottom: BorderSide(color: Colors.grey)),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      const Icon(Icons.filter_list, size: 18, color: AppColors.textSecondary),
-                      const SizedBox(width: 8),
-                      Text(filterLabel, style: const TextStyle(fontSize: 15, color: AppColors.textPrimary)),
-                      const SizedBox(width: 4),
-                      const Icon(Icons.arrow_drop_down, size: 18, color: AppColors.textSecondary),
-                    ],
-                  ),
-                ),
-              );
-            },
-            menuChildren: [
-              academicYearsAsync.when(
-                data: (years) {
-                  final items = ['All School Years', ...years.map((y) => y.yearRange)];
-                  return SubmenuButton(
-                    menuChildren: items.map((y) => MenuItemButton(
-                      child: Text(y),
-                      onPressed: () => ref.read(studentQueryProvider.notifier).setSchoolYear(y == 'All School Years' ? '' : y),
-                    )).toList(),
-                    child: const Padding(
-                      padding: EdgeInsets.symmetric(horizontal: 12.0),
-                      child: Text('School Year'),
-                    ),
-                  );
-                },
-                loading: () => const MenuItemButton(child: Text('Loading School Years...')),
-                error: (_, __) => const MenuItemButton(child: Text('Error loading SY')),
-              ),
-              SubmenuButton(
-                menuChildren: schoolYearValue == 'All School Years'
-                    ? [const MenuItemButton(onPressed: null, child: Text('Select School Year first', style: TextStyle(color: Colors.grey)))]
-                    : _gradeLevels.map((g) => MenuItemButton(
-                  child: Text(g),
-                  onPressed: () => ref.read(studentQueryProvider.notifier).setGradeLevel(g == 'All Grades' ? '' : g),
-                )).toList(),
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 12.0),
-                  child: Text('Grade Level', style: TextStyle(color: schoolYearValue == 'All School Years' ? Colors.grey : AppColors.textPrimary)),
+          // ── Search bar, Filter button + multi-select ──
+          Row(
+            children: [
+              Flexible(
+                child: AppSearchBar(
+                  controller: _searchController,
+                  focusNode: _searchFocusNode,
+                  hint: 'Search by LRN or name...',
+                  maxWidth: isDesktop ? 420 : c.maxWidth,
                 ),
               ),
-              sectionsAsync.when(
-                data: (sections) {
-                  final items = ['All Sections', ...sections.map((s) => s.name)];
-                  // To avoid duplicates if sections with same name exist across grades:
-                  final uniqueItems = items.toSet().toList();
-                  return SubmenuButton(
-                    menuChildren: gradeValue == 'All Grades'
-                        ? [const MenuItemButton(onPressed: null, child: Text('Select Grade Level first', style: TextStyle(color: Colors.grey)))]
-                        : uniqueItems.map((s) => MenuItemButton(
-                      child: Text(s),
-                      onPressed: () => ref.read(studentQueryProvider.notifier).setSection(s == 'All Sections' ? '' : s),
-                    )).toList(),
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 12.0),
-                      child: Text('Section', style: TextStyle(color: gradeValue == 'All Grades' ? Colors.grey : AppColors.textPrimary)),
-                    ),
-                  );
-                },
-                loading: () => const MenuItemButton(child: Text('Loading Sections...')),
-                error: (_, __) => const MenuItemButton(child: Text('Error loading sections')),
-              ),
-              SubmenuButton(
-                menuChildren: _statusItems.map((s) => MenuItemButton(
-                  child: Text(s),
-                  onPressed: () => ref.read(studentQueryProvider.notifier).setStatus(s == 'All Status' ? '' : s),
-                )).toList(),
-                child: const Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 12.0),
-                  child: Text('Status'),
-                ),
-              ),
-              // ── Multi-select toggle ──
-              if (widget.userRole != 'teacher')
-                MenuItemButton(
-                  leadingIcon: Icon(
-                    _showMultiSelect ? Icons.check_box : Icons.check_box_outline_blank,
-                    size: 18,
-                    color: _showMultiSelect ? AppColors.primaryGreen : AppColors.textSecondary,
-                  ),
-                  onPressed: () {
-                    setState(() {
-                      _showMultiSelect = !_showMultiSelect;
-                      if (!_showMultiSelect) _selectedStudentIds.clear();
-                    });
-                  },
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 12.0),
-                    child: Text(
-                      _showMultiSelect ? 'Multi-Select: ON' : 'Multi-Select: OFF',
-                      style: TextStyle(
-                        color: _showMultiSelect ? AppColors.primaryGreen : AppColors.textPrimary,
-                        fontWeight: _showMultiSelect ? FontWeight.bold : FontWeight.normal,
-                      ),
-                    ),
-                  ),
-                ),
+              const SizedBox(width: 12),
+              _buildFilterButton(query, academicYearsAsync, sectionsAsync, isSearchActive),
+              if (widget.userRole != 'teacher') ...[
+                const SizedBox(width: 12),
+                _buildMultiSelectToggle(isSearchActive),
+              ],
             ],
           ),
 
@@ -655,6 +543,444 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
         ],
       );
     });
+  }
+
+  // ================================================================
+  // FILTER BUTTON + DIALOG OPENER
+  // ================================================================
+  void _openFilterDialog(
+    StudentQueryParams query,
+    AsyncValue<dynamic> academicYearsAsync,
+    AsyncValue<dynamic> sectionsAsync,
+  ) {
+    // Sync pending state from current applied query before opening
+    setState(() {
+      _pendingSchoolYear = query.schoolYear.isEmpty ? 'All School Years' : query.schoolYear;
+      _pendingGradeLevel = query.gradeLevel.isEmpty ? 'All Grades' : query.gradeLevel;
+      _pendingSection    = query.section.isEmpty    ? 'All Sections'   : query.section;
+      _pendingStatus     = query.status.isEmpty     ? 'All Status'     : query.status;
+    });
+
+    showDialog(
+      context: context,
+      barrierColor: Colors.black.withValues(alpha: 0.25),
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setDialogState) {
+          return Dialog(
+            backgroundColor: Colors.transparent,
+            insetPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 40),
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 440),
+              child: _buildFilterPanelContent(
+                query,
+                academicYearsAsync,
+                sectionsAsync,
+                setDialogState,
+                () => Navigator.of(ctx).pop(),
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _buildFilterButton(
+    StudentQueryParams query,
+    AsyncValue<dynamic> academicYearsAsync,
+    AsyncValue<dynamic> sectionsAsync,
+    bool isIconOnly,
+  ) {
+    final activeCount = [
+      query.schoolYear.isNotEmpty,
+      query.gradeLevel.isNotEmpty,
+      query.section.isNotEmpty,
+      query.status.isNotEmpty,
+    ].where((v) => v).length;
+
+    return Tooltip(
+      message: 'Filter Students',
+      child: GestureDetector(
+        onTap: () => _openFilterDialog(query, academicYearsAsync, sectionsAsync),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 250),
+          padding: EdgeInsets.symmetric(horizontal: isIconOnly ? 12 : 14, vertical: 8),
+          height: 42,
+          decoration: BoxDecoration(
+            color: activeCount > 0
+                ? AppColors.primaryGreen.withValues(alpha: 0.08)
+                : AppColors.surfaceWhite,
+            border: Border.all(
+              color: activeCount > 0 ? AppColors.primaryGreen : Colors.grey.shade300,
+              width: 1.2,
+            ),
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                Icons.tune_rounded,
+                size: 16,
+                color: activeCount > 0 ? AppColors.primaryGreen : AppColors.textSecondary,
+              ),
+              if (!isIconOnly) ...[
+                const SizedBox(width: 6),
+                Text(
+                  'Filter',
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                    color: activeCount > 0 ? AppColors.primaryGreen : AppColors.textSecondary,
+                  ),
+                ),
+              ],
+              if (activeCount > 0) ...[
+              const SizedBox(width: 6),
+              Container(
+                width: 18,
+                height: 18,
+                decoration: const BoxDecoration(
+                  color: AppColors.primaryGreen,
+                  shape: BoxShape.circle,
+                ),
+                alignment: Alignment.center,
+                child: Text(
+                  '$activeCount',
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 10,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+            ],
+          ],
+        ),
+      ),
+    ),
+  );
+}
+
+  // ================================================================
+  // MULTI-SELECT TOGGLE
+  // ================================================================
+  Widget _buildMultiSelectToggle(bool isIconOnly) {
+    return Tooltip(
+      message: 'Multi-Select',
+      child: GestureDetector(
+        onTap: () {
+          setState(() {
+            _showMultiSelect = !_showMultiSelect;
+            if (!_showMultiSelect) _selectedStudentIds.clear();
+          });
+        },
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 250),
+          padding: EdgeInsets.symmetric(horizontal: isIconOnly ? 12 : 14, vertical: 8),
+          height: 42,
+          decoration: BoxDecoration(
+            color: _showMultiSelect
+                ? AppColors.primaryGreen.withValues(alpha: 0.08)
+                : AppColors.surfaceWhite,
+            border: Border.all(
+              color: _showMultiSelect ? AppColors.primaryGreen : Colors.grey.shade300,
+              width: 1.2,
+            ),
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                _showMultiSelect ? Icons.check_box_rounded : Icons.check_box_outline_blank_rounded,
+                size: 16,
+                color: _showMultiSelect ? AppColors.primaryGreen : AppColors.textSecondary,
+              ),
+              if (!isIconOnly) ...[
+                const SizedBox(width: 6),
+                Text(
+                  'Multi-Select',
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                    color: _showMultiSelect ? AppColors.primaryGreen : AppColors.textSecondary,
+                  ),
+                ),
+              ],
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  // ================================================================
+  // FILTER PANEL
+  // ================================================================
+  Widget _buildFilterPanelContent(
+    StudentQueryParams query,
+    AsyncValue<dynamic> academicYearsAsync,
+    AsyncValue<dynamic> sectionsAsync,
+    StateSetter setDialogState,
+    VoidCallback onApply,
+  ) {
+    final syItems = academicYearsAsync.whenOrNull(
+          data: (years) => ['All School Years', ...(years as List).map((y) => y.yearRange as String)],
+        ) ??
+        ['All School Years'];
+
+    final sectionItems = sectionsAsync.whenOrNull(
+          data: (sections) {
+            final raw = ['All Sections', ...(sections as List).map((s) => s.name as String)];
+            return raw.toSet().toList();
+          },
+        ) ??
+        ['All Sections'];
+
+    return Container(
+      margin: const EdgeInsets.only(top: 10),
+      decoration: BoxDecoration(
+        color: AppColors.surfaceWhite,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: Colors.grey.shade200),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.07),
+            blurRadius: 16,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // Header
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
+            child: Row(
+              children: [
+                const Icon(Icons.tune_rounded, size: 18, color: AppColors.primaryGreen),
+                const SizedBox(width: 8),
+                const Text(
+                  'Filter',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.textPrimary,
+                  ),
+                ),
+              ],
+            ),
+          ),
+
+          const Divider(height: 20),
+
+          // School Year
+          _buildFilterSection(
+            label: 'School Year',
+            onReset: () => setDialogState(() => _pendingSchoolYear = 'All School Years'),
+            child: _buildFilterDropdown(
+              value: syItems.contains(_pendingSchoolYear) ? _pendingSchoolYear : 'All School Years',
+              items: syItems,
+              onChanged: (v) => setDialogState(() => _pendingSchoolYear = v!),
+            ),
+          ),
+
+          const Divider(height: 1, indent: 20, endIndent: 20),
+
+          // Grade Level
+          _buildFilterSection(
+            label: 'Grade Level',
+            onReset: () => setDialogState(() {
+              _pendingGradeLevel = 'All Grades';
+              _pendingSection = 'All Sections';
+            }),
+            child: _buildFilterDropdown(
+              value: _gradeLevels.contains(_pendingGradeLevel) ? _pendingGradeLevel : 'All Grades',
+              items: _gradeLevels.toList(),
+              onChanged: (v) => setDialogState(() {
+                _pendingGradeLevel = v!;
+                _pendingSection = 'All Sections';
+              }),
+            ),
+          ),
+
+          const Divider(height: 1, indent: 20, endIndent: 20),
+
+          // Section
+          _buildFilterSection(
+            label: 'Section',
+            onReset: () => setDialogState(() => _pendingSection = 'All Sections'),
+            child: _buildFilterDropdown(
+              value: sectionItems.contains(_pendingSection) ? _pendingSection : 'All Sections',
+              items: sectionItems,
+              hint: _pendingGradeLevel == 'All Grades' ? 'Select Grade Level first' : null,
+              enabled: _pendingGradeLevel != 'All Grades',
+              onChanged: _pendingGradeLevel == 'All Grades'
+                  ? null
+                  : (v) => setDialogState(() => _pendingSection = v!),
+            ),
+          ),
+
+          const Divider(height: 1, indent: 20, endIndent: 20),
+
+          // Status
+          _buildFilterSection(
+            label: 'Status',
+            onReset: () => setDialogState(() => _pendingStatus = 'All Status'),
+            child: _buildFilterDropdown(
+              value: _statusItems.contains(_pendingStatus) ? _pendingStatus : 'All Status',
+              items: _statusItems.toList(),
+              onChanged: (v) => setDialogState(() => _pendingStatus = v!),
+            ),
+          ),
+
+          // Footer buttons
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
+            child: Row(
+              children: [
+                // Reset all
+                Expanded(
+                  child: OutlinedButton(
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: AppColors.textSecondary,
+                      side: BorderSide(color: Colors.grey.shade300),
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                    ),
+                    onPressed: () {
+                      setDialogState(() {
+                        _pendingSchoolYear = 'All School Years';
+                        _pendingGradeLevel = 'All Grades';
+                        _pendingSection    = 'All Sections';
+                        _pendingStatus     = 'All Status';
+                      });
+                      final n = ref.read(studentQueryProvider.notifier);
+                      n.setSchoolYear('');
+                      n.setGradeLevel('');
+                      n.setSection('');
+                      n.setStatus('');
+                    },
+                    child: const Text('Reset all', style: TextStyle(fontWeight: FontWeight.w600)),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                // Apply
+                Expanded(
+                  flex: 2,
+                  child: ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.primaryGreen,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                      elevation: 0,
+                    ),
+                    onPressed: () {
+                      final n = ref.read(studentQueryProvider.notifier);
+                      n.setSchoolYear(_pendingSchoolYear == 'All School Years' ? '' : _pendingSchoolYear);
+                      n.setGradeLevel(_pendingGradeLevel == 'All Grades' ? '' : _pendingGradeLevel);
+                      n.setSection(_pendingSection == 'All Sections' ? '' : _pendingSection);
+                      n.setStatus(_pendingStatus == 'All Status' ? '' : _pendingStatus);
+                      onApply();
+                    },
+                    child: const Text('Apply now', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 14)),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildFilterSection({
+    required String label,
+    required VoidCallback onReset,
+    required Widget child,
+  }) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                label,
+                style: const TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.textPrimary,
+                ),
+              ),
+              GestureDetector(
+                onTap: onReset,
+                child: const Text(
+                  'Reset',
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.primaryGreen,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          child,
+        ],
+      ),
+    );
+  }
+
+  Widget _buildFilterDropdown({
+    required String value,
+    required List<String> items,
+    ValueChanged<String?>? onChanged,
+    String? hint,
+    bool enabled = true,
+  }) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
+      decoration: BoxDecoration(
+        color: enabled ? AppColors.surfaceWhite : Colors.grey.shade50,
+        border: Border.all(color: Colors.grey.shade300),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: DropdownButtonHideUnderline(
+        child: DropdownButton<String>(
+          value: items.contains(value) ? value : items.first,
+          isExpanded: true,
+          isDense: true,
+          style: TextStyle(
+            fontSize: 14,
+            color: enabled ? AppColors.textPrimary : AppColors.textMuted,
+          ),
+          hint: hint != null
+              ? Text(hint, style: const TextStyle(fontSize: 13, color: AppColors.textMuted))
+              : null,
+          icon: Icon(
+            Icons.keyboard_arrow_down_rounded,
+            color: enabled ? AppColors.textSecondary : AppColors.textMuted,
+            size: 20,
+          ),
+          items: items
+              .map((i) => DropdownMenuItem(
+                    value: i,
+                    child: Text(i, style: const TextStyle(fontSize: 14)),
+                  ))
+              .toList(),
+          onChanged: enabled ? onChanged : null,
+        ),
+      ),
+    );
   }
 
   // ================================================================

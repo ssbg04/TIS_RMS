@@ -29,12 +29,15 @@ class AppSearchBar extends StatefulWidget {
   /// Whether to show a clear (×) button when the field has text.
   final bool showClear;
 
+  final FocusNode? focusNode;
+
   const AppSearchBar({
     super.key,
     this.hint = 'Search...',
     this.onSubmitted,
     this.onChanged,
     this.controller,
+    this.focusNode,
     this.maxWidth = 420,
     this.showClear = true,
   });
@@ -45,7 +48,7 @@ class AppSearchBar extends StatefulWidget {
 
 class _AppSearchBarState extends State<AppSearchBar> {
   late final TextEditingController _controller;
-  final FocusNode _focusNode = FocusNode();
+  late final FocusNode _focusNode;
   bool _hasText = false;
   bool _isExpanded = false;
 
@@ -53,6 +56,7 @@ class _AppSearchBarState extends State<AppSearchBar> {
   void initState() {
     super.initState();
     _controller = widget.controller ?? TextEditingController();
+    _focusNode = widget.focusNode ?? FocusNode();
     _controller.addListener(_onTextChanged);
     _focusNode.addListener(_onFocusChanged);
   }
@@ -71,7 +75,7 @@ class _AppSearchBarState extends State<AppSearchBar> {
   @override
   void dispose() {
     if (widget.controller == null) _controller.dispose();
-    _focusNode.dispose();
+    if (widget.focusNode == null) _focusNode.dispose();
     super.dispose();
   }
 

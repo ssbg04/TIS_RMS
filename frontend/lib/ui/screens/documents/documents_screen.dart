@@ -18,6 +18,7 @@ import 'widgets/upload_ocr_modal.dart';
 import 'widgets/print_queue_modal.dart';
 import 'widgets/student_profile_modal.dart';
 import 'widgets/document_preview_modal.dart';
+import 'widgets/recycle_bin_modal.dart';
 import '../../../domain/entities/document_model.dart';
 
 class DocumentsScreen extends ConsumerStatefulWidget {
@@ -39,9 +40,9 @@ class DocumentsScreen extends ConsumerStatefulWidget {
 class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
     with SingleTickerProviderStateMixin {
   final TextEditingController _searchController = TextEditingController();
+  final FocusNode _searchFocusNode = FocusNode();
   Timer? _debounce;
   bool _isGridView = false;
-  bool _showFilters = false;
   late final TabController _tabController;
 
   // --- Windows Explorer State Variables ---
@@ -54,6 +55,11 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
   String _selectedGradeLevel = 'All Grades';
   String _selectedSchoolYear = 'All Years';
 
+  String _pendingStatus = 'All Statuses';
+  String _pendingDocumentType = 'All Types';
+  String _pendingGradeLevel = 'All Grades';
+  String _pendingSchoolYear = 'All Years';
+
   // Cached doc type lists for filter expansion
   List<String> _jhsItems = [];
   List<String> _shsItems = [];
@@ -61,7 +67,6 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
   // Selection states
   bool _isMultiSelectMode = false;
   final Set<int> _selectedDocumentIds = {};
-  final Set<int> _selectedTrashIds = {};
 
   Timer? _pollingTimer;
   ProviderSubscription<String>? _tabListener;
@@ -70,8 +75,9 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
   @override
   void initState() {
     super.initState();
-    // 3 tabs: 0=Folders, 1=Documents, 2=Recycle Bin
-    _tabController = TabController(length: 3, vsync: this);
+    // 2 tabs: 0=Folders, 1=Documents
+    _tabController = TabController(length: 2, vsync: this);
+    _searchFocusNode.addListener(_onSearchFocusChanged);
 
     _pollingTimer = Timer.periodic(const Duration(seconds: 15), (_) {
       if (mounted) {
@@ -80,8 +86,6 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
           ref.invalidate(studentFoldersProvider);
         } else if (_tabController.index == 1) {
           ref.invalidate(documentPageProvider);
-        } else if (_tabController.index == 2) {
-          ref.invalidate(trashDocumentsProvider);
         }
       }
     });
@@ -108,9 +112,7 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
       // Refresh and reset states strictly when the tab transition has completed
       if (!_tabController.indexIsChanging) {
         setState(() {
-          _showFilters = false;
           _isMultiSelectMode = false;
-          _selectedTrashIds.clear();
           _selectedDocumentIds.clear();
         });
 
@@ -143,7 +145,6 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
           setState(() {
             _openedFolderStudentId = null;
             _openedFolderName = null;
-            _showFilters = false;
             _isMultiSelectMode = false;
             if (_searchController.text.isNotEmpty) _searchController.clear();
             _selectedDocumentIds.clear();
@@ -181,8 +182,14 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
     _pollingTimer?.cancel();
     _tabController.dispose();
     _searchController.dispose();
+    _searchFocusNode.removeListener(_onSearchFocusChanged);
+    _searchFocusNode.dispose();
     _debounce?.cancel();
     super.dispose();
+  }
+
+  void _onSearchFocusChanged() {
+    if (mounted) setState(() {});
   }
 
   void _onSearchChanged(String query) {
@@ -453,10 +460,7 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
   }
 
   Widget _buildBatchActionsBar() {
-    final isRecycleBin = _tabController.index == 2;
-    final count = isRecycleBin
-        ? _selectedTrashIds.length
-        : _selectedDocumentIds.length;
+    final count = _selectedDocumentIds.length;
     final isAdmin = widget.userRole != 'teacher';
     final screenW = MediaQuery.of(context).size.width;
     final isMobile = screenW < 700;
@@ -507,7 +511,6 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
                   TextButton.icon(
                     onPressed: () => setState(() {
                       _selectedDocumentIds.clear();
-                      _selectedTrashIds.clear();
                       _isMultiSelectMode = false;
                     }),
                     icon: const Icon(Icons.close, size: 16),
@@ -529,66 +532,43 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
               padding: const EdgeInsets.only(left: 8, right: 8, bottom: 4),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                children: isRecycleBin
-                    ? [
-                        _batchActionBtn(
-                          icon: Icons.restore,
-                          label: 'Restore',
-                          color: AppColors.primaryGreen,
-                          onTap: count == 0
-                              ? () {}
-                              : () => _handleBulkRestore(
-                                  _selectedTrashIds.toList(),
-                                ),
-                        ),
-                        _batchActionBtn(
-                          icon: Icons.delete_forever,
-                          label: 'Delete',
-                          color: AppColors.error,
-                          onTap: count == 0
-                              ? () {}
-                              : () => _handleBulkPermanentDelete(
-                                  _selectedTrashIds.toList(),
-                                ),
-                        ),
-                      ]
-                    : [
-                        _batchActionBtn(
-                          icon: Icons.print_rounded,
-                          label: 'Print',
-                          color: AppColors.primaryGreen,
-                          onTap: count == 0 ? () {} : _handleBatchPrint,
-                        ),
-                        _batchActionBtn(
-                          icon: Icons.copy_rounded,
-                          label: 'Copy',
-                          color: Colors.blue,
-                          onTap: count == 0 ? () {} : _handleBatchCopy,
-                        ),
-                        _batchActionBtn(
-                          icon: Icons.check_circle_outline_rounded,
-                          label: 'Complete',
-                          color: AppColors.success,
-                          onTap: count == 0
-                              ? () {}
-                              : () => _handleBatchStatus('Completed'),
-                        ),
-                        _batchActionBtn(
-                          icon: Icons.archive_outlined,
-                          label: 'Archive',
-                          color: Colors.orange,
-                          onTap: count == 0
-                              ? () {}
-                              : () => _handleBatchStatus('Archived'),
-                        ),
-                        // Delete is always visible in mobile multi-select
-                        _batchActionBtn(
-                          icon: Icons.delete_outline_rounded,
-                          label: 'Delete',
-                          color: AppColors.error,
-                          onTap: count == 0 ? () {} : _handleBatchDelete,
-                        ),
-                      ],
+                children: [
+                  _batchActionBtn(
+                    icon: Icons.print_rounded,
+                    label: 'Print',
+                    color: AppColors.primaryGreen,
+                    onTap: count == 0 ? () {} : _handleBatchPrint,
+                  ),
+                  _batchActionBtn(
+                    icon: Icons.copy_rounded,
+                    label: 'Copy',
+                    color: Colors.blue,
+                    onTap: count == 0 ? () {} : _handleBatchCopy,
+                  ),
+                  _batchActionBtn(
+                    icon: Icons.check_circle_outline_rounded,
+                    label: 'Complete',
+                    color: AppColors.success,
+                    onTap: count == 0
+                        ? () {}
+                        : () => _handleBatchStatus('Completed'),
+                  ),
+                  _batchActionBtn(
+                    icon: Icons.archive_outlined,
+                    label: 'Archive',
+                    color: Colors.orange,
+                    onTap: count == 0
+                        ? () {}
+                        : () => _handleBatchStatus('Archived'),
+                  ),
+                  // Delete is always visible in mobile multi-select
+                  _batchActionBtn(
+                    icon: Icons.delete_outline_rounded,
+                    label: 'Delete',
+                    color: AppColors.error,
+                    onTap: count == 0 ? () {} : _handleBatchDelete,
+                  ),
+                ],
               ),
             ),
           ],
@@ -635,69 +615,50 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
           TextButton(
             onPressed: () => setState(() {
               _selectedDocumentIds.clear();
-              _selectedTrashIds.clear();
               _isMultiSelectMode = false;
             }),
             child: const Text('Cancel'),
           ),
           const SizedBox(width: 4),
-          if (isRecycleBin) ...[
-            IconButton(
-              icon: const Icon(Icons.restore, color: AppColors.primaryGreen),
-              tooltip: 'Restore selected',
-              onPressed: count == 0
-                  ? null
-                  : () => _handleBulkRestore(_selectedTrashIds.toList()),
+          IconButton(
+            icon: const Icon(
+              Icons.print_rounded,
+              color: AppColors.primaryGreen,
             ),
+            tooltip: 'Add to Print List',
+            onPressed: count == 0 ? null : _handleBatchPrint,
+          ),
+          IconButton(
+            icon: const Icon(Icons.copy_rounded, color: Colors.blue),
+            tooltip: 'Copy',
+            onPressed: count == 0 ? null : _handleBatchCopy,
+          ),
+          IconButton(
+            icon: const Icon(
+              Icons.check_circle_outline_rounded,
+              color: AppColors.success,
+            ),
+            tooltip: 'Mark as Completed',
+            onPressed: count == 0
+                ? null
+                : () => _handleBatchStatus('Completed'),
+          ),
+          IconButton(
+            icon: const Icon(Icons.archive_outlined, color: Colors.orange),
+            tooltip: 'Archive',
+            onPressed: count == 0
+                ? null
+                : () => _handleBatchStatus('Archived'),
+          ),
+          if (isAdmin)
             IconButton(
-              icon: const Icon(Icons.delete_forever, color: AppColors.error),
+              icon: const Icon(
+                Icons.delete_outline_rounded,
+                color: AppColors.error,
+              ),
               tooltip: 'Delete',
-              onPressed: count == 0
-                  ? null
-                  : () =>
-                        _handleBulkPermanentDelete(_selectedTrashIds.toList()),
+              onPressed: count == 0 ? null : _handleBatchDelete,
             ),
-          ] else ...[
-            IconButton(
-              icon: const Icon(
-                Icons.print_rounded,
-                color: AppColors.primaryGreen,
-              ),
-              tooltip: 'Add to Print List',
-              onPressed: count == 0 ? null : _handleBatchPrint,
-            ),
-            IconButton(
-              icon: const Icon(Icons.copy_rounded, color: Colors.blue),
-              tooltip: 'Copy',
-              onPressed: count == 0 ? null : _handleBatchCopy,
-            ),
-            IconButton(
-              icon: const Icon(
-                Icons.check_circle_outline_rounded,
-                color: AppColors.success,
-              ),
-              tooltip: 'Mark as Completed',
-              onPressed: count == 0
-                  ? null
-                  : () => _handleBatchStatus('Completed'),
-            ),
-            IconButton(
-              icon: const Icon(Icons.archive_outlined, color: Colors.orange),
-              tooltip: 'Archive',
-              onPressed: count == 0
-                  ? null
-                  : () => _handleBatchStatus('Archived'),
-            ),
-            if (isAdmin)
-              IconButton(
-                icon: const Icon(
-                  Icons.delete_outline_rounded,
-                  color: AppColors.error,
-                ),
-                tooltip: 'Delete',
-                onPressed: count == 0 ? null : _handleBatchDelete,
-              ),
-          ],
         ],
       ),
     );
@@ -765,17 +726,32 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
             defaultTargetPlatform != TargetPlatform.windows &&
                 (_tabController.index == 1 || isFolderOpened) &&
                 !_isMultiSelectMode
-            ? FloatingActionButton(
-                heroTag: 'upload_fab',
-                backgroundColor: AppColors.primaryGreen,
-                onPressed: () => showDialog(
-                  context: context,
-                  builder: (_) => UploadOcrModal(
-                    prefilledStudentId:
-                        _openedFolderStudentId ?? widget.initialStudentId,
+            ? Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  FloatingActionButton(
+                    heroTag: 'print_fab',
+                    backgroundColor: AppColors.surfaceWhite,
+                    onPressed: () => showDialog(
+                      context: context,
+                      builder: (_) => const PrintQueueModal(),
+                    ),
+                    child: const Icon(Icons.print, color: AppColors.primaryGreen),
                   ),
-                ),
-                child: const Icon(Icons.cloud_upload, color: Colors.white),
+                  const SizedBox(height: 12),
+                  FloatingActionButton(
+                    heroTag: 'upload_fab',
+                    backgroundColor: AppColors.primaryGreen,
+                    onPressed: () => showDialog(
+                      context: context,
+                      builder: (_) => UploadOcrModal(
+                        prefilledStudentId:
+                            _openedFolderStudentId ?? widget.initialStudentId,
+                      ),
+                    ),
+                    child: const Icon(Icons.cloud_upload, color: Colors.white),
+                  ),
+                ],
               )
             : null,
         bottomNavigationBar: _isMultiSelectMode
@@ -791,6 +767,9 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
                 isStudentFiltered,
                 query,
                 isFolderOpened,
+                requirementsAsync,
+                academicYearsAsync,
+                statusesAsync,
               ),
 
               // ── TabBar ──
@@ -836,22 +815,9 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
                       icon: Icon(Icons.description, size: 18),
                       text: 'All Documents',
                     ),
-                    Tab(
-                      icon: Icon(Icons.delete_sweep, size: 18),
-                      text: 'Recycle Bin',
-                    ),
                   ],
                 ),
               ),
-
-              // ── Filter Panel ──
-              if (_showFilters)
-                _buildFilterPanel(
-                  requirementsAsync,
-                  academicYearsAsync,
-                  statusesAsync,
-                  isMobile,
-                ),
 
               const Divider(height: 1),
 
@@ -859,7 +825,7 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
               Expanded(
                 child: TabBarView(
                   controller: _tabController,
-                  children: [
+                    children: [
                     // Tab 0: Student Folders
                     _buildFoldersTab(
                       foldersAsync,
@@ -896,9 +862,6 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
                         ),
                       ],
                     ),
-
-                    // Tab 2: Recycle Bin
-                    _buildRecycleBinTab(isMobile, screenW),
                   ],
                 ),
               ),
@@ -917,6 +880,9 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
     bool isStudentFiltered,
     DocumentQueryParams query,
     bool isFolderOpened,
+    AsyncValue<List<dynamic>> requirementsAsync,
+    AsyncValue<List<dynamic>> academicYearsAsync,
+    AsyncValue<List<String>> statusesAsync,
   ) {
     final hPad = isMobile ? 12.0 : 20.0;
 
@@ -1027,68 +993,35 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
           Row(
             children: [
               // Custom search bar (expands to fill available width)
-              Expanded(
+              Flexible(
                 child: LayoutBuilder(
-                  builder: (context, constraints) => Align(
-                    alignment: Alignment.centerLeft,
-                    child: AppSearchBar(
-                      hint: 'Search by name, LRN, file…',
-                      controller: _searchController,
-                      onChanged: _onSearchChanged,
-                      maxWidth: constraints.maxWidth,
-                    ),
+                  builder: (context, constraints) => AppSearchBar(
+                    hint: 'Search by name, LRN, file…',
+                    controller: _searchController,
+                    focusNode: _searchFocusNode,
+                    onChanged: _onSearchChanged,
+                    maxWidth: isMobile ? constraints.maxWidth : 420,
                   ),
                 ),
               ),
               const SizedBox(width: 8),
 
               // Filter and Multi-select toggles (Documents tab, opened folder, or Recycle Bin)
-              if (_tabController.index == 1 ||
-                  isFolderOpened ||
-                  _tabController.index == 2) ...[
-                _buildIconToggle(
-                  icon: Icons.tune_rounded,
-                  isActive: _showFilters,
-                  tooltip: 'Toggle Filters',
-                  onTap: () => setState(() => _showFilters = !_showFilters),
+              if (_tabController.index == 1 || isFolderOpened) ...[
+                _buildFilterButton(
+                  requirementsAsync,
+                  academicYearsAsync,
+                  statusesAsync,
+                  _searchFocusNode.hasFocus,
                 ),
                 const SizedBox(width: 6),
-                _buildIconToggle(
-                  icon: _isMultiSelectMode
-                      ? Icons.check_box_rounded
-                      : Icons.check_box_outline_blank_rounded,
-                  isActive: _isMultiSelectMode,
-                  tooltip: 'Toggle Selection Mode',
-                  onTap: () {
-                    setState(() {
-                      _isMultiSelectMode = !_isMultiSelectMode;
-                      if (!_isMultiSelectMode) {
-                        _selectedDocumentIds.clear();
-                        _selectedTrashIds.clear();
-                      }
-                    });
-                  },
-                ),
+                _buildMultiSelectToggle(_searchFocusNode.hasFocus),
               ],
 
-              const SizedBox(width: 6),
+              const Spacer(),
 
-              // Grid / List toggle (Hidden on Recycle Bin)
-              if (_tabController.index != 2)
-                _buildIconToggle(
-                  icon: _isGridView
-                      ? Icons.view_list_rounded
-                      : Icons.grid_view_rounded,
-                  isActive: false,
-                  tooltip: _isGridView ? 'Switch to List' : 'Switch to Grid',
-                  onTap: () => setState(() => _isGridView = !_isGridView),
-                ),
-
-              // Mobile-only: compact print queue button (Hidden on Recycle Bin)
-              if (isMobile && _tabController.index != 2) ...[
-                const SizedBox(width: 6),
-                _buildPrintQueueButton(compact: true),
-              ],
+              // Dropdown Menu
+              _buildMoreOptionsDropdown(isMobile),
             ],
           ),
         ],
@@ -1096,37 +1029,242 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
     );
   }
 
-  Widget _buildIconToggle({
-    required IconData icon,
-    required bool isActive,
-    required String tooltip,
-    required VoidCallback onTap,
-  }) {
+  int _getActiveFilterCount() {
+    int count = 0;
+    if (_selectedStatus != 'All Statuses') count++;
+    if (_selectedDocumentType != 'All Types') count++;
+    if (_selectedGradeLevel != 'All Grades') count++;
+    if (_selectedSchoolYear != 'All Years') count++;
+    return count;
+  }
+
+  Widget _buildFilterButton(
+    AsyncValue<List<dynamic>> requirementsAsync,
+    AsyncValue<List<dynamic>> academicYearsAsync,
+    AsyncValue<List<String>> statusesAsync,
+    bool isIconOnly,
+  ) {
+    final activeCount = _getActiveFilterCount();
+
     return Tooltip(
-      message: tooltip,
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(8),
-        child: Container(
-          padding: const EdgeInsets.all(10),
-          decoration: BoxDecoration(
-            color: isActive
-                ? AppColors.primaryGreen.withValues(alpha: 0.1)
-                : AppColors.surfaceWhite,
-            borderRadius: BorderRadius.circular(8),
-            border: Border.all(
-              color: isActive ? AppColors.primaryGreen : Colors.grey.shade300,
-            ),
+      message: 'Filter Documents',
+      child: GestureDetector(
+        onTap: () => _openFilterDialog(
+          requirementsAsync,
+          academicYearsAsync,
+          statusesAsync,
+        ),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 250),
+          padding: EdgeInsets.symmetric(
+            horizontal: isIconOnly ? 12 : 14,
+            vertical: 8,
           ),
-          child: Icon(
-            icon,
-            size: 20,
-            color: isActive ? AppColors.primaryGreen : AppColors.textSecondary,
+          height: 42,
+          decoration: BoxDecoration(
+            color: activeCount > 0
+                ? AppColors.primaryGreen.withValues(alpha: 0.08)
+                : AppColors.surfaceWhite,
+            border: Border.all(
+              color: activeCount > 0
+                  ? AppColors.primaryGreen
+                  : Colors.grey.shade300,
+              width: 1.2,
+            ),
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                Icons.tune_rounded,
+                size: 16,
+                color: activeCount > 0
+                    ? AppColors.primaryGreen
+                    : AppColors.textSecondary,
+              ),
+              if (!isIconOnly) ...[
+                const SizedBox(width: 6),
+                Text(
+                  'Filter',
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                    color: activeCount > 0
+                        ? AppColors.primaryGreen
+                        : AppColors.textSecondary,
+                  ),
+                ),
+              ],
+              if (activeCount > 0) ...[
+                const SizedBox(width: 6),
+                Container(
+                  width: 18,
+                  height: 18,
+                  decoration: const BoxDecoration(
+                    color: AppColors.primaryGreen,
+                    shape: BoxShape.circle,
+                  ),
+                  alignment: Alignment.center,
+                  child: Text(
+                    '$activeCount',
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 10,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+              ],
+            ],
           ),
         ),
       ),
     );
   }
+
+  Widget _buildMultiSelectToggle(bool isIconOnly) {
+    return Tooltip(
+      message: 'Toggle Multi-Select',
+      child: GestureDetector(
+        onTap: () {
+          setState(() {
+            _isMultiSelectMode = !_isMultiSelectMode;
+            if (!_isMultiSelectMode) {
+              _selectedDocumentIds.clear();
+            }
+          });
+        },
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 250),
+          padding: EdgeInsets.symmetric(
+            horizontal: isIconOnly ? 12 : 14,
+            vertical: 8,
+          ),
+          height: 42,
+          decoration: BoxDecoration(
+            color: _isMultiSelectMode
+                ? AppColors.primaryGreen.withValues(alpha: 0.08)
+                : AppColors.surfaceWhite,
+            border: Border.all(
+              color: _isMultiSelectMode
+                  ? AppColors.primaryGreen
+                  : Colors.grey.shade300,
+              width: 1.2,
+            ),
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                _isMultiSelectMode
+                    ? Icons.check_box_rounded
+                    : Icons.check_box_outline_blank_rounded,
+                size: 16,
+                color: _isMultiSelectMode
+                    ? AppColors.primaryGreen
+                    : AppColors.textSecondary,
+              ),
+              if (!isIconOnly) ...[
+                const SizedBox(width: 6),
+                Text(
+                  'Multi-Select',
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                    color: _isMultiSelectMode
+                        ? AppColors.primaryGreen
+                        : AppColors.textSecondary,
+                  ),
+                ),
+              ],
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildMoreOptionsDropdown(bool isMobile) {
+    return PopupMenuButton<String>(
+      icon: const Icon(Icons.more_vert, color: AppColors.textSecondary),
+      tooltip: 'More Options',
+      offset: const Offset(0, 45),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+      onSelected: (value) {
+        if (value == 'grid_list') {
+          setState(() => _isGridView = !_isGridView);
+        } else if (value == 'print') {
+          showDialog(
+            context: context,
+            builder: (_) => const PrintQueueModal(),
+          );
+        } else if (value == 'recycle_bin') {
+          showDialog(
+            context: context,
+            builder: (_) => const RecycleBinModal(),
+          );
+        }
+      },
+      itemBuilder: (context) => [
+        PopupMenuItem(
+          value: 'grid_list',
+          child: Row(
+            children: [
+              Icon(
+                _isGridView ? Icons.view_list_rounded : Icons.grid_view_rounded,
+                size: 20,
+                color: AppColors.textSecondary,
+              ),
+              const SizedBox(width: 8),
+              Text(
+                _isGridView ? 'Switch to List' : 'Switch to Grid',
+                style: const TextStyle(fontSize: 14),
+              ),
+            ],
+          ),
+        ),
+        if (!isMobile)
+          const PopupMenuItem(
+            value: 'print',
+            child: Row(
+              children: [
+                Icon(
+                  Icons.print,
+                  size: 20,
+                  color: AppColors.textSecondary,
+                ),
+                SizedBox(width: 8),
+                Text(
+                  'Print List',
+                  style: TextStyle(fontSize: 14),
+                ),
+              ],
+            ),
+          ),
+        const PopupMenuDivider(),
+        const PopupMenuItem(
+          value: 'recycle_bin',
+          child: Row(
+            children: [
+              Icon(
+                Icons.delete_sweep,
+                size: 20,
+                color: AppColors.textSecondary,
+              ),
+              SizedBox(width: 8),
+              Text(
+                'Recycle Bin',
+                style: TextStyle(fontSize: 14),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
 
   Widget _buildPrintQueueButton({bool compact = false}) {
     final queueAsync = ref.watch(printQueueProvider);
@@ -1163,13 +1301,59 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
   }
 
   // ══════════════════════════════════════════════════════════════
-  // FILTER PANEL
+  // FILTER MODAL
   // ══════════════════════════════════════════════════════════════
-  Widget _buildFilterPanel(
+  void _openFilterDialog(
     AsyncValue<List<dynamic>> requirementsAsync,
     AsyncValue<List<dynamic>> academicYearsAsync,
     AsyncValue<List<String>> statusesAsync,
-    bool isMobile,
+  ) {
+    setState(() {
+      _pendingStatus = _selectedStatus;
+      _pendingDocumentType = _selectedDocumentType;
+      _pendingGradeLevel = _selectedGradeLevel;
+      _pendingSchoolYear = _selectedSchoolYear;
+    });
+
+    showDialog(
+      context: context,
+      barrierColor: Colors.black.withValues(alpha: 0.25),
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setDialogState) {
+          return Dialog(
+            backgroundColor: Colors.transparent,
+            insetPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 40),
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 440),
+              child: _buildFilterPanelContent(
+                requirementsAsync,
+                academicYearsAsync,
+                statusesAsync,
+                setDialogState,
+                () {
+                  setState(() {
+                    _selectedStatus = _pendingStatus;
+                    _selectedDocumentType = _pendingDocumentType;
+                    _selectedGradeLevel = _pendingGradeLevel;
+                    _selectedSchoolYear = _pendingSchoolYear;
+                  });
+                  _applyFilters();
+                  Navigator.of(ctx).pop();
+                },
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _buildFilterPanelContent(
+    AsyncValue<List<dynamic>> requirementsAsync,
+    AsyncValue<List<dynamic>> academicYearsAsync,
+    AsyncValue<List<String>> statusesAsync,
+    StateSetter setDialogState,
+    VoidCallback onApply,
   ) {
     final statusItems = statusesAsync.when(
       data: (s) => ['All Statuses', ...s],
@@ -1208,113 +1392,6 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
       error: (err, stack) => ['All Years'],
     );
 
-    return Container(
-      color: Colors.grey.shade50,
-      padding: EdgeInsets.symmetric(
-        horizontal: isMobile ? 12 : 20,
-        vertical: 12,
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              const Text(
-                'Filters',
-                style: TextStyle(
-                  fontWeight: FontWeight.w600,
-                  fontSize: 13,
-                  color: AppColors.textSecondary,
-                ),
-              ),
-              TextButton.icon(
-                onPressed: _clearFilters,
-                icon: const Icon(Icons.clear, size: 16, color: AppColors.error),
-                label: const Text(
-                  'Clear Filters',
-                  style: TextStyle(color: AppColors.error, fontSize: 12),
-                ),
-                style: TextButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 8,
-                    vertical: 4,
-                  ),
-                  minimumSize: Size.zero,
-                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 10),
-          Wrap(
-            spacing: 16,
-            runSpacing: 10,
-            children: [
-              _buildDropdown(
-                label: 'Status',
-                value: _selectedStatus,
-                items: statusItems,
-                onChanged: (v) {
-                  setState(() => _selectedStatus = v!);
-                  _applyFilters();
-                },
-              ),
-              _buildDocumentTypeFilter(jhsReqs, shsReqs),
-              _buildDropdown(
-                label: 'Grade Level',
-                value: _selectedGradeLevel,
-                items: const ['All Grades', '7', '8', '9', '10', '11', '12'],
-                onChanged: (v) {
-                  setState(() => _selectedGradeLevel = v!);
-                  _applyFilters();
-                },
-              ),
-              _buildDropdown(
-                label: 'School Year',
-                value: _selectedSchoolYear,
-                items: years,
-                onChanged: (v) {
-                  setState(() => _selectedSchoolYear = v!);
-                  _applyFilters();
-                },
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildDropdown({
-    required String label,
-    required String value,
-    required List<String> items,
-    required ValueChanged<String?> onChanged,
-  }) {
-    final safeValue = items.contains(value) ? value : items.first;
-    return Container(
-      constraints: const BoxConstraints(minWidth: 150),
-      child: DropdownButton<String>(
-        value: safeValue,
-        hint: Text(label, style: const TextStyle(fontSize: 13)),
-        isExpanded: false,
-        isDense: false,
-        underline: Container(height: 1, color: Colors.grey.shade400),
-        items: items
-            .map(
-              (i) => DropdownMenuItem(
-                value: i,
-                child: Text(i, style: const TextStyle(fontSize: 13)),
-              ),
-            )
-            .toList(),
-        onChanged: onChanged,
-      ),
-    );
-  }
-
-  Widget _buildDocumentTypeFilter(List<String> jhsReqs, List<String> shsReqs) {
     final jhsItems = jhsReqs.where((e) => e != 'All JHS').toList();
     final shsItems = shsReqs.where((e) => e != 'All SHS').toList();
 
@@ -1322,16 +1399,236 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
     if (jhsItems.isNotEmpty) _jhsItems = jhsItems;
     if (shsItems.isNotEmpty) _shsItems = shsItems;
 
-    final allOptions = ['All Types', 'All JHS', 'All SHS', ...jhsItems, ...shsItems];
+    final docTypeOptions = [
+      'All Types',
+      'All JHS',
+      'All SHS',
+      ...jhsItems,
+      ...shsItems
+    ];
 
-    return _buildDropdown(
-      label: 'Document Type',
-      value: _selectedDocumentType,
-      items: allOptions,
-      onChanged: (v) {
-        setState(() => _selectedDocumentType = v!);
-        _applyFilters();
-      },
+    return Container(
+      margin: const EdgeInsets.only(top: 10),
+      decoration: BoxDecoration(
+        color: AppColors.surfaceWhite,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: Colors.grey.shade200),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.07),
+            blurRadius: 16,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // Header
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
+            child: Row(
+              children: [
+                const Icon(Icons.tune_rounded, size: 18, color: AppColors.primaryGreen),
+                const SizedBox(width: 8),
+                const Text(
+                  'Filter Documents',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.textPrimary,
+                  ),
+                ),
+              ],
+            ),
+          ),
+
+          const Divider(height: 20),
+
+          // Status
+          _buildFilterSection(
+            label: 'Status',
+            onReset: () => setDialogState(() => _pendingStatus = 'All Statuses'),
+            child: _buildFilterDropdown(
+              value: statusItems.contains(_pendingStatus) ? _pendingStatus : 'All Statuses',
+              items: statusItems,
+              onChanged: (v) => setDialogState(() => _pendingStatus = v!),
+            ),
+          ),
+
+          const Divider(height: 1, indent: 20, endIndent: 20),
+
+          // Document Type
+          _buildFilterSection(
+            label: 'Document Type',
+            onReset: () => setDialogState(() => _pendingDocumentType = 'All Types'),
+            child: _buildFilterDropdown(
+              value: docTypeOptions.contains(_pendingDocumentType) ? _pendingDocumentType : 'All Types',
+              items: docTypeOptions,
+              onChanged: (v) => setDialogState(() => _pendingDocumentType = v!),
+            ),
+          ),
+
+          const Divider(height: 1, indent: 20, endIndent: 20),
+
+          // Grade Level
+          _buildFilterSection(
+            label: 'Grade Level',
+            onReset: () => setDialogState(() => _pendingGradeLevel = 'All Grades'),
+            child: _buildFilterDropdown(
+              value: const ['All Grades', '7', '8', '9', '10', '11', '12'].contains(_pendingGradeLevel) ? _pendingGradeLevel : 'All Grades',
+              items: const ['All Grades', '7', '8', '9', '10', '11', '12'],
+              onChanged: (v) => setDialogState(() => _pendingGradeLevel = v!),
+            ),
+          ),
+
+          const Divider(height: 1, indent: 20, endIndent: 20),
+
+          // School Year
+          _buildFilterSection(
+            label: 'School Year',
+            onReset: () => setDialogState(() => _pendingSchoolYear = 'All Years'),
+            child: _buildFilterDropdown(
+              value: years.contains(_pendingSchoolYear) ? _pendingSchoolYear : 'All Years',
+              items: years,
+              onChanged: (v) => setDialogState(() => _pendingSchoolYear = v!),
+            ),
+          ),
+
+          // Footer buttons
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
+            child: Row(
+              children: [
+                // Reset all
+                Expanded(
+                  child: OutlinedButton(
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: AppColors.textSecondary,
+                      side: BorderSide(color: Colors.grey.shade300),
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                    ),
+                    onPressed: () {
+                      setDialogState(() {
+                        _pendingStatus = 'All Statuses';
+                        _pendingDocumentType = 'All Types';
+                        _pendingGradeLevel = 'All Grades';
+                        _pendingSchoolYear = 'All Years';
+                      });
+                      _clearFilters();
+                      Navigator.of(context).pop();
+                    },
+                    child: const Text('Reset all', style: TextStyle(fontWeight: FontWeight.w600)),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                // Apply
+                Expanded(
+                  flex: 2,
+                  child: ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.primaryGreen,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                      elevation: 0,
+                    ),
+                    onPressed: onApply,
+                    child: const Text('Apply now', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 14)),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildFilterSection({
+    required String label,
+    required VoidCallback onReset,
+    required Widget child,
+  }) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                label,
+                style: const TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.textPrimary,
+                ),
+              ),
+              GestureDetector(
+                onTap: onReset,
+                child: const Text(
+                  'Reset',
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.primaryGreen,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          child,
+        ],
+      ),
+    );
+  }
+
+  Widget _buildFilterDropdown({
+    required String value,
+    required List<String> items,
+    ValueChanged<String?>? onChanged,
+    String? hint,
+    bool enabled = true,
+  }) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
+      decoration: BoxDecoration(
+        color: enabled ? AppColors.surfaceWhite : Colors.grey.shade50,
+        border: Border.all(color: Colors.grey.shade300),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: DropdownButtonHideUnderline(
+        child: DropdownButton<String>(
+          value: items.contains(value) ? value : items.first,
+          isExpanded: true,
+          isDense: true,
+          style: TextStyle(
+            fontSize: 14,
+            color: enabled ? AppColors.textPrimary : AppColors.textMuted,
+          ),
+          hint: hint != null
+              ? Text(hint, style: const TextStyle(fontSize: 13, color: AppColors.textMuted))
+              : null,
+          icon: Icon(
+            Icons.keyboard_arrow_down_rounded,
+            color: enabled ? AppColors.textSecondary : AppColors.textMuted,
+            size: 20,
+          ),
+          items: items
+              .map((i) => DropdownMenuItem(
+                    value: i,
+                    child: Text(i, style: const TextStyle(fontSize: 14)),
+                  ))
+              .toList(),
+          onChanged: enabled ? onChanged : null,
+        ),
+      ),
     );
   }
 
@@ -2263,323 +2560,5 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
         ],
       ),
     );
-  }
-
-  // ══════════════════════════════════════════════════════════════
-  // RECYCLE BIN TAB
-  // ══════════════════════════════════════════════════════════════
-  Widget _buildRecycleBinTab(bool isMobile, double screenW) {
-    final trashAsync = ref.watch(trashDocumentsProvider);
-
-    return trashAsync.when(
-      loading: () => const Center(
-        child: CircularProgressIndicator(color: AppColors.primaryGreen),
-      ),
-      error: (err, _) => Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Icon(Icons.error_outline, size: 48, color: AppColors.error),
-            const SizedBox(height: 12),
-            Text('Failed to load Recycle Bin: $err'),
-            TextButton(
-              onPressed: () => ref.invalidate(trashDocumentsProvider),
-              child: const Text('Retry'),
-            ),
-          ],
-        ),
-      ),
-      data: (items) {
-        final query = ref.read(documentQueryProvider);
-        var filteredItems = items;
-        if (query.search.isNotEmpty) {
-          final s = query.search.toLowerCase();
-          filteredItems = items
-              .where(
-                (i) =>
-                    i.fileName.toLowerCase().contains(s) ||
-                    (i.studentName ?? '').toLowerCase().contains(s),
-              )
-              .toList();
-        }
-
-        if (filteredItems.isEmpty) {
-          return Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(
-                  Icons.delete_outline_rounded,
-                  size: 64,
-                  color: Colors.grey.shade300,
-                ),
-                const SizedBox(height: 16),
-                const Text(
-                  'Recycle Bin is empty',
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                    color: AppColors.textSecondary,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                const Text(
-                  'Soft-deleted documents will appear here.',
-                  style: TextStyle(color: AppColors.textMuted, fontSize: 13),
-                ),
-              ],
-            ),
-          );
-        }
-
-        return Column(
-          children: [
-            Expanded(
-              child: ListView.separated(
-                padding: const EdgeInsets.all(16),
-                itemCount: filteredItems.length,
-                separatorBuilder: (context, index) => const Divider(height: 1),
-                itemBuilder: (ctx, idx) {
-                  final item = filteredItems[idx];
-                  final isSelected = _selectedTrashIds.contains(item.id);
-
-                  return ListTile(
-                    contentPadding: const EdgeInsets.symmetric(
-                      horizontal: 8,
-                      vertical: 4,
-                    ),
-                    leading: _isMultiSelectMode
-                        ? Checkbox(
-                            value: isSelected,
-                            activeColor: AppColors.primaryGreen,
-                            onChanged: (val) {
-                              setState(() {
-                                if (val == true) {
-                                  _selectedTrashIds.add(item.id);
-                                } else {
-                                  _selectedTrashIds.remove(item.id);
-                                }
-                              });
-                            },
-                          )
-                        : null,
-                    title: Text(
-                      item.fileName,
-                      style: const TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 13,
-                      ),
-                    ),
-                    subtitle: Padding(
-                      padding: const EdgeInsets.only(top: 4.0),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          if (item.studentName != null &&
-                              item.studentName!.isNotEmpty)
-                            Text(
-                              'Student: ${item.studentName}',
-                              style: const TextStyle(
-                                fontSize: 11,
-                                color: AppColors.textSecondary,
-                              ),
-                            ),
-                          const SizedBox(height: 2),
-                          Wrap(
-                            spacing: 8,
-                            runSpacing: 4,
-                            crossAxisAlignment: WrapCrossAlignment.center,
-                            children: [
-                              Container(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 8,
-                                  vertical: 2,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: Colors.red.withValues(alpha: 0.1),
-                                  borderRadius: BorderRadius.circular(12),
-                                  border: Border.all(
-                                    color: Colors.red.withValues(alpha: 0.3),
-                                  ),
-                                ),
-                                child: Text(
-                                  '${item.daysRemaining} days remaining',
-                                  style: const TextStyle(
-                                    fontSize: 10,
-                                    color: Colors.redAccent,
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                                ),
-                              ),
-                              if (item.documentType != null)
-                                Text(
-                                  item.documentType!,
-                                  style: const TextStyle(
-                                    fontSize: 11,
-                                    color: AppColors.textMuted,
-                                  ),
-                                ),
-                            ],
-                          ),
-                        ],
-                      ),
-                    ),
-                    trailing: isMobile
-                        ? PopupMenuButton<String>(
-                            icon: const Icon(Icons.more_vert),
-                            onSelected: (val) {
-                              if (val == 'restore') _handleRestore(item.id);
-                              if (val == 'delete') _handlePermanentDelete(item.id);
-                            },
-                            itemBuilder: (ctx) => [
-                              const PopupMenuItem(
-                                value: 'restore',
-                                child: Text('Restore', style: TextStyle(color: AppColors.primaryGreen)),
-                              ),
-                              const PopupMenuItem(
-                                value: 'delete',
-                                child: Text('DELETE', style: TextStyle(color: AppColors.error)),
-                              ),
-                            ],
-                          )
-                        : Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              IconButton(
-                                icon: const Icon(
-                                  Icons.restore,
-                                  color: AppColors.primaryGreen,
-                                ),
-                                tooltip: 'Restore document',
-                                onPressed: () => _handleRestore(item.id),
-                              ),
-                              IconButton(
-                                icon: const Icon(
-                                  Icons.delete_forever,
-                                  color: AppColors.error,
-                                ),
-                                tooltip: 'Delete permanently',
-                                onPressed: () => _handlePermanentDelete(item.id),
-                              ),
-                            ],
-                          ),
-                  );
-                },
-              ),
-            ),
-          ],
-        );
-      },
-    );
-  }
-
-  Future<void> _handleRestore(int id) async {
-    try {
-      await ref.read(trashMutationProvider.notifier).restoreDocument(id);
-      showSuccessDialog(context, message: 'Document has been restored.');
-    } catch (e) {
-      showErrorDialog(
-        context,
-        'Restore Failed',
-        e.toString().replaceFirst('Exception: ', ''),
-      );
-    }
-  }
-
-  Future<void> _handleBulkRestore(List<int> ids) async {
-    try {
-      await ref.read(trashMutationProvider.notifier).bulkRestore(ids);
-      setState(() {
-        _selectedTrashIds.clear();
-      });
-      showSuccessDialog(
-        context,
-        message: 'Selected documents restored successfully.',
-      );
-    } catch (e) {
-      showErrorDialog(
-        context,
-        'Bulk Restore Failed',
-        e.toString().replaceFirst('Exception: ', ''),
-      );
-    }
-  }
-
-  Future<void> _handlePermanentDelete(int id) async {
-    final confirm = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Confirm Permanent Deletion'),
-        content: const Text(
-          'Are you sure you want to permanently delete this document? This will remove the file from the disk and cannot be undone.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop(false),
-            child: const Text('CANCEL'),
-          ),
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop(true),
-            style: TextButton.styleFrom(foregroundColor: AppColors.error),
-            child: const Text('DELETE'),
-          ),
-        ],
-      ),
-    );
-
-    if (confirm != true) return;
-
-    try {
-      await ref.read(trashMutationProvider.notifier).permanentDelete(id);
-      showSuccessDialog(context, message: 'Document permanently deleted.');
-    } catch (e) {
-      showErrorDialog(
-        context,
-        'Deletion Failed',
-        e.toString().replaceFirst('Exception: ', ''),
-      );
-    }
-  }
-
-  Future<void> _handleBulkPermanentDelete(List<int> ids) async {
-    final confirm = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Confirm Bulk Deletion'),
-        content: Text(
-          'Are you sure you want to permanently delete these ${ids.length} documents? This will delete the files from the disk and cannot be undone.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop(false),
-            child: const Text('CANCEL'),
-          ),
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop(true),
-            style: TextButton.styleFrom(foregroundColor: AppColors.error),
-            child: const Text('DELETE'),
-          ),
-        ],
-      ),
-    );
-
-    if (confirm != true) return;
-
-    try {
-      await ref.read(trashMutationProvider.notifier).bulkPermanentDelete(ids);
-      setState(() {
-        _selectedTrashIds.clear();
-      });
-      showSuccessDialog(
-        context,
-        message: 'Selected documents permanently deleted.',
-      );
-    } catch (e) {
-      showErrorDialog(
-        context,
-        'Bulk Deletion Failed',
-        e.toString().replaceFirst('Exception: ', ''),
-      );
-    }
   }
 }
