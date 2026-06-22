@@ -14,6 +14,7 @@ class FolderModel {
   final String? studentLastName;
   final String? createdByUsername;
   final int? documentCount;
+  final String? studentStatus;
 
   // JHS / SHS completion tracking
   /// 'JHS' or 'SHS' — the tier that applies to this student
@@ -44,6 +45,7 @@ class FolderModel {
     this.studentLastName,
     this.createdByUsername,
     this.documentCount,
+    this.studentStatus,
     this.studentTier,
     this.jhsTotal = 0,
     this.jhsCompleted = 0,
@@ -94,6 +96,7 @@ class FolderModel {
       studentLastName: json['last_name'] as String?,
       createdByUsername: json['created_by_username'] as String?,
       documentCount: json['document_count'] as int?,
+      studentStatus: json['student_status'] as String?,
       studentTier: json['student_tier'] as String?,
       jhsTotal: (json['jhs_total'] as num?)?.toInt() ?? 0,
       jhsCompleted: (json['jhs_completed'] as num?)?.toInt() ?? 0,

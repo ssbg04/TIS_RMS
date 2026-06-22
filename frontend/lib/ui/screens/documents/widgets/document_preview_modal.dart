@@ -35,10 +35,41 @@ class _DocumentPreviewDialogState extends State<_DocumentPreviewDialog> {
   bool _imageLoaded = false;
   String? _token;
 
+  final PdfViewerController _pdfViewerController = PdfViewerController();
+  final TransformationController _imageTransformationController = TransformationController();
+
+  void _zoomImageIn() {
+    final matrix = _imageTransformationController.value.clone();
+    matrix.scale(1.2, 1.2, 1.0);
+    _imageTransformationController.value = matrix;
+  }
+
+  void _zoomImageOut() {
+    final matrix = _imageTransformationController.value.clone();
+    matrix.scale(1 / 1.2, 1 / 1.2, 1.0);
+    _imageTransformationController.value = matrix;
+  }
+
+  void _zoomPdfIn() {
+    _pdfViewerController.zoomLevel = _pdfViewerController.zoomLevel + 0.5;
+  }
+
+  void _zoomPdfOut() {
+    final newZoom = _pdfViewerController.zoomLevel - 0.5;
+    _pdfViewerController.zoomLevel = newZoom < 1.0 ? 1.0 : newZoom;
+  }
+
   @override
   void initState() {
     super.initState();
     _loadToken();
+  }
+
+  @override
+  void dispose() {
+    _pdfViewerController.dispose();
+    _imageTransformationController.dispose();
+    super.dispose();
   }
 
   Future<void> _loadToken() async {
@@ -216,10 +247,50 @@ class _DocumentPreviewDialogState extends State<_DocumentPreviewDialog> {
   }
 
   Widget _buildContent(bool isMobile) {
-    if (_isImage) return _buildImagePreview();
-    if (_isPdf) return _buildPdfInfo(isMobile);
-    if (_isOffice) return _buildOfficeInfo(isMobile);
-    return _buildGenericInfo(isMobile);
+    Widget content;
+    if (_isImage) {
+      content = _buildImagePreview();
+    } else if (_isPdf) {
+      content = _buildPdfInfo(isMobile);
+    } else if (_isOffice) {
+      content = _buildOfficeInfo(isMobile);
+    } else {
+      content = _buildGenericInfo(isMobile);
+    }
+
+    if (_isImage || _isPdf) {
+      return Stack(
+        children: [
+          Positioned.fill(child: content),
+          Positioned(
+            right: 16,
+            bottom: 16,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                FloatingActionButton.small(
+                  heroTag: 'zoom_in',
+                  backgroundColor: AppColors.surfaceWhite,
+                  foregroundColor: AppColors.primaryGreen,
+                  onPressed: _isImage ? _zoomImageIn : _zoomPdfIn,
+                  child: const Icon(Icons.zoom_in),
+                ),
+                const SizedBox(height: 8),
+                FloatingActionButton.small(
+                  heroTag: 'zoom_out',
+                  backgroundColor: AppColors.surfaceWhite,
+                  foregroundColor: AppColors.primaryGreen,
+                  onPressed: _isImage ? _zoomImageOut : _zoomPdfOut,
+                  child: const Icon(Icons.zoom_out),
+                ),
+              ],
+            ),
+          ),
+        ],
+      );
+    }
+
+    return content;
   }
 
   // ── Image preview ─────────────────────────────────────────
@@ -233,8 +304,10 @@ class _DocumentPreviewDialogState extends State<_DocumentPreviewDialog> {
               children: [
                 // Main image
                 InteractiveViewer(
+                  transformationController: _imageTransformationController,
                   minScale: 0.5,
                   maxScale: 5.0,
+                  constrained: true,
                   child: Padding(
                     padding: const EdgeInsets.all(16),
                     child: Image.network(
@@ -323,6 +396,7 @@ class _DocumentPreviewDialogState extends State<_DocumentPreviewDialog> {
       color: Colors.grey.shade100,
       child: SfPdfViewer.network(
         _fileUrl,
+        controller: _pdfViewerController,
         canShowScrollHead: false,
         canShowScrollStatus: false,
       ),

@@ -108,6 +108,65 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
     }
   }
 
+  void _showBulkActionMenu(bool isDesktop) {
+    if (isDesktop) {
+      showDialog(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          title: const Text('Bulk Actions'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              ListTile(
+                leading: const Icon(Icons.group_add, color: AppColors.primaryGreen),
+                title: const Text('Bulk Enroll'),
+                onTap: () {
+                  Navigator.pop(ctx);
+                  _showBulkEnrollModal();
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.school, color: Colors.blue),
+                title: const Text('Bulk Graduate'),
+                onTap: () {
+                  Navigator.pop(ctx);
+                  _showBulkGraduateConfirm();
+                },
+              ),
+            ],
+          ),
+        ),
+      );
+    } else {
+      showModalBottomSheet(
+        context: context,
+        builder: (ctx) => SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              ListTile(
+                leading: const Icon(Icons.group_add, color: AppColors.primaryGreen),
+                title: const Text('Bulk Enroll'),
+                onTap: () {
+                  Navigator.pop(ctx);
+                  _showBulkEnrollModal();
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.school, color: Colors.blue),
+                title: const Text('Bulk Graduate'),
+                onTap: () {
+                  Navigator.pop(ctx);
+                  _showBulkGraduateConfirm();
+                },
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+  }
+
   void _showBulkEnrollModal() {
     showDialog(
       context: context,
@@ -116,14 +175,15 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
         onSuccess: () {
           setState(() {
             _selectedStudentIds.clear();
+            _showMultiSelect = false;
           });
+          showSuccessDialog(context, message: 'Students successfully enrolled.');
         },
       ),
     );
   }
 
   void _showBulkGraduateConfirm() async {
-
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
@@ -143,13 +203,16 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
       try {
         await ref.read(studentMutationProvider.notifier).bulkGraduate(_selectedStudentIds);
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Students successfully graduated.'), backgroundColor: AppColors.success));
-          setState(() => _selectedStudentIds.clear());
+          setState(() {
+            _selectedStudentIds.clear();
+            _showMultiSelect = false;
+          });
+          showSuccessDialog(context, message: 'Students successfully graduated.');
         }
       } catch (e) {
         if (mounted) {
           final errMsg = e.toString().replaceAll('Exception: ', '');
-          ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(errMsg), backgroundColor: AppColors.error));
+          showErrorDialog(context, 'Error', errMsg);
         }
       }
     }
@@ -288,7 +351,7 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
 
     return Scaffold(
       backgroundColor: Colors.transparent,
-      floatingActionButton: _searchFocusNode.hasFocus ? null : Column(
+      floatingActionButton: !isMobile ? null : Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.end,
         children: [
@@ -395,15 +458,6 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
                   color:      AppColors.textPrimary,
                 ),
               ),
-              // Desktop: show full button in header
-              if (widget.userRole != 'teacher' && isDesktop)
-                SizedBox(
-                  width: 180,
-                  child: PrimaryButton(
-                    label: 'ADD',
-                    onPressed: () => _openModal(),
-                  ),
-                ),
             ],
           ),
           const SizedBox(height: AppSizes.p16),
@@ -422,6 +476,29 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
               if (widget.userRole != 'teacher' && !_searchFocusNode.hasFocus) ...[
                 const SizedBox(width: 8),
                 _buildMultiSelectToggle(false),
+              ],
+              if (isDesktop) ...[
+                const SizedBox(width: 8),
+                OutlinedButton.icon(
+                  onPressed: () => _openFilterDialog(query, ref.read(academicYearsListProvider), ref.read(sectionsListProvider)),
+                  icon: const Icon(Icons.tune_rounded, size: 20),
+                  label: const Text('Filter'),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: AppColors.primaryGreen,
+                    side: const BorderSide(color: AppColors.primaryGreen),
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  ),
+                ),
+                if (widget.userRole != 'teacher') ...[
+                  const SizedBox(width: 8),
+                  SizedBox(
+                    width: 100,
+                    child: PrimaryButton(
+                      label: 'ADD',
+                      onPressed: () => _openModal(),
+                    ),
+                  ),
+                ],
               ],
             ],
           ),
@@ -458,7 +535,8 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
                           runSpacing: 8,
                           alignment: WrapAlignment.end,
                           children: [
-                            PopupMenuButton<String>(
+                            GestureDetector(
+                              onTap: () => _showBulkActionMenu(isDesktop),
                               child: Container(
                                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                                 decoration: BoxDecoration(
@@ -476,23 +554,6 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
                                   ],
                                 ),
                               ),
-                              onSelected: (value) {
-                                if (value == 'enroll') {
-                                  _showBulkEnrollModal();
-                                } else if (value == 'graduate') {
-                                  _showBulkGraduateConfirm();
-                                }
-                              },
-                              itemBuilder: (context) => [
-                                const PopupMenuItem(
-                                  value: 'enroll',
-                                  child: Row(children: [Icon(Icons.group_add, color: AppColors.primaryGreen, size: 18), SizedBox(width: 10), Text('Bulk Enroll', style: TextStyle(fontSize: 14))]),
-                                ),
-                                const PopupMenuItem(
-                                  value: 'graduate',
-                                  child: Row(children: [Icon(Icons.school, color: Colors.blue, size: 18), SizedBox(width: 10), Text('Bulk Graduate', style: TextStyle(fontSize: 14))]),
-                                ),
-                              ],
                             ),
                             OutlinedButton.icon(
                               style: OutlinedButton.styleFrom(
@@ -524,7 +585,8 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
                         Row(
                           children: [
                             Expanded(
-                              child: PopupMenuButton<String>(
+                              child: GestureDetector(
+                                onTap: () => _showBulkActionMenu(isDesktop),
                                 child: Container(
                                   padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
                                   decoration: BoxDecoration(
@@ -542,23 +604,6 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
                                     ],
                                   ),
                                 ),
-                                onSelected: (value) {
-                                  if (value == 'enroll') {
-                                    _showBulkEnrollModal();
-                                  } else if (value == 'graduate') {
-                                    _showBulkGraduateConfirm();
-                                  }
-                                },
-                                itemBuilder: (context) => [
-                                  const PopupMenuItem(
-                                    value: 'enroll',
-                                    child: Row(children: [Icon(Icons.group_add, color: AppColors.primaryGreen, size: 18), SizedBox(width: 10), Text('Bulk Enroll', style: TextStyle(fontSize: 14))]),
-                                  ),
-                                  const PopupMenuItem(
-                                    value: 'graduate',
-                                    child: Row(children: [Icon(Icons.school, color: Colors.blue, size: 18), SizedBox(width: 10), Text('Bulk Graduate', style: TextStyle(fontSize: 14))]),
-                                  ),
-                                ],
                               ),
                             ),
                             const SizedBox(width: 8),
@@ -1168,7 +1213,7 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
                     style: const TextStyle(
-                      fontSize: 17,
+                      fontSize: 15,
                       fontWeight: FontWeight.bold,
                     ),
                   ),
@@ -1181,6 +1226,7 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: const TextStyle(
+                      fontSize: 13,
                       color: AppColors.textSecondary,
                     ),
                   ),
@@ -1599,27 +1645,16 @@ class _BulkEnrollDialogState extends ConsumerState<BulkEnrollDialog> {
               children: [
                 yearsAsync.when(
                   data: (years) {
-                    return DropdownButtonFormField<int>(
-                      value: _selectedAcademicYearId,
-                      decoration: const InputDecoration(
-                        labelText: 'Academic Year',
-                        prefixIcon: Icon(Icons.calendar_today),
-                        border: OutlineInputBorder(),
-                      ),
-                      items: years.map((y) => DropdownMenuItem<int>(value: y.id, child: Text(y.yearRange))).toList(),
-                      onChanged: (val) {
-                        setState(() {
-                          _selectedAcademicYearId = val;
-                          _selectedSectionId = null;
-                        });
-                      },
-                      validator: (v) => v == null ? 'Academic year is required.' : null,
-                    );
+                    if (_selectedAcademicYearId == null && years.isNotEmpty) {
+                      WidgetsBinding.instance.addPostFrameCallback((_) {
+                        if (mounted) setState(() => _selectedAcademicYearId = years.first.id);
+                      });
+                    }
+                    return const SizedBox.shrink();
                   },
-                  loading: () => const Center(child: Padding(padding: EdgeInsets.all(8), child: CircularProgressIndicator())),
-                  error: (e, _) => Text('Error: $e'),
+                  loading: () => const SizedBox.shrink(),
+                  error: (e, _) => const SizedBox.shrink(),
                 ),
-                const SizedBox(height: AppSizes.p16),
                 gradeLevelsAsync.when(
                   data: (grades) {
                     return DropdownButtonFormField<int>(

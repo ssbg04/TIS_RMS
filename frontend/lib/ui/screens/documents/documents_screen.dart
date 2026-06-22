@@ -743,7 +743,7 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
                 ),
               ),
             if (defaultTargetPlatform != TargetPlatform.windows &&
-                (_tabController.index == 1 || isFolderOpened) &&
+                _tabController.index != 2 &&
                 !_isMultiSelectMode) ...[
               const SizedBox(height: 12),
               FloatingActionButton(
@@ -755,19 +755,21 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
                 ),
                 child: const Icon(Icons.print, color: AppColors.primaryGreen),
               ),
-              const SizedBox(height: 12),
-              FloatingActionButton(
-                heroTag: 'upload_fab',
-                backgroundColor: AppColors.primaryGreen,
-                onPressed: () => showDialog(
-                  context: context,
-                  builder: (_) => UploadOcrModal(
-                    prefilledStudentId:
-                        _openedFolderStudentId ?? widget.initialStudentId,
+              if (_tabController.index == 1 || isFolderOpened) ...[
+                const SizedBox(height: 12),
+                FloatingActionButton(
+                  heroTag: 'upload_fab',
+                  backgroundColor: AppColors.primaryGreen,
+                  onPressed: () => showDialog(
+                    context: context,
+                    builder: (_) => UploadOcrModal(
+                      prefilledStudentId:
+                          _openedFolderStudentId ?? widget.initialStudentId,
+                    ),
                   ),
+                  child: const Icon(Icons.cloud_upload, color: Colors.white),
                 ),
-                child: const Icon(Icons.cloud_upload, color: Colors.white),
-              ),
+              ],
             ]
           ],
         ),
@@ -1030,26 +1032,6 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
                 ),
               ],
 
-              // Desktop action buttons (Upload available to all roles)
-              if (!isMobile && _tabController.index != 2) ...[
-                const SizedBox(width: 8),
-                _buildPrintQueueButton(),
-                const SizedBox(width: 8),
-                SizedBox(
-                  height: 38,
-                  width: 120,
-                  child: PrimaryButton(
-                    label: 'UPLOAD',
-                    onPressed: () => showDialog(
-                      context: context,
-                      builder: (_) => UploadOcrModal(
-                        prefilledStudentId:
-                            _openedFolderStudentId ?? widget.initialStudentId,
-                      ),
-                    ),
-                  ),
-                ),
-              ],
             ],
           ),
 
@@ -1073,7 +1055,28 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
               if (!_searchFocusNode.hasFocus) ...[
                 // Multi-select toggle (Documents tab, opened folder, or Recycle Bin)
                 if (_tabController.index == 1 || isFolderOpened) ...[
-                  _buildMultiSelectToggle(true),
+                  _buildMultiSelectToggle(isMobile),
+                  const SizedBox(width: 8),
+                ],
+                
+                // Desktop action buttons (Upload available to all roles)
+                if (!isMobile && _tabController.index != 2) ...[
+                  _buildPrintQueueButton(),
+                  const SizedBox(width: 8),
+                  SizedBox(
+                    height: 38,
+                    width: 120,
+                    child: PrimaryButton(
+                      label: 'UPLOAD',
+                      onPressed: () => showDialog(
+                        context: context,
+                        builder: (_) => UploadOcrModal(
+                          prefilledStudentId:
+                              _openedFolderStudentId ?? widget.initialStudentId,
+                        ),
+                      ),
+                    ),
+                  ),
                   const SizedBox(width: 8),
                 ],
 
@@ -1169,11 +1172,6 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
       onSelected: (value) {
         if (value == 'grid_list') {
           setState(() => _isGridView = !_isGridView);
-        } else if (value == 'print') {
-          showDialog(
-            context: context,
-            builder: (_) => const PrintQueueModal(),
-          );
         } else if (value == 'recycle_bin') {
           showDialog(
             context: context,
@@ -1199,24 +1197,6 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
             ],
           ),
         ),
-        if (!isMobile)
-          const PopupMenuItem(
-            value: 'print',
-            child: Row(
-              children: [
-                Icon(
-                  Icons.print,
-                  size: 20,
-                  color: AppColors.textSecondary,
-                ),
-                SizedBox(width: 8),
-                Text(
-                  'Print List',
-                  style: TextStyle(fontSize: 14),
-                ),
-              ],
-            ),
-          ),
         const PopupMenuDivider(),
         const PopupMenuItem(
           value: 'recycle_bin',
@@ -1766,6 +1746,7 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
                             flex: 2,
                             child: Text(
                               'Requirement Progress',
+                              textAlign: TextAlign.center,
                               style: TextStyle(
                                 fontWeight: FontWeight.bold,
                                 fontSize: 12,

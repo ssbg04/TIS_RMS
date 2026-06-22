@@ -1097,7 +1097,7 @@ class _ArchivesScreenState extends ConsumerState<ArchivesScreen>
                                 ),
                                 if (!isMobile) ...[
                                   Expanded(
-                                    child: _buildStudentStatusChip('Archived'),
+                                    child: _buildStudentStatusChip(folder.studentStatus ?? 'Archived'),
                                   ),
                                   Expanded(
                                     child: Text(
@@ -1201,6 +1201,8 @@ class _ArchivesScreenState extends ConsumerState<ArchivesScreen>
                             ),
                           ),
                         ),
+                        const SizedBox(height: 4),
+                        _buildStudentStatusChip(folder.studentStatus ?? 'Archived'),
                         const SizedBox(height: 4),
                         Text(
                           '${folder.documentCount ?? 0} docs',
