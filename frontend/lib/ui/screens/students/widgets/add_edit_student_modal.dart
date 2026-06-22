@@ -389,9 +389,15 @@ class _AddEditStudentModalState extends ConsumerState<AddEditStudentModal>
       detailsAsync.whenData((fullStudent) {
         if (fullStudent.enrollments != null &&
             fullStudent.enrollments!.isNotEmpty) {
-          final latestEnrollment = fullStudent.enrollments!.reduce(
-            (a, b) => a.gradeLevel > b.gradeLevel ? a : b,
-          );
+          final latestEnrollment = fullStudent.enrollments!.reduce((a, b) {
+            final ya = a.yearRange ?? '';
+            final yb = b.yearRange ?? '';
+            final cmp = ya.compareTo(yb);
+            if (cmp != 0) {
+              return cmp > 0 ? a : b;
+            }
+            return a.gradeLevel > b.gradeLevel ? a : b;
+          });
           Future.microtask(() {
             if (mounted && !_isEnrollmentInitialized) {
               setState(() {

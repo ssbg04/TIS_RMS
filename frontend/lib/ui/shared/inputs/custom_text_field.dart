@@ -54,8 +54,8 @@ class CustomTextField extends StatelessWidget {
       decoration: InputDecoration(
         labelText: hintText,
         prefixIcon: Icon(prefixIcon, color: Colors.grey.shade600),
-        // Suffix icon only shows if it's a password field
-        suffixIcon: isPassword
+        // Suffix icon only shows if it's a password field and a toggle callback is provided
+        suffixIcon: isPassword && onToggleVisibility != null
             ? IconButton(
                 icon: Icon(
                   obscureText ? Icons.visibility_off : Icons.visibility,

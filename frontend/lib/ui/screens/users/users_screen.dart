@@ -160,6 +160,63 @@ class _UsersScreenState extends ConsumerState<UsersScreen> {
     );
   }
 
+  void _showUserDetailModal(SystemUser user) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppSizes.radiusLarge)),
+        title: Row(
+          children: [
+            Icon(Icons.person, color: _roleColor(user.role)),
+            const SizedBox(width: 8),
+            const Text('User Details'),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _detailRow('Full Name', user.fullName),
+            const SizedBox(height: 8),
+            _detailRow('Username', '@${user.username}'),
+            const SizedBox(height: 8),
+            _detailRow('Access Role', user.role.toUpperCase().replaceAll('_', ' ')),
+            const SizedBox(height: 8),
+            _detailRow('Email', user.email ?? '—'),
+            const SizedBox(height: 8),
+            _detailRow('Phone', user.phone ?? '—'),
+            const SizedBox(height: 8),
+            _detailRow(
+              'Added By', 
+              user.addedByName != null 
+                  ? '${user.addedByName} (@${user.addedByUsername})' 
+                  : 'System'
+            ),
+            const SizedBox(height: 8),
+            _detailRow('Date Joined', user.createdAt?.split('T').first ?? '—'),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(),
+            child: const Text('CLOSE'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _detailRow(String label, String value) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(label, style: const TextStyle(fontSize: 12, color: AppColors.textSecondary, fontWeight: FontWeight.bold)),
+        const SizedBox(height: 2),
+        Text(value, style: const TextStyle(fontSize: 15, color: AppColors.textPrimary)),
+      ],
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final usersAsync = ref.watch(usersProvider);
@@ -435,18 +492,30 @@ class _UsersScreenState extends ConsumerState<UsersScreen> {
                     DataCell(Text('')), DataCell(Text('')), DataCell(Text('')),
                   ])]
                 : users.map((user) => DataRow(cells: [
-                    DataCell(Row(children: [
-                      CircleAvatar(
-                        radius: 16,
-                        backgroundColor: _roleColor(user.role).withValues(alpha: 0.15),
-                        child: Text(user.initials, style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: _roleColor(user.role))),
-                      ),
-                      const SizedBox(width: 10),
-                      Text(user.fullName, style: const TextStyle(fontWeight: FontWeight.w600)),
-                    ])),
-                    DataCell(Text('@${user.username}', style: const TextStyle(color: AppColors.textSecondary))),
-                    DataCell(_buildRoleChip(user.role)),
-                    DataCell(Text(user.email ?? user.phone ?? '—', style: const TextStyle(color: AppColors.textSecondary, fontSize: 13))),
+                    DataCell(
+                      Row(children: [
+                        CircleAvatar(
+                          radius: 16,
+                          backgroundColor: _roleColor(user.role).withValues(alpha: 0.15),
+                          child: Text(user.initials, style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: _roleColor(user.role))),
+                        ),
+                        const SizedBox(width: 10),
+                        Text(user.fullName, style: const TextStyle(fontWeight: FontWeight.w600)),
+                      ]),
+                      onTap: () => _showUserDetailModal(user),
+                    ),
+                    DataCell(
+                      Text('@${user.username}', style: const TextStyle(color: AppColors.textSecondary)),
+                      onTap: () => _showUserDetailModal(user),
+                    ),
+                    DataCell(
+                      _buildRoleChip(user.role),
+                      onTap: () => _showUserDetailModal(user),
+                    ),
+                    DataCell(
+                      Text(user.email ?? user.phone ?? '—', style: const TextStyle(color: AppColors.textSecondary, fontSize: 13)),
+                      onTap: () => _showUserDetailModal(user),
+                    ),
                     DataCell(_buildActions(user)),
                   ])).toList(),
           ),
@@ -464,49 +533,53 @@ class _UsersScreenState extends ConsumerState<UsersScreen> {
       separatorBuilder: (_, __) => const SizedBox(height: AppSizes.p12),
       itemBuilder: (context, index) {
         final user = users[index];
-        return Container(
-          padding: const EdgeInsets.all(AppSizes.p16),
-          decoration: BoxDecoration(
-            color: AppColors.surfaceWhite,
-            borderRadius: BorderRadius.circular(AppSizes.radiusLarge),
-            boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.03), blurRadius: 8)],
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  CircleAvatar(
-                    radius: 20,
-                    backgroundColor: _roleColor(user.role).withValues(alpha: 0.15),
-                    child: Text(user.initials, style: TextStyle(fontWeight: FontWeight.bold, color: _roleColor(user.role))),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(user.fullName, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
-                        Text('@${user.username}', style: const TextStyle(color: AppColors.textSecondary, fontSize: 13)),
-                      ],
+        return InkWell(
+          onTap: () => _showUserDetailModal(user),
+          borderRadius: BorderRadius.circular(AppSizes.radiusLarge),
+          child: Container(
+            padding: const EdgeInsets.all(AppSizes.p16),
+            decoration: BoxDecoration(
+              color: AppColors.surfaceWhite,
+              borderRadius: BorderRadius.circular(AppSizes.radiusLarge),
+              boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.03), blurRadius: 8)],
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    CircleAvatar(
+                      radius: 20,
+                      backgroundColor: _roleColor(user.role).withValues(alpha: 0.15),
+                      child: Text(user.initials, style: TextStyle(fontWeight: FontWeight.bold, color: _roleColor(user.role))),
                     ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(user.fullName, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
+                          Text('@${user.username}', style: const TextStyle(color: AppColors.textSecondary, fontSize: 13)),
+                        ],
+                      ),
+                    ),
+                    _buildRoleChip(user.role),
+                  ],
+                ),
+                if (user.email != null || user.phone != null) ...[
+                  const SizedBox(height: 8),
+                  Text(
+                    [if (user.email != null) user.email!, if (user.phone != null) user.phone!].join(' · '),
+                    style: const TextStyle(fontSize: 12, color: AppColors.textSecondary),
                   ),
-                  _buildRoleChip(user.role),
                 ],
-              ),
-              if (user.email != null || user.phone != null) ...[
-                const SizedBox(height: 8),
-                Text(
-                  [if (user.email != null) user.email!, if (user.phone != null) user.phone!].join(' · '),
-                  style: const TextStyle(fontSize: 12, color: AppColors.textSecondary),
+                const Divider(height: 20),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [_buildActions(user)],
                 ),
               ],
-              const Divider(height: 20),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.end,
-                children: [_buildActions(user)],
-              ),
-            ],
+            ),
           ),
         );
       },

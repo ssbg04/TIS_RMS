@@ -41,15 +41,17 @@ class _InactivityWrapperState extends ConsumerState<InactivityWrapper> {
   }
 
   Future<void> _handleInactivity() async {
+    // Guard: only act if user is still logged in
     final authState = ref.read(authProvider);
     if (authState.value == null) return;
 
-    // Log the user out
+    // 1. Log out first (clears stored token)
     await ref.read(authProvider.notifier).logout();
-    
-    // Navigate to login screen
-    if (widget.navigatorKey.currentState != null) {
-      widget.navigatorKey.currentState!.pushAndRemoveUntil(
+
+    // 2. Navigate to login screen with sessionExpired flag using the root navigator
+    final navState = widget.navigatorKey.currentState;
+    if (navState != null && navState.mounted) {
+      navState.pushAndRemoveUntil(
         MaterialPageRoute(builder: (_) => const LoginScreen(sessionExpired: true)),
         (route) => false,
       );

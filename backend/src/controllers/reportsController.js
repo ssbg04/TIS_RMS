@@ -87,14 +87,14 @@ exports.getStats = (req, res) => {
 
         const studentsQuery = `
             SELECT s.id, s.lrn, s.first_name, s.last_name, s.sex, s.status,
-                   MAX(e.grade_level) as grade_level, sec.name as section_name,
+                   e_latest.grade_level, sec.name as section_name,
                    (
                        SELECT COUNT(*) 
                        FROM document_requirements r
                        WHERE r.is_enabled = 1
                          AND (
-                             (r.category = 'JHS' AND MAX(e.grade_level) BETWEEN 7 AND 10)
-                             OR (r.category = 'SHS' AND MAX(e.grade_level) BETWEEN 11 AND 12)
+                             (r.category = 'JHS' AND EXISTS (SELECT 1 FROM enrollments WHERE student_id = s.id AND grade_level <= 10))
+                             OR (r.category = 'SHS' AND EXISTS (SELECT 1 FROM enrollments WHERE student_id = s.id AND grade_level > 10))
                          )
                          AND NOT EXISTS (
                              SELECT 1 FROM documents d 
@@ -108,8 +108,8 @@ exports.getStats = (req, res) => {
                        FROM document_requirements r
                        WHERE r.is_enabled = 1
                          AND (
-                             (r.category = 'JHS' AND MAX(e.grade_level) BETWEEN 7 AND 10)
-                             OR (r.category = 'SHS' AND MAX(e.grade_level) BETWEEN 11 AND 12)
+                             (r.category = 'JHS' AND EXISTS (SELECT 1 FROM enrollments WHERE student_id = s.id AND grade_level <= 10))
+                             OR (r.category = 'SHS' AND EXISTS (SELECT 1 FROM enrollments WHERE student_id = s.id AND grade_level > 10))
                          )
                          AND NOT EXISTS (
                              SELECT 1 FROM documents d 
@@ -119,10 +119,15 @@ exports.getStats = (req, res) => {
                          )
                    ) as missing_requirements
             FROM students s
-            JOIN enrollments e ON s.id = e.student_id
-            LEFT JOIN sections sec ON e.section_id = sec.id
-            WHERE 1=1 ${studentFilterSql}
-            GROUP BY s.id
+            JOIN enrollments e_latest ON s.id = e_latest.student_id
+                AND e_latest.id = (
+                    SELECT e2.id FROM enrollments e2
+                    JOIN academic_years ay ON e2.academic_year_id = ay.id
+                    WHERE e2.student_id = s.id
+                    ORDER BY ay.year_range DESC, e2.grade_level DESC, e2.id DESC LIMIT 1
+                )
+            LEFT JOIN sections sec ON e_latest.section_id = sec.id
+            WHERE 1=1 ${studentFilterSql.replace(/\be\./g, 'e_latest.')}
             ORDER BY s.last_name ASC, s.first_name ASC
             LIMIT 1000
         `;
@@ -229,11 +234,17 @@ exports.getExportData = (req, res) => {
         } else {
             students = db.prepare(`
                 SELECT s.lrn, s.first_name, s.last_name, s.sex,
-                       MAX(e.grade_level) as grade_level,
+                       e_latest.grade_level,
                        COUNT(CASE WHEN d.status = 'Completed' THEN 1 END) as verified_docs,
                        COUNT(CASE WHEN d.status = 'Archived' THEN 1 END) as archived_docs
                 FROM students s
-                LEFT JOIN enrollments e ON s.id = e.student_id
+                LEFT JOIN enrollments e_latest ON s.id = e_latest.student_id
+                    AND e_latest.id = (
+                        SELECT e2.id FROM enrollments e2
+                        JOIN academic_years ay ON e2.academic_year_id = ay.id
+                        WHERE e2.student_id = s.id
+                        ORDER BY ay.year_range DESC, e2.grade_level DESC, e2.id DESC LIMIT 1
+                    )
                 LEFT JOIN documents d ON s.id = d.student_id
                 GROUP BY s.id
                 ORDER BY s.last_name ASC

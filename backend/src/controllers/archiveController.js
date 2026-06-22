@@ -14,6 +14,9 @@ exports.getArchivedStudents = (req, res) => {
     const limitNum = Math.min(100, Math.max(1, parseInt(limit)));
     const offset   = (pageNum - 1) * limitNum;
 
+    const isTeacher = req.user?.role?.toLowerCase() === 'teacher';
+    const teacherId = req.user?.id;
+
     try {
         const conditions = [];
         const params     = [];
@@ -32,19 +35,33 @@ exports.getArchivedStudents = (req, res) => {
             params.push(like, like, like, like);
         }
 
+        // ---- Teacher section scoping ----
+        const teacherJoin = isTeacher
+            ? `JOIN enrollments e_teacher ON e_teacher.student_id = s.id
+               AND e_teacher.id = (
+                   SELECT e2.id FROM enrollments e2
+                   JOIN academic_years ay ON e2.academic_year_id = ay.id
+                   WHERE e2.student_id = s.id
+                   ORDER BY ay.year_range DESC, e2.grade_level DESC, e2.id DESC LIMIT 1
+               )
+               JOIN teacher_sections ts ON ts.section_id = e_teacher.section_id AND ts.teacher_id = ?`
+            : '';
+        if (isTeacher) params.unshift(teacherId);
+
         const whereClause = conditions.length ? `WHERE ${conditions.join(' AND ')}` : '';
 
         // Count query
         const countSql = `
             SELECT COUNT(DISTINCT s.id) as total
             FROM students s
+            ${teacherJoin}
             ${whereClause}
         `;
         const total = db.prepare(countSql).get(params).total;
 
         // Fetch query
         const fetchSql = `
-            SELECT 
+            SELECT DISTINCT
                 s.id, s.lrn, s.first_name, s.middle_name, s.last_name, s.extension, 
                 s.status, s.created_at,
                 date(s.created_at) as archivedDate,
@@ -55,6 +72,7 @@ exports.getArchivedStudents = (req, res) => {
                     ELSE date(s.created_at, '+5 years')
                 END as expiryDate
             FROM students s
+            ${teacherJoin}
             ${whereClause}
             ORDER BY s.last_name ASC, s.first_name ASC
             LIMIT ? OFFSET ?
@@ -157,6 +175,9 @@ exports.getArchivedDocuments = (req, res) => {
     const limitNum = Math.min(100, Math.max(1, parseInt(limit)));
     const offset   = (pageNum - 1) * limitNum;
 
+    const isTeacher = req.user?.role?.toLowerCase() === 'teacher';
+    const teacherId = req.user?.id;
+
     try {
         const conditions = [];
         const params     = [];
@@ -215,12 +236,23 @@ exports.getArchivedDocuments = (req, res) => {
             params.push(studentId.trim());
         }
 
+        const teacherJoin = isTeacher 
+            ? `JOIN teacher_sections ts ON e.section_id = ts.section_id AND ts.teacher_id = ?`
+            : '';
+        if (isTeacher) params.unshift(teacherId);
+
         const whereClause = conditions.length ? `WHERE ${conditions.join(' AND ')}` : '';
 
         const joins = `
             LEFT JOIN students s ON d.student_id = s.id
             LEFT JOIN enrollments e ON e.student_id = s.id
-                AND e.id = (SELECT id FROM enrollments WHERE student_id = s.id ORDER BY grade_level DESC, id DESC LIMIT 1)
+                AND e.id = (
+                    SELECT e2.id FROM enrollments e2
+                    JOIN academic_years ay_inner ON e2.academic_year_id = ay_inner.id
+                    WHERE e2.student_id = s.id
+                    ORDER BY ay_inner.year_range DESC, e2.grade_level DESC, e2.id DESC LIMIT 1
+                )
+            ${teacherJoin}
             LEFT JOIN academic_years ay ON e.academic_year_id = ay.id
             LEFT JOIN document_requirements dr ON d.requirement_id = dr.id
         `;
@@ -278,6 +310,9 @@ exports.getArchivedDocuments = (req, res) => {
 // ============================================================
 exports.getArchivedStudentFolders = (req, res) => {
     const { search = '', status = 'All Statuses' } = req.query;
+    const isTeacher = req.user?.role?.toLowerCase() === 'teacher';
+    const teacherId = req.user?.id;
+
     try {
         const conditions = [];
         const params     = [];
@@ -295,15 +330,29 @@ exports.getArchivedStudentFolders = (req, res) => {
             params.push(like, like, like);
         }
 
+        let teacherJoinSql = '';
+        if (isTeacher) {
+            teacherJoinSql = `JOIN enrollments e_teacher ON e_teacher.student_id = f.student_id
+                AND e_teacher.id = (
+                    SELECT e2.id FROM enrollments e2
+                    JOIN academic_years ay ON e2.academic_year_id = ay.id
+                    WHERE e2.student_id = f.student_id
+                    ORDER BY ay.year_range DESC, e2.grade_level DESC, e2.id DESC LIMIT 1
+                )
+                JOIN teacher_sections ts ON ts.section_id = e_teacher.section_id AND ts.teacher_id = ?`;
+            params.unshift(teacherId);
+        }
+
         const whereClause = `WHERE ${conditions.join(' AND ')}`;
 
         const rows = db.prepare(`
-            SELECT
+            SELECT DISTINCT
                 f.id, f.name, f.student_id, f.category, f.created_at,
                 s.lrn, s.first_name, s.last_name, s.status as student_status,
                 (SELECT COUNT(*) FROM documents d
                  WHERE d.student_id = f.student_id AND d.deleted_at IS NULL) as document_count
             FROM document_folders f
+            ${teacherJoinSql}
             JOIN students s ON f.student_id = s.id
             ${whereClause}
             AND f.category = 'root'

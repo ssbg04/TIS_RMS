@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../domain/entities/setup_models.dart';
 import '../../domain/repositories/setup_repository.dart';
+import 'auth_provider.dart';
 
 final setupRepositoryProvider = Provider<SetupRepository>((ref) {
   return SetupRepository();
@@ -14,6 +15,12 @@ final academicYearsListProvider = FutureProvider<List<AcademicYearModel>>((ref) 
 
 final sectionsListProvider = FutureProvider<List<SectionModel>>((ref) async {
   final repo = ref.read(setupRepositoryProvider);
+  final user = ref.watch(authProvider).value;
+  
+  if (user?.role == 'teacher') {
+    return repo.getTeacherSections(user!.id);
+  }
+  
   return repo.getAllSections();
 });
 

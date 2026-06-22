@@ -340,11 +340,21 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
                           child: CircularProgressIndicator(color: AppColors.primaryGreen),
                         ),
                         error: (err, _) => _buildError(err.toString()),
-                        data: (page) => LayoutBuilder(
-                          builder: (ctx, c) => c.maxWidth > 800
-                              ? _buildDesktopTable(page.students)
-                              : _buildMobileCardList(page.students),
-                        ),
+                        data: (page) {
+                          // Teacher with no active filters and 0 total means no sections assigned
+                          final hasNoSections = widget.userRole == 'teacher' &&
+                              query.search.isEmpty &&
+                              query.gradeLevel.isEmpty &&
+                              query.section.isEmpty &&
+                              query.status.isEmpty &&
+                              query.schoolYear.isEmpty &&
+                              page.total == 0;
+                          return LayoutBuilder(
+                            builder: (ctx, c) => c.maxWidth > 800
+                                ? _buildDesktopTable(page.students, noSections: hasNoSections)
+                                : _buildMobileCardList(page.students, noSections: hasNoSections),
+                          );
+                        },
                       ),
                     ),
                   ],
@@ -938,23 +948,25 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
   // ================================================================
   // DESKTOP DATA TABLE
   // ================================================================
-  Widget _buildDesktopTable(List<StudentModel> students) {
-    if (students.isEmpty) return _buildEmptyState();
+  Widget _buildDesktopTable(List<StudentModel> students, {bool noSections = false}) {
+    if (students.isEmpty) return _buildEmptyState(noSections: noSections);
 
-    return Container(
-      width:      double.infinity,
-      decoration: BoxDecoration(
-        color:        AppColors.surfaceWhite,
-        borderRadius: BorderRadius.circular(AppSizes.radiusLarge),
-        boxShadow: [
-          BoxShadow(
-            color:      Colors.black.withValues(alpha: 0.04),
-            blurRadius: 12,
-            offset:     const Offset(0, 4),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        return Container(
+          width:      double.infinity,
+          decoration: BoxDecoration(
+            color:        AppColors.surfaceWhite,
+            borderRadius: BorderRadius.circular(AppSizes.radiusLarge),
+            boxShadow: [
+              BoxShadow(
+                color:      Colors.black.withValues(alpha: 0.04),
+                blurRadius: 12,
+                offset:     const Offset(0, 4),
+              ),
+            ],
           ),
-        ],
-      ),
-      child: ClipRRect(
+          child: ClipRRect(
         borderRadius: BorderRadius.circular(AppSizes.radiusLarge),
         child: Scrollbar(
           controller: _horizontalScrollController,
@@ -962,98 +974,117 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
           child: SingleChildScrollView(
             controller: _horizontalScrollController,
             scrollDirection: Axis.horizontal,
-            child: SingleChildScrollView(
-              scrollDirection: Axis.vertical,
-              child: DataTable(
-              headingRowColor: WidgetStateProperty.all(
-                AppColors.primaryGreen.withValues(alpha: 0.06),
-              ),
-              dataRowMaxHeight: 56,
-              columns: [
-                if (widget.userRole != 'teacher' && _showMultiSelect)
-                  DataColumn(
-                    label: Checkbox(
-                      activeColor: AppColors.primaryGreen,
-                      value: students.isNotEmpty &&
-                          students.every((s) => _selectedStudentIds.contains(s.id)),
-                      onChanged: (val) {
-                        setState(() {
-                          if (val == true) {
-                            for (var s in students) {
-                              if (!_selectedStudentIds.contains(s.id)) {
-                                _selectedStudentIds.add(s.id);
-                              }
-                            }
-                          } else {
-                            for (var s in students) {
-                              _selectedStudentIds.remove(s.id);
-                            }
-                          }
-                        });
-                      },
-                    ),
+            child: ConstrainedBox(
+              constraints: BoxConstraints(minWidth: constraints.maxWidth),
+              child: SingleChildScrollView(
+                scrollDirection: Axis.vertical,
+                child: DataTable(
+                  headingRowColor: WidgetStateProperty.all(
+                    AppColors.primaryGreen.withValues(alpha: 0.06),
                   ),
-                const DataColumn(label: Text('LRN',           style: TextStyle(fontWeight: FontWeight.bold))),
-                const DataColumn(label: Text('Name',          style: TextStyle(fontWeight: FontWeight.bold))),
-                const DataColumn(label: Text('Grade & Sec.',  style: TextStyle(fontWeight: FontWeight.bold))),
-                const DataColumn(label: Text('Status',        style: TextStyle(fontWeight: FontWeight.bold))),
-                const DataColumn(label: Text('Missing Docs',  style: TextStyle(fontWeight: FontWeight.bold))),
-                const DataColumn(label: Text('Actions',       style: TextStyle(fontWeight: FontWeight.bold))),
-              ],
-              rows: students.map((student) {
-                final isSelected = _selectedStudentIds.contains(student.id);
-                return DataRow(
-                  selected: isSelected,
-                  cells: [
+                  dataRowMaxHeight: 56,
+                  columns: [
                     if (widget.userRole != 'teacher' && _showMultiSelect)
-                      DataCell(
-                        Checkbox(
+                      DataColumn(
+                        label: Checkbox(
                           activeColor: AppColors.primaryGreen,
-                          value: isSelected,
+                          value: students.isNotEmpty &&
+                              students.every((s) => _selectedStudentIds.contains(s.id)),
                           onChanged: (val) {
                             setState(() {
                               if (val == true) {
-                                _selectedStudentIds.add(student.id);
+                                for (var s in students) {
+                                  if (!_selectedStudentIds.contains(s.id)) {
+                                    _selectedStudentIds.add(s.id);
+                                  }
+                                }
                               } else {
-                                _selectedStudentIds.remove(student.id);
+                                for (var s in students) {
+                                  _selectedStudentIds.remove(s.id);
+                                }
                               }
                             });
                           },
                         ),
                       ),
-                    DataCell(Text(student.lrn, style: const TextStyle(fontWeight: FontWeight.w600))),
-                    DataCell(Text(student.fullName)),
-                    DataCell(Text(student.gradeSection)),
-                    DataCell(_StatusChip(status: student.status)),
-                    DataCell(_DocumentProgressBar(
-                      missingCount: student.missingDocumentsCount,
-                      totalCount: student.totalDocumentsCount,
-                      missingDocuments: student.missingDocuments,
-                    )),
-                    DataCell(_ActionButtons(
-                      student:          student,
-                      userRole:         widget.userRole,
-                      onEdit:           () => _openModal(student: student),
-                      onDelete:         () => _confirmDelete(student),
-                      onViewProfile:    () => _viewProfile(student.id),
-                      onOpenDocuments:  () => _openDocumentsFolder(student),
-                    )),
+                    const DataColumn(label: Text('LRN',           style: TextStyle(fontWeight: FontWeight.bold))),
+                    const DataColumn(label: Text('Name',          style: TextStyle(fontWeight: FontWeight.bold))),
+                    const DataColumn(label: Text('Grade & Sec.',  style: TextStyle(fontWeight: FontWeight.bold))),
+                    const DataColumn(label: Text('Status',        style: TextStyle(fontWeight: FontWeight.bold))),
+                    const DataColumn(label: Text('Missing Docs',  style: TextStyle(fontWeight: FontWeight.bold))),
+                    const DataColumn(label: Text('Actions',       style: TextStyle(fontWeight: FontWeight.bold))),
                   ],
-                );
-              }).toList(),
+                  rows: students.map((student) {
+                    final isSelected = _selectedStudentIds.contains(student.id);
+                    return DataRow(
+                      selected: isSelected,
+                      cells: [
+                        if (widget.userRole != 'teacher' && _showMultiSelect)
+                          DataCell(
+                            Checkbox(
+                              activeColor: AppColors.primaryGreen,
+                              value: isSelected,
+                              onChanged: (val) {
+                                setState(() {
+                                  if (val == true) {
+                                    _selectedStudentIds.add(student.id);
+                                  } else {
+                                    _selectedStudentIds.remove(student.id);
+                                  }
+                                });
+                              },
+                            ),
+                          ),
+                        DataCell(
+                          Text(student.lrn, style: const TextStyle(fontWeight: FontWeight.w600)),
+                          onTap: () => _viewProfile(student.id),
+                        ),
+                        DataCell(
+                          Text(student.fullName),
+                          onTap: () => _viewProfile(student.id),
+                        ),
+                        DataCell(
+                          Text(student.gradeSection),
+                          onTap: () => _viewProfile(student.id),
+                        ),
+                        DataCell(
+                          _StatusChip(status: student.status),
+                          onTap: () => _viewProfile(student.id),
+                        ),
+                        DataCell(
+                          _DocumentProgressBar(
+                            missingCount: student.missingDocumentsCount,
+                            totalCount: student.totalDocumentsCount,
+                            missingDocuments: student.missingDocuments,
+                          ),
+                          onTap: () => _viewProfile(student.id),
+                        ),
+                        DataCell(_ActionButtons(
+                          student:          student,
+                          userRole:         widget.userRole,
+                          onEdit:           () => _openModal(student: student),
+                          onDelete:         () => _confirmDelete(student),
+                          onOpenDocuments:  () => _openDocumentsFolder(student),
+                        )),
+                      ],
+                    );
+                  }).toList(),
+                ),
+              ),
             ),
           ),
         ),
       ),
-    ),
-  );
-}
+          );
+        },
+    );
+  }
 
   // ================================================================
   // MOBILE CARD LIST
   // ================================================================
-  Widget _buildMobileCardList(List<StudentModel> students) {
-    if (students.isEmpty) return _buildEmptyState();
+  Widget _buildMobileCardList(List<StudentModel> students, {bool noSections = false}) {
+    if (students.isEmpty) return _buildEmptyState(noSections: noSections);
 
     return RefreshIndicator(
       color: AppColors.primaryGreen,
@@ -1070,123 +1101,126 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
         itemBuilder: (_, i) {
           final s = students[i];
 
-          return Container(
-            padding: const EdgeInsets.all(AppSizes.p16),
-            decoration: BoxDecoration(
-              color: AppColors.surfaceWhite,
-              borderRadius: BorderRadius.circular(AppSizes.radiusLarge),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.04),
-                  blurRadius: 8,
-                  offset: const Offset(0, 2),
-                ),
-              ],
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-
-                // TOP ROW
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  children: [
-                    if (widget.userRole != 'teacher' && _showMultiSelect) ...[
-                      Checkbox(
-                        activeColor: AppColors.primaryGreen,
-                        value: _selectedStudentIds.contains(s.id),
-                        onChanged: (val) {
-                          setState(() {
-                            if (val == true) {
-                              _selectedStudentIds.add(s.id);
-                            } else {
-                              _selectedStudentIds.remove(s.id);
-                            }
-                          });
-                        },
-                      ),
-                      const SizedBox(width: 4),
-                    ],
-                    Expanded(
-                      child: Text(
-                        s.lrn,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                          fontWeight: FontWeight.bold,
-                          color: AppColors.primaryGreen,
-                        ),
-                      ),
-                    ),
-
-                    const SizedBox(width: AppSizes.p8),
-
-                    Flexible(
-                      child: _StatusChip(status: s.status),
-                    ),
-                  ],
-                ),
-
-                const SizedBox(height: AppSizes.p8),
-
-                // NAME
-                Text(
-                  s.fullName,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    fontSize: 17,
-                    fontWeight: FontWeight.bold,
+          return InkWell(
+            onTap: () => _viewProfile(s.id),
+            borderRadius: BorderRadius.circular(AppSizes.radiusLarge),
+            child: Container(
+              padding: const EdgeInsets.all(AppSizes.p16),
+              decoration: BoxDecoration(
+                color: AppColors.surfaceWhite,
+                borderRadius: BorderRadius.circular(AppSizes.radiusLarge),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.04),
+                    blurRadius: 8,
+                    offset: const Offset(0, 2),
                   ),
-                ),
+                ],
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
 
-                const SizedBox(height: 2),
-
-                // GRADE SECTION
-                Text(
-                  s.gradeSection,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    color: AppColors.textSecondary,
-                  ),
-                ),
-
-                const Padding(
-                  padding: EdgeInsets.symmetric(vertical: AppSizes.p12),
-                  child: Divider(height: 1),
-                ),
-
-                // BOTTOM SECTION
-                Wrap(
-                  spacing: AppSizes.p12,
-                  runSpacing: AppSizes.p12,
-                  crossAxisAlignment: WrapCrossAlignment.center,
-                  children: [
-                    Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        const Text(
-                          'Docs: ',
-                          style: TextStyle(color: AppColors.textSecondary, fontSize: 13),
+                  // TOP ROW
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      if (widget.userRole != 'teacher' && _showMultiSelect) ...[
+                        Checkbox(
+                          activeColor: AppColors.primaryGreen,
+                          value: _selectedStudentIds.contains(s.id),
+                          onChanged: (val) {
+                            setState(() {
+                              if (val == true) {
+                                _selectedStudentIds.add(s.id);
+                              } else {
+                                _selectedStudentIds.remove(s.id);
+                              }
+                            });
+                          },
                         ),
-                        _DocumentProgressBar(
-                          missingCount: s.missingDocumentsCount,
-                          totalCount: s.totalDocumentsCount,
-                          missingDocuments: s.missingDocuments,
-                        ),
+                        const SizedBox(width: 4),
                       ],
+                      Expanded(
+                        child: Text(
+                          s.lrn,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            fontWeight: FontWeight.bold,
+                            color: AppColors.primaryGreen,
+                          ),
+                        ),
+                      ),
+
+                      const SizedBox(width: AppSizes.p8),
+
+                      Flexible(
+                        child: _StatusChip(status: s.status),
+                      ),
+                    ],
+                  ),
+
+                  const SizedBox(height: AppSizes.p8),
+
+                  // NAME
+                  Text(
+                    s.fullName,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      fontSize: 17,
+                      fontWeight: FontWeight.bold,
                     ),
-                    _ActionButtons(
-                      student: s,
-                      userRole: widget.userRole,
-                      onEdit: () => _openModal(student: s),
-                      onDelete: () => _confirmDelete(s),
-                      onViewProfile: () => _viewProfile(s.id),
-                      onOpenDocuments: () => _openDocumentsFolder(s),
+                  ),
+
+                  const SizedBox(height: 2),
+
+                  // GRADE SECTION
+                  Text(
+                    s.gradeSection,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      color: AppColors.textSecondary,
                     ),
-                  ],
-                ),
-              ],
+                  ),
+
+                  const Padding(
+                    padding: EdgeInsets.symmetric(vertical: AppSizes.p12),
+                    child: Divider(height: 1),
+                  ),
+
+                  // BOTTOM SECTION
+                  Wrap(
+                    spacing: AppSizes.p12,
+                    runSpacing: AppSizes.p12,
+                    crossAxisAlignment: WrapCrossAlignment.center,
+                    children: [
+                      Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Text(
+                            'Docs: ',
+                            style: TextStyle(color: AppColors.textSecondary, fontSize: 13),
+                          ),
+                          _DocumentProgressBar(
+                            missingCount: s.missingDocumentsCount,
+                            totalCount: s.totalDocumentsCount,
+                            missingDocuments: s.missingDocuments,
+                          ),
+                        ],
+                      ),
+                      _ActionButtons(
+                        student: s,
+                        userRole: widget.userRole,
+                        onEdit: () => _openModal(student: s),
+                        onDelete: () => _confirmDelete(s),
+                        onOpenDocuments: () => _openDocumentsFolder(s),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
             ),
           );
         },
@@ -1259,7 +1293,40 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
     );
   }
 
-  Widget _buildEmptyState() {
+  Widget _buildEmptyState({bool noSections = false}) {
+    if (noSections) {
+      // Teacher has no sections assigned at all
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                color: Colors.orange.shade50,
+                shape: BoxShape.circle,
+              ),
+              child: Icon(Icons.class_outlined, size: 56, color: Colors.orange.shade400),
+            ),
+            const SizedBox(height: 20),
+            const Text(
+              'No sections assigned',
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: AppColors.textPrimary,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'You have no sections assigned to your account yet.\nContact your administrator to assign sections.',
+              textAlign: TextAlign.center,
+              style: TextStyle(color: AppColors.textSecondary, fontSize: 13, height: 1.5),
+            ),
+          ],
+        ),
+      );
+    }
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -1426,7 +1493,6 @@ class _ActionButtons extends StatelessWidget {
   final String       userRole;
   final VoidCallback onEdit;
   final VoidCallback onDelete;
-  final VoidCallback onViewProfile;
   final VoidCallback onOpenDocuments;
 
   const _ActionButtons({
@@ -1434,42 +1500,54 @@ class _ActionButtons extends StatelessWidget {
     required this.userRole,
     required this.onEdit,
     required this.onDelete,
-    required this.onViewProfile,
     required this.onOpenDocuments,
   });
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Tooltip(
-          message:  'View Profile',
-          child:    IconButton(
-            icon:      const Icon(Icons.person, color: AppColors.primaryGreen),
-            onPressed: onViewProfile,
-          ),
-        ),
-        Tooltip(
-          message:  'Open Folder',
-          child:    IconButton(
-            icon:      const Icon(Icons.folder_open, color: Colors.orange),
-            onPressed: onOpenDocuments,
+    return PopupMenuButton<String>(
+      icon: const Icon(Icons.more_vert, color: AppColors.textSecondary),
+      tooltip: 'Actions',
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppSizes.radiusMedium)),
+      onSelected: (value) {
+        if (value == 'folder') {
+          onOpenDocuments();
+        } else if (value == 'edit') {
+          onEdit();
+        } else if (value == 'delete') {
+          onDelete();
+        }
+      },
+      itemBuilder: (context) => [
+        const PopupMenuItem(
+          value: 'folder',
+          child: Row(
+            children: [
+              Icon(Icons.folder_open, color: Colors.orange, size: 20),
+              SizedBox(width: 12),
+              Text('Open Folder', style: TextStyle(fontSize: 14)),
+            ],
           ),
         ),
         if (userRole != 'teacher') ...[
-          Tooltip(
-            message:  'Edit Student',
-            child:    IconButton(
-              icon:      const Icon(Icons.edit, color: Colors.blueAccent),
-              onPressed: onEdit,
+          const PopupMenuItem(
+            value: 'edit',
+            child: Row(
+              children: [
+                Icon(Icons.edit, color: Colors.blueAccent, size: 20),
+                SizedBox(width: 12),
+                Text('Edit Student', style: TextStyle(fontSize: 14)),
+              ],
             ),
           ),
-          Tooltip(
-            message:  'Delete Student',
-            child:    IconButton(
-              icon:      const Icon(Icons.delete, color: AppColors.error),
-              onPressed: onDelete,
+          const PopupMenuItem(
+            value: 'delete',
+            child: Row(
+              children: [
+                Icon(Icons.delete, color: AppColors.error, size: 20),
+                SizedBox(width: 12),
+                Text('Delete Student', style: TextStyle(fontSize: 14, color: AppColors.error)),
+              ],
             ),
           ),
         ],

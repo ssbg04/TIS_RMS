@@ -9,6 +9,8 @@ class SystemUser {
   final String? email;
   final String? phone;
   final String? createdAt;
+  final String? addedByUsername;
+  final String? addedByName;
 
   SystemUser({
     required this.id,
@@ -21,6 +23,8 @@ class SystemUser {
     this.email,
     this.phone,
     this.createdAt,
+    this.addedByUsername,
+    this.addedByName,
   });
 
   String get fullName {
@@ -47,6 +51,8 @@ class SystemUser {
       email: json['email'] as String?,
       phone: json['phone'] as String?,
       createdAt: json['created_at'] as String?,
+      addedByUsername: json['added_by_username'] as String?,
+      addedByName: json['added_by_name'] as String?,
     );
   }
 }

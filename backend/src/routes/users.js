@@ -11,7 +11,7 @@ router.put('/:id/reset-password',authenticateToken, authorizeRoles('admin'), use
 router.delete('/:id',            authenticateToken, authorizeRoles('admin'), userController.deleteUser);
 
 // Teacher Sections
-router.get('/:teacherId/sections', authenticateToken, authorizeRoles('admin'), userController.getTeacherSections);
+router.get('/:teacherId/sections', authenticateToken, authorizeRoles('admin', 'teacher'), userController.getTeacherSections);
 router.post('/:teacherId/sections',authenticateToken, authorizeRoles('admin'), userController.updateTeacherSections);
 
 // User History (admin only — dashboard access)

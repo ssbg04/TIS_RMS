@@ -3,7 +3,7 @@ const db = require('../config/db');
 // GET /api/dashboard/stats
 exports.getStats = (req, res) => {
     try {
-        const isTeacher = req.user.role === 'teacher';
+        const isTeacher = req.user?.role?.toLowerCase() === 'teacher';
         const userId = req.user.id;
 
         let totalStudents;
@@ -18,9 +18,10 @@ exports.getStats = (req, res) => {
                 FROM students s
                 JOIN enrollments e ON s.id = e.student_id
                 WHERE e.id = (
-                    SELECT MAX(id)
-                    FROM enrollments
-                    WHERE student_id = s.id
+                    SELECT e2.id FROM enrollments e2
+                    JOIN academic_years ay ON e2.academic_year_id = ay.id
+                    WHERE e2.student_id = s.id
+                    ORDER BY ay.year_range DESC, e2.grade_level DESC, e2.id DESC LIMIT 1
                 )
                 AND e.section_id IN (
                     SELECT section_id
@@ -31,33 +32,30 @@ exports.getStats = (req, res) => {
 
             // Count of students in teacher's sections who have ALL mandatory docs complete
             completedDocuments = db.prepare(`
-                SELECT COUNT(DISTINCT ce.student_id) as count
-                FROM (
-                    SELECT 
-                        s.id AS student_id,
-                        CASE WHEN e.grade_level <= 10 THEN 'JHS' ELSE 'SHS' END AS category
-                    FROM students s
-                    JOIN enrollments e ON s.id = e.student_id
-                    WHERE e.id = (
-                        SELECT MAX(id)
-                        FROM enrollments
-                        WHERE student_id = s.id
-                    )
-                    AND e.section_id IN (
-                        SELECT section_id
-                        FROM teacher_sections
-                        WHERE teacher_id = ?
-                    )
-                ) ce
-                WHERE NOT EXISTS (
+                SELECT COUNT(DISTINCT s.id) as count
+                FROM students s
+                JOIN enrollments e ON s.id = e.student_id
+                WHERE e.id = (
+                    SELECT e2.id FROM enrollments e2
+                    JOIN academic_years ay ON e2.academic_year_id = ay.id
+                    WHERE e2.student_id = s.id
+                    ORDER BY ay.year_range DESC, e2.grade_level DESC, e2.id DESC LIMIT 1
+                )
+                AND e.section_id IN (
+                    SELECT section_id FROM teacher_sections WHERE teacher_id = ?
+                )
+                AND NOT EXISTS (
                     SELECT 1
                     FROM document_requirements dr
-                    WHERE dr.category = ce.category
-                      AND dr.is_mandatory = 1
+                    WHERE dr.is_mandatory = 1
                       AND dr.is_enabled = 1
+                      AND dr.category IN (
+                          SELECT DISTINCT CASE WHEN grade_level <= 10 THEN 'JHS' ELSE 'SHS' END
+                          FROM enrollments WHERE student_id = s.id
+                      )
                       AND NOT EXISTS (
                           SELECT 1 FROM documents d
-                          WHERE d.student_id = ce.student_id
+                          WHERE d.student_id = s.id
                             AND d.requirement_id = dr.id
                             AND d.status IN ('Completed', 'Archived')
                       )
@@ -66,34 +64,34 @@ exports.getStats = (req, res) => {
 
             // Count of students in teacher's assigned sections who are missing at least one mandatory document
             missingDocuments = db.prepare(`
-                SELECT COUNT(DISTINCT ce.student_id) as count
-                FROM (
-                    SELECT 
-                        s.id AS student_id,
-                        CASE WHEN e.grade_level <= 10 THEN 'JHS' ELSE 'SHS' END AS category
-                    FROM students s
-                    JOIN enrollments e ON s.id = e.student_id
-                    WHERE e.id = (
-                        SELECT MAX(id)
-                        FROM enrollments
-                        WHERE student_id = s.id
-                    )
-                    AND e.section_id IN (
-                        SELECT section_id
-                        FROM teacher_sections
-                        WHERE teacher_id = ?
-                    )
-                ) ce
-                JOIN document_requirements dr ON ce.category = dr.category
-                WHERE dr.is_mandatory = 1 
-                  AND dr.is_enabled = 1
-                  AND NOT EXISTS (
-                      SELECT 1 
-                      FROM documents d 
-                      WHERE d.student_id = ce.student_id 
-                        AND d.requirement_id = dr.id 
-                        AND d.status IN ('Completed', 'Archived')
-                  )
+                SELECT COUNT(DISTINCT s.id) as count
+                FROM students s
+                JOIN enrollments e ON s.id = e.student_id
+                WHERE e.id = (
+                    SELECT e2.id FROM enrollments e2
+                    JOIN academic_years ay ON e2.academic_year_id = ay.id
+                    WHERE e2.student_id = s.id
+                    ORDER BY ay.year_range DESC, e2.grade_level DESC, e2.id DESC LIMIT 1
+                )
+                AND e.section_id IN (
+                    SELECT section_id FROM teacher_sections WHERE teacher_id = ?
+                )
+                AND EXISTS (
+                    SELECT 1
+                    FROM document_requirements dr
+                    WHERE dr.is_mandatory = 1
+                      AND dr.is_enabled = 1
+                      AND dr.category IN (
+                          SELECT DISTINCT CASE WHEN grade_level <= 10 THEN 'JHS' ELSE 'SHS' END
+                          FROM enrollments WHERE student_id = s.id
+                      )
+                      AND NOT EXISTS (
+                          SELECT 1 FROM documents d
+                          WHERE d.student_id = s.id
+                            AND d.requirement_id = dr.id
+                            AND d.status IN ('Completed', 'Archived')
+                      )
+                )
             `).get(userId).count;
         } else {
             // Admin: All students
@@ -101,28 +99,20 @@ exports.getStats = (req, res) => {
 
             // Count of students who have ALL mandatory docs complete across all sections
             completedDocuments = db.prepare(`
-                SELECT COUNT(DISTINCT ce.student_id) as count
-                FROM (
-                    SELECT 
-                        s.id AS student_id,
-                        CASE WHEN e.grade_level <= 10 THEN 'JHS' ELSE 'SHS' END AS category
-                    FROM students s
-                    JOIN enrollments e ON s.id = e.student_id
-                    WHERE e.id = (
-                        SELECT MAX(id)
-                        FROM enrollments
-                        WHERE student_id = s.id
-                    )
-                ) ce
+                SELECT COUNT(DISTINCT s.id) as count
+                FROM students s
                 WHERE NOT EXISTS (
                     SELECT 1
                     FROM document_requirements dr
-                    WHERE dr.category = ce.category
-                      AND dr.is_mandatory = 1
+                    WHERE dr.is_mandatory = 1
                       AND dr.is_enabled = 1
+                      AND dr.category IN (
+                          SELECT DISTINCT CASE WHEN grade_level <= 10 THEN 'JHS' ELSE 'SHS' END
+                          FROM enrollments WHERE student_id = s.id
+                      )
                       AND NOT EXISTS (
                           SELECT 1 FROM documents d
-                          WHERE d.student_id = ce.student_id
+                          WHERE d.student_id = s.id
                             AND d.requirement_id = dr.id
                             AND d.status IN ('Completed', 'Archived')
                       )
@@ -131,33 +121,32 @@ exports.getStats = (req, res) => {
 
             // Count of students who are missing at least one mandatory document across all sections
             missingDocuments = db.prepare(`
-                SELECT COUNT(DISTINCT ce.student_id) as count
-                FROM (
-                    SELECT 
-                        s.id AS student_id,
-                        CASE WHEN e.grade_level <= 10 THEN 'JHS' ELSE 'SHS' END AS category
-                    FROM students s
-                    JOIN enrollments e ON s.id = e.student_id
-                    WHERE e.id = (
-                        SELECT MAX(id)
-                        FROM enrollments
-                        WHERE student_id = s.id
-                    )
-                ) ce
-                JOIN document_requirements dr ON ce.category = dr.category
-                WHERE dr.is_mandatory = 1 
-                  AND dr.is_enabled = 1
-                  AND NOT EXISTS (
-                      SELECT 1 
-                      FROM documents d 
-                      WHERE d.student_id = ce.student_id 
-                        AND d.requirement_id = dr.id 
-                        AND d.status IN ('Completed', 'Archived')
-                  )
+                SELECT COUNT(DISTINCT s.id) as count
+                FROM students s
+                WHERE EXISTS (
+                    SELECT 1
+                    FROM document_requirements dr
+                    WHERE dr.is_mandatory = 1
+                      AND dr.is_enabled = 1
+                      AND dr.category IN (
+                          SELECT DISTINCT CASE WHEN grade_level <= 10 THEN 'JHS' ELSE 'SHS' END
+                          FROM enrollments WHERE student_id = s.id
+                      )
+                      AND NOT EXISTS (
+                          SELECT 1 FROM documents d
+                          WHERE d.student_id = s.id
+                            AND d.requirement_id = dr.id
+                            AND d.status IN ('Completed', 'Archived')
+                      )
+                )
             `).get().count;
         }
 
-        res.json({ totalStudents, activeUsers, completedDocuments, missingDocuments });
+        const hasAssignedSections = isTeacher 
+            ? (db.prepare('SELECT COUNT(*) as count FROM teacher_sections WHERE teacher_id = ?').get(userId).count > 0)
+            : true;
+
+        res.json({ totalStudents, activeUsers, completedDocuments, missingDocuments, hasAssignedSections });
     } catch (error) {
         res.status(500).json({ message: 'Failed to fetch stats', error: error.message });
     }
@@ -166,19 +155,19 @@ exports.getStats = (req, res) => {
 // GET /api/dashboard/recent-activities?page=1&limit=10&date_from=YYYY-MM-DD&date_to=YYYY-MM-DD&entity_types=student,document
 exports.getRecentActivities = (req, res) => {
     try {
-        const page      = Math.max(1, parseInt(req.query.page  || '1'));
-        const limit     = Math.min(50, Math.max(1, parseInt(req.query.limit || '10')));
-        const offset    = (page - 1) * limit;
-        const dateFrom  = req.query.date_from || '';
-        const dateTo    = req.query.date_to   || '';
+        const page = Math.max(1, parseInt(req.query.page || '1'));
+        const limit = Math.min(50, Math.max(1, parseInt(req.query.limit || '10')));
+        const offset = (page - 1) * limit;
+        const dateFrom = req.query.date_from || '';
+        const dateTo = req.query.date_to || '';
         // Comma-separated entity type filter, e.g. "student,document" (teacher view)
         const entityTypesRaw = req.query.entity_types || '';
 
         const conditions = [];
-        const params     = [];
+        const params = [];
 
         if (dateFrom) { conditions.push("DATE(a.created_at) >= DATE(?)"); params.push(dateFrom); }
-        if (dateTo)   { conditions.push("DATE(a.created_at) <= DATE(?)"); params.push(dateTo);   }
+        if (dateTo) { conditions.push("DATE(a.created_at) <= DATE(?)"); params.push(dateTo); }
 
         if (entityTypesRaw) {
             const types = entityTypesRaw.split(',').map(t => t.trim()).filter(Boolean);
@@ -187,6 +176,42 @@ exports.getRecentActivities = (req, res) => {
                 conditions.push(`a.entity_type IN (${placeholders})`);
                 params.push(...types);
             }
+        }
+
+        const isTeacher = req.user?.role?.toLowerCase() === 'teacher';
+        const teacherId = req.user.id;
+
+        if (isTeacher) {
+            conditions.push(`
+                (
+                    (a.entity_type = 'student' AND a.entity_id IN (
+                        SELECT s.id FROM students s
+                        JOIN enrollments e ON s.id = e.student_id
+                        JOIN teacher_sections ts ON e.section_id = ts.section_id
+                        WHERE ts.teacher_id = ? AND e.id = (
+                            SELECT e2.id FROM enrollments e2
+                            JOIN academic_years ay ON e2.academic_year_id = ay.id
+                            WHERE e2.student_id = s.id
+                            ORDER BY ay.year_range DESC, e2.grade_level DESC, e2.id DESC LIMIT 1
+                        )
+                    ))
+                    OR
+                    (a.entity_type = 'document' AND a.entity_id IN (
+                        SELECT d.id FROM documents d
+                        JOIN enrollments e ON d.student_id = e.student_id
+                        JOIN teacher_sections ts ON e.section_id = ts.section_id
+                        WHERE ts.teacher_id = ? AND e.id = (
+                            SELECT e2.id FROM enrollments e2
+                            JOIN academic_years ay ON e2.academic_year_id = ay.id
+                            WHERE e2.student_id = e.student_id
+                            ORDER BY ay.year_range DESC, e2.grade_level DESC, e2.id DESC LIMIT 1
+                        )
+                    ))
+                    OR
+                    (a.user_id = ?)
+                )
+            `);
+            params.push(teacherId, teacherId, teacherId);
         }
 
         const where = conditions.length ? `WHERE ${conditions.join(' AND ')}` : '';

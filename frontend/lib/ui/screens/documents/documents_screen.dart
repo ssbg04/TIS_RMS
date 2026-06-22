@@ -1626,11 +1626,20 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
                 child: CircularProgressIndicator(color: AppColors.primaryGreen),
               ),
               error: (e, _) => _buildErrorState(e.toString()),
-              data: (pageData) => pageData.documents.isEmpty
-                  ? _buildEmptyState()
-                  : _isGridView
-                  ? _buildGridView(pageData.documents)
-                  : _buildListView(pageData.documents),
+              data: (pageData) {
+                final hasNoSections = widget.userRole == 'teacher' &&
+                    query.search.isEmpty &&
+                    query.status.isEmpty &&
+                    query.documentType.isEmpty &&
+                    query.gradeLevel.isEmpty &&
+                    query.schoolYear.isEmpty &&
+                    pageData.total == 0;
+                return pageData.documents.isEmpty
+                    ? _buildEmptyState(noSections: hasNoSections)
+                    : _isGridView
+                        ? _buildGridView(pageData.documents)
+                        : _buildListView(pageData.documents);
+              },
             ),
           ),
           docState.maybeWhen(
@@ -1650,6 +1659,46 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
       error: (e, _) => _buildErrorState(e.toString()),
       data: (folders) {
         if (folders.isEmpty) {
+          final hasNoSections = widget.userRole == 'teacher' &&
+              query.search.isEmpty &&
+              query.status.isEmpty &&
+              query.documentType.isEmpty &&
+              query.gradeLevel.isEmpty &&
+              query.schoolYear.isEmpty;
+          
+          if (hasNoSections) {
+            return Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(20),
+                    decoration: BoxDecoration(
+                      color: Colors.orange.shade50,
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(Icons.class_outlined, size: 56, color: Colors.orange.shade400),
+                  ),
+                  const SizedBox(height: 20),
+                  const Text(
+                    'No sections assigned',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: AppColors.textPrimary,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  const Text(
+                    'You have no sections assigned to your account yet.\nContact your administrator to assign sections.',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(color: AppColors.textSecondary, fontSize: 13, height: 1.5),
+                  ),
+                ],
+              ),
+            );
+          }
+
           return Center(
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
@@ -2403,7 +2452,39 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
   // ══════════════════════════════════════════════════════════════
   // EMPTY / ERROR STATES
   // ══════════════════════════════════════════════════════════════
-  Widget _buildEmptyState() {
+  Widget _buildEmptyState({bool noSections = false}) {
+    if (noSections) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                color: Colors.orange.shade50,
+                shape: BoxShape.circle,
+              ),
+              child: Icon(Icons.class_outlined, size: 56, color: Colors.orange.shade400),
+            ),
+            const SizedBox(height: 20),
+            const Text(
+              'No sections assigned',
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: AppColors.textPrimary,
+              ),
+            ),
+            const SizedBox(height: 8),
+            const Text(
+              'You have no sections assigned to your account yet.\nContact your administrator to assign sections.',
+              textAlign: TextAlign.center,
+              style: TextStyle(color: AppColors.textSecondary, fontSize: 13, height: 1.5),
+            ),
+          ],
+        ),
+      );
+    }
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,

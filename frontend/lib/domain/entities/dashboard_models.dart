@@ -6,12 +6,14 @@ class DashboardStats {
   final int activeUsers;
   final int completedDocuments;
   final int missingDocuments;
+  final bool hasAssignedSections;
 
   DashboardStats({
     required this.totalStudents,
     required this.activeUsers,
     required this.completedDocuments,
     required this.missingDocuments,
+    this.hasAssignedSections = true,
   });
 
   factory DashboardStats.fromJson(Map<String, dynamic> json) {
@@ -20,6 +22,7 @@ class DashboardStats {
       activeUsers:        (json['activeUsers']         as num?)?.toInt() ?? 0,
       completedDocuments: (json['completedDocuments']  as num?)?.toInt() ?? 0,
       missingDocuments:   (json['missingDocuments']    as num?)?.toInt() ?? 0,
+      hasAssignedSections: json['hasAssignedSections'] as bool? ?? true,
     );
   }
 }

@@ -297,9 +297,10 @@ exports.getMissingRequirements = (req, res) => {
     try {
         // Get student's current grade level (for highlighting "current level" on the frontend)
         const enrollment = db.prepare(`
-            SELECT grade_level FROM enrollments
-            WHERE student_id = ?
-            ORDER BY id DESC LIMIT 1
+            SELECT e.grade_level FROM enrollments e
+            JOIN academic_years ay ON e.academic_year_id = ay.id
+            WHERE e.student_id = ?
+            ORDER BY ay.year_range DESC, e.grade_level DESC, e.id DESC LIMIT 1
         `).get(studentId);
 
         if (!enrollment) {
@@ -317,12 +318,16 @@ exports.getMissingRequirements = (req, res) => {
             FROM document_requirements dr
             WHERE dr.is_mandatory = 1
               AND dr.is_enabled = 1
+              AND dr.category IN (
+                  SELECT DISTINCT CASE WHEN grade_level <= 10 THEN 'JHS' ELSE 'SHS' END
+                  FROM enrollments WHERE student_id = ?
+              )
               AND dr.id NOT IN (
                   SELECT requirement_id FROM documents
                   WHERE student_id = ? AND status IN ('Completed', 'Archived') AND requirement_id IS NOT NULL
               )
             ORDER BY dr.category ASC, dr.name ASC
-        `).all(studentId);
+        `).all(studentId, studentId);
 
         // Verified = requirement has at least one Completed document
         const verified = db.prepare(`
@@ -333,8 +338,12 @@ exports.getMissingRequirements = (req, res) => {
             JOIN documents d ON d.requirement_id = dr.id
             WHERE d.student_id = ?
               AND d.status IN ('Completed', 'Archived')
+              AND dr.category IN (
+                  SELECT DISTINCT CASE WHEN grade_level <= 10 THEN 'JHS' ELSE 'SHS' END
+                  FROM enrollments WHERE student_id = ?
+              )
             ORDER BY dr.category ASC, dr.name ASC
-        `).all(studentId);
+        `).all(studentId, studentId);
 
         res.json({
             category: currentCategory,

@@ -558,6 +558,54 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
   // ── STAT GRID ─────────────────────────────────────────────────────────────
   Widget _buildStatGrid(DashboardStats stats, UserModel? user) {
     final isAdmin = user?.role == 'admin';
+    final isTeacher = user?.role == 'teacher';
+
+    if (isTeacher && !stats.hasAssignedSections) {
+      return Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(32),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: Colors.orange.shade200),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.orange.withValues(alpha: 0.05),
+              blurRadius: 10,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        child: Column(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                color: Colors.orange.shade50,
+                shape: BoxShape.circle,
+              ),
+              child: Icon(Icons.class_outlined, size: 56, color: Colors.orange.shade400),
+            ),
+            const SizedBox(height: 20),
+            const Text(
+              'No sections assigned',
+              style: TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+                color: AppColors.textPrimary,
+              ),
+            ),
+            const SizedBox(height: 8),
+            const Text(
+              'You have no sections assigned to your account yet.\nContact your administrator to assign sections so you can see your students here.',
+              textAlign: TextAlign.center,
+              style: TextStyle(color: AppColors.textSecondary, fontSize: 14, height: 1.5),
+            ),
+          ],
+        ),
+      );
+    }
+
     return LayoutBuilder(builder: (context, constraints) {
       int crossAxisCount;
       if (constraints.maxWidth >= 800) {

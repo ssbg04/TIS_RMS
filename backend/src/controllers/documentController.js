@@ -97,6 +97,27 @@ exports.uploadDocument = (req, res) => {
     if (!studentId) return res.status(400).json({ message: 'Student ID is required' });
     if (!documentType) return res.status(400).json({ message: 'Document Type is required' });
 
+    const isTeacher = req.user?.role?.toLowerCase() === 'teacher';
+    if (isTeacher) {
+        const hasAccess = db.prepare(`
+            SELECT 1 FROM enrollments e
+            JOIN teacher_sections ts ON e.section_id = ts.section_id
+            WHERE e.student_id = ? AND ts.teacher_id = ?
+              AND e.id = (
+                  SELECT e2.id FROM enrollments e2
+                  JOIN academic_years ay ON e2.academic_year_id = ay.id
+                  WHERE e2.student_id = ?
+                  ORDER BY ay.year_range DESC, e2.grade_level DESC, e2.id DESC LIMIT 1
+              )
+        `).get(studentId, req.user.id, studentId);
+        if (!hasAccess) {
+            if (file.path && fs.existsSync(file.path)) {
+                fs.unlinkSync(file.path);
+            }
+            return res.status(403).json({ message: 'Access denied to upload documents for this student.' });
+        }
+    }
+
     try {
         const reqId = requirementId && requirementId !== 'null' ? requirementId : null;
 
@@ -111,7 +132,7 @@ exports.uploadDocument = (req, res) => {
         logActivity(req.user.id, 'CREATE', 'document', result.lastInsertRowid,
             `Uploaded "${file.originalname}" (${documentType}) for ${studentName}`);
 
-        createNotification(null, 'Document Uploaded', `Document "${file.originalname}" (${documentType}) has been uploaded for ${studentName}.`, 'document');
+        createNotification(null, 'Document Uploaded', `Document "${file.originalname}" (${documentType}) has been uploaded for ${studentName}.`, 'document', 'document', result.lastInsertRowid);
 
         res.status(201).json({ id: result.lastInsertRowid, message: 'Document uploaded successfully' });
     } catch (error) {
@@ -123,8 +144,26 @@ exports.uploadDocument = (req, res) => {
 
 exports.viewDocument = (req, res) => {
     try {
-        const doc = db.prepare('SELECT file_path, file_name FROM documents WHERE id = ?').get(req.params.id);
+        const doc = db.prepare('SELECT student_id, file_path, file_name FROM documents WHERE id = ?').get(req.params.id);
         if (!doc) return res.status(404).json({ message: 'Document not found' });
+
+        const isTeacher = req.user?.role?.toLowerCase() === 'teacher';
+        if (isTeacher) {
+            const hasAccess = db.prepare(`
+                SELECT 1 FROM enrollments e
+                JOIN teacher_sections ts ON e.section_id = ts.section_id
+                WHERE e.student_id = ? AND ts.teacher_id = ?
+                  AND e.id = (
+                      SELECT e2.id FROM enrollments e2
+                      JOIN academic_years ay ON e2.academic_year_id = ay.id
+                      WHERE e2.student_id = ?
+                      ORDER BY ay.year_range DESC, e2.grade_level DESC, e2.id DESC LIMIT 1
+                  )
+            `).get(doc.student_id, req.user.id, doc.student_id);
+            if (!hasAccess) {
+                return res.status(403).json({ message: 'Access denied to this document.' });
+            }
+        }
 
         if (!fs.existsSync(doc.file_path)) {
             return res.status(404).json({ message: 'File not found on server' });
@@ -209,12 +248,29 @@ exports.getAllDocuments = (req, res) => {
         conditions.push("d.deleted_at IS NULL");
         conditions.push("s.status = 'Enrolled'");
 
+        const isTeacher = req.user?.role?.toLowerCase() === 'teacher';
+        const teacherId = req.user?.id;
+
         const whereClause = conditions.length ? `WHERE ${conditions.join(' AND ')}` : '';
+
+        const teacherJoin = isTeacher 
+            ? `JOIN teacher_sections ts ON e.section_id = ts.section_id AND ts.teacher_id = ?`
+            : '';
+        
+        if (isTeacher) {
+            params.unshift(teacherId);
+        }
 
         const joins = `
             LEFT JOIN students s ON d.student_id = s.id
             LEFT JOIN enrollments e ON e.student_id = s.id 
-                AND e.id = (SELECT id FROM enrollments WHERE student_id = s.id ORDER BY grade_level DESC, id DESC LIMIT 1)
+                AND e.id = (
+                    SELECT e2.id FROM enrollments e2
+                    JOIN academic_years ay_inner ON e2.academic_year_id = ay_inner.id
+                    WHERE e2.student_id = s.id
+                    ORDER BY ay_inner.year_range DESC, e2.grade_level DESC, e2.id DESC LIMIT 1
+                )
+            ${teacherJoin}
             LEFT JOIN academic_years ay ON e.academic_year_id = ay.id
             LEFT JOIN document_requirements dr ON d.requirement_id = dr.id
         `;
@@ -293,6 +349,25 @@ exports.getStatuses = (req, res) => {
 
 exports.getDocumentsByStudent = (req, res) => {
     try {
+        const studentId = req.params.studentId;
+        const isTeacher = req.user?.role?.toLowerCase() === 'teacher';
+        if (isTeacher) {
+            const hasAccess = db.prepare(`
+                SELECT 1 FROM enrollments e
+                JOIN teacher_sections ts ON e.section_id = ts.section_id
+                WHERE e.student_id = ? AND ts.teacher_id = ?
+                  AND e.id = (
+                      SELECT e2.id FROM enrollments e2
+                      JOIN academic_years ay ON e2.academic_year_id = ay.id
+                      WHERE e2.student_id = ?
+                      ORDER BY ay.year_range DESC, e2.grade_level DESC, e2.id DESC LIMIT 1
+                  )
+            `).get(studentId, req.user.id, studentId);
+            if (!hasAccess) {
+                return res.status(403).json({ message: "Access denied to fetch this student's documents." });
+            }
+        }
+
         const documents = db.prepare(`
             SELECT d.*, dr.name as requirement_name,
                    s.lrn as student_lrn,
@@ -301,7 +376,7 @@ exports.getDocumentsByStudent = (req, res) => {
             LEFT JOIN document_requirements dr ON d.requirement_id = dr.id
             LEFT JOIN students s ON d.student_id = s.id
             WHERE d.student_id = ? AND d.deleted_at IS NULL
-        `).all(req.params.studentId);
+        `).all(studentId);
 
         const mappedDocs = documents.map(d => ({
             id: d.id,
@@ -398,8 +473,26 @@ exports.addToPrintQueue = (req, res) => {
     if (!documentId) return res.status(400).json({ message: 'Document ID is required' });
 
     try {
-        const document = db.prepare('SELECT id FROM documents WHERE id = ?').get(documentId);
+        const document = db.prepare('SELECT id, student_id FROM documents WHERE id = ?').get(documentId);
         if (!document) return res.status(404).json({ message: 'Document not found' });
+
+        const isTeacher = req.user?.role?.toLowerCase() === 'teacher';
+        if (isTeacher) {
+            const hasAccess = db.prepare(`
+                SELECT 1 FROM enrollments e
+                JOIN teacher_sections ts ON e.section_id = ts.section_id
+                WHERE e.student_id = ? AND ts.teacher_id = ?
+                  AND e.id = (
+                      SELECT e2.id FROM enrollments e2
+                      JOIN academic_years ay ON e2.academic_year_id = ay.id
+                      WHERE e2.student_id = ?
+                      ORDER BY ay.year_range DESC, e2.grade_level DESC, e2.id DESC LIMIT 1
+                  )
+            `).get(document.student_id, userId, document.student_id);
+            if (!hasAccess) {
+                return res.status(403).json({ message: 'Access denied to print this document.' });
+            }
+        }
 
         // Check if already in queue for this user
         const existing = db.prepare('SELECT id FROM print_queue WHERE document_id = ? AND user_id = ?').get(documentId, userId);
@@ -454,6 +547,24 @@ exports.copyDocument = (req, res) => {
     try {
         const doc = db.prepare('SELECT * FROM documents WHERE id = ?').get(id);
         if (!doc) return res.status(404).json({ message: 'Document not found' });
+
+        const isTeacher = req.user?.role?.toLowerCase() === 'teacher';
+        if (isTeacher) {
+            const hasAccess = db.prepare(`
+                SELECT 1 FROM enrollments e
+                JOIN teacher_sections ts ON e.section_id = ts.section_id
+                WHERE e.student_id = ? AND ts.teacher_id = ?
+                  AND e.id = (
+                      SELECT e2.id FROM enrollments e2
+                      JOIN academic_years ay ON e2.academic_year_id = ay.id
+                      WHERE e2.student_id = ?
+                      ORDER BY ay.year_range DESC, e2.grade_level DESC, e2.id DESC LIMIT 1
+                  )
+            `).get(doc.student_id, req.user.id, doc.student_id);
+            if (!hasAccess) {
+                return res.status(403).json({ message: 'Access denied to copy this document.' });
+            }
+        }
 
         const originalPath = doc.file_path;
         if (!fs.existsSync(originalPath)) {
@@ -573,6 +684,7 @@ exports.bulkStatus = (req, res) => {
 exports.bulkAddToPrintQueue = (req, res) => {
     const { ids } = req.body;
     const userId = req.user.id;
+    const isTeacher = req.user?.role?.toLowerCase() === 'teacher';
     if (!ids || !Array.isArray(ids) || !ids.length) {
         return res.status(400).json({ message: 'No document IDs provided' });
     }
@@ -580,13 +692,33 @@ exports.bulkAddToPrintQueue = (req, res) => {
         let addedCount = 0;
         const checkStmt = db.prepare('SELECT id FROM print_queue WHERE document_id = ? AND user_id = ?');
         const insertStmt = db.prepare('INSERT INTO print_queue (document_id, user_id) VALUES (?, ?)');
+        const getDocStudentStmt = db.prepare('SELECT student_id FROM documents WHERE id = ?');
 
         const transaction = db.transaction(() => {
             for (const id of ids) {
-                const existing = checkStmt.get(id, userId);
-                if (!existing) {
-                    insertStmt.run(id, userId);
-                    addedCount++;
+                const doc = getDocStudentStmt.get(id);
+                if (doc) {
+                    if (isTeacher) {
+                        const hasAccess = db.prepare(`
+                            SELECT 1 FROM enrollments e
+                            JOIN teacher_sections ts ON e.section_id = ts.section_id
+                            WHERE e.student_id = ? AND ts.teacher_id = ?
+                              AND e.id = (
+                                  SELECT e2.id FROM enrollments e2
+                                  JOIN academic_years ay ON e2.academic_year_id = ay.id
+                                  WHERE e2.student_id = ?
+                                  ORDER BY ay.year_range DESC, e2.grade_level DESC, e2.id DESC LIMIT 1
+                              )
+                        `).get(doc.student_id, userId, doc.student_id);
+                        if (!hasAccess) {
+                            continue;
+                        }
+                    }
+                    const existing = checkStmt.get(id, userId);
+                    if (!existing) {
+                        insertStmt.run(id, userId);
+                        addedCount++;
+                    }
                 }
             }
         });
@@ -605,6 +737,7 @@ exports.bulkAddToPrintQueue = (req, res) => {
 // ============================================================
 exports.bulkCopy = (req, res) => {
     const { ids } = req.body;
+    const isTeacher = req.user?.role?.toLowerCase() === 'teacher';
     if (!ids || !Array.isArray(ids) || !ids.length) {
         return res.status(400).json({ message: 'No document IDs provided' });
     }
@@ -619,6 +752,22 @@ exports.bulkCopy = (req, res) => {
         for (const id of ids) {
             const doc = getStmt.get(id);
             if (doc) {
+                if (isTeacher) {
+                    const hasAccess = db.prepare(`
+                        SELECT 1 FROM enrollments e
+                        JOIN teacher_sections ts ON e.section_id = ts.section_id
+                        WHERE e.student_id = ? AND ts.teacher_id = ?
+                          AND e.id = (
+                              SELECT e2.id FROM enrollments e2
+                              JOIN academic_years ay ON e2.academic_year_id = ay.id
+                              WHERE e2.student_id = ?
+                              ORDER BY ay.year_range DESC, e2.grade_level DESC, e2.id DESC LIMIT 1
+                          )
+                    `).get(doc.student_id, req.user.id, doc.student_id);
+                    if (!hasAccess) {
+                        continue;
+                    }
+                }
                 const originalPath = doc.file_path;
                 if (fs.existsSync(originalPath)) {
                     const ext = path.extname(doc.file_name);
@@ -646,15 +795,32 @@ exports.bulkCopy = (req, res) => {
 // ============================================================
 exports.getTrashDocuments = (req, res) => {
     try {
+        const isTeacher = req.user?.role?.toLowerCase() === 'teacher';
+        const teacherId = req.user?.id;
+
+        const teacherJoin = isTeacher 
+            ? `JOIN enrollments e ON e.student_id = s.id 
+               AND e.id = (
+                   SELECT e2.id FROM enrollments e2
+                   JOIN academic_years ay_inner ON e2.academic_year_id = ay_inner.id
+                   WHERE e2.student_id = s.id
+                   ORDER BY ay_inner.year_range DESC, e2.grade_level DESC, e2.id DESC LIMIT 1
+               )
+               JOIN teacher_sections ts ON e.section_id = ts.section_id AND ts.teacher_id = ?`
+            : '';
+
+        const params = isTeacher ? [teacherId] : [];
+
         const rows = db.prepare(`
             SELECT rd.document_id as id, rd.student_id, rd.file_name, rd.document_type, rd.file_path, rd.deleted_at,
                    s.lrn as student_lrn,
                    s.first_name || ' ' || s.last_name as student_name
             FROM recent_deleted rd
             LEFT JOIN students s ON rd.student_id = s.id
+            ${teacherJoin}
             WHERE rd.document_id IS NOT NULL
             ORDER BY rd.deleted_at DESC
-        `).all();
+        `).all(...params);
 
         const mappedDocs = rows.map(d => {
             const deletedTime = new Date(d.deleted_at).getTime();

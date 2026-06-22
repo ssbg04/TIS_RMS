@@ -214,7 +214,6 @@ class StudentMutationNotifier extends AsyncNotifier<void> {
       rethrow;
     }
   }
-
   Future<void> updateStudent({
     required int      id,
     required String   lrn,
@@ -250,6 +249,7 @@ class StudentMutationNotifier extends AsyncNotifier<void> {
       );
       state = const AsyncData(null);
       ref.invalidate(studentPageProvider);
+      ref.invalidate(studentDetailProvider(id));
     } catch (e, st) {
       state = AsyncError(e, st);
       rethrow;
@@ -263,6 +263,7 @@ class StudentMutationNotifier extends AsyncNotifier<void> {
       await repo.deleteStudent(id);
       state = const AsyncData(null);
       ref.invalidate(studentPageProvider);
+      ref.invalidate(studentDetailProvider(id));
     } catch (e, st) {
       state = AsyncError(e, st);
       rethrow;
@@ -288,6 +289,9 @@ class StudentMutationNotifier extends AsyncNotifier<void> {
       );
       state = const AsyncData(null);
       ref.invalidate(studentPageProvider);
+      for (final id in studentIds) {
+        ref.invalidate(studentDetailProvider(id));
+      }
     } catch (e, st) {
       state = AsyncError(e, st);
       rethrow;
@@ -301,6 +305,9 @@ class StudentMutationNotifier extends AsyncNotifier<void> {
       await repo.bulkGraduate(studentIds);
       state = const AsyncData(null);
       ref.invalidate(studentPageProvider);
+      for (final id in studentIds) {
+        ref.invalidate(studentDetailProvider(id));
+      }
     } catch (e, st) {
       state = AsyncError(e, st);
       rethrow;

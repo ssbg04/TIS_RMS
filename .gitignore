@@ -7,3 +7,29 @@ backend_build
 backend/node_modules
 requirements
 TIS*
+
+# Environment secrets
+backend/.env
+backend/.env.*
+!backend/.example.env
+
+# Database (runtime data — never commit)
+backend/*.db
+backend/data/tis_rms.db
+
+# Student file uploads (runtime data)
+backend/data/students/
+backend/uploads/
+
+# Temporary debug / scratch scripts
+backend/debug_*.js
+backend/read_*.js
+backend/search_*.js
+backend/scratch_*.js
+backend/test_*.js
+
+# Flutter build artifacts
+frontend/.dart_tool/
+frontend/build/
+frontend/.flutter-plugins
+frontend/.flutter-plugins-dependencies

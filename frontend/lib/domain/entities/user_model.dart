@@ -8,6 +8,7 @@ class UserModel {
   final String role; // 'admin', 'teacher'
   final String? email;
   final String? phone;
+  final String? addedBy; // "System" or the username of creator
 
   UserModel({
     required this.id,
@@ -19,6 +20,7 @@ class UserModel {
     required this.role,
     this.email,
     this.phone,
+    this.addedBy,
   });
 
   // Helper to get full formatted name
@@ -35,6 +37,7 @@ class UserModel {
       role: json['role'] as String,
       email: json['email'] as String?,
       phone: json['phone'] as String?,
+      addedBy: json['added_by'] as String?,
     );
   }
 
@@ -49,6 +52,7 @@ class UserModel {
       'role': role,
       'email': email,
       'phone': phone,
+      'added_by': addedBy,
     };
   }
 }

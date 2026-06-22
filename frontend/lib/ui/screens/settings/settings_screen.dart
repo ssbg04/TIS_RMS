@@ -433,7 +433,12 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                                     onPressed: () => setState(() => _obscurePasswords = !_obscurePasswords),
                                     icon: Icon(_obscurePasswords ? Icons.visibility_off : Icons.visibility, size: 18),
                                     label: Text(_obscurePasswords ? 'Show Passwords' : 'Hide Passwords'),
-                                    style: TextButton.styleFrom(foregroundColor: AppColors.textSecondary),
+                                    style: TextButton.styleFrom(
+                                      foregroundColor: AppColors.primaryGreen,
+                                      backgroundColor: AppColors.primaryGreen.withValues(alpha: 0.1),
+                                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                                    ),
                                   ),
                                 ],
                               ),

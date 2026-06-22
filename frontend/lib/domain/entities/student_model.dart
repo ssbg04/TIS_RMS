@@ -11,8 +11,8 @@ class StudentModel {
   final int missingDocumentsCount;
   final int totalDocumentsCount;
   final List<String> missingDocuments;
-  final int? latestGradeLevel;
-  final String? latestSection;
+  final int? _latestGradeLevel;
+  final String? _latestSection;
   final List<EnrollmentModel>? enrollments;
 
   StudentModel({
@@ -28,16 +28,74 @@ class StudentModel {
     this.missingDocumentsCount = 0,
     this.totalDocumentsCount = 0,
     this.missingDocuments = const [],
-    this.latestGradeLevel,
-    this.latestSection,
+    int? latestGradeLevel,
+    String? latestSection,
     this.enrollments,
-  });
+  })  : _latestGradeLevel = latestGradeLevel,
+        _latestSection = latestSection;
 
   /// Display name: "De La Cruz, Juan Jr. M."
   String get fullName {
     final ext = extension != null && extension!.isNotEmpty ? ' ${extension!}' : '';
     final mi  = middleName != null && middleName!.isNotEmpty ? ' ${middleName![0]}.' : '';
     return '$lastName, $firstName$ext$mi'.trim();
+  }
+
+  /// Traverses the enrollments list and dynamically resolves parameters matching
+  /// the highest value of academicYearId or the highest lexicographical string sequence in yearRange.
+  EnrollmentModel? get latestEnrollment {
+    if (enrollments == null || enrollments!.isEmpty) return null;
+    EnrollmentModel best = enrollments!.first;
+    for (int i = 1; i < enrollments!.length; i++) {
+      final current = enrollments![i];
+      
+      // Compare yearRange lexicographically first
+      final currentRange = current.yearRange ?? '';
+      final bestRange = best.yearRange ?? '';
+      final rangeCmp = currentRange.compareTo(bestRange);
+      if (rangeCmp != 0) {
+        if (rangeCmp > 0) {
+          best = current;
+        }
+        continue;
+      }
+      
+      // If yearRange is same, compare academicYearId
+      if (current.academicYearId != best.academicYearId) {
+        if (current.academicYearId > best.academicYearId) {
+          best = current;
+        }
+        continue;
+      }
+      
+      // If academicYearId is also same, compare gradeLevel
+      if (current.gradeLevel != best.gradeLevel) {
+        if (current.gradeLevel > best.gradeLevel) {
+          best = current;
+        }
+        continue;
+      }
+
+      // Fallback: compare enrollment ID
+      if (current.id > best.id) {
+        best = current;
+      }
+    }
+    return best;
+  }
+
+  int? get latestGradeLevel {
+    if (enrollments != null && enrollments!.isNotEmpty) {
+      return latestEnrollment?.gradeLevel;
+    }
+    return _latestGradeLevel;
+  }
+
+  String? get latestSection {
+    if (enrollments != null && enrollments!.isNotEmpty) {
+      return latestEnrollment?.sectionName;
+    }
+    return _latestSection;
   }
 
   /// e.g. "Grade 10 – Sec A"

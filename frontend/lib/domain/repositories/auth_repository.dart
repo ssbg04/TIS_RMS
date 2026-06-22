@@ -1,15 +1,14 @@
 import 'package:dio/dio.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import '../../domain/entities/user_model.dart';
 import '../../core/network/api_constants.dart';
 
 class AuthRepository {
   final Dio _dio = Dio(BaseOptions(baseUrl: ApiConstants.baseUrl));
+  final FlutterSecureStorage _storage = const FlutterSecureStorage();
 
   static const _tokenKey = 'jwt_token';
   static const _rememberMeKey = 'remember_me';
-
-  Future<SharedPreferences> get _prefs => SharedPreferences.getInstance();
 
   Future<UserModel> login(String username, String password, {bool rememberMe = false}) async {
     try {
@@ -19,9 +18,9 @@ class AuthRepository {
       });
 
       final token = response.data['token'] as String;
-      final prefs = await _prefs;
-      await prefs.setString(_tokenKey, token);
-      await prefs.setBool(_rememberMeKey, rememberMe);
+      // Write to FlutterSecureStorage — consistent with all other repositories
+      await _storage.write(key: _tokenKey, value: token);
+      await _storage.write(key: _rememberMeKey, value: rememberMe ? 'true' : 'false');
 
       final userData = response.data['user'];
       return UserModel(
@@ -39,11 +38,10 @@ class AuthRepository {
 
   /// Auto-login: returns user if a valid Remember Me token is stored, otherwise null.
   Future<UserModel?> tryAutoLogin() async {
-    final prefs = await _prefs;
-    final rememberMe = prefs.getBool(_rememberMeKey) ?? false;
-    if (!rememberMe) return null;
+    final rememberMe = await _storage.read(key: _rememberMeKey);
+    if (rememberMe != 'true') return null;
 
-    final token = prefs.getString(_tokenKey);
+    final token = await _storage.read(key: _tokenKey);
     if (token == null) return null;
 
     try {
@@ -55,21 +53,18 @@ class AuthRepository {
         // Token is actually invalid/expired — clear stored session
         await logout();
       }
-      // For network errors (like no internet on startup), we just return null 
-      // to fallback to login, but we DON'T wipe the token so it can work next time.
+      // For network errors (no internet on startup), return null without wiping token
       return null;
     }
   }
 
   Future<String?> getToken() async {
-    final prefs = await _prefs;
-    return prefs.getString(_tokenKey);
+    return await _storage.read(key: _tokenKey);
   }
 
   Future<void> logout() async {
-    final prefs = await _prefs;
-    await prefs.remove(_tokenKey);
-    await prefs.remove(_rememberMeKey);
+    await _storage.delete(key: _tokenKey);
+    await _storage.delete(key: _rememberMeKey);
   }
 
   Future<Options> _getAuthOptions() async {

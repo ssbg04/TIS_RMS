@@ -15,7 +15,7 @@ const sanitizeFolderName = (str) =>
 // ============================================================
 exports.getFolders = (req, res) => {
     const { studentId, parentId, search = '' } = req.query;
-    const isTeacher = req.user?.role === 'teacher';
+    const isTeacher = req.user?.role?.toLowerCase() === 'teacher';
     const teacherId = req.user?.id;
 
     try {
@@ -50,11 +50,14 @@ exports.getFolders = (req, res) => {
         // the teacher's assigned sections only. Uses a parameterised sub-select.
         let teacherJoinSql = '';
         if (isTeacher) {
-            teacherJoinSql = `JOIN (
-                SELECT DISTINCT e2.student_id FROM enrollments e2
-                JOIN teacher_sections ts2 ON ts2.section_id = e2.section_id
-                WHERE ts2.teacher_id = ?
-            ) scoped ON scoped.student_id = f.student_id`;
+            teacherJoinSql = `JOIN enrollments e_teacher ON e_teacher.student_id = f.student_id
+                AND e_teacher.id = (
+                    SELECT e2.id FROM enrollments e2
+                    JOIN academic_years ay ON e2.academic_year_id = ay.id
+                    WHERE e2.student_id = f.student_id
+                    ORDER BY ay.year_range DESC, e2.grade_level DESC, e2.id DESC LIMIT 1
+                )
+                JOIN teacher_sections ts ON ts.section_id = e_teacher.section_id AND ts.teacher_id = ?`;
             params.unshift(teacherId);
         }
 
@@ -67,8 +70,9 @@ exports.getFolders = (req, res) => {
                    (
                        SELECT CASE WHEN e_tier.grade_level <= 10 THEN 'JHS' ELSE 'SHS' END
                        FROM enrollments e_tier
+                       JOIN academic_years ay ON e_tier.academic_year_id = ay.id
                        WHERE e_tier.student_id = f.student_id
-                       ORDER BY e_tier.id DESC LIMIT 1
+                       ORDER BY ay.year_range DESC, e_tier.grade_level DESC, e_tier.id DESC LIMIT 1
                    ) as student_tier,
                    -- Total enabled mandatory JHS requirements
                    (SELECT COUNT(*) FROM document_requirements WHERE category='JHS' AND is_mandatory=1 AND is_enabled=1) as jhs_total,
@@ -263,6 +267,23 @@ exports.deleteFolder = (req, res) => {
 // ============================================================
 exports.getStudentFolder = (req, res) => {
     const { studentId } = req.params;
+    const isTeacher = req.user?.role?.toLowerCase() === 'teacher';
+    if (isTeacher) {
+        const hasAccess = db.prepare(`
+            SELECT 1 FROM enrollments e
+            JOIN teacher_sections ts ON e.section_id = ts.section_id
+            WHERE e.student_id = ? AND ts.teacher_id = ?
+              AND e.id = (
+                  SELECT e2.id FROM enrollments e2
+                  JOIN academic_years ay ON e2.academic_year_id = ay.id
+                  WHERE e2.student_id = ?
+                  ORDER BY ay.year_range DESC, e2.grade_level DESC, e2.id DESC LIMIT 1
+              )
+        `).get(studentId, req.user.id, studentId);
+        if (!hasAccess) {
+            return res.status(403).json({ message: "Access denied to this student's folder." });
+        }
+    }
 
     try {
         const student = db.prepare('SELECT * FROM students WHERE id = ?').get(studentId);
@@ -340,6 +361,23 @@ exports.getStudentFolder = (req, res) => {
 // ============================================================
 exports.syncFolders = (req, res) => {
     const { studentId } = req.body;
+    const isTeacher = req.user?.role?.toLowerCase() === 'teacher';
+    if (isTeacher) {
+        const hasAccess = db.prepare(`
+            SELECT 1 FROM enrollments e
+            JOIN teacher_sections ts ON e.section_id = ts.section_id
+            WHERE e.student_id = ? AND ts.teacher_id = ?
+              AND e.id = (
+                  SELECT e2.id FROM enrollments e2
+                  JOIN academic_years ay ON e2.academic_year_id = ay.id
+                  WHERE e2.student_id = ?
+                  ORDER BY ay.year_range DESC, e2.grade_level DESC, e2.id DESC LIMIT 1
+              )
+        `).get(studentId, req.user.id, studentId);
+        if (!hasAccess) {
+            return res.status(403).json({ message: "Access denied to sync this student's folder." });
+        }
+    }
 
     try {
         const student = db.prepare('SELECT * FROM students WHERE id = ?').get(studentId);

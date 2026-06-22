@@ -21,9 +21,16 @@ const logUserHistory = (performedBy, targetUserId, action, username, fullName, r
 // GET /api/users - List all users
 exports.getUsers = (req, res) => {
     try {
-        const users = db.prepare(
-            'SELECT id, username, first_name, middle_name, last_name, extension, role, email, phone, created_at FROM users ORDER BY role, last_name'
-        ).all();
+        const users = db.prepare(`
+            SELECT u.id, u.username, u.first_name, u.middle_name, u.last_name, u.extension, u.role, u.email, u.phone, u.created_at,
+                   COALESCE(creator.username, creator_del.username, 'System') as added_by_username,
+                   COALESCE(creator.first_name || ' ' || creator.last_name, creator_del.full_name, 'System') as added_by_name
+            FROM users u
+            LEFT JOIN user_history uh ON u.id = uh.target_user_id AND uh.action = 'created'
+            LEFT JOIN users creator ON uh.performed_by = creator.id
+            LEFT JOIN deleted_users_history creator_del ON uh.performed_by = creator_del.deleted_user_id
+            ORDER BY u.role, u.last_name
+        `).all();
         res.json(users);
     } catch (error) {
         res.status(500).json({ message: 'Failed to fetch users', error: error.message });
@@ -202,6 +209,11 @@ exports.deleteUser = (req, res) => {
 // GET /api/users/:teacherId/sections
 exports.getTeacherSections = (req, res) => {
     const { teacherId } = req.params;
+    const isTeacher = req.user?.role?.toLowerCase() === 'teacher';
+    if (isTeacher && req.user.id !== parseInt(teacherId)) {
+        return res.status(403).json({ message: 'Unauthorized access to teacher sections.' });
+    }
+
     try {
         const sections = db.prepare(`
             SELECT s.*, ay.year_range as academic_year_range

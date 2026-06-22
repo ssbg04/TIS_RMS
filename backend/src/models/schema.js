@@ -536,15 +536,23 @@ const initSchema = () => {
                 message TEXT NOT NULL,
                 is_read INTEGER DEFAULT 0,
                 category TEXT DEFAULT 'system', -- 'student', 'document', 'user', 'system'
+                entity_type TEXT DEFAULT NULL,
+                entity_id INTEGER DEFAULT NULL,
                 created_at DATETIME DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ', 'now')),
                 FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
             )
         `).run();
 
-        // Migration: add category column to notifications if missing
+        // Migration: add category, entity_type, entity_id column to notifications if missing
         const notifCols = db.prepare("PRAGMA table_info(notifications)").all();
         if (!notifCols.some(c => c.name === 'category')) {
             db.prepare("ALTER TABLE notifications ADD COLUMN category TEXT DEFAULT 'system'").run();
+        }
+        if (!notifCols.some(c => c.name === 'entity_type')) {
+            db.prepare("ALTER TABLE notifications ADD COLUMN entity_type TEXT DEFAULT NULL").run();
+        }
+        if (!notifCols.some(c => c.name === 'entity_id')) {
+            db.prepare("ALTER TABLE notifications ADD COLUMN entity_id INTEGER DEFAULT NULL").run();
         }
 
         // Migration: add deleted_at column to documents if missing

@@ -39,7 +39,7 @@ exports.getAllStudents = (req, res) => {
     const limitNum = Math.min(100, Math.max(1, parseInt(limit)));
     const offset   = (pageNum - 1) * limitNum;
 
-    const isTeacher = req.user?.role === 'teacher';
+    const isTeacher = req.user?.role?.toLowerCase() === 'teacher';
     const teacherId = req.user?.id;
 
     try {
@@ -62,7 +62,12 @@ exports.getAllStudents = (req, res) => {
         const needsEnrollmentJoin = gradeLevel.trim() || section.trim() || schoolYear.trim();
         const enrollmentJoin = needsEnrollmentJoin
             ? `JOIN enrollments e_latest ON e_latest.student_id = s.id
-               AND e_latest.id = (SELECT id FROM enrollments WHERE student_id = s.id ORDER BY academic_year_id DESC, grade_level DESC LIMIT 1)
+               AND e_latest.id = (
+                   SELECT e.id FROM enrollments e
+                   JOIN academic_years ay_inner ON e.academic_year_id = ay_inner.id
+                   WHERE e.student_id = s.id
+                   ORDER BY ay_inner.year_range DESC, e.grade_level DESC, e.id DESC LIMIT 1
+               )
                JOIN sections sec ON sec.id = e_latest.section_id
                JOIN academic_years ay ON ay.id = e_latest.academic_year_id`
             : '';
@@ -81,10 +86,15 @@ exports.getAllStudents = (req, res) => {
         }
 
         // ---- Teacher section scoping ----
-        // When the caller is a teacher, restrict results to students enrolled
-        // in any of the sections assigned to that teacher.
+        // Restrict to students whose LATEST enrollment is in one of this teacher's sections.
         const teacherJoin = isTeacher
             ? `JOIN enrollments e_teacher ON e_teacher.student_id = s.id
+               AND e_teacher.id = (
+                   SELECT e.id FROM enrollments e
+                   JOIN academic_years ay_inner ON e.academic_year_id = ay_inner.id
+                   WHERE e.student_id = s.id
+                   ORDER BY ay_inner.year_range DESC, e.grade_level DESC, e.id DESC LIMIT 1
+               )
                JOIN teacher_sections ts ON ts.section_id = e_teacher.section_id AND ts.teacher_id = ?`
             : '';
         if (isTeacher) params.unshift(teacherId);
@@ -107,13 +117,17 @@ exports.getAllStudents = (req, res) => {
                 s.id, s.lrn, s.first_name, s.middle_name, s.last_name,
                 s.extension, s.sex, s.birth_date, s.status, s.created_at,
                 (
-                    SELECT grade_level FROM enrollments
-                    WHERE student_id = s.id ORDER BY academic_year_id DESC, grade_level DESC LIMIT 1
+                    SELECT e.grade_level FROM enrollments e
+                    JOIN academic_years ay_inner ON e.academic_year_id = ay_inner.id
+                    WHERE e.student_id = s.id
+                    ORDER BY ay_inner.year_range DESC, e.grade_level DESC, e.id DESC LIMIT 1
                 ) as latest_grade_level,
                 (
                     SELECT sec.name FROM enrollments enr
                     JOIN sections sec ON sec.id = enr.section_id
-                    WHERE enr.student_id = s.id ORDER BY enr.academic_year_id DESC, enr.grade_level DESC LIMIT 1
+                    JOIN academic_years ay_inner ON enr.academic_year_id = ay_inner.id
+                    WHERE enr.student_id = s.id
+                    ORDER BY ay_inner.year_range DESC, enr.grade_level DESC, enr.id DESC LIMIT 1
                 ) as latest_section
             FROM students s
             ${teacherJoin}
@@ -127,15 +141,15 @@ exports.getAllStudents = (req, res) => {
 
         // ---- Attach missingDocumentsCount badge ----
         const studentsWithBadges = students.map(student => {
-            // 1. Get total mandatory documents required for this student's grade level
+            // 1. Get total mandatory documents required for this student's grade level(s)
             const totalDocs = db.prepare(`
                 SELECT COUNT(*) as count
                 FROM document_requirements dr
                 WHERE dr.is_mandatory = 1
                   AND dr.is_enabled = 1
-                  AND dr.category = (
-                      SELECT CASE WHEN grade_level <= 10 THEN 'JHS' ELSE 'SHS' END
-                      FROM enrollments WHERE student_id = ? ORDER BY academic_year_id DESC, grade_level DESC LIMIT 1
+                  AND dr.category IN (
+                      SELECT DISTINCT CASE WHEN grade_level <= 10 THEN 'JHS' ELSE 'SHS' END
+                      FROM enrollments WHERE student_id = ?
                   )
             `).get(student.id)?.count ?? 0;
 
@@ -145,9 +159,9 @@ exports.getAllStudents = (req, res) => {
                 FROM document_requirements dr
                 WHERE dr.is_mandatory = 1
                   AND dr.is_enabled = 1
-                  AND dr.category = (
-                      SELECT CASE WHEN grade_level <= 10 THEN 'JHS' ELSE 'SHS' END
-                      FROM enrollments WHERE student_id = ? ORDER BY academic_year_id DESC, grade_level DESC LIMIT 1
+                  AND dr.category IN (
+                      SELECT DISTINCT CASE WHEN grade_level <= 10 THEN 'JHS' ELSE 'SHS' END
+                      FROM enrollments WHERE student_id = ?
                   )
                   AND dr.id NOT IN (
                       SELECT requirement_id FROM documents
@@ -186,7 +200,26 @@ exports.getAllStudents = (req, res) => {
 // ============================================================
 exports.getStudentById = (req, res) => {
     try {
-        const student = db.prepare('SELECT * FROM students WHERE id = ?').get(req.params.id);
+        const studentId = req.params.id;
+        const isTeacher = req.user?.role?.toLowerCase() === 'teacher';
+        if (isTeacher) {
+            const hasAccess = db.prepare(`
+                SELECT 1 FROM enrollments e
+                JOIN teacher_sections ts ON e.section_id = ts.section_id
+                WHERE e.student_id = ? AND ts.teacher_id = ?
+                  AND e.id = (
+                      SELECT e2.id FROM enrollments e2
+                      JOIN academic_years ay ON e2.academic_year_id = ay.id
+                      WHERE e2.student_id = ?
+                      ORDER BY ay.year_range DESC, e2.grade_level DESC, e2.id DESC LIMIT 1
+                  )
+            `).get(studentId, req.user.id, studentId);
+            if (!hasAccess) {
+                return res.status(403).json({ message: "Access denied to this student's details." });
+            }
+        }
+
+        const student = db.prepare('SELECT * FROM students WHERE id = ?').get(studentId);
         if (!student) return res.status(404).json({ message: 'Student not found' });
 
         const enrollments = db.prepare(`
@@ -279,7 +312,7 @@ exports.createStudent = (req, res) => {
             console.error('Warning: Failed to create folder record:', folderError.message);
         }
 
-        createNotification(null, 'Student Created', `New student ${firstName} ${lastName} (LRN: ${lrn.trim()}) has been enrolled.`, 'student');
+        createNotification(null, 'Student Created', `New student ${firstName} ${lastName} (LRN: ${lrn.trim()}) has been enrolled.`, 'student', 'student', newId);
 
         res.status(201).json({
             id: newId,
@@ -346,10 +379,10 @@ exports.bulkGraduate = (req, res) => {
         // Notify admins if any graduated
         if (count > 0) {
             createNotification(
+                null,
                 'Students Graduated',
                 `${count} student(s) status updated to Graduated.`,
-                'admin',
-                null
+                'student'
             );
         }
 
@@ -413,15 +446,20 @@ exports.updateStudent = (req, res) => {
                 id
             );
 
-            // Upsert enrollment record
-            const existingEnrollment = db.prepare('SELECT id FROM enrollments WHERE student_id = ? AND academic_year_id = ?').get(id, academicYearId);
-            if (existingEnrollment) {
-                db.prepare(`
-                    UPDATE enrollments
-                    SET section_id = ?, grade_level = ?, track_strand = ?
-                    WHERE id = ?
-                `).run(sectionId, gradeLevel, trackStrand || null, existingEnrollment.id);
-            } else {
+            // Get latest enrollment record
+            const latestEnrollment = db.prepare(`
+                SELECT e.* FROM enrollments e
+                JOIN academic_years ay ON e.academic_year_id = ay.id
+                WHERE e.student_id = ?
+                ORDER BY ay.year_range DESC, e.grade_level DESC, e.id DESC LIMIT 1
+            `).get(id);
+
+            if (!latestEnrollment ||
+                latestEnrollment.academic_year_id !== parseInt(academicYearId) ||
+                latestEnrollment.grade_level !== parseInt(gradeLevel) ||
+                latestEnrollment.section_id !== parseInt(sectionId) ||
+                latestEnrollment.track_strand !== (trackStrand || null)
+            ) {
                 db.prepare(`
                     INSERT INTO enrollments (student_id, academic_year_id, section_id, grade_level, track_strand)
                     VALUES (?, ?, ?, ?, ?)
@@ -480,15 +518,22 @@ exports.bulkEnrollStudents = (req, res) => {
     }
     try {
         db.transaction(() => {
-            const checkEnrollment = db.prepare('SELECT id FROM enrollments WHERE student_id = ? AND academic_year_id = ?');
-            const updateEnrollment = db.prepare('UPDATE enrollments SET section_id = ?, grade_level = ?, track_strand = ? WHERE id = ?');
+            const getLatestEnrollment = db.prepare(`
+                SELECT e.* FROM enrollments e
+                JOIN academic_years ay ON e.academic_year_id = ay.id
+                WHERE e.student_id = ?
+                ORDER BY ay.year_range DESC, e.grade_level DESC, e.id DESC LIMIT 1
+            `);
             const insertEnrollment = db.prepare('INSERT INTO enrollments (student_id, academic_year_id, section_id, grade_level, track_strand) VALUES (?, ?, ?, ?, ?)');
             
             for (const studentId of studentIds) {
-                const existing = checkEnrollment.get(studentId, academicYearId);
-                if (existing) {
-                    updateEnrollment.run(sectionId, gradeLevel, trackStrand || null, existing.id);
-                } else {
+                const latest = getLatestEnrollment.get(studentId);
+                if (!latest || 
+                    latest.academic_year_id !== parseInt(academicYearId) ||
+                    latest.grade_level !== parseInt(gradeLevel) ||
+                    latest.section_id !== parseInt(sectionId) ||
+                    latest.track_strand !== (trackStrand || null)
+                ) {
                     insertEnrollment.run(studentId, academicYearId, sectionId, gradeLevel, trackStrand || null);
                 }
             }
