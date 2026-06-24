@@ -18,7 +18,7 @@ exports.login = (req, res) => {
         const token = jwt.sign(
             { id: user.id, username: user.username, role: user.role },
             process.env.JWT_SECRET,
-            { expiresIn: '30d' } // Extended for Remember Me support
+            { expiresIn: '75d' } // Extended for Remember Me support
         );
 
         res.json({
