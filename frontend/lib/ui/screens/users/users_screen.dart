@@ -231,9 +231,6 @@ class _UsersScreenState extends ConsumerState<UsersScreen> {
             children: [
               _buildHeader(context),
               const SizedBox(height: AppSizes.p16),
-              // Reset requests panel (super_admin only)
-              _buildResetRequestsPanel(),
-              const SizedBox(height: AppSizes.p8),
               Expanded(
                 child: usersAsync.when(
                   loading: () => const Center(child: CircularProgressIndicator()),
@@ -300,85 +297,7 @@ class _UsersScreenState extends ConsumerState<UsersScreen> {
     );
   }
 
-  Widget _buildResetRequestsPanel() {
-    final requestsAsync = ref.watch(resetRequestsProvider);
-    final currentUser = ref.watch(authProvider).value;
-    if (currentUser?.role != 'admin') return const SizedBox.shrink();
 
-    return requestsAsync.when(
-      loading: () => const SizedBox.shrink(),
-      error: (_, __) => const SizedBox.shrink(),
-      data: (requests) {
-        if (requests.isEmpty) return const SizedBox.shrink();
-        return Container(
-          margin: const EdgeInsets.only(bottom: AppSizes.p8),
-          decoration: BoxDecoration(
-            color: Colors.orange.shade50,
-            borderRadius: BorderRadius.circular(AppSizes.radiusLarge),
-            border: Border.all(color: Colors.orange.shade200),
-          ),
-          child: ExpansionTile(
-            leading: const Icon(Icons.lock_clock, color: Colors.orange),
-            title: Text(
-              '${requests.length} Pending Password Reset Request${requests.length > 1 ? 's' : ''}',
-              style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.orange),
-            ),
-            children: requests.map((req) {
-              return ListTile(
-                title: Text('${req['first_name']} ${req['last_name']} (@${req['username']})'),
-                subtitle: Text('Role: ${(req['role'] as String).toUpperCase().replaceAll('_', ' ')} • Requested: ${(req['requested_at'] as String).split('T').first}'),
-                trailing: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    TextButton.icon(
-                      icon: const Icon(Icons.check_circle, color: AppColors.success),
-                      label: const Text('Approve', style: TextStyle(color: AppColors.success)),
-                      onPressed: () async {
-                        try {
-                          final repo = ref.read(authRepositoryProvider);
-                          await repo.approveResetRequest(req['id'] as int);
-                          ref.invalidate(resetRequestsProvider);
-                          if (!mounted) return;
-                          
-                          // ✅ Replaced SnackBar with Success Dialog
-                          showSuccessDialog(context, title: 'Approved', message: 'Password reset approved.');
-                        } catch (e) {
-                          if (!mounted) return;
-                          
-                          // ✅ Replaced SnackBar with Error Dialog
-                          showErrorDialog(context, 'Approval Failed',  e.toString());
-                        }
-                      },
-                    ),
-                    TextButton.icon(
-                      icon: const Icon(Icons.cancel, color: Colors.red),
-                      label: const Text('Reject', style: TextStyle(color: Colors.red)),
-                      onPressed: () async {
-                        try {
-                          final repo = ref.read(authRepositoryProvider);
-                          await repo.rejectResetRequest(req['id'] as int);
-                          ref.invalidate(resetRequestsProvider);
-                          if (!mounted) return;
-                          
-                          // ✅ Replaced SnackBar with Success Dialog
-                          showSuccessDialog(context, title: 'Rejected', message: 'Request rejected.');
-                        } catch (e) {
-                          if (!mounted) return;
-                          
-                          // ✅ Replaced SnackBar with Error Dialog
-                          showErrorDialog(context,  'Rejection Failed', e.toString());
-                        }
-                      },
-                    ),
-                  ],
-                ),
-              );
-            }).toList(),
-          ),
-        );
-      },
-    );
-  }
 
   Widget _buildHeader(BuildContext context) {
     final isDesktop = MediaQuery.of(context).size.width > 800;

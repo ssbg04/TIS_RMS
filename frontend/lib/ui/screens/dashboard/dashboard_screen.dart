@@ -17,6 +17,7 @@ import '../../shared/inputs/app_search_bar.dart';
 import '../settings/teacher_management_screen.dart';
 import '../settings/requirements_settings_screen.dart';
 import '../../shared/modals/view_activity_modal.dart';
+import '../../shared/modals/reset_requests_modal.dart';
 
 class DashboardScreen extends ConsumerStatefulWidget {
   const DashboardScreen({super.key});
@@ -124,6 +125,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                   children: [
                     if (list.isNotEmpty) ...[
                       InkWell(
+                        mouseCursor: SystemMouseCursors.click,
                         onTap: () {
                           Navigator.pop(context);
                           ref.read(notificationsProvider.notifier).markAllAsRead();
@@ -135,6 +137,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                       ),
                       const SizedBox(width: 10),
                       InkWell(
+                        mouseCursor: SystemMouseCursors.click,
                         onTap: () {
                           Navigator.pop(context);
                           ref.read(notificationsProvider.notifier).clearNotifications();
@@ -166,18 +169,23 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
         // ── Notification items ────────────────────────────────────────
         else
           ...list.take(5).map((note) => PopupMenuItem(
+            mouseCursor: SystemMouseCursors.click,
             onTap: () {
               ref.read(notificationsProvider.notifier).markAsRead(note.id);
               Future.delayed(const Duration(milliseconds: 100), () {
                 if (context.mounted) {
-                  ViewActivityModal.show(
-                    context: context,
-                    title: note.title,
-                    description: note.message,
-                    date: _formatDate(note.createdAt),
-                    icon: _getNotificationIcon(note.title),
-                    actionColor: _getNotificationColor(note.title),
-                  );
+                  if (note.title.toLowerCase().contains('password')) {
+                    ResetRequestsModal.show(context);
+                  } else {
+                    ViewActivityModal.show(
+                      context: context,
+                      title: note.title,
+                      description: note.message,
+                      date: _formatDate(note.createdAt),
+                      icon: _getNotificationIcon(note.title),
+                      actionColor: _getNotificationColor(note.title),
+                    );
+                  }
                 }
               });
             },
@@ -459,6 +467,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     bool isMobile = false,
   }) {
     return InkWell(
+      mouseCursor: SystemMouseCursors.click,
       onTap: onTap,
       borderRadius: BorderRadius.circular(8),
       child: Container(
@@ -758,6 +767,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
 
           if (isMobile) {
           return InkWell(
+            mouseCursor: SystemMouseCursors.click,
             onTap: () => ViewActivityModal.show(
               context: context,
               title: a.entityType.toUpperCase(),
@@ -806,6 +816,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
         return Material(
           color: Colors.transparent,
           child: InkWell(
+            mouseCursor: SystemMouseCursors.click,
             onTap: () => ViewActivityModal.show(
               context: context,
               title: a.entityType.toUpperCase(),
