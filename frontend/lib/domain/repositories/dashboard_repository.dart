@@ -27,6 +27,7 @@ class DashboardRepository {
     int limit = 10,
     String? dateFrom,
     String? dateTo,
+    String? action,
     String? entityTypes, // Comma-separated, e.g. "student,document" for teacher view
   }) async {
     try {
@@ -38,6 +39,7 @@ class DashboardRepository {
           'limit': limit,
           if (dateFrom != null && dateFrom.isNotEmpty) 'date_from': dateFrom,
           if (dateTo   != null && dateTo.isNotEmpty)   'date_to':   dateTo,
+          if (action   != null && action.isNotEmpty)   'action':    action,
           if (entityTypes != null && entityTypes.isNotEmpty) 'entity_types': entityTypes,
         },
         options: options,

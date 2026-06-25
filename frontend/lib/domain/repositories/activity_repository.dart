@@ -18,6 +18,8 @@ class ActivityRepository {
     int limit = 20,
     String? dateFrom,
     String? dateTo,
+    String? action,
+    String? role,
   }) async {
     try {
       final options = await _getAuthOptions();
@@ -28,6 +30,8 @@ class ActivityRepository {
           'limit': limit,
           if (dateFrom != null && dateFrom.isNotEmpty) 'date_from': dateFrom,
           if (dateTo   != null && dateTo.isNotEmpty)   'date_to':   dateTo,
+          if (action   != null && action.isNotEmpty)   'action':    action,
+          if (role     != null && role.isNotEmpty)     'role':      role,
         },
         options: options,
       );

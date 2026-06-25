@@ -12,12 +12,16 @@ class UserHistoryQueryParams {
   final int limit;
   final String dateFrom;
   final String dateTo;
+  final String action;
+  final String role;
 
   const UserHistoryQueryParams({
     this.page = 1,
     this.limit = 20,
     this.dateFrom = '',
     this.dateTo = '',
+    this.action = '',
+    this.role = '',
   });
 
   UserHistoryQueryParams copyWith({
@@ -25,12 +29,16 @@ class UserHistoryQueryParams {
     int? limit,
     String? dateFrom,
     String? dateTo,
+    String? action,
+    String? role,
   }) {
     return UserHistoryQueryParams(
       page: page ?? this.page,
       limit: limit ?? this.limit,
       dateFrom: dateFrom ?? this.dateFrom,
       dateTo: dateTo ?? this.dateTo,
+      action: action ?? this.action,
+      role: role ?? this.role,
     );
   }
 }
@@ -49,6 +57,8 @@ class UserHistoryQueryNotifier
   void setPage(int page) => state = state.copyWith(page: page);
   void setDateFrom(String v) => state = state.copyWith(dateFrom: v, page: 1);
   void setDateTo(String v) => state = state.copyWith(dateTo: v, page: 1);
+  void setAction(String v) => state = state.copyWith(action: v, page: 1);
+  void setRole(String v) => state = state.copyWith(role: v, page: 1);
   void reset() => state = const UserHistoryQueryParams();
 }
 
@@ -61,5 +71,7 @@ final userHistoryPageProvider =
         limit: query.limit,
         dateFrom: query.dateFrom.isEmpty ? null : query.dateFrom,
         dateTo: query.dateTo.isEmpty ? null : query.dateTo,
+        action: query.action.isEmpty ? null : query.action,
+        role: query.role.isEmpty ? null : query.role,
       );
     });

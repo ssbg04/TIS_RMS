@@ -160,6 +160,7 @@ exports.getRecentActivities = (req, res) => {
         const offset = (page - 1) * limit;
         const dateFrom = req.query.date_from || '';
         const dateTo = req.query.date_to || '';
+        const action = req.query.action || '';
         // Comma-separated entity type filter, e.g. "student,document" (teacher view)
         const entityTypesRaw = req.query.entity_types || '';
 
@@ -168,6 +169,7 @@ exports.getRecentActivities = (req, res) => {
 
         if (dateFrom) { conditions.push("DATE(a.created_at) >= DATE(?)"); params.push(dateFrom); }
         if (dateTo) { conditions.push("DATE(a.created_at) <= DATE(?)"); params.push(dateTo); }
+        if (action) { conditions.push("a.action = ?"); params.push(action); }
 
         if (entityTypesRaw) {
             const types = entityTypesRaw.split(',').map(t => t.trim()).filter(Boolean);

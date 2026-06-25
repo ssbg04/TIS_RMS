@@ -263,12 +263,16 @@ exports.getUserHistory = (req, res) => {
         const offset   = (page - 1) * limit;
         const dateFrom = req.query.date_from || '';
         const dateTo   = req.query.date_to   || '';
+        const action   = req.query.action    || '';
+        const role     = req.query.role      || '';
 
         const conditions = [];
         const params     = [];
 
         if (dateFrom) { conditions.push("DATE(h.created_at) >= DATE(?)"); params.push(dateFrom); }
         if (dateTo)   { conditions.push("DATE(h.created_at) <= DATE(?)"); params.push(dateTo);   }
+        if (action)   { conditions.push("h.action = ?"); params.push(action); }
+        if (role)     { conditions.push("h.role = ?"); params.push(role); }
 
         const where = conditions.length ? `WHERE ${conditions.join(' AND ')}` : '';
 

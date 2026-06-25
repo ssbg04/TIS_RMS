@@ -36,12 +36,16 @@ class ActivityQueryParams {
   final int limit;
   final String dateFrom;
   final String dateTo;
+  final String action;
+  final String entityTypes;
 
   const ActivityQueryParams({
     this.page = 1,
     this.limit = 15,
     this.dateFrom = '',
     this.dateTo = '',
+    this.action = '',
+    this.entityTypes = '',
   });
 
   ActivityQueryParams copyWith({
@@ -49,12 +53,16 @@ class ActivityQueryParams {
     int? limit,
     String? dateFrom,
     String? dateTo,
+    String? action,
+    String? entityTypes,
   }) {
     return ActivityQueryParams(
       page: page ?? this.page,
       limit: limit ?? this.limit,
       dateFrom: dateFrom ?? this.dateFrom,
       dateTo: dateTo ?? this.dateTo,
+      action: action ?? this.action,
+      entityTypes: entityTypes ?? this.entityTypes,
     );
   }
 }
@@ -71,6 +79,8 @@ class ActivityQueryNotifier extends Notifier<ActivityQueryParams> {
   void setPage(int page) => state = state.copyWith(page: page);
   void setDateFrom(String v) => state = state.copyWith(dateFrom: v, page: 1);
   void setDateTo(String v) => state = state.copyWith(dateTo: v, page: 1);
+  void setAction(String v) => state = state.copyWith(action: v, page: 1);
+  void setEntityTypes(String v) => state = state.copyWith(entityTypes: v, page: 1);
   void reset() => state = const ActivityQueryParams();
 }
 
@@ -86,7 +96,8 @@ final recentActivitiesPageProvider =
         limit: query.limit,
         dateFrom: query.dateFrom.isEmpty ? null : query.dateFrom,
         dateTo: query.dateTo.isEmpty ? null : query.dateTo,
+        action: query.action.isEmpty ? null : query.action,
         // Teachers only see student and document activities
-        entityTypes: isTeacher ? 'student,document' : null,
+        entityTypes: isTeacher ? 'student,document' : (query.entityTypes.isEmpty ? null : query.entityTypes),
       );
     });

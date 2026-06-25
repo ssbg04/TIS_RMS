@@ -5,6 +5,7 @@ import '../../../core/utils/date_utils.dart' as pht;
 
 import '../../../domain/entities/dashboard_models.dart';
 import '../../providers/dashboard_provider.dart';
+import '../../providers/auth_provider.dart';
 import '../../shared/modals/view_activity_modal.dart';
 
 class RecentActivitiesScreen extends ConsumerStatefulWidget {
@@ -60,10 +61,126 @@ class _RecentActivitiesScreenState
     ref.read(activityQueryProvider.notifier).reset();
   }
 
+  void _showFilterDialog(ActivityQueryParams query, bool isTeacher) {
+    String pendingAction = query.action.isEmpty ? 'All Actions' : query.action;
+    String pendingEntity = query.entityTypes.isEmpty ? 'All Entities' : query.entityTypes;
+
+    showDialog(
+      context: context,
+      barrierColor: Colors.black.withValues(alpha: 0.25),
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setDialogState) {
+          return Dialog(
+            backgroundColor: Colors.transparent,
+            insetPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 40),
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 440),
+              child: Container(
+                margin: const EdgeInsets.only(top: 10),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(color: Colors.grey.shade200),
+                  boxShadow: [
+                    BoxShadow(color: Colors.black.withValues(alpha: 0.07), blurRadius: 16, offset: const Offset(0, 4)),
+                  ],
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
+                      child: Row(
+                        children: [
+                          const Icon(Icons.tune_rounded, size: 18, color: AppColors.primaryGreen),
+                          const SizedBox(width: 8),
+                          const Text('Filter Activities', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                        ],
+                      ),
+                    ),
+                    const Divider(height: 20),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text('Action', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13, color: Colors.grey)),
+                          const SizedBox(height: 8),
+                          DropdownButtonFormField<String>(
+                            value: pendingAction,
+                            decoration: InputDecoration(
+                              contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                              border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                            ),
+                            items: ['All Actions', 'CREATE', 'UPDATE', 'DELETE']
+                                .map((v) => DropdownMenuItem(value: v, child: Text(v)))
+                                .toList(),
+                            onChanged: (v) => setDialogState(() => pendingAction = v!),
+                          ),
+                          if (!isTeacher) ...[
+                            const SizedBox(height: 16),
+                            const Text('Entity Type', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13, color: Colors.grey)),
+                            const SizedBox(height: 8),
+                            DropdownButtonFormField<String>(
+                              value: pendingEntity,
+                              decoration: InputDecoration(
+                                contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                                border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                              ),
+                              items: ['All Entities', 'user', 'student', 'document']
+                                  .map((v) => DropdownMenuItem(value: v, child: Text(v.toUpperCase())))
+                                  .toList(),
+                              onChanged: (v) => setDialogState(() => pendingEntity = v!),
+                            ),
+                          ],
+                        ],
+                      ),
+                    ),
+                    const Divider(height: 20),
+                    Container(
+                      padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
+                      decoration: BoxDecoration(
+                        color: Colors.grey.shade50,
+                        borderRadius: const BorderRadius.vertical(bottom: Radius.circular(14)),
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.end,
+                        children: [
+                          TextButton(
+                            onPressed: () => Navigator.pop(ctx),
+                            child: const Text('Cancel', style: TextStyle(color: Colors.grey)),
+                          ),
+                          const SizedBox(width: 12),
+                          ElevatedButton(
+                            onPressed: () {
+                              final actionToSet = pendingAction == 'All Actions' ? '' : pendingAction;
+                              final entityToSet = pendingEntity == 'All Entities' ? '' : pendingEntity;
+                              ref.read(activityQueryProvider.notifier).setAction(actionToSet);
+                              ref.read(activityQueryProvider.notifier).setEntityTypes(entityToSet);
+                              Navigator.pop(ctx);
+                            },
+                            style: ElevatedButton.styleFrom(backgroundColor: AppColors.primaryGreen, foregroundColor: Colors.white),
+                            child: const Text('Apply Filters'),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final activitiesAsync = ref.watch(recentActivitiesPageProvider);
     final query = ref.watch(activityQueryProvider);
+    final isTeacher = ref.watch(authProvider).value?.role == 'teacher';
 
     return Scaffold(
       appBar: AppBar(
@@ -92,9 +209,16 @@ class _RecentActivitiesScreenState
               runSpacing: 8,
               crossAxisAlignment: WrapCrossAlignment.center,
               children: [
+                ActionChip(
+                  avatar: const Icon(Icons.tune_rounded, size: 16, color: Colors.white),
+                  label: const Text('Filters', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600)),
+                  backgroundColor: AppColors.primaryGreen,
+                  onPressed: () => _showFilterDialog(query, isTeacher),
+                  side: BorderSide.none,
+                ),
                 _dateChip('From', _fromDate, () => _pickDate(true)),
                 _dateChip('To', _toDate, () => _pickDate(false)),
-                if (_fromDate != null || _toDate != null)
+                if (_fromDate != null || _toDate != null || query.action.isNotEmpty || query.entityTypes.isNotEmpty)
                   ActionChip(
                     avatar: const Icon(Icons.clear, size: 16),
                     label: const Text('Clear'),
@@ -350,32 +474,52 @@ class _RecentActivitiesScreenState
   );
 }
 
-  Widget _buildPagination(PaginatedActivities data, int currentPage) {
+  Widget _buildPagination(PaginatedActivities data, int current) {
     if (data.totalPages <= 1) return const SizedBox.shrink();
     return Container(
       color: Colors.white,
-      padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+      padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           IconButton(
             icon: const Icon(Icons.chevron_left),
-            onPressed: currentPage > 1
-                ? () => ref
-                      .read(activityQueryProvider.notifier)
-                      .setPage(currentPage - 1)
+            onPressed: current > 1
+                ? () => ref.read(activityQueryProvider.notifier).setPage(current - 1)
                 : null,
           ),
-          Text(
-            'Page $currentPage of ${data.totalPages}',
-            style: const TextStyle(fontWeight: FontWeight.w500),
-          ),
+          ...List.generate(data.totalPages, (i) => i + 1)
+              .where((p) => (p - current).abs() <= 2)
+              .map((p) {
+            final isActive = p == current;
+            return GestureDetector(
+              onTap: () => ref.read(activityQueryProvider.notifier).setPage(p),
+              child: Container(
+                width: 32,
+                height: 32,
+                margin: const EdgeInsets.symmetric(horizontal: 2),
+                decoration: BoxDecoration(
+                  color: isActive ? AppColors.primaryGreen : Colors.transparent,
+                  borderRadius: BorderRadius.circular(6),
+                  border: isActive ? null : Border.all(color: Colors.grey.shade300),
+                ),
+                child: Center(
+                  child: Text(
+                    '$p',
+                    style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                      color: isActive ? Colors.white : Colors.grey.shade600,
+                    ),
+                  ),
+                ),
+              ),
+            );
+          }),
           IconButton(
             icon: const Icon(Icons.chevron_right),
-            onPressed: currentPage < data.totalPages
-                ? () => ref
-                      .read(activityQueryProvider.notifier)
-                      .setPage(currentPage + 1)
+            onPressed: current < data.totalPages
+                ? () => ref.read(activityQueryProvider.notifier).setPage(current + 1)
                 : null,
           ),
         ],
@@ -386,16 +530,17 @@ class _RecentActivitiesScreenState
   Widget _actionChip(String action) {
     final color = _actionColor(action);
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
       decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(20),
+        color: Colors.grey.shade100,
+        borderRadius: BorderRadius.circular(4),
+        border: Border.all(color: Colors.grey.shade300),
       ),
       child: Text(
         action.toUpperCase(),
         style: TextStyle(
           fontSize: 11,
-          fontWeight: FontWeight.bold,
+          fontWeight: FontWeight.w600,
           color: color,
         ),
       ),

@@ -41,6 +41,8 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
   @override
   void initState() {
     super.initState();
+    ref.invalidate(dashboardDataProvider);
+    
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
       ref.read(notificationsProvider.notifier).refreshNotifications();
