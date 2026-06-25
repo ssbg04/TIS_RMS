@@ -1,6 +1,50 @@
 const db = require('../config/db');
 
 // ============================================================
+// ACADEMIC YEAR AUTOMATION
+// ============================================================
+
+// Auto-seeds this school year and next if they don't exist,
+// and ensures exactly one year (the most recent) stays active.
+exports.ensureCurrentAcademicYears = () => {
+    try {
+        const now = new Date();
+        // Philippine school year starts in June; if we're before June, current SY started last year
+        const currentStartYear = now.getMonth() >= 5 ? now.getFullYear() : now.getFullYear() - 1;
+        const currentYearRange = `${currentStartYear}-${currentStartYear + 1}`;
+        const nextYearRange = `${currentStartYear + 1}-${currentStartYear + 2}`;
+
+        const insertYear = db.prepare(
+            'INSERT OR IGNORE INTO academic_years (year_range, status) VALUES (?, \'inactive\')'
+        );
+
+        // Insert current and next year if missing (as inactive, then we activate current)
+        insertYear.run(currentYearRange);
+        insertYear.run(nextYearRange);
+
+        // Check if any year is currently active
+        const activeYear = db.prepare("SELECT id FROM academic_years WHERE status = 'active'").get();
+        if (!activeYear) {
+            // Activate the current school year
+            const currentRow = db.prepare("SELECT id FROM academic_years WHERE year_range = ?").get(currentYearRange);
+            if (currentRow) {
+                db.prepare("UPDATE academic_years SET status = 'active' WHERE id = ?").run(currentRow.id);
+                console.log(`[AcademicYear] Activated ${currentYearRange}`);
+            }
+        }
+
+        console.log(`[AcademicYear] Ensured years: ${currentYearRange} (active), ${nextYearRange} (next)`);
+    } catch (err) {
+        console.error('[AcademicYear] Failed to ensure current academic years:', err.message);
+    }
+};
+
+// Deactivates all academic years except the given id
+const deactivateOtherYears = (activeId) => {
+    db.prepare("UPDATE academic_years SET status = 'inactive' WHERE id != ?").run(activeId);
+};
+
+// ============================================================
 // ACADEMIC YEARS CRUD
 // ============================================================
 
@@ -19,8 +63,14 @@ exports.createAcademicYear = (req, res) => {
         return res.status(400).json({ message: 'yearRange is required' });
     }
     try {
+        // Old academic years for manual adds default to inactive
+        const finalStatus = status || 'inactive';
         const result = db.prepare('INSERT INTO academic_years (year_range, status) VALUES (?, ?)')
-            .run(yearRange.trim(), status || 'active');
+            .run(yearRange.trim(), finalStatus);
+        // If the new year is active, deactivate all others
+        if (finalStatus === 'active') {
+            deactivateOtherYears(result.lastInsertRowid);
+        }
         res.status(201).json({ id: result.lastInsertRowid, message: 'Academic year created successfully' });
     } catch (error) {
         if (error.message && error.message.includes('UNIQUE')) {
@@ -45,8 +95,13 @@ exports.updateAcademicYear = (req, res) => {
         const year = db.prepare('SELECT id FROM academic_years WHERE id = ?').get(id);
         if (!year) return res.status(404).json({ message: 'Academic year not found' });
 
+        const finalStatus = status || 'inactive';
         db.prepare('UPDATE academic_years SET year_range = ?, status = ? WHERE id = ?')
-            .run(yearRange.trim(), status || 'active', id);
+            .run(yearRange.trim(), finalStatus, id);
+        // If activated, deactivate all other years automatically
+        if (finalStatus === 'active') {
+            deactivateOtherYears(parseInt(id));
+        }
         res.json({ message: 'Academic year updated successfully' });
     } catch (error) {
         if (error.message && error.message.includes('UNIQUE')) {

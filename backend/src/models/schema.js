@@ -642,6 +642,11 @@ const initSchema = () => {
             console.log('Default document requirements seeded');
         }
     })();
+
+    // Auto-seed current and next academic years (e.g. 2025-2026 and 2026-2027)
+    // and ensure exactly one year is active
+    const { ensureCurrentAcademicYears } = require('../controllers/setupController');
+    ensureCurrentAcademicYears();
 };
 
 module.exports = { initSchema };

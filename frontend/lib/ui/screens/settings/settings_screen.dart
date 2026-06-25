@@ -366,10 +366,10 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                           child: InkWell(
                             borderRadius: BorderRadius.circular(AppSizes.radiusLarge),
                             onTap: () {
-                              Navigator.of(context).push(
-                                MaterialPageRoute(
-                                  builder: (context) => const TeacherManagementScreen(),
-                                ),
+                              showDialog(
+                                context: context,
+                                barrierDismissible: true,
+                                builder: (context) => const TeacherManagementModal(),
                               );
                             },
                             child: Column(
