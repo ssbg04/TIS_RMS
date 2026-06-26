@@ -312,13 +312,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                         _buildCard(
                           child: InkWell(
                             borderRadius: BorderRadius.circular(AppSizes.radiusLarge),
-                            onTap: () {
-                              Navigator.of(context).push(
-                                MaterialPageRoute(
-                                  builder: (context) => const RequirementsSettingsScreen(),
-                                ),
-                              );
-                            },
+                            onTap: () => RequirementsModal.open(context),
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
@@ -365,13 +359,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                         _buildCard(
                           child: InkWell(
                             borderRadius: BorderRadius.circular(AppSizes.radiusLarge),
-                            onTap: () {
-                              showDialog(
-                                context: context,
-                                barrierDismissible: true,
-                                builder: (context) => const TeacherManagementModal(),
-                              );
-                            },
+                            onTap: () => TeacherManagementModal.open(context),
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [

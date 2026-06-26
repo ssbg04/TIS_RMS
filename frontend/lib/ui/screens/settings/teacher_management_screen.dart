@@ -20,6 +20,19 @@ const List<int> kGradeLevels = [7, 8, 9, 10, 11, 12];
 class TeacherManagementModal extends ConsumerStatefulWidget {
   const TeacherManagementModal({super.key});
 
+  static void open(BuildContext context) {
+    final isNarrow = MediaQuery.of(context).size.width < 480;
+    if (isNarrow) {
+      Navigator.push(context, MaterialPageRoute(builder: (_) => const TeacherManagementModal()));
+    } else {
+      showDialog(
+        context: context,
+        barrierDismissible: true,
+        builder: (_) => const TeacherManagementModal(),
+      );
+    }
+  }
+
   @override
   ConsumerState<TeacherManagementModal> createState() => _TeacherManagementModalState();
 }
@@ -48,36 +61,37 @@ class _TeacherManagementModalState extends ConsumerState<TeacherManagementModal>
     final screenSize = MediaQuery.of(context).size;
     final isNarrow = screenSize.width < 480;
 
+    final scaffold = Scaffold(
+      backgroundColor: AppColors.surfaceWhite,
+      body: SafeArea(
+        child: Column(
+          children: [
+            _buildModalHeader(context),
+            _buildTabBar(isNarrow),
+            Expanded(
+              child: TabBarView(
+                controller: _tabController,
+                children: [
+                  _TeachersTab(),
+                  _AcademicYearsTab(),
+                  _SectionsTab(),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+
+    if (isNarrow) return scaffold;
+
     return Dialog(
       backgroundColor: Colors.transparent,
-      insetPadding: isNarrow
-          ? EdgeInsets.zero
-          : const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
+      elevation: 0,
+      insetPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
       child: ClipRRect(
-        borderRadius: isNarrow
-            ? BorderRadius.zero
-            : BorderRadius.circular(AppSizes.radiusLarge),
-        child: Scaffold(
-          backgroundColor: AppColors.surfaceWhite,
-          body: SafeArea(
-            child: Column(
-              children: [
-                _buildModalHeader(context),
-                _buildTabBar(isNarrow),
-                Expanded(
-                  child: TabBarView(
-                    controller: _tabController,
-                    children: [
-                      _TeachersTab(),
-                      _AcademicYearsTab(),
-                      _SectionsTab(),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
+        borderRadius: BorderRadius.circular(AppSizes.radiusLarge),
+        child: scaffold,
       ),
     );
   }
@@ -413,6 +427,7 @@ class TeacherDetailModal extends ConsumerWidget {
                     Navigator.pop(context);
                     showDialog(
                       context: context,
+                      barrierDismissible: true,
                       builder: (_) => TeacherSectionsModal(teacher: teacher),
                     );
                   },
@@ -681,21 +696,24 @@ class _SectionsTabState extends ConsumerState<_SectionsTab> {
                     ),
                   ),
                   const SizedBox(width: 8),
-                  ElevatedButton(
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.primaryGreen,
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                      minimumSize: Size.zero,
-                    ),
-                    onPressed: () => showDialog(
-                      context: context,
-                      builder: (_) => SectionFormModal(
-                        defaultAcademicYearId: _filterYearId,
+                  SizedBox(
+                    height: 42,
+                    child: ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.primaryGreen,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 0),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                        minimumSize: Size.zero,
                       ),
+                      onPressed: () => showDialog(
+                        context: context,
+                        builder: (_) => SectionFormModal(
+                          defaultAcademicYearId: _filterYearId,
+                        ),
+                      ),
+                      child: const Icon(Icons.add, size: 20),
                     ),
-                    child: const Icon(Icons.add, size: 20),
                   ),
                 ],
               ),
@@ -874,14 +892,18 @@ class _FilterDropdown<T> extends StatelessWidget {
             child: DropdownButtonHideUnderline(
               child: DropdownButton<T>(
                 value: value,
+                menuMaxHeight: 300,
                 hint: Text(hint, style: TextStyle(fontSize: 12, color: Colors.grey.shade500)),
                 isExpanded: true,
-                icon: showClear
-                    ? GestureDetector(
-                        onTap: onClear,
-                        child: Icon(Icons.close, size: 14, color: Colors.grey.shade500),
-                      )
-                    : Icon(Icons.expand_more, size: 18, color: Colors.grey.shade500),
+                icon: Padding(
+                  padding: const EdgeInsets.only(right: 8.0),
+                  child: showClear
+                      ? GestureDetector(
+                          onTap: onClear,
+                          child: Icon(Icons.close, size: 14, color: Colors.grey.shade500),
+                        )
+                      : Icon(Icons.expand_more, size: 18, color: Colors.grey.shade500),
+                ),
                 items: items,
                 onChanged: onChanged,
                 style: const TextStyle(fontSize: 12, color: AppColors.textPrimary),
@@ -1205,7 +1227,6 @@ class _SectionFormModalState extends ConsumerState<SectionFormModal> {
 
 // ============================================================
 // TEACHER SECTIONS ASSIGN MODAL
-// Hierarchical: Academic Year → Grade Level → Sections (checkboxes)
 // ============================================================
 class TeacherSectionsModal extends ConsumerStatefulWidget {
   final SystemUser teacher;
@@ -1219,11 +1240,8 @@ class _TeacherSectionsModalState extends ConsumerState<TeacherSectionsModal> {
   final List<int> _selectedSectionIds = [];
   bool _isInitialized = false;
   bool _isLoading = false;
-
-  // Filter state for hierarchical selection panel
-  int? _panelYearId;
-  int? _panelGradeLevel;
-  bool _panelOpen = false;
+  String _searchQuery = '';
+  int? _selectedYearId;
 
   @override
   Widget build(BuildContext context) {
@@ -1232,10 +1250,12 @@ class _TeacherSectionsModalState extends ConsumerState<TeacherSectionsModal> {
     final yearsAsync = ref.watch(academicYearsListProvider);
 
     return Dialog(
+      backgroundColor: AppColors.surfaceWhite,
+      surfaceTintColor: Colors.transparent,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppSizes.radiusLarge)),
       insetPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 40),
       child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 520, maxHeight: 620),
+        constraints: const BoxConstraints(maxWidth: 600, maxHeight: 700),
         child: Column(
           children: [
             // Header
@@ -1254,9 +1274,9 @@ class _TeacherSectionsModalState extends ConsumerState<TeacherSectionsModal> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(
+                        const Text(
                           'Assign Sections',
-                          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
                         ),
                         Text(
                           '${widget.teacher.firstName} ${widget.teacher.lastName}',
@@ -1278,7 +1298,6 @@ class _TeacherSectionsModalState extends ConsumerState<TeacherSectionsModal> {
                 data: (allSections) {
                   return teacherSecsAsync.when(
                     data: (assignedSections) {
-                      // Initialize selection once
                       if (!_isInitialized) {
                         _selectedSectionIds
                           ..clear()
@@ -1288,87 +1307,146 @@ class _TeacherSectionsModalState extends ConsumerState<TeacherSectionsModal> {
 
                       return yearsAsync.when(
                         data: (years) {
-                          // Auto-select active year for panel on first open
-                          if (_panelYearId == null && years.isNotEmpty) {
+                          if (years.isEmpty) return const Center(child: Text('No academic years found.'));
+                          
+                          if (_selectedYearId == null) {
                             final active = years.firstWhere(
                               (y) => y.status == 'active',
                               orElse: () => years.first,
                             );
-                            _panelYearId = active.id;
+                            _selectedYearId = active.id;
                           }
+                          
+                          final activeYearSections = allSections.where((s) => s.academicYearId == _selectedYearId).toList();
 
-                          // Filter sections for the panel view
-                          var panelSections = allSections;
-                          if (_panelYearId != null) {
-                            panelSections = panelSections.where((s) => s.academicYearId == _panelYearId).toList();
-                          }
-                          if (_panelGradeLevel != null) {
-                            panelSections = panelSections.where((s) => s.gradeLevel == _panelGradeLevel).toList();
-                          }
-
-                          final selectedCount = _selectedSectionIds.length;
-
-                          return Padding(
-                            padding: const EdgeInsets.all(AppSizes.p16),
+                          return DefaultTabController(
+                            length: kGradeLevels.length + 1,
                             child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                // Summary chip
-                                if (selectedCount > 0)
-                                  Wrap(
-                                    spacing: 6,
-                                    runSpacing: 6,
+                                Padding(
+                                  padding: const EdgeInsets.fromLTRB(AppSizes.p16, AppSizes.p16, AppSizes.p16, 0),
+                                  child: Row(
                                     children: [
-                                      Container(
-                                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                                        decoration: BoxDecoration(
-                                          color: AppColors.primaryGreen.withValues(alpha: 0.1),
-                                          borderRadius: BorderRadius.circular(20),
-                                        ),
-                                        child: Text(
-                                          '$selectedCount section${selectedCount != 1 ? 's' : ''} selected',
-                                          style: const TextStyle(fontSize: 12, color: AppColors.primaryGreen, fontWeight: FontWeight.w600),
+                                      Expanded(
+                                        child: CustomTextField(
+                                          hintText: 'Search sections...',
+                                          prefixIcon: Icons.search,
+                                          onChanged: (val) => setState(() => _searchQuery = val.toLowerCase()),
                                         ),
                                       ),
-                                      GestureDetector(
-                                        onTap: () => setState(() => _selectedSectionIds.clear()),
-                                        child: Container(
-                                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                                          decoration: BoxDecoration(
-                                            color: Colors.red.withValues(alpha: 0.08),
-                                            borderRadius: BorderRadius.circular(20),
+                                      const SizedBox(width: 12),
+                                      Container(
+                                        height: 38,
+                                        padding: const EdgeInsets.symmetric(horizontal: 10),
+                                        decoration: BoxDecoration(
+                                          color: Colors.grey.shade50,
+                                          border: Border.all(color: Colors.grey.shade300),
+                                          borderRadius: BorderRadius.circular(8),
+                                        ),
+                                        child: DropdownButtonHideUnderline(
+                                          child: DropdownButton<int>(
+                                            value: _selectedYearId,
+                                            icon: const Icon(Icons.expand_more, size: 18, color: AppColors.primaryGreen),
+                                            style: const TextStyle(fontSize: 12, color: AppColors.textPrimary, fontWeight: FontWeight.w600),
+                                            items: years.map((y) {
+                                              return DropdownMenuItem(
+                                                value: y.id,
+                                                child: Text(y.yearRange + (y.status == 'active' ? ' (Active)' : '')),
+                                              );
+                                            }).toList(),
+                                            onChanged: (val) {
+                                              if (val != null) {
+                                                setState(() => _selectedYearId = val);
+                                              }
+                                            },
                                           ),
-                                          child: const Text('Clear all',
-                                              style: TextStyle(fontSize: 12, color: Colors.red)),
                                         ),
                                       ),
                                     ],
                                   ),
-                                if (selectedCount > 0) const SizedBox(height: 12),
+                                ),
+                                TabBar(
+                                  isScrollable: true,
+                                  labelColor: AppColors.primaryGreen,
+                                  unselectedLabelColor: Colors.grey.shade600,
+                                  indicatorColor: AppColors.primaryGreen,
+                                  tabs: [
+                                    const Tab(text: 'All'),
+                                    ...kGradeLevels.map((g) => Tab(text: 'Grade $g')),
+                                  ],
+                                ),
+                                Expanded(
+                                  child: TabBarView(
+                                    children: [
+                                      // ALL tab
+                                      (() {
+                                        final allGradesSections = activeYearSections.where((s) {
+                                          if (_searchQuery.isNotEmpty && !s.name.toLowerCase().contains(_searchQuery)) return false;
+                                          return true;
+                                        }).toList();
+                                        if (allGradesSections.isEmpty) {
+                                          return Center(child: Text('No sections found', style: TextStyle(color: Colors.grey.shade500)));
+                                        }
+                                        return ListView.builder(
+                                          padding: const EdgeInsets.all(AppSizes.p16),
+                                          itemCount: allGradesSections.length,
+                                          itemBuilder: (context, index) {
+                                            final sec = allGradesSections[index];
+                                            final isChecked = _selectedSectionIds.contains(sec.id);
+                                            return CheckboxListTile(
+                                              activeColor: AppColors.primaryGreen,
+                                              title: Text('${sec.name} (Grade ${sec.gradeLevel})', style: const TextStyle(fontSize: 14)),
+                                              value: isChecked,
+                                              onChanged: (val) {
+                                                setState(() {
+                                                  if (val == true) {
+                                                    _selectedSectionIds.add(sec.id);
+                                                  } else {
+                                                    _selectedSectionIds.remove(sec.id);
+                                                  }
+                                                });
+                                              },
+                                            );
+                                          },
+                                        );
+                                      })(),
+                                      // INDIVIDUAL Grade tabs
+                                      ...kGradeLevels.map((grade) {
+                                        final gradeSections = activeYearSections.where((s) {
+                                          if (s.gradeLevel != grade) return false;
+                                          if (_searchQuery.isNotEmpty && !s.name.toLowerCase().contains(_searchQuery)) return false;
+                                          return true;
+                                        }).toList();
 
-                                // Hierarchical filter dropdown panel
-                                _SectionFilterPanel(
-                                  years: years,
-                                  selectedYearId: _panelYearId,
-                                  selectedGrade: _panelGradeLevel,
-                                  isOpen: _panelOpen,
-                                  onToggle: () => setState(() => _panelOpen = !_panelOpen),
-                                  onYearChanged: (id) => setState(() {
-                                    _panelYearId = id;
-                                    _panelGradeLevel = null;
-                                  }),
-                                  onGradeChanged: (g) => setState(() => _panelGradeLevel = g),
-                                  panelSections: panelSections,
-                                  selectedIds: _selectedSectionIds,
-                                  onToggleSection: (id, checked) {
-                                    setState(() {
-                                      if (checked) {
-                                        _selectedSectionIds.add(id);
-                                      } else {
-                                        _selectedSectionIds.remove(id);
-                                      }
-                                    });
-                                  },
+                                        if (gradeSections.isEmpty) {
+                                          return Center(child: Text('No sections found for Grade $grade', style: TextStyle(color: Colors.grey.shade500)));
+                                        }
+
+                                        return ListView.builder(
+                                          padding: const EdgeInsets.all(AppSizes.p16),
+                                          itemCount: gradeSections.length,
+                                          itemBuilder: (context, index) {
+                                            final sec = gradeSections[index];
+                                            final isChecked = _selectedSectionIds.contains(sec.id);
+                                            return CheckboxListTile(
+                                              activeColor: AppColors.primaryGreen,
+                                              title: Text(sec.name, style: const TextStyle(fontSize: 14)),
+                                              value: isChecked,
+                                              onChanged: (val) {
+                                                setState(() {
+                                                  if (val == true) {
+                                                    _selectedSectionIds.add(sec.id);
+                                                  } else {
+                                                    _selectedSectionIds.remove(sec.id);
+                                                  }
+                                                });
+                                              },
+                                            );
+                                          },
+                                        );
+                                      }),
+                                    ],
+                                  ),
                                 ),
                               ],
                             ),
@@ -1396,8 +1474,12 @@ class _TeacherSectionsModalState extends ConsumerState<TeacherSectionsModal> {
               child: Row(
                 children: [
                   Expanded(
-                    child: TextButton(
+                    child: OutlinedButton(
                       onPressed: () => Navigator.pop(context),
+                      style: OutlinedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppSizes.radiusMedium)),
+                      ),
                       child: const Text('CANCEL'),
                     ),
                   ),
@@ -1439,257 +1521,6 @@ class _TeacherSectionsModalState extends ConsumerState<TeacherSectionsModal> {
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
-  }
-}
-
-// ============================================================
-// SECTION FILTER PANEL (hierarchical dropdown-style)
-// ============================================================
-class _SectionFilterPanel extends StatelessWidget {
-  final List<AcademicYearModel> years;
-  final int? selectedYearId;
-  final int? selectedGrade;
-  final bool isOpen;
-  final VoidCallback onToggle;
-  final ValueChanged<int?> onYearChanged;
-  final ValueChanged<int?> onGradeChanged;
-  final List<SectionModel> panelSections;
-  final List<int> selectedIds;
-  final Function(int id, bool checked) onToggleSection;
-
-  const _SectionFilterPanel({
-    required this.years,
-    required this.selectedYearId,
-    required this.selectedGrade,
-    required this.isOpen,
-    required this.onToggle,
-    required this.onYearChanged,
-    required this.onGradeChanged,
-    required this.panelSections,
-    required this.selectedIds,
-    required this.onToggleSection,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final selectedYear = selectedYearId != null
-        ? years.firstWhere((y) => y.id == selectedYearId, orElse: () => years.first)
-        : null;
-
-    final selectedCount = panelSections.where((s) => selectedIds.contains(s.id)).length;
-    final totalCount = panelSections.length;
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        // Main trigger button
-        GestureDetector(
-          onTap: onToggle,
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-            decoration: BoxDecoration(
-              color: Colors.grey.shade50,
-              borderRadius: BorderRadius.circular(10),
-              border: Border.all(
-                color: isOpen ? AppColors.primaryGreen : Colors.grey.shade300,
-              ),
-            ),
-            child: Row(
-              children: [
-                Icon(Icons.filter_list, size: 18, color: isOpen ? AppColors.primaryGreen : Colors.grey.shade500),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: Text(
-                    selectedYear != null
-                        ? '${selectedYear.yearRange}${selectedGrade != null ? ' › Grade $selectedGrade' : ''}'
-                        : 'Select Year & Grade Level',
-                    style: TextStyle(
-                      fontSize: 13,
-                      color: selectedYear != null ? AppColors.textPrimary : Colors.grey.shade500,
-                    ),
-                  ),
-                ),
-                if (totalCount > 0)
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                    decoration: BoxDecoration(
-                      color: AppColors.primaryGreen.withValues(alpha: 0.12),
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    child: Text(
-                      '$selectedCount/$totalCount',
-                      style: const TextStyle(fontSize: 11, color: AppColors.primaryGreen, fontWeight: FontWeight.bold),
-                    ),
-                  ),
-                const SizedBox(width: 6),
-                Icon(
-                  isOpen ? Icons.expand_less : Icons.expand_more,
-                  size: 20,
-                  color: Colors.grey.shade500,
-                ),
-              ],
-            ),
-          ),
-        ),
-
-        if (isOpen) ...[
-          const SizedBox(height: 8),
-          Container(
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(10),
-              border: Border.all(color: Colors.grey.shade200),
-              boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 8)],
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Academic Year sub-dropdown
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(12, 10, 12, 6),
-                  child: Text('Academic Year', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: Colors.grey.shade500)),
-                ),
-                ...years.map((y) {
-                  final isSelected = y.id == selectedYearId;
-                  return InkWell(
-                    onTap: () => onYearChanged(y.id),
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 9),
-                      color: isSelected ? AppColors.primaryGreen.withValues(alpha: 0.07) : null,
-                      child: Row(
-                        children: [
-                          Icon(
-                            isSelected ? Icons.radio_button_checked : Icons.radio_button_unchecked,
-                            size: 16,
-                            color: isSelected ? AppColors.primaryGreen : Colors.grey.shade400,
-                          ),
-                          const SizedBox(width: 10),
-                          Expanded(child: Text(y.yearRange, style: TextStyle(fontSize: 13, fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal))),
-                          if (y.status == 'active')
-                            Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
-                              decoration: BoxDecoration(
-                                color: AppColors.success.withValues(alpha: 0.12),
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                              child: const Text('Active', style: TextStyle(fontSize: 10, color: AppColors.success, fontWeight: FontWeight.bold)),
-                            ),
-                        ],
-                      ),
-                    ),
-                  );
-                }),
-
-                if (selectedYearId != null) ...[
-                  Divider(height: 1, color: Colors.grey.shade100),
-                  // Grade Level sub-dropdown
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(12, 10, 12, 6),
-                    child: Text('Grade Level', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: Colors.grey.shade500)),
-                  ),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: InkWell(
-                          onTap: () => onGradeChanged(null),
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                            color: selectedGrade == null ? AppColors.primaryGreen.withValues(alpha: 0.07) : null,
-                            child: Text('All Grades',
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  color: selectedGrade == null ? AppColors.primaryGreen : AppColors.textPrimary,
-                                  fontWeight: selectedGrade == null ? FontWeight.w600 : FontWeight.normal,
-                                )),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                  Wrap(
-                    children: kGradeLevels.map((g) {
-                      final isGSel = g == selectedGrade;
-                      return InkWell(
-                        onTap: () => onGradeChanged(g),
-                        child: Container(
-                          width: 60,
-                          padding: const EdgeInsets.symmetric(vertical: 10),
-                          decoration: BoxDecoration(
-                            color: isGSel ? AppColors.primaryGreen.withValues(alpha: 0.12) : null,
-                            border: Border.all(
-                              color: isGSel ? AppColors.primaryGreen.withValues(alpha: 0.4) : Colors.transparent,
-                            ),
-                            borderRadius: BorderRadius.circular(6),
-                          ),
-                          margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                          child: Center(
-                            child: Text('G$g',
-                                style: TextStyle(
-                                  fontSize: 13,
-                                  fontWeight: isGSel ? FontWeight.bold : FontWeight.normal,
-                                  color: isGSel ? AppColors.primaryGreen : AppColors.textPrimary,
-                                )),
-                          ),
-                        ),
-                      );
-                    }).toList(),
-                  ),
-                ],
-
-                if (panelSections.isNotEmpty) ...[
-                  Divider(height: 1, color: Colors.grey.shade100),
-                  // Sections multi-select
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(12, 10, 12, 6),
-                    child: Row(
-                      children: [
-                        Text('Sections', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: Colors.grey.shade500)),
-                        const Spacer(),
-                        GestureDetector(
-                          onTap: () {
-                            final allIds = panelSections.map((s) => s.id).toList();
-                            final allSelected = allIds.every((id) => selectedIds.contains(id));
-                            for (final id in allIds) {
-                              onToggleSection(id, !allSelected);
-                            }
-                          },
-                          child: Text(
-                            panelSections.every((s) => selectedIds.contains(s.id)) ? 'Deselect all' : 'Select all',
-                            style: const TextStyle(fontSize: 11, color: AppColors.primaryGreen),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  ...panelSections.map((sec) {
-                    final isChecked = selectedIds.contains(sec.id);
-                    return CheckboxListTile(
-                      dense: true,
-                      activeColor: AppColors.primaryGreen,
-                      title: Text('${sec.name} — Grade ${sec.gradeLevel}',
-                          style: const TextStyle(fontSize: 13)),
-                      value: isChecked,
-                      onChanged: (val) => onToggleSection(sec.id, val ?? false),
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 12),
-                    );
-                  }),
-                ] else if (selectedYearId != null) ...[
-                  Divider(height: 1, color: Colors.grey.shade100),
-                  Padding(
-                    padding: const EdgeInsets.all(14),
-                    child: Text(
-                      'No sections available for this selection.',
-                      style: TextStyle(fontSize: 12, color: Colors.grey.shade400),
-                    ),
-                  ),
-                ],
-                const SizedBox(height: 4),
-              ],
-            ),
-          ),
-        ],
-      ],
-    );
   }
 }
 

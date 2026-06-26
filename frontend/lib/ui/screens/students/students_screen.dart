@@ -707,7 +707,7 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
               if (!isIconOnly) ...[
                 const SizedBox(width: 6),
                 Text(
-                  'Multi-Select',
+                  'Select',
                   style: TextStyle(
                     fontSize: 13,
                     fontWeight: FontWeight.w600,

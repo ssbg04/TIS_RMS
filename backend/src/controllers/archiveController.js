@@ -10,16 +10,16 @@ exports.getArchivedStudents = (req, res) => {
         status = 'All Statuses',
     } = req.query;
 
-    const pageNum  = Math.max(1, parseInt(page));
+    const pageNum = Math.max(1, parseInt(page));
     const limitNum = Math.min(100, Math.max(1, parseInt(limit)));
-    const offset   = (pageNum - 1) * limitNum;
+    const offset = (pageNum - 1) * limitNum;
 
     const isTeacher = req.user?.role?.toLowerCase() === 'teacher';
     const teacherId = req.user?.id;
 
     try {
         const conditions = [];
-        const params     = [];
+        const params = [];
 
         // Base condition: only archived statuses
         if (status === 'All Statuses' || !status) {
@@ -30,7 +30,7 @@ exports.getArchivedStudents = (req, res) => {
         }
 
         if (search.trim()) {
-            const like = `%${search.trim().split('').join('%' )}%`;
+            const like = `%${search.trim().split('').join('%')}%`;
             conditions.push(`(s.lrn LIKE ? OR s.first_name LIKE ? OR s.last_name LIKE ? OR s.middle_name LIKE ?)`);
             params.push(like, like, like, like);
         }
@@ -86,7 +86,7 @@ exports.getArchivedStudents = (req, res) => {
             const nameParts = [student.last_name + ',', student.first_name];
             if (student.middle_name) nameParts.push(student.middle_name.charAt(0) + '.');
             if (student.extension) nameParts.push(student.extension);
-            
+
             const isExpired = student.expiryDate < currentDate;
 
             return {
@@ -104,8 +104,8 @@ exports.getArchivedStudents = (req, res) => {
             archives,
             pagination: {
                 total,
-                page:       pageNum,
-                limit:      limitNum,
+                page: pageNum,
+                limit: limitNum,
                 totalPages: Math.ceil(total / limitNum),
             },
         });
@@ -171,16 +171,16 @@ exports.getArchivedDocuments = (req, res) => {
         studentId = '',
     } = req.query;
 
-    const pageNum  = Math.max(1, parseInt(page));
+    const pageNum = Math.max(1, parseInt(page));
     const limitNum = Math.min(100, Math.max(1, parseInt(limit)));
-    const offset   = (pageNum - 1) * limitNum;
+    const offset = (pageNum - 1) * limitNum;
 
     const isTeacher = req.user?.role?.toLowerCase() === 'teacher';
     const teacherId = req.user?.id;
 
     try {
         const conditions = [];
-        const params     = [];
+        const params = [];
 
         // Core filter: non-enrolled student docs OR archived-status docs
         if (status && status !== 'All Statuses') {
@@ -198,7 +198,7 @@ exports.getArchivedDocuments = (req, res) => {
         }
 
         if (search.trim()) {
-            const like = `%${search.trim().split('').join('%' )}%`;
+            const like = `%${search.trim().split('').join('%')}%`;
             conditions.push(`(s.lrn LIKE ? OR s.first_name LIKE ? OR s.last_name LIKE ? OR d.file_name LIKE ?)`);
             params.push(like, like, like, like);
         }
@@ -236,7 +236,7 @@ exports.getArchivedDocuments = (req, res) => {
             params.push(studentId.trim());
         }
 
-        const teacherJoin = isTeacher 
+        const teacherJoin = isTeacher
             ? `JOIN teacher_sections ts ON e.section_id = ts.section_id AND ts.teacher_id = ?`
             : '';
         if (isTeacher) params.unshift(teacherId);
@@ -293,8 +293,8 @@ exports.getArchivedDocuments = (req, res) => {
             documents,
             pagination: {
                 total,
-                page:       pageNum,
-                limit:      limitNum,
+                page: pageNum,
+                limit: limitNum,
                 totalPages: Math.ceil(total / limitNum),
             },
         });
@@ -315,7 +315,7 @@ exports.getArchivedStudentFolders = (req, res) => {
 
     try {
         const conditions = [];
-        const params     = [];
+        const params = [];
 
         if (status && status !== 'All Statuses') {
             conditions.push(`s.status = ?`);
@@ -325,7 +325,7 @@ exports.getArchivedStudentFolders = (req, res) => {
         }
 
         if (search.trim()) {
-            const like = `%${search.trim().split('').join('%' )}%`;
+            const like = `%${search.trim().split('').join('%')}%`;
             conditions.push(`(s.lrn LIKE ? OR s.first_name LIKE ? OR s.last_name LIKE ?)`);
             params.push(like, like, like);
         }

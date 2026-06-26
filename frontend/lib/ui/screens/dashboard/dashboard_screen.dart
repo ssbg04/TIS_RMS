@@ -381,9 +381,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                       icon: Icons.people_outline,
                       label: 'Teachers & Academic Setup',
                       isMobile: true,
-                      onTap: () => Navigator.of(context).push(
-                        MaterialPageRoute(builder: (_) => const TeacherManagementScreen()),
-                      ),
+                      onTap: () => TeacherManagementModal.open(context),
                     ),
                     const SizedBox(height: 10),
                     _setupNavButton(
@@ -391,9 +389,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                       icon: Icons.folder_open_outlined,
                       label: 'Document Requirements',
                       isMobile: true,
-                      onTap: () => Navigator.of(context).push(
-                        MaterialPageRoute(builder: (_) => const RequirementsSettingsScreen()),
-                      ),
+                      onTap: () => RequirementsModal.open(context),
                     ),
                   ],
                 ),
@@ -433,17 +429,13 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                             context,
                             icon: Icons.people_outline,
                             label: 'Teachers & Academic Setup',
-                            onTap: () => Navigator.of(context).push(
-                              MaterialPageRoute(builder: (_) => const TeacherManagementScreen()),
-                            ),
+                            onTap: () => TeacherManagementModal.open(context),
                           ),
                           _setupNavButton(
                             context,
                             icon: Icons.folder_open_outlined,
                             label: 'Document Requirements',
-                            onTap: () => Navigator.of(context).push(
-                              MaterialPageRoute(builder: (_) => const RequirementsSettingsScreen()),
-                            ),
+                            onTap: () => RequirementsModal.open(context),
                           ),
                         ],
                       ),

@@ -1,3 +1,4 @@
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/constants/app_colors.dart';
@@ -9,344 +10,221 @@ import '../../shared/dialogs/error_dialog.dart';
 import '../../providers/document_provider.dart';
 import '../../../domain/entities/document_requirement_model.dart';
 
-class RequirementsSettingsScreen extends ConsumerStatefulWidget {
-  const RequirementsSettingsScreen({super.key});
+// ─────────────────────────────────────────────────────────────
+// Sort Mode Enum
+// ─────────────────────────────────────────────────────────────
+enum _SortMode { az, za, mandatoryFirst, dueDateFirst }
+
+// ─────────────────────────────────────────────────────────────
+// Entry point: show as dialog from settings
+// ─────────────────────────────────────────────────────────────
+class RequirementsModal extends ConsumerStatefulWidget {
+  const RequirementsModal({super.key});
+
+  static void open(BuildContext context) {
+    if (MediaQuery.of(context).size.width < 480) {
+      Navigator.of(context).push(
+        MaterialPageRoute(builder: (_) => const RequirementsModal()),
+      );
+    } else {
+      showDialog(
+        context: context,
+        barrierDismissible: true,
+        builder: (_) => const RequirementsModal(),
+      );
+    }
+  }
 
   @override
-  ConsumerState<RequirementsSettingsScreen> createState() => _RequirementsSettingsScreenState();
+  ConsumerState<RequirementsModal> createState() => _RequirementsModalState();
 }
 
-class _RequirementsSettingsScreenState extends ConsumerState<RequirementsSettingsScreen>
-    with SingleTickerProviderStateMixin {
-  late TabController _tabController;
+class _RequirementsModalState extends ConsumerState<RequirementsModal> {
+  // ── Filters ──────────────────────────────────────────────
+  bool _showJhs = true;
+  bool _showShs = true;
+  bool? _filterMandatory; // null = all
+  bool? _filterEnabled;   // null = all
 
-  @override
-  void initState() {
-    super.initState();
-    _tabController = TabController(length: 2, vsync: this);
-  }
+  // ── Sort ─────────────────────────────────────────────────
+  _SortMode _sortMode = _SortMode.az;
+
+  // ── Multi-select ─────────────────────────────────────────
+  bool _multiSelectMode = false;
+  final Set<int> _selectedIds = {};
+
+  // ── Search ───────────────────────────────────────────────
+  final _searchCtrl = TextEditingController();
+  String _searchQuery = '';
 
   @override
   void dispose() {
-    _tabController.dispose();
+    _searchCtrl.dispose();
     super.dispose();
   }
 
-  @override
-  Widget build(BuildContext context) {
-    final settingsAsync = ref.watch(requirementsSettingsProvider);
+  // ─────────────────────────────────────────────────────────
+  // Filter + Sort pipeline
+  // ─────────────────────────────────────────────────────────
+  List<DocumentRequirementModel> _applyFiltersAndSort(
+      List<DocumentRequirementModel> all) {
+    var result = all.where((r) {
+      // Category filter
+      final cat = r.category.toUpperCase();
+      if (!_showJhs && cat == 'JHS') return false;
+      if (!_showShs && cat == 'SHS') return false;
 
-    return Scaffold(
-      backgroundColor: AppColors.surfaceWhite,
-      body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.all(AppSizes.p24),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              _buildHeader(),
-              const SizedBox(height: AppSizes.p24),
-              Container(
-                decoration: BoxDecoration(
-                  color: AppColors.surfaceWhite,
-                  borderRadius: BorderRadius.circular(AppSizes.radiusMedium),
-                ),
-                child: TabBar(
-                  controller: _tabController,
-                  labelColor: AppColors.primaryGreen,
-                  unselectedLabelColor: AppColors.textSecondary,
-                  indicatorColor: AppColors.primaryGreen,
-                  tabs: const [
-                    Tab(text: 'JHS Requirements'),
-                    Tab(text: 'SHS Requirements'),
-                  ],
-                ),
-              ),
-              const SizedBox(height: AppSizes.p16),
-              Expanded(
-                child: settingsAsync.when(
-                  data: (settings) => TabBarView(
-                    controller: _tabController,
-                    children: [
-                      _buildRequirementsList(settings.jhs),
-                      _buildRequirementsList(settings.shs),
-                    ],
-                  ),
-                  loading: () => const Center(child: CircularProgressIndicator()),
-                  error: (e, st) => Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        const Icon(Icons.error_outline, size: 48, color: AppColors.error),
-                        const SizedBox(height: AppSizes.p16),
-                        Text('Error: $e', style: const TextStyle(color: AppColors.error)),
-                        const SizedBox(height: AppSizes.p16),
-                        PrimaryButton(
-                          label: 'Retry',
-                          onPressed: () => ref.invalidate(requirementsSettingsProvider),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-      floatingActionButton: FloatingActionButton.extended(
-        backgroundColor: AppColors.primaryGreen,
-        onPressed: () => _showAddRequirementModal(context),
-        icon: const Icon(Icons.add, color: Colors.white),
-        label: const Text('ADD', style: TextStyle(color: Colors.white)),
-      ),
-    );
-  }
+      // Mandatory filter
+      if (_filterMandatory != null && r.isMandatory != _filterMandatory) {
+        return false;
+      }
 
-  Widget _buildHeader() {
-    return Row(
-      children: [
-        IconButton(
-          icon: const Icon(Icons.arrow_back),
-          onPressed: () => Navigator.of(context).pop(),
-        ),
-        const SizedBox(width: AppSizes.p8),
-        const Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'Document Requirements',
-                style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: AppColors.textPrimary),
-              ),
-              Text(
-                'Configure required documents for JHS and SHS students',
-                style: TextStyle(fontSize: 14, color: AppColors.textSecondary),
-              ),
-            ],
-          ),
-        ),
-      ],
-    );
-  }
+      // Enabled filter
+      if (_filterEnabled != null && r.isEnabled != _filterEnabled) {
+        return false;
+      }
 
-  Widget _buildRequirementsList(List<DocumentRequirementModel> requirements) {
-    if (requirements.isEmpty) {
-      return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(Icons.folder_off_outlined, size: 64, color: Colors.grey.shade400),
-            const SizedBox(height: AppSizes.p16),
-            const Text('No requirements configured', style: TextStyle(color: AppColors.textSecondary)),
-            const SizedBox(height: AppSizes.p8),
-            const Text(
-              'Click the button below to add document requirements',
-              style: TextStyle(color: AppColors.textSecondary, fontSize: 12),
-            ),
-          ],
-        ),
-      );
+      // Search
+      if (_searchQuery.isNotEmpty) {
+        final q = _searchQuery.toLowerCase();
+        if (!r.name.toLowerCase().contains(q) &&
+            !(r.description?.toLowerCase().contains(q) ?? false)) {
+          return false;
+        }
+      }
+
+      return true;
+    }).toList();
+
+    switch (_sortMode) {
+      case _SortMode.az:
+        result.sort((a, b) => a.name.compareTo(b.name));
+        break;
+      case _SortMode.za:
+        result.sort((a, b) => b.name.compareTo(a.name));
+        break;
+      case _SortMode.mandatoryFirst:
+        result.sort((a, b) {
+          if (a.isMandatory == b.isMandatory) return a.name.compareTo(b.name);
+          return a.isMandatory ? -1 : 1;
+        });
+        break;
+      case _SortMode.dueDateFirst:
+        result.sort((a, b) {
+          if (a.dueDate == null && b.dueDate == null) {
+            return a.name.compareTo(b.name);
+          }
+          if (a.dueDate == null) return 1;
+          if (b.dueDate == null) return -1;
+          return a.dueDate!.compareTo(b.dueDate!);
+        });
+        break;
     }
 
-    return ListView.builder(
-      padding: const EdgeInsets.only(bottom: 80),
-      itemCount: requirements.length,
-      itemBuilder: (context, index) {
-        final req = requirements[index];
-        return _buildRequirementCard(req);
-      },
-    );
+    return result;
   }
 
-  Widget _buildRequirementCard(DocumentRequirementModel req) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: AppSizes.p12),
-      decoration: BoxDecoration(
-        color: AppColors.surfaceWhite,
-        borderRadius: BorderRadius.circular(AppSizes.radiusMedium),
-        border: Border.all(color: Colors.grey.shade200),
-      ),
-      child: ExpansionTile(
-        tilePadding: const EdgeInsets.symmetric(horizontal: AppSizes.p16, vertical: AppSizes.p8),
-        childrenPadding: const EdgeInsets.all(AppSizes.p16),
-        leading: Container(
-          width: 40,
-          height: 40,
-          decoration: BoxDecoration(
-            color: req.isMandatory
-                ? AppColors.error.withValues(alpha: 0.1)
-                : AppColors.primaryGreen.withValues(alpha: 0.1),
-            borderRadius: BorderRadius.circular(8),
-          ),
-          child: Icon(
-            req.isMandatory ? Icons.warning_amber : Icons.check_circle_outline,
-            color: req.isMandatory ? AppColors.error : AppColors.primaryGreen,
-          ),
-        ),
-        title: Text(
-          req.name,
-          style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 16),
-        ),
-        subtitle: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const SizedBox(height: 4),
-            Row(
-              children: [
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                  decoration: BoxDecoration(
-                    color: req.category == 'JHS'
-                        ? Colors.blue.withValues(alpha: 0.1)
-                        : Colors.purple.withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(4),
-                  ),
-                  child: Text(
-                    req.category,
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: req.category == 'JHS' ? Colors.blue : Colors.purple,
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                  decoration: BoxDecoration(
-                    color: req.isMandatory
-                        ? AppColors.error.withValues(alpha: 0.1)
-                        : Colors.grey.withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(4),
-                  ),
-                  child: Text(
-                    req.isMandatory ? 'Mandatory' : 'Optional',
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: req.isMandatory ? AppColors.error : Colors.grey,
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                  decoration: BoxDecoration(
-                    color: req.isEnabled
-                        ? AppColors.success.withValues(alpha: 0.1)
-                        : Colors.grey.withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(4),
-                  ),
-                  child: Text(
-                    req.isEnabled ? 'Enabled' : 'Disabled',
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: req.isEnabled ? AppColors.success : Colors.grey,
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-            if (req.dueDate != null) ...[
-              const SizedBox(height: 4),
-              Text(
-                'Due: ${_formatDate(req.dueDate!)}',
-                style: const TextStyle(fontSize: 12, color: AppColors.textSecondary),
-              ),
-            ],
-          ],
-        ),
-        children: [
-          if (req.description != null && req.description!.isNotEmpty) ...[
-            Text(req.description!, style: const TextStyle(color: AppColors.textSecondary)),
-            const SizedBox(height: AppSizes.p12),
-          ],
-          _buildDetailRow('Accepted File Types', req.acceptedFileTypes),
-          _buildDetailRow('School Levels', req.schoolLevels),
-          const SizedBox(height: AppSizes.p16),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.end,
-            children: [
-              TextButton.icon(
-                onPressed: () => _showEditRequirementModal(context, req),
-                icon: const Icon(Icons.edit, size: 18),
-                label: const Text('Edit'),
-              ),
-              const SizedBox(width: AppSizes.p8),
-              TextButton.icon(
-                onPressed: () => _confirmDelete(req),
-                icon: const Icon(Icons.delete, size: 18, color: AppColors.error),
-                label: const Text('Delete', style: TextStyle(color: AppColors.error)),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
+  // ─────────────────────────────────────────────────────────
+  // Multi-select helpers
+  // ─────────────────────────────────────────────────────────
+  void _toggleMultiSelect() {
+    setState(() {
+      _multiSelectMode = !_multiSelectMode;
+      if (!_multiSelectMode) _selectedIds.clear();
+    });
   }
 
-  Widget _buildDetailRow(String label, String value) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 8),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          SizedBox(
-            width: 140,
-            child: Text(label, style: const TextStyle(fontWeight: FontWeight.w500, fontSize: 13)),
-          ),
-          Expanded(
-            child: Text(value, style: const TextStyle(fontSize: 13)),
-          ),
-        ],
-      ),
-    );
+  void _toggleItem(int id) {
+    setState(() {
+      if (_selectedIds.contains(id)) {
+        _selectedIds.remove(id);
+      } else {
+        _selectedIds.add(id);
+      }
+    });
   }
 
-  String _formatDate(DateTime date) {
-    return '${date.month}/${date.day}/${date.year}';
+  void _selectAll(List<DocumentRequirementModel> visible) {
+    setState(() {
+      if (_selectedIds.length == visible.length) {
+        _selectedIds.clear();
+      } else {
+        _selectedIds.addAll(visible.map((r) => r.id));
+      }
+    });
   }
 
-  void _showAddRequirementModal(BuildContext context) {
+  // ─────────────────────────────────────────────────────────
+  // Dialogs
+  // ─────────────────────────────────────────────────────────
+  void _showDetailModal(DocumentRequirementModel req) {
     showDialog(
       context: context,
-      builder: (context) => RequirementFormModal(
-        category: _tabController.index == 0 ? 'JHS' : 'SHS',
-      ),
-    );
-  }
-
-  void _showEditRequirementModal(BuildContext context, DocumentRequirementModel req) {
-    showDialog(
-      context: context,
-      builder: (context) => RequirementFormModal(
+      builder: (_) => _RequirementDetailModal(
         requirement: req,
-        category: req.category,
+        onEdit: () {
+          Navigator.pop(context);
+          _showFormModal(requirement: req);
+        },
+        onDelete: () {
+          Navigator.pop(context);
+          _confirmDelete([req]);
+        },
       ),
     );
   }
 
-  void _confirmDelete(DocumentRequirementModel req) {
+  void _showFormModal({DocumentRequirementModel? requirement}) {
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Delete Requirement', style: TextStyle(color: AppColors.error)),
-        content: Text('Are you sure you want to delete "${req.name}"?'),
+      builder: (_) => RequirementFormModal(requirement: requirement),
+    );
+  }
+
+  void _confirmDelete(List<DocumentRequirementModel> targets) {
+    final isBulk = targets.length > 1;
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(AppSizes.radiusLarge)),
+        title: Text(
+          isBulk ? 'Delete ${targets.length} Requirements' : 'Delete Requirement',
+          style: const TextStyle(color: AppColors.error),
+        ),
+        content: Text(
+          isBulk
+              ? 'Are you sure you want to delete ${targets.length} selected requirements? This cannot be undone.'
+              : 'Are you sure you want to delete "${targets.first.name}"?',
+        ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text('CANCEL')),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('CANCEL'),
+          ),
           ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: AppColors.error, foregroundColor: Colors.white),
+            style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.error, foregroundColor: Colors.white),
             onPressed: () async {
-              Navigator.pop(context);
+              Navigator.pop(ctx);
               try {
-                await ref.read(requirementMutationProvider.notifier).deleteRequirement(req.id);
+                for (final t in targets) {
+                  await ref
+                      .read(requirementMutationProvider.notifier)
+                      .deleteRequirement(t.id);
+                }
                 if (!mounted) return;
-                showSuccessDialog(context, message: 'Requirement deleted successfully');
+                setState(() {
+                  _selectedIds.removeAll(targets.map((t) => t.id));
+                  if (_selectedIds.isEmpty) _multiSelectMode = false;
+                });
+                showSuccessDialog(context,
+                    message: isBulk
+                        ? '${targets.length} requirements deleted'
+                        : 'Requirement deleted successfully');
               } catch (e) {
                 if (!mounted) return;
-                showErrorDialog(context, 'Failed to delete requirement', e.toString());
+                showErrorDialog(context, 'Failed to delete', e.toString());
               }
             },
             child: const Text('DELETE'),
@@ -355,20 +233,1413 @@ class _RequirementsSettingsScreenState extends ConsumerState<RequirementsSetting
       ),
     );
   }
+
+  void _bulkEdit(List<DocumentRequirementModel> targets) {
+    showDialog(
+      context: context,
+      builder: (_) => _BulkEditModal(
+        targets: targets,
+        onDone: () {
+          setState(() {
+            _selectedIds.clear();
+            _multiSelectMode = false;
+          });
+        },
+      ),
+    );
+  }
+
+  // ─────────────────────────────────────────────────────────
+  // Build
+  // ─────────────────────────────────────────────────────────
+  @override
+  Widget build(BuildContext context) {
+    final screenSize = MediaQuery.of(context).size;
+    final isNarrow = screenSize.width < 480;
+    final settingsAsync = ref.watch(requirementsSettingsProvider);
+
+    final scaffold = Scaffold(
+      backgroundColor: AppColors.surfaceWhite,
+      body: SafeArea(
+        child: Column(
+              children: [
+                _buildModalHeader(context),
+                _buildSearchAndControls(isNarrow),
+                _buildFilterBar(isNarrow),
+                const Divider(height: 1),
+                Expanded(
+                  child: settingsAsync.when(
+                    data: (settings) {
+                      final all = [...settings.jhs, ...settings.shs];
+                      final filtered = _applyFiltersAndSort(all);
+                      return _buildTable(filtered, isNarrow);
+                    },
+                    loading: () =>
+                        const Center(child: CircularProgressIndicator()),
+                    error: (e, _) => Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          const Icon(Icons.error_outline,
+                              size: 48, color: AppColors.error),
+                          const SizedBox(height: AppSizes.p16),
+                          Text('Error: $e',
+                              style:
+                                  const TextStyle(color: AppColors.error)),
+                          const SizedBox(height: AppSizes.p16),
+                          TextButton(
+                            onPressed: () =>
+                                ref.invalidate(requirementsSettingsProvider),
+                            child: const Text('Retry'),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+          ),
+        ),
+      floatingActionButton: _buildFAB(context),
+    );
+
+    if (isNarrow) return scaffold;
+
+    return Dialog(
+      backgroundColor: Colors.transparent,
+      elevation: 0,
+      insetPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(AppSizes.radiusLarge),
+        child: scaffold,
+      ),
+    );
+  }
+
+  // ─────────────────────────────────────────────────────────
+  // Modal header
+  // ─────────────────────────────────────────────────────────
+  Widget _buildModalHeader(BuildContext context) {
+    final isNarrow = MediaQuery.of(context).size.width < 480;
+    return Container(
+      padding: const EdgeInsets.symmetric(
+          horizontal: AppSizes.p16, vertical: AppSizes.p12),
+      decoration: BoxDecoration(
+        color: AppColors.surfaceWhite,
+        border: Border(bottom: BorderSide(color: Colors.grey.shade200)),
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: AppColors.primaryGreen.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: const Icon(Icons.folder_copy,
+                color: AppColors.primaryGreen, size: 20),
+          ),
+          const SizedBox(width: AppSizes.p12),
+          const Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Document Requirements',
+                  style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: AppColors.textPrimary),
+                ),
+                Text(
+                  'Manage required documents for JHS and SHS students',
+                  style: TextStyle(
+                      fontSize: 12, color: AppColors.textSecondary),
+                ),
+              ],
+            ),
+          ),
+          // Multi-select toggle
+          Tooltip(
+            message: _multiSelectMode ? 'Exit selection' : 'Select multiple',
+            child: InkWell(
+              onTap: _toggleMultiSelect,
+              borderRadius: BorderRadius.circular(8),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      _multiSelectMode
+                          ? Icons.check_box
+                          : Icons.check_box_outline_blank,
+                      color: _multiSelectMode
+                          ? AppColors.primaryGreen
+                          : AppColors.textSecondary,
+                    ),
+                    if (!isNarrow) ...[
+                      const SizedBox(width: 8),
+                      Text(
+                        _multiSelectMode ? 'Selecting' : 'Select',
+                        style: TextStyle(
+                            color: _multiSelectMode
+                                ? AppColors.primaryGreen
+                                : AppColors.textSecondary,
+                            fontWeight: FontWeight.w600,
+                            fontSize: 14),
+                      ),
+                    ]
+                  ],
+                ),
+              ),
+            ),
+          ),
+          IconButton(
+            icon: const Icon(Icons.close, color: AppColors.textSecondary),
+            onPressed: () => Navigator.of(context).pop(),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ─────────────────────────────────────────────────────────
+  // Search row + sort
+  // ─────────────────────────────────────────────────────────
+  Widget _buildSearchAndControls(bool isNarrow) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(
+          AppSizes.p16, AppSizes.p12, AppSizes.p16, 0),
+      child: Row(
+        children: [
+          Expanded(
+            child: SizedBox(
+              height: 40,
+              child: TextField(
+                controller: _searchCtrl,
+                onChanged: (v) => setState(() => _searchQuery = v),
+                decoration: InputDecoration(
+                  hintText: 'Search requirements…',
+                  hintStyle: const TextStyle(
+                      fontSize: 13, color: AppColors.textMuted),
+                  prefixIcon: const Icon(Icons.search,
+                      size: 18, color: AppColors.textSecondary),
+                  suffixIcon: _searchQuery.isNotEmpty
+                      ? IconButton(
+                          icon: const Icon(Icons.clear,
+                              size: 16, color: AppColors.textSecondary),
+                          onPressed: () {
+                            _searchCtrl.clear();
+                            setState(() => _searchQuery = '');
+                          },
+                        )
+                      : null,
+                  contentPadding:
+                      const EdgeInsets.symmetric(vertical: 0, horizontal: 12),
+                  border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8),
+                      borderSide: BorderSide(color: Colors.grey.shade300)),
+                  enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8),
+                      borderSide: BorderSide(color: Colors.grey.shade300)),
+                  focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8),
+                      borderSide: const BorderSide(
+                          color: AppColors.primaryGreen, width: 1.5)),
+                  filled: true,
+                  fillColor: Colors.grey.shade50,
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(width: AppSizes.p8),
+          // Sort menu
+          PopupMenuButton<_SortMode>(
+            tooltip: 'Sort',
+            initialValue: _sortMode,
+            onSelected: (v) => setState(() => _sortMode = v),
+            itemBuilder: (_) => [
+              _sortMenuItem(_SortMode.az, Icons.sort_by_alpha, 'A → Z'),
+              _sortMenuItem(_SortMode.za, Icons.sort_by_alpha, 'Z → A'),
+              _sortMenuItem(
+                  _SortMode.mandatoryFirst, Icons.star, 'Mandatory first'),
+              _sortMenuItem(
+                  _SortMode.dueDateFirst, Icons.calendar_today, 'Due date first'),
+            ],
+            child: Container(
+              height: 40,
+              padding: const EdgeInsets.symmetric(horizontal: 12),
+              decoration: BoxDecoration(
+                color: Colors.grey.shade50,
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: Colors.grey.shade300),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(Icons.sort,
+                      size: 16, color: AppColors.textSecondary),
+                  if (!isNarrow) ...[
+                    const SizedBox(width: 4),
+                    const Text('Sort',
+                        style: TextStyle(
+                            fontSize: 13, color: AppColors.textSecondary)),
+                  ],
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  PopupMenuItem<_SortMode> _sortMenuItem(
+      _SortMode mode, IconData icon, String label) {
+    return PopupMenuItem(
+      value: mode,
+      child: Row(
+        children: [
+          Icon(icon,
+              size: 16,
+              color: _sortMode == mode
+                  ? AppColors.primaryGreen
+                  : AppColors.textSecondary),
+          const SizedBox(width: 8),
+          Text(label,
+              style: TextStyle(
+                  color: _sortMode == mode
+                      ? AppColors.primaryGreen
+                      : AppColors.textPrimary,
+                  fontWeight: _sortMode == mode
+                      ? FontWeight.w600
+                      : FontWeight.normal)),
+          if (_sortMode == mode) ...[
+            const Spacer(),
+            const Icon(Icons.check, size: 14, color: AppColors.primaryGreen),
+          ],
+        ],
+      ),
+    );
+  }
+
+  // ─────────────────────────────────────────────────────────
+  // Filter chips bar
+  // ─────────────────────────────────────────────────────────
+  Widget _buildFilterBar(bool isNarrow) {
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      padding: const EdgeInsets.fromLTRB(
+          AppSizes.p16, AppSizes.p8, AppSizes.p16, AppSizes.p8),
+      child: Row(
+        children: [
+          const Row(
+            children: [
+              Icon(Icons.filter_list, size: 16, color: AppColors.textSecondary),
+              SizedBox(width: 4),
+              Text('Filters:',
+                  style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.textSecondary)),
+            ],
+          ),
+          const SizedBox(width: AppSizes.p8),
+
+          // Category — JHS
+          _buildFilterChip(
+            label: 'JHS',
+            selected: _showJhs,
+            color: Colors.blue,
+            onSelected: (v) => setState(() => _showJhs = v),
+          ),
+          const SizedBox(width: 6),
+
+          // Category — SHS
+          _buildFilterChip(
+            label: 'SHS',
+            selected: _showShs,
+            color: Colors.purple,
+            onSelected: (v) => setState(() => _showShs = v),
+          ),
+          const SizedBox(width: AppSizes.p12),
+
+          const VerticalDivider(width: 1, thickness: 1, indent: 4, endIndent: 4),
+          const SizedBox(width: AppSizes.p12),
+
+          // Mandatory
+          _buildToggleChip(
+            labels: const ['All', 'Mandatory', 'Optional'],
+            selectedIndex: _filterMandatory == null
+                ? 0
+                : _filterMandatory!
+                    ? 1
+                    : 2,
+            color: AppColors.error,
+            onSelected: (i) => setState(() {
+              _filterMandatory = i == 0 ? null : i == 1;
+            }),
+          ),
+          const SizedBox(width: AppSizes.p12),
+
+          const VerticalDivider(width: 1, thickness: 1, indent: 4, endIndent: 4),
+          const SizedBox(width: AppSizes.p12),
+
+          // Enabled
+          _buildToggleChip(
+            labels: const ['All', 'Enabled', 'Disabled'],
+            selectedIndex: _filterEnabled == null
+                ? 0
+                : _filterEnabled!
+                    ? 1
+                    : 2,
+            color: AppColors.success,
+            onSelected: (i) => setState(() {
+              _filterEnabled = i == 0 ? null : i == 1;
+            }),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildFilterChip({
+    required String label,
+    required bool selected,
+    required Color color,
+    required ValueChanged<bool> onSelected,
+  }) {
+    return GestureDetector(
+      onTap: () => onSelected(!selected),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 150),
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+        decoration: BoxDecoration(
+          color: selected ? color.withValues(alpha: 0.12) : Colors.grey.shade100,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(
+              color: selected ? color : Colors.grey.shade300, width: 1.5),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (selected)
+              Icon(Icons.check, size: 12, color: color)
+            else
+              Icon(Icons.circle_outlined, size: 12, color: Colors.grey.shade400),
+            const SizedBox(width: 4),
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+                color: selected ? color : AppColors.textSecondary,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildToggleChip({
+    required List<String> labels,
+    required int selectedIndex,
+    required Color color,
+    required ValueChanged<int> onSelected,
+  }) {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.grey.shade100,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: Colors.grey.shade300),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: List.generate(labels.length, (i) {
+          final isActive = selectedIndex == i;
+          return GestureDetector(
+            onTap: () => onSelected(i),
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 150),
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+              decoration: BoxDecoration(
+                color: isActive ? color.withValues(alpha: 0.12) : Colors.transparent,
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: Text(
+                labels[i],
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: isActive ? FontWeight.w700 : FontWeight.normal,
+                  color: isActive ? color : AppColors.textSecondary,
+                ),
+              ),
+            ),
+          );
+        }),
+      ),
+    );
+  }
+
+  // ─────────────────────────────────────────────────────────
+  // Table list
+  // ─────────────────────────────────────────────────────────
+  Widget _buildTable(
+      List<DocumentRequirementModel> filtered, bool isNarrow) {
+    if (filtered.isEmpty) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.folder_off_outlined,
+                size: 56, color: Colors.grey.shade300),
+            const SizedBox(height: AppSizes.p16),
+            const Text('No requirements match your filters',
+                style: TextStyle(
+                    color: AppColors.textSecondary, fontSize: 15)),
+            const SizedBox(height: AppSizes.p8),
+            TextButton(
+              onPressed: () => setState(() {
+                _showJhs = true;
+                _showShs = true;
+                _filterMandatory = null;
+                _filterEnabled = null;
+                _searchQuery = '';
+                _searchCtrl.clear();
+              }),
+              child: const Text('Clear filters'),
+            ),
+          ],
+        ),
+      );
+    }
+
+    return Column(
+      children: [
+        // Table header
+        Container(
+          color: Colors.grey.shade50,
+          padding: const EdgeInsets.symmetric(
+              horizontal: AppSizes.p16, vertical: AppSizes.p8),
+          child: Row(
+            children: [
+              if (_multiSelectMode) ...[
+                SizedBox(
+                  width: 36,
+                  child: Checkbox(
+                    value: _selectedIds.length == filtered.length,
+                    tristate: true,
+                    onChanged: (_) => _selectAll(filtered),
+                    activeColor: AppColors.primaryGreen,
+                    materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  ),
+                ),
+              ],
+              Expanded(
+                flex: 5,
+                child: Text(
+                  _multiSelectMode
+                      ? '${_selectedIds.length} of ${filtered.length} selected'
+                      : 'DOCUMENT NAME',
+                  style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w700,
+                    color: _multiSelectMode
+                        ? AppColors.primaryGreen
+                        : AppColors.textMuted,
+                    letterSpacing: 0.5,
+                  ),
+                ),
+              ),
+              if (!isNarrow)
+                const SizedBox(
+                  width: 80,
+                  child: Text(
+                    'CATEGORY',
+                    style: TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.textMuted,
+                        letterSpacing: 0.5),
+                    textAlign: TextAlign.center,
+                  ),
+                ),
+              const SizedBox(width: 24),
+            ],
+          ),
+        ),
+        const Divider(height: 1),
+        // Rows
+        Expanded(
+          child: ListView.separated(
+            padding: const EdgeInsets.only(bottom: 100),
+            itemCount: filtered.length,
+            separatorBuilder: (ctx, i) =>
+                Divider(height: 1, color: Colors.grey.shade100),
+            itemBuilder: (context, index) =>
+                _buildRow(filtered[index], isNarrow),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildRow(DocumentRequirementModel req, bool isNarrow) {
+    final isSelected = _selectedIds.contains(req.id);
+    final catColor =
+        req.category.toUpperCase() == 'JHS' ? Colors.blue : Colors.purple;
+
+    return Material(
+      color: isSelected
+          ? AppColors.primaryGreen.withValues(alpha: 0.06)
+          : Colors.transparent,
+      child: InkWell(
+        onTap: () {
+          if (_multiSelectMode) {
+            _toggleItem(req.id);
+          } else {
+            _showDetailModal(req);
+          }
+        },
+        onLongPress: () {
+          if (!_multiSelectMode) {
+            setState(() {
+              _multiSelectMode = true;
+              _selectedIds.add(req.id);
+            });
+          }
+        },
+        child: Padding(
+          padding: const EdgeInsets.symmetric(
+              horizontal: AppSizes.p16, vertical: 12),
+          child: Row(
+            children: [
+              // Checkbox (multiselect)
+              if (_multiSelectMode) ...[
+                SizedBox(
+                  width: 36,
+                  child: Checkbox(
+                    value: isSelected,
+                    onChanged: (_) => _toggleItem(req.id),
+                    activeColor: AppColors.primaryGreen,
+                    materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  ),
+                ),
+              ],
+
+              // Document icon
+              Container(
+                width: 34,
+                height: 34,
+                decoration: BoxDecoration(
+                  color: req.isMandatory
+                      ? AppColors.error.withValues(alpha: 0.08)
+                      : AppColors.primaryGreen.withValues(alpha: 0.08),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Icon(
+                  req.isMandatory
+                      ? Icons.description
+                      : Icons.description_outlined,
+                  size: 18,
+                  color: req.isMandatory
+                      ? AppColors.error
+                      : AppColors.primaryGreen,
+                ),
+              ),
+              const SizedBox(width: AppSizes.p12),
+
+              // Name + badges
+              Expanded(
+                flex: 5,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      req.name,
+                      style: const TextStyle(
+                          fontWeight: FontWeight.w600,
+                          fontSize: 14,
+                          color: AppColors.textPrimary),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    const SizedBox(height: 3),
+                    Row(
+                      children: [
+                        // Category badge on narrow screens
+                        if (isNarrow) ...[
+                          _catBadge(req.category, catColor),
+                          const SizedBox(width: 4),
+                        ],
+                        AnimatedSwitcher(
+                          duration: const Duration(milliseconds: 300),
+                          child: req.isMandatory
+                              ? _badge('Mandatory', AppColors.primaryGreen, key: const ValueKey('man'))
+                              : _badge('Optional', Colors.grey.shade600, key: const ValueKey('opt')),
+                        ),
+                        if (req.isMandatory && !req.isEnabled)
+                          const SizedBox(width: 4),
+                        if (!req.isEnabled)
+                          _badge('Disabled', Colors.grey.shade500),
+                        if (req.dueDate != null) ...[
+                          const SizedBox(width: 4),
+                          Row(
+                            children: [
+                              Icon(Icons.calendar_today,
+                                  size: 10, color: Colors.grey.shade400),
+                              const SizedBox(width: 2),
+                              Text(
+                                _formatDate(req.dueDate!),
+                                style: TextStyle(
+                                    fontSize: 10, color: Colors.grey.shade500),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+
+              // Category badge (wide screens)
+              if (!isNarrow) ...[
+                SizedBox(
+                  width: 80,
+                  child: Center(child: _catBadge(req.category, catColor)),
+                ),
+              ],
+
+              // Chevron
+              const Icon(Icons.chevron_right,
+                  size: 18, color: AppColors.textMuted),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _catBadge(String category, Color color) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: color.withValues(alpha: 0.3)),
+      ),
+      child: Text(
+        category.toUpperCase(),
+        style: TextStyle(
+            fontSize: 11, fontWeight: FontWeight.w700, color: color),
+      ),
+    );
+  }
+
+  Widget _badge(String label, Color color, {Key? key}) {
+    return Container(
+      key: key,
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(4),
+      ),
+      child: Text(label,
+          style: TextStyle(
+              fontSize: 10, fontWeight: FontWeight.w600, color: color)),
+    );
+  }
+
+  // ─────────────────────────────────────────────────────────
+  // FAB
+  // ─────────────────────────────────────────────────────────
+  Widget _buildFAB(BuildContext context) {
+    if (_multiSelectMode && _selectedIds.isNotEmpty) {
+      return _buildMultiSelectBar();
+    }
+
+    return FloatingActionButton(
+      backgroundColor: AppColors.primaryGreen,
+      foregroundColor: Colors.white,
+      elevation: 4,
+      tooltip: 'Add requirement',
+      onPressed: () => _showFormModal(),
+      child: const Icon(Icons.add, size: 28),
+    );
+  }
+
+  Widget _buildMultiSelectBar() {
+    final isNarrow = MediaQuery.of(context).size.width < 480;
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 8),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(32),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.1),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(32),
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+          child: Container(
+            color: Colors.black.withValues(alpha: 0.8),
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const SizedBox(width: 4),
+                Text(
+                  '${_selectedIds.length} selected',
+                  style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600),
+                ),
+                const SizedBox(width: 12),
+                // Edit button (only if single selection)
+                if (_selectedIds.length == 1)
+                  _fabBarButton(
+                    icon: Icons.edit,
+                    label: 'Edit',
+                    showLabel: !isNarrow,
+                    color: Colors.white,
+                    onTap: () {
+                      final settingsAsync = ref.read(requirementsSettingsProvider);
+                      settingsAsync.whenData((settings) {
+                        final all = [...settings.jhs, ...settings.shs];
+                        final req = all.firstWhere((r) => r.id == _selectedIds.first,
+                            orElse: () => all.first);
+                        setState(() {
+                          _selectedIds.clear();
+                          _multiSelectMode = false;
+                        });
+                        _showFormModal(requirement: req);
+                      });
+                    },
+                  ),
+                if (_selectedIds.length > 1) ...[
+                  _fabBarButton(
+                    icon: Icons.edit,
+                    label: 'Bulk Edit',
+                    showLabel: !isNarrow,
+                    color: Colors.white,
+                    onTap: () {
+                      final settingsAsync = ref.read(requirementsSettingsProvider);
+                      settingsAsync.whenData((settings) {
+                        final all = [...settings.jhs, ...settings.shs];
+                        final targets =
+                            all.where((r) => _selectedIds.contains(r.id)).toList();
+                        _bulkEdit(targets);
+                      });
+                    },
+                  ),
+                ],
+                const SizedBox(width: 4),
+                _fabBarButton(
+                  icon: Icons.delete,
+                  label: 'Delete',
+                  showLabel: !isNarrow,
+                  color: Colors.redAccent.shade100,
+                  onTap: () {
+                    final settingsAsync = ref.read(requirementsSettingsProvider);
+                    settingsAsync.whenData((settings) {
+                      final all = [...settings.jhs, ...settings.shs];
+                      final targets =
+                          all.where((r) => _selectedIds.contains(r.id)).toList();
+                      _confirmDelete(targets);
+                    });
+                  },
+                ),
+                const SizedBox(width: 4),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _fabBarButton({
+    required IconData icon,
+    required String label,
+    required bool showLabel,
+    required Color color,
+    required VoidCallback onTap,
+  }) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(24),
+        child: Padding(
+          padding: EdgeInsets.symmetric(
+              horizontal: showLabel ? 10 : 6, vertical: 6),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(icon, size: 16, color: color),
+              if (showLabel) ...[
+                const SizedBox(width: 4),
+                Text(label,
+                    style: TextStyle(
+                        color: color,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600)),
+              ]
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  String _formatDate(DateTime date) =>
+      '${date.month}/${date.day}/${date.year}';
 }
 
-class RequirementFormModal extends ConsumerStatefulWidget {
-  final DocumentRequirementModel? requirement;
-  final String category;
+// ─────────────────────────────────────────────────────────────
+// Detail Modal — shows full info + Edit / Delete
+// ─────────────────────────────────────────────────────────────
+class _RequirementDetailModal extends StatelessWidget {
+  final DocumentRequirementModel requirement;
+  final VoidCallback onEdit;
+  final VoidCallback onDelete;
 
-  const RequirementFormModal({
-    super.key,
-    this.requirement,
-    required this.category,
+  const _RequirementDetailModal({
+    required this.requirement,
+    required this.onEdit,
+    required this.onDelete,
   });
 
   @override
-  ConsumerState<RequirementFormModal> createState() => _RequirementFormModalState();
+  Widget build(BuildContext context) {
+    final req = requirement;
+    final catColor =
+        req.category.toUpperCase() == 'JHS' ? Colors.blue : Colors.purple;
+
+    return Dialog(
+      shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(AppSizes.radiusLarge)),
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 480),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            // Header
+            Container(
+              padding: const EdgeInsets.all(AppSizes.p20),
+              decoration: BoxDecoration(
+                color: AppColors.primaryGreen.withValues(alpha: 0.05),
+                borderRadius: const BorderRadius.vertical(
+                    top: Radius.circular(AppSizes.radiusLarge)),
+                border: Border(
+                    bottom: BorderSide(color: Colors.grey.shade200)),
+              ),
+              child: Row(
+                children: [
+                  Container(
+                    width: 44,
+                    height: 44,
+                    decoration: BoxDecoration(
+                      color: req.isMandatory
+                          ? AppColors.error.withValues(alpha: 0.1)
+                          : AppColors.primaryGreen.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Icon(
+                      req.isMandatory
+                          ? Icons.description
+                          : Icons.description_outlined,
+                      color: req.isMandatory
+                          ? AppColors.error
+                          : AppColors.primaryGreen,
+                      size: 22,
+                    ),
+                  ),
+                  const SizedBox(width: AppSizes.p12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(req.name,
+                            style: const TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                                color: AppColors.textPrimary)),
+                        const SizedBox(height: 4),
+                        Row(
+                          children: [
+                            _catChip(req.category, catColor),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.close, size: 20),
+                    onPressed: () => Navigator.pop(context),
+                  ),
+                ],
+              ),
+            ),
+
+            // Body
+            Flexible(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.all(AppSizes.p20),
+                child: Column(
+                  children: [
+                    _detailTile(
+                      Icons.notes,
+                      'Description',
+                      (req.description?.isNotEmpty == true)
+                          ? req.description!
+                          : 'No description provided',
+                      valueColor: (req.description?.isNotEmpty == true)
+                          ? null
+                          : AppColors.textMuted,
+                    ),
+                    const Divider(height: 20),
+                    _detailTile(
+                      Icons.calendar_today,
+                      'Due Date',
+                      req.dueDate != null
+                          ? _formatDate(req.dueDate!)
+                          : 'No due date',
+                      valueColor:
+                          req.dueDate != null ? null : AppColors.textMuted,
+                    ),
+                    const Divider(height: 20),
+                    _detailTile(
+                      Icons.attach_file,
+                      'Accepted File Types',
+                      req.acceptedFileTypes.replaceAll(',', ', '),
+                    ),
+                    const Divider(height: 20),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: _statusCard(
+                            label: 'Mandatory',
+                            value: req.isMandatory,
+                            trueLabel: 'Mandatory',
+                            falseLabel: 'Optional',
+                            trueColor: AppColors.error,
+                            falseColor: AppColors.textMuted,
+                          ),
+                        ),
+                        const SizedBox(width: AppSizes.p12),
+                        Expanded(
+                          child: _statusCard(
+                            label: 'Status',
+                            value: req.isEnabled,
+                            trueLabel: 'Enabled',
+                            falseLabel: 'Disabled',
+                            trueColor: AppColors.success,
+                            falseColor: Colors.grey,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ),
+
+            // Actions
+            Container(
+              padding: const EdgeInsets.symmetric(
+                  horizontal: AppSizes.p16, vertical: AppSizes.p12),
+              decoration: BoxDecoration(
+                border: Border(top: BorderSide(color: Colors.grey.shade200)),
+              ),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      onPressed: onDelete,
+                      icon: const Icon(Icons.delete_outline,
+                          size: 16, color: AppColors.error),
+                      label: const Text('Delete',
+                          style: TextStyle(color: AppColors.error)),
+                      style: OutlinedButton.styleFrom(
+                        side: BorderSide(
+                            color: AppColors.error.withValues(alpha: 0.5)),
+                        padding: const EdgeInsets.symmetric(vertical: 10),
+                        shape: RoundedRectangleBorder(
+                            borderRadius:
+                                BorderRadius.circular(AppSizes.radiusMedium)),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: AppSizes.p12),
+                  Expanded(
+                    child: ElevatedButton.icon(
+                      onPressed: onEdit,
+                      icon: const Icon(Icons.edit_outlined,
+                          size: 16, color: Colors.white),
+                      label: const Text('Edit',
+                          style: TextStyle(color: Colors.white)),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.primaryGreen,
+                        padding: const EdgeInsets.symmetric(vertical: 10),
+                        elevation: 0,
+                        shape: RoundedRectangleBorder(
+                            borderRadius:
+                                BorderRadius.circular(AppSizes.radiusMedium)),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _catChip(String category, Color color) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: color.withValues(alpha: 0.3)),
+      ),
+      child: Text(
+        category.toUpperCase(),
+        style: TextStyle(
+            fontSize: 11, fontWeight: FontWeight.w700, color: color),
+      ),
+    );
+  }
+
+  Widget _detailTile(IconData icon, String label, String value,
+      {Color? valueColor}) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Icon(icon, size: 16, color: AppColors.textSecondary),
+        const SizedBox(width: AppSizes.p8),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(label,
+                  style: const TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w700,
+                      color: AppColors.textMuted,
+                      letterSpacing: 0.4)),
+              const SizedBox(height: 2),
+              Text(value,
+                  style: TextStyle(
+                      fontSize: 13,
+                      color: valueColor ?? AppColors.textPrimary)),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _statusCard({
+    required String label,
+    required bool value,
+    required String trueLabel,
+    required String falseLabel,
+    required Color trueColor,
+    required Color falseColor,
+  }) {
+    final color = value ? trueColor : falseColor;
+    final displayLabel = value ? trueLabel : falseLabel;
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 12),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.07),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: color.withValues(alpha: 0.2)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(label,
+              style: const TextStyle(
+                  fontSize: 10,
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.textMuted,
+                  letterSpacing: 0.4)),
+          const SizedBox(height: 4),
+          Row(
+            children: [
+              Icon(
+                value ? Icons.check_circle : Icons.cancel_outlined,
+                size: 14,
+                color: color,
+              ),
+              const SizedBox(width: 4),
+              Text(displayLabel,
+                  style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                      color: color)),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  String _formatDate(DateTime date) =>
+      '${date.month}/${date.day}/${date.year}';
+}
+
+// ─────────────────────────────────────────────────────────────
+// Bulk Edit Modal — edit mandatory/enabled for multiple items
+// ─────────────────────────────────────────────────────────────
+class _BulkEditModal extends ConsumerStatefulWidget {
+  final List<DocumentRequirementModel> targets;
+  final VoidCallback onDone;
+
+  const _BulkEditModal({required this.targets, required this.onDone});
+
+  @override
+  ConsumerState<_BulkEditModal> createState() => _BulkEditModalState();
+}
+
+class _BulkEditModalState extends ConsumerState<_BulkEditModal> {
+  bool? _isMandatory;
+  bool? _isEnabled;
+  bool _isLoading = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final screenSize = MediaQuery.of(context).size;
+    final isNarrow = screenSize.width < 480;
+
+    return Dialog(
+      backgroundColor: Colors.transparent,
+      elevation: 0,
+      insetPadding: isNarrow
+          ? const EdgeInsets.symmetric(horizontal: 16, vertical: 24)
+          : const EdgeInsets.symmetric(horizontal: 40, vertical: 40),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(AppSizes.radiusLarge),
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
+          child: Container(
+            color: AppColors.surfaceWhite.withValues(alpha: 0.85),
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 400),
+              child: Padding(
+                padding: const EdgeInsets.all(AppSizes.p24),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: AppColors.primaryGreen.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: const Icon(Icons.edit,
+                        color: AppColors.primaryGreen, size: 18),
+                  ),
+                  const SizedBox(width: AppSizes.p12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text('Bulk Edit',
+                            style: TextStyle(
+                                fontSize: 16, fontWeight: FontWeight.bold)),
+                        Text(
+                          'Editing ${widget.targets.length} requirements',
+                          style: const TextStyle(
+                              fontSize: 12, color: AppColors.textSecondary),
+                        ),
+                      ],
+                    ),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.close, size: 20),
+                    onPressed: () => Navigator.pop(context),
+                  ),
+                ],
+              ),
+              const SizedBox(height: AppSizes.p20),
+              const Text(
+                'Leave a field as "No change" to keep each requirement\'s current value.',
+                style: TextStyle(
+                    fontSize: 12, color: AppColors.textSecondary),
+              ),
+              const SizedBox(height: AppSizes.p16),
+              _buildSelectRow(
+                label: 'Mandatory',
+                value: _isMandatory,
+                trueLabel: 'Set Mandatory',
+                falseLabel: 'Set Optional',
+                onChanged: (v) => setState(() => _isMandatory = v),
+              ),
+              const SizedBox(height: AppSizes.p12),
+              _buildSelectRow(
+                label: 'Enabled',
+                value: _isEnabled,
+                trueLabel: 'Set Enabled',
+                falseLabel: 'Set Disabled',
+                onChanged: (v) => setState(() => _isEnabled = v),
+              ),
+              const SizedBox(height: AppSizes.p24),
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton(
+                      onPressed: () => Navigator.pop(context),
+                      child: const Text('CANCEL'),
+                    ),
+                  ),
+                  const SizedBox(width: AppSizes.p12),
+                  Expanded(
+                    child: ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.primaryGreen,
+                        foregroundColor: Colors.white,
+                      ),
+                      onPressed:
+                          (_isMandatory == null && _isEnabled == null) ||
+                                  _isLoading
+                              ? null
+                              : _handleBulkSave,
+                      child: _isLoading
+                          ? const SizedBox(
+                              width: 16,
+                              height: 16,
+                              child: CircularProgressIndicator(
+                                  strokeWidth: 2, color: Colors.white),
+                            )
+                          : const Text('APPLY'),
+                    ),
+                  ),
+                ],
+              ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+      ),
+    );
+  }
+
+  Widget _buildSelectRow({
+    required String label,
+    required bool? value,
+    required String trueLabel,
+    required String falseLabel,
+    required ValueChanged<bool?> onChanged,
+  }) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(label,
+            style: const TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+                color: AppColors.textSecondary)),
+        const SizedBox(height: 6),
+        Row(
+          children: [
+            _selectChip('No change', value == null, () => onChanged(null)),
+            const SizedBox(width: 6),
+            _selectChip(trueLabel, value == true, () => onChanged(true),
+                color: AppColors.primaryGreen),
+            const SizedBox(width: 6),
+            _selectChip(falseLabel, value == false, () => onChanged(false),
+                color: AppColors.textSecondary),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Widget _selectChip(String label, bool selected, VoidCallback onTap,
+      {Color color = AppColors.textMuted}) {
+    return GestureDetector(
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 120),
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+        decoration: BoxDecoration(
+          color: selected ? color.withValues(alpha: 0.12) : Colors.grey.shade100,
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(
+              color: selected ? color : Colors.grey.shade300, width: 1.5),
+        ),
+        child: Text(
+          label,
+          style: TextStyle(
+              fontSize: 12,
+              fontWeight:
+                  selected ? FontWeight.w700 : FontWeight.normal,
+              color: selected ? color : AppColors.textSecondary),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _handleBulkSave() async {
+    setState(() => _isLoading = true);
+    try {
+      for (final req in widget.targets) {
+        final updated = req.copyWith(
+          isMandatory: _isMandatory ?? req.isMandatory,
+          isEnabled: _isEnabled ?? req.isEnabled,
+        );
+        await ref
+            .read(requirementMutationProvider.notifier)
+            .updateRequirement(updated);
+      }
+      if (!mounted) return;
+      widget.onDone();
+      Navigator.pop(context);
+      showSuccessDialog(context,
+          message:
+              '${widget.targets.length} requirements updated successfully');
+    } catch (e) {
+      if (!mounted) return;
+      showErrorDialog(context, 'Bulk update failed', e.toString());
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+}
+
+// ─────────────────────────────────────────────────────────────
+// Add / Edit Form Modal
+// ─────────────────────────────────────────────────────────────
+class RequirementFormModal extends ConsumerStatefulWidget {
+  final DocumentRequirementModel? requirement;
+
+  const RequirementFormModal({super.key, this.requirement});
+
+  @override
+  ConsumerState<RequirementFormModal> createState() =>
+      _RequirementFormModalState();
 }
 
 class _RequirementFormModalState extends ConsumerState<RequirementFormModal> {
@@ -377,12 +1648,16 @@ class _RequirementFormModalState extends ConsumerState<RequirementFormModal> {
   late TextEditingController _descController;
   late TextEditingController _dueDateController;
 
-  late String _category;
+  // Category — both can be checked; stored as category field
+  late bool _catJhs;
+  late bool _catShs;
   late bool _isMandatory;
   late bool _isEnabled;
   late String _acceptedFileTypes;
 
   bool _isLoading = false;
+
+
 
   @override
   void initState() {
@@ -391,27 +1666,31 @@ class _RequirementFormModalState extends ConsumerState<RequirementFormModal> {
     _nameController = TextEditingController(text: req?.name ?? '');
     _descController = TextEditingController(text: req?.description ?? '');
     _dueDateController = TextEditingController(
-      text: req?.dueDate != null ? '${req!.dueDate!.month}/${req.dueDate!.day}/${req.dueDate!.year}' : '',
+      text: req?.dueDate != null
+          ? '${req!.dueDate!.month}/${req.dueDate!.day}/${req.dueDate!.year}'
+          : '',
     );
-    _category = req?.category ?? widget.category;
+
+    // Category checkboxes
+    final cat = req?.category.toUpperCase() ?? 'JHS';
+    _catJhs = cat == 'JHS' || cat == 'BOTH';
+    _catShs = cat == 'SHS' || cat == 'BOTH';
+
     _isMandatory = req?.isMandatory ?? true;
     _isEnabled = req?.isEnabled ?? true;
 
-    String savedTypes = (req?.acceptedFileTypes ?? 'pdf,jpg,jpeg,png').replaceAll(' ', '');
-    final validItems = [
+    String savedTypes =
+        (req?.acceptedFileTypes ?? 'pdf,jpg,jpeg,png').replaceAll(' ', '');
+    const validItems = [
       'pdf',
       'pdf,jpg,jpeg,png',
       'pdf,doc,docx',
       'pdf,doc,docx,xls,xlsx',
       'pdf,jpg,jpeg,png,doc,docx,xls,xlsx',
     ];
-    
-    if (savedTypes == 'pdf,jpg,jpeg,png,doc,docx') {
-      savedTypes = 'pdf,jpg,jpeg,png,doc,docx,xls,xlsx'; // Map old 'All' to new 'All Formats'
-    } else if (!validItems.contains(savedTypes)) {
-      savedTypes = 'pdf,jpg,jpeg,png,doc,docx,xls,xlsx'; // Fallback
+    if (!validItems.contains(savedTypes)) {
+      savedTypes = 'pdf,jpg,jpeg,png';
     }
-    
     _acceptedFileTypes = savedTypes;
   }
 
@@ -426,130 +1705,252 @@ class _RequirementFormModalState extends ConsumerState<RequirementFormModal> {
   @override
   Widget build(BuildContext context) {
     final isEditing = widget.requirement != null;
+    final screenSize = MediaQuery.of(context).size;
+    final isNarrow = screenSize.width < 480;
 
     return Dialog(
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppSizes.radiusLarge)),
-      child: Container(
-        width: 450,
-        padding: const EdgeInsets.all(AppSizes.p24),
-        decoration: BoxDecoration(
-          color: AppColors.surfaceWhite,
-          borderRadius: BorderRadius.circular(AppSizes.radiusLarge),
-        ),
-        child: Form(
-          key: _formKey,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
+      shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(AppSizes.radiusLarge)),
+      insetPadding: isNarrow
+          ? const EdgeInsets.symmetric(horizontal: 12, vertical: 24)
+          : const EdgeInsets.symmetric(horizontal: 40, vertical: 40),
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 500),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            // Header
+            Container(
+              padding: const EdgeInsets.fromLTRB(
+                  AppSizes.p20, AppSizes.p16, AppSizes.p12, AppSizes.p16),
+              decoration: BoxDecoration(
+                color: AppColors.primaryGreen.withValues(alpha: 0.05),
+                borderRadius: const BorderRadius.vertical(
+                    top: Radius.circular(AppSizes.radiusLarge)),
+                border: Border(
+                    bottom: BorderSide(color: Colors.grey.shade200)),
+              ),
+              child: Row(
                 children: [
                   Container(
                     padding: const EdgeInsets.all(8),
                     decoration: BoxDecoration(
-                      color: AppColors.primaryGreen.withValues(alpha: 0.1),
-                      shape: BoxShape.circle,
+                      color: AppColors.primaryGreen.withValues(alpha: 0.12),
+                      borderRadius: BorderRadius.circular(8),
                     ),
-                    child: const Icon(Icons.document_scanner, color: AppColors.primaryGreen),
+                    child: const Icon(Icons.document_scanner,
+                        color: AppColors.primaryGreen, size: 18),
                   ),
                   const SizedBox(width: AppSizes.p12),
-                  Text(
-                    isEditing ? 'Edit ${widget.category} Requirement' : 'Add ${widget.category} Requirement',
-                    style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: AppColors.textPrimary),
+                  Expanded(
+                    child: Text(
+                      isEditing
+                          ? 'Edit Requirement'
+                          : 'Add Requirement',
+                      style: const TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                          color: AppColors.textPrimary),
+                    ),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.close, size: 20),
+                    onPressed: () => Navigator.pop(context),
                   ),
                 ],
               ),
-              const SizedBox(height: AppSizes.p24),
-              Flexible(
-                child: SingleChildScrollView(
+            ),
+
+            // Form body
+            Flexible(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.all(AppSizes.p20),
+                child: Form(
+                  key: _formKey,
                   child: Column(
-                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                CustomTextField(
-                  hintText: 'Document Name',
-                  controller: _nameController,
-                  prefixIcon: Icons.description,
-                  validator: (v) => v?.trim().isEmpty == true ? 'Name is required' : null,
-                ),
-                const SizedBox(height: AppSizes.p16),
-                CustomTextField(
-                  hintText: 'Description',
-                  controller: _descController,
-                  prefixIcon: Icons.notes,
-                  maxLines: 3,
-                ),
-                const SizedBox(height: AppSizes.p16),
-                CustomTextField(
-                  hintText: 'Due Date (MM/DD/YYYY)',
-                  controller: _dueDateController,
-                  prefixIcon: Icons.calendar_today,
-                ),
-                const SizedBox(height: AppSizes.p16),
-                DropdownButtonFormField<String>(
-                  value: _acceptedFileTypes,
-                  decoration: InputDecoration(
-                    labelText: 'Accepted File Types',
-                    prefixIcon: const Icon(Icons.attach_file, color: AppColors.primaryGreen),
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-                    enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide(color: Colors.grey.shade300)),
-                    focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: AppColors.primaryGreen, width: 2)),
-                    filled: true,
-                    fillColor: Colors.grey.shade50,
-                  ),
-                  items: const [
-                    DropdownMenuItem(value: 'pdf', child: Text('PDF only')),
-                    DropdownMenuItem(value: 'pdf,jpg,jpeg,png', child: Text('PDF, JPG, PNG')),
-                    DropdownMenuItem(value: 'pdf,doc,docx', child: Text('PDF & Word')),
-                    DropdownMenuItem(value: 'pdf,doc,docx,xls,xlsx', child: Text('PDF, Word & Excel')),
-                    DropdownMenuItem(value: 'pdf,jpg,jpeg,png,doc,docx,xls,xlsx', child: Text('All Formats')),
-                  ],
-                  onChanged: (v) => setState(() => _acceptedFileTypes = v!),
-                ),
-                const SizedBox(height: AppSizes.p24),
-                Material(
-                  color: Colors.transparent,
-                  child: Container(
-                    decoration: BoxDecoration(
-                      color: Colors.grey.shade50,
-                      borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: Colors.grey.shade200),
-                    ),
-                    child: Column(
-                      children: [
-                        SwitchListTile(
-                          title: const Text('Mandatory Requirement', style: TextStyle(fontWeight: FontWeight.w500)),
-                          subtitle: const Text('Students must upload this document', style: TextStyle(fontSize: 12)),
-                          value: _isMandatory,
-                          onChanged: (v) => setState(() => _isMandatory = v),
-                          activeColor: AppColors.error,
+                      CustomTextField(
+                        hintText: 'Document Name *',
+                        controller: _nameController,
+                        prefixIcon: Icons.description,
+                        validator: (v) =>
+                            v?.trim().isEmpty == true
+                                ? 'Name is required'
+                                : null,
+                      ),
+                      const SizedBox(height: AppSizes.p16),
+                      CustomTextField(
+                        hintText: 'Description (optional)',
+                        controller: _descController,
+                        prefixIcon: Icons.notes,
+                        maxLines: 3,
+                      ),
+                      const SizedBox(height: AppSizes.p16),
+                      CustomTextField(
+                        hintText: 'Due Date (MM/DD/YYYY) — optional',
+                        controller: _dueDateController,
+                        prefixIcon: Icons.calendar_today,
+                      ),
+                      const SizedBox(height: AppSizes.p16),
+
+                      // Category checkboxes
+                      const Text(
+                        'Category',
+                        style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                            color: AppColors.textSecondary),
+                      ),
+                      const SizedBox(height: 8),
+                      Container(
+                        decoration: BoxDecoration(
+                          color: Colors.grey.shade50,
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(color: Colors.grey.shade300),
                         ),
-                        const Divider(height: 1),
-                        SwitchListTile(
-                          title: const Text('Enabled', style: TextStyle(fontWeight: FontWeight.w500)),
-                          subtitle: const Text('Show this requirement in the system', style: TextStyle(fontSize: 12)),
-                          value: _isEnabled,
-                          onChanged: (v) => setState(() => _isEnabled = v),
-                          activeColor: AppColors.success,
+                        child: Column(
+                          children: [
+                            _buildCategoryCheckTile(
+                              label: 'JHS (Junior High School)',
+                              value: _catJhs,
+                              color: Colors.blue,
+                              onChanged: (v) => setState(() => _catJhs = v!),
+                            ),
+                            const Divider(height: 1),
+                            _buildCategoryCheckTile(
+                              label: 'SHS (Senior High School)',
+                              value: _catShs,
+                              color: Colors.purple,
+                              onChanged: (v) => setState(() => _catShs = v!),
+                            ),
+                          ],
                         ),
-                      ],
-                    ),
-                  ),
-                ),
+                      ),
+                      if (!_catJhs && !_catShs)
+                        Padding(
+                          padding: const EdgeInsets.only(top: 4, left: 4),
+                          child: Text(
+                            'Please select at least one category',
+                            style: TextStyle(
+                                fontSize: 11, color: AppColors.error),
+                          ),
+                        ),
+                      const SizedBox(height: AppSizes.p16),
+
+                      // File types dropdown
+                      DropdownButtonFormField<String>(
+                        initialValue: _acceptedFileTypes,
+                        decoration: InputDecoration(
+                          labelText: 'Accepted File Types',
+                          prefixIcon: const Icon(Icons.attach_file,
+                              color: AppColors.primaryGreen),
+                          border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(8)),
+                          enabledBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(8),
+                              borderSide:
+                                  BorderSide(color: Colors.grey.shade300)),
+                          focusedBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(8),
+                              borderSide: const BorderSide(
+                                  color: AppColors.primaryGreen, width: 2)),
+                          filled: true,
+                          fillColor: Colors.grey.shade50,
+                        ),
+                        items: const [
+                          DropdownMenuItem(
+                              value: 'pdf', child: Text('PDF only')),
+                          DropdownMenuItem(
+                              value: 'pdf,jpg,jpeg,png',
+                              child: Text('PDF, JPG, PNG')),
+                          DropdownMenuItem(
+                              value: 'pdf,doc,docx',
+                              child: Text('PDF & Word')),
+                          DropdownMenuItem(
+                              value: 'pdf,doc,docx,xls,xlsx',
+                              child: Text('PDF, Word & Excel')),
+                          DropdownMenuItem(
+                              value: 'pdf,jpg,jpeg,png,doc,docx,xls,xlsx',
+                              child: Text('All Formats')),
+                        ],
+                        onChanged: (v) =>
+                            setState(() => _acceptedFileTypes = v!),
+                      ),
+                      const SizedBox(height: AppSizes.p20),
+
+                      // Switches
+                      Container(
+                        decoration: BoxDecoration(
+                          color: Colors.grey.shade50,
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(color: Colors.grey.shade200),
+                        ),
+                        child: Column(
+                          children: [
+                            SwitchListTile(
+                              title: const Text('Mandatory Requirement',
+                                  style: TextStyle(
+                                      fontWeight: FontWeight.w500,
+                                      fontSize: 14)),
+                              subtitle: const Text(
+                                'Students must upload this document',
+                                style: TextStyle(fontSize: 12),
+                              ),
+                              value: _isMandatory,
+                              onChanged: (v) =>
+                                  setState(() => _isMandatory = v),
+                              activeThumbColor: AppColors.error,
+                            ),
+                            const Divider(height: 1),
+                            SwitchListTile(
+                              title: const Text('Enabled',
+                                  style: TextStyle(
+                                      fontWeight: FontWeight.w500,
+                                      fontSize: 14)),
+                              subtitle: const Text(
+                                'Show this requirement in the system',
+                                style: TextStyle(fontSize: 12),
+                              ),
+                              value: _isEnabled,
+                              onChanged: (v) =>
+                                  setState(() => _isEnabled = v),
+                              activeThumbColor: AppColors.success,
+                            ),
+                          ],
+                        ),
+                      ),
                     ],
                   ),
                 ),
               ),
-              const SizedBox(height: AppSizes.p24),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.end,
+            ),
+
+            // Footer actions
+            Container(
+              padding: const EdgeInsets.symmetric(
+                  horizontal: AppSizes.p16, vertical: AppSizes.p12),
+              decoration: BoxDecoration(
+                border: Border(top: BorderSide(color: Colors.grey.shade200)),
+              ),
+              child: Row(
                 children: [
-                  TextButton(
-                    onPressed: () => Navigator.pop(context),
-                    child: const Text('CANCEL', style: TextStyle(color: AppColors.textSecondary)),
+                  Expanded(
+                    child: OutlinedButton(
+                      onPressed: () => Navigator.pop(context),
+                      style: OutlinedButton.styleFrom(
+                        padding:
+                            const EdgeInsets.symmetric(vertical: 12),
+                        shape: RoundedRectangleBorder(
+                            borderRadius:
+                                BorderRadius.circular(AppSizes.radiusMedium)),
+                      ),
+                      child: const Text('CANCEL'),
+                    ),
                   ),
                   const SizedBox(width: AppSizes.p12),
-                  SizedBox(
-                    width: 120,
+                  Expanded(
                     child: PrimaryButton(
                       label: isEditing ? 'UPDATE' : 'CREATE',
                       isLoading: _isLoading,
@@ -558,15 +1959,37 @@ class _RequirementFormModalState extends ConsumerState<RequirementFormModal> {
                   ),
                 ],
               ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );
   }
 
+  Widget _buildCategoryCheckTile({
+    required String label,
+    required bool value,
+    required Color color,
+    required ValueChanged<bool?> onChanged,
+  }) {
+    return CheckboxListTile(
+      title: Text(label,
+          style: TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.w500,
+              color: value ? color : AppColors.textPrimary)),
+      value: value,
+      onChanged: onChanged,
+      activeColor: color,
+      controlAffinity: ListTileControlAffinity.leading,
+      dense: true,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+    );
+  }
+
   Future<void> _handleSubmit() async {
     if (!_formKey.currentState!.validate()) return;
+    if (!_catJhs && !_catShs) return; // Category validation
 
     setState(() => _isLoading = true);
 
@@ -583,29 +2006,51 @@ class _RequirementFormModalState extends ConsumerState<RequirementFormModal> {
         }
       }
 
-      final requirement = DocumentRequirementModel(
-        id: widget.requirement?.id ?? 0,
-        name: _nameController.text.trim(),
-        description: _descController.text.trim().isEmpty ? null : _descController.text.trim(),
-        category: _category,
-        isMandatory: _isMandatory,
-        isEnabled: _isEnabled,
-        dueDate: dueDate,
-        acceptedFileTypes: _acceptedFileTypes,
-        schoolLevels: 'JHS,SHS',
-      );
-
-      if (widget.requirement != null) {
-        await ref.read(requirementMutationProvider.notifier).updateRequirement(requirement);
+      // If both categories selected, create/update for each separately
+      final categories = <String>[];
+      if (_catJhs && _catShs) {
+        categories.addAll(['JHS', 'SHS']);
+      } else if (_catJhs) {
+        categories.add('JHS');
       } else {
-        await ref.read(requirementMutationProvider.notifier).createRequirement(requirement);
+        categories.add('SHS');
+      }
+
+      for (final cat in categories) {
+        final requirement = DocumentRequirementModel(
+          id: (categories.length == 1)
+              ? (widget.requirement?.id ?? 0)
+              : 0, // new record for second category
+          name: _nameController.text.trim(),
+          description: _descController.text.trim().isEmpty
+              ? null
+              : _descController.text.trim(),
+          category: cat,
+          isMandatory: _isMandatory,
+          isEnabled: _isEnabled,
+          dueDate: dueDate,
+          acceptedFileTypes: _acceptedFileTypes,
+          schoolLevels: 'JHS,SHS',
+        );
+
+        if (widget.requirement != null && categories.length == 1) {
+          await ref
+              .read(requirementMutationProvider.notifier)
+              .updateRequirement(requirement);
+        } else {
+          await ref
+              .read(requirementMutationProvider.notifier)
+              .createRequirement(requirement);
+        }
       }
 
       if (!mounted) return;
       Navigator.pop(context);
       showSuccessDialog(
         context,
-        message: widget.requirement != null ? 'Requirement updated successfully' : 'Requirement created successfully',
+        message: widget.requirement != null
+            ? 'Requirement updated successfully'
+            : 'Requirement created successfully',
       );
     } catch (e) {
       if (!mounted) return;
