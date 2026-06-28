@@ -40,6 +40,7 @@ class AndroidBottomNavLayout extends ConsumerStatefulWidget {
 }
 
 class _AndroidBottomNavLayoutState extends ConsumerState<AndroidBottomNavLayout> {
+  final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
   final Set<int> _visitedIndices = {};
   Timer? _holdTimer;
 
@@ -192,6 +193,7 @@ class _AndroidBottomNavLayoutState extends ConsumerState<AndroidBottomNavLayout>
         }
       },
       child: Scaffold(
+        key: _scaffoldKey,
         backgroundColor: AppColors.pageBackground,
         appBar: AppBar(
           backgroundColor: AppColors.primaryGreen,
@@ -204,49 +206,54 @@ class _AndroidBottomNavLayoutState extends ConsumerState<AndroidBottomNavLayout>
           elevation: 0,
         ),
         drawer: Drawer(
+          width: 260, // Minimized width
           child: Column(
             children: [
               Container(
                 width: double.infinity,
-                padding: const EdgeInsets.only(top: 48, bottom: 24, left: 16, right: 16),
-                decoration: const BoxDecoration(color: AppColors.primaryGreen),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+                padding: const EdgeInsets.only(top: 48, bottom: 16, left: 24, right: 16),
+                child: Row(
                   children: [
-                    Row(
-                      children: [
-                        GestureDetector(
-                          onLongPressStart: (_) {
-                            _holdTimer = Timer(const Duration(seconds: 3), () {
-                              _showCapstoneMembers(context);
-                            });
-                          },
-                          onLongPressEnd: (_) => _holdTimer?.cancel(),
-                          onLongPressCancel: () => _holdTimer?.cancel(),
-                          child: const CircleAvatar(
-                            backgroundColor: Colors.transparent,
-                            radius: 24,
-                            backgroundImage: AssetImage('assets/images/logo.png'),
+                    GestureDetector(
+                      onLongPressStart: (_) {
+                        _holdTimer = Timer(const Duration(seconds: 3), () {
+                          _showCapstoneMembers(context);
+                        });
+                      },
+                      onLongPressEnd: (_) => _holdTimer?.cancel(),
+                      onLongPressCancel: () => _holdTimer?.cancel(),
+                      child: Container(
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(8),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withOpacity(0.05),
+                              blurRadius: 4,
+                              offset: const Offset(0, 2),
+                            )
+                          ],
+                        ),
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(8),
+                          child: Image.asset(
+                            'assets/images/logo.png',
+                            width: 36,
+                            height: 36,
+                            fit: BoxFit.contain,
                           ),
                         ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: const [
-                              Text('TIS', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 24, color: Colors.white)),
-                              Text('Record Management System', style: TextStyle(fontSize: 12, color: Colors.white70)),
-                            ],
-                          ),
-                        ),
-                      ],
+                      ),
                     ),
-                    const SizedBox(height: 24),
-                    Text(
-                      ref.watch(authProvider).value?.fullName ?? 'Unknown User', 
-                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Colors.white),
+                    const SizedBox(width: 12),
+                    const Text(
+                      'TIS RMS',
+                      style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18, letterSpacing: 1.2, color: Colors.black87),
                     ),
-                    Text('Role: ${widget.userRole.toUpperCase()}', style: const TextStyle(color: Colors.white70, fontSize: 13)),
+                    const Spacer(),
+                    IconButton(
+                      icon: const Icon(Icons.menu, color: Colors.black54),
+                      onPressed: () => Navigator.pop(context),
+                    ),
                   ],
                 ),
               ),
@@ -256,16 +263,15 @@ class _AndroidBottomNavLayoutState extends ConsumerState<AndroidBottomNavLayout>
                   children: [
                     if (allowedPrimary.isNotEmpty) ...[
                       const Padding(
-                        padding: EdgeInsets.fromLTRB(16, 16, 16, 8),
-                        child: Text('MAIN', style: TextStyle(color: AppColors.textSecondary, fontWeight: FontWeight.bold, fontSize: 12)),
+                        padding: EdgeInsets.fromLTRB(28, 16, 16, 8),
+                        child: Text('OVERVIEW', style: TextStyle(color: AppColors.textSecondary, fontWeight: FontWeight.bold, fontSize: 11, letterSpacing: 1.0)),
                       ),
                       ...allowedPrimary.map((tab) => _buildDrawerItem(tab, currentIndex, tabs)),
                     ],
                     if (allowedSecondary.isNotEmpty) ...[
-                      const Divider(),
                       const Padding(
-                        padding: EdgeInsets.fromLTRB(16, 16, 16, 8),
-                        child: Text('OTHER', style: TextStyle(color: AppColors.textSecondary, fontWeight: FontWeight.bold, fontSize: 12)),
+                        padding: EdgeInsets.fromLTRB(28, 16, 16, 8),
+                        child: Text('ACCOUNT', style: TextStyle(color: AppColors.textSecondary, fontWeight: FontWeight.bold, fontSize: 11, letterSpacing: 1.0)),
                       ),
                       ...allowedSecondary.map((tab) => _buildDrawerItem(tab, currentIndex, tabs)),
                     ],
@@ -273,15 +279,43 @@ class _AndroidBottomNavLayoutState extends ConsumerState<AndroidBottomNavLayout>
                 ),
               ),
               const Divider(),
-              ListTile(
-                leading: const Icon(Icons.exit_to_app, color: AppColors.error),
-                title: const Text('Logout', style: TextStyle(fontWeight: FontWeight.bold, color: AppColors.error)),
-                onTap: () {
-                  Navigator.pop(context); // Close drawer first
-                  showLogoutConfirmationDialog(context);
-                },
+              Padding(
+                padding: const EdgeInsets.fromLTRB(24, 16, 16, 24),
+                child: Row(
+                  children: [
+                    const CircleAvatar(
+                      radius: 20,
+                      backgroundColor: AppColors.primaryGreen,
+                      child: Icon(Icons.person, color: Colors.white),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            ref.watch(authProvider).value?.fullName ?? 'Unknown User',
+                            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: Colors.black87),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          Text(
+                            widget.userRole.toUpperCase(),
+                            style: const TextStyle(fontSize: 12, color: Colors.black54),
+                          ),
+                        ],
+                      ),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.logout, color: Colors.black54),
+                      onPressed: () {
+                        Navigator.pop(context); // Close drawer first
+                        showLogoutConfirmationDialog(context);
+                      },
+                    ),
+                  ],
+                ),
               ),
-              const SizedBox(height: 16),
             ],
           ),
         ),
@@ -303,32 +337,39 @@ class _AndroidBottomNavLayoutState extends ConsumerState<AndroidBottomNavLayout>
     final index = allTabs.indexWhere((t) => t['label'] == label);
     final isSelected = index == currentIndex;
 
-    return Container(
-      decoration: BoxDecoration(
-        border: isSelected
-            ? const Border(
-                right: BorderSide(
-                  color: AppColors.primaryGreen,
-                  width: 4.0,
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 4.0),
+      child: Material(
+        color: isSelected ? AppColors.primaryGreen.withOpacity(0.12) : Colors.transparent,
+        borderRadius: BorderRadius.circular(12),
+        clipBehavior: Clip.antiAlias,
+        child: InkWell(
+          onTap: () {
+            Navigator.pop(context); // Close drawer
+            _onNavTapped(label);
+          },
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
+            child: Row(
+              children: [
+                Icon(
+                  icon,
+                  color: isSelected ? AppColors.primaryGreen : Colors.grey.shade600,
+                  size: 22,
                 ),
-              )
-            : null,
-      ),
-      child: ListTile(
-        leading: Icon(icon, color: isSelected ? AppColors.primaryGreen : Colors.grey.shade800),
-        title: Text(
-          label,
-          style: TextStyle(
-            fontWeight: isSelected ? FontWeight.bold : FontWeight.w400,
-            color: isSelected ? AppColors.primaryGreen : Colors.grey.shade800,
+                const SizedBox(width: 16),
+                Text(
+                  label,
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
+                    color: isSelected ? AppColors.primaryGreen : Colors.grey.shade700,
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
-        selected: isSelected,
-        selectedTileColor: AppColors.primaryGreen.withOpacity(0.1),
-        onTap: () {
-          Navigator.pop(context); // Close drawer
-          _onNavTapped(label);
-        },
       ),
     );
   }
