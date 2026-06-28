@@ -274,19 +274,22 @@ class _UsersScreenState extends ConsumerState<UsersScreen> {
                     return Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        // Role filter chips
-                        SingleChildScrollView(
-                          scrollDirection: Axis.horizontal,
-                          child: Row(
-                            children: [
-                              _buildFilterChip('All', 'all', users.length, Colors.grey),
-                              const SizedBox(width: 8),
-                              _buildFilterChip('Admin', 'admin',
-                                users.where((u) => u.role == 'admin').length, Colors.blue),
-                              const SizedBox(width: 8),
-                              _buildFilterChip('Teacher', 'teacher',
-                                users.where((u) => u.role == 'teacher').length, AppColors.primaryGreen),
-                            ],
+                        Container(
+                          padding: const EdgeInsets.all(4),
+                          decoration: BoxDecoration(
+                            color: Colors.grey.shade100,
+                            borderRadius: BorderRadius.circular(AppSizes.radiusLarge),
+                          ),
+                          child: SingleChildScrollView(
+                            scrollDirection: Axis.horizontal,
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                _buildSegmentTab('All Users', 'all', users.length),
+                                _buildSegmentTab('Admin', 'admin', users.where((u) => u.role == 'admin').length),
+                                _buildSegmentTab('Teacher', 'teacher', users.where((u) => u.role == 'teacher').length),
+                              ],
+                            ),
                           ),
                         ),
                         const SizedBox(height: AppSizes.p16),
@@ -367,33 +370,29 @@ class _UsersScreenState extends ConsumerState<UsersScreen> {
     );
   }
 
-  Widget _buildFilterChip(String label, String filterKey, int count, Color color) {
-    final isActive = _roleFilter == filterKey;
+  Widget _buildSegmentTab(String label, String value, int count) {
+    final isSelected = _roleFilter == value;
     return GestureDetector(
-      onTap: () => setState(() => _roleFilter = filterKey),
+      onTap: () => setState(() => _roleFilter = value),
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
         decoration: BoxDecoration(
-          color: isActive ? color : color.withValues(alpha: 0.08),
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: isActive ? color : color.withValues(alpha: 0.3), width: isActive ? 2 : 1),
-          boxShadow: isActive ? [BoxShadow(color: color.withValues(alpha: 0.3), blurRadius: 6, offset: const Offset(0, 2))] : [],
+          color: isSelected ? Colors.white : Colors.transparent,
+          borderRadius: BorderRadius.circular(AppSizes.radiusMedium),
+          boxShadow: isSelected ? [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 4, offset: const Offset(0, 2))] : [],
         ),
         child: Row(
-          mainAxisSize: MainAxisSize.min,
           children: [
-            if (isActive) ...[
-              const Icon(Icons.check, color: Colors.white, size: 13),
-              const SizedBox(width: 4),
-            ],
-            Text(
-              '$label ($count)',
-              style: TextStyle(
-                color: isActive ? Colors.white : color,
-                fontWeight: FontWeight.w700,
-                fontSize: 12,
+            Text(label, style: TextStyle(fontWeight: isSelected ? FontWeight.bold : FontWeight.w500, color: isSelected ? AppColors.textPrimary : AppColors.textSecondary, fontSize: 13)),
+            const SizedBox(width: 8),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+              decoration: BoxDecoration(
+                color: isSelected ? AppColors.primaryGreen.withValues(alpha: 0.1) : Colors.grey.shade200,
+                borderRadius: BorderRadius.circular(10),
               ),
+              child: Text(count.toString(), style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: isSelected ? AppColors.primaryGreen : Colors.grey.shade600)),
             ),
           ],
         ),
@@ -415,6 +414,7 @@ class _UsersScreenState extends ConsumerState<UsersScreen> {
         borderRadius: BorderRadius.circular(AppSizes.radiusLarge),
         child: SingleChildScrollView(
           child: DataTable(
+            showCheckboxColumn: false,
             headingRowColor: WidgetStateProperty.all(AppColors.primaryGreen.withValues(alpha: 0.05)),
             headingTextStyle: const TextStyle(fontWeight: FontWeight.bold, color: AppColors.textPrimary),
             columnSpacing: 24,
