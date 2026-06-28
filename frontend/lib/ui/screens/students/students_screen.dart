@@ -639,8 +639,9 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
                   ),
                 ],
               ],
+            ),
           ],
-        ],
+        ),
       );
     });
   }
