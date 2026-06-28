@@ -1722,11 +1722,30 @@ class _BulkEnrollDialogState extends ConsumerState<BulkEnrollDialog> {
                         if (mounted) setState(() => _selectedAcademicYearId = years.first.id);
                       });
                     }
-                    return const SizedBox.shrink();
+                    return DropdownButtonFormField<int>(
+                      value: _selectedAcademicYearId,
+                      decoration: const InputDecoration(
+                        labelText: 'Academic Year',
+                        prefixIcon: Icon(Icons.calendar_today),
+                        border: OutlineInputBorder(),
+                      ),
+                      items: years.map((y) => DropdownMenuItem<int>(
+                        value: y.id, 
+                        child: Text(y.yearRange)
+                      )).toList(),
+                      onChanged: (val) {
+                        setState(() {
+                          _selectedAcademicYearId = val;
+                          _selectedSectionId = null;
+                        });
+                      },
+                      validator: (v) => v == null ? 'Academic year is required.' : null,
+                    );
                   },
-                  loading: () => const SizedBox.shrink(),
-                  error: (e, _) => const SizedBox.shrink(),
+                  loading: () => const Center(child: Padding(padding: EdgeInsets.all(8), child: CircularProgressIndicator())),
+                  error: (e, _) => Text('Error: $e'),
                 ),
+                const SizedBox(height: AppSizes.p16),
                 gradeLevelsAsync.when(
                   data: (grades) {
                     return DropdownButtonFormField<int>(

@@ -734,7 +734,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
             crossAxisCount: cols,
             crossAxisSpacing: 16,
             mainAxisSpacing: 16,
-            mainAxisExtent: 130,
+            mainAxisExtent: 150,
           ),
           children: [
             StatCard(title: 'Active Students', value: counts.active.toString(), subtitle: 'Total Population: $total', icon: Icons.check_circle_outline, iconColor: AppColors.primaryGreen),

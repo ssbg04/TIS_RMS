@@ -525,6 +525,7 @@ exports.bulkEnrollStudents = (req, res) => {
                 ORDER BY ay.year_range DESC, e.grade_level DESC, e.id DESC LIMIT 1
             `);
             const insertEnrollment = db.prepare('INSERT INTO enrollments (student_id, academic_year_id, section_id, grade_level, track_strand) VALUES (?, ?, ?, ?, ?)');
+            const updateStudentStatus = db.prepare('UPDATE students SET status = ? WHERE id = ?');
             
             for (const studentId of studentIds) {
                 const latest = getLatestEnrollment.get(studentId);
@@ -536,6 +537,7 @@ exports.bulkEnrollStudents = (req, res) => {
                 ) {
                     insertEnrollment.run(studentId, academicYearId, sectionId, gradeLevel, trackStrand || null);
                 }
+                updateStudentStatus.run('Enrolled', studentId);
             }
         })();
         res.json({ message: `Successfully enrolled ${studentIds.length} students.` });
