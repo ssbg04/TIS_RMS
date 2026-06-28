@@ -44,7 +44,7 @@ class StatCard extends StatelessWidget {
           child: Material(
             color: Colors.transparent,
             child: InkWell(
-              mouseCursor: SystemMouseCursors.click,
+              mouseCursor: onTap != null ? SystemMouseCursors.click : SystemMouseCursors.basic,
               onTap: onTap,
               borderRadius: BorderRadius.circular(12.0),
               child: Padding(

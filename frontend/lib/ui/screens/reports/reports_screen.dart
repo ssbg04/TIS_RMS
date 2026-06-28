@@ -734,7 +734,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
             crossAxisCount: cols,
             crossAxisSpacing: 16,
             mainAxisSpacing: 16,
-            mainAxisExtent: 110,
+            mainAxisExtent: 130,
           ),
           children: [
             StatCard(title: 'Active Students', value: counts.active.toString(), subtitle: 'Total Population: $total', icon: Icons.check_circle_outline, iconColor: AppColors.primaryGreen),
@@ -1153,7 +1153,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                   // Year multi-select dropdown
                   _buildUnderlineDropdown(
                     label: selectedYears.isEmpty
-                        ? 'All Years'
+                        ? 'Last 4 Years'
                         : selectedYears.length == 1
                             ? selectedYears.first
                             : '${selectedYears.length} Years',
@@ -1195,6 +1195,10 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                 ..sort((a, b) => a.year.compareTo(b.year));
               if (selectedYears.isNotEmpty) {
                 data = data.where((d) => selectedYears.contains(d.year)).toList();
+              } else {
+                if (data.length > 4) {
+                  data = data.sublist(data.length - 4);
+                }
               }
               if (data.isEmpty) return _emptyWidget('No data for selected years.');
 
