@@ -34,6 +34,7 @@ class _DocumentPreviewDialogState extends State<_DocumentPreviewDialog> {
   bool _imageError = false;
   bool _imageLoaded = false;
   String? _token;
+  Offset _dragOffset = Offset.zero;
 
   final PdfViewerController _pdfViewerController = PdfViewerController();
   final TransformationController _imageTransformationController = TransformationController();
@@ -160,8 +161,10 @@ class _DocumentPreviewDialogState extends State<_DocumentPreviewDialog> {
       return const Center(child: CircularProgressIndicator());
     }
 
-    return Dialog(
-      backgroundColor: AppColors.surfaceWhite,
+    return Transform.translate(
+      offset: _dragOffset,
+      child: Dialog(
+        backgroundColor: AppColors.surfaceWhite,
       insetPadding: isMobile
           ? const EdgeInsets.all(8)
           : const EdgeInsets.symmetric(horizontal: 60, vertical: 40),
@@ -185,16 +188,24 @@ class _DocumentPreviewDialogState extends State<_DocumentPreviewDialog> {
             ],
           ),
         ),
+      ),
     );
   }
 
   Widget _buildHeader(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-      decoration: BoxDecoration(
-        border: Border(
-          bottom: BorderSide(color: Colors.grey.shade200),
-        ),
+    return GestureDetector(
+      onPanUpdate: (details) {
+        setState(() {
+          _dragOffset += details.delta;
+        });
+      },
+      behavior: HitTestBehavior.opaque,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+        decoration: BoxDecoration(
+          border: Border(
+            bottom: BorderSide(color: Colors.grey.shade200),
+          ),
       ),
       child: Row(
         children: [
@@ -234,6 +245,24 @@ class _DocumentPreviewDialogState extends State<_DocumentPreviewDialog> {
               ],
             ),
           ),
+          if (_isImage || _isPdf) ...[
+            IconButton(
+              icon: const Icon(Icons.zoom_out, color: AppColors.textSecondary, size: 22),
+              padding: EdgeInsets.zero,
+              constraints: const BoxConstraints(),
+              onPressed: _isImage ? _zoomImageOut : _zoomPdfOut,
+              tooltip: 'Zoom Out',
+            ),
+            const SizedBox(width: 12),
+            IconButton(
+              icon: const Icon(Icons.zoom_in, color: AppColors.textSecondary, size: 22),
+              padding: EdgeInsets.zero,
+              constraints: const BoxConstraints(),
+              onPressed: _isImage ? _zoomImageIn : _zoomPdfIn,
+              tooltip: 'Zoom In',
+            ),
+            const SizedBox(width: 12),
+          ],
           // Close button
           IconButton(
             icon: const Icon(Icons.close_rounded, color: AppColors.textSecondary, size: 22),
@@ -243,8 +272,9 @@ class _DocumentPreviewDialogState extends State<_DocumentPreviewDialog> {
           ),
         ],
       ),
-    );
-  }
+    ),
+  );
+}
 
   Widget _buildContent(bool isMobile) {
     Widget content;
@@ -399,6 +429,7 @@ class _DocumentPreviewDialogState extends State<_DocumentPreviewDialog> {
         controller: _pdfViewerController,
         canShowScrollHead: false,
         canShowScrollStatus: false,
+        interactionMode: PdfInteractionMode.pan,
       ),
     );
   }

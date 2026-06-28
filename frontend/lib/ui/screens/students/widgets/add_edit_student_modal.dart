@@ -51,6 +51,7 @@ class _AddEditStudentModalState extends ConsumerState<AddEditStudentModal>
   final _scrollCtrl = ScrollController();
   late TabController _tabController;
   final TransformationController _previewTransformationController = TransformationController();
+  final PdfViewerController _pdfViewerController = PdfViewerController();
 
   late TextEditingController _lrnController;
   late TextEditingController _firstNameController;
@@ -504,31 +505,42 @@ class _AddEditStudentModalState extends ConsumerState<AddEditStudentModal>
               ),
             ),
             const Spacer(),
-            if (!isPdf) ...[
-              IconButton(
-                icon: const Icon(Icons.zoom_in, size: 20, color: AppColors.textSecondary),
-                tooltip: 'Zoom In',
-                onPressed: () {
+            IconButton(
+              icon: const Icon(Icons.zoom_in, size: 20, color: AppColors.textSecondary),
+              tooltip: 'Zoom In',
+              onPressed: () {
+                if (isPdf) {
+                  _pdfViewerController.zoomLevel = _pdfViewerController.zoomLevel + 0.5;
+                } else {
                   _previewTransformationController.value = 
                       _previewTransformationController.value.clone()..scale(1.5);
-                },
-              ),
-              IconButton(
-                icon: const Icon(Icons.zoom_out, size: 20, color: AppColors.textSecondary),
-                tooltip: 'Zoom Out',
-                onPressed: () {
+                }
+              },
+            ),
+            IconButton(
+              icon: const Icon(Icons.zoom_out, size: 20, color: AppColors.textSecondary),
+              tooltip: 'Zoom Out',
+              onPressed: () {
+                if (isPdf) {
+                  final newZoom = _pdfViewerController.zoomLevel - 0.5;
+                  _pdfViewerController.zoomLevel = newZoom < 1.0 ? 1.0 : newZoom;
+                } else {
                   _previewTransformationController.value = 
                       _previewTransformationController.value.clone()..scale(0.666);
-                },
-              ),
-              IconButton(
-                icon: const Icon(Icons.center_focus_strong, size: 20, color: AppColors.textSecondary),
-                tooltip: 'Reset View',
-                onPressed: () {
+                }
+              },
+            ),
+            IconButton(
+              icon: const Icon(Icons.center_focus_strong, size: 20, color: AppColors.textSecondary),
+              tooltip: 'Reset View',
+              onPressed: () {
+                if (isPdf) {
+                  _pdfViewerController.zoomLevel = 1.0;
+                } else {
                   _previewTransformationController.value = Matrix4.identity();
-                },
-              ),
-            ],
+                }
+              },
+            ),
           ],
         ),
         const SizedBox(height: 12),
@@ -545,8 +557,10 @@ class _AddEditStudentModalState extends ConsumerState<AddEditStudentModal>
               child: isPdf
                   ? SfPdfViewer.file(
                       file,
+                      controller: _pdfViewerController,
                       canShowScrollHead: false,
                       canShowScrollStatus: false,
+                      interactionMode: PdfInteractionMode.pan,
                     )
                   : InteractiveViewer(
                       transformationController: _previewTransformationController,

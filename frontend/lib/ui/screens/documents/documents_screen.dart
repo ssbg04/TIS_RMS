@@ -726,22 +726,6 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.end,
           children: [
-            if (_tabController.index == 1 || isFolderOpened)
-              FloatingActionButton(
-                heroTag: 'filter_fab',
-                backgroundColor: AppColors.surfaceWhite,
-                foregroundColor: AppColors.primaryGreen,
-                onPressed: () => _openFilterDialog(
-                  requirementsAsync,
-                  academicYearsAsync,
-                  statusesAsync,
-                ),
-                child: Badge(
-                  isLabelVisible: _getActiveFilterCount() > 0,
-                  label: Text(_getActiveFilterCount().toString()),
-                  child: const Icon(Icons.tune_rounded),
-                ),
-              ),
             if (defaultTargetPlatform != TargetPlatform.windows &&
                 _tabController.index != 2 &&
                 !_isMultiSelectMode) ...[
@@ -1053,6 +1037,60 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
               const SizedBox(width: 8),
 
               if (!_searchFocusNode.hasFocus) ...[
+                // Filter button
+                if (_tabController.index == 1 || isFolderOpened) ...[
+                  SizedBox(
+                    height: 42,
+                    child: Tooltip(
+                      message: 'Filter Documents',
+                      child: InkWell(
+                        onTap: () => _openFilterDialog(
+                          requirementsAsync,
+                          academicYearsAsync,
+                          statusesAsync,
+                        ),
+                        borderRadius: BorderRadius.circular(8),
+                        child: Container(
+                          padding: EdgeInsets.symmetric(
+                            horizontal: isMobile ? 12 : 14,
+                            vertical: 8,
+                          ),
+                          decoration: BoxDecoration(
+                            color: AppColors.surfaceWhite,
+                            border: Border.all(
+                              color: Colors.grey.shade300,
+                              width: 1.2,
+                            ),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Badge(
+                                isLabelVisible: _getActiveFilterCount() > 0,
+                                label: Text(_getActiveFilterCount().toString()),
+                                child: const Icon(Icons.tune_rounded, size: 18, color: AppColors.primaryGreen),
+                              ),
+                              if (!isMobile) ...[
+                                const SizedBox(width: 6),
+                                const Text(
+                                  'Filter',
+                                  style: TextStyle(
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w600,
+                                    color: AppColors.primaryGreen,
+                                  ),
+                                ),
+                              ],
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                ],
+
                 // Multi-select toggle (Documents tab, opened folder, or Recycle Bin)
                 if (_tabController.index == 1 || isFolderOpened) ...[
                   _buildMultiSelectToggle(isMobile),
@@ -1061,10 +1099,10 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
                 
                 // Desktop action buttons (Upload available to all roles)
                 if (!isMobile && _tabController.index != 2) ...[
-                  _buildPrintQueueButton(),
+                  SizedBox(height: 42, child: _buildPrintQueueButton()),
                   const SizedBox(width: 8),
                   SizedBox(
-                    height: 38,
+                    height: 42,
                     width: 120,
                     child: PrimaryButton(
                       label: 'UPLOAD',
@@ -1081,7 +1119,7 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
                 ],
 
                 // Dropdown Menu
-                _buildMoreOptionsDropdown(isMobile),
+                SizedBox(height: 42, child: _buildMoreOptionsDropdown(isMobile)),
               ],
             ],
           ),
