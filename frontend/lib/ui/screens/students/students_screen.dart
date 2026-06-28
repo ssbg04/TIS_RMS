@@ -108,63 +108,195 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
     }
   }
 
-  void _showBulkActionMenu(bool isDesktop) {
-    if (isDesktop) {
-      showDialog(
-        context: context,
-        builder: (ctx) => AlertDialog(
-          title: const Text('Bulk Actions'),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              ListTile(
-                leading: const Icon(Icons.group_add, color: AppColors.primaryGreen),
-                title: const Text('Bulk Enroll'),
-                onTap: () {
-                  Navigator.pop(ctx);
-                  _showBulkEnrollModal();
-                },
-              ),
-              ListTile(
-                leading: const Icon(Icons.school, color: Colors.blue),
-                title: const Text('Bulk Graduate'),
-                onTap: () {
-                  Navigator.pop(ctx);
-                  _showBulkGraduateConfirm();
-                },
-              ),
-            ],
+  void _toggleSelectAll(List<StudentModel> students) {
+    setState(() {
+      if (_selectedStudentIds.length == students.length) {
+        _selectedStudentIds.clear();
+      } else {
+        _selectedStudentIds.clear();
+        _selectedStudentIds.addAll(students.map((e) => e.id));
+      }
+    });
+  }
+
+  Widget _buildBatchActionsBar(List<StudentModel> allStudents) {
+    if (!_showMultiSelect) return const SizedBox.shrink();
+    
+    final count = _selectedStudentIds.length;
+    final isMobile = MediaQuery.of(context).size.width <= 800;
+    final allSelected = count > 0 && count == allStudents.length;
+
+    // Desktop
+    Widget desktopBar = Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      decoration: BoxDecoration(
+        color: AppColors.surfaceWhite,
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.1),
+            blurRadius: 10,
+            offset: const Offset(0, -2),
           ),
-        ),
-      );
-    } else {
-      showModalBottomSheet(
-        context: context,
-        builder: (ctx) => SafeArea(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              ListTile(
-                leading: const Icon(Icons.group_add, color: AppColors.primaryGreen),
-                title: const Text('Bulk Enroll'),
-                onTap: () {
-                  Navigator.pop(ctx);
-                  _showBulkEnrollModal();
-                },
+        ],
+        border: Border(top: BorderSide(color: Colors.grey.shade200)),
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
+            decoration: BoxDecoration(
+              color: AppColors.primaryGreen.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(20),
+            ),
+            child: Text(
+              count == 0 ? 'Select students' : '$count selected',
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                color: count == 0 ? AppColors.textSecondary : AppColors.primaryGreen,
               ),
-              ListTile(
-                leading: const Icon(Icons.school, color: Colors.blue),
-                title: const Text('Bulk Graduate'),
-                onTap: () {
-                  Navigator.pop(ctx);
-                  _showBulkGraduateConfirm();
-                },
-              ),
-            ],
+            ),
           ),
+          const SizedBox(width: 16),
+          TextButton.icon(
+            onPressed: () => _toggleSelectAll(allStudents),
+            icon: Icon(allSelected ? Icons.deselect : Icons.select_all, size: 18),
+            label: Text(allSelected ? 'Deselect All' : 'Select All'),
+          ),
+          const Spacer(),
+          ElevatedButton.icon(
+            onPressed: count == 0 ? null : _showBulkEnrollModal,
+            icon: const Icon(Icons.group_add, size: 18),
+            label: const Text('Bulk Enroll'),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.primaryGreen,
+              foregroundColor: Colors.white,
+            ),
+          ),
+          const SizedBox(width: 12),
+          ElevatedButton.icon(
+            onPressed: count == 0 ? null : _showBulkGraduateConfirm,
+            icon: const Icon(Icons.school, size: 18),
+            label: const Text('Bulk Graduate'),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.blue,
+              foregroundColor: Colors.white,
+            ),
+          ),
+          const SizedBox(width: 16),
+          IconButton(
+            onPressed: () => setState(() {
+              _selectedStudentIds.clear();
+              _showMultiSelect = false;
+            }),
+            icon: const Icon(Icons.close),
+            tooltip: 'Cancel',
+          ),
+        ],
+      ),
+    );
+
+    // Mobile
+    Widget mobileBar = Container(
+      decoration: BoxDecoration(
+        color: AppColors.surfaceWhite,
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.12),
+            blurRadius: 12,
+            offset: const Offset(0, -3),
+          ),
+        ],
+        border: Border(top: BorderSide(color: Colors.grey.shade200)),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            child: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: AppColors.primaryGreen.withValues(alpha: 0.12),
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: Text(
+                    count == 0 ? 'Select students' : '$count selected',
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 13,
+                      color: count == 0 ? AppColors.textSecondary : AppColors.primaryGreen,
+                    ),
+                  ),
+                ),
+                const Spacer(),
+                TextButton.icon(
+                  onPressed: () => setState(() {
+                    _selectedStudentIds.clear();
+                    _showMultiSelect = false;
+                  }),
+                  icon: const Icon(Icons.close, size: 16),
+                  label: const Text('Cancel'),
+                  style: TextButton.styleFrom(foregroundColor: AppColors.textSecondary),
+                ),
+              ],
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.only(left: 8, right: 8, bottom: 8),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              children: [
+                _batchActionBtn(
+                  icon: allSelected ? Icons.deselect : Icons.select_all,
+                  label: allSelected ? 'Deselect' : 'Select All',
+                  color: AppColors.textPrimary,
+                  onTap: () => _toggleSelectAll(allStudents),
+                ),
+                _batchActionBtn(
+                  icon: Icons.group_add,
+                  label: 'Enroll',
+                  color: AppColors.primaryGreen,
+                  onTap: count == 0 ? () {} : _showBulkEnrollModal,
+                ),
+                _batchActionBtn(
+                  icon: Icons.school,
+                  label: 'Graduate',
+                  color: Colors.blue,
+                  onTap: count == 0 ? () {} : _showBulkGraduateConfirm,
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+
+    return isMobile ? mobileBar : desktopBar;
+  }
+
+  Widget _batchActionBtn({
+    required IconData icon,
+    required String label,
+    required Color color,
+    required VoidCallback onTap,
+  }) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(8),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, color: color, size: 22),
+            const SizedBox(height: 4),
+            Text(label, style: TextStyle(color: color, fontSize: 11, fontWeight: FontWeight.bold)),
+          ],
         ),
-      );
-    }
+      ),
+    );
   }
 
   void _showBulkEnrollModal() {
@@ -433,6 +565,10 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
           ],
         ),
       ),
+      bottomNavigationBar: pageAsync.maybeWhen(
+        data: (page) => _buildBatchActionsBar(page.students),
+        orElse: () => const SizedBox.shrink(),
+      ),
     );
   }
 
@@ -503,128 +639,6 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
                   ),
                 ],
               ],
-            ],
-          ),
-
-          if (_selectedStudentIds.isNotEmpty && widget.userRole != 'teacher') ...[
-            const SizedBox(height: AppSizes.p16),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-              decoration: BoxDecoration(
-                color: AppColors.primaryGreen.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(AppSizes.radiusMedium),
-                border: Border.all(color: AppColors.primaryGreen.withValues(alpha: 0.3)),
-              ),
-              child: isDesktop
-                  ? Wrap(
-                      alignment: WrapAlignment.spaceBetween,
-                      crossAxisAlignment: WrapCrossAlignment.center,
-                      spacing: AppSizes.p8,
-                      runSpacing: AppSizes.p8,
-                      children: [
-                        Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            const Icon(Icons.check_box, color: AppColors.primaryGreen),
-                            const SizedBox(width: 8),
-                            Text(
-                              '${_selectedStudentIds.length} students selected',
-                              style: const TextStyle(fontWeight: FontWeight.bold, color: AppColors.primaryGreen),
-                            ),
-                          ],
-                        ),
-                        Wrap(
-                          spacing: 8,
-                          runSpacing: 8,
-                          alignment: WrapAlignment.end,
-                          children: [
-                            GestureDetector(
-                              onTap: () => _showBulkActionMenu(isDesktop),
-                              child: Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                                decoration: BoxDecoration(
-                                  color: AppColors.primaryGreen,
-                                  borderRadius: BorderRadius.circular(4),
-                                ),
-                                child: const Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    Icon(Icons.bolt, color: Colors.white, size: 18),
-                                    SizedBox(width: 8),
-                                    Text('BULK ACTIONS', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-                                    SizedBox(width: 4),
-                                    Icon(Icons.arrow_drop_down, color: Colors.white, size: 18),
-                                  ],
-                                ),
-                              ),
-                            ),
-                            OutlinedButton.icon(
-                              style: OutlinedButton.styleFrom(
-                                foregroundColor: Colors.grey,
-                                side: BorderSide(color: Colors.grey.shade400),
-                              ),
-                              onPressed: () => setState(() => _selectedStudentIds.clear()),
-                              icon: const Icon(Icons.clear_all, size: 18),
-                              label: const Text('CLEAR'),
-                            ),
-                          ],
-                        ),
-                      ],
-                    )
-                  : Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        Row(
-                          children: [
-                            const Icon(Icons.check_box, color: AppColors.primaryGreen),
-                            const SizedBox(width: 8),
-                            Text(
-                              '${_selectedStudentIds.length} students selected',
-                              style: const TextStyle(fontWeight: FontWeight.bold, color: AppColors.primaryGreen),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 12),
-                        Row(
-                          children: [
-                            Expanded(
-                              child: GestureDetector(
-                                onTap: () => _showBulkActionMenu(isDesktop),
-                                child: Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                                  decoration: BoxDecoration(
-                                    color: AppColors.primaryGreen,
-                                    borderRadius: BorderRadius.circular(4),
-                                  ),
-                                  child: const Row(
-                                    mainAxisAlignment: MainAxisAlignment.center,
-                                    children: [
-                                      Icon(Icons.bolt, color: Colors.white, size: 18),
-                                      SizedBox(width: 8),
-                                      Text('BULK ACTIONS', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-                                      SizedBox(width: 4),
-                                      Icon(Icons.arrow_drop_down, color: Colors.white, size: 18),
-                                    ],
-                                  ),
-                                ),
-                              ),
-                            ),
-                            const SizedBox(width: 8),
-                            OutlinedButton.icon(
-                              style: OutlinedButton.styleFrom(
-                                padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 16),
-                                foregroundColor: Colors.grey,
-                                side: BorderSide(color: Colors.grey.shade400),
-                              ),
-                              onPressed: () => setState(() => _selectedStudentIds.clear()),
-                              icon: const Icon(Icons.clear_all, size: 18),
-                              label: const Text('CLEAR'),
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
-            ),
           ],
         ],
       );
@@ -1206,7 +1220,29 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
           final s = students[i];
 
           return InkWell(
-            onTap: () => _viewProfile(s.id),
+            onTap: () {
+              if (_showMultiSelect) {
+                setState(() {
+                  if (_selectedStudentIds.contains(s.id)) {
+                    _selectedStudentIds.remove(s.id);
+                  } else {
+                    _selectedStudentIds.add(s.id);
+                  }
+                });
+              } else {
+                _viewProfile(s.id);
+              }
+            },
+            onLongPress: widget.userRole != 'teacher'
+                ? () {
+                    setState(() {
+                      _showMultiSelect = true;
+                      if (!_selectedStudentIds.contains(s.id)) {
+                        _selectedStudentIds.add(s.id);
+                      }
+                    });
+                  }
+                : null,
             borderRadius: BorderRadius.circular(AppSizes.radiusLarge),
             child: Container(
               padding: const EdgeInsets.all(AppSizes.p16),

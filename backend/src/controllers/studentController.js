@@ -155,7 +155,7 @@ exports.getAllStudents = (req, res) => {
 
             // 2. Get missing documents
             const missingDocsQuery = db.prepare(`
-                SELECT dr.name
+                SELECT dr.name, dr.category
                 FROM document_requirements dr
                 WHERE dr.is_mandatory = 1
                   AND dr.is_enabled = 1
@@ -170,7 +170,7 @@ exports.getAllStudents = (req, res) => {
             `).all(student.id, student.id);
             
             const missingDocsCount = missingDocsQuery.length;
-            const missingDocsNames = missingDocsQuery.map(d => d.name);
+            const missingDocsNames = missingDocsQuery.map(d => `[${d.category}] ${d.name}`);
 
             return { 
                 ...student, 
