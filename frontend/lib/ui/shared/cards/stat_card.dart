@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 class StatCard extends StatelessWidget {
   final String title;
   final String value;
+  final String? subtitle;
   final IconData icon;
   final Color? iconColor;
   final VoidCallback? onTap;
@@ -11,6 +12,7 @@ class StatCard extends StatelessWidget {
     super.key,
     required this.title,
     required this.value,
+    this.subtitle,
     required this.icon,
     this.iconColor,
     this.onTap,
@@ -93,6 +95,17 @@ class StatCard extends StatelessWidget {
                         ),
                       ),
                     ),
+                    if (subtitle != null) ...[
+                      const SizedBox(height: 2),
+                      Text(
+                        subtitle!,
+                        style: TextStyle(
+                          fontSize: isSmall ? 10.0 : 12.0,
+                          color: Colors.grey.shade500,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ],
                   ],
                 ),
               ),

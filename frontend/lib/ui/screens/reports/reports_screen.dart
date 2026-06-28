@@ -29,6 +29,10 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
   final ScrollController _scrollController = ScrollController();
   ProviderSubscription<String>? _tabListener;
 
+  int _currentPage = 0;
+  final int _rowsPerPage = 10;
+  int _lastTotalRows = -1;
+
   @override
   void initState() {
     super.initState();
@@ -364,16 +368,16 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                   data: (data) => Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // 1. KPI Cards
-                      _buildMetricsGrid(data.studentCounts),
+                      // 1. Yearly Comparison Chart
+                      _buildYearlyComparisonChart(),
                       const SizedBox(height: AppSizes.p24),
-                      
+
                       // 2. Filter Panel (collapsible)
                       _buildFilterPanel(context),
                       const SizedBox(height: AppSizes.p24),
 
-                      // 3. Yearly Comparison Chart
-                      _buildYearlyComparisonChart(),
+                      // 3. KPI Cards
+                      _buildMetricsGrid(data.studentCounts),
                       const SizedBox(height: AppSizes.p24),
                       
                       // 4. Row of Missing Documents Chart
@@ -591,6 +595,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                               ref.read(selectedAcademicYearIdProvider.notifier).select(val);
                               // Reset section
                               ref.read(selectedSectionIdProvider.notifier).state = null;
+                              setState(() => _currentPage = 0);
                             },
                           ),
                         ),
@@ -612,6 +617,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                             ref.read(selectedGradeLevelProvider.notifier).state = val;
                             // Reset section
                             ref.read(selectedSectionIdProvider.notifier).state = null;
+                            setState(() => _currentPage = 0);
                           },
                         ),
                         // Dropdown 3: Section (Dependent on selected year and optionally grade)
@@ -631,6 +637,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                                 ],
                           onChanged: selectedYearId == null ? null : (val) {
                             ref.read(selectedSectionIdProvider.notifier).state = val;
+                            setState(() => _currentPage = 0);
                           },
                         ),
                         // Dropdown 4: Student Status
@@ -645,7 +652,10 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                             DropdownMenuItem<String?>(value: 'Transferred', child: Text('Transferee')),
                             DropdownMenuItem<String?>(value: 'Graduated', child: Text('Graduated')),
                           ],
-                          onChanged: (val) => ref.read(selectedStatusFilterProvider.notifier).state = val,
+                          onChanged: (val) {
+                            ref.read(selectedStatusFilterProvider.notifier).state = val;
+                            setState(() => _currentPage = 0);
+                          },
                         ),
                       ];
 
@@ -672,6 +682,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                             value: showOnlyMissingDocs,
                             onChanged: (val) {
                               ref.read(showOnlyMissingDocsProvider.notifier).state = val;
+                              setState(() => _currentPage = 0);
                             },
                             activeThumbColor: AppColors.primaryGreen,
                           ),
@@ -708,6 +719,11 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
 
   // ── KPI Cards: Student status grid ────────────────────────────────────────
   Widget _buildMetricsGrid(StudentCounts counts) {
+    final total = counts.active + counts.dropped + counts.transferee + counts.graduated;
+    final gradRate = total > 0 ? (counts.graduated / total * 100).toStringAsFixed(1) : '0.0';
+    final dropRate = total > 0 ? (counts.dropped / total * 100).toStringAsFixed(1) : '0.0';
+    final transRate = total > 0 ? (counts.transferee / total * 100).toStringAsFixed(1) : '0.0';
+
     return LayoutBuilder(
       builder: (ctx, constraints) {
         final cols = constraints.maxWidth >= 800 ? 4 : (constraints.maxWidth >= 500 ? 2 : 1);
@@ -721,10 +737,10 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
             mainAxisExtent: 110,
           ),
           children: [
-            StatCard(title: 'Active Students', value: counts.active.toString(), icon: Icons.check_circle_outline, iconColor: AppColors.primaryGreen),
-            StatCard(title: 'Dropped (Dropouts)', value: counts.dropped.toString(), icon: Icons.error_outline, iconColor: Colors.red),
-            StatCard(title: 'Transferees', value: counts.transferee.toString(), icon: Icons.swap_horiz_outlined, iconColor: Colors.orange),
-            StatCard(title: 'Graduated Students', value: counts.graduated.toString(), icon: Icons.school_outlined, iconColor: Colors.blue),
+            StatCard(title: 'Active Students', value: counts.active.toString(), subtitle: 'Total Population: $total', icon: Icons.check_circle_outline, iconColor: AppColors.primaryGreen),
+            StatCard(title: 'Dropped (Dropouts)', value: counts.dropped.toString(), subtitle: 'Dropout Rate: $dropRate%', icon: Icons.error_outline, iconColor: Colors.red),
+            StatCard(title: 'Transferees', value: counts.transferee.toString(), subtitle: 'Transferee Rate: $transRate%', icon: Icons.swap_horiz_outlined, iconColor: Colors.orange),
+            StatCard(title: 'Graduated Students', value: counts.graduated.toString(), subtitle: 'Graduation Rate: $gradRate%', icon: Icons.school_outlined, iconColor: Colors.blue),
           ],
         );
       },
@@ -896,6 +912,26 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
         ? data.students.where((s) => s.missingCount > 0).toList() 
         : data.students;
 
+    final totalRows = filteredStudents.length;
+    if (totalRows != _lastTotalRows) {
+      Future.microtask(() {
+        if (mounted) {
+          setState(() {
+            _currentPage = 0;
+            _lastTotalRows = totalRows;
+          });
+        }
+      });
+    }
+
+    final totalPages = totalRows > 0 ? (totalRows / _rowsPerPage).ceil() : 1;
+    final startIndex = _currentPage * _rowsPerPage;
+    final endIndex = (startIndex + _rowsPerPage > totalRows) ? totalRows : startIndex + _rowsPerPage;
+    
+    final safeStartIndex = startIndex.clamp(0, totalRows);
+    final safeEndIndex = endIndex.clamp(0, totalRows);
+    final paginatedStudents = filteredStudents.sublist(safeStartIndex, safeEndIndex);
+
     return Container(
       width: double.infinity,
       decoration: _cardDecoration(),
@@ -930,7 +966,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                   DataColumn(label: Text('Missing Docs', style: TextStyle(fontWeight: FontWeight.bold))),
                   DataColumn(label: Text('Missing Requirements list', style: TextStyle(fontWeight: FontWeight.bold))),
                 ],
-                rows: filteredStudents.isEmpty
+                rows: paginatedStudents.isEmpty
                     ? [
                         const DataRow(cells: [
                           DataCell(Text('No students match the selected filters.')),
@@ -939,7 +975,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                           DataCell(Text('')),
                         ])
                       ]
-                    : filteredStudents.map((student) {
+                    : paginatedStudents.map((student) {
                         return DataRow(
                           onSelectChanged: (_) {
                             showStudentProfileModal(context, studentId: student.id, userRole: widget.userRole);
@@ -1003,6 +1039,31 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
               ),
             ),
           ),
+          if (totalPages > 1) ...[
+            const Divider(height: 1),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: AppSizes.p24, vertical: 12),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text('Showing ${safeStartIndex + 1} to $safeEndIndex of $totalRows entries', style: const TextStyle(color: AppColors.textSecondary, fontSize: 13)),
+                  Row(
+                    children: [
+                      IconButton(
+                        icon: const Icon(Icons.chevron_left),
+                        onPressed: _currentPage > 0 ? () => setState(() => _currentPage--) : null,
+                      ),
+                      Text('Page ${_currentPage + 1} of $totalPages', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                      IconButton(
+                        icon: const Icon(Icons.chevron_right),
+                        onPressed: _currentPage < totalPages - 1 ? () => setState(() => _currentPage++) : null,
+                      ),
+                    ],
+                  )
+                ],
+              ),
+            ),
+          ],
         ],
       ),
     );
