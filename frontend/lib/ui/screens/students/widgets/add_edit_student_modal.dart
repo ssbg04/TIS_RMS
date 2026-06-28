@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_holo_date_picker/flutter_holo_date_picker.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_sizes.dart';
@@ -249,21 +250,15 @@ class _AddEditStudentModalState extends ConsumerState<AddEditStudentModal>
   }
 
   Future<void> _selectDate() async {
-    final picked = await showDatePicker(
-      context: context,
+    final picked = await DatePicker.showSimpleDatePicker(
+      context,
       initialDate: _selectedDob ?? DateTime(2010),
       firstDate: DateTime(1980),
       lastDate: DateTime.now(),
-      builder: (ctx, child) => Theme(
-        data: Theme.of(ctx).copyWith(
-          colorScheme: const ColorScheme.light(
-            primary: AppColors.primaryGreen,
-            onPrimary: Colors.white,
-            onSurface: AppColors.textPrimary,
-          ),
-        ),
-        child: child!,
-      ),
+      dateFormat: "dd-MMMM-yyyy",
+      locale: DateTimePickerLocale.en_us,
+      looping: true,
+      textColor: AppColors.textPrimary,
     );
     if (picked != null) setState(() => _selectedDob = picked);
   }

@@ -49,6 +49,8 @@ dependencies:
   fl_chart: ^1.2.0
   url_launcher: ^6.3.1
   syncfusion_flutter_pdfviewer: ^33.2.8
+  flutter_holo_date_picker: ^2.0.0
+  calendar_date_picker2: ^3.0.0
 
 dev_dependencies:
   flutter_test:

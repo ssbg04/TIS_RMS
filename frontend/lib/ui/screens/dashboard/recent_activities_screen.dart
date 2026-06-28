@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:calendar_date_picker2/calendar_date_picker2.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/utils/date_utils.dart' as pht;
 
@@ -26,30 +27,36 @@ class _RecentActivitiesScreenState
     super.dispose();
   }
 
-  Future<void> _pickDate(bool isFrom) async {
-    final initial = isFrom
-        ? (_fromDate ?? DateTime.now())
-        : (_toDate ?? DateTime.now());
-    final picked = await showDatePicker(
+  Future<void> _pickDateRange() async {
+    final values = await showCalendarDatePicker2Dialog(
       context: context,
-      initialDate: initial,
-      firstDate: DateTime(2020),
-      lastDate: DateTime.now(),
+      config: CalendarDatePicker2WithActionButtonsConfig(
+        calendarType: CalendarDatePicker2Type.range,
+        firstDate: DateTime(2020),
+        lastDate: DateTime.now(),
+        selectedDayHighlightColor: AppColors.primaryGreen,
+      ),
+      dialogSize: const Size(325, 400),
+      value: [
+        if (_fromDate != null) _fromDate!,
+        if (_toDate != null) _toDate!,
+      ],
+      borderRadius: BorderRadius.circular(15),
     );
-    if (picked == null) return;
-    setState(() {
-      if (isFrom) {
-        _fromDate = picked;
-      } else {
-        _toDate = picked;
+    if (values != null && values.isNotEmpty) {
+      setState(() {
+        _fromDate = values[0];
+        _toDate = values.length > 1 ? values[1] : values[0];
+      });
+      final notifier = ref.read(activityQueryProvider.notifier);
+      if (_fromDate != null) {
+        final f = _fromDate!;
+        notifier.setDateFrom('${f.year}-${f.month.toString().padLeft(2, '0')}-${f.day.toString().padLeft(2, '0')}');
       }
-    });
-    final fmt =
-        '${picked.year}-${picked.month.toString().padLeft(2, '0')}-${picked.day.toString().padLeft(2, '0')}';
-    if (isFrom) {
-      ref.read(activityQueryProvider.notifier).setDateFrom(fmt);
-    } else {
-      ref.read(activityQueryProvider.notifier).setDateTo(fmt);
+      if (_toDate != null) {
+        final t = _toDate!;
+        notifier.setDateTo('${t.year}-${t.month.toString().padLeft(2, '0')}-${t.day.toString().padLeft(2, '0')}');
+      }
     }
   }
 
@@ -211,8 +218,7 @@ class _RecentActivitiesScreenState
                   onPressed: () => _showFilterDialog(query, isTeacher),
                   side: BorderSide.none,
                 ),
-                _dateChip('From', _fromDate, () => _pickDate(true)),
-                _dateChip('To', _toDate, () => _pickDate(false)),
+                _dateRangeChip(),
                 if (_fromDate != null || _toDate != null || query.action.isNotEmpty || query.entityTypes.isNotEmpty)
                   ActionChip(
                     avatar: const Icon(Icons.clear, size: 16),
@@ -256,19 +262,30 @@ class _RecentActivitiesScreenState
     );
   }
 
-  Widget _dateChip(String label, DateTime? date, VoidCallback onTap) {
-    final text = date == null
-        ? label
-        : '$label: ${date.day}/${date.month}/${date.year}';
+  Widget _dateRangeChip() {
+    final hasDates = _fromDate != null || _toDate != null;
+    String text = 'Date Range';
+    if (_fromDate != null && _toDate != null) {
+      if (_fromDate!.year == _toDate!.year && _fromDate!.month == _toDate!.month && _fromDate!.day == _toDate!.day) {
+        text = '${_fromDate!.day}/${_fromDate!.month}/${_fromDate!.year}';
+      } else {
+        text = '${_fromDate!.day}/${_fromDate!.month}/${_fromDate!.year} - ${_toDate!.day}/${_toDate!.month}/${_toDate!.year}';
+      }
+    } else if (_fromDate != null) {
+      text = 'From ${_fromDate!.day}/${_fromDate!.month}/${_fromDate!.year}';
+    } else if (_toDate != null) {
+      text = 'To ${_toDate!.day}/${_toDate!.month}/${_toDate!.year}';
+    }
+
     return ActionChip(
       avatar: const Icon(Icons.calendar_today, size: 16),
       label: Text(text),
-      onPressed: onTap,
-      backgroundColor: date != null
+      onPressed: _pickDateRange,
+      backgroundColor: hasDates
           ? AppColors.primaryGreen.withValues(alpha: 0.1)
           : null,
       labelStyle: TextStyle(
-        color: date != null ? AppColors.primaryGreen : Colors.black87,
+        color: hasDates ? AppColors.primaryGreen : Colors.black87,
       ),
     );
   }
