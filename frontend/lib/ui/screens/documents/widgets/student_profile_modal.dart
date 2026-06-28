@@ -135,7 +135,18 @@ class StudentProfileModalBody extends ConsumerWidget {
                 final sorted = List.from(student.enrollments!);
                 sorted.sort((a, b) =>
                     (b.gradeLevel ?? 0).compareTo(a.gradeLevel ?? 0));
-                return sorted
+                
+                final seen = <String>{};
+                final uniqueEnrollments = [];
+                for (final e in sorted) {
+                  final key = '${e.gradeLevel}_${e.academicYearId}';
+                  if (!seen.contains(key)) {
+                    seen.add(key);
+                    uniqueEnrollments.add(e);
+                  }
+                }
+
+                return uniqueEnrollments
                     .map<Widget>((e) => _buildEnrollmentCard(e))
                     .toList();
               })(),
@@ -366,9 +377,7 @@ class StudentProfileModalBody extends ConsumerWidget {
           color: AppColors.surfaceWhite,
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
-            color: isDone
-                ? AppColors.success.withValues(alpha: 0.4)
-                : color.withValues(alpha: 0.25),
+            color: Colors.grey.shade200,
             width: isCurrent ? 1.5 : 1,
           ),
         ),
@@ -388,14 +397,14 @@ class StudentProfileModalBody extends ConsumerWidget {
                     padding: const EdgeInsets.symmetric(
                         horizontal: 8, vertical: 3),
                     decoration: BoxDecoration(
-                      color: color.withValues(alpha: 0.15),
+                      color: Colors.grey.shade100,
                       borderRadius: BorderRadius.circular(20),
                     ),
                     child: Text(label,
-                        style: TextStyle(
+                        style: const TextStyle(
                             fontWeight: FontWeight.bold,
                             fontSize: 12,
-                            color: color)),
+                            color: AppColors.textPrimary)),
                   ),
                   if (isCurrent) ...[
                     const SizedBox(width: 6),
@@ -426,9 +435,9 @@ class StudentProfileModalBody extends ConsumerWidget {
                                   fontWeight: FontWeight.bold)),
                         ])
                       : Text('$completed/$total done',
-                          style: TextStyle(
+                          style: const TextStyle(
                               fontSize: 11,
-                              color: color,
+                              color: AppColors.textSecondary,
                               fontWeight: FontWeight.w600)),
                 ],
               ),
@@ -439,13 +448,13 @@ class StudentProfileModalBody extends ConsumerWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Wrap(
-                    spacing: 8,
+                    spacing: 12,
                     runSpacing: 6,
+                    crossAxisAlignment: WrapCrossAlignment.center,
                     children: [
-                      _chip('$total Total', color),
-                      _chip('$completed Done', AppColors.success),
-                      _chip('$missingCount Missing',
-                          missingCount > 0 ? AppColors.error : AppColors.success),
+                      Text('Total: $total', style: const TextStyle(fontSize: 13, color: AppColors.textSecondary)),
+                      Text('Done: $completed', style: const TextStyle(fontSize: 13, color: AppColors.success, fontWeight: FontWeight.w600)),
+                      Text('Missing: $missingCount', style: TextStyle(fontSize: 13, color: missingCount > 0 ? AppColors.error : AppColors.textSecondary, fontWeight: FontWeight.w600)),
                     ],
                   ),
                   if (missing.isNotEmpty) ...[

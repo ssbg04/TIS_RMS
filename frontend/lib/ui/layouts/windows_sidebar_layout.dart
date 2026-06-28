@@ -145,6 +145,12 @@ class _WindowsSidebarLayoutState extends ConsumerState<WindowsSidebarLayout> {
       canPop: false,
       onPopInvokedWithResult: (didPop, result) async {
         if (didPop) return;
+
+        if (activeTab != 'Dashboard') {
+          ref.read(activeTabProvider.notifier).setTab('Dashboard');
+          _reloadTabContent('Dashboard');
+          return;
+        }
         
         final shouldExit = await showDialog<bool>(
           context: context,

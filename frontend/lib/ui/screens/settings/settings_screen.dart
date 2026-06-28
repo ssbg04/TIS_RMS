@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_sizes.dart';
@@ -187,6 +188,108 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     }
   }
 
+  Widget _buildInfoItem(String label, String value) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(label, style: const TextStyle(fontSize: 12, color: AppColors.textSecondary)),
+        const SizedBox(height: 4),
+        Text(value, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w500)),
+      ],
+    );
+  }
+
+  void _showEditProfileModal(BuildContext context) {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) {
+        return StatefulBuilder(
+          builder: (context, setModalState) {
+            return AlertDialog(
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              title: const Text('Edit Profile Details'),
+              content: SingleChildScrollView(
+                child: SizedBox(
+                  width: 400,
+                  child: Form(
+                    key: _profileFormKey,
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        CustomTextField(
+                          hintText: 'First Name', 
+                          prefixIcon: Icons.badge_outlined, 
+                          controller: _firstNameCtrl,
+                          validator: (v) => AppValidators.validateRequired(v, 'First Name'),
+                        ),
+                        const SizedBox(height: AppSizes.p16),
+                        CustomTextField(
+                          hintText: 'Middle Name', 
+                          prefixIcon: Icons.badge_outlined, 
+                          controller: _middleNameCtrl,
+                        ),
+                        const SizedBox(height: AppSizes.p16),
+                        CustomTextField(
+                          hintText: 'Last Name', 
+                          prefixIcon: Icons.badge_outlined, 
+                          controller: _lastNameCtrl,
+                          validator: (v) => AppValidators.validateRequired(v, 'Last Name'),
+                        ),
+                        const SizedBox(height: AppSizes.p16),
+                        CustomTextField(
+                          hintText: 'Ext. (Jr)', 
+                          prefixIcon: Icons.text_format, 
+                          controller: _extCtrl,
+                        ),
+                        const SizedBox(height: AppSizes.p16),
+                        CustomTextField(
+                          hintText: 'Phone Number (Starts with 09)', 
+                          prefixIcon: Icons.phone_outlined, 
+                          controller: _phoneCtrl,
+                          inputFormatters: [
+                            FilteringTextInputFormatter.digitsOnly,
+                            LengthLimitingTextInputFormatter(11),
+                          ],
+                          keyboardType: TextInputType.phone,
+                          validator: AppValidators.validatePhone,
+                        ),
+                        const SizedBox(height: AppSizes.p16),
+                        CustomTextField(
+                          hintText: 'Email Address', 
+                          prefixIcon: Icons.email_outlined, 
+                          controller: _emailCtrl,
+                          keyboardType: TextInputType.emailAddress,
+                          validator: AppValidators.validateEmail,
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(ctx),
+                  child: const Text('CANCEL', style: TextStyle(color: Colors.grey)),
+                ),
+                PrimaryButton(
+                  label: 'SAVE',
+                  isLoading: _isProfileLoading,
+                  onPressed: () async {
+                    if (!_profileFormKey.currentState!.validate()) return;
+                    Navigator.pop(ctx);
+                    await _handleUpdateProfile();
+                  },
+                ),
+              ],
+            );
+          }
+        );
+      }
+    );
+  }
+
+
   @override
   Widget build(BuildContext context) {
     final profileAsync = ref.watch(profileProvider);
@@ -228,80 +331,47 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
 
                       // ── Profile Card ──────────────────────────────────────
                       _buildCard(
-                        child: Form(
-                          key: _profileFormKey,
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Row(children: [
-                                const CircleAvatar(
-                                  radius: 30,
-                                  backgroundColor: AppColors.primaryGreen,
-                                  child: Icon(Icons.person, size: 30, color: Colors.white),
-                                ),
-                                const SizedBox(width: AppSizes.p16),
-                                Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(children: [
+                              const CircleAvatar(
+                                radius: 30,
+                                backgroundColor: AppColors.primaryGreen,
+                                child: Icon(Icons.person, size: 30, color: Colors.white),
+                              ),
+                              const SizedBox(width: AppSizes.p16),
+                              Expanded(
+                                child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                                   const Text('Profile Details', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
                                   Text('Role: ${user.role.toUpperCase().replaceAll('_', ' ')}',
                                       style: const TextStyle(color: AppColors.primaryGreen, fontWeight: FontWeight.w600)),
                                 ]),
-                              ]),
-                              const Padding(padding: EdgeInsets.symmetric(vertical: AppSizes.p24), child: Divider()),
-
-                              Builder(builder: (ctx) {
-                                const spacing = AppSizes.p16;
-                                return Column(children: [
-                                  CustomTextField(
-                                    hintText: 'First Name', 
-                                    prefixIcon: Icons.badge_outlined, 
-                                    controller: _firstNameCtrl,
-                                    validator: (v) => AppValidators.validateRequired(v, 'First Name'),
-                                  ),
-                                  const SizedBox(height: spacing),
-                                  CustomTextField(
-                                    hintText: 'Middle Name', 
-                                    prefixIcon: Icons.badge_outlined, 
-                                    controller: _middleNameCtrl,
-                                  ),
-                                  const SizedBox(height: spacing),
-                                  CustomTextField(
-                                    hintText: 'Last Name', 
-                                    prefixIcon: Icons.badge_outlined, 
-                                    controller: _lastNameCtrl,
-                                    validator: (v) => AppValidators.validateRequired(v, 'Last Name'),
-                                  ),
-                                  const SizedBox(height: spacing),
-                                  CustomTextField(
-                                    hintText: 'Ext. (Jr)', 
-                                    prefixIcon: Icons.text_format, 
-                                    controller: _extCtrl,
-                                  ),
-                                  const SizedBox(height: spacing),
-                                  CustomTextField(
-                                    hintText: 'Phone Number (Starts with 09)', 
-                                    prefixIcon: Icons.phone_outlined, 
-                                    controller: _phoneCtrl,
-                                    validator: AppValidators.validatePhone,
-                                  ),
-                                  const SizedBox(height: spacing),
-                                  CustomTextField(
-                                    hintText: 'Email Address', 
-                                    prefixIcon: Icons.email_outlined, 
-                                    controller: _emailCtrl,
-                                    validator: AppValidators.validateEmail,
-                                  ),
-                                ]);
-                              }),
-                              const SizedBox(height: AppSizes.p32),
-                              Align(
-                                alignment: Alignment.centerRight,
-                                child: SizedBox(
-                                  width: 200,
-                                  child: PrimaryButton(label: 'SAVE', isLoading: _isProfileLoading, onPressed: _handleUpdateProfile),
-                                ),
                               ),
-                            ],
-                          ),
+                              TextButton.icon(
+                                onPressed: () => _showEditProfileModal(context),
+                                icon: const Icon(Icons.edit, size: 18),
+                                label: const Text('Edit'),
+                              ),
+                            ]),
+                            const Padding(padding: EdgeInsets.symmetric(vertical: AppSizes.p24), child: Divider()),
+
+                            Row(
+                              children: [
+                                Expanded(child: _buildInfoItem('First Name', user.firstName)),
+                                Expanded(child: _buildInfoItem('Middle Name', user.middleName?.isNotEmpty == true ? user.middleName! : '-')),
+                                Expanded(child: _buildInfoItem('Last Name', user.lastName)),
+                              ],
+                            ),
+                            const SizedBox(height: AppSizes.p16),
+                            Row(
+                              children: [
+                                Expanded(child: _buildInfoItem('Ext. (Jr)', user.extension?.isNotEmpty == true ? user.extension! : '-')),
+                                Expanded(child: _buildInfoItem('Phone Number', user.phone?.isNotEmpty == true ? user.phone! : '-')),
+                                Expanded(child: _buildInfoItem('Email Address', user.email?.isNotEmpty == true ? user.email! : '-')),
+                              ],
+                            ),
+                          ],
                         ),
                       ),
 

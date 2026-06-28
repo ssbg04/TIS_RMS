@@ -1221,107 +1221,107 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
                   ),
                 ],
               ),
-              child: Column(
+              child: Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-
-                  // TOP ROW
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.center,
-                    children: [
-                      if (widget.userRole != 'teacher' && _showMultiSelect) ...[
-                        Checkbox(
-                          activeColor: AppColors.primaryGreen,
-                          value: _selectedStudentIds.contains(s.id),
-                          onChanged: (val) {
-                            setState(() {
-                              if (val == true) {
-                                _selectedStudentIds.add(s.id);
-                              } else {
-                                _selectedStudentIds.remove(s.id);
-                              }
-                            });
-                          },
+                  if (widget.userRole != 'teacher' && _showMultiSelect) ...[
+                    Checkbox(
+                      activeColor: AppColors.primaryGreen,
+                      value: _selectedStudentIds.contains(s.id),
+                      onChanged: (val) {
+                        setState(() {
+                          if (val == true) {
+                            _selectedStudentIds.add(s.id);
+                          } else {
+                            _selectedStudentIds.remove(s.id);
+                          }
+                        });
+                      },
+                    ),
+                    const SizedBox(width: 4),
+                  ],
+                  // Avatar
+                  Padding(
+                    padding: const EdgeInsets.only(top: 4.0),
+                    child: CircleAvatar(
+                      radius: 22,
+                      backgroundColor: AppColors.primaryGreen.withValues(alpha: 0.1),
+                      child: Text(
+                        '${s.firstName.isNotEmpty ? s.firstName[0] : ''}${s.lastName.isNotEmpty ? s.lastName[0] : ''}',
+                        style: const TextStyle(
+                          color: AppColors.primaryGreen,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16,
                         ),
-                        const SizedBox(width: 4),
-                      ],
-                      Expanded(
-                        child: Text(
-                          s.lrn,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: AppSizes.p16),
+                  
+                  // Info Column
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Expanded(
+                              child: Text(
+                                s.fullName,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(
+                                  fontSize: 15,
+                                  fontWeight: FontWeight.bold,
+                                  color: AppColors.textPrimary,
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            _StatusChip(status: s.status),
+                          ],
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          'LRN: ${s.lrn}  ·  ${s.gradeSection}',
+                          maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           style: const TextStyle(
-                            fontWeight: FontWeight.bold,
-                            color: AppColors.primaryGreen,
+                            fontSize: 12,
+                            color: AppColors.textSecondary,
                           ),
                         ),
-                      ),
-
-                      const SizedBox(width: AppSizes.p8),
-
-                      Flexible(
-                        child: _StatusChip(status: s.status),
-                      ),
-                    ],
-                  ),
-
-                  const SizedBox(height: AppSizes.p8),
-
-                  // NAME
-                  Text(
-                    s.fullName,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      fontSize: 15,
-                      fontWeight: FontWeight.bold,
+                        const Padding(
+                          padding: EdgeInsets.symmetric(vertical: 10),
+                          child: Divider(height: 1),
+                        ),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          crossAxisAlignment: CrossAxisAlignment.center,
+                          children: [
+                            Row(
+                              children: [
+                                const Icon(Icons.folder_outlined, size: 14, color: AppColors.textSecondary),
+                                const SizedBox(width: 4),
+                                _DocumentProgressBar(
+                                  missingCount: s.missingDocumentsCount,
+                                  totalCount: s.totalDocumentsCount,
+                                  missingDocuments: s.missingDocuments,
+                                ),
+                              ],
+                            ),
+                            _ActionButtons(
+                              student: s,
+                              userRole: widget.userRole,
+                              onEdit: () => _openModal(student: s),
+                              onDelete: () => _confirmDelete(s),
+                              onOpenDocuments: () => _openDocumentsFolder(s),
+                            ),
+                          ],
+                        ),
+                      ],
                     ),
-                  ),
-
-                  const SizedBox(height: 2),
-
-                  // GRADE SECTION
-                  Text(
-                    s.gradeSection,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      fontSize: 13,
-                      color: AppColors.textSecondary,
-                    ),
-                  ),
-
-                  const Padding(
-                    padding: EdgeInsets.symmetric(vertical: AppSizes.p12),
-                    child: Divider(height: 1),
-                  ),
-
-                  // BOTTOM SECTION
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    crossAxisAlignment: CrossAxisAlignment.center,
-                    children: [
-                      Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          const Text(
-                            'Docs: ',
-                            style: TextStyle(color: AppColors.textSecondary, fontSize: 13),
-                          ),
-                          _DocumentProgressBar(
-                            missingCount: s.missingDocumentsCount,
-                            totalCount: s.totalDocumentsCount,
-                            missingDocuments: s.missingDocuments,
-                          ),
-                        ],
-                      ),
-                      _ActionButtons(
-                        student: s,
-                        userRole: widget.userRole,
-                        onEdit: () => _openModal(student: s),
-                        onDelete: () => _confirmDelete(s),
-                        onOpenDocuments: () => _openDocumentsFolder(s),
-                      ),
-                    ],
                   ),
                 ],
               ),

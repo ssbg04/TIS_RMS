@@ -157,6 +157,11 @@ class _AndroidBottomNavLayoutState extends ConsumerState<AndroidBottomNavLayout>
       onPopInvokedWithResult: (didPop, result) async {
         if (didPop) return;
         
+        if (activeTab != 'Dashboard') {
+          _onNavTapped('Dashboard');
+          return;
+        }
+
         final shouldExit = await showDialog<bool>(
           context: context,
           builder: (context) => AlertDialog(
