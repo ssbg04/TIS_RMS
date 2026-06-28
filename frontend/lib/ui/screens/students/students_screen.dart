@@ -457,9 +457,11 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
           ],
         ],
       ),
-      body: SafeArea(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
+      body: Stack(
+        children: [
+          SafeArea(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             Expanded(
               child: Padding(
@@ -508,15 +510,24 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
             pageAsync.maybeWhen(
               data:   (page) => _buildPagination(query, page),
               orElse: () => const SizedBox.shrink(),
+              ),
+              ],
             ),
-          ],
-        ),
+          ),
+          if (_showMultiSelect)
+            Positioned(
+              left: 0,
+              right: 0,
+              bottom: 16,
+              child: SafeArea(
+                child: pageAsync.maybeWhen(
+                  data: (page) => _buildBatchActionsBar(page.students),
+                  orElse: () => const SizedBox.shrink(),
+                ),
+              ),
+            ),
+        ],
       ),
-      floatingActionButton: pageAsync.maybeWhen(
-        data: (page) => _buildBatchActionsBar(page.students),
-        orElse: () => const SizedBox.shrink(),
-      ),
-      floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
     );
   }
 
