@@ -135,7 +135,7 @@ exports.requestPasswordReset = (req, res) => {
             INSERT INTO password_reset_requests (user_id, new_password_hash)
             VALUES (?, ?)
         `).run(user.id, hashedPassword);
-        createNotification(null, 'Password Reset Request', `User "${username}" has requested a password reset.`, 'system');
+        createNotification(null, 'Password Reset Request', `User "${username}" has requested a password reset.`, 'user');
 
         res.json({ message: 'Password reset request submitted. Awaiting Admin approval.' });
     } catch (error) {

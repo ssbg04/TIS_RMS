@@ -110,8 +110,11 @@ class _UserHistoryScreenState extends ConsumerState<UserHistoryScreen> {
                               contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                               border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
                             ),
-                            items: ['All Actions', 'CREATED', 'UPDATED', 'DELETED']
-                                .map((v) => DropdownMenuItem(value: v, child: Text(v)))
+                            items: ['All Actions', 'created', 'updated', 'deleted']
+                                .map((v) => DropdownMenuItem(
+                                      value: v,
+                                      child: Text(v == 'All Actions' ? v : v.toUpperCase()),
+                                    ))
                                 .toList(),
                             onChanged: (v) => setDialogState(() => pendingAction = v!),
                           ),
@@ -185,17 +188,12 @@ class _UserHistoryScreenState extends ConsumerState<UserHistoryScreen> {
         backgroundColor: AppColors.primaryGreen,
         foregroundColor: Colors.white,
         iconTheme: const IconThemeData(color: Colors.white),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.refresh),
-            onPressed: () => ref.invalidate(userHistoryPageProvider),
-          ),
-        ],
       ),
       body: Column(
         children: [
           // ── Filter Bar ───────────────────────────────────────────────────
           Container(
+            width: double.infinity,
             color: Colors.white,
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
             child: Wrap(

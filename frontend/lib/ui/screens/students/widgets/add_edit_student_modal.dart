@@ -49,6 +49,7 @@ class _AddEditStudentModalState extends ConsumerState<AddEditStudentModal>
   final _formKey = GlobalKey<FormState>();
   final _scrollCtrl = ScrollController();
   late TabController _tabController;
+  final TransformationController _previewTransformationController = TransformationController();
 
   late TextEditingController _lrnController;
   late TextEditingController _firstNameController;
@@ -97,6 +98,7 @@ class _AddEditStudentModalState extends ConsumerState<AddEditStudentModal>
   @override
   void dispose() {
     _tabController.dispose();
+    _previewTransformationController.dispose();
     _lrnController.dispose();
     _firstNameController.dispose();
     _middleNameController.dispose();
@@ -506,11 +508,38 @@ class _AddEditStudentModalState extends ConsumerState<AddEditStudentModal>
                 color: AppColors.textPrimary,
               ),
             ),
+            const Spacer(),
+            if (!isPdf) ...[
+              IconButton(
+                icon: const Icon(Icons.zoom_in, size: 20, color: AppColors.textSecondary),
+                tooltip: 'Zoom In',
+                onPressed: () {
+                  _previewTransformationController.value = 
+                      _previewTransformationController.value.clone()..scale(1.5);
+                },
+              ),
+              IconButton(
+                icon: const Icon(Icons.zoom_out, size: 20, color: AppColors.textSecondary),
+                tooltip: 'Zoom Out',
+                onPressed: () {
+                  _previewTransformationController.value = 
+                      _previewTransformationController.value.clone()..scale(0.666);
+                },
+              ),
+              IconButton(
+                icon: const Icon(Icons.center_focus_strong, size: 20, color: AppColors.textSecondary),
+                tooltip: 'Reset View',
+                onPressed: () {
+                  _previewTransformationController.value = Matrix4.identity();
+                },
+              ),
+            ],
           ],
         ),
         const SizedBox(height: 12),
         Expanded(
           child: Container(
+            width: double.infinity,
             decoration: BoxDecoration(
               border: Border.all(color: Colors.grey.shade300),
               borderRadius: BorderRadius.circular(AppSizes.radiusMedium),
@@ -525,8 +554,11 @@ class _AddEditStudentModalState extends ConsumerState<AddEditStudentModal>
                       canShowScrollStatus: false,
                     )
                   : InteractiveViewer(
-                      minScale: 0.5,
-                      maxScale: 4.0,
+                      transformationController: _previewTransformationController,
+                      minScale: 0.1,
+                      maxScale: 10.0,
+                      boundaryMargin: const EdgeInsets.all(double.infinity),
+                      constrained: true,
                       child: Center(
                         child: Image.file(file, fit: BoxFit.contain),
                       ),

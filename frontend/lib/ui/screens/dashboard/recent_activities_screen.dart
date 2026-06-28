@@ -191,17 +191,12 @@ class _RecentActivitiesScreenState
         backgroundColor: AppColors.primaryGreen,
         foregroundColor: Colors.white,
         iconTheme: const IconThemeData(color: Colors.white),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.refresh),
-            onPressed: () => ref.invalidate(recentActivitiesPageProvider),
-          ),
-        ],
       ),
       body: Column(
         children: [
           // ── Filter Bar ───────────────────────────────────────────────────
           Container(
+            width: double.infinity,
             color: Colors.white,
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
             child: Wrap(

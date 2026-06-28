@@ -176,7 +176,8 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
               ref.read(notificationsProvider.notifier).markAsRead(note.id);
               Future.delayed(const Duration(milliseconds: 100), () {
                 if (context.mounted) {
-                  if (note.title.toLowerCase().contains('password')) {
+                  final role = ref.read(authProvider).value?.role;
+                  if (note.title.toLowerCase().contains('password') && role == 'admin') {
                     ResetRequestsModal.show(context);
                   } else {
                     ViewActivityModal.show(
@@ -670,7 +671,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                       child: TextButton.icon(
                         onPressed: () => Navigator.of(context).push(
                           MaterialPageRoute(builder: (_) => const UserHistoryScreen()),
-                        ),
+                        ).then((_) => _handleRefresh()),
                         icon: const Icon(Icons.history, size: 18),
                         label: const Text('User History'),
                         style: TextButton.styleFrom(foregroundColor: AppColors.primaryGreen, padding: EdgeInsets.zero),
@@ -679,7 +680,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                   TextButton.icon(
                     onPressed: () => Navigator.of(context).push(
                       MaterialPageRoute(builder: (_) => const RecentActivitiesScreen()),
-                    ),
+                    ).then((_) => _handleRefresh()),
                     icon: const Icon(Icons.open_in_new, size: 18),
                     label: const Text('View All'),
                     style: TextButton.styleFrom(foregroundColor: AppColors.primaryGreen, padding: EdgeInsets.zero),
@@ -701,7 +702,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                     TextButton.icon(
                       onPressed: () => Navigator.of(context).push(
                         MaterialPageRoute(builder: (_) => const UserHistoryScreen()),
-                      ),
+                      ).then((_) => _handleRefresh()),
                       icon: const Icon(Icons.history, size: 18),
                       label: const Text('User History'),
                       style: TextButton.styleFrom(foregroundColor: AppColors.primaryGreen),
@@ -709,7 +710,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                   TextButton.icon(
                     onPressed: () => Navigator.of(context).push(
                       MaterialPageRoute(builder: (_) => const RecentActivitiesScreen()),
-                    ),
+                    ).then((_) => _handleRefresh()),
                     icon: const Icon(Icons.open_in_new, size: 18),
                     label: const Text('View All'),
                     style: TextButton.styleFrom(foregroundColor: AppColors.primaryGreen),
