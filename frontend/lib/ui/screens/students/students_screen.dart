@@ -126,154 +126,101 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
     final isMobile = MediaQuery.of(context).size.width <= 800;
     final allSelected = count > 0 && count == allStudents.length;
 
-    // Desktop
-    Widget desktopBar = Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 16),
+      padding: EdgeInsets.symmetric(horizontal: isMobile ? 8 : 16, vertical: 10),
       decoration: BoxDecoration(
         color: AppColors.surfaceWhite,
+        borderRadius: BorderRadius.circular(32),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.1),
-            blurRadius: 10,
-            offset: const Offset(0, -2),
+            color: Colors.black.withValues(alpha: 0.15),
+            blurRadius: 15,
+            offset: const Offset(0, 5),
           ),
         ],
-        border: Border(top: BorderSide(color: Colors.grey.shade200)),
+        border: Border.all(color: Colors.grey.shade200),
       ),
       child: Row(
+        mainAxisSize: MainAxisSize.min,
         children: [
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
             decoration: BoxDecoration(
               color: AppColors.primaryGreen.withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(20),
             ),
             child: Text(
-              count == 0 ? 'Select students' : '$count selected',
+              count == 0 ? (isMobile ? '0' : 'Select') : '$count',
               style: TextStyle(
                 fontWeight: FontWeight.bold,
                 color: count == 0 ? AppColors.textSecondary : AppColors.primaryGreen,
               ),
             ),
           ),
-          const SizedBox(width: 16),
-          TextButton.icon(
-            onPressed: () => _toggleSelectAll(allStudents),
-            icon: Icon(allSelected ? Icons.deselect : Icons.select_all, size: 18),
-            label: Text(allSelected ? 'Deselect All' : 'Select All'),
-          ),
-          const Spacer(),
-          ElevatedButton.icon(
-            onPressed: count == 0 ? null : _showBulkEnrollModal,
-            icon: const Icon(Icons.group_add, size: 18),
-            label: const Text('Bulk Enroll'),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.primaryGreen,
-              foregroundColor: Colors.white,
+          const SizedBox(width: 8),
+          if (!isMobile) ...[
+            TextButton.icon(
+              onPressed: () => _toggleSelectAll(allStudents),
+              icon: Icon(allSelected ? Icons.deselect : Icons.select_all, size: 18),
+              label: Text(allSelected ? 'Deselect' : 'Select All'),
             ),
-          ),
-          const SizedBox(width: 12),
-          ElevatedButton.icon(
-            onPressed: count == 0 ? null : _showBulkGraduateConfirm,
-            icon: const Icon(Icons.school, size: 18),
-            label: const Text('Bulk Graduate'),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.blue,
-              foregroundColor: Colors.white,
+            const SizedBox(width: 8),
+          ] else ...[
+             IconButton(
+               onPressed: () => _toggleSelectAll(allStudents),
+               icon: Icon(allSelected ? Icons.deselect : Icons.select_all, size: 20),
+               tooltip: allSelected ? 'Deselect All' : 'Select All',
+             ),
+          ],
+          Container(height: 24, width: 1, color: Colors.grey.shade300, margin: const EdgeInsets.symmetric(horizontal: 4)),
+          if (!isMobile) ...[
+            ElevatedButton.icon(
+              onPressed: count == 0 ? null : _showBulkEnrollModal,
+              icon: const Icon(Icons.group_add, size: 18),
+              label: const Text('Enroll'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.primaryGreen,
+                foregroundColor: Colors.white,
+                shape: const StadiumBorder(),
+              ),
             ),
-          ),
-          const SizedBox(width: 16),
+            const SizedBox(width: 8),
+            ElevatedButton.icon(
+              onPressed: count == 0 ? null : _showBulkGraduateConfirm,
+              icon: const Icon(Icons.school, size: 18),
+              label: const Text('Graduate'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.blue,
+                foregroundColor: Colors.white,
+                shape: const StadiumBorder(),
+              ),
+            ),
+          ] else ...[
+            IconButton(
+              onPressed: count == 0 ? null : _showBulkEnrollModal,
+              icon: Icon(Icons.group_add, color: count == 0 ? Colors.grey : AppColors.primaryGreen),
+              tooltip: 'Enroll',
+            ),
+            IconButton(
+              onPressed: count == 0 ? null : _showBulkGraduateConfirm,
+              icon: Icon(Icons.school, color: count == 0 ? Colors.grey : Colors.blue),
+              tooltip: 'Graduate',
+            ),
+          ],
+          const SizedBox(width: 4),
+          Container(height: 24, width: 1, color: Colors.grey.shade300, margin: const EdgeInsets.symmetric(horizontal: 4)),
           IconButton(
             onPressed: () => setState(() {
               _selectedStudentIds.clear();
               _showMultiSelect = false;
             }),
-            icon: const Icon(Icons.close),
+            icon: const Icon(Icons.close, size: 20),
             tooltip: 'Cancel',
           ),
         ],
       ),
     );
-
-    // Mobile
-    Widget mobileBar = Container(
-      decoration: BoxDecoration(
-        color: AppColors.surfaceWhite,
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.12),
-            blurRadius: 12,
-            offset: const Offset(0, -3),
-          ),
-        ],
-        border: Border(top: BorderSide(color: Colors.grey.shade200)),
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            child: Row(
-              children: [
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: AppColors.primaryGreen.withValues(alpha: 0.12),
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  child: Text(
-                    count == 0 ? 'Select students' : '$count selected',
-                    style: TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 13,
-                      color: count == 0 ? AppColors.textSecondary : AppColors.primaryGreen,
-                    ),
-                  ),
-                ),
-                const Spacer(),
-                TextButton.icon(
-                  onPressed: () => setState(() {
-                    _selectedStudentIds.clear();
-                    _showMultiSelect = false;
-                  }),
-                  icon: const Icon(Icons.close, size: 16),
-                  label: const Text('Cancel'),
-                  style: TextButton.styleFrom(foregroundColor: AppColors.textSecondary),
-                ),
-              ],
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.only(left: 8, right: 8, bottom: 8),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-              children: [
-                _batchActionBtn(
-                  icon: allSelected ? Icons.deselect : Icons.select_all,
-                  label: allSelected ? 'Deselect' : 'Select All',
-                  color: AppColors.textPrimary,
-                  onTap: () => _toggleSelectAll(allStudents),
-                ),
-                _batchActionBtn(
-                  icon: Icons.group_add,
-                  label: 'Enroll',
-                  color: AppColors.primaryGreen,
-                  onTap: count == 0 ? () {} : _showBulkEnrollModal,
-                ),
-                _batchActionBtn(
-                  icon: Icons.school,
-                  label: 'Graduate',
-                  color: Colors.blue,
-                  onTap: count == 0 ? () {} : _showBulkGraduateConfirm,
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-
-    return isMobile ? mobileBar : desktopBar;
   }
 
   Widget _batchActionBtn({
@@ -565,10 +512,11 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
           ],
         ),
       ),
-      bottomNavigationBar: pageAsync.maybeWhen(
+      floatingActionButton: pageAsync.maybeWhen(
         data: (page) => _buildBatchActionsBar(page.students),
         orElse: () => const SizedBox.shrink(),
       ),
+      floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
     );
   }
 
@@ -1581,7 +1529,25 @@ class _DocumentProgressBar extends StatelessWidget {
 
     String tooltipMessage = '';
     if (!isComplete && missingDocuments.isNotEmpty) {
-      tooltipMessage = 'Missing Documents:\n${missingDocuments.map((d) => '• $d').join('\n')}';
+      final jhsDocs = missingDocuments.where((d) => d.startsWith('[JHS]')).map((d) => d.replaceFirst('[JHS] ', '')).toList();
+      final shsDocs = missingDocuments.where((d) => d.startsWith('[SHS]')).map((d) => d.replaceFirst('[SHS] ', '')).toList();
+      final otherDocs = missingDocuments.where((d) => !d.startsWith('[JHS]') && !d.startsWith('[SHS]')).toList();
+      
+      final lines = <String>['Missing Documents:'];
+      if (jhsDocs.isNotEmpty) {
+        lines.add('JHS:');
+        lines.addAll(jhsDocs.map((d) => '  • $d'));
+      }
+      if (shsDocs.isNotEmpty) {
+        lines.add('SHS:');
+        lines.addAll(shsDocs.map((d) => '  • $d'));
+      }
+      if (otherDocs.isNotEmpty) {
+        if (jhsDocs.isNotEmpty || shsDocs.isNotEmpty) lines.add('Other:');
+        lines.addAll(otherDocs.map((d) => '  • $d'));
+      }
+
+      tooltipMessage = lines.join('\n');
     } else if (isComplete) {
       tooltipMessage = 'All documents completed';
     } else {
