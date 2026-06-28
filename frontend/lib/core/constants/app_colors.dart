@@ -9,7 +9,7 @@ class AppColors {
   static const Color darkGreen = Color(0xFF085F32);
   
   // Backgrounds
-  static const Color pageBackground = Color(0xFFF9F9F9); // Off-white/Beige
+  static const Color pageBackground = Color(0xFFF3F4F6); // Light gray background
   static const Color surfaceWhite = Colors.white; // Cards, Dialogs
   static const Color inputBackground = Color(0xFFE5E5E5);
   

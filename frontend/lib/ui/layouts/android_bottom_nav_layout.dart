@@ -79,7 +79,7 @@ class _AndroidBottomNavLayoutState extends ConsumerState<AndroidBottomNavLayout>
     });
 
     _tabLoadingTimer?.cancel();
-    _tabLoadingTimer = Timer(const Duration(seconds: 2), () {
+    _tabLoadingTimer = Timer(const Duration(milliseconds: 800), () {
       if (mounted) {
         setState(() {
           _isTabLoading = false;

@@ -41,7 +41,16 @@ class WindowsSidebarLayout extends ConsumerStatefulWidget {
 class _WindowsSidebarLayoutState extends ConsumerState<WindowsSidebarLayout> {
   final Set<int> _visitedIndices = {};
   Timer? _holdTimer;
+  Timer? _tabLoadingTimer;
   bool _isMinimized = false;
+  bool _isTabLoading = false;
+
+  @override
+  void dispose() {
+    _holdTimer?.cancel();
+    _tabLoadingTimer?.cancel();
+    super.dispose();
+  }
 
   void _reloadTabContent(String label) {
     switch (label) {
@@ -169,6 +178,19 @@ class _WindowsSidebarLayoutState extends ConsumerState<WindowsSidebarLayout> {
               clipBehavior: Clip.antiAlias,
               child: InkWell(
                 onTap: () {
+                  setState(() {
+                    _isTabLoading = true;
+                  });
+
+                  _tabLoadingTimer?.cancel();
+                  _tabLoadingTimer = Timer(const Duration(milliseconds: 800), () {
+                    if (mounted) {
+                      setState(() {
+                        _isTabLoading = false;
+                      });
+                    }
+                  });
+
                   ref.read(activeTabProvider.notifier).setTab(tab['label'] as String);
                   _reloadTabContent(tab['label'] as String);
                 },
@@ -461,13 +483,87 @@ class _WindowsSidebarLayoutState extends ConsumerState<WindowsSidebarLayout> {
             // MAIN CONTENT AREA
             // ==========================================
             Expanded(
-              child: IndexedStack(
-                index: currentIndex,
-                children: tabs.asMap().entries.map((entry) {
-                  return _visitedIndices.contains(entry.key)
-                      ? entry.value['screen'] as Widget
-                      : const SizedBox.shrink();
-                }).toList(),
+              child: Stack(
+                children: [
+                  IndexedStack(
+                    index: currentIndex,
+                    children: tabs.asMap().entries.map((entry) {
+                      return _visitedIndices.contains(entry.key)
+                          ? entry.value['screen'] as Widget
+                          : const SizedBox.shrink();
+                    }).toList(),
+                  ),
+                  if (_isTabLoading)
+                    Container(
+                      color: AppColors.pageBackground,
+                      width: double.infinity,
+                      height: double.infinity,
+                      child: const _PageSkeletonLoader(),
+                    ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _PageSkeletonLoader extends StatefulWidget {
+  const _PageSkeletonLoader();
+
+  @override
+  State<_PageSkeletonLoader> createState() => _PageSkeletonLoaderState();
+}
+
+class _PageSkeletonLoaderState extends State<_PageSkeletonLoader> with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(vsync: this, duration: const Duration(seconds: 1))..repeat(reverse: true);
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return FadeTransition(
+      opacity: Tween<double>(begin: 0.3, end: 1.0).animate(_controller),
+      child: Padding(
+        padding: const EdgeInsets.all(24.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Container(
+              height: 40,
+              width: 180,
+              decoration: BoxDecoration(color: Colors.grey.shade300, borderRadius: BorderRadius.circular(8)),
+            ),
+            const SizedBox(height: 24),
+            Row(
+              children: [
+                Expanded(child: Container(height: 80, decoration: BoxDecoration(color: Colors.grey.shade200, borderRadius: BorderRadius.circular(12)))),
+                const SizedBox(width: 16),
+                Expanded(child: Container(height: 80, decoration: BoxDecoration(color: Colors.grey.shade200, borderRadius: BorderRadius.circular(12)))),
+              ],
+            ),
+            const SizedBox(height: 24),
+            Expanded(
+              child: ListView.separated(
+                itemCount: 5,
+                physics: const NeverScrollableScrollPhysics(),
+                separatorBuilder: (_, __) => const SizedBox(height: 16),
+                itemBuilder: (_, __) => Container(
+                  height: 60,
+                  decoration: BoxDecoration(color: Colors.grey.shade200, borderRadius: BorderRadius.circular(8)),
+                ),
               ),
             ),
           ],
