@@ -61,9 +61,9 @@ class UsersNotifier extends AsyncNotifier<List<SystemUser>> {
     }
   }
 
-  Future<bool> resetPassword(int id) async {
+  Future<bool> resetPassword(int id, {required String adminPassword}) async {
     try {
-      await ref.read(userRepositoryProvider).resetPassword(id);
+      await ref.read(userRepositoryProvider).resetPassword(id, adminPassword: adminPassword);
       return true;
     } catch (e) {
       rethrow;

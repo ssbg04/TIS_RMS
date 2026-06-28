@@ -81,10 +81,14 @@ class UserRepository {
     }
   }
 
-  Future<void> resetPassword(int id) async {
+  Future<void> resetPassword(int id, {required String adminPassword}) async {
     try {
       final options = await _getAuthOptions();
-      await _dio.put('/users/$id/reset-password', options: options);
+      await _dio.put(
+        '/users/$id/reset-password',
+        options: options,
+        data: {'adminPassword': adminPassword},
+      );
     } on DioException catch (e) {
       throw Exception(e.response?.data['message'] ?? 'Failed to reset password.');
     }

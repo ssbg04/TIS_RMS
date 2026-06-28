@@ -136,9 +136,19 @@ exports.updateUser = (req, res) => {
 // PUT /api/users/:id/reset-password - Reset a user's password
 exports.resetPassword = (req, res) => {
     const { id } = req.params;
+    const { adminPassword } = req.body;
     const newPassword = 'changeme123';
+    const adminId = req.user.id;
 
     try {
+        if (!adminPassword) {
+            return res.status(400).json({ message: 'Admin password is required to reset a password.' });
+        }
+
+        const adminUser = db.prepare('SELECT password FROM users WHERE id = ?').get(adminId);
+        if (!adminUser || !bcrypt.compareSync(adminPassword, adminUser.password)) {
+            return res.status(401).json({ message: 'Incorrect Admin Password.' });
+        }
         const user = db.prepare('SELECT id, role FROM users WHERE id = ?').get(id);
         if (!user) return res.status(404).json({ message: 'User not found.' });
         if (user.id === req.user.id) {
