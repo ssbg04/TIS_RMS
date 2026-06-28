@@ -125,13 +125,13 @@ class _WindowsSidebarLayoutState extends ConsumerState<WindowsSidebarLayout> {
   @override
   Widget build(BuildContext context) {
     final allTabs = [
-      {'label': 'Dashboard', 'icon': Icons.dashboard, 'activeIcon': Icons.dashboard, 'screen': const DashboardScreen(), 'roles': ['admin', 'teacher']},
-      {'label': 'Students', 'icon': Icons.people, 'activeIcon': Icons.people, 'screen': StudentsScreen(userRole: widget.userRole), 'roles': ['admin', 'teacher']},
-      {'label': 'Documents', 'icon': Icons.folder, 'activeIcon': Icons.folder, 'screen': DocumentsScreen(userRole: widget.userRole), 'roles': ['admin', 'teacher']},
-      {'label': 'Archives', 'icon': Icons.archive, 'activeIcon': Icons.archive, 'screen': ArchivesScreen(userRole: widget.userRole), 'roles': ['admin']},
-      {'label': 'Reports', 'icon': Icons.bar_chart, 'activeIcon': Icons.bar_chart, 'screen': ReportsScreen(userRole: widget.userRole), 'roles': ['admin']},
-      {'label': 'Users', 'icon': Icons.manage_accounts, 'activeIcon': Icons.manage_accounts, 'screen': const UsersScreen(), 'roles': ['admin']},
-      {'label': 'Settings', 'icon': Icons.settings, 'activeIcon': Icons.settings, 'screen': SettingsScreen(userRole: widget.userRole), 'roles': ['admin', 'teacher']},
+      {'category': 'Main Menu', 'label': 'Dashboard', 'icon': Icons.dashboard, 'activeIcon': Icons.dashboard, 'screen': const DashboardScreen(), 'roles': ['admin', 'teacher']},
+      {'category': 'Main Menu', 'label': 'Students', 'icon': Icons.people, 'activeIcon': Icons.people, 'screen': StudentsScreen(userRole: widget.userRole), 'roles': ['admin', 'teacher']},
+      {'category': 'Main Menu', 'label': 'Documents', 'icon': Icons.folder, 'activeIcon': Icons.folder, 'screen': DocumentsScreen(userRole: widget.userRole), 'roles': ['admin', 'teacher']},
+      {'category': 'Management', 'label': 'Archives', 'icon': Icons.archive, 'activeIcon': Icons.archive, 'screen': ArchivesScreen(userRole: widget.userRole), 'roles': ['admin']},
+      {'category': 'Management', 'label': 'Reports', 'icon': Icons.bar_chart, 'activeIcon': Icons.bar_chart, 'screen': ReportsScreen(userRole: widget.userRole), 'roles': ['admin']},
+      {'category': 'Management', 'label': 'Users', 'icon': Icons.manage_accounts, 'activeIcon': Icons.manage_accounts, 'screen': const UsersScreen(), 'roles': ['admin']},
+      {'category': 'System', 'label': 'Settings', 'icon': Icons.settings, 'activeIcon': Icons.settings, 'screen': SettingsScreen(userRole: widget.userRole), 'roles': ['admin', 'teacher']},
     ];
     final tabs = allTabs.where((tab) => (tab['roles'] as List<String>).contains(widget.userRole)).toList();
 
@@ -286,35 +286,62 @@ class _WindowsSidebarLayoutState extends ConsumerState<WindowsSidebarLayout> {
                         final tab = tabs[index];
                         final isSelected = currentIndex == index;
   
-                        return Padding(
-                          padding: const EdgeInsets.only(bottom: AppSizes.p8),
-                          child: Material(
-                            color: Colors.transparent,
-                            child: ListTile(
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(AppSizes.radiusMedium),
-                              ),
-                              selected: isSelected,
-                              selectedTileColor: Colors.white.withOpacity(0.15), // Soft highlight
-                              leading: Icon(
-                                (isSelected ? tab['activeIcon'] ?? tab['icon'] : tab['icon']) as IconData,
-                                color: isSelected ? Colors.white : Colors.white70,
-                              ),
-                              title: Text(
-                                tab['label'] as String,
-                                style: TextStyle(
-                                  fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
-                                  color: isSelected ? Colors.white : Colors.white70,
-                                  fontSize: 15,
+                        final String? category = tab['category'] as String?;
+                        final String? previousCategory = index > 0 ? tabs[index - 1]['category'] as String? : null;
+                        
+                        final bool showCategory = category != null && category != previousCategory;
+
+                        return Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            if (showCategory) ...[
+                              if (index > 0) const SizedBox(height: 8),
+                              if (index > 0) const Divider(height: 1, color: Colors.white24),
+                              if (index > 0) const SizedBox(height: 16),
+                              Padding(
+                                padding: const EdgeInsets.only(left: 12, bottom: 8),
+                                child: Text(
+                                  category.toUpperCase(),
+                                  style: const TextStyle(
+                                    color: Colors.white54,
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.bold,
+                                    letterSpacing: 1.2,
+                                  ),
                                 ),
                               ),
-                              onTap: () {
-                                ref.read(activeTabProvider.notifier).setTab(tab['label'] as String);
-  
-                                _reloadTabContent(tab['label'] as String);
-                              },
+                            ],
+                            Padding(
+                              padding: const EdgeInsets.only(bottom: AppSizes.p8),
+                              child: Material(
+                                color: Colors.transparent,
+                                child: ListTile(
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(AppSizes.radiusMedium),
+                                  ),
+                                  selected: isSelected,
+                                  selectedTileColor: Colors.white.withOpacity(0.15), // Soft highlight
+                                  leading: Icon(
+                                    (isSelected ? tab['activeIcon'] ?? tab['icon'] : tab['icon']) as IconData,
+                                    color: isSelected ? Colors.white : Colors.white70,
+                                  ),
+                                  title: Text(
+                                    tab['label'] as String,
+                                    style: TextStyle(
+                                      fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+                                      color: isSelected ? Colors.white : Colors.white70,
+                                      fontSize: 15,
+                                    ),
+                                  ),
+                                  onTap: () {
+                                    ref.read(activeTabProvider.notifier).setTab(tab['label'] as String);
+      
+                                    _reloadTabContent(tab['label'] as String);
+                                  },
+                                ),
+                              ),
                             ),
-                          ),
+                          ],
                         );
                       },
                     ),

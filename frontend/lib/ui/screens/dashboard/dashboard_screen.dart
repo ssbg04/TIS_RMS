@@ -6,6 +6,8 @@ import '../../shared/cards/stat_card.dart';
 import '../../providers/dashboard_provider.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/student_provider.dart';
+import '../../providers/users_provider.dart';
+import '../../providers/document_provider.dart';
 import '../../providers/navigation_provider.dart';
 import '../../providers/notification_provider.dart';
 import '../../../domain/entities/dashboard_models.dart';
@@ -631,7 +633,11 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
             title: 'Total Students',    
             value: stats.totalStudents.toString(),      
             icon: Icons.school,
-            onTap: () => ref.read(activeTabProvider.notifier).setTab('Students'),
+            onTap: () {
+              ref.read(studentQueryProvider.notifier).reset();
+              ref.invalidate(studentPageProvider);
+              ref.read(activeTabProvider.notifier).setTab('Students');
+            },
           ),
           if (isAdmin)
             StatCard(
@@ -639,10 +645,33 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
               value: stats.activeUsers.toString(),        
               icon: Icons.badge,        
               iconColor: Colors.blue,
-              onTap: () => ref.read(activeTabProvider.notifier).setTab('Users'),
+              onTap: () {
+                ref.invalidate(usersProvider);
+                ref.read(activeTabProvider.notifier).setTab('Users');
+              },
             ),
-          StatCard(title: 'Complete Docs',     value: stats.completedDocuments.toString(), icon: Icons.task_alt,     iconColor: AppColors.primaryGreen),
-          StatCard(title: 'Missing Docs',      value: stats.missingDocuments.toString(),   icon: Icons.folder_off,   iconColor: Colors.orange),
+          StatCard(
+            title: 'Complete Docs',     
+            value: stats.completedDocuments.toString(), 
+            icon: Icons.task_alt,     
+            iconColor: AppColors.primaryGreen,
+            onTap: () {
+              ref.invalidate(foldersProvider);
+              ref.invalidate(documentPageProvider);
+              ref.read(activeTabProvider.notifier).setTab('Documents');
+            },
+          ),
+          StatCard(
+            title: 'Missing Docs',      
+            value: stats.missingDocuments.toString(),   
+            icon: Icons.folder_off,   
+            iconColor: Colors.orange,
+            onTap: () {
+              ref.invalidate(foldersProvider);
+              ref.invalidate(documentPageProvider);
+              ref.read(activeTabProvider.notifier).setTab('Documents');
+            },
+          ),
         ],
       );
     });
