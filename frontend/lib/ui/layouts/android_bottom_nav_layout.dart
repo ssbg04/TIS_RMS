@@ -43,6 +43,8 @@ class _AndroidBottomNavLayoutState extends ConsumerState<AndroidBottomNavLayout>
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
   final Set<int> _visitedIndices = {};
   Timer? _holdTimer;
+  Timer? _tabLoadingTimer;
+  bool _isTabLoading = false;
 
   void _reloadTabContent(String label) {
     switch (label) {
@@ -72,6 +74,19 @@ class _AndroidBottomNavLayoutState extends ConsumerState<AndroidBottomNavLayout>
   }
 
   void _onNavTapped(String label) {
+    setState(() {
+      _isTabLoading = true;
+    });
+
+    _tabLoadingTimer?.cancel();
+    _tabLoadingTimer = Timer(const Duration(seconds: 2), () {
+      if (mounted) {
+        setState(() {
+          _isTabLoading = false;
+        });
+      }
+    });
+
     ref.read(activeTabProvider.notifier).setTab(label);
     _reloadTabContent(label);
   }
@@ -192,7 +207,8 @@ class _AndroidBottomNavLayoutState extends ConsumerState<AndroidBottomNavLayout>
           SystemNavigator.pop();
         }
       },
-      child: Scaffold(
+      child: SafeArea(
+        child: Scaffold(
         key: _scaffoldKey,
         backgroundColor: AppColors.pageBackground,
         appBar: AppBar(
@@ -207,12 +223,13 @@ class _AndroidBottomNavLayoutState extends ConsumerState<AndroidBottomNavLayout>
         ),
         drawer: Drawer(
           width: 260, // Minimized width
-          child: Column(
-            children: [
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.only(top: 48, bottom: 16, left: 24, right: 16),
-                child: Row(
+          child: SafeArea(
+            child: Column(
+              children: [
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.only(top: 16, bottom: 16, left: 24, right: 16),
+                  child: Row(
                   children: [
                     GestureDetector(
                       onLongPressStart: (_) {
@@ -258,23 +275,34 @@ class _AndroidBottomNavLayoutState extends ConsumerState<AndroidBottomNavLayout>
                 ),
               ),
               Expanded(
-                child: ListView(
-                  padding: EdgeInsets.zero,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    if (allowedPrimary.isNotEmpty) ...[
-                      const Padding(
-                        padding: EdgeInsets.fromLTRB(28, 16, 16, 8),
-                        child: Text('OVERVIEW', style: TextStyle(color: AppColors.textSecondary, fontWeight: FontWeight.bold, fontSize: 11, letterSpacing: 1.0)),
+                    Expanded(
+                      child: ListView(
+                        padding: EdgeInsets.zero,
+                        children: [
+                          if (allowedPrimary.isNotEmpty) ...[
+                            const Padding(
+                              padding: EdgeInsets.fromLTRB(28, 16, 16, 8),
+                              child: Text('OVERVIEW', style: TextStyle(color: AppColors.textSecondary, fontWeight: FontWeight.bold, fontSize: 11, letterSpacing: 1.0)),
+                            ),
+                            ...allowedPrimary.map((tab) => _buildDrawerItem(tab, currentIndex, tabs)),
+                          ],
+                        ],
                       ),
-                      ...allowedPrimary.map((tab) => _buildDrawerItem(tab, currentIndex, tabs)),
-                    ],
-                    if (allowedSecondary.isNotEmpty) ...[
-                      const Padding(
-                        padding: EdgeInsets.fromLTRB(28, 16, 16, 8),
-                        child: Text('ACCOUNT', style: TextStyle(color: AppColors.textSecondary, fontWeight: FontWeight.bold, fontSize: 11, letterSpacing: 1.0)),
+                    ),
+                    if (allowedSecondary.isNotEmpty)
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          const Padding(
+                            padding: EdgeInsets.fromLTRB(28, 16, 16, 8),
+                            child: Text('ACCOUNT', style: TextStyle(color: AppColors.textSecondary, fontWeight: FontWeight.bold, fontSize: 11, letterSpacing: 1.0)),
+                          ),
+                          ...allowedSecondary.map((tab) => _buildDrawerItem(tab, currentIndex, tabs)),
+                        ],
                       ),
-                      ...allowedSecondary.map((tab) => _buildDrawerItem(tab, currentIndex, tabs)),
-                    ],
                   ],
                 ),
               ),
@@ -319,14 +347,27 @@ class _AndroidBottomNavLayoutState extends ConsumerState<AndroidBottomNavLayout>
             ],
           ),
         ),
-        body: IndexedStack(
-          index: currentIndex,
-          children: tabs.asMap().entries.map((entry) {
-            return _visitedIndices.contains(entry.key)
-                ? entry.value['screen'] as Widget
-                : const SizedBox.shrink();
-          }).toList(),
+      ),
+      body: Stack(
+          children: [
+            IndexedStack(
+              index: currentIndex,
+              children: tabs.asMap().entries.map((entry) {
+                return _visitedIndices.contains(entry.key)
+                    ? entry.value['screen'] as Widget
+                    : const SizedBox.shrink();
+              }).toList(),
+            ),
+            if (_isTabLoading)
+              Container(
+                color: AppColors.pageBackground,
+                width: double.infinity,
+                height: double.infinity,
+                child: const _PageSkeletonLoader(),
+              ),
+          ],
         ),
+       ),
       ),
     );
   }
@@ -369,6 +410,69 @@ class _AndroidBottomNavLayoutState extends ConsumerState<AndroidBottomNavLayout>
               ],
             ),
           ),
+        ),
+      ),
+    );
+  }
+}
+
+class _PageSkeletonLoader extends StatefulWidget {
+  const _PageSkeletonLoader();
+
+  @override
+  State<_PageSkeletonLoader> createState() => _PageSkeletonLoaderState();
+}
+
+class _PageSkeletonLoaderState extends State<_PageSkeletonLoader> with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(vsync: this, duration: const Duration(seconds: 1))..repeat(reverse: true);
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return FadeTransition(
+      opacity: Tween<double>(begin: 0.3, end: 1.0).animate(_controller),
+      child: Padding(
+        padding: const EdgeInsets.all(24.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Container(
+              height: 40,
+              width: 180,
+              decoration: BoxDecoration(color: Colors.grey.shade300, borderRadius: BorderRadius.circular(8)),
+            ),
+            const SizedBox(height: 24),
+            Row(
+              children: [
+                Expanded(child: Container(height: 80, decoration: BoxDecoration(color: Colors.grey.shade200, borderRadius: BorderRadius.circular(12)))),
+                const SizedBox(width: 16),
+                Expanded(child: Container(height: 80, decoration: BoxDecoration(color: Colors.grey.shade200, borderRadius: BorderRadius.circular(12)))),
+              ],
+            ),
+            const SizedBox(height: 24),
+            Expanded(
+              child: ListView.separated(
+                itemCount: 5,
+                physics: const NeverScrollableScrollPhysics(),
+                separatorBuilder: (_, __) => const SizedBox(height: 16),
+                itemBuilder: (_, __) => Container(
+                  height: 60,
+                  decoration: BoxDecoration(color: Colors.grey.shade200, borderRadius: BorderRadius.circular(8)),
+                ),
+              ),
+            ),
+          ],
         ),
       ),
     );

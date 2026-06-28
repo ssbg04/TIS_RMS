@@ -41,6 +41,7 @@ class WindowsSidebarLayout extends ConsumerStatefulWidget {
 class _WindowsSidebarLayoutState extends ConsumerState<WindowsSidebarLayout> {
   final Set<int> _visitedIndices = {};
   Timer? _holdTimer;
+  bool _isMinimized = false;
 
   void _reloadTabContent(String label) {
     switch (label) {
@@ -122,16 +123,109 @@ class _WindowsSidebarLayoutState extends ConsumerState<WindowsSidebarLayout> {
     );
   }
 
+  Widget _buildNavItem(Map<String, Object> tab, bool isSelected, bool isCategoryHeader, {bool isFirstItem = false}) {
+    final String? category = tab['category'] as String?;
+    
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        if (isCategoryHeader && category != null)
+          AnimatedSize(
+            duration: const Duration(milliseconds: 300),
+            curve: Curves.easeInOut,
+            child: _isMinimized
+                ? const SizedBox(width: double.infinity, height: 0)
+                : Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      if (!isFirstItem) const SizedBox(height: 8),
+                      AnimatedOpacity(
+                        duration: const Duration(milliseconds: 200),
+                        opacity: _isMinimized ? 0.0 : 1.0,
+                        child: Padding(
+                          padding: const EdgeInsets.only(left: 16, bottom: 8, top: 8),
+                          child: Text(
+                            category.toUpperCase(),
+                            style: const TextStyle(
+                              color: AppColors.textSecondary,
+                              fontSize: 11,
+                              fontWeight: FontWeight.bold,
+                              letterSpacing: 1.0,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+          ),
+        Padding(
+          padding: const EdgeInsets.symmetric(vertical: 4.0),
+          child: Tooltip(
+            message: _isMinimized ? tab['label'] as String : '',
+            waitDuration: const Duration(milliseconds: 500),
+            child: Material(
+              color: isSelected ? AppColors.primaryGreen.withOpacity(0.12) : Colors.transparent,
+              borderRadius: BorderRadius.circular(12),
+              clipBehavior: Clip.antiAlias,
+              child: InkWell(
+                onTap: () {
+                  ref.read(activeTabProvider.notifier).setTab(tab['label'] as String);
+                  _reloadTabContent(tab['label'] as String);
+                },
+                child: SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  physics: const NeverScrollableScrollPhysics(),
+                  child: SizedBox(
+                    width: 236,
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
+                      child: Row(
+                        children: [
+                          Icon(
+                            (isSelected ? tab['activeIcon'] ?? tab['icon'] : tab['icon']) as IconData,
+                            color: isSelected ? AppColors.primaryGreen : Colors.grey.shade600,
+                            size: 22,
+                          ),
+                          const SizedBox(width: 20),
+                          Expanded(
+                            child: AnimatedOpacity(
+                              duration: const Duration(milliseconds: 200),
+                              opacity: _isMinimized ? 0.0 : 1.0,
+                              child: Text(
+                                tab['label'] as String,
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
+                                  color: isSelected ? AppColors.primaryGreen : Colors.grey.shade700,
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final allTabs = [
-      {'category': 'Main Menu', 'label': 'Dashboard', 'icon': Icons.dashboard, 'activeIcon': Icons.dashboard, 'screen': const DashboardScreen(), 'roles': ['admin', 'teacher']},
-      {'category': 'Main Menu', 'label': 'Students', 'icon': Icons.people, 'activeIcon': Icons.people, 'screen': StudentsScreen(userRole: widget.userRole), 'roles': ['admin', 'teacher']},
-      {'category': 'Main Menu', 'label': 'Documents', 'icon': Icons.folder, 'activeIcon': Icons.folder, 'screen': DocumentsScreen(userRole: widget.userRole), 'roles': ['admin', 'teacher']},
-      {'category': 'Management', 'label': 'Archives', 'icon': Icons.archive, 'activeIcon': Icons.archive, 'screen': ArchivesScreen(userRole: widget.userRole), 'roles': ['admin']},
-      {'category': 'Management', 'label': 'Reports', 'icon': Icons.bar_chart, 'activeIcon': Icons.bar_chart, 'screen': ReportsScreen(userRole: widget.userRole), 'roles': ['admin']},
-      {'category': 'Management', 'label': 'Users', 'icon': Icons.manage_accounts, 'activeIcon': Icons.manage_accounts, 'screen': const UsersScreen(), 'roles': ['admin']},
-      {'category': 'System', 'label': 'Settings', 'icon': Icons.settings, 'activeIcon': Icons.settings, 'screen': SettingsScreen(userRole: widget.userRole), 'roles': ['admin', 'teacher']},
+      {'category': 'OVERVIEW', 'label': 'Dashboard', 'icon': Icons.dashboard, 'activeIcon': Icons.dashboard, 'screen': const DashboardScreen(), 'roles': ['admin', 'teacher']},
+      {'category': 'OVERVIEW', 'label': 'Students', 'icon': Icons.people, 'activeIcon': Icons.people, 'screen': StudentsScreen(userRole: widget.userRole), 'roles': ['admin', 'teacher']},
+      {'category': 'OVERVIEW', 'label': 'Documents', 'icon': Icons.folder, 'activeIcon': Icons.folder, 'screen': DocumentsScreen(userRole: widget.userRole), 'roles': ['admin', 'teacher']},
+      {'category': 'ACCOUNT', 'label': 'Archives', 'icon': Icons.archive, 'activeIcon': Icons.archive, 'screen': ArchivesScreen(userRole: widget.userRole), 'roles': ['admin']},
+      {'category': 'ACCOUNT', 'label': 'Reports', 'icon': Icons.bar_chart, 'activeIcon': Icons.bar_chart, 'screen': ReportsScreen(userRole: widget.userRole), 'roles': ['admin']},
+      {'category': 'ACCOUNT', 'label': 'Users', 'icon': Icons.manage_accounts, 'activeIcon': Icons.manage_accounts, 'screen': const UsersScreen(), 'roles': ['admin']},
+      {'category': 'ACCOUNT', 'label': 'Settings', 'icon': Icons.settings, 'activeIcon': Icons.settings, 'screen': SettingsScreen(userRole: widget.userRole), 'roles': ['admin', 'teacher']},
     ];
     final tabs = allTabs.where((tab) => (tab['roles'] as List<String>).contains(widget.userRole)).toList();
 
@@ -140,6 +234,9 @@ class _WindowsSidebarLayoutState extends ConsumerState<WindowsSidebarLayout> {
     if (currentIndex == -1) currentIndex = 0; // Fallback to Dashboard
     
     _visitedIndices.add(currentIndex);
+
+    final overviewTabs = tabs.where((t) => t['category'] == 'OVERVIEW').toList();
+    final accountTabs = tabs.where((t) => t['category'] == 'ACCOUNT').toList();
 
     return PopScope(
       canPop: false,
@@ -188,34 +285,29 @@ class _WindowsSidebarLayoutState extends ConsumerState<WindowsSidebarLayout> {
             // ==========================================
             // WINDOWS SIDEBAR (Fixed Width: 260px)
             // ==========================================
-            Container(
-              width: 260,
+            AnimatedContainer(
+              duration: const Duration(milliseconds: 400),
+              curve: Curves.easeInOut,
+              width: _isMinimized ? 80 : 260,
               decoration: BoxDecoration(
-                gradient: const LinearGradient(
-                  colors: [AppColors.darkGreen, AppColors.primaryGreen],
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                ),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.15),
-                    blurRadius: 10,
-                    offset: const Offset(3, 0),
-                  )
-                ],
+                color: AppColors.surfaceWhite,
+                border: Border(right: BorderSide(color: Colors.grey.shade200, width: 1)),
               ),
               child: Column(
                 children: [
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(
-                        AppSizes.p24, AppSizes.p32, AppSizes.p24, AppSizes.p20),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        // Logo row with easter egg
-                        Row(
+                  SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    physics: const NeverScrollableScrollPhysics(),
+                    child: SizedBox(
+                      width: 260,
+                      child: Padding(
+                        padding: const EdgeInsets.fromLTRB(24, 32, 16, 20),
+                        child: Row(
                           children: [
                             GestureDetector(
+                              onTap: () {
+                                if (_isMinimized) setState(() => _isMinimized = false);
+                              },
                               onLongPressStart: (_) {
                                 _holdTimer = Timer(const Duration(seconds: 3), () {
                                   _showCapstoneMembers(context);
@@ -223,154 +315,142 @@ class _WindowsSidebarLayoutState extends ConsumerState<WindowsSidebarLayout> {
                               },
                               onLongPressEnd: (_) => _holdTimer?.cancel(),
                               onLongPressCancel: () => _holdTimer?.cancel(),
-                              child: Image.asset(
-                                'assets/images/logo.png',
-                                width: 42,
-                                height: 42,
+                              child: Container(
+                                decoration: BoxDecoration(
+                                  borderRadius: BorderRadius.circular(8),
+                                  boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 4, offset: const Offset(0, 2))],
+                                ),
+                                child: ClipRRect(
+                                  borderRadius: BorderRadius.circular(8),
+                                  child: Image.asset('assets/images/logo.png', width: 36, height: 36, fit: BoxFit.contain),
+                                ),
                               ),
                             ),
-                            const SizedBox(width: AppSizes.p12),
-                            const Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    'TIS',
-                                    style: TextStyle(
-                                      fontSize: 22,
-                                      fontWeight: FontWeight.bold,
-                                      color: Colors.white,
-                                      letterSpacing: 1.0,
-                                    ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: AnimatedOpacity(
+                                duration: const Duration(milliseconds: 200),
+                                opacity: _isMinimized ? 0.0 : 1.0,
+                                child: const Text(
+                                  'TIS RMS',
+                                  style: TextStyle(
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.black87,
+                                    letterSpacing: 1.2,
                                   ),
-                                  Text(
-                                    'Record Management System',
-                                    style: TextStyle(
-                                      fontSize: 10,
-                                      color: Colors.white70,
-                                      letterSpacing: 0.3,
-                                    ),
-                                  ),
-                                ],
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                            ),
+                            AnimatedOpacity(
+                              duration: const Duration(milliseconds: 200),
+                              opacity: _isMinimized ? 0.0 : 1.0,
+                              child: IconButton(
+                                icon: const Icon(Icons.menu, color: Colors.black54),
+                                onPressed: () {
+                                  if (!_isMinimized) setState(() => _isMinimized = true);
+                                },
+                                tooltip: 'Minimize Sidebar',
                               ),
                             ),
                           ],
                         ),
-                        const SizedBox(height: 20),
-                        const Divider(height: 1, color: Colors.white24),
-                        const SizedBox(height: 14),
-                        // User info
-                        Text(
-                          ref.watch(authProvider).value?.fullName ?? 'Unknown User',
-                          style: const TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 14,
-                            color: Colors.white,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  
+                  // Navigation Items
+                  Expanded(
+                    child: Column(
+                      children: [
+                        Expanded(
+                          child: ListView.builder(
+                            padding: const EdgeInsets.symmetric(horizontal: 12),
+                            itemCount: overviewTabs.length,
+                            itemBuilder: (context, index) {
+                              final tab = overviewTabs[index];
+                              final isSelected = tab['label'] == tabs[currentIndex]['label'];
+                              final isCategoryHeader = index == 0 || overviewTabs[index - 1]['category'] != tab['category'];
+                              return _buildNavItem(tab, isSelected, isCategoryHeader, isFirstItem: index == 0);
+                            },
                           ),
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
                         ),
-                        const SizedBox(height: 2),
-                        Text(
-                          widget.userRole.toUpperCase(),
-                          style: const TextStyle(
-                            fontSize: 11,
-                            color: Colors.white70,
-                            letterSpacing: 0.5,
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 12),
+                          child: Column(
+                            children: accountTabs.asMap().entries.map((entry) {
+                              final index = entry.key;
+                              final tab = entry.value;
+                              final isSelected = tab['label'] == tabs[currentIndex]['label'];
+                              final isCategoryHeader = index == 0 || accountTabs[index - 1]['category'] != tab['category'];
+                              return _buildNavItem(tab, isSelected, isCategoryHeader, isFirstItem: false);
+                            }).toList(),
                           ),
                         ),
                       ],
                     ),
                   ),
-                  
-                  // Navigation Items
-                  Expanded(
-                    child: ListView.builder(
-                      padding: const EdgeInsets.symmetric(horizontal: AppSizes.p12),
-                      itemCount: tabs.length,
-                      itemBuilder: (context, index) {
-                        final tab = tabs[index];
-                        final isSelected = currentIndex == index;
   
-                        final String? category = tab['category'] as String?;
-                        final String? previousCategory = index > 0 ? tabs[index - 1]['category'] as String? : null;
-                        
-                        final bool showCategory = category != null && category != previousCategory;
-
-                        return Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
+                  // Bottom Section: User Profile & Logout
+                  const Divider(height: 1, color: Colors.black12),
+                  SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    physics: const NeverScrollableScrollPhysics(),
+                    child: SizedBox(
+                      width: 260,
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 16.0),
+                        child: Row(
                           children: [
-                            if (showCategory) ...[
-                              if (index > 0) const SizedBox(height: 8),
-                              if (index > 0) const Divider(height: 1, color: Colors.white24),
-                              if (index > 0) const SizedBox(height: 16),
-                              Padding(
-                                padding: const EdgeInsets.only(left: 12, bottom: 8),
-                                child: Text(
-                                  category.toUpperCase(),
-                                  style: const TextStyle(
-                                    color: Colors.white54,
-                                    fontSize: 11,
-                                    fontWeight: FontWeight.bold,
-                                    letterSpacing: 1.2,
-                                  ),
-                                ),
+                            GestureDetector(
+                              onTap: () {
+                                if (_isMinimized) setState(() => _isMinimized = false);
+                              },
+                              child: const CircleAvatar(
+                                radius: 20,
+                                backgroundColor: AppColors.primaryGreen,
+                                child: Icon(Icons.person, color: Colors.white),
                               ),
-                            ],
-                            Padding(
-                              padding: const EdgeInsets.only(bottom: AppSizes.p8),
-                              child: Material(
-                                color: Colors.transparent,
-                                child: ListTile(
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(AppSizes.radiusMedium),
-                                  ),
-                                  selected: isSelected,
-                                  selectedTileColor: Colors.white.withOpacity(0.15), // Soft highlight
-                                  leading: Icon(
-                                    (isSelected ? tab['activeIcon'] ?? tab['icon'] : tab['icon']) as IconData,
-                                    color: isSelected ? Colors.white : Colors.white70,
-                                  ),
-                                  title: Text(
-                                    tab['label'] as String,
-                                    style: TextStyle(
-                                      fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
-                                      color: isSelected ? Colors.white : Colors.white70,
-                                      fontSize: 15,
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: AnimatedOpacity(
+                                duration: const Duration(milliseconds: 200),
+                                opacity: _isMinimized ? 0.0 : 1.0,
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      ref.watch(authProvider).value?.fullName ?? 'Unknown User',
+                                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: Colors.black87),
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
                                     ),
-                                  ),
-                                  onTap: () {
-                                    ref.read(activeTabProvider.notifier).setTab(tab['label'] as String);
-      
-                                    _reloadTabContent(tab['label'] as String);
-                                  },
+                                    Text(
+                                      widget.userRole.toUpperCase(),
+                                      style: const TextStyle(fontSize: 12, color: Colors.black54),
+                                    ),
+                                  ],
                                 ),
                               ),
                             ),
+                            AnimatedOpacity(
+                              duration: const Duration(milliseconds: 200),
+                              opacity: _isMinimized ? 0.0 : 1.0,
+                              child: IconButton(
+                                icon: const Icon(Icons.logout, color: Colors.black54),
+                                tooltip: 'Logout',
+                                onPressed: () {
+                                  if (!_isMinimized) showLogoutConfirmationDialog(context);
+                                },
+                              ),
+                            ),
                           ],
-                        );
-                      },
-                    ),
-                  ),
-  
-                  // Bottom Section: Logout
-                  Divider(height: 1, color: Colors.white24),
-                  Padding(
-                    padding: const EdgeInsets.all(16.0),
-                    child: ListTile(
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8.0),
+                        ),
                       ),
-                      leading: Icon(Icons.exit_to_app, color: Colors.redAccent.shade100), 
-                      title: Text(
-                        'Logout',
-                        style: TextStyle(color: Colors.redAccent.shade100, fontWeight: FontWeight.bold),
-                      ),
-                      hoverColor: Colors.white.withOpacity(0.05),
-                      onTap: () {
-                        // Use the shared module! Pass the context.
-                        showLogoutConfirmationDialog(context);
-                      },
                     ),
                   ),
                 ],
