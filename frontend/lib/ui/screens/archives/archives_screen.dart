@@ -377,24 +377,6 @@ class _ArchivesScreenState extends ConsumerState<ArchivesScreen>
       onTap: () => FocusScope.of(context).unfocus(),
       child: Scaffold(
         backgroundColor: Colors.transparent,
-        floatingActionButton: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.end,
-          children: [
-            if (_tabController.index == 1 || isFolderOpened)
-              FloatingActionButton(
-                heroTag: 'archive_filter_fab',
-                backgroundColor: AppColors.surfaceWhite,
-                foregroundColor: AppColors.primaryGreen,
-                onPressed: () => _openFilterDialog(),
-                child: Badge(
-                  isLabelVisible: _getActiveFilterCount() > 0,
-                  label: Text(_getActiveFilterCount().toString()),
-                  child: const Icon(Icons.tune_rounded),
-                ),
-              ),
-          ],
-        ),
         bottomNavigationBar: _isMultiSelectMode
             ? _buildBatchActionsBar(isMobile)
             : null,
@@ -539,18 +521,6 @@ class _ArchivesScreenState extends ConsumerState<ArchivesScreen>
                 ),
               ),
 
-              // Desktop view toggle (not on mobile, not when folder is opened)
-              if (!isMobile) ...[
-                const SizedBox(width: 8),
-                _buildIconToggle(
-                  icon: _isGridView
-                      ? Icons.view_list_rounded
-                      : Icons.grid_view_rounded,
-                  isActive: false,
-                  tooltip: _isGridView ? 'Switch to List' : 'Switch to Grid',
-                  onTap: () => setState(() => _isGridView = !_isGridView),
-                ),
-              ],
             ],
           ),
 
@@ -576,40 +546,135 @@ class _ArchivesScreenState extends ConsumerState<ArchivesScreen>
 
 
 
-              // Multi-select toggle (docs tab or folder opened) - Hidden per user request
-              /*
               if (_tabController.index == 1 || isFolderOpened) ...[
-                _buildIconToggle(
-                  icon: _isMultiSelectMode
-                      ? Icons.check_box_rounded
-                      : Icons.check_box_outline_blank_rounded,
-                  isActive: _isMultiSelectMode,
-                  tooltip: 'Toggle Selection Mode',
-                  onTap: () {
-                    setState(() {
-                      _isMultiSelectMode = !_isMultiSelectMode;
-                      if (!_isMultiSelectMode) _selectedDocumentIds.clear();
-                    });
-                  },
+                // Filter button
+                SizedBox(
+                  height: 42,
+                  child: Tooltip(
+                    message: 'Filter Documents',
+                    child: InkWell(
+                      onTap: _openFilterDialog,
+                      borderRadius: BorderRadius.circular(8),
+                      child: Container(
+                        padding: EdgeInsets.symmetric(
+                          horizontal: isMobile ? 12 : 14,
+                          vertical: 8,
+                        ),
+                        decoration: BoxDecoration(
+                          color: AppColors.surfaceWhite,
+                          border: Border.all(
+                            color: Colors.grey.shade300,
+                            width: 1.2,
+                          ),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Badge(
+                              isLabelVisible: _getActiveFilterCount() > 0,
+                              label: Text(_getActiveFilterCount().toString()),
+                              child: const Icon(Icons.tune_rounded, size: 18, color: AppColors.primaryGreen),
+                            ),
+                            if (!isMobile) ...[
+                              const SizedBox(width: 6),
+                              const Text(
+                                'Filter',
+                                style: TextStyle(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w600,
+                                  color: AppColors.primaryGreen,
+                                ),
+                              ),
+                            ],
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
                 ),
-                const SizedBox(width: 6),
-              ],
-              */
+                const SizedBox(width: 8),
 
-              // Mobile view toggle
-              if (isMobile) ...[
-                _buildIconToggle(
-                  icon: _isGridView
-                      ? Icons.view_list_rounded
-                      : Icons.grid_view_rounded,
-                  isActive: false,
-                  tooltip: _isGridView ? 'Switch to List' : 'Switch to Grid',
-                  onTap: () => setState(() => _isGridView = !_isGridView),
+                // Multi-select toggle
+                _buildMultiSelectToggle(isMobile),
+                const SizedBox(width: 8),
+              ],
+
+              // View toggle
+              _buildIconToggle(
+                icon: _isGridView
+                    ? Icons.view_list_rounded
+                    : Icons.grid_view_rounded,
+                isActive: false,
+                tooltip: _isGridView ? 'Switch to List' : 'Switch to Grid',
+                onTap: () => setState(() => _isGridView = !_isGridView),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildMultiSelectToggle(bool isIconOnly) {
+    return Tooltip(
+      message: 'Toggle Multi-Select',
+      child: GestureDetector(
+        onTap: () {
+          setState(() {
+            _isMultiSelectMode = !_isMultiSelectMode;
+            if (!_isMultiSelectMode) {
+              _selectedDocumentIds.clear();
+            }
+          });
+        },
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 250),
+          padding: EdgeInsets.symmetric(
+            horizontal: isIconOnly ? 12 : 14,
+            vertical: 8,
+          ),
+          height: 42,
+          decoration: BoxDecoration(
+            color: _isMultiSelectMode
+                ? AppColors.primaryGreen.withValues(alpha: 0.08)
+                : AppColors.surfaceWhite,
+            border: Border.all(
+              color: _isMultiSelectMode
+                  ? AppColors.primaryGreen
+                  : Colors.grey.shade300,
+              width: 1.2,
+            ),
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                _isMultiSelectMode
+                    ? Icons.check_box_rounded
+                    : Icons.check_box_outline_blank_rounded,
+                size: 16,
+                color: _isMultiSelectMode
+                    ? AppColors.primaryGreen
+                    : AppColors.textSecondary,
+              ),
+              if (!isIconOnly) ...[
+                const SizedBox(width: 6),
+                Text(
+                  'Select',
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                    color: _isMultiSelectMode
+                        ? AppColors.primaryGreen
+                        : AppColors.textSecondary,
+                  ),
                 ),
               ],
             ],
           ),
-        ],
+        ),
       ),
     );
   }

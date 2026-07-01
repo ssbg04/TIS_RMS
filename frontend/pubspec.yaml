@@ -51,6 +51,8 @@ dependencies:
   syncfusion_flutter_pdfviewer: ^33.2.8
   flutter_holo_date_picker: ^2.0.0
   calendar_date_picker2: ^3.0.0
+  lottie: ^3.3.0
+  window_manager: ^0.5.1
 
 dev_dependencies:
   flutter_test:
@@ -80,6 +82,7 @@ flutter:
   # To add assets to your application, add an assets section, like this:
   assets:
     - assets/images/logo.png
+    - assets/lottie/
     - assets/templates/School-Form-10-JHS.xlsx
     - assets/templates/SSHS-SF-10-v2026_corrected.xlsx
 

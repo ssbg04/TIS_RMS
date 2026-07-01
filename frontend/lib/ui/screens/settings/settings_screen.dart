@@ -34,7 +34,6 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   final _passwordFormKey = GlobalKey<FormState>();
 
   // Password controllers
-  final _currentPassCtrl = TextEditingController();
   final _newPassCtrl = TextEditingController();
   final _confirmPassCtrl = TextEditingController();
   
@@ -70,7 +69,6 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     _extCtrl.dispose();
     _phoneCtrl.dispose();
     _emailCtrl.dispose();
-    _currentPassCtrl.dispose();
     _newPassCtrl.dispose();
     _confirmPassCtrl.dispose();
     super.dispose();
@@ -158,7 +156,6 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   Future<void> _handleChangePassword() async {
     if (!_passwordFormKey.currentState!.validate()) return;
 
-    final current = _currentPassCtrl.text;
     final newPass = _newPassCtrl.text;
     final confirm = _confirmPassCtrl.text;
 
@@ -166,6 +163,59 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       showErrorDialog(context, 'Password Mismatch', 'New passwords do not match.');
       return;
     }
+
+    final current = await showDialog<String>(
+      context: context,
+      builder: (ctx) {
+        final ctrl = TextEditingController();
+        final dialogFormKey = GlobalKey<FormState>();
+        bool obscure = true;
+        return StatefulBuilder(
+          builder: (context, setState) {
+            return AlertDialog(
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              title: const Text('Confirm Changes'),
+              content: Form(
+                key: dialogFormKey,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text('Please enter your current password to save password changes.', style: TextStyle(fontSize: 14)),
+                    const SizedBox(height: 16),
+                    CustomTextField(
+                      hintText: 'Current Password',
+                      prefixIcon: Icons.lock_outline,
+                      controller: ctrl,
+                      isPassword: true,
+                      obscureText: obscure,
+                      onToggleVisibility: () => setState(() => obscure = !obscure),
+                      validator: (v) => AppValidators.validateRequired(v, 'Password'),
+                    ),
+                  ],
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(ctx, null),
+                  child: const Text('CANCEL', style: TextStyle(color: Colors.grey)),
+                ),
+                TextButton(
+                  onPressed: () {
+                    if (dialogFormKey.currentState!.validate()) {
+                      Navigator.pop(ctx, ctrl.text);
+                    }
+                  },
+                  child: const Text('CONFIRM', style: TextStyle(color: AppColors.primaryGreen, fontWeight: FontWeight.bold)),
+                ),
+              ],
+            );
+          }
+        );
+      }
+    );
+
+    if (current == null || current.isEmpty) return;
 
     setState(() => _isPasswordLoading = true);
     try {
@@ -175,7 +225,6 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         newPassword: newPass,
         confirmPassword: confirm,
       );
-      _currentPassCtrl.clear();
       _newPassCtrl.clear();
       _confirmPassCtrl.clear();
       if (!mounted) return;
@@ -501,18 +550,9 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                                 ],
                               ),
                               const SizedBox(height: 6),
-                              const Text('Enter your current password before setting a new one.', style: TextStyle(fontSize: 13, color: AppColors.textSecondary)),
+                              const Text('Set a new password for your account.', style: TextStyle(fontSize: 13, color: AppColors.textSecondary)),
                               const Divider(height: 28),
 
-                              CustomTextField(
-                                hintText: 'Current Password',
-                                prefixIcon: Icons.lock_open_outlined,
-                                controller: _currentPassCtrl,
-                                isPassword: true,
-                                obscureText: _obscurePasswords,
-                                validator: (v) => AppValidators.validateRequired(v, 'Current Password'),
-                              ),
-                              const SizedBox(height: AppSizes.p12),
                               CustomTextField(
                                 hintText: 'New Password',
                                 prefixIcon: Icons.lock_outline,

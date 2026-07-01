@@ -10,6 +10,8 @@ import '../../providers/users_provider.dart';
 import '../../providers/document_provider.dart';
 import '../../providers/navigation_provider.dart';
 import '../../providers/notification_provider.dart';
+import 'dart:math' as math;
+import 'dart:ui';
 import '../../../domain/entities/dashboard_models.dart';
 import '../../../domain/entities/user_model.dart';
 import 'recent_activities_screen.dart';
@@ -28,13 +30,15 @@ class DashboardScreen extends ConsumerStatefulWidget {
   ConsumerState<DashboardScreen> createState() => _DashboardScreenState();
 }
 
-class _DashboardScreenState extends ConsumerState<DashboardScreen> {
+class _DashboardScreenState extends ConsumerState<DashboardScreen> with SingleTickerProviderStateMixin {
   bool _setupBannerDismissed = false;
   final TextEditingController _searchController = TextEditingController();
   ProviderSubscription<String>? _tabListener;
+  late AnimationController _bgController;
 
   @override
   void dispose() {
+    _bgController.dispose();
     _tabListener?.close();
     _searchController.dispose();
     super.dispose();
@@ -43,6 +47,11 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
   @override
   void initState() {
     super.initState();
+    _bgController = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 15),
+    )..repeat(reverse: true);
+
     ref.invalidate(dashboardDataProvider);
     
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -160,13 +169,20 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
         ),
         // ── Empty state ───────────────────────────────────────────────
         if (list.isEmpty)
-          const PopupMenuItem(
+          PopupMenuItem(
             enabled: false,
             child: SizedBox(
               width: 300,
-              height: 60,
+              height: 120,
               child: Center(
-                child: Text('No new notifications', style: TextStyle(color: Colors.grey, fontSize: 13)),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(Icons.notifications_off_rounded, size: 48, color: Colors.grey),
+                    const SizedBox(height: 12),
+                    const Text('No new notifications', style: TextStyle(color: Colors.grey, fontSize: 13)),
+                  ],
+                ),
               ),
             ),
           )
@@ -260,10 +276,71 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     final user           = ref.watch(authProvider).value;
     final isAdmin        = user?.role == 'admin';
 
-    return Scaffold(
-      backgroundColor: Colors.transparent,
-      body: SafeArea(
-        child: dashboardAsync.when(
+    return AnimatedBuilder(
+      animation: _bgController,
+      builder: (context, child) {
+        final t = _bgController.value * 2 * math.pi;
+        final size = MediaQuery.of(context).size;
+        return Container(
+          color: Colors.white,
+          child: Stack(
+            children: [
+              // Blob 1 (Top Left)
+              Positioned(
+                top: -50 + math.sin(t) * 100,
+                left: -100 + math.cos(t) * 100,
+                child: Container(
+                  width: 350,
+                  height: 350,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: AppColors.primaryGreen.withValues(alpha: 0.15),
+                  ),
+                ),
+              ),
+              // Blob 2 (Bottom Right)
+              Positioned(
+                bottom: -150 + math.cos(t) * 150,
+                right: -100 + math.sin(t * 1.5) * 150,
+                child: Container(
+                  width: 500,
+                  height: 500,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: AppColors.primaryGreen.withValues(alpha: 0.12),
+                  ),
+                ),
+              ),
+              // Blob 3 (Center)
+              Positioned(
+                top: size.height * 0.3 + math.sin(t * 0.8) * 120,
+                left: size.width * 0.4 + math.cos(t * 1.2) * 120,
+                child: Container(
+                  width: 300,
+                  height: 300,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: AppColors.primaryGreen.withValues(alpha: 0.1),
+                  ),
+                ),
+              ),
+              // Glass blur layer
+              Positioned.fill(
+                child: BackdropFilter(
+                  filter: ImageFilter.blur(sigmaX: 80, sigmaY: 80),
+                  child: Container(color: Colors.transparent),
+                ),
+              ),
+              // Main content
+              if (child != null) child,
+            ],
+          ),
+        );
+      },
+      child: Scaffold(
+        backgroundColor: Colors.transparent,
+        body: SafeArea(
+          child: dashboardAsync.when(
           loading: () => const Center(child: CircularProgressIndicator()),
           error: (error, _) => Center(
             child: Column(
@@ -281,38 +358,49 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
               ],
             ),
           ),
-          data: (data) => RefreshIndicator(
-            onRefresh: _handleRefresh,
-            child: SingleChildScrollView(
-              physics: const AlwaysScrollableScrollPhysics(),
-              padding: const EdgeInsets.all(24),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  _buildTopBar(context, user),
-                  const SizedBox(height: 32),
-                  const Text('Dashboard Overview', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
-                  const SizedBox(height: 8),
-                  Text(
-                    'Welcome back, ${user?.firstName ?? 'Admin'}. Here is what is happening today.',
-                    style: TextStyle(fontSize: 16, color: Colors.grey.shade600),
+          data: (data) => Stack(
+            children: [
+              RefreshIndicator(
+                onRefresh: _handleRefresh,
+                child: SingleChildScrollView(
+                  physics: const AlwaysScrollableScrollPhysics(),
+                  padding: const EdgeInsets.all(24),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _buildTopBar(context, user),
+                      const SizedBox(height: 32),
+                      const Text('Dashboard Overview', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
+                      const SizedBox(height: 8),
+                      Text(
+                        'Welcome back, ${user?.firstName ?? 'Admin'}. Here is what is happening today.',
+                        style: TextStyle(fontSize: 16, color: Colors.grey.shade600),
+                      ),
+                      const SizedBox(height: 24),
+                      _buildStatGrid(data.stats, user),
+                      const SizedBox(height: 32),
+                      _buildRecentActivitiesSection(data.recentActivities, user),
+                      const SizedBox(height: 48),
+                    ],
                   ),
-                  // ── Admin setup guidance banner ──────────────────────
-                  if (isAdmin && !_setupBannerDismissed) ...[
-                    const SizedBox(height: 20),
-                    _buildSetupGuidanceBanner(context),
-                  ],
-                  const SizedBox(height: 24),
-                  _buildStatGrid(data.stats, user),
-                  const SizedBox(height: 32),
-                  _buildRecentActivitiesSection(data.recentActivities, user),
-                  const SizedBox(height: 48),
-                ],
+                ),
               ),
-            ),
+              if (isAdmin && !_setupBannerDismissed)
+                Positioned(
+                  top: 16,
+                  left: 16,
+                  right: 16,
+                  child: Center(
+                    child: ConstrainedBox(
+                      constraints: const BoxConstraints(maxWidth: 600),
+                      child: _buildSetupGuidanceBanner(context),
+                    ),
+                  ),
+                ),
+            ],
           ),
         ),
-      ),
+      ),),
     );
   }
 
@@ -324,16 +412,16 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
       width: double.infinity,
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [
-            AppColors.primaryGreen.withValues(alpha: 0.08),
-            Colors.blue.withValues(alpha: 0.06),
-          ],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
+        color: Colors.white.withValues(alpha: 0.95),
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: AppColors.primaryGreen.withValues(alpha: 0.3)),
+        border: Border.all(color: AppColors.primaryGreen.withValues(alpha: 0.5)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.1),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
+          ),
+        ],
       ),
       child: isMobile
           ? Column(
@@ -632,7 +720,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
           StatCard(
             title: 'Total Students',    
             value: stats.totalStudents.toString(),      
-            icon: Icons.school,
+            icon: Icons.groups_rounded,
             onTap: () {
               ref.read(studentQueryProvider.notifier).reset();
               ref.invalidate(studentPageProvider);
@@ -643,7 +731,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
             StatCard(
               title: 'Active Users',      
               value: stats.activeUsers.toString(),        
-              icon: Icons.badge,        
+              icon: Icons.manage_accounts_rounded,        
               iconColor: Colors.blue,
               onTap: () {
                 ref.invalidate(usersProvider);
@@ -653,7 +741,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
           StatCard(
             title: 'Complete Docs',     
             value: stats.completedDocuments.toString(), 
-            icon: Icons.task_alt,     
+            icon: Icons.fact_check_rounded,     
             iconColor: AppColors.primaryGreen,
             onTap: () {
               ref.invalidate(foldersProvider);
@@ -664,7 +752,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
           StatCard(
             title: 'Missing Docs',      
             value: stats.missingDocuments.toString(),   
-            icon: Icons.folder_off,   
+            icon: Icons.assignment_late_rounded,   
             iconColor: Colors.orange,
             onTap: () {
               ref.invalidate(foldersProvider);
@@ -790,8 +878,10 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
           final a = activities[index];
 
           if (isMobile) {
-          return InkWell(
-            mouseCursor: SystemMouseCursors.click,
+          return Material(
+            color: Colors.transparent,
+            child: InkWell(
+              mouseCursor: SystemMouseCursors.click,
             onTap: () => ViewActivityModal.show(
               context: context,
               title: a.entityType.toUpperCase(),
@@ -824,6 +914,8 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                       ),
                       const SizedBox(width: 8),
                       _buildActionChip(a.action),
+                      const SizedBox(width: 8),
+                      Icon(Icons.chevron_right_rounded, size: 20, color: Colors.grey.shade400),
                     ],
                   ),
                   const SizedBox(height: 8),
@@ -834,13 +926,13 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                 ],
               ),
             ),
+            ),
           );
         }
 
         return Material(
           color: Colors.transparent,
           child: InkWell(
-            mouseCursor: SystemMouseCursors.click,
             onTap: () => ViewActivityModal.show(
               context: context,
               title: a.entityType.toUpperCase(),
@@ -852,6 +944,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
               icon: _actionIcon(a.action, a.entityType),
             ),
             child: ListTile(
+              mouseCursor: SystemMouseCursors.click,
               contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
               leading: CircleAvatar(
                 backgroundColor: _actionColor(a.action).withValues(alpha: 0.1),
@@ -862,7 +955,14 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                 '${a.performedBy ?? a.username ?? 'System'} · ${_formatDate(a.createdAt)}',
                 style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
               ),
-              trailing: _buildActionChip(a.action),
+              trailing: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  _buildActionChip(a.action),
+                  const SizedBox(width: 8),
+                  Icon(Icons.chevron_right_rounded, size: 20, color: Colors.grey.shade400),
+                ],
+              ),
             ),
           ),
         );
@@ -883,22 +983,22 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
   IconData _actionIcon(String action, String entityType) {
     if (entityType == 'user') {
       switch (action.toUpperCase()) {
-        case 'CREATE': return Icons.person_add;
-        case 'DELETE': return Icons.person_off;
-        default:       return Icons.manage_accounts;
+        case 'CREATE': return Icons.person_add_alt_1_rounded;
+        case 'DELETE': return Icons.person_off_rounded;
+        default:       return Icons.manage_accounts_rounded;
       }
     }
     if (entityType == 'student') {
       switch (action.toUpperCase()) {
-        case 'CREATE': return Icons.school;
-        case 'DELETE': return Icons.delete_forever;
-        default:       return Icons.edit;
+        case 'CREATE': return Icons.school_rounded;
+        case 'DELETE': return Icons.delete_forever_rounded;
+        default:       return Icons.edit_rounded;
       }
     }
     switch (action.toUpperCase()) {
-      case 'CREATE': return Icons.upload_file;
-      case 'DELETE': return Icons.delete;
-      default:       return Icons.description;
+      case 'CREATE': return Icons.upload_file_rounded;
+      case 'DELETE': return Icons.delete_sweep_rounded;
+      default:       return Icons.description_rounded;
     }
   }
 

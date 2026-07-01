@@ -79,7 +79,7 @@ class _AndroidBottomNavLayoutState extends ConsumerState<AndroidBottomNavLayout>
     });
 
     _tabLoadingTimer?.cancel();
-    _tabLoadingTimer = Timer(const Duration(milliseconds: 800), () {
+    _tabLoadingTimer = Timer(const Duration(milliseconds: 500), () {
       if (mounted) {
         setState(() {
           _isTabLoading = false;
@@ -233,7 +233,7 @@ class _AndroidBottomNavLayoutState extends ConsumerState<AndroidBottomNavLayout>
                   children: [
                     GestureDetector(
                       onLongPressStart: (_) {
-                        _holdTimer = Timer(const Duration(seconds: 3), () {
+                        _holdTimer = Timer(const Duration(seconds: 2), () {
                           _showCapstoneMembers(context);
                         });
                       },

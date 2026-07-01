@@ -23,7 +23,7 @@ class StatCard extends StatelessWidget {
     return LayoutBuilder(
       builder: (context, constraints) {
         final isSmall = constraints.maxWidth < 220;
-        final iconSize = isSmall ? 20.0 : 28.0;
+        final iconSize = isSmall ? 34.0 : 36.0;
         final titleFontSize = isSmall ? 12.0 : 14.0;
         final valueFontSize = isSmall ? 22.0 : 28.0;
         final padding = isSmall ? 12.0 : 20.0;
@@ -52,68 +52,73 @@ class StatCard extends StatelessWidget {
                 child: Row(
                   children: [
                     // Icon Container
-              Container(
-                padding: EdgeInsets.all(iconPadding),
-                decoration: BoxDecoration(
-                  color: (iconColor ?? const Color(0xFF1C8248)).withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: Icon(
-                  icon,
-                  size: iconSize,
-                  color: iconColor ?? const Color(0xFF1C8248),
-                ),
-              ),
-              const SizedBox(width: 12),
-              // Text Details
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Text(
-                      title,
-                      maxLines: 1, // Prevent title from wrapping to two lines
-                      overflow: TextOverflow.ellipsis, // Add '...' if title is too long
-                      style: TextStyle(
-                        fontSize: titleFontSize,
-                        color: Colors.grey.shade600,
-                        fontWeight: FontWeight.w500,
+                    Padding(
+                      padding: EdgeInsets.all(iconPadding),
+                      child: Icon(
+                        icon,
+                        size: iconSize,
+                        color: iconColor ?? const Color(0xFF1C8248),
                       ),
                     ),
-                    const SizedBox(height: 4),
-                    // FittedBox shrinks the text dynamically if the number gets too massive
-                    FittedBox(
-                      fit: BoxFit.scaleDown,
-                      alignment: Alignment.centerLeft,
-                      child: Text(
-                        value,
-                        style: TextStyle(
-                          fontSize: valueFontSize,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.black87,
-                        ),
+                    const SizedBox(width: 12),
+                    // Text Details
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Text(
+                            title,
+                            maxLines: 1, // Prevent title from wrapping to two lines
+                            overflow: TextOverflow.ellipsis, // Add '...' if title is too long
+                            style: TextStyle(
+                              fontSize: titleFontSize,
+                              color: Colors.grey.shade600,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          // FittedBox shrinks the text dynamically if the number gets too massive
+                          FittedBox(
+                            fit: BoxFit.scaleDown,
+                            alignment: Alignment.centerLeft,
+                            child: Text(
+                              value,
+                              style: TextStyle(
+                                fontSize: valueFontSize,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.black87,
+                              ),
+                            ),
+                          ),
+                          if (subtitle != null) ...[
+                            const SizedBox(height: 2),
+                            Text(
+                              subtitle!,
+                              style: TextStyle(
+                                fontSize: isSmall ? 10.0 : 12.0,
+                                color: Colors.grey.shade500,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ],
+                        ],
                       ),
                     ),
-                    if (subtitle != null) ...[
-                      const SizedBox(height: 2),
-                      Text(
-                        subtitle!,
-                        style: TextStyle(
-                          fontSize: isSmall ? 10.0 : 12.0,
-                          color: Colors.grey.shade500,
-                          fontWeight: FontWeight.w500,
+                    if (onTap != null)
+                      Padding(
+                        padding: const EdgeInsets.only(left: 8.0),
+                        child: Icon(
+                          Icons.chevron_right_rounded,
+                          color: Colors.grey.shade400,
+                          size: 20,
                         ),
                       ),
-                    ],
                   ],
                 ),
               ),
-                    ],
-                  ),
-                ),
-              ),
             ),
+          ),
         );
       },
     );

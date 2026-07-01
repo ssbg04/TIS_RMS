@@ -21,6 +21,10 @@ import '../providers/auth_provider.dart';
 import '../shared/dialogs/logout_dialog.dart';
 import '../providers/navigation_provider.dart';
 
+import 'dart:io' show Platform;
+import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:window_manager/window_manager.dart';
+
 // Dummy screen for placeholders
 class PlaceholderScreen extends StatelessWidget {
   final String title;
@@ -183,7 +187,7 @@ class _WindowsSidebarLayoutState extends ConsumerState<WindowsSidebarLayout> {
                   });
 
                   _tabLoadingTimer?.cancel();
-                  _tabLoadingTimer = Timer(const Duration(milliseconds: 800), () {
+                  _tabLoadingTimer = Timer(const Duration(milliseconds: 500), () {
                     if (mounted) {
                       setState(() {
                         _isTabLoading = false;
@@ -302,11 +306,23 @@ class _WindowsSidebarLayoutState extends ConsumerState<WindowsSidebarLayout> {
       },
       child: Scaffold(
         backgroundColor: AppColors.pageBackground, // Solid Off-white beige
-        body: Row(
+        body: Column(
           children: [
-            // ==========================================
-            // WINDOWS SIDEBAR (Fixed Width: 260px)
-            // ==========================================
+            if (!kIsWeb && (Platform.isWindows || Platform.isLinux || Platform.isMacOS))
+              const SizedBox(
+                height: 32,
+                child: WindowCaption(
+                  brightness: Brightness.dark,
+                  backgroundColor: AppColors.primaryGreen,
+                  title: Text('TIS RMS', style: TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w500)),
+                ),
+              ),
+            Expanded(
+              child: Row(
+                children: [
+                  // ==========================================
+                  // WINDOWS SIDEBAR (Fixed Width: 260px)
+                  // ==========================================
             AnimatedContainer(
               duration: const Duration(milliseconds: 400),
               curve: Curves.easeInOut,
@@ -500,6 +516,9 @@ class _WindowsSidebarLayoutState extends ConsumerState<WindowsSidebarLayout> {
                       height: double.infinity,
                       child: const _PageSkeletonLoader(),
                     ),
+                ],
+              ),
+            ),
                 ],
               ),
             ),
