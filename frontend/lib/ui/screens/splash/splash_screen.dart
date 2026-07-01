@@ -1,5 +1,9 @@
+import 'dart:io' show Platform;
+import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:window_manager/window_manager.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../core/constants/app_colors.dart';
 import '../login/login_screen.dart';
 import '../../layouts/windows_sidebar_layout.dart';
 import '../../layouts/android_bottom_nav_layout.dart';
@@ -48,32 +52,47 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFF9F9F9),
-      body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Image.asset('assets/images/logo.png', width: 150, height: 150),
-            const SizedBox(height: 24),
-            const Text(
-              'TIS RMS',
-              style: TextStyle(
-                fontSize: 24,
-                fontWeight: FontWeight.bold,
-                color: Color(0xFF1C8248),
-                letterSpacing: 1.2,
+      body: Column(
+        children: [
+          if (!kIsWeb && (Platform.isWindows || Platform.isLinux || Platform.isMacOS))
+            const SizedBox(
+              height: 32,
+              child: WindowCaption(
+                brightness: Brightness.dark,
+                backgroundColor: AppColors.primaryGreen,
+                title: Text('TIS RMS', style: TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w500)),
               ),
             ),
-            const SizedBox(height: 8),
-            const Text(
-              'Record Management System',
-              style: TextStyle(fontSize: 14, color: Colors.grey),
+          Expanded(
+            child: Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Image.asset('assets/images/logo.png', width: 150, height: 150),
+                  const SizedBox(height: 24),
+                  const Text(
+                    'TIS RMS',
+                    style: TextStyle(
+                      fontSize: 24,
+                      fontWeight: FontWeight.bold,
+                      color: Color(0xFF1C8248),
+                      letterSpacing: 1.2,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  const Text(
+                    'Record Management System',
+                    style: TextStyle(fontSize: 14, color: Colors.grey),
+                  ),
+                  const SizedBox(height: 48),
+                  const CircularProgressIndicator(
+                    valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF1C8248)),
+                  ),
+                ],
+              ),
             ),
-            const SizedBox(height: 48),
-            const CircularProgressIndicator(
-              valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF1C8248)),
-            ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }

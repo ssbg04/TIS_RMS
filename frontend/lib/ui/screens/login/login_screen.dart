@@ -1,3 +1,6 @@
+import 'dart:io' show Platform;
+import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:window_manager/window_manager.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -156,8 +159,22 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.pageBackground,
-      body: LayoutBuilder(
-        builder: (context, constraints) {
+      body: Column(
+        children: [
+          if (!kIsWeb && (Platform.isWindows || Platform.isLinux || Platform.isMacOS))
+            const SizedBox(
+              height: 32,
+              
+              child: WindowCaption(
+                brightness: Brightness.dark,
+                backgroundColor: AppColors.primaryGreen,
+                title: Text('TIS RMS', style: TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w500)),
+                
+              ),
+            ),
+          Expanded(
+            child: LayoutBuilder(
+              builder: (context, constraints) {
           if (constraints.maxWidth >= 800) {
             // Desktop: Split Layout
             return Row(
@@ -165,7 +182,13 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 Expanded(
                   flex: 5,
                   child: Container(
-                    color: AppColors.primaryGreen,
+                    decoration: const BoxDecoration(
+                      color: AppColors.primaryGreen,
+                      borderRadius: BorderRadius.only(
+                        topRight: Radius.circular(12.0),
+                        bottomRight: Radius.circular(12.0),
+                      ),
+                    ),
                     padding: const EdgeInsets.all(AppSizes.p48),
                     child: Center(
                       child: Column(
@@ -219,6 +242,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
             );
           }
         },
+      ),
+          ),
+        ],
       ),
     );
   }
