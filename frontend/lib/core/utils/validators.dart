@@ -29,11 +29,8 @@ class AppValidators {
     if (value == null || value.isEmpty) {
       return 'Password is required';
     }
-    if (value.length <= 8) {
+    if (value.length <= 6) {
       return 'Password must be more than 8 characters';
-    }
-    if (!RegExp(r'[A-Z]').hasMatch(value)) {
-      return 'Password must contain at least one uppercase letter';
     }
     if (!RegExp(r'[a-z]').hasMatch(value)) {
       return 'Password must contain at least one lowercase letter';

@@ -16,7 +16,7 @@ import '../../../providers/setup_provider.dart';
 import '../../../../domain/entities/setup_models.dart';
 import '../../../shared/dialogs/success_dialog.dart';
 import '../../../shared/dialogs/info_dialog.dart';
-import 'package:syncfusion_flutter_pdfviewer/pdfviewer.dart';
+import '../../documents/widgets/document_preview_modal.dart';
 
 // ---------------------------------------------------------------
 // Auto-capitalises the first letter of every word (works on paste)
@@ -50,8 +50,6 @@ class _AddEditStudentModalState extends ConsumerState<AddEditStudentModal>
   final _formKey = GlobalKey<FormState>();
   final _scrollCtrl = ScrollController();
   late TabController _tabController;
-  final TransformationController _previewTransformationController = TransformationController();
-  final PdfViewerController _pdfViewerController = PdfViewerController();
 
   late TextEditingController _lrnController;
   late TextEditingController _firstNameController;
@@ -100,7 +98,6 @@ class _AddEditStudentModalState extends ConsumerState<AddEditStudentModal>
   @override
   void dispose() {
     _tabController.dispose();
-    _previewTransformationController.dispose();
     _lrnController.dispose();
     _firstNameController.dispose();
     _middleNameController.dispose();
@@ -422,8 +419,7 @@ class _AddEditStudentModalState extends ConsumerState<AddEditStudentModal>
       screenHeight - viewInsets.bottom - 24.0,
     );
 
-    bool showSideBySide = _ocrScannedFile != null && !isMobile && !_showOcrStep;
-    double maxDialogWidth = isMobile ? 380 : (showSideBySide ? 1000 : 620);
+    double maxDialogWidth = isMobile ? 380 : 620;
 
     return Dialog(
       insetPadding: EdgeInsets.symmetric(
@@ -445,170 +441,14 @@ class _AddEditStudentModalState extends ConsumerState<AddEditStudentModal>
             duration: const Duration(milliseconds: 300),
             child: _showOcrStep
                 ? _buildOcrStep()
-                : (showSideBySide
-                      ? Row(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Expanded(
-                              flex: 5,
-                              child: _buildManualForm(
-                                widget.student != null,
-                                yearsAsync,
-                                gradeLevelsAsync,
-                                sectionsAsync,
-                                isMobile,
-                                viewInsets.bottom,
-                              ),
-                            ),
-                            const VerticalDivider(width: 32),
-                            Expanded(
-                              flex: 4,
-                              child: _buildLocalFilePreview(_ocrScannedFile!),
-                            ),
-                          ],
-                        )
-                      : _buildManualForm(
-                          widget.student != null,
-                          yearsAsync,
-                          gradeLevelsAsync,
-                          sectionsAsync,
-                          isMobile,
-                          viewInsets.bottom,
-                        )),
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildLocalFilePreview(File file) {
-    final ext = file.path.split('.').last.toLowerCase();
-    final isPdf = ext == 'pdf';
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          children: [
-            const Icon(
-              Icons.preview_rounded,
-              color: AppColors.primaryGreen,
-              size: 20,
-            ),
-            const SizedBox(width: 8),
-            const Text(
-              'Document Preview',
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
-                color: AppColors.textPrimary,
-              ),
-            ),
-            const Spacer(),
-            IconButton(
-              icon: const Icon(Icons.zoom_in, size: 20, color: AppColors.textSecondary),
-              tooltip: 'Zoom In',
-              onPressed: () {
-                if (isPdf) {
-                  _pdfViewerController.zoomLevel = _pdfViewerController.zoomLevel + 0.5;
-                } else {
-                  _previewTransformationController.value = 
-                      _previewTransformationController.value.clone()..scale(1.5);
-                }
-              },
-            ),
-            IconButton(
-              icon: const Icon(Icons.zoom_out, size: 20, color: AppColors.textSecondary),
-              tooltip: 'Zoom Out',
-              onPressed: () {
-                if (isPdf) {
-                  final newZoom = _pdfViewerController.zoomLevel - 0.5;
-                  _pdfViewerController.zoomLevel = newZoom < 1.0 ? 1.0 : newZoom;
-                } else {
-                  _previewTransformationController.value = 
-                      _previewTransformationController.value.clone()..scale(0.666);
-                }
-              },
-            ),
-            IconButton(
-              icon: const Icon(Icons.center_focus_strong, size: 20, color: AppColors.textSecondary),
-              tooltip: 'Reset View',
-              onPressed: () {
-                if (isPdf) {
-                  _pdfViewerController.zoomLevel = 1.0;
-                } else {
-                  _previewTransformationController.value = Matrix4.identity();
-                }
-              },
-            ),
-          ],
-        ),
-        const SizedBox(height: 12),
-        Expanded(
-          child: Container(
-            width: double.infinity,
-            decoration: BoxDecoration(
-              border: Border.all(color: Colors.grey.shade300),
-              borderRadius: BorderRadius.circular(AppSizes.radiusMedium),
-              color: Colors.grey.shade100,
-            ),
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(AppSizes.radiusMedium),
-              child: isPdf
-                  ? SfPdfViewer.file(
-                      file,
-                      controller: _pdfViewerController,
-                      canShowScrollHead: false,
-                      canShowScrollStatus: false,
-                      interactionMode: PdfInteractionMode.pan,
-                    )
-                  : InteractiveViewer(
-                      transformationController: _previewTransformationController,
-                      minScale: 0.1,
-                      maxScale: 10.0,
-                      boundaryMargin: const EdgeInsets.all(double.infinity),
-                      constrained: true,
-                      child: Center(
-                        child: Image.file(file, fit: BoxFit.contain),
-                      ),
-                    ),
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-
-  void _showMobilePreviewDialog() {
-    if (_ocrScannedFile == null) return;
-    showDialog(
-      context: context,
-      builder: (ctx) => Dialog(
-        insetPadding: const EdgeInsets.all(12),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        child: Container(
-          width: double.infinity,
-          height: MediaQuery.of(context).size.height * 0.8,
-          padding: const EdgeInsets.all(12),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  const Text(
-                    'Scanned Document',
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                : _buildManualForm(
+                    widget.student != null,
+                    yearsAsync,
+                    gradeLevelsAsync,
+                    sectionsAsync,
+                    isMobile,
+                    viewInsets.bottom,
                   ),
-                  IconButton(
-                    icon: const Icon(Icons.close),
-                    onPressed: () => Navigator.of(ctx).pop(),
-                  ),
-                ],
-              ),
-              const Divider(),
-              Expanded(child: _buildLocalFilePreview(_ocrScannedFile!)),
-            ],
           ),
         ),
       ),
@@ -1218,7 +1058,15 @@ class _AddEditStudentModalState extends ConsumerState<AddEditStudentModal>
                       ),
                       const SizedBox(height: 6),
                       OutlinedButton.icon(
-                        onPressed: _showMobilePreviewDialog,
+                        onPressed: () {
+                          if (_ocrScannedFile != null) {
+                            showDocumentPreview(
+                              context: context,
+                              localFile: _ocrScannedFile!,
+                              localFileName: _ocrScannedFile!.path.split('/').last,
+                            );
+                          }
+                        },
                         icon: const Icon(Icons.preview_outlined, size: 16),
                         label: const Text('VIEW SCANNED DOCUMENT', style: TextStyle(fontSize: 12)),
                         style: OutlinedButton.styleFrom(
@@ -1266,6 +1114,23 @@ class _AddEditStudentModalState extends ConsumerState<AddEditStudentModal>
                       label: const Text('RE-SCAN'),
                       style: TextButton.styleFrom(
                         foregroundColor: Colors.orange,
+                      ),
+                    ),
+                  if (!isEdit && _ocrScannedFile != null)
+                    TextButton.icon(
+                      onPressed: () {
+                        if (_ocrScannedFile != null) {
+                          showDocumentPreview(
+                            context: context,
+                            localFile: _ocrScannedFile!,
+                            localFileName: _ocrScannedFile!.path.split('/').last,
+                          );
+                        }
+                      },
+                      icon: const Icon(Icons.preview_outlined),
+                      label: const Text('VIEW SCANNED DOCUMENT'),
+                      style: TextButton.styleFrom(
+                        foregroundColor: AppColors.primaryGreen,
                       ),
                     ),
                   TextButton(

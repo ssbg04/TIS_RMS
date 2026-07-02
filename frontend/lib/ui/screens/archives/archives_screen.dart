@@ -361,7 +361,7 @@ class _ArchivesScreenState extends ConsumerState<ArchivesScreen>
 
   // ── Preview document ────────────────────────────────────────────
   void _handlePreview(DocumentModel doc) {
-    showDocumentPreview(context, doc);
+    showDocumentPreview(context: context, document: doc);
   }
 
   @override

@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
@@ -6,16 +7,27 @@ import '../../../../core/constants/app_sizes.dart';
 import '../../../../core/network/api_constants.dart';
 import '../../../../domain/entities/document_model.dart';
 import '../../../shared/dialogs/error_dialog.dart';
+import '../../../shared/modals/custom_modal.dart';
 import 'package:syncfusion_flutter_pdfviewer/pdfviewer.dart';
 
 /// Shows a rich preview dialog for any document type:
 /// • Images (jpg/jpeg/png/gif/webp/bmp) → inline network image
 /// • PDF / DOCX / XLSX / others        → file info + "Open in Browser" CTA
-void showDocumentPreview(BuildContext context, DocumentModel document) {
+void showDocumentPreview({
+  required BuildContext context,
+  DocumentModel? document,
+  File? localFile,
+  String? localFileName,
+}) {
+  assert(document != null || (localFile != null && localFileName != null));
   showDialog(
     context: context,
     barrierColor: Colors.black.withValues(alpha: 0.6),
-    builder: (ctx) => _DocumentPreviewDialog(document: document),
+    builder: (ctx) => _DocumentPreviewDialog(
+      document: document,
+      localFile: localFile,
+      localFileName: localFileName,
+    ),
   );
 }
 
@@ -23,8 +35,10 @@ void showDocumentPreview(BuildContext context, DocumentModel document) {
 // Internal dialog widget
 // ──────────────────────────────────────────────────────────────
 class _DocumentPreviewDialog extends StatefulWidget {
-  final DocumentModel document;
-  const _DocumentPreviewDialog({required this.document});
+  final DocumentModel? document;
+  final File? localFile;
+  final String? localFileName;
+  const _DocumentPreviewDialog({this.document, this.localFile, this.localFileName});
 
   @override
   State<_DocumentPreviewDialog> createState() => _DocumentPreviewDialogState();
@@ -34,7 +48,6 @@ class _DocumentPreviewDialogState extends State<_DocumentPreviewDialog> {
   bool _imageError = false;
   bool _imageLoaded = false;
   String? _token;
-  Offset _dragOffset = Offset.zero;
 
   final PdfViewerController _pdfViewerController = PdfViewerController();
   final TransformationController _imageTransformationController = TransformationController();
@@ -82,12 +95,13 @@ class _DocumentPreviewDialogState extends State<_DocumentPreviewDialog> {
 
   // ── Helpers ────────────────────────────────────────────────
   String get _fileUrl {
-    if (_token == null) return '';
-    return '${ApiConstants.baseUrl}/documents/${widget.document.id}/view?token=$_token';
+    if (widget.document == null || _token == null) return '';
+    return '${ApiConstants.baseUrl}/documents/${widget.document!.id}/view?token=$_token';
   }
 
-  String get _ext =>
-      widget.document.fileName.toLowerCase().split('.').last;
+  String get _fileName => widget.document?.fileName ?? widget.localFileName!;
+
+  String get _ext => _fileName.toLowerCase().split('.').last;
 
   bool get _isImage => const {
         'jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp'
@@ -125,8 +139,8 @@ class _DocumentPreviewDialogState extends State<_DocumentPreviewDialog> {
   }
 
   String get _downloadUrl {
-    if (_token == null) return '';
-    return '${ApiConstants.baseUrl}/documents/${widget.document.id}/view?token=$_token&download=true';
+    if (widget.document == null || _token == null) return '';
+    return '${ApiConstants.baseUrl}/documents/${widget.document!.id}/view?token=$_token&download=true';
   }
 
   Future<void> _openInBrowser() async {
@@ -157,124 +171,46 @@ class _DocumentPreviewDialogState extends State<_DocumentPreviewDialog> {
     final screenW = MediaQuery.of(context).size.width;
     final isMobile = screenW < 700;
 
-    if (_token == null) {
+    if (widget.document != null && _token == null) {
       return const Center(child: CircularProgressIndicator());
     }
 
-    return Transform.translate(
-      offset: _dragOffset,
-      child: Dialog(
-        backgroundColor: AppColors.surfaceWhite,
-      insetPadding: isMobile
-          ? const EdgeInsets.all(8)
-          : const EdgeInsets.symmetric(horizontal: 60, vertical: 40),
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(AppSizes.radiusLarge),
-      ),
-      child: Container(
-        constraints: BoxConstraints(
-          maxWidth: 800,
-          maxHeight: MediaQuery.of(context).size.height * 0.88,
-        ),
-        child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              // ── Header ──────────────────────────────────────
-              _buildHeader(context),
-              // ── Content ─────────────────────────────────────
-              Flexible(child: _buildContent(isMobile)),
-              // ── Footer ──────────────────────────────────────
-              _buildFooter(),
-            ],
+    return CustomModal(
+      title: _fileName,
+      icon: _typeIcon,
+      maxWidth: 800,
+      headerActions: [
+        if (_isImage || _isPdf) ...[
+          IconButton(
+            icon: const Icon(Icons.zoom_out, color: AppColors.textSecondary, size: 22),
+            padding: EdgeInsets.zero,
+            constraints: const BoxConstraints(),
+            onPressed: _isImage ? _zoomImageOut : _zoomPdfOut,
+            tooltip: 'Zoom Out',
           ),
+          const SizedBox(width: 12),
+          IconButton(
+            icon: const Icon(Icons.zoom_in, color: AppColors.textSecondary, size: 22),
+            padding: EdgeInsets.zero,
+            constraints: const BoxConstraints(),
+            onPressed: _isImage ? _zoomImageIn : _zoomPdfIn,
+            tooltip: 'Zoom In',
+          ),
+          const SizedBox(width: 12),
+        ],
+      ],
+      content: SizedBox(
+        height: MediaQuery.of(context).size.height * 0.8,
+        child: Column(
+          children: [
+            Expanded(child: _buildContent(isMobile)),
+            _buildFooter(),
+          ],
         ),
       ),
     );
   }
 
-  Widget _buildHeader(BuildContext context) {
-    return GestureDetector(
-      onPanUpdate: (details) {
-        setState(() {
-          _dragOffset += details.delta;
-        });
-      },
-      behavior: HitTestBehavior.opaque,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-        decoration: BoxDecoration(
-          border: Border(
-            bottom: BorderSide(color: Colors.grey.shade200),
-          ),
-      ),
-      child: Row(
-        children: [
-          // File type icon badge
-          Container(
-            padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(
-              color: _typeColor.withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(10),
-            ),
-            child: Icon(_typeIcon, color: _typeColor, size: 20),
-          ),
-          const SizedBox(width: 12),
-          // File name + type
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  widget.document.fileName,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    color: AppColors.textPrimary,
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                Text(
-                  _typeLabel,
-                  style: TextStyle(
-                    color: _typeColor,
-                    fontSize: 12,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          if (_isImage || _isPdf) ...[
-            IconButton(
-              icon: const Icon(Icons.zoom_out, color: AppColors.textSecondary, size: 22),
-              padding: EdgeInsets.zero,
-              constraints: const BoxConstraints(),
-              onPressed: _isImage ? _zoomImageOut : _zoomPdfOut,
-              tooltip: 'Zoom Out',
-            ),
-            const SizedBox(width: 12),
-            IconButton(
-              icon: const Icon(Icons.zoom_in, color: AppColors.textSecondary, size: 22),
-              padding: EdgeInsets.zero,
-              constraints: const BoxConstraints(),
-              onPressed: _isImage ? _zoomImageIn : _zoomPdfIn,
-              tooltip: 'Zoom In',
-            ),
-            const SizedBox(width: 12),
-          ],
-          // Close button
-          IconButton(
-            icon: const Icon(Icons.close_rounded, color: AppColors.textSecondary, size: 22),
-            padding: EdgeInsets.zero,
-            constraints: const BoxConstraints(),
-            onPressed: () => Navigator.of(context).pop(),
-          ),
-        ],
-      ),
-    ),
-  );
-}
 
   Widget _buildContent(bool isMobile) {
     Widget content;
@@ -286,38 +222,6 @@ class _DocumentPreviewDialogState extends State<_DocumentPreviewDialog> {
       content = _buildOfficeInfo(isMobile);
     } else {
       content = _buildGenericInfo(isMobile);
-    }
-
-    if (_isImage || _isPdf) {
-      return Stack(
-        children: [
-          Positioned.fill(child: content),
-          Positioned(
-            right: 16,
-            bottom: 16,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                FloatingActionButton.small(
-                  heroTag: 'zoom_in',
-                  backgroundColor: AppColors.surfaceWhite,
-                  foregroundColor: AppColors.primaryGreen,
-                  onPressed: _isImage ? _zoomImageIn : _zoomPdfIn,
-                  child: const Icon(Icons.zoom_in),
-                ),
-                const SizedBox(height: 8),
-                FloatingActionButton.small(
-                  heroTag: 'zoom_out',
-                  backgroundColor: AppColors.surfaceWhite,
-                  foregroundColor: AppColors.primaryGreen,
-                  onPressed: _isImage ? _zoomImageOut : _zoomPdfOut,
-                  child: const Icon(Icons.zoom_out),
-                ),
-              ],
-            ),
-          ),
-        ],
-      );
     }
 
     return content;
@@ -340,8 +244,13 @@ class _DocumentPreviewDialogState extends State<_DocumentPreviewDialog> {
                   constrained: true,
                   child: Padding(
                     padding: const EdgeInsets.all(16),
-                    child: Image.network(
-                      _fileUrl,
+                    child: widget.localFile != null
+                        ? Image.file(
+                            widget.localFile!,
+                            fit: BoxFit.contain,
+                          )
+                        : Image.network(
+                            _fileUrl,
                       fit: BoxFit.contain,
                       loadingBuilder: (ctx, child, progress) {
                         if (progress == null) {
@@ -424,13 +333,21 @@ class _DocumentPreviewDialogState extends State<_DocumentPreviewDialog> {
   Widget _buildPdfInfo(bool isMobile) {
     return Container(
       color: Colors.grey.shade100,
-      child: SfPdfViewer.network(
-        _fileUrl,
-        controller: _pdfViewerController,
-        canShowScrollHead: false,
-        canShowScrollStatus: false,
-        interactionMode: PdfInteractionMode.pan,
-      ),
+      child: widget.localFile != null
+          ? SfPdfViewer.file(
+              widget.localFile!,
+              controller: _pdfViewerController,
+              canShowScrollHead: false,
+              canShowScrollStatus: false,
+              interactionMode: PdfInteractionMode.pan,
+            )
+          : SfPdfViewer.network(
+              _fileUrl,
+              controller: _pdfViewerController,
+              canShowScrollHead: false,
+              canShowScrollStatus: false,
+              interactionMode: PdfInteractionMode.pan,
+            ),
     );
   }
 
@@ -440,8 +357,8 @@ class _DocumentPreviewDialogState extends State<_DocumentPreviewDialog> {
       icon: _typeIcon,
       iconColor: _typeColor,
       title: _typeLabel,
-      subtitle: widget.document.fileName,
-      detail: widget.document.size ?? 'Size unknown',
+      subtitle: _fileName,
+      detail: widget.document?.size ?? 'Size unknown',
       actions: [
         _actionButton(
           icon: Icons.open_in_browser_rounded,
@@ -465,8 +382,8 @@ class _DocumentPreviewDialogState extends State<_DocumentPreviewDialog> {
       icon: Icons.insert_drive_file_rounded,
       iconColor: AppColors.primaryGreen,
       title: 'Document File',
-      subtitle: widget.document.fileName,
-      detail: widget.document.size ?? 'Size unknown',
+      subtitle: _fileName,
+      detail: widget.document?.size ?? 'Size unknown',
       actions: [
         _actionButton(
           icon: Icons.open_in_browser_rounded,
@@ -595,7 +512,10 @@ class _DocumentPreviewDialogState extends State<_DocumentPreviewDialog> {
 
   // ── Footer metadata bar ───────────────────────────────────
   Widget _buildFooter() {
-    final doc = widget.document;
+    if (widget.document == null) {
+      return const SizedBox.shrink(); // No footer for local files
+    }
+    final doc = widget.document!;
     final studentLabel = doc.studentName ?? doc.studentLrn ?? '—';
     final dateStr = _formatDate(doc.createdAt);
 

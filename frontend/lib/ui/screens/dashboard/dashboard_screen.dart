@@ -556,6 +556,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                 maxWidth: constraints.maxWidth > 420 ? 420 : constraints.maxWidth,
                 onSubmitted: (value) {
                   ref.read(studentQueryProvider.notifier).setSearch(value);
+                  ref.invalidate(studentPageProvider);
                   ref.read(activeTabProvider.notifier).setTab('Students');
                   _searchController.clear();
                 },

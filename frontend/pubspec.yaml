@@ -53,6 +53,7 @@ dependencies:
   calendar_date_picker2: ^3.0.0
   lottie: ^3.3.0
   window_manager: ^0.5.1
+  flutter_speed_dial: ^7.0.0
 
 dev_dependencies:
   flutter_test:

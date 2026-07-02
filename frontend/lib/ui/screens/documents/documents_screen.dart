@@ -5,6 +5,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../domain/entities/folder_model.dart';
+import '../../shared/menus/profile_dropdown_menu.dart';
+import 'package:flutter_speed_dial/flutter_speed_dial.dart';
 import '../../shared/inputs/app_search_bar.dart';
 import '../../shared/buttons/primary_button.dart';
 import '../../providers/document_provider.dart';
@@ -71,6 +73,10 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
   Timer? _pollingTimer;
   ProviderSubscription<String>? _tabListener;
   ProviderSubscription<OpenedFolderData?>? _folderListener;
+
+  // Pagination for folders
+  int _foldersPage = 1;
+  final int _foldersPerPage = 20;
 
   @override
   void initState() {
@@ -195,11 +201,13 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
   void _onSearchChanged(String query) {
     if (_debounce?.isActive ?? false) _debounce!.cancel();
     _debounce = Timer(const Duration(milliseconds: 500), () {
+      setState(() => _foldersPage = 1);
       ref.read(documentQueryProvider.notifier).setSearch(query);
     });
   }
 
   void _applyFilters() {
+    setState(() => _foldersPage = 1);
     final n = ref.read(documentQueryProvider.notifier);
     n.setStatus(_selectedStatus);
 
@@ -223,6 +231,7 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
 
   void _clearFilters() {
     setState(() {
+      _foldersPage = 1;
       _selectedStatus = 'All Statuses';
       _selectedDocumentType = 'All Types';
       _selectedGradeLevel = 'All Grades';
@@ -269,7 +278,7 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
         showErrorDialog(context, 'Copy Failed', e.toString());
       }
     } else if (action == 'preview') {
-      showDocumentPreview(context, document);
+      showDocumentPreview(context: context, document: document);
     } else if (action == 'download') {
       showSuccessDialog(context, message: 'Download started.');
     }
@@ -730,30 +739,59 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
                 _tabController.index != 2 &&
                 !_isMultiSelectMode) ...[
               const SizedBox(height: 12),
-              FloatingActionButton(
-                heroTag: 'print_fab',
-                backgroundColor: AppColors.surfaceWhite,
-                onPressed: () => showDialog(
-                  context: context,
-                  builder: (_) => const PrintQueueModal(),
-                ),
-                child: const Icon(Icons.print, color: AppColors.primaryGreen),
-              ),
-              if (_tabController.index == 1 || isFolderOpened) ...[
-                const SizedBox(height: 12),
-                FloatingActionButton(
-                  heroTag: 'upload_fab',
-                  backgroundColor: AppColors.primaryGreen,
-                  onPressed: () => showDialog(
-                    context: context,
-                    builder: (_) => UploadOcrModal(
-                      prefilledStudentId:
-                          _openedFolderStudentId ?? widget.initialStudentId,
-                    ),
+              SpeedDial(
+                icon: Icons.menu,
+                activeIcon: Icons.close,
+                spacing: 3,
+                mini: false,
+                openCloseDial: true,
+                childPadding: const EdgeInsets.all(5),
+                spaceBetweenChildren: 4,
+                buttonSize: const Size(56.0, 56.0),
+                childrenButtonSize: const Size(56.0, 56.0),
+                visible: true,
+                direction: SpeedDialDirection.up,
+                switchLabelPosition: false,
+                closeManually: false,
+                renderOverlay: true,
+                overlayColor: Colors.black,
+                overlayOpacity: 0.3,
+                useRotationAnimation: true,
+                tooltip: 'Menu',
+                heroTag: 'speed-dial-hero-tag',
+                elevation: 8.0,
+                animationCurve: Curves.elasticInOut,
+                isOpenOnStart: false,
+                shape: const CircleBorder(),
+                backgroundColor: AppColors.primaryGreen,
+                foregroundColor: Colors.white,
+                children: [
+                  SpeedDialChild(
+                    child: const Icon(Icons.print, color: Colors.white),
+                    backgroundColor: AppColors.primaryGreen,
+                    foregroundColor: Colors.white,
+                    label: 'Print List',
+                    onTap: () {
+                      showDialog(context: context, builder: (_) => const PrintQueueModal());
+                    },
                   ),
-                  child: const Icon(Icons.cloud_upload, color: Colors.white),
-                ),
-              ],
+                  if (_tabController.index == 1 || isFolderOpened)
+                    SpeedDialChild(
+                      child: const Icon(Icons.cloud_upload, color: Colors.white),
+                      backgroundColor: AppColors.primaryGreen,
+                      foregroundColor: Colors.white,
+                      label: 'Upload Document',
+                      onTap: () {
+                        showDialog(
+                          context: context,
+                          builder: (_) => UploadOcrModal(
+                            prefilledStudentId: _openedFolderStudentId ?? widget.initialStudentId,
+                          ),
+                        );
+                      },
+                    ),
+                ],
+              ),
             ]
           ],
         ),
@@ -1740,6 +1778,28 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
           );
         }
 
+        bool isFuzzyMatch(String text, String search) {
+          if (search.isEmpty) return true;
+          int j = 0;
+          for (int i = 0; i < text.length && j < search.length; i++) {
+            if (text[i].toLowerCase() == search[j].toLowerCase()) {
+              j++;
+            }
+          }
+          return j == search.length;
+        }
+
+        final filteredFolders = query.search.isEmpty
+            ? folders
+            : folders.where((f) => isFuzzyMatch(f.name, query.search)).toList();
+
+        final int totalPages = (filteredFolders.length / _foldersPerPage).ceil();
+        final int startIndex = (_foldersPage - 1) * _foldersPerPage;
+        final int endIndex = (startIndex + _foldersPerPage > filteredFolders.length)
+            ? filteredFolders.length
+            : startIndex + _foldersPerPage;
+        final List<dynamic> paginatedFolders = filteredFolders.isEmpty ? [] : filteredFolders.sublist(startIndex, endIndex);
+
         if (!_isGridView) {
           return Container(
             margin: EdgeInsets.all(isMobile ? 8 : 16),
@@ -1798,12 +1858,18 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
                   ),
                   Expanded(
                     child: ListView.separated(
-                      itemCount: folders.length,
+                      itemCount: paginatedFolders.length,
                       separatorBuilder: (context, index) =>
                           Divider(height: 1, color: Colors.grey.shade100),
                       itemBuilder: (ctx, i) {
-                        final folder = folders[i];
-                        return InkWell(
+                        final folder = paginatedFolders[i];
+                        return GestureDetector(
+                          onSecondaryTapDown: defaultTargetPlatform == TargetPlatform.windows ? (details) => _showFolderContextMenu(context, details.globalPosition, folder) : null,
+                          child: InkWell(
+                          onLongPress: defaultTargetPlatform == TargetPlatform.android ? () {
+                            final box = ctx.findRenderObject() as RenderBox;
+                            _showFolderContextMenu(context, box.localToGlobal(Offset.zero), folder);
+                          } : null,
                           onTap: () {
                             if (folder.studentId != null) {
                               setState(() {
@@ -1885,10 +1951,12 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
                               ],
                             ),
                           ),
+                          ),
                         );
                       },
                     ),
                   ),
+                  if (totalPages > 1) _buildFoldersPagination(totalPages, _foldersPage),
                 ],
               ),
             ),
@@ -1903,7 +1971,7 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
                 ? 2
                 : (c.maxWidth / tileBase).floor().clamp(2, 6);
             final childAspect = isMobile ? 0.85 : 0.95;
-            return GridView.builder(
+            final grid = GridView.builder(
               padding: EdgeInsets.all(isMobile ? 10 : 16),
               gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
                 crossAxisCount: cols,
@@ -1911,10 +1979,16 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
                 mainAxisSpacing: isMobile ? 10 : 16,
                 childAspectRatio: childAspect,
               ),
-              itemCount: folders.length,
+              itemCount: paginatedFolders.length,
               itemBuilder: (ctx, i) {
-                final folder = folders[i];
-                return InkWell(
+                final folder = paginatedFolders[i];
+                return GestureDetector(
+                  onSecondaryTapDown: defaultTargetPlatform == TargetPlatform.windows ? (details) => _showFolderContextMenu(context, details.globalPosition, folder) : null,
+                  child: InkWell(
+                  onLongPress: defaultTargetPlatform == TargetPlatform.android ? () {
+                    final box = ctx.findRenderObject() as RenderBox;
+                    _showFolderContextMenu(context, box.localToGlobal(Offset.zero), folder);
+                  } : null,
                   onTap: () {
                     if (folder.studentId != null) {
                       setState(() {
@@ -1970,9 +2044,16 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
                         ),
                       ],
                     ),
+                    ),
                   ),
                 );
               },
+            );
+            return Column(
+              children: [
+                Expanded(child: grid),
+                if (totalPages > 1) _buildFoldersPagination(totalPages, _foldersPage),
+              ],
             );
           },
         );
@@ -2082,7 +2163,7 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
                   }
                 });
               } else {
-                showDocumentPreview(context, documents[i]);
+                showDocumentPreview(context: context, document: documents[i]);
               }
             },
             onActionSelected: (a) => _handleAction(a, documents[i]),
@@ -2217,7 +2298,7 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
                               }
                             });
                           } else {
-                            showDocumentPreview(context, documents[i]);
+                            showDocumentPreview(context: context, document: documents[i]);
                           }
                         },
                         onActionSelected: (a) => _handleAction(a, documents[i]),
@@ -2274,7 +2355,7 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
             }
           });
         } else {
-          showDocumentPreview(context, doc as DocumentModel);
+          showDocumentPreview(context: context, document: doc as DocumentModel);
         }
       },
       child: Container(
@@ -2639,5 +2720,115 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
         ),
       ),
     );
+  }
+
+  Widget _buildFoldersPagination(int totalPages, int currentPage) {
+    return Container(
+      color: Colors.transparent,
+      child: SafeArea(
+        top: false,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              IconButton(
+                icon: const Icon(Icons.chevron_left),
+                onPressed: currentPage > 1
+                    ? () => setState(() => _foldersPage = currentPage - 1)
+                    : null,
+              ),
+              ...List.generate(
+                totalPages,
+                (i) => i + 1,
+              ).where((p) => (p - currentPage).abs() <= 2).map((p) {
+                final isActive = p == currentPage;
+                return GestureDetector(
+                  onTap: () => setState(() => _foldersPage = p),
+                  child: Container(
+                    width: 32,
+                    height: 32,
+                    margin: const EdgeInsets.symmetric(horizontal: 2),
+                    decoration: BoxDecoration(
+                      color: isActive ? AppColors.primaryGreen : Colors.transparent,
+                      borderRadius: BorderRadius.circular(6),
+                      border: isActive
+                          ? null
+                          : Border.all(color: Colors.grey.shade300),
+                    ),
+                    child: Center(
+                      child: Text(
+                        '$p',
+                        style: TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                          color: isActive ? Colors.white : AppColors.textSecondary,
+                        ),
+                      ),
+                    ),
+                  ),
+                );
+              }),
+              IconButton(
+                icon: const Icon(Icons.chevron_right),
+                onPressed: currentPage < totalPages
+                    ? () => setState(() => _foldersPage = currentPage + 1)
+                    : null,
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _showFolderContextMenu(BuildContext context, Offset position, dynamic folder) {
+    if (folder.studentId == null) return;
+    
+    final RenderBox overlay = Overlay.of(context).context.findRenderObject() as RenderBox;
+    showMenu<String>(
+      context: context,
+      position: RelativeRect.fromRect(
+        position & const Size(40, 40),
+        Offset.zero & overlay.size,
+      ),
+      items: [
+        const PopupMenuItem(
+          value: 'open',
+          child: Row(
+            children: [
+              Icon(Icons.folder_open, size: 18, color: Colors.orange),
+              SizedBox(width: 12),
+              Text('Open Folder', style: TextStyle(fontSize: 14)),
+            ],
+          ),
+        ),
+        const PopupMenuDivider(),
+        const PopupMenuItem(
+          value: 'view_profile',
+          child: Row(
+            children: [
+              Icon(Icons.person, size: 18, color: AppColors.primaryGreen),
+              SizedBox(width: 12),
+              Text('View Student Profile', style: TextStyle(fontSize: 14)),
+            ],
+          ),
+        ),
+      ],
+    ).then((value) {
+      if (value == 'open') {
+        setState(() {
+          _openedFolderStudentId = folder.studentId;
+          _openedFolderName = folder.name;
+        });
+        ref.read(documentQueryProvider.notifier).setStudentId(folder.studentId);
+      } else if (value == 'view_profile') {
+        showStudentProfileModal(
+          context,
+          studentId: folder.studentId!,
+          userRole: widget.userRole,
+        );
+      }
+    });
   }
 }

@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart' show defaultTargetPlatform, TargetPlatform;
 import 'package:flutter/material.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_sizes.dart';
@@ -127,20 +128,44 @@ class FileFolderCard extends StatelessWidget {
     return items;
   }
 
+  void _showContextMenu(BuildContext context, Offset position) {
+    if (isMultiSelectMode) return;
+    
+    final RenderBox overlay = Overlay.of(context).context.findRenderObject() as RenderBox;
+    showMenu<String>(
+      context: context,
+      position: RelativeRect.fromRect(
+        position & const Size(40, 40),
+        Offset.zero & overlay.size,
+      ),
+      items: _buildMenuItems(),
+    ).then((value) {
+      if (value != null && onActionSelected != null) {
+        onActionSelected!(value);
+      }
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
-    if (isGrid) return _buildGridCard();
-    return _buildListRow();
+    if (isGrid) return _buildGridCard(context);
+    return _buildListRow(context);
   }
 
   // ════════════════════════════════════════
   // GRID CARD
   // ════════════════════════════════════════
-  Widget _buildGridCard() {
-    return InkWell(
-      onTap: isMultiSelectMode ? () => onSelectedChanged?.call(!isSelected) : onTap,
-      borderRadius: BorderRadius.circular(AppSizes.radiusLarge),
-      child: Container(
+  Widget _buildGridCard(BuildContext context) {
+    return GestureDetector(
+      onSecondaryTapDown: defaultTargetPlatform == TargetPlatform.windows ? (details) => _showContextMenu(context, details.globalPosition) : null,
+      child: InkWell(
+        onLongPress: defaultTargetPlatform == TargetPlatform.android ? () {
+          final box = context.findRenderObject() as RenderBox;
+          _showContextMenu(context, box.localToGlobal(Offset.zero));
+        } : null,
+        onTap: isMultiSelectMode ? () => onSelectedChanged?.call(!isSelected) : onTap,
+        borderRadius: BorderRadius.circular(AppSizes.radiusLarge),
+        child: Container(
         decoration: BoxDecoration(
           color: isSelected
               ? AppColors.primaryGreen.withValues(alpha: 0.05)
@@ -224,16 +249,23 @@ class FileFolderCard extends StatelessWidget {
           ],
         ),
       ),
+      ),
     );
   }
 
   // ════════════════════════════════════════
   // LIST ROW — matches the table header columns
   // ════════════════════════════════════════
-  Widget _buildListRow() {
-    return InkWell(
-      onTap: isMultiSelectMode ? () => onSelectedChanged?.call(!isSelected) : onTap,
-      child: Container(
+  Widget _buildListRow(BuildContext context) {
+    return GestureDetector(
+      onSecondaryTapDown: defaultTargetPlatform == TargetPlatform.windows ? (details) => _showContextMenu(context, details.globalPosition) : null,
+      child: InkWell(
+        onLongPress: defaultTargetPlatform == TargetPlatform.android ? () {
+          final box = context.findRenderObject() as RenderBox;
+          _showContextMenu(context, box.localToGlobal(Offset.zero));
+        } : null,
+        onTap: isMultiSelectMode ? () => onSelectedChanged?.call(!isSelected) : onTap,
+        child: Container(
         color: isSelected ? AppColors.primaryGreen.withValues(alpha: 0.05) : null,
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
         child: Row(
@@ -318,6 +350,7 @@ class FileFolderCard extends StatelessWidget {
                     ),
             ),
           ],
+        ),
         ),
       ),
     );
