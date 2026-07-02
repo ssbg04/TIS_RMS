@@ -166,90 +166,109 @@ class _UsersScreenState extends ConsumerState<UsersScreen> {
               child: SingleChildScrollView(
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Header
-                  Padding(
-                    padding: const EdgeInsets.all(AppSizes.p24),
-                    child: Row(
-                      children: [
-                        CircleAvatar(
-                          radius: 24,
-                          backgroundColor: _roleColor(user.role).withValues(alpha: 0.15),
-                          child: Icon(Icons.person, color: _roleColor(user.role), size: 28),
-                        ),
-                        const SizedBox(width: AppSizes.p16),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Header with aligned actions
+                    Padding(
+                      padding: const EdgeInsets.all(AppSizes.p24),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
                             children: [
-                              Text(user.fullName, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppColors.textPrimary)),
-                              Text('@${user.username}', style: const TextStyle(fontSize: 13, color: AppColors.textSecondary)),
+                              CircleAvatar(
+                                radius: 24,
+                                backgroundColor: _roleColor(user.role).withValues(alpha: 0.15),
+                                child: Icon(Icons.person, color: _roleColor(user.role), size: 28),
+                              ),
+                              const SizedBox(width: AppSizes.p16),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(user.fullName, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppColors.textPrimary)),
+                                    Text('@${user.username}', style: const TextStyle(fontSize: 13, color: AppColors.textSecondary)),
+                                  ],
+                                ),
+                              ),
+                              IconButton(
+                                icon: const Icon(Icons.close, size: 20),
+                                onPressed: () => Navigator.of(ctx).pop(),
+                              ),
                             ],
                           ),
-                        ),
-                        // Action buttons in header
-                        IconButton(
-                          icon: const Icon(Icons.lock_reset, color: Colors.orange, size: 20),
-                          tooltip: 'Reset Password to "changeme123"',
-                          onPressed: () {
-                            Navigator.of(ctx).pop();
-                            _confirmResetPassword(user);
-                          },
-                        ),
-                        IconButton(
-                          icon: const Icon(Icons.edit, color: AppColors.primaryGreen, size: 20),
-                          tooltip: 'Edit User',
-                          onPressed: () {
-                            Navigator.of(ctx).pop();
-                            _openModal(user: user);
-                          },
-                        ),
-                        if (user.id != currentUser?.id)
-                          IconButton(
-                            icon: const Icon(Icons.delete_outline, color: Colors.red, size: 20),
-                            tooltip: 'Delete User',
-                            onPressed: () {
-                              Navigator.of(ctx).pop();
-                              _confirmDelete(user);
-                            },
+                          const SizedBox(height: AppSizes.p16),
+                          Wrap(
+                            spacing: 8,
+                            runSpacing: 8,
+                            children: [
+                              OutlinedButton.icon(
+                                icon: const Icon(Icons.edit, size: 16),
+                                label: const Text('Edit', style: TextStyle(fontSize: 13)),
+                                onPressed: () {
+                                  Navigator.of(ctx).pop();
+                                  _openModal(user: user);
+                                },
+                                style: OutlinedButton.styleFrom(
+                                  foregroundColor: AppColors.primaryGreen,
+                                  side: const BorderSide(color: AppColors.primaryGreen),
+                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                                ),
+                              ),
+                              OutlinedButton.icon(
+                                icon: const Icon(Icons.lock_reset, size: 16),
+                                label: const Text('Reset Pass', style: TextStyle(fontSize: 13)),
+                                onPressed: () {
+                                  Navigator.of(ctx).pop();
+                                  _confirmResetPassword(user);
+                                },
+                                style: OutlinedButton.styleFrom(
+                                  foregroundColor: Colors.orange,
+                                  side: const BorderSide(color: Colors.orange),
+                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                                ),
+                              ),
+                              if (user.id != currentUser?.id)
+                                OutlinedButton.icon(
+                                  icon: const Icon(Icons.delete_outline, size: 16),
+                                  label: const Text('Delete', style: TextStyle(fontSize: 13)),
+                                  onPressed: () {
+                                    Navigator.of(ctx).pop();
+                                    _confirmDelete(user);
+                                  },
+                                  style: OutlinedButton.styleFrom(
+                                    foregroundColor: Colors.red,
+                                    side: const BorderSide(color: Colors.red),
+                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                                  ),
+                                ),
+                            ],
                           ),
-                        const SizedBox(width: 8),
-                        IconButton(
-                          icon: const Icon(Icons.close, size: 20),
-                          onPressed: () => Navigator.of(ctx).pop(),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
-                  ),
-                  const Divider(height: 1, thickness: 1),
-                  // Content
-                  Padding(
-                    padding: const EdgeInsets.all(AppSizes.p24),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          children: [
-                            Expanded(child: _detailRow('Access Role', user.role.toUpperCase().replaceAll('_', ' '))),
-                            Expanded(child: _detailRow('Date Joined', user.createdAt?.split('T').first ?? '—')),
-                          ],
-                        ),
-                        const SizedBox(height: AppSizes.p16),
-                        Row(
-                          children: [
-                            Expanded(child: _detailRow('Email', user.email?.isNotEmpty == true ? user.email! : '—')),
-                            Expanded(child: _detailRow('Phone', user.phone?.isNotEmpty == true ? user.phone! : '—')),
-                          ],
-                        ),
-                        const SizedBox(height: AppSizes.p16),
-                        _detailRow('Added By', user.addedByName != null ? '${user.addedByName} (@${user.addedByUsername})' : 'System'),
-                      ],
+                    const Divider(height: 1, thickness: 1),
+                    // Content layout line by line
+                    Padding(
+                      padding: const EdgeInsets.all(AppSizes.p24),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          _detailRow('Access Role', user.role.toUpperCase().replaceAll('_', ' ')),
+                          const SizedBox(height: AppSizes.p16),
+                          _detailRow('Date Joined', user.createdAt?.split('T').first ?? '—'),
+                          const SizedBox(height: AppSizes.p16),
+                          _detailRow('Email', user.email?.isNotEmpty == true ? user.email! : '—'),
+                          const SizedBox(height: AppSizes.p16),
+                          _detailRow('Phone', user.phone?.isNotEmpty == true ? user.phone! : '—'),
+                          const SizedBox(height: AppSizes.p16),
+                          _detailRow('Added By', user.addedByName != null ? '${user.addedByName} (@${user.addedByUsername})' : 'System'),
+                        ],
+                      ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
-            ),
             ),
           ),
         ),
@@ -265,6 +284,40 @@ class _UsersScreenState extends ConsumerState<UsersScreen> {
         const SizedBox(height: 2),
         Text(value, style: const TextStyle(fontSize: 15, color: AppColors.textPrimary)),
       ],
+    );
+  }
+
+  Widget _buildAnimatedFilter(String label, String value, int count) {
+    final isSelected = _roleFilter == value;
+    return GestureDetector(
+      onTap: () {
+        setState(() {
+          _roleFilter = value;
+        });
+      },
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeInOut,
+        margin: const EdgeInsets.only(right: 8),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        decoration: BoxDecoration(
+          color: isSelected ? AppColors.primaryGreen : Colors.white,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(
+            color: isSelected ? AppColors.primaryGreen : Colors.grey.shade300,
+          ),
+          boxShadow: isSelected
+              ? [BoxShadow(color: AppColors.primaryGreen.withValues(alpha: 0.3), blurRadius: 8, offset: const Offset(0, 4))]
+              : [],
+        ),
+        child: Text(
+          '$label ($count)',
+          style: TextStyle(
+            color: isSelected ? Colors.white : AppColors.textSecondary,
+            fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+          ),
+        ),
+      ),
     );
   }
 
@@ -316,42 +369,13 @@ class _UsersScreenState extends ConsumerState<UsersScreen> {
                       children: [
                         SingleChildScrollView(
                           scrollDirection: Axis.horizontal,
-                          child: SegmentedButton<String>(
-                            segments: [
-                            ButtonSegment<String>(
-                              value: 'all',
-                              label: Text('All (${users.length})'),
-                            ),
-                            ButtonSegment<String>(
-                              value: 'admin',
-                              label: Text('Admin (${users.where((u) => u.role == 'admin').length})'),
-                            ),
-                            ButtonSegment<String>(
-                              value: 'teacher',
-                              label: Text('Teacher (${users.where((u) => u.role == 'teacher').length})'),
-                            ),
-                          ],
-                          selected: {_roleFilter},
-                          onSelectionChanged: (Set<String> newSelection) {
-                            setState(() {
-                              _roleFilter = newSelection.first;
-                            });
-                          },
-                          style: ButtonStyle(
-                            backgroundColor: WidgetStateProperty.resolveWith<Color>((Set<WidgetState> states) {
-                              if (states.contains(WidgetState.selected)) {
-                                return AppColors.primaryGreen.withValues(alpha: 0.15);
-                              }
-                              return Colors.transparent;
-                            }),
-                            foregroundColor: WidgetStateProperty.resolveWith<Color>((Set<WidgetState> states) {
-                              if (states.contains(WidgetState.selected)) {
-                                return AppColors.primaryGreen;
-                              }
-                              return Colors.transparent;
-                            }),
+                          child: Row(
+                            children: [
+                              _buildAnimatedFilter('All', 'all', users.length),
+                              _buildAnimatedFilter('Admin', 'admin', users.where((u) => u.role == 'admin').length),
+                              _buildAnimatedFilter('Teacher', 'teacher', users.where((u) => u.role == 'teacher').length),
+                            ],
                           ),
-                        ),
                         ),
                         const SizedBox(height: AppSizes.p16),
                         Expanded(

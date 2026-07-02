@@ -95,6 +95,14 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       _tabListener = ref.listenManual<String>(activeTabProvider, (previous, next) {
         if (!mounted) return;
         if (next == 'Settings' && previous != 'Settings') {
+          _newPassCtrl.clear();
+          _confirmPassCtrl.clear();
+          _firstNameCtrl.clear();
+          _middleNameCtrl.clear();
+          _lastNameCtrl.clear();
+          _extCtrl.clear();
+          _phoneCtrl.clear();
+          _emailCtrl.clear();
           ref.invalidate(profileProvider);
           _lastUserId = null;
         }
