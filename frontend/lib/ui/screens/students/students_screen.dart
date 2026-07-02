@@ -393,8 +393,20 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
   // ----------------------------------------------------------------
   // NAVIGATION HELPERS
   // ----------------------------------------------------------------
-  void _viewProfile(int studentId) {
-    showStudentProfileModal(context, studentId: studentId, userRole: widget.userRole);
+  void _viewProfile(StudentModel student) {
+    showStudentProfileModal(
+      context,
+      studentId: student.id,
+      userRole: widget.userRole,
+      onEdit: () {
+        Navigator.pop(context);
+        _openModal(student: student);
+      },
+      onDelete: () {
+        Navigator.pop(context);
+        _confirmDelete(student);
+      },
+    );
   }
 
   void _openDocumentsFolder(StudentModel student) {
@@ -430,7 +442,7 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
 
     return Scaffold(
       backgroundColor: Colors.transparent,
-      floatingActionButton: !isMobile ? null : Column(
+      floatingActionButton: (!isMobile || _showMultiSelect) ? null : Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.end,
         children: [
@@ -1115,19 +1127,19 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
                           ),
                         DataCell(
                           Text(student.lrn, style: const TextStyle(fontWeight: FontWeight.w600)),
-                          onTap: () => _viewProfile(student.id),
+                          onTap: () => _viewProfile(student),
                         ),
                         DataCell(
                           Text(student.fullName),
-                          onTap: () => _viewProfile(student.id),
+                          onTap: () => _viewProfile(student),
                         ),
                         DataCell(
                           Text(student.gradeSection),
-                          onTap: () => _viewProfile(student.id),
+                          onTap: () => _viewProfile(student),
                         ),
                         DataCell(
                           _StatusChip(status: student.status),
-                          onTap: () => _viewProfile(student.id),
+                          onTap: () => _viewProfile(student),
                         ),
                         DataCell(
                           _DocumentProgressBar(
@@ -1135,13 +1147,9 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
                             totalCount: student.totalDocumentsCount,
                             missingDocuments: student.missingDocuments,
                           ),
-                          onTap: () => _viewProfile(student.id),
+                          onTap: () => _viewProfile(student),
                         ),
                         DataCell(_ActionButtons(
-                          student:          student,
-                          userRole:         widget.userRole,
-                          onEdit:           () => _openModal(student: student),
-                          onDelete:         () => _confirmDelete(student),
                           onOpenDocuments:  () => _openDocumentsFolder(student),
                         )),
                       ],
@@ -1190,7 +1198,7 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
                   }
                 });
               } else {
-                _viewProfile(s.id);
+                _viewProfile(s);
               }
             },
             onLongPress: widget.userRole != 'teacher'
@@ -1308,10 +1316,6 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
                               ],
                             ),
                             _ActionButtons(
-                              student: s,
-                              userRole: widget.userRole,
-                              onEdit: () => _openModal(student: s),
-                              onDelete: () => _confirmDelete(s),
                               onOpenDocuments: () => _openDocumentsFolder(s),
                             ),
                           ],
@@ -1607,69 +1611,18 @@ class _DocumentProgressBar extends StatelessWidget {
 }
 
 class _ActionButtons extends StatelessWidget {
-  final StudentModel student;
-  final String       userRole;
-  final VoidCallback onEdit;
-  final VoidCallback onDelete;
   final VoidCallback onOpenDocuments;
 
   const _ActionButtons({
-    required this.student,
-    required this.userRole,
-    required this.onEdit,
-    required this.onDelete,
     required this.onOpenDocuments,
   });
 
   @override
   Widget build(BuildContext context) {
-    return PopupMenuButton<String>(
-      icon: const Icon(Icons.more_vert, color: AppColors.textSecondary),
-      tooltip: 'Actions',
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppSizes.radiusMedium)),
-      onSelected: (value) {
-        if (value == 'folder') {
-          onOpenDocuments();
-        } else if (value == 'edit') {
-          onEdit();
-        } else if (value == 'delete') {
-          onDelete();
-        }
-      },
-      itemBuilder: (context) => [
-        const PopupMenuItem(
-          value: 'folder',
-          child: Row(
-            children: [
-              Icon(Icons.folder_open, color: Colors.orange, size: 20),
-              SizedBox(width: 12),
-              Text('Open Folder', style: TextStyle(fontSize: 14)),
-            ],
-          ),
-        ),
-        if (userRole != 'teacher') ...[
-          const PopupMenuItem(
-            value: 'edit',
-            child: Row(
-              children: [
-                Icon(Icons.edit, color: Colors.blueAccent, size: 20),
-                SizedBox(width: 12),
-                Text('Edit Student', style: TextStyle(fontSize: 14)),
-              ],
-            ),
-          ),
-          const PopupMenuItem(
-            value: 'delete',
-            child: Row(
-              children: [
-                Icon(Icons.delete, color: AppColors.error, size: 20),
-                SizedBox(width: 12),
-                Text('Delete Student', style: TextStyle(fontSize: 14, color: AppColors.error)),
-              ],
-            ),
-          ),
-        ],
-      ],
+    return IconButton(
+      icon: const Icon(Icons.folder_open, color: Colors.orange, size: 22),
+      tooltip: 'Open Folder',
+      onPressed: onOpenDocuments,
     );
   }
 }

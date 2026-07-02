@@ -4,7 +4,7 @@ import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_sizes.dart';
 import '../../../../domain/entities/document_model.dart';
 
-class FileFolderCard extends StatelessWidget {
+class FileFolderCard extends StatefulWidget {
   final DocumentModel document;
   final bool isGrid;
   final String userRole;
@@ -30,34 +30,37 @@ class FileFolderCard extends StatelessWidget {
     this.onSelectedChanged,
   });
 
+  @override
+  State<FileFolderCard> createState() => _FileFolderCardState();
+}
+
+class _FileFolderCardState extends State<FileFolderCard> {
+  // True on Android/iOS — long press is the context menu trigger.
+  // Desktop uses the ⋮ icon + right-click.
+  static bool get _isMobile =>
+      defaultTargetPlatform == TargetPlatform.android ||
+      defaultTargetPlatform == TargetPlatform.iOS;
+
   IconData get _fileIcon {
-    final name = document.fileName.toLowerCase();
-    if (name.endsWith('.pdf')) {
-      return Icons.picture_as_pdf;
-    }
-    if (name.endsWith('.png') ||
-        name.endsWith('.jpg') ||
-        name.endsWith('.jpeg')) {
+    final name = widget.document.fileName.toLowerCase();
+    if (name.endsWith('.pdf')) return Icons.picture_as_pdf;
+    if (name.endsWith('.png') || name.endsWith('.jpg') || name.endsWith('.jpeg')) {
       return Icons.image;
     }
     return Icons.insert_drive_file;
   }
 
   Color get _fileColor {
-    final name = document.fileName.toLowerCase();
-    if (name.endsWith('.pdf')) {
-      return Colors.redAccent;
-    }
-    if (name.endsWith('.png') ||
-        name.endsWith('.jpg') ||
-        name.endsWith('.jpeg')) {
+    final name = widget.document.fileName.toLowerCase();
+    if (name.endsWith('.pdf')) return Colors.redAccent;
+    if (name.endsWith('.png') || name.endsWith('.jpg') || name.endsWith('.jpeg')) {
       return Colors.blueAccent;
     }
     return AppColors.primaryGreen;
   }
 
   Color get _statusColor {
-    switch (document.status) {
+    switch (widget.document.status) {
       case 'Completed':
         return AppColors.success;
       case 'Archived':
@@ -71,67 +74,57 @@ class FileFolderCard extends StatelessWidget {
     final items = <PopupMenuEntry<String>>[
       const PopupMenuItem(
         value: 'queue',
-        child: Row(
-          children: [
-            Icon(Icons.print, size: 18),
-            SizedBox(width: 12),
-            Text('Add to Print List', style: TextStyle(fontSize: 14)),
-          ],
-        ),
+        child: Row(children: [
+          Icon(Icons.print, size: 18),
+          SizedBox(width: 12),
+          Text('Add to Print List', style: TextStyle(fontSize: 14)),
+        ]),
       ),
       const PopupMenuItem(
         value: 'copy',
-        child: Row(
-          children: [
-            Icon(Icons.copy, size: 18),
-            SizedBox(width: 12),
-            Text('Copy', style: TextStyle(fontSize: 14)),
-          ],
-        ),
+        child: Row(children: [
+          Icon(Icons.copy, size: 18),
+          SizedBox(width: 12),
+          Text('Copy', style: TextStyle(fontSize: 14)),
+        ]),
       ),
       const PopupMenuItem(
         value: 'download',
-        child: Row(
-          children: [
-            Icon(Icons.download, size: 18),
-            SizedBox(width: 12),
-            Text('Download', style: TextStyle(fontSize: 14)),
-          ],
-        ),
+        child: Row(children: [
+          Icon(Icons.download, size: 18),
+          SizedBox(width: 12),
+          Text('Download', style: TextStyle(fontSize: 14)),
+        ]),
       ),
       const PopupMenuDivider(),
       const PopupMenuItem(
         value: 'view_profile',
-        child: Row(
-          children: [
-            Icon(Icons.person, size: 18, color: AppColors.primaryGreen),
-            SizedBox(width: 12),
-            Text('View Student Profile', style: TextStyle(fontSize: 14)),
-          ],
-        ),
+        child: Row(children: [
+          Icon(Icons.person, size: 18, color: AppColors.primaryGreen),
+          SizedBox(width: 12),
+          Text('View Student Profile', style: TextStyle(fontSize: 14)),
+        ]),
       ),
     ];
 
-    if (userRole != 'teacher') {
+    if (widget.userRole != 'teacher') {
       items.add(const PopupMenuDivider());
       items.add(const PopupMenuItem(
         value: 'delete',
-        child: Row(
-          children: [
-            Icon(Icons.delete, size: 18, color: AppColors.error),
-            SizedBox(width: 12),
-            Text('Delete', style: TextStyle(fontSize: 14, color: AppColors.error)),
-          ],
-        ),
+        child: Row(children: [
+          Icon(Icons.delete, size: 18, color: AppColors.error),
+          SizedBox(width: 12),
+          Text('Delete', style: TextStyle(fontSize: 14, color: AppColors.error)),
+        ]),
       ));
     }
     return items;
   }
 
   void _showContextMenu(BuildContext context, Offset position) {
-    if (isMultiSelectMode) return;
-    
-    final RenderBox overlay = Overlay.of(context).context.findRenderObject() as RenderBox;
+    if (widget.isMultiSelectMode) return;
+    final RenderBox overlay =
+        Overlay.of(context).context.findRenderObject() as RenderBox;
     showMenu<String>(
       context: context,
       position: RelativeRect.fromRect(
@@ -140,15 +133,15 @@ class FileFolderCard extends StatelessWidget {
       ),
       items: _buildMenuItems(),
     ).then((value) {
-      if (value != null && onActionSelected != null) {
-        onActionSelected!(value);
+      if (value != null && widget.onActionSelected != null) {
+        widget.onActionSelected!(value);
       }
     });
   }
 
   @override
   Widget build(BuildContext context) {
-    if (isGrid) return _buildGridCard(context);
+    if (widget.isGrid) return _buildGridCard(context);
     return _buildListRow(context);
   }
 
@@ -157,101 +150,107 @@ class FileFolderCard extends StatelessWidget {
   // ════════════════════════════════════════
   Widget _buildGridCard(BuildContext context) {
     return GestureDetector(
-      onSecondaryTapDown: (details) => _showContextMenu(context, details.globalPosition),
+      // Desktop: right-click opens context menu
+      onSecondaryTapDown: (details) =>
+          _showContextMenu(context, details.globalPosition),
+      // Mobile: long press opens context menu
+      onLongPressStart: _isMobile
+          ? (details) => _showContextMenu(context, details.globalPosition)
+          : null,
       child: InkWell(
-        onLongPress: () {
-          final box = context.findRenderObject() as RenderBox?;
-          if (box != null) {
-            final position = box.localToGlobal(box.size.center(Offset.zero));
-            _showContextMenu(context, position);
-          }
-        },
-        onTap: isMultiSelectMode ? () => onSelectedChanged?.call(!isSelected) : onTap,
+        onTap: widget.isMultiSelectMode
+            ? () => widget.onSelectedChanged?.call(!widget.isSelected)
+            : widget.onTap,
         borderRadius: BorderRadius.circular(AppSizes.radiusLarge),
-        child: Container(
-        decoration: BoxDecoration(
-          color: isSelected
-              ? AppColors.primaryGreen.withValues(alpha: 0.05)
-              : AppColors.surfaceWhite,
-          borderRadius: BorderRadius.circular(AppSizes.radiusLarge),
-          border: Border.all(
-            color: isSelected ? AppColors.primaryGreen : Colors.grey.shade200,
-            width: isSelected ? 1.5 : 1.0,
-          ),
-          boxShadow: [
-            BoxShadow(
+        child: Ink(
+          decoration: BoxDecoration(
+            color: widget.isSelected
+                ? AppColors.primaryGreen.withValues(alpha: 0.05)
+                : AppColors.surfaceWhite,
+            borderRadius: BorderRadius.circular(AppSizes.radiusLarge),
+            border: Border.all(
+              color: widget.isSelected
+                  ? AppColors.primaryGreen
+                  : Colors.grey.shade200,
+              width: widget.isSelected ? 1.5 : 1.0,
+            ),
+            boxShadow: [
+              BoxShadow(
                 color: Colors.black.withValues(alpha: 0.03),
                 blurRadius: 6,
-                offset: const Offset(0, 2)),
-          ],
-        ),
-        child: Stack(
-          children: [
-            if (isMultiSelectMode)
-              Positioned(
-                top: 4,
-                left: 4,
-                child: Checkbox(
-                  value: isSelected,
-                  activeColor: AppColors.primaryGreen,
-                  onChanged: onSelectedChanged,
-                ),
+                offset: const Offset(0, 2),
               ),
-            Padding(
-              padding: const EdgeInsets.all(12),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: _fileColor.withValues(alpha: 0.1),
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    child: Icon(_fileIcon, size: 40, color: _fileColor),
+            ],
+          ),
+          child: Stack(
+            children: [
+              if (widget.isMultiSelectMode)
+                Positioned(
+                  top: 4,
+                  left: 4,
+                  child: Checkbox(
+                    value: widget.isSelected,
+                    activeColor: AppColors.primaryGreen,
+                    onChanged: widget.onSelectedChanged,
                   ),
-                  const SizedBox(height: 10),
-                  Text(
-                    document.fileName,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                    textAlign: TextAlign.center,
-                    style: const TextStyle(
+                ),
+              Padding(
+                padding: const EdgeInsets.all(12),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: _fileColor.withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: Icon(_fileIcon, size: 40, color: _fileColor),
+                    ),
+                    const SizedBox(height: 10),
+                    Text(
+                      widget.document.fileName,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(
                         fontWeight: FontWeight.w600,
                         fontSize: 12,
-                        color: AppColors.textPrimary),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    document.studentName != null
-                        ? 'Student Folders / ${document.studentName}'
-                        : (document.studentLrn != null
-                            ? 'Student Folders / LRN: ${document.studentLrn}'
-                            : '—'),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                        fontSize: 11, color: AppColors.textSecondary),
-                  ),
-                  const SizedBox(height: 6),
-                  _buildStatusBadge(small: true),
-                ],
-              ),
-            ),
-            if (!isMultiSelectMode)
-              Positioned(
-                top: 2,
-                right: 2,
-                child: PopupMenuButton<String>(
-                  icon: const Icon(Icons.more_vert,
-                      color: AppColors.textSecondary, size: 18),
-                  onSelected: onActionSelected,
-                  itemBuilder: (_) => _buildMenuItems(),
+                        color: AppColors.textPrimary,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      widget.document.studentName != null
+                          ? 'Student Folders / ${widget.document.studentName}'
+                          : (widget.document.studentLrn != null
+                              ? 'Student Folders / LRN: ${widget.document.studentLrn}'
+                              : '—'),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                          fontSize: 11, color: AppColors.textSecondary),
+                    ),
+                    const SizedBox(height: 6),
+                    _buildStatusBadge(small: true),
+                  ],
                 ),
               ),
-          ],
+              // ⋮ button only on desktop — on mobile, long press triggers the menu
+              if (!widget.isMultiSelectMode && !_isMobile)
+                Positioned(
+                  top: 2,
+                  right: 2,
+                  child: PopupMenuButton<String>(
+                    icon: const Icon(Icons.more_vert,
+                        color: AppColors.textSecondary, size: 18),
+                    onSelected: widget.onActionSelected,
+                    itemBuilder: (_) => _buildMenuItems(),
+                  ),
+                ),
+            ],
+          ),
         ),
-      ),
       ),
     );
   }
@@ -261,102 +260,107 @@ class FileFolderCard extends StatelessWidget {
   // ════════════════════════════════════════
   Widget _buildListRow(BuildContext context) {
     return GestureDetector(
-      onSecondaryTapDown: (details) => _showContextMenu(context, details.globalPosition),
+      onSecondaryTapDown: (details) =>
+          _showContextMenu(context, details.globalPosition),
+      onLongPressStart: _isMobile
+          ? (details) => _showContextMenu(context, details.globalPosition)
+          : null,
       child: InkWell(
-        onLongPress: () {
-          final box = context.findRenderObject() as RenderBox?;
-          if (box != null) {
-            final position = box.localToGlobal(box.size.center(Offset.zero));
-            _showContextMenu(context, position);
-          }
-        },
-        onTap: isMultiSelectMode ? () => onSelectedChanged?.call(!isSelected) : onTap,
-        child: Container(
-        color: isSelected ? AppColors.primaryGreen.withValues(alpha: 0.05) : null,
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-        child: Row(
-          children: [
-            if (isMultiSelectMode) ...[
-              Checkbox(
-                value: isSelected,
-                activeColor: AppColors.primaryGreen,
-                onChanged: onSelectedChanged,
-              ),
-              const SizedBox(width: 8),
-            ] else ...[
-              const SizedBox(width: 4),
-            ],
-            // File icon
-            Container(
-              width: 36,
-              height: 36,
-              decoration: BoxDecoration(
-                color: _fileColor.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Icon(_fileIcon, size: 18, color: _fileColor),
-            ),
-            const SizedBox(width: 8),
+        onTap: widget.isMultiSelectMode
+            ? () => widget.onSelectedChanged?.call(!widget.isSelected)
+            : widget.onTap,
+        borderRadius: BorderRadius.circular(AppSizes.radiusSmall),
+        child: Ink(
+          color: widget.isSelected
+              ? AppColors.primaryGreen.withValues(alpha: 0.05)
+              : null,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+            child: Row(
+              children: [
+                if (widget.isMultiSelectMode) ...[
+                  Checkbox(
+                    value: widget.isSelected,
+                    activeColor: AppColors.primaryGreen,
+                    onChanged: widget.onSelectedChanged,
+                  ),
+                  const SizedBox(width: 8),
+                ] else ...[
+                  const SizedBox(width: 4),
+                ],
+                // File icon
+                Container(
+                  width: 36,
+                  height: 36,
+                  decoration: BoxDecoration(
+                    color: _fileColor.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Icon(_fileIcon, size: 18, color: _fileColor),
+                ),
+                const SizedBox(width: 8),
 
-            // File name
-            Expanded(
-              flex: 3,
-              child: Text(
-                document.fileName,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: const TextStyle(
-                    fontWeight: FontWeight.w600,
-                    fontSize: 13,
-                    color: AppColors.textPrimary),
-              ),
-            ),
-
-            // Student
-            Expanded(
-              flex: 2,
-              child: Text(
-                document.studentName != null
-                    ? 'Student Folders / ${document.studentName}'
-                    : (document.studentLrn != null
-                        ? 'Student Folders / LRN: ${document.studentLrn}'
-                        : '—'),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: const TextStyle(
-                    fontSize: 12, color: AppColors.textSecondary),
-              ),
-            ),
-
-            // Doc type
-            Expanded(
-              flex: 2,
-              child: Text(
-                document.documentType ?? '—',
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: const TextStyle(
-                    fontSize: 12, color: AppColors.textSecondary),
-              ),
-            ),
-
-            // Status
-            Expanded(child: _buildStatusBadge()),
-
-            // Actions
-            SizedBox(
-              width: 40,
-              child: isMultiSelectMode
-                  ? const SizedBox.shrink()
-                  : PopupMenuButton<String>(
-                      icon: const Icon(Icons.more_vert,
-                          size: 18, color: AppColors.textSecondary),
-                      onSelected: onActionSelected,
-                      itemBuilder: (_) => _buildMenuItems(),
+                // File name
+                Expanded(
+                  flex: 3,
+                  child: Text(
+                    widget.document.fileName,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      fontWeight: FontWeight.w600,
+                      fontSize: 13,
+                      color: AppColors.textPrimary,
                     ),
+                  ),
+                ),
+
+                // Student
+                Expanded(
+                  flex: 2,
+                  child: Text(
+                    widget.document.studentName != null
+                        ? 'Student Folders / ${widget.document.studentName}'
+                        : (widget.document.studentLrn != null
+                            ? 'Student Folders / LRN: ${widget.document.studentLrn}'
+                            : '—'),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                        fontSize: 12, color: AppColors.textSecondary),
+                  ),
+                ),
+
+                // Doc type
+                Expanded(
+                  flex: 2,
+                  child: Text(
+                    widget.document.documentType ?? '—',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                        fontSize: 12, color: AppColors.textSecondary),
+                  ),
+                ),
+
+                // Status
+                Expanded(child: _buildStatusBadge()),
+
+                // ⋮ Actions — desktop only; on mobile use long press
+                SizedBox(
+                  width: 40,
+                  child: (widget.isMultiSelectMode || _isMobile)
+                      ? const SizedBox.shrink()
+                      : PopupMenuButton<String>(
+                          icon: const Icon(Icons.more_vert,
+                              size: 18, color: AppColors.textSecondary),
+                          onSelected: widget.onActionSelected,
+                          itemBuilder: (_) => _buildMenuItems(),
+                        ),
+                ),
+              ],
             ),
-          ],
-        ),
+          ),
         ),
       ),
     );
@@ -369,15 +373,15 @@ class FileFolderCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: _statusColor.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(20),
-        border:
-            Border.all(color: _statusColor.withValues(alpha: 0.3)),
+        border: Border.all(color: _statusColor.withValues(alpha: 0.3)),
       ),
       child: Text(
-        document.status,
+        widget.document.status,
         style: TextStyle(
-            fontSize: small ? 10 : 11,
-            color: _statusColor,
-            fontWeight: FontWeight.w600),
+          fontSize: small ? 10 : 11,
+          color: _statusColor,
+          fontWeight: FontWeight.w600,
+        ),
       ),
     );
   }

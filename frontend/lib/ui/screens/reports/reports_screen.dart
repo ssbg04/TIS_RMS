@@ -1043,19 +1043,22 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
             const Divider(height: 1),
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: AppSizes.p24, vertical: 12),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              child: Wrap(
+                alignment: WrapAlignment.spaceBetween,
+                crossAxisAlignment: WrapCrossAlignment.center,
+                runSpacing: 8,
                 children: [
-                  Text('Showing ${safeStartIndex + 1} to $safeEndIndex of $totalRows entries', style: const TextStyle(color: AppColors.textSecondary, fontSize: 13)),
+                  Text('Showing ${safeStartIndex + 1} - $safeEndIndex / $totalRows', style: const TextStyle(color: AppColors.textSecondary, fontSize: 11)),
                   Row(
+                    mainAxisSize: MainAxisSize.min,
                     children: [
                       IconButton(
-                        icon: const Icon(Icons.chevron_left),
+                        icon: const Icon(Icons.chevron_left, size: 20),
                         onPressed: _currentPage > 0 ? () => setState(() => _currentPage--) : null,
                       ),
-                      Text('Page ${_currentPage + 1} of $totalPages', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                      Text('Page ${_currentPage + 1} of $totalPages', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 11)),
                       IconButton(
-                        icon: const Icon(Icons.chevron_right),
+                        icon: const Icon(Icons.chevron_right, size: 20),
                         onPressed: _currentPage < totalPages - 1 ? () => setState(() => _currentPage++) : null,
                       ),
                     ],

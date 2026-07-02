@@ -70,6 +70,7 @@ class _AddEditStudentModalState extends ConsumerState<AddEditStudentModal>
   bool _isEnrollmentInitialized = false;
 
   static const _statuses = ['Enrolled', 'Graduated', 'Transferred', 'Dropped'];
+  static const _extSuggestions = ['JR.', 'SR.', 'II', 'III', 'IV', 'V', 'VI'];
 
   bool _showOcrStep = false;
   String? _selectedOcrDocType;
@@ -93,6 +94,14 @@ class _AddEditStudentModalState extends ConsumerState<AddEditStudentModal>
     } else {
       _showOcrStep = true;
     }
+    // Refresh enrollment data every time the modal opens
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        ref.invalidate(academicYearsListProvider);
+        ref.invalidate(gradeLevelsListProvider);
+        ref.invalidate(sectionsListProvider);
+      }
+    });
   }
 
   @override
@@ -167,6 +176,93 @@ class _AddEditStudentModalState extends ConsumerState<AddEditStudentModal>
   // ----------------------------------------------------------------
   // OCR PROCESSING
   // ----------------------------------------------------------------
+
+  /// Tries to detect SF9 or SF10 from the filename.
+  /// Returns 'SF9', 'SF10', or null if undetectable.
+  String? _detectDocType(String fileName) {
+    final lower = fileName.toLowerCase();
+    // SF9 patterns: sf9, sf-9, sf 9, report card, reportcard
+    if (lower.contains('sf9') ||
+        lower.contains('sf-9') ||
+        lower.contains('sf 9') ||
+        lower.contains('report card') ||
+        lower.contains('reportcard')) {
+      return 'SF9';
+    }
+    // SF10 patterns: sf10, sf-10, sf 10, permanent record, permanentrecord
+    if (lower.contains('sf10') ||
+        lower.contains('sf-10') ||
+        lower.contains('sf 10') ||
+        lower.contains('permanent record') ||
+        lower.contains('permanentrecord') ||
+        lower.contains('school form 10') ||
+        lower.contains('school-form-10')) {
+      return 'SF10';
+    }
+    return null;
+  }
+
+  /// Shows a dialog asking the user to confirm the document type.
+  Future<String?> _askDocType() async {
+    return showDialog<String>(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(AppSizes.radiusLarge),
+        ),
+        icon: const Icon(
+          Icons.help_outline_rounded,
+          color: AppColors.primaryGreen,
+          size: 36,
+        ),
+        title: const Text(
+          'Select Document Type',
+          textAlign: TextAlign.center,
+          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+        ),
+        content: const Text(
+          "Couldn't auto-detect the document type from the filename.\n"
+          'Please select the correct type:',
+          textAlign: TextAlign.center,
+          style: TextStyle(fontSize: 14, color: AppColors.textSecondary),
+        ),
+        actionsAlignment: MainAxisAlignment.center,
+        actions: [
+          OutlinedButton(
+            onPressed: () => Navigator.of(ctx).pop('SF9'),
+            style: OutlinedButton.styleFrom(
+              side: const BorderSide(color: AppColors.primaryGreen),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(AppSizes.radiusMedium),
+              ),
+              minimumSize: const Size(100, 44),
+            ),
+            child: const Text('SF9\nReport Card',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.primaryGreen)),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(ctx).pop('SF10'),
+            style: FilledButton.styleFrom(
+              backgroundColor: AppColors.primaryGreen,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(AppSizes.radiusMedium),
+              ),
+              minimumSize: const Size(100, 44),
+            ),
+            child: const Text('SF10\nPermanent Record',
+                textAlign: TextAlign.center,
+                style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
+          ),
+        ],
+      ),
+    );
+  }
+
   Future<void> _handleOcrScan(
     File file,
     String fileName,
@@ -176,25 +272,44 @@ class _AddEditStudentModalState extends ConsumerState<AddEditStudentModal>
       _errorMessage = null;
       _ocrScannedFile = file;
     });
+
+    // Auto-detect the doc type from the filename
+    String? docType = _detectDocType(fileName);
+
+    // If detection failed, ask the user
+    if (docType == null) {
+      if (!mounted) return;
+      docType = await _askDocType();
+    }
+
+    // User cancelled the dialog
+    if (docType == null || !mounted) return;
+
+    setState(() => _selectedOcrDocType = docType);
+
     try {
       final ocrResult = await ref
           .read(ocrProvider.notifier)
           .processDocument(
             file: file,
             fileName: fileName,
-            docType: _selectedOcrDocType!,
+            docType: docType,
           );
       if (!mounted || ocrResult == null) return;
       setState(() {
         if (ocrResult.lrn.isNotEmpty) _lrnController.text = ocrResult.lrn;
-        if (ocrResult.firstName.isNotEmpty)
+        if (ocrResult.firstName.isNotEmpty) {
           _firstNameController.text = ocrResult.firstName;
-        if (ocrResult.lastName.isNotEmpty)
+        }
+        if (ocrResult.lastName.isNotEmpty) {
           _lastNameController.text = ocrResult.lastName;
-        if (ocrResult.middleName.isNotEmpty)
+        }
+        if (ocrResult.middleName.isNotEmpty) {
           _middleNameController.text = ocrResult.middleName;
-        if (ocrResult.extension.isNotEmpty)
+        }
+        if (ocrResult.extension.isNotEmpty) {
           _extController.text = ocrResult.extension;
+        }
         if (ocrResult.sex == 'Male' || ocrResult.sex == 'Female') {
           _selectedSex = ocrResult.sex;
         }
@@ -202,7 +317,7 @@ class _AddEditStudentModalState extends ConsumerState<AddEditStudentModal>
           try {
             _selectedDob = DateTime.parse(ocrResult.dob!);
           } catch (e) {
-            print('Could not parse DOB: ${ocrResult.dob}');
+            debugPrint('Could not parse DOB: ${ocrResult.dob}');
           }
         } else {
           _selectedDob = null;
@@ -242,8 +357,9 @@ class _AddEditStudentModalState extends ConsumerState<AddEditStudentModal>
 
   String? _validateRequired(String? value, String fieldName) {
     if (value == null || value.trim().isEmpty) return '$fieldName is required.';
-    if (value.trim().length < 2)
+    if (value.trim().length < 2) {
       return '$fieldName must be at least 2 characters.';
+    }
     return null;
   }
 
@@ -262,6 +378,53 @@ class _AddEditStudentModalState extends ConsumerState<AddEditStudentModal>
   }
 
   // ----------------------------------------------------------------
+  // VALIDATION DIALOG
+  // ----------------------------------------------------------------
+  void _showValidationDialog(String message) {
+    showDialog<void>(
+      context: context,
+      barrierDismissible: true,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(AppSizes.radiusLarge),
+        ),
+        icon: const Icon(
+          Icons.warning_amber_rounded,
+          color: Colors.orange,
+          size: 36,
+        ),
+        title: const Text(
+          'Incomplete Details',
+          textAlign: TextAlign.center,
+          style: TextStyle(
+            fontWeight: FontWeight.bold,
+            fontSize: 18,
+          ),
+        ),
+        content: Text(
+          message,
+          textAlign: TextAlign.center,
+          style: const TextStyle(fontSize: 14, color: AppColors.textSecondary),
+        ),
+        actionsAlignment: MainAxisAlignment.center,
+        actions: [
+          FilledButton(
+            onPressed: () => Navigator.of(ctx).pop(),
+            style: FilledButton.styleFrom(
+              backgroundColor: AppColors.primaryGreen,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(AppSizes.radiusMedium),
+              ),
+              minimumSize: const Size(120, 40),
+            ),
+            child: const Text('OK'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ----------------------------------------------------------------
   // SUBMIT
   // ----------------------------------------------------------------
   Future<void> _handleSave() async {
@@ -272,15 +435,18 @@ class _AddEditStudentModalState extends ConsumerState<AddEditStudentModal>
     final fnErr = _validateRequired(_firstNameController.text, 'First name');
     final lnErr = _validateRequired(_lastNameController.text, 'Last name');
 
-    if (lrnErr != null ||
-        fnErr != null ||
-        lnErr != null ||
-        _selectedDob == null) {
+    if (lrnErr != null || fnErr != null || lnErr != null || _selectedDob == null) {
       _tabController.animateTo(0);
       _formKey.currentState!.validate();
-      if (_selectedDob == null) {
-        setState(() => _errorMessage = 'Please select a Date of Birth.');
-      }
+      // Build a descriptive message listing all missing fields
+      final missing = <String>[];
+      if (lrnErr != null) missing.add('LRN ($lrnErr)');
+      if (fnErr != null) missing.add('First Name');
+      if (lnErr != null) missing.add('Last Name');
+      if (_selectedDob == null) missing.add('Date of Birth');
+      _showValidationDialog(
+        'Please fill in all required fields:\n\n${missing.map((e) => '• $e').join('\n')}',
+      );
       return;
     }
 
@@ -290,9 +456,12 @@ class _AddEditStudentModalState extends ConsumerState<AddEditStudentModal>
         _selectedSectionId == null) {
       _tabController.animateTo(1);
       _formKey.currentState!.validate();
-      setState(
-        () => _errorMessage =
-            'Academic Year, Grade Level, and Section are mandatory.',
+      final missing = <String>[];
+      if (_selectedAcademicYearId == null) missing.add('Academic Year');
+      if (_selectedGradeLevel == null) missing.add('Grade Level');
+      if (_selectedSectionId == null) missing.add('Section');
+      _showValidationDialog(
+        'Please select all required enrollment fields:\n\n${missing.map((e) => '• $e').join('\n')}',
       );
       return;
     }
@@ -302,9 +471,8 @@ class _AddEditStudentModalState extends ConsumerState<AddEditStudentModal>
         _selectedGradeLevel != 10 &&
         _selectedGradeLevel != 12) {
       _tabController.animateTo(1);
-      setState(
-        () => _errorMessage =
-            'Graduation status is only applicable for Grade 10 and Grade 12 students.',
+      _showValidationDialog(
+        'Graduation status is only applicable for Grade 10 and Grade 12 students.',
       );
       return;
     }
@@ -498,41 +666,40 @@ class _AddEditStudentModalState extends ConsumerState<AddEditStudentModal>
             const SizedBox(height: AppSizes.p16),
           ],
 
-          const Text(
-            'Select supported document format to extract data:',
-            style: TextStyle(fontWeight: FontWeight.w600),
+          // Info card: auto-detect notice
+          Container(
+            padding: const EdgeInsets.all(AppSizes.p12),
+            decoration: BoxDecoration(
+              color: AppColors.primaryGreen.withValues(alpha: 0.07),
+              borderRadius: BorderRadius.circular(AppSizes.radiusMedium),
+              border: Border.all(
+                  color: AppColors.primaryGreen.withValues(alpha: 0.25)),
+            ),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Icon(Icons.auto_awesome,
+                    size: 18, color: AppColors.primaryGreen),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    'Pick a file — the document type (SF9 or SF10) will be '
+                    'detected automatically from the filename. If it cannot '
+                    'be detected, you will be asked to confirm.',
+                    style: const TextStyle(
+                        fontSize: 12, color: AppColors.textSecondary),
+                  ),
+                ),
+              ],
+            ),
           ),
-          const SizedBox(height: AppSizes.p8),
+          const SizedBox(height: AppSizes.p16),
 
-          DropdownButtonFormField<String>(
-            value: _selectedOcrDocType,
-            hint: const Text(
-              'Choose SF9 (Report Card) or SF10 (Permanent Record)',
-            ),
-            isExpanded: true,
-            decoration: InputDecoration(
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(AppSizes.radiusMedium),
-              ),
-              contentPadding: const EdgeInsets.symmetric(
-                horizontal: 16,
-                vertical: 12,
-              ),
-            ),
-            items: ['SF9', 'SF10']
-                .map((type) => DropdownMenuItem(value: type, child: Text(type)))
-                .toList(),
-            onChanged: (val) => setState(() => _selectedOcrDocType = val),
+          DocumentSourcePicker(
+            allowedExtensions: const ['pdf', 'jpg', 'png', 'jpeg'],
+            onFileSelected: _handleOcrScan,
+            onError: (err) => setState(() => _errorMessage = err),
           ),
-
-          const SizedBox(height: AppSizes.p24),
-
-          if (_selectedOcrDocType != null)
-            DocumentSourcePicker(
-              allowedExtensions: const ['pdf', 'jpg', 'png', 'jpeg'],
-              onFileSelected: _handleOcrScan,
-              onError: (err) => setState(() => _errorMessage = err),
-            ),
 
           const SizedBox(height: AppSizes.p24),
 
@@ -599,7 +766,7 @@ class _AddEditStudentModalState extends ConsumerState<AddEditStudentModal>
                   child: Text(
                     isEdit
                         ? 'Update Student Record'
-                        : 'Student Details Validation',
+                        : 'Student Details',
                     style: const TextStyle(
                       fontSize: 20,
                       fontWeight: FontWeight.bold,
@@ -638,7 +805,7 @@ class _AddEditStudentModalState extends ConsumerState<AddEditStudentModal>
                 ),
               ],
             ),
-            SizedBox(height: isMobile ? 36 : 12),
+            SizedBox(height: isMobile ? 10 : 12),
 
             // ---- Tab Bar View Content (Responsive Expanded) ----
             Expanded(
@@ -648,9 +815,14 @@ class _AddEditStudentModalState extends ConsumerState<AddEditStudentModal>
                   // Tab 0: Student Details
                   SingleChildScrollView(
                     key: const ValueKey('student-details-tab'),
-                    padding: const EdgeInsets.only(right: 6, bottom: 12),
+                    padding: const EdgeInsets.only(right: 6, bottom: 12, top: 12),
                     child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
+                        // ── Learner Reference Information section label ──
+                        _SectionLabel(label: "LEARNER REFERENCE INFORMATION"),
+                        const SizedBox(height: AppSizes.p8),
+                        
                         // LRN
                         TextFormField(
                           controller: _lrnController,
@@ -667,7 +839,11 @@ class _AddEditStudentModalState extends ConsumerState<AddEditStudentModal>
                             counterText: '',
                           ),
                         ),
-                        const SizedBox(height: AppSizes.p12),
+                        const SizedBox(height: AppSizes.p16),
+
+                        // ── NAME section label ──
+                        _SectionLabel(label: 'NAME'),
+                        const SizedBox(height: AppSizes.p8),
 
                         // Names & Ext
                         LayoutBuilder(
@@ -688,7 +864,7 @@ class _AddEditStudentModalState extends ConsumerState<AddEditStudentModal>
                                             'First name',
                                           ),
                                           decoration: const InputDecoration(
-                                            labelText: 'First Name',
+                                            labelText: 'FIRST NAME',
                                             prefixIcon: Icon(
                                               Icons.badge_outlined,
                                             ),
@@ -702,7 +878,7 @@ class _AddEditStudentModalState extends ConsumerState<AddEditStudentModal>
                                           textCapitalization: TextCapitalization.characters,
                                           inputFormatters: [_UpperCaseWordsFormatter()],
                                           decoration: const InputDecoration(
-                                            labelText: 'Middle Name (optional)',
+                                            labelText: 'MIDDLE NAME (optional)',
                                             prefixIcon: Icon(
                                               Icons.badge_outlined,
                                             ),
@@ -723,7 +899,7 @@ class _AddEditStudentModalState extends ConsumerState<AddEditStudentModal>
                                           validator: (v) =>
                                               _validateRequired(v, 'Last name'),
                                           decoration: const InputDecoration(
-                                            labelText: 'Last Name',
+                                            labelText: 'LAST NAME',
                                             prefixIcon: Icon(
                                               Icons.badge_outlined,
                                             ),
@@ -732,15 +908,9 @@ class _AddEditStudentModalState extends ConsumerState<AddEditStudentModal>
                                       ),
                                       const SizedBox(width: AppSizes.p12),
                                       Expanded(
-                                        child: TextFormField(
+                                        child: _ExtensionNameField(
                                           controller: _extController,
-                                          textCapitalization: TextCapitalization.characters,
-                                          inputFormatters: [_UpperCaseWordsFormatter()],
-                                          decoration: const InputDecoration(
-                                            labelText: 'Ext.',
-                                            hintText: 'Jr / III',
-                                            prefixIcon: Icon(Icons.text_format),
-                                          ),
+                                          suggestions: _extSuggestions,
                                         ),
                                       ),
                                     ],
@@ -757,7 +927,7 @@ class _AddEditStudentModalState extends ConsumerState<AddEditStudentModal>
                                     validator: (v) =>
                                         _validateRequired(v, 'First name'),
                                     decoration: const InputDecoration(
-                                      labelText: 'First Name',
+                                      labelText: 'FIRST NAME',
                                     ),
                                   ),
                                   const SizedBox(height: AppSizes.p12),
@@ -766,7 +936,7 @@ class _AddEditStudentModalState extends ConsumerState<AddEditStudentModal>
                                     textCapitalization: TextCapitalization.characters,
                                     inputFormatters: [_UpperCaseWordsFormatter()],
                                     decoration: const InputDecoration(
-                                      labelText: 'Middle Name',
+                                      labelText: 'MIDDLE NAME',
                                     ),
                                   ),
                                   const SizedBox(height: AppSizes.p12),
@@ -777,33 +947,34 @@ class _AddEditStudentModalState extends ConsumerState<AddEditStudentModal>
                                     validator: (v) =>
                                         _validateRequired(v, 'Last name'),
                                     decoration: const InputDecoration(
-                                      labelText: 'Last Name',
+                                      labelText: 'LAST NAME',
                                     ),
                                   ),
                                   const SizedBox(height: AppSizes.p12),
-                                  TextFormField(
+                                  _ExtensionNameField(
                                     controller: _extController,
-                                    textCapitalization: TextCapitalization.characters,
-                                    inputFormatters: [_UpperCaseWordsFormatter()],
-                                    decoration: const InputDecoration(
-                                      labelText: 'Extension (Jr / III)',
-                                    ),
+                                    suggestions: _extSuggestions,
                                   ),
                                 ],
                               );
                             }
                           },
                         ),
-                        const SizedBox(height: AppSizes.p12),
+                        const SizedBox(height: AppSizes.p16),
+
+                        // ── PERSONAL INFORMATION section label ──
+                        _SectionLabel(label: 'PERSONAL INFORMATION'),
+                        const SizedBox(height: AppSizes.p8),
 
                         // Sex
                         DropdownButtonFormField<String>(
-                          value: _selectedSex,
+                          key: ValueKey('sex_$_selectedSex'),
+                          initialValue: _selectedSex,
                           validator: (v) =>
                               v == null ? 'Please select sex.' : null,
                           isExpanded: true,
                           decoration: const InputDecoration(
-                            labelText: 'Sex',
+                            labelText: 'SEX',
                             prefixIcon: Icon(Icons.wc),
                           ),
                           items: ['Male', 'Female']
@@ -821,17 +992,12 @@ class _AddEditStudentModalState extends ConsumerState<AddEditStudentModal>
                           onTap: _selectDate,
                           child: InputDecorator(
                             decoration: InputDecoration(
-                              labelText: 'Date of Birth',
+                              labelText: 'DATE OF BIRTH',
                               prefixIcon: const Icon(
                                 Icons.calendar_today,
                                 color: AppColors.textSecondary,
                               ),
-                              errorText:
-                                  (!_isLoading &&
-                                      _errorMessage != null &&
-                                      _selectedDob == null)
-                                  ? ''
-                                  : null,
+                              errorText: null,
                             ),
                             child: Text(
                               _selectedDob == null
@@ -855,13 +1021,24 @@ class _AddEditStudentModalState extends ConsumerState<AddEditStudentModal>
                   // Tab 1: Enrollment Details
                   SingleChildScrollView(
                     key: const ValueKey('enrollment-details-tab'),
-                    padding: const EdgeInsets.only(right: 6, bottom: 12),
+                    padding: const EdgeInsets.only(right: 6, bottom: 12, top: 12),
                     child: Column(
                       children: [
                         yearsAsync.when(
                           data: (years) {
+                            // Auto-default: pick current/most-recent active academic year for new students
+                            if (!isEdit && _selectedAcademicYearId == null && years.isNotEmpty) {
+                              final active = years.where((y) => y.status.toLowerCase() == 'active').toList();
+                              final candidate = active.isNotEmpty ? active.last : years.last;
+                              Future.microtask(() {
+                                if (mounted && _selectedAcademicYearId == null) {
+                                  setState(() => _selectedAcademicYearId = candidate.id);
+                                }
+                              });
+                            }
                             return DropdownButtonFormField<int>(
-                              value: _selectedAcademicYearId,
+                              key: ValueKey('academic_$_selectedAcademicYearId'),
+                              initialValue: _selectedAcademicYearId,
                               decoration: const InputDecoration(
                                 labelText: 'Academic Year',
                                 prefixIcon: Icon(Icons.calendar_today),
@@ -897,7 +1074,8 @@ class _AddEditStudentModalState extends ConsumerState<AddEditStudentModal>
                         gradeLevelsAsync.when(
                           data: (grades) {
                             return DropdownButtonFormField<int>(
-                              value: _selectedGradeLevel,
+                              key: ValueKey('grade_$_selectedGradeLevel'),
+                              initialValue: _selectedGradeLevel,
                               decoration: const InputDecoration(
                                 labelText: 'Grade Level',
                                 prefixIcon: Icon(Icons.grade),
@@ -940,24 +1118,48 @@ class _AddEditStudentModalState extends ConsumerState<AddEditStudentModal>
                                 )
                                 .toList();
 
-                            return DropdownButtonFormField<int>(
-                              value: _selectedSectionId,
-                              decoration: const InputDecoration(
-                                labelText: 'Section',
-                                prefixIcon: Icon(Icons.segment),
-                              ),
-                              items: filtered
-                                  .map(
-                                    (s) => DropdownMenuItem<int>(
-                                      value: s.id,
-                                      child: Text(s.name),
-                                    ),
-                                  )
-                                  .toList(),
-                              onChanged: (val) =>
-                                  setState(() => _selectedSectionId = val),
-                              validator: (v) =>
-                                  v == null ? 'Section is required.' : null,
+                            final matches = filtered.where((s) => s.id == _selectedSectionId);
+                            final initialSectionName = matches.isNotEmpty ? matches.first.name : '';
+
+                            return Autocomplete<SectionModel>(
+                              initialValue: TextEditingValue(text: initialSectionName),
+                              displayStringForOption: (sec) => sec.name,
+                              optionsBuilder: (textEditingValue) {
+                                if (textEditingValue.text.isEmpty) {
+                                  return filtered;
+                                }
+                                return filtered.where((sec) => sec.name
+                                    .toLowerCase()
+                                    .contains(textEditingValue.text.toLowerCase()));
+                              },
+                              onSelected: (sec) {
+                                setState(() => _selectedSectionId = sec.id);
+                              },
+                              fieldViewBuilder: (context, controller, focusNode, onFieldSubmitted) {
+                                return TextFormField(
+                                  controller: controller,
+                                  focusNode: focusNode,
+                                  decoration: const InputDecoration(
+                                    labelText: 'Section (Type or Select)',
+                                    prefixIcon: Icon(Icons.segment),
+                                    suffixIcon: Icon(Icons.arrow_drop_down),
+                                  ),
+                                  onChanged: (val) {
+                                    if (val.isEmpty) {
+                                      setState(() => _selectedSectionId = null);
+                                    } else {
+                                      final exactMatches = filtered.where((s) => s.name.toLowerCase() == val.toLowerCase());
+                                      setState(() => _selectedSectionId = exactMatches.isNotEmpty ? exactMatches.first.id : null);
+                                    }
+                                  },
+                                  validator: (v) {
+                                    if (v == null || v.isEmpty || _selectedSectionId == null) {
+                                      return 'Please select a valid section.';
+                                    }
+                                    return null;
+                                  },
+                                );
+                              },
                             );
                           },
                           loading: () =>
@@ -985,7 +1187,8 @@ class _AddEditStudentModalState extends ConsumerState<AddEditStudentModal>
                         if (isEdit) ...[
                           const SizedBox(height: AppSizes.p12),
                           DropdownButtonFormField<String>(
-                            value: _selectedStatus,
+                            key: ValueKey('status_$_selectedStatus'),
+                            initialValue: _selectedStatus,
                             isExpanded: true,
                             decoration: const InputDecoration(
                               labelText: 'Status',
@@ -1326,6 +1529,126 @@ class _ErrorBanner extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+// ================================================================
+// SECTION LABEL — thin divider with a bold label
+// ================================================================
+class _SectionLabel extends StatelessWidget {
+  final String label;
+  const _SectionLabel({required this.label});
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Text(
+          label,
+          style: const TextStyle(
+            fontSize: 11,
+            fontWeight: FontWeight.w700,
+            color: AppColors.textSecondary,
+            letterSpacing: 0.8,
+          ),
+        ),
+        const SizedBox(width: 8),
+        const Expanded(
+          child: Divider(height: 1, thickness: 1),
+        ),
+      ],
+    );
+  }
+}
+
+// ================================================================
+// EXTENSION NAME FIELD — text field with autocomplete suggestions
+// ================================================================
+class _ExtensionNameField extends StatelessWidget {
+  final TextEditingController controller;
+  final List<String> suggestions;
+
+  const _ExtensionNameField({
+    required this.controller,
+    required this.suggestions,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Autocomplete<String>(
+      initialValue: TextEditingValue(text: controller.text),
+      optionsBuilder: (textEditingValue) {
+        final query = textEditingValue.text.trim().toUpperCase();
+        if (query.isEmpty) return suggestions;
+        return suggestions.where(
+          (s) => s.toUpperCase().startsWith(query),
+        );
+      },
+      fieldViewBuilder: (ctx, fieldController, focusNode, onSubmit) {
+        // Sync the autocomplete field controller back to our controller
+        fieldController.addListener(() {
+          final upper = fieldController.text.toUpperCase();
+          if (controller.text != upper) {
+            controller.text = upper;
+            controller.selection = TextSelection.fromPosition(
+              TextPosition(offset: upper.length),
+            );
+          }
+        });
+        return TextFormField(
+          controller: fieldController,
+          focusNode: focusNode,
+          textCapitalization: TextCapitalization.characters,
+          inputFormatters: [_UpperCaseWordsFormatter()],
+          decoration: const InputDecoration(
+            labelText: 'EXTENSION NAME',
+            hintText: 'Jr. / III',
+            prefixIcon: Icon(Icons.text_format),
+          ),
+          onFieldSubmitted: (_) => onSubmit(),
+        );
+      },
+      onSelected: (selection) {
+        controller.text = selection;
+      },
+      optionsViewBuilder: (ctx, onSelected, options) {
+        return Align(
+          alignment: Alignment.topLeft,
+          child: Material(
+            elevation: 4,
+            borderRadius: BorderRadius.circular(AppSizes.radiusMedium),
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 200, maxHeight: 200),
+              child: ListView.separated(
+                shrinkWrap: true,
+                padding: EdgeInsets.zero,
+                itemCount: options.length,
+                separatorBuilder: (_, _) => const Divider(height: 1),
+                itemBuilder: (ctx, index) {
+                  final opt = options.elementAt(index);
+                  return InkWell(
+                    onTap: () => onSelected(opt),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 10,
+                      ),
+                      child: Text(
+                        opt,
+                        style: const TextStyle(
+                          fontWeight: FontWeight.w600,
+                          fontSize: 14,
+                        ),
+                      ),
+                    ),
+                  );
+                },
+              ),
+            ),
+          ),
+        );
+      },
     );
   }
 }

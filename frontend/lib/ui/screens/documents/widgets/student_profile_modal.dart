@@ -13,6 +13,8 @@ void showStudentProfileModal(
   BuildContext context, {
   required int studentId,
   required String userRole,
+  VoidCallback? onEdit,
+  VoidCallback? onDelete,
 }) {
   final screenW = MediaQuery.of(context).size.width;
   final isMobile = screenW < 700;
@@ -56,6 +58,26 @@ void showStudentProfileModal(
                         ),
                       ),
                     ),
+                    if (onEdit != null && userRole != 'teacher')
+                      IconButton(
+                        icon: const Icon(Icons.edit, color: Colors.white, size: 20),
+                        tooltip: 'Edit Student',
+                        padding: EdgeInsets.zero,
+                        constraints: const BoxConstraints(),
+                        onPressed: onEdit,
+                      ),
+                    if (onEdit != null && userRole != 'teacher')
+                      const SizedBox(width: 12),
+                    if (onDelete != null && userRole != 'teacher')
+                      IconButton(
+                        icon: const Icon(Icons.delete, color: Colors.white, size: 20),
+                        tooltip: 'Delete Student',
+                        padding: EdgeInsets.zero,
+                        constraints: const BoxConstraints(),
+                        onPressed: onDelete,
+                      ),
+                    if (onDelete != null && userRole != 'teacher')
+                      const SizedBox(width: 12),
                     IconButton(
                       icon: const Icon(Icons.close,
                           color: Colors.white, size: 20),

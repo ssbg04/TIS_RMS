@@ -143,6 +143,7 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
+      ref.read(documentQueryProvider.notifier).setPage(1);
 
       _tabListener = ref.listenManual<String>(activeTabProvider, (previous, next) {
         if (!mounted) return;
@@ -889,16 +890,9 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
                             data: (pageData) => pageData.documents.isEmpty
                                 ? _buildEmptyState()
                                 : _isGridView
-                                ? _buildGridView(pageData.documents)
-                                : _buildListView(pageData.documents),
+                                ? _buildGridView(pageData.documents, pageData.totalPages, query.page)
+                                : _buildListView(pageData.documents, pageData.totalPages, query.page),
                           ),
-                        ),
-                        // Pagination
-                        docState.maybeWhen(
-                          data: (p) => p.totalPages > 1
-                              ? _buildPagination(p.totalPages, query.page)
-                              : const SizedBox.shrink(),
-                          orElse: () => const SizedBox.shrink(),
                         ),
                       ],
                     ),
@@ -1692,16 +1686,10 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
                 return pageData.documents.isEmpty
                     ? _buildEmptyState(noSections: hasNoSections)
                     : _isGridView
-                        ? _buildGridView(pageData.documents)
-                        : _buildListView(pageData.documents);
+                        ? _buildGridView(pageData.documents, pageData.totalPages, query.page)
+                        : _buildListView(pageData.documents, pageData.totalPages, query.page);
               },
             ),
-          ),
-          docState.maybeWhen(
-            data: (p) => p.totalPages > 1
-                ? _buildPagination(p.totalPages, query.page)
-                : const SizedBox.shrink(),
-            orElse: () => const SizedBox.shrink(),
           ),
         ],
       );
@@ -1864,14 +1852,9 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
                         final folder = paginatedFolders[i];
                         return GestureDetector(
                           onSecondaryTapDown: (details) => _showFolderContextMenu(context, details.globalPosition, folder),
+                          onLongPressStart: (details) => _showFolderContextMenu(context, details.globalPosition, folder),
                           child: InkWell(
-                          onLongPress: () {
-                            final box = ctx.findRenderObject() as RenderBox?;
-                            if (box != null) {
-                              final position = box.localToGlobal(box.size.center(Offset.zero));
-                              _showFolderContextMenu(context, position, folder);
-                            }
-                          },
+
                           onTap: () {
                             if (folder.studentId != null) {
                               setState(() {
@@ -1986,14 +1969,9 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
                 final folder = paginatedFolders[i];
                 return GestureDetector(
                   onSecondaryTapDown: (details) => _showFolderContextMenu(context, details.globalPosition, folder),
+                  onLongPressStart: (details) => _showFolderContextMenu(context, details.globalPosition, folder),
                   child: InkWell(
-                  onLongPress: () {
-                    final box = ctx.findRenderObject() as RenderBox?;
-                    if (box != null) {
-                      final position = box.localToGlobal(box.size.center(Offset.zero));
-                      _showFolderContextMenu(context, position, folder);
-                    }
-                  },
+
                   onTap: () {
                     if (folder.studentId != null) {
                       setState(() {
@@ -2123,10 +2101,7 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
     return Row(mainAxisSize: MainAxisSize.min, children: pills);
   }
 
-  // ══════════════════════════════════════════════════════════════
-  // GRID VIEW
-  // ══════════════════════════════════════════════════════════════
-  Widget _buildGridView(List documents) {
+  Widget _buildGridView(List documents, int totalPages, int currentPage) {
     final screenW = MediaQuery.of(context).size.width;
     final isMobileGrid = screenW < 700;
     return LayoutBuilder(
@@ -2134,46 +2109,56 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
         // Mobile: always 2 columns; desktop: derive from tile width
         int cols = isMobileGrid ? 2 : (c.maxWidth / 180).floor().clamp(2, 6);
         final aspect = isMobileGrid ? 0.80 : 1.0;
-        return GridView.builder(
-          padding: EdgeInsets.all(isMobileGrid ? 10 : 16),
-          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: cols,
-            crossAxisSpacing: isMobileGrid ? 10 : 12,
-            mainAxisSpacing: isMobileGrid ? 10 : 12,
-            childAspectRatio: aspect,
-          ),
-          itemCount: documents.length,
-          itemBuilder: (ctx, i) => FileFolderCard(
-            document: documents[i],
-            isGrid: true,
-            userRole: widget.userRole,
-            isMultiSelectMode: _isMultiSelectMode,
-            isSelected: _selectedDocumentIds.contains(documents[i].id),
-            onSelectedChanged: (val) {
-              setState(() {
-                if (val == true) {
-                  _selectedDocumentIds.add(documents[i].id);
-                } else {
-                  _selectedDocumentIds.remove(documents[i].id);
-                }
-              });
-            },
-            onTap: () {
-              if (_isMultiSelectMode) {
-                setState(() {
-                  if (_selectedDocumentIds.contains(documents[i].id)) {
-                    _selectedDocumentIds.remove(documents[i].id);
-                  } else {
-                    _selectedDocumentIds.add(documents[i].id);
-                  }
-                });
-              } else {
-                showDocumentPreview(context: context, document: documents[i]);
-              }
-            },
-            onActionSelected: (a) => _handleAction(a, documents[i]),
-            onViewProfile: (sid) => showStudentProfileModal(context, studentId: sid, userRole: widget.userRole),
-          ),
+        return Column(
+          children: [
+            Expanded(
+              child: GridView.builder(
+                padding: EdgeInsets.all(isMobileGrid ? 10 : 16),
+                gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: cols,
+                  crossAxisSpacing: isMobileGrid ? 10 : 12,
+                  mainAxisSpacing: isMobileGrid ? 10 : 12,
+                  childAspectRatio: aspect,
+                ),
+                itemCount: documents.length,
+                itemBuilder: (ctx, i) => FileFolderCard(
+                  document: documents[i],
+                  isGrid: true,
+                  userRole: widget.userRole,
+                  isMultiSelectMode: _isMultiSelectMode,
+                  isSelected: _selectedDocumentIds.contains(documents[i].id),
+                  onSelectedChanged: (val) {
+                    setState(() {
+                      if (val == true) {
+                        _selectedDocumentIds.add(documents[i].id);
+                      } else {
+                        _selectedDocumentIds.remove(documents[i].id);
+                      }
+                    });
+                  },
+                  onTap: () {
+                    if (_isMultiSelectMode) {
+                      setState(() {
+                        if (_selectedDocumentIds.contains(documents[i].id)) {
+                          _selectedDocumentIds.remove(documents[i].id);
+                        } else {
+                          _selectedDocumentIds.add(documents[i].id);
+                        }
+                      });
+                    } else {
+                      showDocumentPreview(context: context, document: documents[i]);
+                    }
+                  },
+                  onActionSelected: (a) => _handleAction(a, documents[i]),
+                  onViewProfile: (sid) => showStudentProfileModal(context, studentId: sid, userRole: widget.userRole),
+                ),
+              ),
+            ),
+            if (totalPages > 1)
+              Container(
+                child: _buildPagination(totalPages, currentPage),
+              ),
+          ],
         );
       },
     );
@@ -2182,7 +2167,7 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
   // ══════════════════════════════════════════════════════════════
   // LIST VIEW
   // ══════════════════════════════════════════════════════════════
-  Widget _buildListView(List documents) {
+  Widget _buildListView(List documents, int totalPages, int currentPage) {
     final screenW = MediaQuery.of(context).size.width;
     final isMobileList = screenW < 700;
     return Container(
@@ -2272,45 +2257,51 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
                 itemCount: documents.length,
                 separatorBuilder: (context, index) =>
                     Divider(height: 1, color: Colors.grey.shade100),
-                itemBuilder: (ctx, i) => isMobileList
-                    ? _buildMobileListRow(documents[i], i)
-                    : FileFolderCard(
-                        document: documents[i],
-                        isGrid: false,
-                        userRole: widget.userRole,
-                        isMultiSelectMode: _isMultiSelectMode,
-                        isSelected: _selectedDocumentIds.contains(
-                          documents[i].id,
-                        ),
-                        onSelectedChanged: (val) {
-                          setState(() {
-                            if (val == true) {
-                              _selectedDocumentIds.add(documents[i].id);
-                            } else {
-                              _selectedDocumentIds.remove(documents[i].id);
-                            }
-                          });
-                        },
-                        onTap: () {
-                          if (_isMultiSelectMode) {
+                itemBuilder: (ctx, i) {
+                  return isMobileList
+                      ? _buildMobileListRow(documents[i], i)
+                      : FileFolderCard(
+                          document: documents[i],
+                          isGrid: false,
+                          userRole: widget.userRole,
+                          isMultiSelectMode: _isMultiSelectMode,
+                          isSelected: _selectedDocumentIds.contains(
+                            documents[i].id,
+                          ),
+                          onSelectedChanged: (val) {
                             setState(() {
-                              if (_selectedDocumentIds.contains(
-                                documents[i].id,
-                              )) {
-                                _selectedDocumentIds.remove(documents[i].id);
-                              } else {
+                              if (val == true) {
                                 _selectedDocumentIds.add(documents[i].id);
+                              } else {
+                                _selectedDocumentIds.remove(documents[i].id);
                               }
                             });
-                          } else {
-                            showDocumentPreview(context: context, document: documents[i]);
-                          }
-                        },
-                        onActionSelected: (a) => _handleAction(a, documents[i]),
-                        onViewProfile: (sid) => showStudentProfileModal(context, studentId: sid, userRole: widget.userRole),
-                      ),
+                          },
+                          onTap: () {
+                            if (_isMultiSelectMode) {
+                              setState(() {
+                                if (_selectedDocumentIds.contains(
+                                  documents[i].id,
+                                )) {
+                                  _selectedDocumentIds.remove(documents[i].id);
+                                } else {
+                                  _selectedDocumentIds.add(documents[i].id);
+                                }
+                              });
+                            } else {
+                              showDocumentPreview(context: context, document: documents[i]);
+                            }
+                          },
+                          onActionSelected: (a) => _handleAction(a, documents[i]),
+                          onViewProfile: (sid) => showStudentProfileModal(context, studentId: sid, userRole: widget.userRole),
+                        );
+                },
               ),
             ),
+            if (totalPages > 1)
+              Container(
+                child: _buildPagination(totalPages, currentPage),
+              ),
           ],
         ),
       ),
