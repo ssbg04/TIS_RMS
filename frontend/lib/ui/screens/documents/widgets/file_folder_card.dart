@@ -157,12 +157,9 @@ class FileFolderCard extends StatelessWidget {
   // ════════════════════════════════════════
   Widget _buildGridCard(BuildContext context) {
     return GestureDetector(
-      onSecondaryTapDown: defaultTargetPlatform == TargetPlatform.windows ? (details) => _showContextMenu(context, details.globalPosition) : null,
+      onLongPressStart: (details) => _showContextMenu(context, details.globalPosition),
+      onSecondaryTapDown: (details) => _showContextMenu(context, details.globalPosition),
       child: InkWell(
-        onLongPress: defaultTargetPlatform == TargetPlatform.android ? () {
-          final box = context.findRenderObject() as RenderBox;
-          _showContextMenu(context, box.localToGlobal(Offset.zero));
-        } : null,
         onTap: isMultiSelectMode ? () => onSelectedChanged?.call(!isSelected) : onTap,
         borderRadius: BorderRadius.circular(AppSizes.radiusLarge),
         child: Container(
@@ -258,12 +255,9 @@ class FileFolderCard extends StatelessWidget {
   // ════════════════════════════════════════
   Widget _buildListRow(BuildContext context) {
     return GestureDetector(
-      onSecondaryTapDown: defaultTargetPlatform == TargetPlatform.windows ? (details) => _showContextMenu(context, details.globalPosition) : null,
+      onLongPressStart: (details) => _showContextMenu(context, details.globalPosition),
+      onSecondaryTapDown: (details) => _showContextMenu(context, details.globalPosition),
       child: InkWell(
-        onLongPress: defaultTargetPlatform == TargetPlatform.android ? () {
-          final box = context.findRenderObject() as RenderBox;
-          _showContextMenu(context, box.localToGlobal(Offset.zero));
-        } : null,
         onTap: isMultiSelectMode ? () => onSelectedChanged?.call(!isSelected) : onTap,
         child: Container(
         color: isSelected ? AppColors.primaryGreen.withValues(alpha: 0.05) : null,

@@ -182,7 +182,7 @@ class _DocumentPreviewDialogState extends State<_DocumentPreviewDialog> {
       headerActions: [
         if (_isImage || _isPdf) ...[
           IconButton(
-            icon: const Icon(Icons.zoom_out, color: AppColors.textSecondary, size: 22),
+            icon: const Icon(Icons.zoom_out, color: Colors.white, size: 22),
             padding: EdgeInsets.zero,
             constraints: const BoxConstraints(),
             onPressed: _isImage ? _zoomImageOut : _zoomPdfOut,
@@ -190,7 +190,7 @@ class _DocumentPreviewDialogState extends State<_DocumentPreviewDialog> {
           ),
           const SizedBox(width: 12),
           IconButton(
-            icon: const Icon(Icons.zoom_in, color: AppColors.textSecondary, size: 22),
+            icon: const Icon(Icons.zoom_in, color: Colors.white, size: 22),
             padding: EdgeInsets.zero,
             constraints: const BoxConstraints(),
             onPressed: _isImage ? _zoomImageIn : _zoomPdfIn,
@@ -199,15 +199,7 @@ class _DocumentPreviewDialogState extends State<_DocumentPreviewDialog> {
           const SizedBox(width: 12),
         ],
       ],
-      content: SizedBox(
-        height: MediaQuery.of(context).size.height * 0.8,
-        child: Column(
-          children: [
-            Expanded(child: _buildContent(isMobile)),
-            _buildFooter(),
-          ],
-        ),
-      ),
+      content: _buildContent(isMobile),
     );
   }
 
@@ -510,46 +502,7 @@ class _DocumentPreviewDialogState extends State<_DocumentPreviewDialog> {
     );
   }
 
-  // ── Footer metadata bar ───────────────────────────────────
-  Widget _buildFooter() {
-    if (widget.document == null) {
-      return const SizedBox.shrink(); // No footer for local files
-    }
-    final doc = widget.document!;
-    final studentLabel = doc.studentName ?? doc.studentLrn ?? '—';
-    final dateStr = _formatDate(doc.createdAt);
 
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
-      decoration: BoxDecoration(
-        color: Colors.grey.shade50,
-        border: Border(
-          top: BorderSide(color: Colors.grey.shade200),
-        ),
-      ),
-      child: Row(
-        children: [
-          _footerChip(Icons.person_outline_rounded, studentLabel),
-          const SizedBox(width: 12),
-          if (doc.documentType != null)
-            _footerChip(Icons.label_outline_rounded, doc.documentType!),
-          const Spacer(),
-          _footerChip(Icons.calendar_today_outlined, dateStr),
-        ],
-      ),
-    );
-  }
-
-  Widget _footerChip(IconData icon, String label) => Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, size: 14, color: AppColors.textSecondary),
-          const SizedBox(width: 6),
-          Text(label,
-              style:
-                  const TextStyle(color: AppColors.textSecondary, fontSize: 12)),
-        ],
-      );
 
   String _formatDate(DateTime? date) {
     if (date == null) return '—';

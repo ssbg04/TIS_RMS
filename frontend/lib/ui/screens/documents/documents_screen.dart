@@ -1863,12 +1863,9 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
                       itemBuilder: (ctx, i) {
                         final folder = paginatedFolders[i];
                         return GestureDetector(
-                          onSecondaryTapDown: defaultTargetPlatform == TargetPlatform.windows ? (details) => _showFolderContextMenu(context, details.globalPosition, folder) : null,
+                          onLongPressStart: (details) => _showFolderContextMenu(context, details.globalPosition, folder),
+                          onSecondaryTapDown: (details) => _showFolderContextMenu(context, details.globalPosition, folder),
                           child: InkWell(
-                          onLongPress: defaultTargetPlatform == TargetPlatform.android ? () {
-                            final box = ctx.findRenderObject() as RenderBox;
-                            _showFolderContextMenu(context, box.localToGlobal(Offset.zero), folder);
-                          } : null,
                           onTap: () {
                             if (folder.studentId != null) {
                               setState(() {
@@ -1982,12 +1979,9 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
               itemBuilder: (ctx, i) {
                 final folder = paginatedFolders[i];
                 return GestureDetector(
-                  onSecondaryTapDown: defaultTargetPlatform == TargetPlatform.windows ? (details) => _showFolderContextMenu(context, details.globalPosition, folder) : null,
+                  onLongPressStart: (details) => _showFolderContextMenu(context, details.globalPosition, folder),
+                  onSecondaryTapDown: (details) => _showFolderContextMenu(context, details.globalPosition, folder),
                   child: InkWell(
-                  onLongPress: defaultTargetPlatform == TargetPlatform.android ? () {
-                    final box = ctx.findRenderObject() as RenderBox;
-                    _showFolderContextMenu(context, box.localToGlobal(Offset.zero), folder);
-                  } : null,
                   onTap: () {
                     if (folder.studentId != null) {
                       setState(() {
