@@ -489,7 +489,7 @@ class _RecentActivitiesScreenState
   Widget _buildPagination(PaginatedActivities data, int current) {
     if (data.totalPages <= 1) return const SizedBox.shrink();
     return Container(
-      color: Colors.white,
+      color: Colors.transparent,
       padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.center,

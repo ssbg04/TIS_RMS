@@ -1910,7 +1910,7 @@ class _ArchivesScreenState extends ConsumerState<ArchivesScreen>
   // ════════════════════════════════════════════════════════════════
   Widget _buildPagination(int totalPages, int currentPage) {
     return Container(
-      color: AppColors.surfaceWhite,
+      color: Colors.transparent,
       child: SafeArea(
         top: false,
         child: Padding(

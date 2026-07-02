@@ -1336,7 +1336,7 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
     final current    = query.page;
 
     return Container(
-      color: AppColors.surfaceWhite,
+      color: Colors.transparent,
       padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.center,

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'dart:ui';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/utils/date_utils.dart' as pht;
@@ -10,8 +11,7 @@ import '../../providers/users_provider.dart';
 import '../../providers/document_provider.dart';
 import '../../providers/navigation_provider.dart';
 import '../../providers/notification_provider.dart';
-import 'dart:math' as math;
-import 'dart:ui';
+
 import '../../../domain/entities/dashboard_models.dart';
 import '../../../domain/entities/user_model.dart';
 import 'recent_activities_screen.dart';
@@ -30,15 +30,14 @@ class DashboardScreen extends ConsumerStatefulWidget {
   ConsumerState<DashboardScreen> createState() => _DashboardScreenState();
 }
 
-class _DashboardScreenState extends ConsumerState<DashboardScreen> with SingleTickerProviderStateMixin {
+class _DashboardScreenState extends ConsumerState<DashboardScreen> {
   bool _setupBannerDismissed = false;
   final TextEditingController _searchController = TextEditingController();
   ProviderSubscription<String>? _tabListener;
-  late AnimationController _bgController;
+  // Removed _bgController
 
   @override
   void dispose() {
-    _bgController.dispose();
     _tabListener?.close();
     _searchController.dispose();
     super.dispose();
@@ -47,10 +46,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> with SingleTi
   @override
   void initState() {
     super.initState();
-    _bgController = AnimationController(
-      vsync: this,
-      duration: const Duration(seconds: 15),
-    )..repeat(reverse: true);
+    // Removed animated background controller
 
     ref.invalidate(dashboardDataProvider);
     
@@ -276,70 +272,10 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> with SingleTi
     final user           = ref.watch(authProvider).value;
     final isAdmin        = user?.role == 'admin';
 
-    return AnimatedBuilder(
-      animation: _bgController,
-      builder: (context, child) {
-        final t = _bgController.value * 2 * math.pi;
-        final size = MediaQuery.of(context).size;
-        return Container(
-          color: Colors.white,
-          child: Stack(
-            children: [
-              // Blob 1 (Top Left)
-              Positioned(
-                top: -50 + math.sin(t) * 100,
-                left: -100 + math.cos(t) * 100,
-                child: Container(
-                  width: 350,
-                  height: 350,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: AppColors.primaryGreen.withValues(alpha: 0.15),
-                  ),
-                ),
-              ),
-              // Blob 2 (Bottom Right)
-              Positioned(
-                bottom: -150 + math.cos(t) * 150,
-                right: -100 + math.sin(t * 1.5) * 150,
-                child: Container(
-                  width: 500,
-                  height: 500,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: AppColors.primaryGreen.withValues(alpha: 0.12),
-                  ),
-                ),
-              ),
-              // Blob 3 (Center)
-              Positioned(
-                top: size.height * 0.3 + math.sin(t * 0.8) * 120,
-                left: size.width * 0.4 + math.cos(t * 1.2) * 120,
-                child: Container(
-                  width: 300,
-                  height: 300,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: AppColors.primaryGreen.withValues(alpha: 0.1),
-                  ),
-                ),
-              ),
-              // Glass blur layer
-              Positioned.fill(
-                child: BackdropFilter(
-                  filter: ImageFilter.blur(sigmaX: 80, sigmaY: 80),
-                  child: Container(color: Colors.transparent),
-                ),
-              ),
-              // Main content
-              if (child != null) child,
-            ],
-          ),
-        );
-      },
-      child: Scaffold(
-        backgroundColor: Colors.transparent,
-        body: SafeArea(
+    // Clean up if not used
+    return Scaffold(
+      backgroundColor: AppColors.pageBackground,
+      body: SafeArea(
           child: dashboardAsync.when(
           loading: () => const Center(child: CircularProgressIndicator()),
           error: (error, _) => Center(
@@ -400,7 +336,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> with SingleTi
             ],
           ),
         ),
-      ),),
+      ),
     );
   }
 
@@ -409,21 +345,30 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> with SingleTi
     final isMobile = MediaQuery.of(context).size.width < 600;
 
     return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.95),
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: AppColors.primaryGreen.withValues(alpha: 0.5)),
+        borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.1),
-            blurRadius: 12,
-            offset: const Offset(0, 4),
+            color: Colors.black.withValues(alpha: 0.05),
+            blurRadius: 8,
+            offset: const Offset(0, 3),
           ),
         ],
       ),
-      child: isMobile
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(16),
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 5.0, sigmaY: 5.0),
+          child: Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: Colors.white.withValues(alpha: 0.7),
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: Colors.white.withValues(alpha: 0.8), width: 1.5),
+              
+            ),
+            child: isMobile
           ? Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -542,6 +487,9 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> with SingleTi
                 ),
               ],
             ),
+          ),
+        ),
+      ),
     );
   }
 

@@ -25,7 +25,7 @@ void showStudentProfileModal(
           ? const EdgeInsets.all(12)
           : const EdgeInsets.symmetric(horizontal: 80, vertical: 40),
       child: ClipRRect(
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(12),
         child: Container(
           constraints: const BoxConstraints(maxWidth: 620),
           color: AppColors.pageBackground,
@@ -35,11 +35,11 @@ void showStudentProfileModal(
               // ── Modal header ──
               Container(
                 padding:
-                    const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+                    const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
                 decoration: const BoxDecoration(
                   color: AppColors.primaryGreen,
                   borderRadius:
-                      BorderRadius.vertical(top: Radius.circular(20)),
+                      BorderRadius.vertical(top: Radius.circular(12)),
                 ),
                 child: Row(
                   children: [
