@@ -744,7 +744,6 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
                 activeIcon: Icons.close,
                 spacing: 3,
                 mini: false,
-                openCloseDial: true,
                 childPadding: const EdgeInsets.all(5),
                 spaceBetweenChildren: 4,
                 buttonSize: const Size(56.0, 56.0),
