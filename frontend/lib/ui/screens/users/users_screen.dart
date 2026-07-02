@@ -163,8 +163,9 @@ class _UsersScreenState extends ConsumerState<UsersScreen> {
                   BoxShadow(color: Colors.black.withValues(alpha: 0.1), blurRadius: 10, offset: const Offset(0, 4))
                 ],
               ),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
+              child: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   // Header
@@ -249,6 +250,7 @@ class _UsersScreenState extends ConsumerState<UsersScreen> {
                 ],
               ),
             ),
+            ),
           ),
         ),
       ),
@@ -273,12 +275,12 @@ class _UsersScreenState extends ConsumerState<UsersScreen> {
     return Scaffold(
       backgroundColor: Colors.transparent,
       floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
-      floatingActionButton: FloatingActionButton.extended(
+      floatingActionButton: FloatingActionButton(
         onPressed: () => _openModal(),
         backgroundColor: AppColors.primaryGreen,
         foregroundColor: Colors.white,
-        icon: const Icon(Icons.add),
-        label: const Text('Add User'),
+        shape: const CircleBorder(),
+        child: const Icon(Icons.add),
       ),
       body: SafeArea(
         child: Padding(
@@ -312,8 +314,10 @@ class _UsersScreenState extends ConsumerState<UsersScreen> {
                     return Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        SegmentedButton<String>(
-                          segments: [
+                        SingleChildScrollView(
+                          scrollDirection: Axis.horizontal,
+                          child: SegmentedButton<String>(
+                            segments: [
                             ButtonSegment<String>(
                               value: 'all',
                               label: Text('All (${users.length})'),
@@ -344,9 +348,10 @@ class _UsersScreenState extends ConsumerState<UsersScreen> {
                               if (states.contains(WidgetState.selected)) {
                                 return AppColors.primaryGreen;
                               }
-                              return AppColors.textSecondary;
+                              return Colors.transparent;
                             }),
                           ),
+                        ),
                         ),
                         const SizedBox(height: AppSizes.p16),
                         Expanded(
