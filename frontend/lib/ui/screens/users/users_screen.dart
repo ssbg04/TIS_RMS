@@ -1,3 +1,4 @@
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -144,83 +145,112 @@ class _UsersScreenState extends ConsumerState<UsersScreen> {
     final currentUser = ref.watch(authProvider).value;
     showDialog(
       context: context,
-      builder: (ctx) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppSizes.radiusLarge)),
-        title: Row(
-          children: [
-            Icon(Icons.person, color: _roleColor(user.role)),
-            const SizedBox(width: 8),
-            const Text('User Details'),
-            const Spacer(),
-            IconButton(
-              icon: const Icon(Icons.close),
-              onPressed: () => Navigator.of(ctx).pop(),
-            ),
-          ],
-        ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            _detailRow('Full Name', user.fullName),
-            const SizedBox(height: 8),
-            _detailRow('Username', '@${user.username}'),
-            const SizedBox(height: 8),
-            _detailRow('Access Role', user.role.toUpperCase().replaceAll('_', ' ')),
-            const SizedBox(height: 8),
-            _detailRow('Email', user.email ?? '—'),
-            const SizedBox(height: 8),
-            _detailRow('Phone', user.phone ?? '—'),
-            const SizedBox(height: 8),
-            _detailRow(
-              'Added By', 
-              user.addedByName != null 
-                  ? '${user.addedByName} (@${user.addedByUsername})' 
-                  : 'System'
-            ),
-            const SizedBox(height: 8),
-            _detailRow('Date Joined', user.createdAt?.split('T').first ?? '—'),
-          ],
-        ),
-        actionsPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-        actions: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              // Left side actions: Edit / Reset
-              Row(
+      builder: (ctx) => Dialog(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        insetPadding: const EdgeInsets.symmetric(horizontal: 16),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(AppSizes.radiusLarge),
+          child: BackdropFilter(
+            filter: ImageFilter.blur(sigmaX: 8.0, sigmaY: 8.0),
+            child: Container(
+              constraints: const BoxConstraints(maxWidth: 450),
+              decoration: BoxDecoration(
+                color: Colors.white.withValues(alpha: 0.85),
+                borderRadius: BorderRadius.circular(AppSizes.radiusLarge),
+                border: Border.all(color: Colors.white.withValues(alpha: 0.5), width: 1.5),
+                boxShadow: [
+                  BoxShadow(color: Colors.black.withValues(alpha: 0.1), blurRadius: 10, offset: const Offset(0, 4))
+                ],
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  IconButton(
-                    icon: const Icon(Icons.lock_reset, color: Colors.orange),
-                    tooltip: 'Reset Password to "changeme123"',
-                    onPressed: () {
-                      Navigator.of(ctx).pop();
-                      _confirmResetPassword(user);
-                    },
+                  // Header
+                  Padding(
+                    padding: const EdgeInsets.all(AppSizes.p24),
+                    child: Row(
+                      children: [
+                        CircleAvatar(
+                          radius: 24,
+                          backgroundColor: _roleColor(user.role).withValues(alpha: 0.15),
+                          child: Icon(Icons.person, color: _roleColor(user.role), size: 28),
+                        ),
+                        const SizedBox(width: AppSizes.p16),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(user.fullName, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppColors.textPrimary)),
+                              Text('@${user.username}', style: const TextStyle(fontSize: 13, color: AppColors.textSecondary)),
+                            ],
+                          ),
+                        ),
+                        // Action buttons in header
+                        IconButton(
+                          icon: const Icon(Icons.lock_reset, color: Colors.orange, size: 20),
+                          tooltip: 'Reset Password to "changeme123"',
+                          onPressed: () {
+                            Navigator.of(ctx).pop();
+                            _confirmResetPassword(user);
+                          },
+                        ),
+                        IconButton(
+                          icon: const Icon(Icons.edit, color: AppColors.primaryGreen, size: 20),
+                          tooltip: 'Edit User',
+                          onPressed: () {
+                            Navigator.of(ctx).pop();
+                            _openModal(user: user);
+                          },
+                        ),
+                        if (user.id != currentUser?.id)
+                          IconButton(
+                            icon: const Icon(Icons.delete_outline, color: Colors.red, size: 20),
+                            tooltip: 'Delete User',
+                            onPressed: () {
+                              Navigator.of(ctx).pop();
+                              _confirmDelete(user);
+                            },
+                          ),
+                        const SizedBox(width: 8),
+                        IconButton(
+                          icon: const Icon(Icons.close, size: 20),
+                          onPressed: () => Navigator.of(ctx).pop(),
+                        ),
+                      ],
+                    ),
                   ),
-                  IconButton(
-                    icon: const Icon(Icons.edit, color: AppColors.primaryGreen),
-                    tooltip: 'Edit User',
-                    onPressed: () {
-                      Navigator.of(ctx).pop();
-                      _openModal(user: user);
-                    },
+                  const Divider(height: 1, thickness: 1),
+                  // Content
+                  Padding(
+                    padding: const EdgeInsets.all(AppSizes.p24),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Expanded(child: _detailRow('Access Role', user.role.toUpperCase().replaceAll('_', ' '))),
+                            Expanded(child: _detailRow('Date Joined', user.createdAt?.split('T').first ?? '—')),
+                          ],
+                        ),
+                        const SizedBox(height: AppSizes.p16),
+                        Row(
+                          children: [
+                            Expanded(child: _detailRow('Email', user.email?.isNotEmpty == true ? user.email! : '—')),
+                            Expanded(child: _detailRow('Phone', user.phone?.isNotEmpty == true ? user.phone! : '—')),
+                          ],
+                        ),
+                        const SizedBox(height: AppSizes.p16),
+                        _detailRow('Added By', user.addedByName != null ? '${user.addedByName} (@${user.addedByUsername})' : 'System'),
+                      ],
+                    ),
                   ),
                 ],
               ),
-              // Right side action: Delete
-              if (user.id != currentUser?.id)
-                IconButton(
-                  icon: const Icon(Icons.delete_outline, color: Colors.red),
-                  tooltip: 'Delete User',
-                  onPressed: () {
-                    Navigator.of(ctx).pop();
-                    _confirmDelete(user);
-                  },
-                ),
-            ],
+            ),
           ),
-        ],
+        ),
       ),
     );
   }
@@ -242,6 +272,14 @@ class _UsersScreenState extends ConsumerState<UsersScreen> {
 
     return Scaffold(
       backgroundColor: Colors.transparent,
+      floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: () => _openModal(),
+        backgroundColor: AppColors.primaryGreen,
+        foregroundColor: Colors.white,
+        icon: const Icon(Icons.add),
+        label: const Text('Add User'),
+      ),
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.all(AppSizes.p24),
@@ -274,22 +312,40 @@ class _UsersScreenState extends ConsumerState<UsersScreen> {
                     return Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Container(
-                          padding: const EdgeInsets.all(4),
-                          decoration: BoxDecoration(
-                            color: Colors.grey.shade100,
-                            borderRadius: BorderRadius.circular(AppSizes.radiusLarge),
-                          ),
-                          child: SingleChildScrollView(
-                            scrollDirection: Axis.horizontal,
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                _buildSegmentTab('All Users', 'all', users.length),
-                                _buildSegmentTab('Admin', 'admin', users.where((u) => u.role == 'admin').length),
-                                _buildSegmentTab('Teacher', 'teacher', users.where((u) => u.role == 'teacher').length),
-                              ],
+                        SegmentedButton<String>(
+                          segments: [
+                            ButtonSegment<String>(
+                              value: 'all',
+                              label: Text('All (${users.length})'),
                             ),
+                            ButtonSegment<String>(
+                              value: 'admin',
+                              label: Text('Admin (${users.where((u) => u.role == 'admin').length})'),
+                            ),
+                            ButtonSegment<String>(
+                              value: 'teacher',
+                              label: Text('Teacher (${users.where((u) => u.role == 'teacher').length})'),
+                            ),
+                          ],
+                          selected: {_roleFilter},
+                          onSelectionChanged: (Set<String> newSelection) {
+                            setState(() {
+                              _roleFilter = newSelection.first;
+                            });
+                          },
+                          style: ButtonStyle(
+                            backgroundColor: WidgetStateProperty.resolveWith<Color>((Set<WidgetState> states) {
+                              if (states.contains(WidgetState.selected)) {
+                                return AppColors.primaryGreen.withValues(alpha: 0.15);
+                              }
+                              return Colors.transparent;
+                            }),
+                            foregroundColor: WidgetStateProperty.resolveWith<Color>((Set<WidgetState> states) {
+                              if (states.contains(WidgetState.selected)) {
+                                return AppColors.primaryGreen;
+                              }
+                              return AppColors.textSecondary;
+                            }),
                           ),
                         ),
                         const SizedBox(height: AppSizes.p16),
@@ -344,25 +400,7 @@ class _UsersScreenState extends ConsumerState<UsersScreen> {
                   maxWidth: double.infinity,
                 ),
               ),
-              const SizedBox(width: AppSizes.p16),
-              SizedBox(
-                width: isDesktop ? 180 : 50,
-                child: isDesktop
-                    ? PrimaryButton(
-                        label: 'ADD USER', 
-                        onPressed: () => _openModal(),
-                      )
-                    : ElevatedButton(
-                        onPressed: () => _openModal(),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: AppColors.primaryGreen,
-                          foregroundColor: Colors.white,
-                          padding: EdgeInsets.zero,
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppSizes.radiusMedium)),
-                        ),
-                        child: const Icon(Icons.add),
-                      ),
-              ),
+
             ],
           ),
         ),
@@ -370,35 +408,7 @@ class _UsersScreenState extends ConsumerState<UsersScreen> {
     );
   }
 
-  Widget _buildSegmentTab(String label, String value, int count) {
-    final isSelected = _roleFilter == value;
-    return GestureDetector(
-      onTap: () => setState(() => _roleFilter = value),
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-        decoration: BoxDecoration(
-          color: isSelected ? Colors.white : Colors.transparent,
-          borderRadius: BorderRadius.circular(AppSizes.radiusMedium),
-          boxShadow: isSelected ? [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 4, offset: const Offset(0, 2))] : [],
-        ),
-        child: Row(
-          children: [
-            Text(label, style: TextStyle(fontWeight: isSelected ? FontWeight.bold : FontWeight.w500, color: isSelected ? AppColors.textPrimary : AppColors.textSecondary, fontSize: 13)),
-            const SizedBox(width: 8),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-              decoration: BoxDecoration(
-                color: isSelected ? AppColors.primaryGreen.withValues(alpha: 0.1) : Colors.grey.shade200,
-                borderRadius: BorderRadius.circular(10),
-              ),
-              child: Text(count.toString(), style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: isSelected ? AppColors.primaryGreen : Colors.grey.shade600)),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
+
 
   Widget _buildDesktopTable(List<SystemUser> users) {
     return Container(

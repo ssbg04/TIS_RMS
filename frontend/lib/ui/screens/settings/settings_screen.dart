@@ -45,9 +45,51 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   bool _isPasswordLoading = false;
   ProviderSubscription<String>? _tabListener;
 
+  double _passwordStrength = 0.0;
+  Color _passwordStrengthColor = Colors.grey;
+  String _passwordStrengthText = '';
+
+  void _evaluatePasswordStrength() {
+    final password = _newPassCtrl.text;
+    double strength = 0.0;
+    
+    if (password.isNotEmpty) {
+      if (password.length >= 8) strength += 0.25;
+      if (RegExp(r'[A-Z]').hasMatch(password)) strength += 0.25;
+      if (RegExp(r'[0-9]').hasMatch(password)) strength += 0.25;
+      if (RegExp(r'[^A-Za-z0-9]').hasMatch(password)) strength += 0.25;
+    }
+
+    Color color = Colors.grey;
+    String text = '';
+    if (password.isEmpty) {
+      color = Colors.grey;
+      text = '';
+    } else if (strength <= 0.25) {
+      color = Colors.red;
+      text = 'Weak';
+    } else if (strength == 0.5) {
+      color = Colors.orange;
+      text = 'Fair';
+    } else if (strength == 0.75) {
+      color = Colors.yellow.shade700;
+      text = 'Good';
+    } else {
+      color = Colors.green;
+      text = 'Strong';
+    }
+
+    setState(() {
+      _passwordStrength = strength;
+      _passwordStrengthColor = color;
+      _passwordStrengthText = text;
+    });
+  }
+
   @override
   void initState() {
     super.initState();
+    _newPassCtrl.addListener(_evaluatePasswordStrength);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
       _tabListener = ref.listenManual<String>(activeTabProvider, (previous, next) {
@@ -561,6 +603,36 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                                 obscureText: _obscurePasswords,
                                 validator: AppValidators.validatePasswordComplexity,
                               ),
+                              if (_newPassCtrl.text.isNotEmpty) ...[
+                                const SizedBox(height: 8),
+                                Row(
+                                  children: [
+                                    Expanded(
+                                      child: ClipRRect(
+                                        borderRadius: BorderRadius.circular(4),
+                                        child: LinearProgressIndicator(
+                                          value: _passwordStrength,
+                                          backgroundColor: Colors.grey.shade200,
+                                          color: _passwordStrengthColor,
+                                          minHeight: 6,
+                                        ),
+                                      ),
+                                    ),
+                                    const SizedBox(width: 12),
+                                    SizedBox(
+                                      width: 50,
+                                      child: Text(
+                                        _passwordStrengthText,
+                                        style: TextStyle(
+                                          fontSize: 12,
+                                          fontWeight: FontWeight.bold,
+                                          color: _passwordStrengthColor,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ],
                               const SizedBox(height: AppSizes.p12),
                               CustomTextField(
                                 hintText: 'Confirm New Password',
