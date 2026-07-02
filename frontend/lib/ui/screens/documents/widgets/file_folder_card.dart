@@ -157,9 +157,15 @@ class FileFolderCard extends StatelessWidget {
   // ════════════════════════════════════════
   Widget _buildGridCard(BuildContext context) {
     return GestureDetector(
-      onLongPressStart: (details) => _showContextMenu(context, details.globalPosition),
       onSecondaryTapDown: (details) => _showContextMenu(context, details.globalPosition),
       child: InkWell(
+        onLongPress: () {
+          final box = context.findRenderObject() as RenderBox?;
+          if (box != null) {
+            final position = box.localToGlobal(box.size.center(Offset.zero));
+            _showContextMenu(context, position);
+          }
+        },
         onTap: isMultiSelectMode ? () => onSelectedChanged?.call(!isSelected) : onTap,
         borderRadius: BorderRadius.circular(AppSizes.radiusLarge),
         child: Container(
@@ -255,9 +261,15 @@ class FileFolderCard extends StatelessWidget {
   // ════════════════════════════════════════
   Widget _buildListRow(BuildContext context) {
     return GestureDetector(
-      onLongPressStart: (details) => _showContextMenu(context, details.globalPosition),
       onSecondaryTapDown: (details) => _showContextMenu(context, details.globalPosition),
       child: InkWell(
+        onLongPress: () {
+          final box = context.findRenderObject() as RenderBox?;
+          if (box != null) {
+            final position = box.localToGlobal(box.size.center(Offset.zero));
+            _showContextMenu(context, position);
+          }
+        },
         onTap: isMultiSelectMode ? () => onSelectedChanged?.call(!isSelected) : onTap,
         child: Container(
         color: isSelected ? AppColors.primaryGreen.withValues(alpha: 0.05) : null,

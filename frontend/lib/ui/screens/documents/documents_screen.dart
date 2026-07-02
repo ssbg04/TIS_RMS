@@ -1863,9 +1863,15 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
                       itemBuilder: (ctx, i) {
                         final folder = paginatedFolders[i];
                         return GestureDetector(
-                          onLongPressStart: (details) => _showFolderContextMenu(context, details.globalPosition, folder),
                           onSecondaryTapDown: (details) => _showFolderContextMenu(context, details.globalPosition, folder),
                           child: InkWell(
+                          onLongPress: () {
+                            final box = ctx.findRenderObject() as RenderBox?;
+                            if (box != null) {
+                              final position = box.localToGlobal(box.size.center(Offset.zero));
+                              _showFolderContextMenu(context, position, folder);
+                            }
+                          },
                           onTap: () {
                             if (folder.studentId != null) {
                               setState(() {
@@ -1979,9 +1985,15 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
               itemBuilder: (ctx, i) {
                 final folder = paginatedFolders[i];
                 return GestureDetector(
-                  onLongPressStart: (details) => _showFolderContextMenu(context, details.globalPosition, folder),
                   onSecondaryTapDown: (details) => _showFolderContextMenu(context, details.globalPosition, folder),
                   child: InkWell(
+                  onLongPress: () {
+                    final box = ctx.findRenderObject() as RenderBox?;
+                    if (box != null) {
+                      final position = box.localToGlobal(box.size.center(Offset.zero));
+                      _showFolderContextMenu(context, position, folder);
+                    }
+                  },
                   onTap: () {
                     if (folder.studentId != null) {
                       setState(() {

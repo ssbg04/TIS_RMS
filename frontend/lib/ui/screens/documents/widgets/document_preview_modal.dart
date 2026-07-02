@@ -76,6 +76,9 @@ class _DocumentPreviewDialogState extends State<_DocumentPreviewDialog> {
   @override
   void initState() {
     super.initState();
+    if (widget.localFile != null) {
+      _imageLoaded = true;
+    }
     _loadToken();
   }
 
