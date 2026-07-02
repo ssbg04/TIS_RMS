@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'dart:ui';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../domain/repositories/document_repository.dart'
@@ -25,22 +26,27 @@ void showStudentProfileModal(
           ? const EdgeInsets.all(12)
           : const EdgeInsets.symmetric(horizontal: 80, vertical: 40),
       child: ClipRRect(
-        borderRadius: BorderRadius.circular(12),
-        child: Container(
-          constraints: const BoxConstraints(maxWidth: 620),
-          color: AppColors.pageBackground,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              // ── Modal header ──
-              Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-                decoration: const BoxDecoration(
-                  color: AppColors.primaryGreen,
-                  borderRadius:
-                      BorderRadius.vertical(top: Radius.circular(12)),
-                ),
+        borderRadius: BorderRadius.circular(16),
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 5.0, sigmaY: 5.0),
+          child: Container(
+            constraints: const BoxConstraints(maxWidth: 620),
+            decoration: BoxDecoration(
+              color: Colors.white.withValues(alpha: 0.75),
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: Colors.white.withValues(alpha: 0.8), width: 1.5),
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // ── Modal header ──
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                  decoration: BoxDecoration(
+                    color: AppColors.primaryGreen.withValues(alpha: 0.9),
+                    borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
+                  ),
                 child: Row(
                   children: [
                     const Icon(Icons.person_rounded,
@@ -75,6 +81,7 @@ void showStudentProfileModal(
               ),
             ],
           ),
+        ),
         ),
       ),
     ),
