@@ -201,11 +201,6 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     final newPass = _newPassCtrl.text;
     final confirm = _confirmPassCtrl.text;
 
-    if (newPass != confirm) {
-      showErrorDialog(context, 'Password Mismatch', 'New passwords do not match.');
-      return;
-    }
-
     final current = await showDialog<String>(
       context: context,
       builder: (ctx) {
@@ -640,7 +635,12 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                                 controller: _confirmPassCtrl,
                                 isPassword: true,
                                 obscureText: _obscurePasswords,
-                                validator: (v) => AppValidators.validateRequired(v, 'Confirm Password'),
+                                validator: (v) {
+                                  final req = AppValidators.validateRequired(v, 'Confirm Password');
+                                  if (req != null) return req;
+                                  if (v != _newPassCtrl.text) return 'Passwords do not match';
+                                  return null;
+                                },
                               ),
                               const SizedBox(height: AppSizes.p24),
                               Align(
