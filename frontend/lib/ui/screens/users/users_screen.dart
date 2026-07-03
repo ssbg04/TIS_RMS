@@ -413,12 +413,17 @@ class _UsersScreenState extends ConsumerState<UsersScreen> {
             const Text('User Management',
                 style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: AppColors.textPrimary)),
             if (isDesktop)
-              SizedBox(
-                width: 200,
-                child: PrimaryButton(
-                  label: '+ Add System User',
-                  onPressed: () => _openModal(),
+              ElevatedButton.icon(
+                icon: const Icon(Icons.add, size: 18),
+                label: const Text('Add User', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.primaryGreen,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                  elevation: 0,
                 ),
+                onPressed: () => _openModal(),
               ),
           ],
         ),
@@ -793,11 +798,25 @@ class _AddEditUserModalState extends ConsumerState<AddEditUserModal> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               // Name fields
-              _field('First Name', Icons.badge, _firstNameCtrl, required: true, textCapitalization: TextCapitalization.words),
+              _field(
+                'First Name', Icons.badge, _firstNameCtrl, 
+                required: true, 
+                textCapitalization: TextCapitalization.words,
+                inputFormatters: [_TitleCaseTextInputFormatter()],
+              ),
               const SizedBox(height: AppSizes.p12),
-              _field('Middle Name', Icons.badge, _middleNameCtrl, textCapitalization: TextCapitalization.words),
+              _field(
+                'Middle Name', Icons.badge, _middleNameCtrl, 
+                textCapitalization: TextCapitalization.words,
+                inputFormatters: [_TitleCaseTextInputFormatter()],
+              ),
               const SizedBox(height: AppSizes.p12),
-              _field('Last Name', Icons.badge, _lastNameCtrl, required: true, textCapitalization: TextCapitalization.words),
+              _field(
+                'Last Name', Icons.badge, _lastNameCtrl, 
+                required: true, 
+                textCapitalization: TextCapitalization.words,
+                inputFormatters: [_TitleCaseTextInputFormatter()],
+              ),
               const SizedBox(height: AppSizes.p12),
               
               // Autocomplete for extension
@@ -827,6 +846,7 @@ class _AddEditUserModalState extends ConsumerState<AddEditUserModal> {
                     controller: controller,
                     focusNode: focusNode,
                     textCapitalization: TextCapitalization.words,
+                    inputFormatters: [_TitleCaseTextInputFormatter()],
                   );
                 },
               ),
@@ -1167,4 +1187,41 @@ class _ResetPasswordConfirmationDialogState extends State<_ResetPasswordConfirma
       ),
     );
   }
+}
+
+// ============================================================
+// FORMATTER FOR DESKTOP TITLE CASE
+// ============================================================
+class _TitleCaseTextInputFormatter extends TextInputFormatter {
+  @override
+  TextEditingValue formatEditUpdate(TextEditingValue oldValue, TextEditingValue newValue) {
+    if (newValue.text.isEmpty) {
+      return newValue;
+    }
+    
+    final text = newValue.text;
+    final buffer = StringBuffer();
+    bool capitalizeNext = true;
+
+    for (int i = 0; i < text.length; i++) {
+      final char = text[i];
+      if (char == ' ' || char == '-' || char == '.') {
+        buffer.write(char);
+        capitalizeNext = true;
+      } else {
+        if (capitalizeNext) {
+          buffer.write(char.toUpperCase());
+          capitalizeNext = false;
+        } else {
+          buffer.write(char);
+        }
+      }
+    }
+    
+    return TextEditingValue(
+      text: buffer.toString(),
+      selection: newValue.selection,
+    );
+  }
+}
 }
