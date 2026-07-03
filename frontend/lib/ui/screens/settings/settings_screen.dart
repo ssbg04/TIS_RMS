@@ -7,6 +7,7 @@ import '../../shared/inputs/custom_text_field.dart';
 import '../../shared/buttons/primary_button.dart';
 import '../../shared/dialogs/success_dialog.dart';
 import '../../shared/dialogs/error_dialog.dart';
+import '../../shared/modals/custom_modal.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/navigation_provider.dart';
 import '../../../core/utils/validators.dart';
@@ -294,18 +295,18 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   }
 
   void _showEditProfileModal(BuildContext context) {
-    showDialog(
+    CustomModal.show(
       context: context,
-      barrierDismissible: false,
-      builder: (ctx) {
-        return StatefulBuilder(
-          builder: (context, setModalState) {
-            return AlertDialog(
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-              title: const Text('Edit Profile Details'),
-              content: SingleChildScrollView(
-                child: SizedBox(
-                  width: 400,
+      title: 'Edit Profile Details',
+      icon: Icons.person_outline,
+      content: StatefulBuilder(
+        builder: (context, setModalState) {
+          return Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Flexible(
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.all(AppSizes.p24),
                   child: Form(
                     key: _profileFormKey,
                     child: Column(
@@ -361,25 +362,40 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                   ),
                 ),
               ),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.pop(ctx),
-                  child: const Text('CANCEL', style: TextStyle(color: Colors.grey)),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: AppSizes.p24, vertical: AppSizes.p16),
+                decoration: BoxDecoration(
+                  color: Colors.grey.shade50,
+                  border: Border(top: BorderSide(color: Colors.grey.shade200)),
+                  borderRadius: const BorderRadius.vertical(bottom: Radius.circular(12)),
                 ),
-                PrimaryButton(
-                  label: 'SAVE',
-                  isLoading: _isProfileLoading,
-                  onPressed: () async {
-                    if (!_profileFormKey.currentState!.validate()) return;
-                    Navigator.pop(ctx);
-                    await _handleUpdateProfile();
-                  },
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    TextButton(
+                      onPressed: () => Navigator.pop(context),
+                      child: const Text('CANCEL', style: TextStyle(color: Colors.grey, fontWeight: FontWeight.w600)),
+                    ),
+                    const SizedBox(width: AppSizes.p16),
+                    SizedBox(
+                      width: 120,
+                      child: PrimaryButton(
+                        label: 'SAVE',
+                        isLoading: _isProfileLoading,
+                        onPressed: () async {
+                          if (!_profileFormKey.currentState!.validate()) return;
+                          Navigator.pop(context);
+                          await _handleUpdateProfile();
+                        },
+                      ),
+                    ),
+                  ],
                 ),
-              ],
-            );
-          }
-        );
-      }
+              ),
+            ],
+          );
+        }
+      ),
     );
   }
 
