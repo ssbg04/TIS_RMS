@@ -15,6 +15,7 @@ import '../../providers/auth_provider.dart';
 // --- NEW IMPORTS FOR CUSTOM DIALOGS ---
 import '../../shared/dialogs/error_dialog.dart';
 import '../../shared/dialogs/success_dialog.dart';
+import '../../shared/modals/custom_modal.dart';
 
 class UsersScreen extends ConsumerStatefulWidget {
   const UsersScreen({super.key});
@@ -143,134 +144,118 @@ class _UsersScreenState extends ConsumerState<UsersScreen> {
 
   void _showUserDetailModal(SystemUser user) {
     final currentUser = ref.watch(authProvider).value;
-    showDialog(
+    
+    CustomModal.show(
       context: context,
-      builder: (ctx) => Dialog(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        insetPadding: const EdgeInsets.symmetric(horizontal: 16),
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(AppSizes.radiusLarge),
-          child: BackdropFilter(
-            filter: ImageFilter.blur(sigmaX: 8.0, sigmaY: 8.0),
-            child: Container(
-              constraints: const BoxConstraints(maxWidth: 450),
+      title: 'User Profile Details',
+      icon: Icons.person_outline,
+      maxWidth: 500,
+      content: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Header with aligned actions
+            Container(
+              padding: const EdgeInsets.all(AppSizes.p24),
               decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.85),
-                borderRadius: BorderRadius.circular(AppSizes.radiusLarge),
-                border: Border.all(color: Colors.white.withValues(alpha: 0.5), width: 1.5),
-                boxShadow: [
-                  BoxShadow(color: Colors.black.withValues(alpha: 0.1), blurRadius: 10, offset: const Offset(0, 4))
+                color: Colors.grey.shade50,
+                border: Border(bottom: BorderSide(color: Colors.grey.shade200)),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      CircleAvatar(
+                        radius: 28,
+                        backgroundColor: _roleColor(user.role).withValues(alpha: 0.15),
+                        child: Text(user.initials, style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: _roleColor(user.role))),
+                      ),
+                      const SizedBox(width: AppSizes.p16),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(user.fullName, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: AppColors.textPrimary)),
+                            Text('@${user.username}', style: const TextStyle(fontSize: 14, color: AppColors.textSecondary)),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: AppSizes.p20),
+                  Wrap(
+                    spacing: 12,
+                    runSpacing: 12,
+                    children: [
+                      OutlinedButton.icon(
+                        icon: const Icon(Icons.edit, size: 16),
+                        label: const Text('Edit'),
+                        onPressed: () {
+                          Navigator.of(context).pop();
+                          _openModal(user: user);
+                        },
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: AppColors.primaryGreen,
+                          side: const BorderSide(color: AppColors.primaryGreen),
+                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                        ),
+                      ),
+                      OutlinedButton.icon(
+                        icon: const Icon(Icons.lock_reset, size: 16),
+                        label: const Text('Reset Pass'),
+                        onPressed: () {
+                          Navigator.of(context).pop();
+                          _confirmResetPassword(user);
+                        },
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: Colors.orange,
+                          side: const BorderSide(color: Colors.orange),
+                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                        ),
+                      ),
+                      if (user.id != currentUser?.id)
+                        OutlinedButton.icon(
+                          icon: const Icon(Icons.delete_outline, size: 16),
+                          label: const Text('Delete'),
+                          onPressed: () {
+                            Navigator.of(context).pop();
+                            _confirmDelete(user);
+                          },
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: Colors.red,
+                            side: const BorderSide(color: Colors.red),
+                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                          ),
+                        ),
+                    ],
+                  ),
                 ],
               ),
-              child: SingleChildScrollView(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // Header with aligned actions
-                    Padding(
-                      padding: const EdgeInsets.all(AppSizes.p24),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            children: [
-                              CircleAvatar(
-                                radius: 24,
-                                backgroundColor: _roleColor(user.role).withValues(alpha: 0.15),
-                                child: Icon(Icons.person, color: _roleColor(user.role), size: 28),
-                              ),
-                              const SizedBox(width: AppSizes.p16),
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(user.fullName, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppColors.textPrimary)),
-                                    Text('@${user.username}', style: const TextStyle(fontSize: 13, color: AppColors.textSecondary)),
-                                  ],
-                                ),
-                              ),
-                              IconButton(
-                                icon: const Icon(Icons.close, size: 20),
-                                onPressed: () => Navigator.of(ctx).pop(),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: AppSizes.p16),
-                          Wrap(
-                            spacing: 8,
-                            runSpacing: 8,
-                            children: [
-                              OutlinedButton.icon(
-                                icon: const Icon(Icons.edit, size: 16),
-                                label: const Text('Edit', style: TextStyle(fontSize: 13)),
-                                onPressed: () {
-                                  Navigator.of(ctx).pop();
-                                  _openModal(user: user);
-                                },
-                                style: OutlinedButton.styleFrom(
-                                  foregroundColor: AppColors.primaryGreen,
-                                  side: const BorderSide(color: AppColors.primaryGreen),
-                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-                                ),
-                              ),
-                              OutlinedButton.icon(
-                                icon: const Icon(Icons.lock_reset, size: 16),
-                                label: const Text('Reset Pass', style: TextStyle(fontSize: 13)),
-                                onPressed: () {
-                                  Navigator.of(ctx).pop();
-                                  _confirmResetPassword(user);
-                                },
-                                style: OutlinedButton.styleFrom(
-                                  foregroundColor: Colors.orange,
-                                  side: const BorderSide(color: Colors.orange),
-                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-                                ),
-                              ),
-                              if (user.id != currentUser?.id)
-                                OutlinedButton.icon(
-                                  icon: const Icon(Icons.delete_outline, size: 16),
-                                  label: const Text('Delete', style: TextStyle(fontSize: 13)),
-                                  onPressed: () {
-                                    Navigator.of(ctx).pop();
-                                    _confirmDelete(user);
-                                  },
-                                  style: OutlinedButton.styleFrom(
-                                    foregroundColor: Colors.red,
-                                    side: const BorderSide(color: Colors.red),
-                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-                                  ),
-                                ),
-                            ],
-                          ),
-                        ],
-                      ),
-                    ),
-                    const Divider(height: 1, thickness: 1),
-                    // Content layout line by line
-                    Padding(
-                      padding: const EdgeInsets.all(AppSizes.p24),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          _detailRow('Access Role', user.role.toUpperCase().replaceAll('_', ' ')),
-                          const SizedBox(height: AppSizes.p16),
-                          _detailRow('Date Joined', user.createdAt?.split('T').first ?? '—'),
-                          const SizedBox(height: AppSizes.p16),
-                          _detailRow('Email', user.email?.isNotEmpty == true ? user.email! : '—'),
-                          const SizedBox(height: AppSizes.p16),
-                          _detailRow('Phone', user.phone?.isNotEmpty == true ? user.phone! : '—'),
-                          const SizedBox(height: AppSizes.p16),
-                          _detailRow('Added By', user.addedByName != null ? '${user.addedByName} (@${user.addedByUsername})' : 'System'),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
+            ),
+            // Content layout line by line
+            Padding(
+              padding: const EdgeInsets.all(AppSizes.p24),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _detailRow('Access Role', user.role.toUpperCase().replaceAll('_', ' ')),
+                  const SizedBox(height: AppSizes.p16),
+                  _detailRow('Date Joined', user.createdAt?.split('T').first ?? '—'),
+                  const SizedBox(height: AppSizes.p16),
+                  _detailRow('Email', user.email?.isNotEmpty == true ? user.email! : '—'),
+                  const SizedBox(height: AppSizes.p16),
+                  _detailRow('Phone', user.phone?.isNotEmpty == true ? user.phone! : '—'),
+                  const SizedBox(height: AppSizes.p16),
+                  _detailRow('Added By', user.addedByName != null ? '${user.addedByName} (@${user.addedByUsername})' : 'System'),
+                ],
               ),
             ),
-          ),
+          ],
         ),
       ),
     );
