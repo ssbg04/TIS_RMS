@@ -10,6 +10,7 @@ import '../../../domain/entities/setup_models.dart';
 import '../../../domain/entities/system_user.dart';
 import '../../shared/dialogs/error_dialog.dart';
 import '../../shared/dialogs/success_dialog.dart';
+import '../../shared/modals/custom_modal.dart';
 
 // Fixed grade levels 7-12 — no backend management needed
 const List<int> kGradeLevels = [7, 8, 9, 10, 11, 12];
@@ -23,7 +24,10 @@ class TeacherManagementModal extends ConsumerStatefulWidget {
   static void open(BuildContext context) {
     final isNarrow = MediaQuery.of(context).size.width < 480;
     if (isNarrow) {
-      Navigator.push(context, MaterialPageRoute(builder: (_) => const TeacherManagementModal()));
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (_) => const TeacherManagementModal()),
+      );
     } else {
       showDialog(
         context: context,
@@ -34,7 +38,8 @@ class TeacherManagementModal extends ConsumerStatefulWidget {
   }
 
   @override
-  ConsumerState<TeacherManagementModal> createState() => _TeacherManagementModalState();
+  ConsumerState<TeacherManagementModal> createState() =>
+      _TeacherManagementModalState();
 }
 
 class _TeacherManagementModalState extends ConsumerState<TeacherManagementModal>
@@ -61,80 +66,23 @@ class _TeacherManagementModalState extends ConsumerState<TeacherManagementModal>
     final screenSize = MediaQuery.of(context).size;
     final isNarrow = screenSize.width < 480;
 
-    final scaffold = Scaffold(
-      backgroundColor: AppColors.surfaceWhite,
-      body: SafeArea(
+    return CustomModal(
+      title: 'Teachers & Academic Setup',
+      icon: Icons.school,
+      maxWidth: 900,
+      content: SizedBox(
+        height: isNarrow ? screenSize.height : screenSize.height * 0.8,
         child: Column(
           children: [
-            _buildModalHeader(context),
             _buildTabBar(isNarrow),
             Expanded(
               child: TabBarView(
                 controller: _tabController,
-                children: [
-                  _TeachersTab(),
-                  _AcademicYearsTab(),
-                  _SectionsTab(),
-                ],
+                children: [_TeachersTab(), _AcademicYearsTab(), _SectionsTab()],
               ),
             ),
           ],
         ),
-      ),
-    );
-
-    if (isNarrow) return scaffold;
-
-    return Dialog(
-      backgroundColor: Colors.transparent,
-      elevation: 0,
-      insetPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(AppSizes.radiusLarge),
-        child: scaffold,
-      ),
-    );
-  }
-
-  Widget _buildModalHeader(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: AppSizes.p16, vertical: AppSizes.p12),
-      decoration: BoxDecoration(
-        color: AppColors.surfaceWhite,
-        border: Border(bottom: BorderSide(color: Colors.grey.shade200)),
-      ),
-      child: Row(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(
-              color: AppColors.primaryGreen.withValues(alpha: 0.12),
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: const Icon(Icons.school, color: AppColors.primaryGreen, size: 22),
-          ),
-          const SizedBox(width: AppSizes.p12),
-          const Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Teachers & Academic Setup',
-                  style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold, color: AppColors.textPrimary),
-                ),
-                Text(
-                  'Manage teachers, academic years, and sections',
-                  style: TextStyle(fontSize: 12, color: AppColors.textSecondary),
-                ),
-              ],
-            ),
-          ),
-          IconButton(
-            icon: const Icon(Icons.close, color: AppColors.textSecondary),
-            onPressed: () => Navigator.of(context).pop(),
-            tooltip: 'Close',
-          ),
-        ],
       ),
     );
   }
@@ -157,7 +105,10 @@ class _TeacherManagementModalState extends ConsumerState<TeacherManagementModal>
               ]
             : const [
                 Tab(icon: Icon(Icons.people, size: 18), text: 'Teachers'),
-                Tab(icon: Icon(Icons.calendar_today, size: 18), text: 'Academic Years'),
+                Tab(
+                  icon: Icon(Icons.calendar_today, size: 18),
+                  text: 'Academic Years',
+                ),
                 Tab(icon: Icon(Icons.segment, size: 18), text: 'Sections'),
               ],
       ),
@@ -181,11 +132,25 @@ class _TeachersTab extends ConsumerWidget {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Icon(Icons.people_outline, size: 64, color: Colors.grey.shade300),
+                Icon(
+                  Icons.people_outline,
+                  size: 64,
+                  color: Colors.grey.shade300,
+                ),
                 const SizedBox(height: 16),
-                Text('No teachers found.', style: TextStyle(color: Colors.grey.shade500, fontSize: 16, fontWeight: FontWeight.w500)),
+                Text(
+                  'No teachers found.',
+                  style: TextStyle(
+                    color: Colors.grey.shade500,
+                    fontSize: 16,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
                 const SizedBox(height: 8),
-                Text('Create teachers in User Settings.', style: TextStyle(color: Colors.grey.shade400, fontSize: 13)),
+                Text(
+                  'Create teachers in User Settings.',
+                  style: TextStyle(color: Colors.grey.shade400, fontSize: 13),
+                ),
               ],
             ),
           );
@@ -231,10 +196,18 @@ class _TeacherCard extends ConsumerWidget {
               children: [
                 CircleAvatar(
                   radius: 22,
-                  backgroundColor: AppColors.primaryGreen.withValues(alpha: 0.12),
+                  backgroundColor: AppColors.primaryGreen.withValues(
+                    alpha: 0.12,
+                  ),
                   child: Text(
-                    teacher.firstName.isNotEmpty ? teacher.firstName[0].toUpperCase() : 'T',
-                    style: const TextStyle(color: AppColors.primaryGreen, fontWeight: FontWeight.bold, fontSize: 16),
+                    teacher.firstName.isNotEmpty
+                        ? teacher.firstName[0].toUpperCase()
+                        : 'T',
+                    style: const TextStyle(
+                      color: AppColors.primaryGreen,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16,
+                    ),
                   ),
                 ),
                 const SizedBox(width: AppSizes.p12),
@@ -244,12 +217,19 @@ class _TeacherCard extends ConsumerWidget {
                     children: [
                       Text(
                         '${teacher.lastName}, ${teacher.firstName}',
-                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: AppColors.textPrimary),
+                        style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 15,
+                          color: AppColors.textPrimary,
+                        ),
                       ),
                       const SizedBox(height: 2),
                       Text(
                         '@${teacher.username}',
-                        style: TextStyle(fontSize: 13, color: Colors.grey.shade500),
+                        style: TextStyle(
+                          fontSize: 13,
+                          color: Colors.grey.shade500,
+                        ),
                       ),
                     ],
                   ),
@@ -275,169 +255,223 @@ class TeacherDetailModal extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final teacherSecsAsync = ref.watch(teacherSectionsProvider(teacher.id));
 
-    return Dialog(
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppSizes.radiusLarge)),
-      insetPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 40),
-      child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 480, maxHeight: 600),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            // Header
-            Container(
-              padding: const EdgeInsets.all(AppSizes.p20),
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [AppColors.primaryGreen.withValues(alpha: 0.08), AppColors.primaryGreen.withValues(alpha: 0.02)],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
+    return CustomModal(
+      title:
+          '${teacher.firstName}${teacher.middleName != null ? ' ${teacher.middleName}' : ''} ${teacher.lastName}${teacher.extension != null ? ' ${teacher.extension}' : ''}',
+      icon: Icons.person,
+      maxWidth: 480,
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Padding(
+            padding: const EdgeInsets.only(
+              left: AppSizes.p20,
+              right: AppSizes.p20,
+              top: AppSizes.p16,
+            ),
+            child: Row(
+              children: [
+                CircleAvatar(
+                  radius: 20,
+                  backgroundColor: AppColors.primaryGreen.withValues(
+                    alpha: 0.15,
+                  ),
+                  child: Text(
+                    teacher.firstName.isNotEmpty
+                        ? teacher.firstName[0].toUpperCase()
+                        : 'T',
+                    style: const TextStyle(
+                      color: AppColors.primaryGreen,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16,
+                    ),
+                  ),
                 ),
-                borderRadius: const BorderRadius.vertical(top: Radius.circular(AppSizes.radiusLarge)),
-              ),
-              child: Row(
+                const SizedBox(width: 12),
+                Text(
+                  '@${teacher.username}',
+                  style: TextStyle(color: Colors.grey.shade600, fontSize: 14),
+                ),
+              ],
+            ),
+          ),
+
+          Flexible(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.all(AppSizes.p20),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  CircleAvatar(
-                    radius: 28,
-                    backgroundColor: AppColors.primaryGreen.withValues(alpha: 0.15),
-                    child: Text(
-                      teacher.firstName.isNotEmpty ? teacher.firstName[0].toUpperCase() : 'T',
-                      style: const TextStyle(color: AppColors.primaryGreen, fontWeight: FontWeight.bold, fontSize: 22),
+                  // Contact info
+                  const Text(
+                    'Contact Information',
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 14,
+                      color: AppColors.textSecondary,
                     ),
                   ),
-                  const SizedBox(width: AppSizes.p12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          '${teacher.firstName}${teacher.middleName != null ? ' ${teacher.middleName}' : ''} ${teacher.lastName}${teacher.extension != null ? ' ${teacher.extension}' : ''}',
-                          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: AppColors.textPrimary),
-                        ),
-                        const SizedBox(height: 2),
-                        Text('@${teacher.username}', style: TextStyle(color: Colors.grey.shade500, fontSize: 13)),
-                      ],
+                  const SizedBox(height: AppSizes.p8),
+                  _DetailRow(
+                    icon: Icons.email_outlined,
+                    label: 'Email',
+                    value: teacher.email ?? 'Not set',
+                  ),
+                  _DetailRow(
+                    icon: Icons.phone_outlined,
+                    label: 'Phone',
+                    value: teacher.phone ?? 'Not set',
+                  ),
+                  const SizedBox(height: AppSizes.p16),
+
+                  // Assigned sections
+                  const Text(
+                    'Assigned Sections',
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 14,
+                      color: AppColors.textSecondary,
                     ),
                   ),
-                  IconButton(
-                    icon: const Icon(Icons.close, color: AppColors.textSecondary),
-                    onPressed: () => Navigator.pop(context),
+                  const SizedBox(height: AppSizes.p8),
+                  teacherSecsAsync.when(
+                    data: (sections) {
+                      if (sections.isEmpty) {
+                        return Container(
+                          padding: const EdgeInsets.all(AppSizes.p12),
+                          decoration: BoxDecoration(
+                            color: Colors.orange.withValues(alpha: 0.08),
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(
+                              color: Colors.orange.withValues(alpha: 0.2),
+                            ),
+                          ),
+                          child: const Row(
+                            children: [
+                              Icon(
+                                Icons.info_outline,
+                                size: 16,
+                                color: Colors.orange,
+                              ),
+                              SizedBox(width: 8),
+                              Text(
+                                'No sections assigned yet.',
+                                style: TextStyle(
+                                  color: Colors.orange,
+                                  fontSize: 13,
+                                ),
+                              ),
+                            ],
+                          ),
+                        );
+                      }
+                      // Group by academic year
+                      final Map<String, List<SectionModel>> grouped = {};
+                      for (var s in sections) {
+                        final key = s.academicYearRange ?? 'Unknown Year';
+                        grouped.putIfAbsent(key, () => []).add(s);
+                      }
+                      return Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: grouped.entries.map((entry) {
+                          return Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                entry.key,
+                                style: const TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w600,
+                                  color: AppColors.primaryGreen,
+                                ),
+                              ),
+                              const SizedBox(height: 6),
+                              Wrap(
+                                spacing: 6,
+                                runSpacing: 6,
+                                children: entry.value.map((sec) {
+                                  return Container(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 10,
+                                      vertical: 4,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: AppColors.primaryGreen.withValues(
+                                        alpha: 0.1,
+                                      ),
+                                      borderRadius: BorderRadius.circular(20),
+                                      border: Border.all(
+                                        color: AppColors.primaryGreen
+                                            .withValues(alpha: 0.25),
+                                      ),
+                                    ),
+                                    child: Text(
+                                      'G${sec.gradeLevel} – ${sec.name}',
+                                      style: const TextStyle(
+                                        fontSize: 12,
+                                        color: AppColors.primaryGreen,
+                                        fontWeight: FontWeight.w500,
+                                      ),
+                                    ),
+                                  );
+                                }).toList(),
+                              ),
+                              const SizedBox(height: 10),
+                            ],
+                          );
+                        }).toList(),
+                      );
+                    },
+                    loading: () => const Center(
+                      child: Padding(
+                        padding: EdgeInsets.all(16),
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      ),
+                    ),
+                    error: (e, _) => Text(
+                      'Error: $e',
+                      style: const TextStyle(color: Colors.red),
+                    ),
                   ),
                 ],
               ),
             ),
+          ),
 
-            Flexible(
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.all(AppSizes.p20),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // Contact info
-                    const Text('Contact Information', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: AppColors.textSecondary)),
-                    const SizedBox(height: AppSizes.p8),
-                    _DetailRow(icon: Icons.email_outlined, label: 'Email', value: teacher.email ?? 'Not set'),
-                    _DetailRow(icon: Icons.phone_outlined, label: 'Phone', value: teacher.phone ?? 'Not set'),
-                    const SizedBox(height: AppSizes.p16),
-
-                    // Assigned sections
-                    const Text('Assigned Sections', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: AppColors.textSecondary)),
-                    const SizedBox(height: AppSizes.p8),
-                    teacherSecsAsync.when(
-                      data: (sections) {
-                        if (sections.isEmpty) {
-                          return Container(
-                            padding: const EdgeInsets.all(AppSizes.p12),
-                            decoration: BoxDecoration(
-                              color: Colors.orange.withValues(alpha: 0.08),
-                              borderRadius: BorderRadius.circular(8),
-                              border: Border.all(color: Colors.orange.withValues(alpha: 0.2)),
-                            ),
-                            child: const Row(
-                              children: [
-                                Icon(Icons.info_outline, size: 16, color: Colors.orange),
-                                SizedBox(width: 8),
-                                Text('No sections assigned yet.', style: TextStyle(color: Colors.orange, fontSize: 13)),
-                              ],
-                            ),
-                          );
-                        }
-                        // Group by academic year
-                        final Map<String, List<SectionModel>> grouped = {};
-                        for (var s in sections) {
-                          final key = s.academicYearRange ?? 'Unknown Year';
-                          grouped.putIfAbsent(key, () => []).add(s);
-                        }
-                        return Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: grouped.entries.map((entry) {
-                            return Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(entry.key,
-                                    style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: AppColors.primaryGreen)),
-                                const SizedBox(height: 6),
-                                Wrap(
-                                  spacing: 6,
-                                  runSpacing: 6,
-                                  children: entry.value.map((sec) {
-                                    return Container(
-                                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                                      decoration: BoxDecoration(
-                                        color: AppColors.primaryGreen.withValues(alpha: 0.1),
-                                        borderRadius: BorderRadius.circular(20),
-                                        border: Border.all(color: AppColors.primaryGreen.withValues(alpha: 0.25)),
-                                      ),
-                                      child: Text(
-                                        'G${sec.gradeLevel} – ${sec.name}',
-                                        style: const TextStyle(fontSize: 12, color: AppColors.primaryGreen, fontWeight: FontWeight.w500),
-                                      ),
-                                    );
-                                  }).toList(),
-                                ),
-                                const SizedBox(height: 10),
-                              ],
-                            );
-                          }).toList(),
-                        );
-                      },
-                      loading: () => const Center(child: Padding(
-                        padding: EdgeInsets.all(16),
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      )),
-                      error: (e, _) => Text('Error: $e', style: const TextStyle(color: Colors.red)),
-                    ),
-                  ],
-                ),
-              ),
+          // Actions
+          Padding(
+            padding: const EdgeInsets.symmetric(
+              horizontal: AppSizes.p20,
+              vertical: AppSizes.p12,
             ),
-
-            // Actions
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: AppSizes.p20, vertical: AppSizes.p12),
-              child: SizedBox(
-                width: double.infinity,
-                child: ElevatedButton.icon(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.primaryGreen,
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(vertical: 13),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            child: SizedBox(
+              width: double.infinity,
+              child: ElevatedButton.icon(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.primaryGreen,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(vertical: 13),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10),
                   ),
-                  onPressed: () {
-                    Navigator.pop(context);
-                    showDialog(
-                      context: context,
-                      barrierDismissible: true,
-                      builder: (_) => TeacherSectionsModal(teacher: teacher),
-                    );
-                  },
-                  icon: const Icon(Icons.edit_note, size: 20),
-                  label: const Text('Manage Sections', style: TextStyle(fontWeight: FontWeight.w600)),
+                ),
+                onPressed: () {
+                  Navigator.pop(context);
+                  showDialog(
+                    context: context,
+                    barrierDismissible: true,
+                    builder: (_) => TeacherSectionsModal(teacher: teacher),
+                  );
+                },
+                icon: const Icon(Icons.edit_note, size: 20),
+                label: const Text(
+                  'Manage Sections',
+                  style: TextStyle(fontWeight: FontWeight.w600),
                 ),
               ),
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
@@ -447,7 +481,11 @@ class _DetailRow extends StatelessWidget {
   final IconData icon;
   final String label;
   final String value;
-  const _DetailRow({required this.icon, required this.label, required this.value});
+  const _DetailRow({
+    required this.icon,
+    required this.label,
+    required this.value,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -457,8 +495,19 @@ class _DetailRow extends StatelessWidget {
         children: [
           Icon(icon, size: 16, color: Colors.grey.shade500),
           const SizedBox(width: 8),
-          Text('$label: ', style: TextStyle(fontSize: 13, color: Colors.grey.shade500)),
-          Flexible(child: Text(value, style: const TextStyle(fontSize: 13, color: AppColors.textPrimary))),
+          Text(
+            '$label: ',
+            style: TextStyle(fontSize: 13, color: Colors.grey.shade500),
+          ),
+          Flexible(
+            child: Text(
+              value,
+              style: const TextStyle(
+                fontSize: 13,
+                color: AppColors.textPrimary,
+              ),
+            ),
+          ),
         ],
       ),
     );
@@ -476,7 +525,12 @@ class _AcademicYearsTab extends ConsumerWidget {
     return Column(
       children: [
         Padding(
-          padding: const EdgeInsets.fromLTRB(AppSizes.p16, AppSizes.p12, AppSizes.p16, 0),
+          padding: const EdgeInsets.fromLTRB(
+            AppSizes.p16,
+            AppSizes.p12,
+            AppSizes.p16,
+            0,
+          ),
           child: Row(
             children: [
               Expanded(
@@ -490,8 +544,13 @@ class _AcademicYearsTab extends ConsumerWidget {
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppColors.primaryGreen,
                   foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 14,
+                    vertical: 10,
+                  ),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
                   textStyle: const TextStyle(fontSize: 13),
                 ),
                 onPressed: () => showDialog(
@@ -508,7 +567,8 @@ class _AcademicYearsTab extends ConsumerWidget {
         Expanded(
           child: yearsAsync.when(
             data: (years) {
-              if (years.isEmpty) return const Center(child: Text('No academic years created.'));
+              if (years.isEmpty)
+                return const Center(child: Text('No academic years created.'));
               return ListView.builder(
                 padding: const EdgeInsets.symmetric(horizontal: AppSizes.p16),
                 itemCount: years.length,
@@ -517,35 +577,58 @@ class _AcademicYearsTab extends ConsumerWidget {
                   final isActive = year.status == 'active';
                   return Container(
                     margin: const EdgeInsets.only(bottom: AppSizes.p8),
-                    padding: const EdgeInsets.symmetric(horizontal: AppSizes.p12, vertical: AppSizes.p12),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: AppSizes.p12,
+                      vertical: AppSizes.p12,
+                    ),
                     decoration: BoxDecoration(
-                      color: isActive ? AppColors.primaryGreen.withValues(alpha: 0.04) : AppColors.surfaceWhite,
-                      borderRadius: BorderRadius.circular(AppSizes.radiusMedium),
+                      color: isActive
+                          ? AppColors.primaryGreen.withValues(alpha: 0.04)
+                          : AppColors.surfaceWhite,
+                      borderRadius: BorderRadius.circular(
+                        AppSizes.radiusMedium,
+                      ),
                       border: Border.all(
-                        color: isActive ? AppColors.primaryGreen.withValues(alpha: 0.35) : Colors.grey.shade200,
+                        color: isActive
+                            ? AppColors.primaryGreen.withValues(alpha: 0.35)
+                            : Colors.grey.shade200,
                       ),
                     ),
                     child: Row(
                       children: [
-                        Icon(Icons.calendar_today,
-                            color: isActive ? AppColors.primaryGreen : Colors.grey.shade400, size: 18),
+                        Icon(
+                          Icons.calendar_today,
+                          color: isActive
+                              ? AppColors.primaryGreen
+                              : Colors.grey.shade400,
+                          size: 18,
+                        ),
                         const SizedBox(width: AppSizes.p12),
                         Expanded(
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Text(year.yearRange,
-                                  style: TextStyle(
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 15,
-                                    color: isActive ? AppColors.primaryGreen : AppColors.textPrimary,
-                                  )),
+                              Text(
+                                year.yearRange,
+                                style: TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 15,
+                                  color: isActive
+                                      ? AppColors.primaryGreen
+                                      : AppColors.textPrimary,
+                                ),
+                              ),
                               const SizedBox(height: 2),
                               Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 8,
+                                  vertical: 2,
+                                ),
                                 decoration: BoxDecoration(
                                   color: isActive
-                                      ? AppColors.success.withValues(alpha: 0.12)
+                                      ? AppColors.success.withValues(
+                                          alpha: 0.12,
+                                        )
                                       : Colors.grey.withValues(alpha: 0.1),
                                   borderRadius: BorderRadius.circular(20),
                                 ),
@@ -554,7 +637,9 @@ class _AcademicYearsTab extends ConsumerWidget {
                                   style: TextStyle(
                                     fontSize: 10,
                                     fontWeight: FontWeight.bold,
-                                    color: isActive ? AppColors.success : Colors.grey.shade500,
+                                    color: isActive
+                                        ? AppColors.success
+                                        : Colors.grey.shade500,
                                   ),
                                 ),
                               ),
@@ -562,20 +647,31 @@ class _AcademicYearsTab extends ConsumerWidget {
                           ),
                         ),
                         IconButton(
-                          icon: Icon(Icons.edit, color: Colors.blue.shade400, size: 18),
+                          icon: Icon(
+                            Icons.edit,
+                            color: Colors.blue.shade400,
+                            size: 18,
+                          ),
                           onPressed: () => showDialog(
                             context: context,
                             builder: (_) => AcademicYearFormModal(year: year),
                           ),
                           tooltip: 'Edit',
                         ),
-                        Consumer(builder: (context, ref, _) {
-                          return IconButton(
-                            icon: Icon(Icons.delete, color: AppColors.error.withValues(alpha: 0.7), size: 18),
-                            onPressed: () => _confirmDelete(context, ref, year),
-                            tooltip: 'Delete',
-                          );
-                        }),
+                        Consumer(
+                          builder: (context, ref, _) {
+                            return IconButton(
+                              icon: Icon(
+                                Icons.delete,
+                                color: AppColors.error.withValues(alpha: 0.7),
+                                size: 18,
+                              ),
+                              onPressed: () =>
+                                  _confirmDelete(context, ref, year),
+                              tooltip: 'Delete',
+                            );
+                          },
+                        ),
                       ],
                     ),
                   );
@@ -590,25 +686,50 @@ class _AcademicYearsTab extends ConsumerWidget {
     );
   }
 
-  void _confirmDelete(BuildContext context, WidgetRef ref, AcademicYearModel year) {
+  void _confirmDelete(
+    BuildContext context,
+    WidgetRef ref,
+    AcademicYearModel year,
+  ) {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Delete Academic Year', style: TextStyle(color: AppColors.error)),
-        content: Text('Delete "${year.yearRange}"? This will also delete all sections in it.'),
+        title: const Text(
+          'Delete Academic Year',
+          style: TextStyle(color: AppColors.error),
+        ),
+        content: Text(
+          'Delete "${year.yearRange}"? This will also delete all sections in it.',
+        ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('CANCEL')),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('CANCEL'),
+          ),
           ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: AppColors.error, foregroundColor: Colors.white),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.error,
+              foregroundColor: Colors.white,
+            ),
             onPressed: () async {
               Navigator.pop(ctx);
               try {
-                await ref.read(setupMutationProvider.notifier).deleteAcademicYear(year.id);
+                await ref
+                    .read(setupMutationProvider.notifier)
+                    .deleteAcademicYear(year.id);
                 if (!context.mounted) return;
-                showSuccessDialog(context, title: 'Deleted', message: '"${year.yearRange}" has been deleted.');
+                showSuccessDialog(
+                  context,
+                  title: 'Deleted',
+                  message: '"${year.yearRange}" has been deleted.',
+                );
               } catch (e) {
                 if (!context.mounted) return;
-                showErrorDialog(context, 'Deletion Failed', e.toString().replaceAll('Exception: ', ''));
+                showErrorDialog(
+                  context,
+                  'Deletion Failed',
+                  e.toString().replaceAll('Exception: ', ''),
+                );
               }
             },
             child: const Text('DELETE'),
@@ -659,7 +780,12 @@ class _SectionsTabState extends ConsumerState<_SectionsTab> {
           children: [
             // Filter row
             Padding(
-              padding: const EdgeInsets.fromLTRB(AppSizes.p16, AppSizes.p12, AppSizes.p16, 0),
+              padding: const EdgeInsets.fromLTRB(
+                AppSizes.p16,
+                AppSizes.p12,
+                AppSizes.p16,
+                0,
+              ),
               child: Row(
                 children: [
                   // Academic year filter
@@ -669,10 +795,17 @@ class _SectionsTabState extends ConsumerState<_SectionsTab> {
                       hint: 'All Years',
                       icon: Icons.calendar_today,
                       value: _filterYearId,
-                      items: years.map((y) => DropdownMenuItem<int>(
-                        value: y.id,
-                        child: Text(y.yearRange, overflow: TextOverflow.ellipsis),
-                      )).toList(),
+                      items: years
+                          .map(
+                            (y) => DropdownMenuItem<int>(
+                              value: y.id,
+                              child: Text(
+                                y.yearRange,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                          )
+                          .toList(),
                       onChanged: (v) => setState(() => _filterYearId = v),
                       showClear: _filterYearId != null,
                       onClear: () => setState(() => _filterYearId = null),
@@ -686,10 +819,14 @@ class _SectionsTabState extends ConsumerState<_SectionsTab> {
                       hint: 'All Grades',
                       icon: Icons.grade,
                       value: _filterGradeLevel,
-                      items: kGradeLevels.map((g) => DropdownMenuItem<int>(
-                        value: g,
-                        child: Text('Grade $g'),
-                      )).toList(),
+                      items: kGradeLevels
+                          .map(
+                            (g) => DropdownMenuItem<int>(
+                              value: g,
+                              child: Text('Grade $g'),
+                            ),
+                          )
+                          .toList(),
                       onChanged: (v) => setState(() => _filterGradeLevel = v),
                       showClear: _filterGradeLevel != null,
                       onClear: () => setState(() => _filterGradeLevel = null),
@@ -702,14 +839,20 @@ class _SectionsTabState extends ConsumerState<_SectionsTab> {
                       style: ElevatedButton.styleFrom(
                         backgroundColor: AppColors.primaryGreen,
                         foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 0),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 0,
+                        ),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
                         minimumSize: Size.zero,
                       ),
                       onPressed: () => showDialog(
                         context: context,
                         builder: (_) => SectionFormModal(
                           defaultAcademicYearId: _filterYearId,
+                          defaultGradeLevel: _filterGradeLevel,
                         ),
                       ),
                       child: const Icon(Icons.add, size: 20),
@@ -724,55 +867,84 @@ class _SectionsTabState extends ConsumerState<_SectionsTab> {
                 data: (sections) {
                   var filtered = sections;
                   if (_filterYearId != null) {
-                    filtered = filtered.where((s) => s.academicYearId == _filterYearId).toList();
+                    filtered = filtered
+                        .where((s) => s.academicYearId == _filterYearId)
+                        .toList();
                   }
                   if (_filterGradeLevel != null) {
-                    filtered = filtered.where((s) => s.gradeLevel == _filterGradeLevel).toList();
+                    filtered = filtered
+                        .where((s) => s.gradeLevel == _filterGradeLevel)
+                        .toList();
                   }
                   if (filtered.isEmpty) {
                     return Center(
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          Icon(Icons.segment, size: 48, color: Colors.grey.shade300),
+                          Icon(
+                            Icons.segment,
+                            size: 48,
+                            color: Colors.grey.shade300,
+                          ),
                           const SizedBox(height: 12),
                           Text(
                             'No sections found.',
-                            style: TextStyle(color: Colors.grey.shade500, fontSize: 15),
+                            style: TextStyle(
+                              color: Colors.grey.shade500,
+                              fontSize: 15,
+                            ),
                           ),
                           const SizedBox(height: 6),
                           Text(
                             'Try adjusting the filters or add a new section.',
-                            style: TextStyle(color: Colors.grey.shade400, fontSize: 12),
+                            style: TextStyle(
+                              color: Colors.grey.shade400,
+                              fontSize: 12,
+                            ),
                           ),
                         ],
                       ),
                     );
                   }
                   return ListView.builder(
-                    padding: const EdgeInsets.symmetric(horizontal: AppSizes.p16),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: AppSizes.p16,
+                    ),
                     itemCount: filtered.length,
                     itemBuilder: (context, index) {
                       final section = filtered[index];
                       return Container(
                         margin: const EdgeInsets.only(bottom: AppSizes.p8),
-                        padding: const EdgeInsets.symmetric(horizontal: AppSizes.p12, vertical: AppSizes.p12),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: AppSizes.p12,
+                          vertical: AppSizes.p12,
+                        ),
                         decoration: BoxDecoration(
                           color: AppColors.surfaceWhite,
-                          borderRadius: BorderRadius.circular(AppSizes.radiusMedium),
+                          borderRadius: BorderRadius.circular(
+                            AppSizes.radiusMedium,
+                          ),
                           border: Border.all(color: Colors.grey.shade200),
                         ),
                         child: Row(
                           children: [
                             Container(
-                              width: 36, height: 36,
+                              width: 36,
+                              height: 36,
                               decoration: BoxDecoration(
-                                color: AppColors.primaryGreen.withValues(alpha: 0.1),
+                                color: AppColors.primaryGreen.withValues(
+                                  alpha: 0.1,
+                                ),
                                 borderRadius: BorderRadius.circular(8),
                               ),
                               child: Center(
-                                child: Text('${section.gradeLevel}',
-                                    style: const TextStyle(color: AppColors.primaryGreen, fontWeight: FontWeight.bold)),
+                                child: Text(
+                                  '${section.gradeLevel}',
+                                  style: const TextStyle(
+                                    color: AppColors.primaryGreen,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
                               ),
                             ),
                             const SizedBox(width: AppSizes.p12),
@@ -780,33 +952,60 @@ class _SectionsTabState extends ConsumerState<_SectionsTab> {
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  Text(section.name,
-                                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
-                                  Text('Grade ${section.gradeLevel} • ${section.academicYearRange ?? ""}',
-                                      style: TextStyle(color: Colors.grey.shade500, fontSize: 12)),
+                                  Text(
+                                    section.name,
+                                    style: const TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 14,
+                                    ),
+                                  ),
+                                  Text(
+                                    'Grade ${section.gradeLevel} • ${section.academicYearRange ?? ""}',
+                                    style: TextStyle(
+                                      color: Colors.grey.shade500,
+                                      fontSize: 12,
+                                    ),
+                                  ),
                                 ],
                               ),
                             ),
-                            Consumer(builder: (context, ref, _) {
-                              return Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  IconButton(
-                                    icon: Icon(Icons.edit, color: Colors.blue.shade400, size: 18),
-                                    onPressed: () => showDialog(
-                                      context: context,
-                                      builder: (_) => SectionFormModal(section: section),
+                            Consumer(
+                              builder: (context, ref, _) {
+                                return Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    IconButton(
+                                      icon: Icon(
+                                        Icons.edit,
+                                        color: Colors.blue.shade400,
+                                        size: 18,
+                                      ),
+                                      onPressed: () => showDialog(
+                                        context: context,
+                                        builder: (_) =>
+                                            SectionFormModal(section: section),
+                                      ),
+                                      tooltip: 'Edit',
                                     ),
-                                    tooltip: 'Edit',
-                                  ),
-                                  IconButton(
-                                    icon: Icon(Icons.delete, color: AppColors.error.withValues(alpha: 0.7), size: 18),
-                                    onPressed: () => _confirmDeleteSection(context, ref, section),
-                                    tooltip: 'Delete',
-                                  ),
-                                ],
-                              );
-                            }),
+                                    IconButton(
+                                      icon: Icon(
+                                        Icons.delete,
+                                        color: AppColors.error.withValues(
+                                          alpha: 0.7,
+                                        ),
+                                        size: 18,
+                                      ),
+                                      onPressed: () => _confirmDeleteSection(
+                                        context,
+                                        ref,
+                                        section,
+                                      ),
+                                      tooltip: 'Delete',
+                                    ),
+                                  ],
+                                );
+                              },
+                            ),
                           ],
                         ),
                       );
@@ -825,25 +1024,50 @@ class _SectionsTabState extends ConsumerState<_SectionsTab> {
     );
   }
 
-  void _confirmDeleteSection(BuildContext context, WidgetRef ref, SectionModel section) {
+  void _confirmDeleteSection(
+    BuildContext context,
+    WidgetRef ref,
+    SectionModel section,
+  ) {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Delete Section', style: TextStyle(color: AppColors.error)),
-        content: Text('Are you sure you want to delete section "${section.name}"?'),
+        title: const Text(
+          'Delete Section',
+          style: TextStyle(color: AppColors.error),
+        ),
+        content: Text(
+          'Are you sure you want to delete section "${section.name}"?',
+        ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('CANCEL')),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('CANCEL'),
+          ),
           ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: AppColors.error, foregroundColor: Colors.white),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.error,
+              foregroundColor: Colors.white,
+            ),
             onPressed: () async {
               Navigator.pop(ctx);
               try {
-                await ref.read(setupMutationProvider.notifier).deleteSection(section.id);
+                await ref
+                    .read(setupMutationProvider.notifier)
+                    .deleteSection(section.id);
                 if (!context.mounted) return;
-                showSuccessDialog(context, title: 'Section Deleted', message: '"${section.name}" has been deleted.');
+                showSuccessDialog(
+                  context,
+                  title: 'Section Deleted',
+                  message: '"${section.name}" has been deleted.',
+                );
               } catch (e) {
                 if (!context.mounted) return;
-                showErrorDialog(context, 'Deletion Failed', e.toString().replaceAll('Exception: ', ''));
+                showErrorDialog(
+                  context,
+                  'Deletion Failed',
+                  e.toString().replaceAll('Exception: ', ''),
+                );
               }
             },
             child: const Text('DELETE'),
@@ -893,20 +1117,34 @@ class _FilterDropdown<T> extends StatelessWidget {
               child: DropdownButton<T>(
                 value: value,
                 menuMaxHeight: 300,
-                hint: Text(hint, style: TextStyle(fontSize: 12, color: Colors.grey.shade500)),
+                hint: Text(
+                  hint,
+                  style: TextStyle(fontSize: 12, color: Colors.grey.shade500),
+                ),
                 isExpanded: true,
                 icon: Padding(
                   padding: const EdgeInsets.only(right: 8.0),
                   child: showClear
                       ? GestureDetector(
                           onTap: onClear,
-                          child: Icon(Icons.close, size: 14, color: Colors.grey.shade500),
+                          child: Icon(
+                            Icons.close,
+                            size: 14,
+                            color: Colors.grey.shade500,
+                          ),
                         )
-                      : Icon(Icons.expand_more, size: 18, color: Colors.grey.shade500),
+                      : Icon(
+                          Icons.expand_more,
+                          size: 18,
+                          color: Colors.grey.shade500,
+                        ),
                 ),
                 items: items,
                 onChanged: onChanged,
-                style: const TextStyle(fontSize: 12, color: AppColors.textPrimary),
+                style: const TextStyle(
+                  fontSize: 12,
+                  color: AppColors.textPrimary,
+                ),
               ),
             ),
           ),
@@ -924,7 +1162,8 @@ class AcademicYearFormModal extends ConsumerStatefulWidget {
   const AcademicYearFormModal({super.key, this.year});
 
   @override
-  ConsumerState<AcademicYearFormModal> createState() => _AcademicYearFormModalState();
+  ConsumerState<AcademicYearFormModal> createState() =>
+      _AcademicYearFormModalState();
 }
 
 class _AcademicYearFormModalState extends ConsumerState<AcademicYearFormModal> {
@@ -936,7 +1175,9 @@ class _AcademicYearFormModalState extends ConsumerState<AcademicYearFormModal> {
   @override
   void initState() {
     super.initState();
-    _yearRangeController = TextEditingController(text: widget.year?.yearRange ?? '');
+    _yearRangeController = TextEditingController(
+      text: widget.year?.yearRange ?? '',
+    );
     // Default: editing keeps current status; adding defaults to inactive (old years)
     _status = widget.year?.status ?? 'inactive';
   }
@@ -985,7 +1226,8 @@ class _AcademicYearFormModalState extends ConsumerState<AcademicYearFormModal> {
               hintText: 'Year Range (e.g. 2023-2024)',
               controller: _yearRangeController,
               prefixIcon: Icons.calendar_today,
-              validator: (v) => v?.trim().isEmpty == true ? 'Year range is required' : null,
+              validator: (v) =>
+                  v?.trim().isEmpty == true ? 'Year range is required' : null,
             ),
             const SizedBox(height: AppSizes.p16),
             DropdownButtonFormField<String>(
@@ -996,7 +1238,10 @@ class _AcademicYearFormModalState extends ConsumerState<AcademicYearFormModal> {
                 border: OutlineInputBorder(),
               ),
               items: const [
-                DropdownMenuItem(value: 'active', child: Text('Active (will deactivate others)')),
+                DropdownMenuItem(
+                  value: 'active',
+                  child: Text('Active (will deactivate others)'),
+                ),
                 DropdownMenuItem(value: 'inactive', child: Text('Inactive')),
               ],
               onChanged: (v) => setState(() => _status = v!),
@@ -1005,7 +1250,10 @@ class _AcademicYearFormModalState extends ConsumerState<AcademicYearFormModal> {
         ),
       ),
       actions: [
-        TextButton(onPressed: () => Navigator.pop(context), child: const Text('CANCEL')),
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: const Text('CANCEL'),
+        ),
         PrimaryButton(
           label: isEditing ? 'UPDATE' : 'CREATE',
           isLoading: _isLoading,
@@ -1020,13 +1268,17 @@ class _AcademicYearFormModalState extends ConsumerState<AcademicYearFormModal> {
     setState(() => _isLoading = true);
     try {
       if (widget.year != null) {
-        await ref.read(setupMutationProvider.notifier).updateAcademicYear(
+        await ref
+            .read(setupMutationProvider.notifier)
+            .updateAcademicYear(
               id: widget.year!.id,
               yearRange: _yearRangeController.text.trim(),
               status: _status,
             );
       } else {
-        await ref.read(setupMutationProvider.notifier).createAcademicYear(
+        await ref
+            .read(setupMutationProvider.notifier)
+            .createAcademicYear(
               yearRange: _yearRangeController.text.trim(),
               status: _status,
             );
@@ -1035,7 +1287,9 @@ class _AcademicYearFormModalState extends ConsumerState<AcademicYearFormModal> {
       Navigator.pop(context);
       showSuccessDialog(
         context,
-        title: widget.year != null ? 'Academic Year Updated' : 'Academic Year Created',
+        title: widget.year != null
+            ? 'Academic Year Updated'
+            : 'Academic Year Created',
         message: widget.year != null
             ? 'Academic year has been successfully updated.'
             : 'Academic year has been successfully created.',
@@ -1059,7 +1313,13 @@ class _AcademicYearFormModalState extends ConsumerState<AcademicYearFormModal> {
 class SectionFormModal extends ConsumerStatefulWidget {
   final SectionModel? section;
   final int? defaultAcademicYearId;
-  const SectionFormModal({super.key, this.section, this.defaultAcademicYearId});
+  final int? defaultGradeLevel;
+  const SectionFormModal({
+    super.key,
+    this.section,
+    this.defaultAcademicYearId,
+    this.defaultGradeLevel,
+  });
 
   @override
   ConsumerState<SectionFormModal> createState() => _SectionFormModalState();
@@ -1076,8 +1336,10 @@ class _SectionFormModalState extends ConsumerState<SectionFormModal> {
   void initState() {
     super.initState();
     _nameController = TextEditingController(text: widget.section?.name ?? '');
-    _selectedGradeLevel = widget.section?.gradeLevel;
-    _selectedAcademicYearId = widget.section?.academicYearId ?? widget.defaultAcademicYearId;
+    _selectedGradeLevel =
+        widget.section?.gradeLevel ?? widget.defaultGradeLevel;
+    _selectedAcademicYearId =
+        widget.section?.academicYearId ?? widget.defaultAcademicYearId;
   }
 
   @override
@@ -1104,7 +1366,9 @@ class _SectionFormModalState extends ConsumerState<SectionFormModal> {
                 hintText: 'Section Name',
                 controller: _nameController,
                 prefixIcon: Icons.segment,
-                validator: (v) => v?.trim().isEmpty == true ? 'Section name is required' : null,
+                validator: (v) => v?.trim().isEmpty == true
+                    ? 'Section name is required'
+                    : null,
               ),
               const SizedBox(height: AppSizes.p16),
               // Fixed grade levels 7-12
@@ -1116,7 +1380,10 @@ class _SectionFormModalState extends ConsumerState<SectionFormModal> {
                   border: OutlineInputBorder(),
                 ),
                 items: kGradeLevels.map((g) {
-                  return DropdownMenuItem<int>(value: g, child: Text('Grade $g'));
+                  return DropdownMenuItem<int>(
+                    value: g,
+                    child: Text('Grade $g'),
+                  );
                 }).toList(),
                 onChanged: (v) => setState(() => _selectedGradeLevel = v),
                 validator: (v) => v == null ? 'Grade level is required' : null,
@@ -1133,7 +1400,9 @@ class _SectionFormModalState extends ConsumerState<SectionFormModal> {
                     _selectedAcademicYearId = active.id;
                   }
                   final validIds = years.map((y) => y.id).toList();
-                  final safeYear = validIds.contains(_selectedAcademicYearId) ? _selectedAcademicYearId : null;
+                  final safeYear = validIds.contains(_selectedAcademicYearId)
+                      ? _selectedAcademicYearId
+                      : null;
                   return DropdownButtonFormField<int>(
                     initialValue: safeYear,
                     decoration: const InputDecoration(
@@ -1150,21 +1419,34 @@ class _SectionFormModalState extends ConsumerState<SectionFormModal> {
                             if (y.status == 'active') ...[
                               const SizedBox(width: 6),
                               Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 6,
+                                  vertical: 1,
+                                ),
                                 decoration: BoxDecoration(
-                                  color: AppColors.success.withValues(alpha: 0.15),
+                                  color: AppColors.success.withValues(
+                                    alpha: 0.15,
+                                  ),
                                   borderRadius: BorderRadius.circular(10),
                                 ),
-                                child: const Text('Active',
-                                    style: TextStyle(fontSize: 10, color: AppColors.success, fontWeight: FontWeight.bold)),
+                                child: const Text(
+                                  'Active',
+                                  style: TextStyle(
+                                    fontSize: 10,
+                                    color: AppColors.success,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
                               ),
                             ],
                           ],
                         ),
                       );
                     }).toList(),
-                    onChanged: (v) => setState(() => _selectedAcademicYearId = v),
-                    validator: (v) => v == null ? 'Academic year is required' : null,
+                    onChanged: (v) =>
+                        setState(() => _selectedAcademicYearId = v),
+                    validator: (v) =>
+                        v == null ? 'Academic year is required' : null,
                   );
                 },
                 loading: () => const Center(child: CircularProgressIndicator()),
@@ -1175,7 +1457,10 @@ class _SectionFormModalState extends ConsumerState<SectionFormModal> {
         ),
       ),
       actions: [
-        TextButton(onPressed: () => Navigator.pop(context), child: const Text('CANCEL')),
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: const Text('CANCEL'),
+        ),
         PrimaryButton(
           label: isEditing ? 'UPDATE' : 'CREATE',
           isLoading: _isLoading,
@@ -1190,14 +1475,18 @@ class _SectionFormModalState extends ConsumerState<SectionFormModal> {
     setState(() => _isLoading = true);
     try {
       if (widget.section != null) {
-        await ref.read(setupMutationProvider.notifier).updateSection(
+        await ref
+            .read(setupMutationProvider.notifier)
+            .updateSection(
               id: widget.section!.id,
               name: _nameController.text.trim(),
               gradeLevel: _selectedGradeLevel!,
               academicYearId: _selectedAcademicYearId!,
             );
       } else {
-        await ref.read(setupMutationProvider.notifier).createSection(
+        await ref
+            .read(setupMutationProvider.notifier)
+            .createSection(
               name: _nameController.text.trim(),
               gradeLevel: _selectedGradeLevel!,
               academicYearId: _selectedAcademicYearId!,
@@ -1233,7 +1522,8 @@ class TeacherSectionsModal extends ConsumerStatefulWidget {
   const TeacherSectionsModal({super.key, required this.teacher});
 
   @override
-  ConsumerState<TeacherSectionsModal> createState() => _TeacherSectionsModalState();
+  ConsumerState<TeacherSectionsModal> createState() =>
+      _TeacherSectionsModalState();
 }
 
 class _TeacherSectionsModalState extends ConsumerState<TeacherSectionsModal> {
@@ -1246,53 +1536,32 @@ class _TeacherSectionsModalState extends ConsumerState<TeacherSectionsModal> {
   @override
   Widget build(BuildContext context) {
     final sectionsAsync = ref.watch(sectionsListProvider);
-    final teacherSecsAsync = ref.watch(teacherSectionsProvider(widget.teacher.id));
+    final teacherSecsAsync = ref.watch(
+      teacherSectionsProvider(widget.teacher.id),
+    );
     final yearsAsync = ref.watch(academicYearsListProvider);
 
-    return Dialog(
-      backgroundColor: AppColors.surfaceWhite,
-      surfaceTintColor: Colors.transparent,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppSizes.radiusLarge)),
-      insetPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 40),
-      child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 600, maxHeight: 700),
+    return CustomModal(
+      title: 'Assign Sections',
+      icon: Icons.edit_note,
+      maxWidth: 600,
+      headerActions: [
+        Padding(
+          padding: const EdgeInsets.only(right: 12),
+          child: Text(
+            '${widget.teacher.firstName} ${widget.teacher.lastName}',
+            style: const TextStyle(
+              color: Colors.white70,
+              fontSize: 13,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+        ),
+      ],
+      content: SizedBox(
+        height: 600,
         child: Column(
           children: [
-            // Header
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: AppSizes.p20, vertical: AppSizes.p16),
-              decoration: BoxDecoration(
-                color: AppColors.primaryGreen.withValues(alpha: 0.05),
-                borderRadius: const BorderRadius.vertical(top: Radius.circular(AppSizes.radiusLarge)),
-                border: Border(bottom: BorderSide(color: Colors.grey.shade200)),
-              ),
-              child: Row(
-                children: [
-                  const Icon(Icons.edit_note, color: AppColors.primaryGreen),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Text(
-                          'Assign Sections',
-                          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-                        ),
-                        Text(
-                          '${widget.teacher.firstName} ${widget.teacher.lastName}',
-                          style: TextStyle(fontSize: 12, color: Colors.grey.shade500),
-                        ),
-                      ],
-                    ),
-                  ),
-                  IconButton(
-                    icon: const Icon(Icons.close),
-                    onPressed: () => Navigator.pop(context),
-                  ),
-                ],
-              ),
-            ),
-
             Expanded(
               child: sectionsAsync.when(
                 data: (allSections) {
@@ -1307,8 +1576,11 @@ class _TeacherSectionsModalState extends ConsumerState<TeacherSectionsModal> {
 
                       return yearsAsync.when(
                         data: (years) {
-                          if (years.isEmpty) return const Center(child: Text('No academic years found.'));
-                          
+                          if (years.isEmpty)
+                            return const Center(
+                              child: Text('No academic years found.'),
+                            );
+
                           if (_selectedYearId == null) {
                             final active = years.firstWhere(
                               (y) => y.status == 'active',
@@ -1316,47 +1588,81 @@ class _TeacherSectionsModalState extends ConsumerState<TeacherSectionsModal> {
                             );
                             _selectedYearId = active.id;
                           }
-                          
-                          final activeYearSections = allSections.where((s) => s.academicYearId == _selectedYearId).toList();
+
+                          final activeYearSections = allSections
+                              .where((s) => s.academicYearId == _selectedYearId)
+                              .toList();
 
                           return DefaultTabController(
                             length: kGradeLevels.length + 1,
                             child: Column(
                               children: [
                                 Padding(
-                                  padding: const EdgeInsets.fromLTRB(AppSizes.p16, AppSizes.p16, AppSizes.p16, 0),
+                                  padding: const EdgeInsets.fromLTRB(
+                                    AppSizes.p16,
+                                    AppSizes.p16,
+                                    AppSizes.p16,
+                                    0,
+                                  ),
                                   child: Row(
                                     children: [
                                       Expanded(
-                                        child: CustomTextField(
-                                          hintText: 'Search sections...',
-                                          prefixIcon: Icons.search,
-                                          onChanged: (val) => setState(() => _searchQuery = val.toLowerCase()),
+                                        child: SizedBox(
+                                          height: 48,
+                                          child: CustomTextField(
+                                            hintText: 'Search sections...',
+                                            prefixIcon: Icons.search,
+                                            onChanged: (val) => setState(
+                                              () => _searchQuery = val
+                                                  .toLowerCase(),
+                                            ),
+                                          ),
                                         ),
                                       ),
                                       const SizedBox(width: 12),
                                       Container(
-                                        height: 38,
-                                        padding: const EdgeInsets.symmetric(horizontal: 10),
+                                        height: 48,
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 10,
+                                        ),
                                         decoration: BoxDecoration(
                                           color: Colors.grey.shade50,
-                                          border: Border.all(color: Colors.grey.shade300),
-                                          borderRadius: BorderRadius.circular(8),
+                                          border: Border.all(
+                                            color: Colors.grey.shade300,
+                                          ),
+                                          borderRadius: BorderRadius.circular(
+                                            8,
+                                          ),
                                         ),
                                         child: DropdownButtonHideUnderline(
                                           child: DropdownButton<int>(
                                             value: _selectedYearId,
-                                            icon: const Icon(Icons.expand_more, size: 18, color: AppColors.primaryGreen),
-                                            style: const TextStyle(fontSize: 12, color: AppColors.textPrimary, fontWeight: FontWeight.w600),
+                                            icon: const Icon(
+                                              Icons.expand_more,
+                                              size: 18,
+                                              color: AppColors.primaryGreen,
+                                            ),
+                                            style: const TextStyle(
+                                              fontSize: 12,
+                                              color: AppColors.textPrimary,
+                                              fontWeight: FontWeight.w600,
+                                            ),
                                             items: years.map((y) {
                                               return DropdownMenuItem(
                                                 value: y.id,
-                                                child: Text(y.yearRange + (y.status == 'active' ? ' (Active)' : '')),
+                                                child: Text(
+                                                  y.yearRange +
+                                                      (y.status == 'active'
+                                                          ? ' (Active)'
+                                                          : ''),
+                                                ),
                                               );
                                             }).toList(),
                                             onChanged: (val) {
                                               if (val != null) {
-                                                setState(() => _selectedYearId = val);
+                                                setState(
+                                                  () => _selectedYearId = val,
+                                                );
                                               }
                                             },
                                           ),
@@ -1367,12 +1673,15 @@ class _TeacherSectionsModalState extends ConsumerState<TeacherSectionsModal> {
                                 ),
                                 TabBar(
                                   isScrollable: true,
+                                  tabAlignment: TabAlignment.start,
                                   labelColor: AppColors.primaryGreen,
                                   unselectedLabelColor: Colors.grey.shade600,
                                   indicatorColor: AppColors.primaryGreen,
                                   tabs: [
                                     const Tab(text: 'All'),
-                                    ...kGradeLevels.map((g) => Tab(text: 'Grade $g')),
+                                    ...kGradeLevels.map(
+                                      (g) => Tab(text: 'Grade $g'),
+                                    ),
                                   ],
                                 ),
                                 Expanded(
@@ -1380,29 +1689,57 @@ class _TeacherSectionsModalState extends ConsumerState<TeacherSectionsModal> {
                                     children: [
                                       // ALL tab
                                       (() {
-                                        final allGradesSections = activeYearSections.where((s) {
-                                          if (_searchQuery.isNotEmpty && !s.name.toLowerCase().contains(_searchQuery)) return false;
-                                          return true;
-                                        }).toList();
+                                        final allGradesSections =
+                                            activeYearSections.where((s) {
+                                              if (_searchQuery.isNotEmpty &&
+                                                  !s.name
+                                                      .toLowerCase()
+                                                      .contains(_searchQuery))
+                                                return false;
+                                              return true;
+                                            }).toList();
                                         if (allGradesSections.isEmpty) {
-                                          return Center(child: Text('No sections found', style: TextStyle(color: Colors.grey.shade500)));
+                                          return Center(
+                                            child: Text(
+                                              'No sections found',
+                                              style: TextStyle(
+                                                color: Colors.grey.shade500,
+                                              ),
+                                            ),
+                                          );
                                         }
                                         return ListView.builder(
-                                          padding: const EdgeInsets.all(AppSizes.p16),
+                                          padding: const EdgeInsets.all(
+                                            AppSizes.p16,
+                                          ),
                                           itemCount: allGradesSections.length,
                                           itemBuilder: (context, index) {
-                                            final sec = allGradesSections[index];
-                                            final isChecked = _selectedSectionIds.contains(sec.id);
+                                            final sec =
+                                                allGradesSections[index];
+                                            final isChecked =
+                                                _selectedSectionIds.contains(
+                                                  sec.id,
+                                                );
                                             return CheckboxListTile(
-                                              activeColor: AppColors.primaryGreen,
-                                              title: Text('${sec.name} (Grade ${sec.gradeLevel})', style: const TextStyle(fontSize: 14)),
+                                              activeColor:
+                                                  AppColors.primaryGreen,
+                                              title: Text(
+                                                '${sec.name} (Grade ${sec.gradeLevel})',
+                                                style: const TextStyle(
+                                                  fontSize: 14,
+                                                ),
+                                              ),
                                               value: isChecked,
                                               onChanged: (val) {
                                                 setState(() {
                                                   if (val == true) {
-                                                    _selectedSectionIds.add(sec.id);
+                                                    _selectedSectionIds.add(
+                                                      sec.id,
+                                                    );
                                                   } else {
-                                                    _selectedSectionIds.remove(sec.id);
+                                                    _selectedSectionIds.remove(
+                                                      sec.id,
+                                                    );
                                                   }
                                                 });
                                               },
@@ -1412,32 +1749,61 @@ class _TeacherSectionsModalState extends ConsumerState<TeacherSectionsModal> {
                                       })(),
                                       // INDIVIDUAL Grade tabs
                                       ...kGradeLevels.map((grade) {
-                                        final gradeSections = activeYearSections.where((s) {
-                                          if (s.gradeLevel != grade) return false;
-                                          if (_searchQuery.isNotEmpty && !s.name.toLowerCase().contains(_searchQuery)) return false;
-                                          return true;
-                                        }).toList();
+                                        final gradeSections = activeYearSections
+                                            .where((s) {
+                                              if (s.gradeLevel != grade)
+                                                return false;
+                                              if (_searchQuery.isNotEmpty &&
+                                                  !s.name
+                                                      .toLowerCase()
+                                                      .contains(_searchQuery))
+                                                return false;
+                                              return true;
+                                            })
+                                            .toList();
 
                                         if (gradeSections.isEmpty) {
-                                          return Center(child: Text('No sections found for Grade $grade', style: TextStyle(color: Colors.grey.shade500)));
+                                          return Center(
+                                            child: Text(
+                                              'No sections found for Grade $grade',
+                                              style: TextStyle(
+                                                color: Colors.grey.shade500,
+                                              ),
+                                            ),
+                                          );
                                         }
 
                                         return ListView.builder(
-                                          padding: const EdgeInsets.all(AppSizes.p16),
+                                          padding: const EdgeInsets.all(
+                                            AppSizes.p16,
+                                          ),
                                           itemCount: gradeSections.length,
                                           itemBuilder: (context, index) {
                                             final sec = gradeSections[index];
-                                            final isChecked = _selectedSectionIds.contains(sec.id);
+                                            final isChecked =
+                                                _selectedSectionIds.contains(
+                                                  sec.id,
+                                                );
                                             return CheckboxListTile(
-                                              activeColor: AppColors.primaryGreen,
-                                              title: Text(sec.name, style: const TextStyle(fontSize: 14)),
+                                              activeColor:
+                                                  AppColors.primaryGreen,
+                                              title: Text(
+                                                sec.name,
+                                                style: const TextStyle(
+                                                  fontSize: 14,
+                                                ),
+                                              ),
                                               value: isChecked,
                                               onChanged: (val) {
                                                 setState(() {
                                                   if (val == true) {
-                                                    _selectedSectionIds.add(sec.id);
+                                                    _selectedSectionIds.add(
+                                                      sec.id,
+                                                    );
                                                   } else {
-                                                    _selectedSectionIds.remove(sec.id);
+                                                    _selectedSectionIds.remove(
+                                                      sec.id,
+                                                    );
                                                   }
                                                 });
                                               },
@@ -1452,11 +1818,13 @@ class _TeacherSectionsModalState extends ConsumerState<TeacherSectionsModal> {
                             ),
                           );
                         },
-                        loading: () => const Center(child: CircularProgressIndicator()),
+                        loading: () =>
+                            const Center(child: CircularProgressIndicator()),
                         error: (e, _) => Text('Error: $e'),
                       );
                     },
-                    loading: () => const Center(child: CircularProgressIndicator()),
+                    loading: () =>
+                        const Center(child: CircularProgressIndicator()),
                     error: (e, _) => Text('Error: $e'),
                   );
                 },
@@ -1467,7 +1835,10 @@ class _TeacherSectionsModalState extends ConsumerState<TeacherSectionsModal> {
 
             // Action buttons
             Container(
-              padding: const EdgeInsets.symmetric(horizontal: AppSizes.p20, vertical: AppSizes.p12),
+              padding: const EdgeInsets.symmetric(
+                horizontal: AppSizes.p20,
+                vertical: AppSizes.p12,
+              ),
               decoration: BoxDecoration(
                 border: Border(top: BorderSide(color: Colors.grey.shade200)),
               ),
@@ -1478,7 +1849,11 @@ class _TeacherSectionsModalState extends ConsumerState<TeacherSectionsModal> {
                       onPressed: () => Navigator.pop(context),
                       style: OutlinedButton.styleFrom(
                         padding: const EdgeInsets.symmetric(vertical: 16),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppSizes.radiusMedium)),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(
+                            AppSizes.radiusMedium,
+                          ),
+                        ),
                       ),
                       child: const Text('CANCEL'),
                     ),
@@ -1487,7 +1862,7 @@ class _TeacherSectionsModalState extends ConsumerState<TeacherSectionsModal> {
                   Expanded(
                     flex: 2,
                     child: PrimaryButton(
-                      label: 'SAVE ASSIGNMENTS',
+                      label: 'SAVE',
                       isLoading: _isLoading,
                       onPressed: _handleSave,
                     ),
@@ -1504,7 +1879,9 @@ class _TeacherSectionsModalState extends ConsumerState<TeacherSectionsModal> {
   Future<void> _handleSave() async {
     setState(() => _isLoading = true);
     try {
-      await ref.read(setupMutationProvider.notifier).updateTeacherSections(
+      await ref
+          .read(setupMutationProvider.notifier)
+          .updateTeacherSections(
             teacherId: widget.teacher.id,
             sectionIds: _selectedSectionIds,
           );
@@ -1517,7 +1894,11 @@ class _TeacherSectionsModalState extends ConsumerState<TeacherSectionsModal> {
       );
     } catch (e) {
       if (!mounted) return;
-      showErrorDialog(context, 'Save Failed', e.toString().replaceAll('Exception: ', ''));
+      showErrorDialog(
+        context,
+        'Save Failed',
+        e.toString().replaceAll('Exception: ', ''),
+      );
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }

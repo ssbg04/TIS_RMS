@@ -1224,4 +1224,3 @@ class _TitleCaseTextInputFormatter extends TextInputFormatter {
     );
   }
 }
-}
