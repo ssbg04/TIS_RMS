@@ -7,6 +7,7 @@ class CustomModal extends StatelessWidget {
   final Widget content;
   final List<Widget>? headerActions;
   final double maxWidth;
+  final VoidCallback? onClose;
 
   const CustomModal({
     super.key,
@@ -15,6 +16,7 @@ class CustomModal extends StatelessWidget {
     required this.content,
     this.headerActions,
     this.maxWidth = 620,
+    this.onClose,
   });
 
   static Future<T?> show<T>({
@@ -24,6 +26,7 @@ class CustomModal extends StatelessWidget {
     required Widget content,
     List<Widget>? headerActions,
     double maxWidth = 620,
+    VoidCallback? onClose,
   }) {
     return showDialog<T>(
       context: context,
@@ -34,6 +37,7 @@ class CustomModal extends StatelessWidget {
         content: content,
         headerActions: headerActions,
         maxWidth: maxWidth,
+        onClose: onClose,
       ),
     );
   }
@@ -84,7 +88,7 @@ class CustomModal extends StatelessWidget {
                       icon: const Icon(Icons.close, color: Colors.white, size: 20),
                       padding: EdgeInsets.zero,
                       constraints: const BoxConstraints(),
-                      onPressed: () => Navigator.of(context).pop(),
+                      onPressed: onClose ?? () => Navigator.of(context).pop(),
                     ),
                   ],
                 ),

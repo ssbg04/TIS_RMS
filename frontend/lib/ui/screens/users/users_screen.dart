@@ -414,7 +414,24 @@ class _UsersScreenState extends ConsumerState<UsersScreen> {
                   maxWidth: double.infinity,
                 ),
               ),
-
+              if (_searchQuery.isNotEmpty || _roleFilter != 'all') ...[
+                const SizedBox(width: AppSizes.p16),
+                OutlinedButton.icon(
+                  onPressed: () {
+                    _searchController.clear();
+                    setState(() {
+                      _roleFilter = 'all';
+                      _searchQuery = '';
+                    });
+                  },
+                  icon: const Icon(Icons.filter_alt_off, size: 18),
+                  label: const Text('Reset'),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: Colors.grey.shade700,
+                    side: BorderSide(color: Colors.grey.shade300),
+                  ),
+                ),
+              ]
             ],
           ),
         ),
@@ -756,127 +773,106 @@ class _AddEditUserModalState extends ConsumerState<AddEditUserModal> {
   @override
   Widget build(BuildContext context) {
     final currentUser = ref.watch(authProvider).value;
-    return Dialog(
-      backgroundColor: AppColors.surfaceWhite,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppSizes.radiusLarge)),
-      child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 560),
-        child: Padding(
-          padding: const EdgeInsets.all(AppSizes.p24),
-          child: Form(
-            key: _formKey,
-            child: SingleChildScrollView(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Header
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Row(children: [
-                        Icon(_isEdit ? Icons.edit : Icons.person_add, color: AppColors.primaryGreen),
-                        const SizedBox(width: 8),
-                        Text(
-                          _isEdit ? 'Edit System User' : 'Create New User',
-                          style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: AppColors.textPrimary),
-                        ),
-                      ]),
-                      IconButton(icon: const Icon(Icons.close), onPressed: () => Navigator.of(context).pop()),
-                    ],
+    return CustomModal(
+      title: _isEdit ? 'Edit System User' : 'Create New User',
+      icon: _isEdit ? Icons.edit : Icons.person_add,
+      maxWidth: 560,
+      content: SingleChildScrollView(
+        padding: const EdgeInsets.all(AppSizes.p24),
+        child: Form(
+          key: _formKey,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Name fields
+              _field('First Name', Icons.badge, _firstNameCtrl, required: true),
+              const SizedBox(height: AppSizes.p12),
+              _field('Middle Name', Icons.badge, _middleNameCtrl),
+              const SizedBox(height: AppSizes.p12),
+              _field('Last Name', Icons.badge, _lastNameCtrl, required: true),
+              const SizedBox(height: AppSizes.p12),
+              _field('Ext. (Jr, Sr, III)', Icons.text_fields, _extCtrl),
+              const SizedBox(height: AppSizes.p12),
+
+              // Username
+              _field('Username', Icons.person, _usernameCtrl, required: !_isEdit, readOnly: _isEdit),
+              const SizedBox(height: AppSizes.p12),
+
+              // Role dropdown
+              if (_isEdit && widget.user?.id == currentUser?.id)
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+                  decoration: BoxDecoration(
+                    color: Colors.grey.shade100,
+                    borderRadius: BorderRadius.circular(AppSizes.radiusMedium),
+                    border: Border.all(color: Colors.grey.shade300),
                   ),
-                  const Divider(height: 28),
+                  child: Row(children: [
+                    Icon(Icons.shield, color: _roleColor(widget.user!.role), size: 20),
+                    const SizedBox(width: 12),
+                    Text(widget.user!.role.toUpperCase(), style: TextStyle(fontWeight: FontWeight.bold, color: _roleColor(widget.user!.role))),
+                    const SizedBox(width: 8),
+                    const Icon(Icons.lock, color: Colors.grey, size: 14),
+                    const SizedBox(width: 4),
+                    const Text('(Your own role cannot be changed)', style: TextStyle(fontSize: 12, color: Colors.grey)),
+                  ]),
+                )
+              else
+                DropdownButtonFormField<String>(
+                  value: _selectedRole,
+                  decoration: const InputDecoration(prefixIcon: Icon(Icons.shield_outlined, color: AppColors.textSecondary)),
+                  items: const [
+                    DropdownMenuItem(value: 'teacher', child: Text('Teacher')),
+                    DropdownMenuItem(value: 'admin', child: Text('Admin')),
+                  ],
+                  onChanged: (val) => setState(() => _selectedRole = val!),
+                ),
+              const SizedBox(height: AppSizes.p12),
 
-                  // Name fields
-                  _field('First Name', Icons.badge, _firstNameCtrl, required: true),
-                  const SizedBox(height: AppSizes.p12),
-                  _field('Middle Name', Icons.badge, _middleNameCtrl),
-                  const SizedBox(height: AppSizes.p12),
-                  _field('Last Name', Icons.badge, _lastNameCtrl, required: true),
-                  const SizedBox(height: AppSizes.p12),
-                  _field('Ext. (Jr, Sr, III)', Icons.text_fields, _extCtrl),
-                  const SizedBox(height: AppSizes.p12),
+              // Contact
+              _field('Email Address', Icons.email_outlined, _emailCtrl, validator: AppValidators.validateEmail),
+              const SizedBox(height: AppSizes.p12),
+              _field('Phone Number (Starts with 09)', Icons.phone_outlined, _phoneCtrl, validator: AppValidators.validatePhone),
+              const SizedBox(height: AppSizes.p12),
 
-                  // Username
-                  _field('Username', Icons.person, _usernameCtrl, required: !_isEdit, readOnly: _isEdit),
-                  const SizedBox(height: AppSizes.p12),
-
-                  // Role dropdown
-                  if (_isEdit && widget.user?.id == currentUser?.id)
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
-                      decoration: BoxDecoration(
-                        color: Colors.grey.shade100,
-                        borderRadius: BorderRadius.circular(AppSizes.radiusMedium),
-                        border: Border.all(color: Colors.grey.shade300),
+              if (!_isEdit)
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                  decoration: BoxDecoration(
+                    color: AppColors.primaryGreen.withValues(alpha: 0.07),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: AppColors.primaryGreen.withValues(alpha: 0.3)),
+                  ),
+                  child: const Row(children: [
+                    Icon(Icons.auto_awesome, color: AppColors.primaryGreen, size: 16),
+                    SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        'A secure temporary password will be auto-generated and shown once after creation.',
+                        style: TextStyle(fontSize: 12, color: AppColors.primaryGreen, fontWeight: FontWeight.w600),
                       ),
-                      child: Row(children: [
-                        Icon(Icons.shield, color: _roleColor(widget.user!.role), size: 20),
-                        const SizedBox(width: 12),
-                        Text(widget.user!.role.toUpperCase(), style: TextStyle(fontWeight: FontWeight.bold, color: _roleColor(widget.user!.role))),
-                        const SizedBox(width: 8),
-                        const Icon(Icons.lock, color: Colors.grey, size: 14),
-                        const SizedBox(width: 4),
-                        const Text('(Your own role cannot be changed)', style: TextStyle(fontSize: 12, color: Colors.grey)),
-                      ]),
-                    )
-                  else
-                    DropdownButtonFormField<String>(
-                      value: _selectedRole,
-                      decoration: const InputDecoration(prefixIcon: Icon(Icons.shield_outlined, color: AppColors.textSecondary)),
-                      items: const [
-                        DropdownMenuItem(value: 'teacher', child: Text('Teacher')),
-                        DropdownMenuItem(value: 'admin', child: Text('Admin')),
-                      ],
-                      onChanged: (val) => setState(() => _selectedRole = val!),
                     ),
-                  const SizedBox(height: AppSizes.p12),
+                  ]),
+                ),
 
-                  // Contact
-                  _field('Email Address', Icons.email_outlined, _emailCtrl, validator: AppValidators.validateEmail),
-                  const SizedBox(height: AppSizes.p12),
-                  _field('Phone Number (Starts with 09)', Icons.phone_outlined, _phoneCtrl, validator: AppValidators.validatePhone),
-                  const SizedBox(height: AppSizes.p12),
-
-                  if (!_isEdit)
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                      decoration: BoxDecoration(
-                        color: AppColors.primaryGreen.withValues(alpha: 0.07),
-                        borderRadius: BorderRadius.circular(8),
-                        border: Border.all(color: AppColors.primaryGreen.withValues(alpha: 0.3)),
-                      ),
-                      child: const Row(children: [
-                        Icon(Icons.auto_awesome, color: AppColors.primaryGreen, size: 16),
-                        SizedBox(width: 8),
-                        Expanded(
-                          child: Text(
-                            'A secure temporary password will be auto-generated and shown once after creation.',
-                            style: TextStyle(fontSize: 12, color: AppColors.primaryGreen, fontWeight: FontWeight.w600),
-                          ),
-                        ),
-                      ]),
+              const SizedBox(height: AppSizes.p24),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  TextButton(onPressed: () => Navigator.pop(context), child: const Text('CANCEL')),
+                  const SizedBox(width: AppSizes.p16),
+                  SizedBox(
+                    width: 150,
+                    child: PrimaryButton(
+                      label: _isEdit ? 'UPDATE' : 'CREATE',
+                      isLoading: _isLoading,
+                      onPressed: _handleSave,
                     ),
-
-                  const SizedBox(height: AppSizes.p12),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.end,
-                    children: [
-                      TextButton(onPressed: () => Navigator.pop(context), child: const Text('CANCEL')),
-                      const SizedBox(width: AppSizes.p16),
-                      SizedBox(
-                        width: 150,
-                        child: PrimaryButton(
-                          label: _isEdit ? 'UPDATE' : 'CREATE',
-                          isLoading: _isLoading,
-                          onPressed: _handleSave,
-                        ),
-                      ),
-                    ],
                   ),
                 ],
               ),
-            ),
+            ],
           ),
         ),
       ),

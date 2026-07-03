@@ -5,6 +5,7 @@ import 'package:frontend/ui/providers/document_provider.dart';
 import 'package:frontend/ui/shared/dialogs/error_dialog.dart';
 import 'package:frontend/ui/shared/dialogs/success_dialog.dart';
 import 'package:frontend/ui/shared/inputs/app_search_bar.dart';
+import 'package:frontend/ui/shared/modals/custom_modal.dart';
 
 class RecycleBinModal extends ConsumerStatefulWidget {
   const RecycleBinModal({super.key});
@@ -41,43 +42,14 @@ class _RecycleBinModalState extends ConsumerState<RecycleBinModal> {
     final isMobile = screenW < 700;
     final trashAsync = ref.watch(trashDocumentsProvider);
 
-    return Dialog(
-      backgroundColor: AppColors.surfaceWhite,
-      surfaceTintColor: Colors.transparent,
-      insetPadding: EdgeInsets.symmetric(
-        horizontal: isMobile ? 12 : 32,
-        vertical: isMobile ? 24 : 40,
-      ),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 800, maxHeight: 800),
+    return CustomModal(
+      title: 'Recycle Bin',
+      icon: Icons.delete_outline,
+      maxWidth: 800,
+      content: ConstrainedBox(
+        constraints: const BoxConstraints(maxHeight: 800),
         child: Column(
           children: [
-            // Header
-            Padding(
-              padding: const EdgeInsets.fromLTRB(20, 20, 20, 16),
-              child: Row(
-                children: [
-                  const Icon(Icons.delete_outline, size: 24, color: AppColors.textPrimary),
-                  const SizedBox(width: 12),
-                  const Text(
-                    'Recycle Bin',
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                      color: AppColors.textPrimary,
-                    ),
-                  ),
-                  const Spacer(),
-                  IconButton(
-                    icon: const Icon(Icons.close),
-                    onPressed: () => Navigator.of(context).pop(),
-                  ),
-                ],
-              ),
-            ),
-            const Divider(height: 1),
-
             // Controls
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),

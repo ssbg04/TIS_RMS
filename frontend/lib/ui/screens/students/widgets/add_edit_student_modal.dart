@@ -17,6 +17,7 @@ import '../../../../domain/entities/setup_models.dart';
 import '../../../shared/dialogs/success_dialog.dart';
 import '../../../shared/dialogs/info_dialog.dart';
 import '../../documents/widgets/document_preview_modal.dart';
+import '../../../shared/modals/custom_modal.dart';
 
 // ---------------------------------------------------------------
 // Auto-capitalises the first letter of every word (works on paste)
@@ -589,18 +590,17 @@ class _AddEditStudentModalState extends ConsumerState<AddEditStudentModal>
 
     double maxDialogWidth = isMobile ? 380 : 620;
 
-    return Dialog(
-      insetPadding: EdgeInsets.symmetric(
-        horizontal: isMobile ? 12 : 24,
-        vertical: 12 + viewInsets.bottom * 0.05,
-      ),
-      backgroundColor: AppColors.surfaceWhite,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(AppSizes.radiusLarge),
-      ),
-      child: ConstrainedBox(
+    return CustomModal(
+      title: _showOcrStep 
+          ? 'Auto-Fill with OCR' 
+          : (widget.student != null ? 'Update Student Record' : 'Student Details'),
+      icon: _showOcrStep 
+          ? Icons.document_scanner_outlined 
+          : (widget.student != null ? Icons.edit : Icons.person_add),
+      maxWidth: maxDialogWidth,
+      onClose: _showOcrStep ? () => Navigator.of(context).pop() : _confirmClose,
+      content: ConstrainedBox(
         constraints: BoxConstraints(
-          maxWidth: maxDialogWidth,
           maxHeight: dialogHeight,
         ),
         child: Padding(
@@ -639,28 +639,6 @@ class _AddEditStudentModalState extends ConsumerState<AddEditStudentModal>
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              const Flexible(
-                child: Text(
-                  'Auto-Fill with OCR',
-                  style: TextStyle(
-                    fontSize: 22,
-                    fontWeight: FontWeight.bold,
-                    color: AppColors.primaryGreen,
-                  ),
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ),
-              IconButton(
-                icon: const Icon(Icons.close),
-                onPressed: () => Navigator.of(context).pop(),
-              ),
-            ],
-          ),
-          const Divider(height: 32),
-
           if (_errorMessage != null) ...[
             _ErrorBanner(message: _errorMessage!),
             const SizedBox(height: AppSizes.p16),
@@ -758,31 +736,6 @@ class _AddEditStudentModalState extends ConsumerState<AddEditStudentModal>
           mainAxisSize: MainAxisSize.max,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // ---- Header ----
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Flexible(
-                  child: Text(
-                    isEdit
-                        ? 'Update Student Record'
-                        : 'Student Details',
-                    style: const TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                      color: AppColors.primaryGreen,
-                    ),
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ),
-                IconButton(
-                  icon: const Icon(Icons.close, color: AppColors.textSecondary),
-                  onPressed: _confirmClose,
-                ),
-              ],
-            ),
-            const Divider(height: 16),
-
             // ---- Tab Bar ----
             TabBar(
               controller: _tabController,
