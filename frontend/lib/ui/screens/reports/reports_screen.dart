@@ -1056,7 +1056,37 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                         icon: const Icon(Icons.chevron_left, size: 20),
                         onPressed: _currentPage > 0 ? () => setState(() => _currentPage--) : null,
                       ),
-                      Text('Page ${_currentPage + 1} of $totalPages', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 11)),
+                      ...List.generate(
+                        totalPages,
+                        (i) => i,
+                      ).where((p) => (p - _currentPage).abs() <= 2).map((p) {
+                        final isActive = p == _currentPage;
+                        return GestureDetector(
+                          onTap: () => setState(() => _currentPage = p),
+                          child: Container(
+                            width: 32,
+                            height: 32,
+                            margin: const EdgeInsets.symmetric(horizontal: 2),
+                            decoration: BoxDecoration(
+                              color: isActive ? AppColors.primaryGreen : Colors.transparent,
+                              borderRadius: BorderRadius.circular(6),
+                              border: isActive
+                                  ? null
+                                  : Border.all(color: Colors.grey.shade300),
+                            ),
+                            child: Center(
+                              child: Text(
+                                '${p + 1}',
+                                style: TextStyle(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w600,
+                                  color: isActive ? Colors.white : AppColors.textSecondary,
+                                ),
+                              ),
+                            ),
+                          ),
+                        );
+                      }),
                       IconButton(
                         icon: const Icon(Icons.chevron_right, size: 20),
                         onPressed: _currentPage < totalPages - 1 ? () => setState(() => _currentPage++) : null,
