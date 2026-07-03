@@ -11,6 +11,7 @@ import '../../shared/inputs/app_search_bar.dart';
 import '../../shared/buttons/primary_button.dart';
 import '../../providers/users_provider.dart';
 import '../../providers/auth_provider.dart';
+import '../../providers/navigation_provider.dart';
 
 // --- NEW IMPORTS FOR CUSTOM DIALOGS ---
 import '../../shared/dialogs/error_dialog.dart';
@@ -308,6 +309,16 @@ class _UsersScreenState extends ConsumerState<UsersScreen> {
 
   @override
   Widget build(BuildContext context) {
+    ref.listen<String>(activeTabProvider, (previous, next) {
+      if (next == 'Users' && previous != 'Users') {
+        _searchController.clear();
+        setState(() {
+          _roleFilter = 'all';
+          _searchQuery = '';
+        });
+      }
+    });
+
     final usersAsync = ref.watch(usersProvider);
 
     return Scaffold(
@@ -414,24 +425,7 @@ class _UsersScreenState extends ConsumerState<UsersScreen> {
                   maxWidth: double.infinity,
                 ),
               ),
-              if (_searchQuery.isNotEmpty || _roleFilter != 'all') ...[
-                const SizedBox(width: AppSizes.p16),
-                OutlinedButton.icon(
-                  onPressed: () {
-                    _searchController.clear();
-                    setState(() {
-                      _roleFilter = 'all';
-                      _searchQuery = '';
-                    });
-                  },
-                  icon: const Icon(Icons.filter_alt_off, size: 18),
-                  label: const Text('Reset'),
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor: Colors.grey.shade700,
-                    side: BorderSide(color: Colors.grey.shade300),
-                  ),
-                ),
-              ]
+              // Reset button removed based on updated requirements
             ],
           ),
         ),
