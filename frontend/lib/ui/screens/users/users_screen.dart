@@ -324,7 +324,7 @@ class _UsersScreenState extends ConsumerState<UsersScreen> {
     return Scaffold(
       backgroundColor: Colors.transparent,
       floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
-      floatingActionButton: FloatingActionButton(
+      floatingActionButton: MediaQuery.of(context).size.width > 800 ? null : FloatingActionButton(
         onPressed: () => _openModal(),
         backgroundColor: AppColors.primaryGreen,
         foregroundColor: Colors.white,
@@ -407,8 +407,21 @@ class _UsersScreenState extends ConsumerState<UsersScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text('User Management',
-            style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: AppColors.textPrimary)),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            const Text('User Management',
+                style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: AppColors.textPrimary)),
+            if (isDesktop)
+              SizedBox(
+                width: 200,
+                child: PrimaryButton(
+                  label: '+ Add System User',
+                  onPressed: () => _openModal(),
+                ),
+              ),
+          ],
+        ),
         const SizedBox(height: 4),
         const Text('Manage system accounts and access roles.',
             style: TextStyle(fontSize: 14, color: AppColors.textSecondary)),
@@ -780,13 +793,43 @@ class _AddEditUserModalState extends ConsumerState<AddEditUserModal> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               // Name fields
-              _field('First Name', Icons.badge, _firstNameCtrl, required: true),
+              _field('First Name', Icons.badge, _firstNameCtrl, required: true, textCapitalization: TextCapitalization.words),
               const SizedBox(height: AppSizes.p12),
-              _field('Middle Name', Icons.badge, _middleNameCtrl),
+              _field('Middle Name', Icons.badge, _middleNameCtrl, textCapitalization: TextCapitalization.words),
               const SizedBox(height: AppSizes.p12),
-              _field('Last Name', Icons.badge, _lastNameCtrl, required: true),
+              _field('Last Name', Icons.badge, _lastNameCtrl, required: true, textCapitalization: TextCapitalization.words),
               const SizedBox(height: AppSizes.p12),
-              _field('Ext. (Jr, Sr, III)', Icons.text_fields, _extCtrl),
+              
+              // Autocomplete for extension
+              Autocomplete<String>(
+                optionsBuilder: (TextEditingValue textEditingValue) {
+                  const commonExts = ['Jr.', 'Sr.', 'II', 'III', 'IV'];
+                  if (textEditingValue.text.isEmpty) {
+                    return commonExts;
+                  }
+                  return commonExts.where((ext) => ext.toLowerCase().contains(textEditingValue.text.toLowerCase()));
+                },
+                onSelected: (String selection) {
+                  _extCtrl.text = selection;
+                },
+                fieldViewBuilder: (context, controller, focusNode, onEditingComplete) {
+                  controller.addListener(() {
+                    if (_extCtrl.text != controller.text) {
+                      _extCtrl.text = controller.text;
+                    }
+                  });
+                  if (controller.text.isEmpty && _extCtrl.text.isNotEmpty) {
+                    controller.text = _extCtrl.text;
+                  }
+                  return CustomTextField(
+                    hintText: 'Ext. (Jr, Sr, III)',
+                    prefixIcon: Icons.text_fields,
+                    controller: controller,
+                    focusNode: focusNode,
+                    textCapitalization: TextCapitalization.words,
+                  );
+                },
+              ),
               const SizedBox(height: AppSizes.p12),
 
               // Username
@@ -827,7 +870,15 @@ class _AddEditUserModalState extends ConsumerState<AddEditUserModal> {
               // Contact
               _field('Email Address', Icons.email_outlined, _emailCtrl, validator: AppValidators.validateEmail),
               const SizedBox(height: AppSizes.p12),
-              _field('Phone Number (Starts with 09)', Icons.phone_outlined, _phoneCtrl, validator: AppValidators.validatePhone),
+              _field(
+                'Phone Number (Starts with 09)', 
+                Icons.phone_outlined, 
+                _phoneCtrl, 
+                validator: AppValidators.validatePhone,
+                maxLength: 11,
+                keyboardType: TextInputType.phone,
+                inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+              ),
               const SizedBox(height: AppSizes.p12),
 
               if (!_isEdit)
@@ -873,13 +924,25 @@ class _AddEditUserModalState extends ConsumerState<AddEditUserModal> {
     );
   }
 
-  Widget _field(String hint, IconData icon, TextEditingController ctrl, {bool required = false, bool readOnly = false, String? Function(String?)? validator}) {
+  Widget _field(String hint, IconData icon, TextEditingController ctrl, {
+    bool required = false, 
+    bool readOnly = false, 
+    String? Function(String?)? validator,
+    TextCapitalization textCapitalization = TextCapitalization.none,
+    int? maxLength,
+    TextInputType? keyboardType,
+    List<TextInputFormatter>? inputFormatters,
+  }) {
     return CustomTextField(
       hintText: hint,
       prefixIcon: icon,
       controller: ctrl,
       readOnly: readOnly,
       validator: validator ?? (required ? (v) => AppValidators.validateRequired(v, hint) : null),
+      textCapitalization: textCapitalization,
+      maxLength: maxLength,
+      keyboardType: keyboardType,
+      inputFormatters: inputFormatters,
     );
   }
 }

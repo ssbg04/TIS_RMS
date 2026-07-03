@@ -17,6 +17,8 @@ class CustomTextField extends StatelessWidget {
   final void Function(String)? onSubmitted;
   final int? maxLength;
   final List<TextInputFormatter>? inputFormatters;
+  final TextCapitalization textCapitalization;
+  final FocusNode? focusNode;
 
   const CustomTextField({
     super.key,
@@ -35,11 +37,14 @@ class CustomTextField extends StatelessWidget {
     this.onSubmitted,
     this.maxLength,
     this.inputFormatters,
+    this.textCapitalization = TextCapitalization.none,
+    this.focusNode,
   });
 
   @override
   Widget build(BuildContext context) {
     return TextFormField(
+      focusNode: focusNode,
       controller: controller,
       obscureText: obscureText,
       readOnly: readOnly,
@@ -47,6 +52,7 @@ class CustomTextField extends StatelessWidget {
       validator: validator,
       maxLines: maxLines,
       maxLength: maxLength,
+      textCapitalization: textCapitalization,
       keyboardType: keyboardType,
       inputFormatters: inputFormatters,
       textInputAction: textInputAction,
