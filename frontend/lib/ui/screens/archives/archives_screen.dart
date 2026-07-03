@@ -2090,16 +2090,21 @@ class _ArchivesScreenState extends ConsumerState<ArchivesScreen>
       bg = Colors.grey.shade200;
       fg = Colors.grey.shade700;
     }
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-      decoration: BoxDecoration(
-        color: bg,
-        borderRadius: BorderRadius.circular(10),
-      ),
-      child: Text(
-        status,
-        style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: fg),
-      ),
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+          decoration: BoxDecoration(
+            color: bg,
+            borderRadius: BorderRadius.circular(10),
+          ),
+          child: Text(
+            status,
+            style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: fg),
+          ),
+        ),
+      ],
     );
   }
 
