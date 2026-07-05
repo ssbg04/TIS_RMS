@@ -33,6 +33,7 @@ exports.getAllStudents = (req, res) => {
         status = '',       // e.g. "Enrolled"
         section = '',
         schoolYear = '',
+        is4ps = '',        // "true" or "false"
     } = req.query;
 
     const pageNum  = Math.max(1, parseInt(page));
@@ -56,6 +57,12 @@ exports.getAllStudents = (req, res) => {
         if (status.trim()) {
             conditions.push(`s.status = ?`);
             params.push(status.trim());
+        }
+
+        if (is4ps === 'true') {
+            conditions.push(`s.is_4ps = 1`);
+        } else if (is4ps === 'false') {
+            conditions.push(`s.is_4ps = 0`);
         }
 
         // grade_level lives in enrollments (latest)

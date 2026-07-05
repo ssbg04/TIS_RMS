@@ -10,14 +10,14 @@ import '../../../core/constants/app_sizes.dart';
 /// - [title] – Optional dialog title. Defaults to `'Success'`.
 /// - [buttonLabel] – Optional OK button label. Defaults to `'OK'`.
 /// - [onDismissed] – Optional callback invoked after the user taps the button.
-void showSuccessDialog(
+Future<void> showSuccessDialog(
   BuildContext context, {
   required String message,
   String title = 'Success',
   String buttonLabel = 'OK',
   VoidCallback? onDismissed,
 }) {
-  showDialog(
+  return showDialog<void>(
     context: context,
     barrierDismissible: false,
     builder: (dialogContext) {

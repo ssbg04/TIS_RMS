@@ -6,6 +6,7 @@ import '../../../core/utils/date_utils.dart' as pht;
 import '../../../domain/entities/dashboard_models.dart';
 import '../../providers/activity_provider.dart';
 import '../../shared/modals/view_activity_modal.dart';
+import '../../shared/widgets/app_pagination.dart';
 
 /// Admin-only screen — accessible from Dashboard only (not main nav).
 class UserHistoryScreen extends ConsumerStatefulWidget {
@@ -484,55 +485,10 @@ class _UserHistoryScreenState extends ConsumerState<UserHistoryScreen> {
 }
 
   Widget _buildPagination(PaginatedUserHistory data, int current) {
-    if (data.totalPages <= 1) return const SizedBox.shrink();
-    return Container(
-      color: Colors.transparent,
-      padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          IconButton(
-            icon: const Icon(Icons.chevron_left),
-            onPressed: current > 1
-                ? () => ref.read(userHistoryQueryProvider.notifier).setPage(current - 1)
-                : null,
-          ),
-          ...List.generate(data.totalPages, (i) => i + 1)
-              .where((p) => (p - current).abs() <= 2)
-              .map((p) {
-            final isActive = p == current;
-            return GestureDetector(
-              onTap: () => ref.read(userHistoryQueryProvider.notifier).setPage(p),
-              child: Container(
-                width: 32,
-                height: 32,
-                margin: const EdgeInsets.symmetric(horizontal: 2),
-                decoration: BoxDecoration(
-                  color: isActive ? AppColors.primaryGreen : Colors.transparent,
-                  borderRadius: BorderRadius.circular(6),
-                  border: isActive ? null : Border.all(color: Colors.grey.shade300),
-                ),
-                child: Center(
-                  child: Text(
-                    '$p',
-                    style: TextStyle(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w600,
-                      color: isActive ? Colors.white : Colors.grey.shade600,
-                    ),
-                  ),
-                ),
-              ),
-            );
-          }),
-          IconButton(
-            icon: const Icon(Icons.chevron_right),
-            onPressed: current < data.totalPages
-                ? () => ref.read(userHistoryQueryProvider.notifier).setPage(current + 1)
-                : null,
-          ),
-        ],
-      ),
+    return AppPagination(
+      currentPage: current,
+      totalPages: data.totalPages,
+      onPageChanged: (p) => ref.read(userHistoryQueryProvider.notifier).setPage(p),
     );
   }
 

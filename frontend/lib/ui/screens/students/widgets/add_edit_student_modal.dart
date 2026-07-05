@@ -230,36 +230,48 @@ class _AddEditStudentModalState extends ConsumerState<AddEditStudentModal>
           textAlign: TextAlign.center,
           style: TextStyle(fontSize: 14, color: AppColors.textSecondary),
         ),
-        actionsAlignment: MainAxisAlignment.center,
+        actionsPadding: const EdgeInsets.only(left: 16, right: 16, bottom: 20, top: 8),
         actions: [
-          OutlinedButton(
-            onPressed: () => Navigator.of(ctx).pop('SF9'),
-            style: OutlinedButton.styleFrom(
-              side: const BorderSide(color: AppColors.primaryGreen),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(AppSizes.radiusMedium),
-              ),
-              minimumSize: const Size(100, 44),
+          SizedBox(
+            width: double.infinity,
+            child: Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton(
+                    onPressed: () => Navigator.of(ctx).pop('SF9'),
+                    style: OutlinedButton.styleFrom(
+                      side: const BorderSide(color: AppColors.primaryGreen),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(AppSizes.radiusMedium),
+                      ),
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                    ),
+                    child: const Text('SF9\nReport Card',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.bold,
+                            color: AppColors.primaryGreen)),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: FilledButton(
+                    onPressed: () => Navigator.of(ctx).pop('SF10'),
+                    style: FilledButton.styleFrom(
+                      backgroundColor: AppColors.primaryGreen,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(AppSizes.radiusMedium),
+                      ),
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                    ),
+                    child: const Text('SF10\nPermanent Record',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
+                  ),
+                ),
+              ],
             ),
-            child: const Text('SF9\nReport Card',
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.bold,
-                    color: AppColors.primaryGreen)),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.of(ctx).pop('SF10'),
-            style: FilledButton.styleFrom(
-              backgroundColor: AppColors.primaryGreen,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(AppSizes.radiusMedium),
-              ),
-              minimumSize: const Size(100, 44),
-            ),
-            child: const Text('SF10\nPermanent Record',
-                textAlign: TextAlign.center,
-                style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
           ),
         ],
       ),
@@ -525,13 +537,8 @@ class _AddEditStudentModalState extends ConsumerState<AddEditStudentModal>
         );
       }
       if (!mounted) return;
+      if (!mounted) return;
       Navigator.of(context).pop(true);
-      showSuccessDialog(
-        context,
-        message: widget.student == null
-            ? 'Student added successfully!'
-            : 'Student updated successfully!',
-      );
     } catch (e) {
       if (!mounted) return;
       final raw = e.toString();

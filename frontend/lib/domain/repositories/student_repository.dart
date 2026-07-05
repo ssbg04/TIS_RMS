@@ -94,6 +94,7 @@ class StudentRepository {
     String status     = '',
     String section    = '',
     String schoolYear = '',
+    String is4ps      = '',
   }) async {
     try {
       final options = await _getAuthOptions();
@@ -105,6 +106,7 @@ class StudentRepository {
           if (status.trim().isNotEmpty)     'status':     status.trim(),
           if (section.trim().isNotEmpty)    'section':    section.trim(),
           if (schoolYear.trim().isNotEmpty) 'schoolYear': schoolYear.trim(),
+          if (is4ps.trim().isNotEmpty)      'is4ps':      is4ps.trim(),
           'page':  page,
           'limit': limit,
         },

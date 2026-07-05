@@ -7,6 +7,7 @@ import '../../../domain/entities/folder_model.dart';
 import '../../../domain/repositories/document_repository.dart'
     show DocumentPage;
 import '../../shared/inputs/app_search_bar.dart';
+import '../../shared/widgets/app_pagination.dart';
 import '../../providers/archives_provider.dart';
 import '../../providers/document_provider.dart';
 import '../../providers/student_provider.dart';
@@ -1252,70 +1253,12 @@ class _ArchivesScreenState extends ConsumerState<ArchivesScreen>
   }
 
   Widget _buildFoldersPagination(int totalPages, int currentPage) {
-    return Container(
-      color: Colors.transparent,
-      child: SafeArea(
-        top: false,
-        child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              IconButton(
-                icon: const Icon(Icons.chevron_left),
-                onPressed: currentPage > 1
-                    ? () {
-                        setState(() {
-                          _foldersPage = currentPage - 1;
-                        });
-                      }
-                    : null,
-              ),
-              ...List.generate(totalPages, (i) => i + 1)
-                  .where((p) => (p - currentPage).abs() <= 2)
-                  .map((p) {
-                final isActive = p == currentPage;
-                return GestureDetector(
-                  onTap: () {
-                    setState(() {
-                      _foldersPage = p;
-                    });
-                  },
-                  child: Container(
-                    width: 32,
-                    height: 32,
-                    margin: const EdgeInsets.symmetric(horizontal: 2),
-                    decoration: BoxDecoration(
-                      color: isActive ? AppColors.primaryGreen : Colors.transparent,
-                      borderRadius: BorderRadius.circular(6),
-                      border: isActive ? null : Border.all(color: Colors.grey.shade300),
-                    ),
-                    child: Center(
-                      child: Text(
-                        '$p',
-                        style: TextStyle(
-                          fontSize: 13,
-                          fontWeight: FontWeight.w600,
-                          color: isActive ? Colors.white : AppColors.textSecondary,
-                        ),
-                      ),
-                    ),
-                  ),
-                );
-              }),
-              IconButton(
-                icon: const Icon(Icons.chevron_right),
-                onPressed: currentPage < totalPages
-                    ? () {
-                        setState(() {
-                          _foldersPage = currentPage + 1;
-                        });
-                      }
-                    : null,
-              ),
-            ],
-          ),
-        ),
+    return SafeArea(
+      top: false,
+      child: AppPagination(
+        currentPage: currentPage,
+        totalPages: totalPages,
+        onPageChanged: (p) => setState(() => _foldersPage = p),
       ),
     );
   }
@@ -1945,63 +1888,12 @@ class _ArchivesScreenState extends ConsumerState<ArchivesScreen>
   // PAGINATION
   // ════════════════════════════════════════════════════════════════
   Widget _buildPagination(int totalPages, int currentPage) {
-    return Container(
-      color: Colors.transparent,
-      child: SafeArea(
-        top: false,
-        child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              IconButton(
-                icon: const Icon(Icons.chevron_left),
-                onPressed: currentPage > 1
-                    ? () => ref
-                          .read(archiveDocumentQueryProvider.notifier)
-                          .setPage(currentPage - 1)
-                    : null,
-              ),
-              ...List.generate(totalPages, (i) => i + 1)
-                  .where((p) => (p - currentPage).abs() <= 2)
-                  .map((p) {
-                final isActive = p == currentPage;
-                return GestureDetector(
-                  onTap: () =>
-                      ref.read(archiveDocumentQueryProvider.notifier).setPage(p),
-                  child: Container(
-                    width: 32,
-                    height: 32,
-                    margin: const EdgeInsets.symmetric(horizontal: 2),
-                    decoration: BoxDecoration(
-                      color: isActive ? AppColors.primaryGreen : Colors.transparent,
-                      borderRadius: BorderRadius.circular(6),
-                      border: isActive ? null : Border.all(color: Colors.grey.shade300),
-                    ),
-                    child: Center(
-                      child: Text(
-                        '$p',
-                        style: TextStyle(
-                          fontSize: 13,
-                          fontWeight: FontWeight.w600,
-                          color: isActive ? Colors.white : AppColors.textSecondary,
-                        ),
-                      ),
-                    ),
-                  ),
-                );
-              }),
-              IconButton(
-                icon: const Icon(Icons.chevron_right),
-                onPressed: currentPage < totalPages
-                    ? () => ref
-                          .read(archiveDocumentQueryProvider.notifier)
-                          .setPage(currentPage + 1)
-                    : null,
-              ),
-            ],
-          ),
-        ),
+    return SafeArea(
+      top: false,
+      child: AppPagination(
+        currentPage: currentPage,
+        totalPages: totalPages,
+        onPageChanged: (p) => ref.read(archiveDocumentQueryProvider.notifier).setPage(p),
       ),
     );
   }

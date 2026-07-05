@@ -73,6 +73,7 @@ class StudentQueryParams {
   final String status;     // '' = All
   final String section;    // '' = All
   final String schoolYear; // '' = All
+  final String is4Ps;      // '' = All, 'true' = Yes, 'false' = No
 
   const StudentQueryParams({
     this.search     = '',
@@ -82,6 +83,7 @@ class StudentQueryParams {
     this.status     = '',
     this.section    = '',
     this.schoolYear = '',
+    this.is4Ps      = '',
   });
 
   StudentQueryParams copyWith({
@@ -92,6 +94,7 @@ class StudentQueryParams {
     String? status,
     String? section,
     String? schoolYear,
+    String? is4Ps,
   }) {
     return StudentQueryParams(
       search:     search     ?? this.search,
@@ -101,6 +104,7 @@ class StudentQueryParams {
       status:     status     ?? this.status,
       section:    section    ?? this.section,
       schoolYear: schoolYear ?? this.schoolYear,
+      is4Ps:      is4Ps      ?? this.is4Ps,
     );
   }
 }
@@ -138,6 +142,9 @@ class StudentQueryNotifier extends Notifier<StudentQueryParams> {
   void setSchoolYear(String schoolYear) =>
       state = state.copyWith(schoolYear: schoolYear, gradeLevel: '', section: '', page: 1);
 
+  void setIs4Ps(String is4Ps) =>
+      state = state.copyWith(is4Ps: is4Ps, page: 1);
+
   void reset() => state = const StudentQueryParams();
 }
 
@@ -162,6 +169,7 @@ final studentPageProvider = FutureProvider.autoDispose<StudentPage>((ref) async 
     status:     query.status,
     section:    query.section,
     schoolYear: query.schoolYear,
+    is4ps:      query.is4Ps,
   );
 });
 

@@ -412,7 +412,12 @@ class _UploadOcrModalState extends ConsumerState<UploadOcrModal> {
                     value: req.id,
                     child: Padding(
                       padding: const EdgeInsets.only(left: 8),
-                      child: Text(req.name, style: const TextStyle(fontSize: 13)),
+                      child: Text(
+                        req.name,
+                        style: const TextStyle(fontSize: 13),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
                     ),
                   ));
                 }
@@ -452,28 +457,40 @@ class _UploadOcrModalState extends ConsumerState<UploadOcrModal> {
           
           const SizedBox(height: AppSizes.p32),
 
-          Row(
-            mainAxisAlignment: MainAxisAlignment.end,
-            children: [
-              TextButton(
-                onPressed: () {
-                  setState(() {
-                    _currentStep = 0;
-                    _selectedFile = null;
-                  });
-                },
-                child: const Text('RE-UPLOAD', style: TextStyle(color: AppColors.textSecondary, fontWeight: FontWeight.bold)),
-              ),
-              const SizedBox(width: AppSizes.p16),
-              SizedBox(
-                width: 200,
-                child: PrimaryButton(
-                  label: 'UPLOAD',
-                  isLoading: _isSubmitting,
-                  onPressed: _validateAndUpload,
+          Builder(
+            builder: (ctx) {
+              final isSmall = MediaQuery.sizeOf(ctx).width < 600;
+              return SizedBox(
+                width: double.infinity,
+                child: Wrap(
+                  alignment: isSmall ? WrapAlignment.center : WrapAlignment.end,
+                  spacing: AppSizes.p16,
+                  runSpacing: AppSizes.p16,
+                  children: [
+                    TextButton(
+                      onPressed: () {
+                        setState(() {
+                          _currentStep = 0;
+                          _selectedFile = null;
+                        });
+                      },
+                      style: TextButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 24),
+                      ),
+                      child: const Text('RE-UPLOAD', style: TextStyle(color: AppColors.textSecondary, fontWeight: FontWeight.bold)),
+                    ),
+                    SizedBox(
+                      width: isSmall ? double.infinity : 200,
+                      child: PrimaryButton(
+                        label: 'UPLOAD',
+                        isLoading: _isSubmitting,
+                        onPressed: _validateAndUpload,
+                      ),
+                    ),
+                  ],
                 ),
-              ),
-            ],
+              );
+            }
           ),
         ],
       ),
