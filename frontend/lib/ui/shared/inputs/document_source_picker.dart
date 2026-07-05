@@ -2,6 +2,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:google_mlkit_document_scanner/google_mlkit_document_scanner.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_sizes.dart';
 
@@ -46,19 +47,30 @@ class _DocumentSourcePickerState extends State<DocumentSourcePicker> {
 
   Future<void> _takePhoto() async {
     try {
-      final XFile? photo = await _imagePicker.pickImage(
-        source: ImageSource.camera,
-        imageQuality: 85,
+      final scanner = DocumentScanner(
+        options: DocumentScannerOptions(
+          documentFormats: const {DocumentFormat.jpeg},
+          mode: ScannerMode.full, // Allows edge detection, cropping, filters
+          isGalleryImport: false, // Prevents importing from gallery since we have a separate button for that
+          pageLimit: 1, // Only one document per upload field
+        ),
       );
 
-      if (photo != null) {
-        final file = File(photo.path);
-        final size = (file.lengthSync() / (1024 * 1024)).toStringAsFixed(2);
-        // Send the data back to the parent screen
-        widget.onFileSelected(file, photo.name, '$size MB');
+      final result = await scanner.scanDocument();
+      scanner.close();
+
+      if (result != null) {
+        final images = result.images;
+        if (images != null && images.isNotEmpty) {
+          final file = File(images.first);
+          final size = (file.lengthSync() / (1024 * 1024)).toStringAsFixed(2);
+          final name = 'Scanned_Doc_${DateTime.now().millisecondsSinceEpoch}.jpg';
+          
+          widget.onFileSelected(file, name, '$size MB');
+        }
       }
     } catch (e) {
-      widget.onError?.call('Failed to access camera: $e');
+      widget.onError?.call('Failed to scan document: $e');
     }
   }
 

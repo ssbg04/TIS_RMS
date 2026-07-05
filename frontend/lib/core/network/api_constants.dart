@@ -1,8 +1,15 @@
 class ApiConstants {
-  // IMPORTANT: For Android Emulator testing, use 10.0.2.2
-  // For physical LAN testing, use the IPv4 of the Host PC (e.g., 192.168.1.X)
-  // For Windows Host app testing, 127.0.0.1 is fine.
-  // static const String baseUrl = 'http://127.0.0.1:18484/api'; 
-  static const String baseUrl = 'http://192.168.1.100:18484/api';
-  // static const String baseUrl = 'https://subfloor-felt-tip-seclusion.ngrok-free.dev/api'; 
-}
+  static const int port = 18484;
+
+  // Runtime-mutable base URL — set by ServerDiscoveryService before first use.
+  // Default: localhost for Windows desktop, Android will discover via LAN scan.
+  static String _baseUrl = 'http://127.0.0.1:$port/api';
+
+  static String get baseUrl => _baseUrl;
+
+  static void setBaseUrl(String url) {
+    // Strip trailing slash then append /api
+    final clean = url.replaceAll(RegExp(r'/+$'), '');
+    _baseUrl = clean.endsWith('/api') ? clean : '$clean/api';
+  }
+}

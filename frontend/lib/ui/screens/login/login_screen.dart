@@ -16,6 +16,8 @@ import 'package:frontend/ui/providers/navigation_provider.dart';
 import '../../shared/dialogs/error_dialog.dart';
 import '../../shared/dialogs/success_dialog.dart';
 import '../../../core/utils/validators.dart';
+import '../../../core/network/api_constants.dart';
+import '../../../core/network/server_discovery.dart';
 
 class LoginScreen extends ConsumerStatefulWidget {
   final bool sessionExpired;
@@ -249,6 +251,49 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     );
   }
 
+  Future<void> _showServerConfigDialog() async {
+    final controller = TextEditingController(text: ApiConstants.baseUrl);
+    await showDialog<void>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Text('Server Configuration', style: TextStyle(fontWeight: FontWeight.bold)),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(
+              controller: controller,
+              decoration: InputDecoration(
+                labelText: 'Server URL',
+                hintText: 'http://192.168.1.x:18484/api',
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            style: FilledButton.styleFrom(backgroundColor: AppColors.primaryGreen),
+            onPressed: () async {
+              final newUrl = controller.text.trim();
+              if (newUrl.isNotEmpty) {
+                ApiConstants.setBaseUrl(newUrl);
+                await ServerDiscoveryService.save(ApiConstants.baseUrl);
+                if (mounted) setState(() {});
+              }
+              Navigator.pop(ctx);
+            },
+            child: const Text('Save'),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildLoginForm() {
     final authState = ref.watch(authProvider);
     final isLoading = authState.isLoading;
@@ -307,6 +352,18 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
           label: 'LOGIN',
           isLoading: isLoading,
           onPressed: _handleLogin,
+        ),
+        const SizedBox(height: AppSizes.p24),
+        Center(
+          child: ActionChip(
+            label: Text(
+              'Server: ${ApiConstants.baseUrl}  ·  Change',
+              style: const TextStyle(fontSize: 11, color: AppColors.textSecondary),
+            ),
+            backgroundColor: Colors.transparent,
+            side: BorderSide(color: Colors.grey.shade300),
+            onPressed: _showServerConfigDialog,
+          ),
         ),
       ],
     )

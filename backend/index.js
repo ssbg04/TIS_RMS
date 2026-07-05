@@ -54,6 +54,7 @@ app.use('/api/ocr', ocrRoutes);
 app.use('/api/notifications', notificationRoutes);
 
 app.get('/', (req, res) => {
+    res.set('X-TIS-RMS', 'true');
     res.json({ message: 'TIS RMS API is running' });
 });
 
