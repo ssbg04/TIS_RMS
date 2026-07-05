@@ -115,7 +115,7 @@ exports.getAllStudents = (req, res) => {
         const fetchSql = `
             SELECT DISTINCT
                 s.id, s.lrn, s.first_name, s.middle_name, s.last_name,
-                s.extension, s.sex, s.birth_date, s.status, s.created_at,
+                s.extension, s.sex, s.birth_date, s.status, s.is_4ps, s.created_at,
                 (
                     SELECT e.grade_level FROM enrollments e
                     JOIN academic_years ay_inner ON e.academic_year_id = ay_inner.id
@@ -242,7 +242,7 @@ exports.getStudentById = (req, res) => {
 // POST /api/students — create + auto-create directory & enrollment
 // ============================================================
 exports.createStudent = (req, res) => {
-    const { lrn, firstName, middleName, lastName, extension, sex, birthDate, academicYearId, gradeLevel, sectionId, trackStrand } = req.body;
+    const { lrn, firstName, middleName, lastName, extension, sex, birthDate, academicYearId, gradeLevel, sectionId, trackStrand, is4ps } = req.body;
 
     // ---- Server-side validation ----
     const errors = [];
@@ -270,8 +270,8 @@ exports.createStudent = (req, res) => {
         // ---- Insert in transaction ----
         const insertResult = db.transaction(() => {
             const result = db.prepare(`
-                INSERT INTO students (lrn, first_name, middle_name, last_name, extension, sex, birth_date)
-                VALUES (?, ?, ?, ?, ?, ?, ?)
+                INSERT INTO students (lrn, first_name, middle_name, last_name, extension, sex, birth_date, is_4ps)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
             `).run(
                 lrn.trim(),
                 firstName.trim(),
@@ -279,7 +279,8 @@ exports.createStudent = (req, res) => {
                 lastName.trim(),
                 extension?.trim()  || null,
                 sex,
-                birthDate
+                birthDate,
+                is4ps ? 1 : 0
             );
 
             const newId = result.lastInsertRowid;
@@ -398,7 +399,7 @@ exports.bulkGraduate = (req, res) => {
 // ============================================================
 exports.updateStudent = (req, res) => {
     const { id } = req.params;
-    const { lrn, firstName, middleName, lastName, extension, sex, birthDate, status, academicYearId, gradeLevel, sectionId, trackStrand } = req.body;
+    const { lrn, firstName, middleName, lastName, extension, sex, birthDate, status, academicYearId, gradeLevel, sectionId, trackStrand, is4ps } = req.body;
 
     // ---- Server-side validation ----
     const errors = [];
@@ -432,7 +433,7 @@ exports.updateStudent = (req, res) => {
             db.prepare(`
                 UPDATE students
                 SET lrn = ?, first_name = ?, middle_name = ?, last_name = ?,
-                    extension = ?, sex = ?, birth_date = ?, status = ?
+                    extension = ?, sex = ?, birth_date = ?, status = ?, is_4ps = ?
                 WHERE id = ?
             `).run(
                 lrn.trim(),
@@ -443,6 +444,7 @@ exports.updateStudent = (req, res) => {
                 sex,
                 birthDate,
                 status || 'Enrolled',
+                is4ps ? 1 : 0,
                 id
             );
 

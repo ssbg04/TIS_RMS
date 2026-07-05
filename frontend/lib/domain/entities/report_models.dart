@@ -19,12 +19,14 @@ class StudentCounts {
   final int dropped;
   final int transferee;
   final int graduated;
+  final int fourPs;
 
   const StudentCounts({
     required this.active,
     required this.dropped,
     required this.transferee,
     required this.graduated,
+    this.fourPs = 0,
   });
 
   factory StudentCounts.fromJson(Map<String, dynamic> j) => StudentCounts(
@@ -32,6 +34,7 @@ class StudentCounts {
         dropped: (j['dropped'] as num?)?.toInt() ?? 0,
         transferee: (j['transferee'] as num?)?.toInt() ?? 0,
         graduated: (j['graduated'] as num?)?.toInt() ?? 0,
+        fourPs: (j['fourPs'] as num?)?.toInt() ?? 0,
       );
 }
 

@@ -8,6 +8,7 @@ class StudentModel {
   final String sex;
   final DateTime birthDate;
   final String status; // 'Enrolled', 'Graduated', 'Transferred', 'Dropped'
+  final bool is4ps; // 4Ps beneficiary
   final int missingDocumentsCount;
   final int totalDocumentsCount;
   final List<String> missingDocuments;
@@ -25,6 +26,7 @@ class StudentModel {
     required this.sex,
     required this.birthDate,
     this.status = 'Enrolled',
+    this.is4ps = false,
     this.missingDocumentsCount = 0,
     this.totalDocumentsCount = 0,
     this.missingDocuments = const [],
@@ -116,6 +118,7 @@ class StudentModel {
       sex:                  json['sex']         as String,
       birthDate:            DateTime.parse(json['birth_date'] as String),
       status:               json['status']      as String? ?? 'Enrolled',
+      is4ps:                (json['is_4ps'] as num?)?.toInt() == 1,
       missingDocumentsCount: (json['missingDocumentsCount'] as num?)?.toInt() ?? 0,
       totalDocumentsCount: (json['totalDocumentsCount'] as num?)?.toInt() ?? 0,
       missingDocuments:    (json['missingDocuments'] as List<dynamic>?)?.map((e) => e as String).toList() ?? [],
@@ -140,6 +143,7 @@ class StudentModel {
       'sex':         sex,
       'birth_date':  birthDate.toIso8601String().split('T').first,
       'status':      status,
+      'is_4ps':      is4ps ? 1 : 0,
     };
   }
 
@@ -154,6 +158,7 @@ class StudentModel {
       'sex':        sex,
       'birthDate':  birthDate.toIso8601String().split('T').first,
       'status':     status,
+      'is4ps':      is4ps,
     };
   }
 
@@ -167,6 +172,7 @@ class StudentModel {
     String? sex,
     DateTime? birthDate,
     String? status,
+    bool?   is4ps,
     int?    missingDocumentsCount,
     int?    totalDocumentsCount,
     List<String>? missingDocuments,
@@ -184,6 +190,7 @@ class StudentModel {
       sex:                  sex                  ?? this.sex,
       birthDate:            birthDate             ?? this.birthDate,
       status:               status               ?? this.status,
+      is4ps:                is4ps                ?? this.is4ps,
       missingDocumentsCount: missingDocumentsCount ?? this.missingDocumentsCount,
       totalDocumentsCount:  totalDocumentsCount ?? this.totalDocumentsCount,
       missingDocuments:     missingDocuments     ?? this.missingDocuments,

@@ -367,9 +367,17 @@ const initSchema = () => {
                 sex TEXT CHECK(sex IN ('Male', 'Female')) NOT NULL,
                 birth_date DATE NOT NULL,
                 status TEXT DEFAULT 'Enrolled', -- Enrolled, Graduated, Transferred, Dropped
+                is_4ps INTEGER DEFAULT 0, -- 1 = 4Ps beneficiary, 0 = not
                 created_at DATETIME DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ', 'now'))
             )
         `).run();
+
+        // Migration: add is_4ps column to students if missing
+        const studentCols = db.prepare("PRAGMA table_info(students)").all();
+        if (!studentCols.some(c => c.name === 'is_4ps')) {
+            db.prepare("ALTER TABLE students ADD COLUMN is_4ps INTEGER DEFAULT 0").run();
+            console.log('Migration: added is_4ps column to students table');
+        }
 
         // 4. Enrollments Table
         db.prepare(`

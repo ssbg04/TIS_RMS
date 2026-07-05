@@ -723,10 +723,11 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
     final gradRate = total > 0 ? (counts.graduated / total * 100).toStringAsFixed(1) : '0.0';
     final dropRate = total > 0 ? (counts.dropped / total * 100).toStringAsFixed(1) : '0.0';
     final transRate = total > 0 ? (counts.transferee / total * 100).toStringAsFixed(1) : '0.0';
+    final fourPsRate = total > 0 ? (counts.fourPs / total * 100).toStringAsFixed(1) : '0.0';
 
     return LayoutBuilder(
       builder: (ctx, constraints) {
-        final cols = constraints.maxWidth >= 800 ? 4 : (constraints.maxWidth >= 500 ? 2 : 1);
+        final cols = constraints.maxWidth >= 900 ? 5 : (constraints.maxWidth >= 600 ? 3 : 2);
         return GridView(
           shrinkWrap: true,
           physics: const NeverScrollableScrollPhysics(),
@@ -741,6 +742,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
             StatCard(title: 'Dropped (Dropouts)', value: counts.dropped.toString(), subtitle: 'Dropout Rate: $dropRate%', icon: Icons.error_outline, iconColor: Colors.red),
             StatCard(title: 'Transferees', value: counts.transferee.toString(), subtitle: 'Transferee Rate: $transRate%', icon: Icons.swap_horiz_outlined, iconColor: Colors.orange),
             StatCard(title: 'Graduated Students', value: counts.graduated.toString(), subtitle: 'Graduation Rate: $gradRate%', icon: Icons.school_outlined, iconColor: Colors.blue),
+            StatCard(title: '4Ps Beneficiaries', value: counts.fourPs.toString(), subtitle: '$fourPsRate% of students', icon: Icons.family_restroom, iconColor: Colors.deepPurple),
           ],
         );
       },

@@ -189,6 +189,7 @@ class StudentMutationNotifier extends AsyncNotifier<void> {
     required int      gradeLevel,
     required int      sectionId,
     String?           trackStrand,
+    bool              is4ps = false,
   }) async {
     state = const AsyncLoading();
     try {
@@ -205,6 +206,7 @@ class StudentMutationNotifier extends AsyncNotifier<void> {
         gradeLevel:     gradeLevel,
         sectionId:      sectionId,
         trackStrand:    trackStrand,
+        is4ps:          is4ps,
       );
       state = const AsyncData(null);
       // Invalidate to refresh the list
@@ -228,6 +230,7 @@ class StudentMutationNotifier extends AsyncNotifier<void> {
     required int      sectionId,
     String?           trackStrand,
     String            status = 'Enrolled',
+    bool              is4ps = false,
   }) async {
     state = const AsyncLoading();
     try {
@@ -246,6 +249,7 @@ class StudentMutationNotifier extends AsyncNotifier<void> {
         gradeLevel:     gradeLevel,
         sectionId:      sectionId,
         trackStrand:    trackStrand,
+        is4ps:          is4ps,
       );
       state = const AsyncData(null);
       ref.invalidate(studentPageProvider);

@@ -146,6 +146,7 @@ class StudentRepository {
     required int gradeLevel,
     required int sectionId,
     String? trackStrand,
+    bool is4ps = false,
   }) async {
     try {
       final options  = await _getAuthOptions();
@@ -163,6 +164,7 @@ class StudentRepository {
           'gradeLevel':     gradeLevel,
           'sectionId':      sectionId,
           'trackStrand':    trackStrand,
+          'is4ps':          is4ps,
         },
         options: options,
       );
@@ -190,6 +192,7 @@ class StudentRepository {
     required int sectionId,
     String? trackStrand,
     String          status = 'Enrolled',
+    bool            is4ps = false,
   }) async {
     try {
       final options = await _getAuthOptions();
@@ -208,6 +211,7 @@ class StudentRepository {
           'gradeLevel':     gradeLevel,
           'sectionId':      sectionId,
           'trackStrand':    trackStrand,
+          'is4ps':          is4ps,
         },
         options: options,
       );

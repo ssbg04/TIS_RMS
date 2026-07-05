@@ -41,13 +41,14 @@ exports.getStats = (req, res) => {
         const whereSql = whereClauses.length > 0 ? 'AND ' + whereClauses.join(' AND ') : '';
         const enrollWhereSql = enrollWhereClauses.length > 0 ? 'AND ' + enrollWhereClauses.join(' AND ') : '';
 
-        // 1. Fetch counts of active, dropped, transferee, graduated
+        // 1. Fetch counts of active, dropped, transferee, graduated, and 4Ps beneficiaries
         const countsQuery = `
             SELECT 
                 COUNT(DISTINCT CASE WHEN s.status = 'Enrolled' THEN s.id END) as active,
                 COUNT(DISTINCT CASE WHEN s.status = 'Dropped' THEN s.id END) as dropped,
                 COUNT(DISTINCT CASE WHEN s.status = 'Transferred' THEN s.id END) as transferee,
-                COUNT(DISTINCT CASE WHEN s.status = 'Graduated' THEN s.id END) as graduated
+                COUNT(DISTINCT CASE WHEN s.status = 'Graduated' THEN s.id END) as graduated,
+                COUNT(DISTINCT CASE WHEN s.is_4ps = 1 THEN s.id END) as fourPs
             FROM students s
             LEFT JOIN enrollments e ON s.id = e.student_id
             WHERE 1=1 ${enrollWhereSql}

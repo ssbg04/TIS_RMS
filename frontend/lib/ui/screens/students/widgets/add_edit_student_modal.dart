@@ -61,6 +61,7 @@ class _AddEditStudentModalState extends ConsumerState<AddEditStudentModal>
   String _selectedSex = 'Male';
   String _selectedStatus = 'Enrolled';
   DateTime? _selectedDob;
+  bool _is4ps = false;
   bool _isLoading = false;
   String? _errorMessage;
 
@@ -91,6 +92,7 @@ class _AddEditStudentModalState extends ConsumerState<AddEditStudentModal>
       _selectedSex = s.sex;
       _selectedDob = s.birthDate;
       _selectedStatus = s.status;
+      _is4ps = s.is4ps;
       _showOcrStep = false;
     } else {
       _showOcrStep = true;
@@ -498,6 +500,7 @@ class _AddEditStudentModalState extends ConsumerState<AddEditStudentModal>
           gradeLevel: _selectedGradeLevel!,
           sectionId: _selectedSectionId!,
           trackStrand: _trackStrand,
+          is4ps: _is4ps,
         );
       } else {
         await notifier.updateStudent(
@@ -518,6 +521,7 @@ class _AddEditStudentModalState extends ConsumerState<AddEditStudentModal>
           gradeLevel: _selectedGradeLevel!,
           sectionId: _selectedSectionId!,
           trackStrand: _trackStrand,
+          is4ps: _is4ps,
         );
       }
       if (!mounted) return;
@@ -965,6 +969,50 @@ class _AddEditStudentModalState extends ConsumerState<AddEditStudentModal>
                                 fontSize: 16,
                               ),
                             ),
+                          ),
+                        ),
+                        const SizedBox(height: AppSizes.p16),
+
+                        // ── 4Ps STATUS section label ──
+                        _SectionLabel(label: 'GOVERNMENT AID STATUS'),
+                        const SizedBox(height: AppSizes.p8),
+
+                        // 4Ps Toggle
+                        Container(
+                          decoration: BoxDecoration(
+                            color: _is4ps
+                                ? Colors.deepPurple.withValues(alpha: 0.06)
+                                : Colors.grey.shade50,
+                            borderRadius: BorderRadius.circular(AppSizes.radiusMedium),
+                            border: Border.all(
+                              color: _is4ps
+                                  ? Colors.deepPurple.withValues(alpha: 0.3)
+                                  : Colors.grey.shade200,
+                            ),
+                          ),
+                          child: SwitchListTile(
+                            value: _is4ps,
+                            onChanged: (val) => setState(() => _is4ps = val),
+                            activeColor: Colors.deepPurple,
+                            title: const Text(
+                              '4Ps Beneficiary',
+                              style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
+                            ),
+                            subtitle: Text(
+                              _is4ps
+                                  ? 'Student is a 4Ps (Pantawid Pamilyang Pilipino Program) beneficiary'
+                                  : 'Student is NOT a 4Ps beneficiary',
+                              style: TextStyle(
+                                fontSize: 11,
+                                color: _is4ps ? Colors.deepPurple.shade600 : AppColors.textSecondary,
+                              ),
+                            ),
+                            secondary: Icon(
+                              Icons.family_restroom,
+                              color: _is4ps ? Colors.deepPurple : Colors.grey.shade400,
+                            ),
+                            dense: true,
+                            contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
                           ),
                         ),
                       ],

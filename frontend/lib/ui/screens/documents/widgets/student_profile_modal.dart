@@ -255,6 +255,7 @@ class StudentProfileModalBody extends ConsumerWidget {
             children: [
               _buildInfoItem('Sex', student.sex ?? 'N/A'),
               _buildInfoItem('Birth Date', _formatDate(student.birthDate)),
+              _build4psItem(student.is4ps),
             ],
           ),
         ],
@@ -303,6 +304,50 @@ class StudentProfileModalBody extends ConsumerWidget {
         Text(value,
             style: const TextStyle(
                 fontWeight: FontWeight.w600, fontSize: 13)),
+      ],
+    );
+  }
+
+  Widget _build4psItem(bool is4ps) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text('4Ps Beneficiary',
+            style: TextStyle(color: AppColors.textSecondary, fontSize: 11)),
+        const SizedBox(height: 2),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+          decoration: BoxDecoration(
+            color: is4ps
+                ? Colors.deepPurple.withValues(alpha: 0.1)
+                : Colors.grey.shade100,
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(
+              color: is4ps
+                  ? Colors.deepPurple.withValues(alpha: 0.3)
+                  : Colors.grey.shade300,
+            ),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                is4ps ? Icons.check_circle : Icons.cancel_outlined,
+                size: 12,
+                color: is4ps ? Colors.deepPurple : Colors.grey.shade500,
+              ),
+              const SizedBox(width: 4),
+              Text(
+                is4ps ? 'Yes — 4Ps' : 'No',
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                  color: is4ps ? Colors.deepPurple : Colors.grey.shade600,
+                ),
+              ),
+            ],
+          ),
+        ),
       ],
     );
   }
