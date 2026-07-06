@@ -70,9 +70,11 @@ class _AddEditStudentModalState extends ConsumerState<AddEditStudentModal>
   int? _selectedSectionId;
   String? _trackStrand;
   bool _isEnrollmentInitialized = false;
+  // Cache of all enrollments loaded for the student being edited
+  List<dynamic>? _loadedEnrollments;
 
   static const _statuses = ['Enrolled', 'Graduated', 'Transferred', 'Dropped'];
-  static const _extSuggestions = ['JR.', 'SR.', 'II', 'III', 'IV', 'V', 'VI'];
+  static const _extSuggestions = ['N/A', 'JR.', 'SR.', 'II', 'III', 'IV', 'V', 'VI'];
 
   bool _showOcrStep = false;
   String? _selectedOcrDocType;
@@ -105,10 +107,21 @@ class _AddEditStudentModalState extends ConsumerState<AddEditStudentModal>
         ref.invalidate(sectionsListProvider);
       }
     });
+    // Also refresh when the Enrollment tab is opened
+    _tabController.addListener(_onTabChanged);
+  }
+
+  void _onTabChanged() {
+    if (_tabController.index == 1 && mounted) {
+      ref.invalidate(academicYearsListProvider);
+      ref.invalidate(gradeLevelsListProvider);
+      ref.invalidate(sectionsListProvider);
+    }
   }
 
   @override
   void dispose() {
+    _tabController.removeListener(_onTabChanged);
     _tabController.dispose();
     _lrnController.dispose();
     _firstNameController.dispose();
@@ -492,6 +505,34 @@ class _AddEditStudentModalState extends ConsumerState<AddEditStudentModal>
       return;
     }
 
+    // Validate enrollment academic year downgrade restriction (edit only)
+    // A student cannot be updated to a lower grade level within the same academic year.
+    if (widget.student != null) {
+      // Use _loadedEnrollments (fetched via studentDetailProvider) which is always
+      // populated in edit mode, unlike widget.student!.enrollments which may be null.
+      final enrollments = _loadedEnrollments;
+      if (enrollments != null && enrollments.isNotEmpty) {
+        final sameYearEnrollments = enrollments.where(
+          (e) => e.academicYearId == _selectedAcademicYearId,
+        ).toList();
+        if (sameYearEnrollments.isNotEmpty) {
+          final existingMaxGrade = sameYearEnrollments
+              .map((e) => e.gradeLevel as int)
+              .reduce((a, b) => a > b ? a : b);
+          if (_selectedGradeLevel! < existingMaxGrade) {
+            _tabController.animateTo(1);
+            _showValidationDialog(
+              'Cannot downgrade enrollment. This student is already '
+              'in Grade $existingMaxGrade for this academic year. '
+              'You cannot change it to Grade $_selectedGradeLevel '
+              'in the same academic year.',
+            );
+            return;
+          }
+        }
+      }
+    }
+
     setState(() => _isLoading = true);
     try {
       final notifier = ref.read(studentMutationProvider.notifier);
@@ -562,6 +603,12 @@ class _AddEditStudentModalState extends ConsumerState<AddEditStudentModal>
     if (widget.student != null && !_isEnrollmentInitialized) {
       final detailsAsync = ref.watch(studentDetailProvider(widget.student!.id));
       detailsAsync.whenData((fullStudent) {
+        // Cache the enrollment list for use in validation
+        if (_loadedEnrollments == null && fullStudent.enrollments != null) {
+          Future.microtask(() {
+            if (mounted) setState(() => _loadedEnrollments = fullStudent.enrollments);
+          });
+        }
         if (fullStudent.enrollments != null &&
             fullStudent.enrollments!.isNotEmpty) {
           final latestEnrollment = fullStudent.enrollments!.reduce((a, b) {
@@ -809,7 +856,7 @@ class _AddEditStudentModalState extends ConsumerState<AddEditStudentModal>
                         _SectionLabel(label: 'NAME'),
                         const SizedBox(height: AppSizes.p8),
 
-                        // Names & Ext
+                        // Names & Ext — order: First Name | Ext | Middle Name (row 1), Last Name (row 2)
                         LayoutBuilder(
                           builder: (ctx, c) {
                             final wide = c.maxWidth > 480;
@@ -817,8 +864,11 @@ class _AddEditStudentModalState extends ConsumerState<AddEditStudentModal>
                               return Column(
                                 children: [
                                   Row(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
                                     children: [
+                                      // First Name
                                       Expanded(
+                                        flex: 3,
                                         child: TextFormField(
                                           controller: _firstNameController,
                                           textCapitalization: TextCapitalization.characters,
@@ -836,7 +886,18 @@ class _AddEditStudentModalState extends ConsumerState<AddEditStudentModal>
                                         ),
                                       ),
                                       const SizedBox(width: AppSizes.p12),
+                                      // Extension (right after first name)
                                       Expanded(
+                                        flex: 2,
+                                        child: _ExtensionNameField(
+                                          controller: _extController,
+                                          suggestions: _extSuggestions,
+                                        ),
+                                      ),
+                                      const SizedBox(width: AppSizes.p12),
+                                      // Middle Name
+                                      Expanded(
+                                        flex: 3,
                                         child: TextFormField(
                                           controller: _middleNameController,
                                           textCapitalization: TextCapitalization.characters,
@@ -852,32 +913,19 @@ class _AddEditStudentModalState extends ConsumerState<AddEditStudentModal>
                                     ],
                                   ),
                                   const SizedBox(height: AppSizes.p12),
-                                  Row(
-                                    children: [
-                                      Expanded(
-                                        flex: 3,
-                                        child: TextFormField(
-                                          controller: _lastNameController,
-                                          textCapitalization: TextCapitalization.characters,
-                                          inputFormatters: [_UpperCaseWordsFormatter()],
-                                          validator: (v) =>
-                                              _validateRequired(v, 'Last name'),
-                                          decoration: const InputDecoration(
-                                            labelText: 'LAST NAME',
-                                            prefixIcon: Icon(
-                                              Icons.badge_outlined,
-                                            ),
-                                          ),
-                                        ),
+                                  // Last Name — full width
+                                  TextFormField(
+                                    controller: _lastNameController,
+                                    textCapitalization: TextCapitalization.characters,
+                                    inputFormatters: [_UpperCaseWordsFormatter()],
+                                    validator: (v) =>
+                                        _validateRequired(v, 'Last name'),
+                                    decoration: const InputDecoration(
+                                      labelText: 'LAST NAME',
+                                      prefixIcon: Icon(
+                                        Icons.badge_outlined,
                                       ),
-                                      const SizedBox(width: AppSizes.p12),
-                                      Expanded(
-                                        child: _ExtensionNameField(
-                                          controller: _extController,
-                                          suggestions: _extSuggestions,
-                                        ),
-                                      ),
-                                    ],
+                                    ),
                                   ),
                                 ],
                               );
@@ -893,6 +941,11 @@ class _AddEditStudentModalState extends ConsumerState<AddEditStudentModal>
                                     decoration: const InputDecoration(
                                       labelText: 'FIRST NAME',
                                     ),
+                                  ),
+                                  const SizedBox(height: AppSizes.p12),
+                                  _ExtensionNameField(
+                                    controller: _extController,
+                                    suggestions: _extSuggestions,
                                   ),
                                   const SizedBox(height: AppSizes.p12),
                                   TextFormField(
@@ -913,11 +966,6 @@ class _AddEditStudentModalState extends ConsumerState<AddEditStudentModal>
                                     decoration: const InputDecoration(
                                       labelText: 'LAST NAME',
                                     ),
-                                  ),
-                                  const SizedBox(height: AppSizes.p12),
-                                  _ExtensionNameField(
-                                    controller: _extController,
-                                    suggestions: _extSuggestions,
                                   ),
                                 ],
                               );
@@ -1129,7 +1177,15 @@ class _AddEditStudentModalState extends ConsumerState<AddEditStudentModal>
                             final matches = filtered.where((s) => s.id == _selectedSectionId);
                             final initialSectionName = matches.isNotEmpty ? matches.first.name : '';
 
+                            // Key based on grade+year ensures Autocomplete fully rebuilds
+                            // when grade level or academic year changes — fixes the bug
+                            // where user had to type and erase before dropdown refreshed.
+                            final autocompleteKey = ValueKey(
+                              'section_${_selectedGradeLevel}_${_selectedAcademicYearId}',
+                            );
+
                             return Autocomplete<SectionModel>(
+                              key: autocompleteKey,
                               initialValue: TextEditingValue(text: initialSectionName),
                               displayStringForOption: (sec) => sec.name,
                               optionsBuilder: (textEditingValue) {
@@ -1572,6 +1628,7 @@ class _SectionLabel extends StatelessWidget {
 
 // ================================================================
 // EXTENSION NAME FIELD — text field with autocomplete suggestions
+// Selecting 'N/A' clears the field so the stored value is null.
 // ================================================================
 class _ExtensionNameField extends StatelessWidget {
   final TextEditingController controller;
@@ -1610,7 +1667,7 @@ class _ExtensionNameField extends StatelessWidget {
           textCapitalization: TextCapitalization.characters,
           inputFormatters: [_UpperCaseWordsFormatter()],
           decoration: const InputDecoration(
-            labelText: 'EXTENSION NAME',
+            labelText: 'SUFFIX (Optional)',
             hintText: 'Jr. / III',
             prefixIcon: Icon(Icons.text_format),
           ),
@@ -1618,7 +1675,12 @@ class _ExtensionNameField extends StatelessWidget {
         );
       },
       onSelected: (selection) {
-        controller.text = selection;
+        // 'N/A' means no extension — clear so stored value is null/empty
+        if (selection == 'N/A') {
+          controller.clear();
+        } else {
+          controller.text = selection;
+        }
       },
       optionsViewBuilder: (ctx, onSelected, options) {
         return Align(
@@ -1635,6 +1697,7 @@ class _ExtensionNameField extends StatelessWidget {
                 separatorBuilder: (_, _) => const Divider(height: 1),
                 itemBuilder: (ctx, index) {
                   final opt = options.elementAt(index);
+                  final isNa = opt == 'N/A';
                   return InkWell(
                     onTap: () => onSelected(opt),
                     child: Padding(
@@ -1644,9 +1707,11 @@ class _ExtensionNameField extends StatelessWidget {
                       ),
                       child: Text(
                         opt,
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontWeight: FontWeight.w600,
                           fontSize: 14,
+                          color: isNa ? AppColors.textSecondary : null,
+                          fontStyle: isNa ? FontStyle.italic : FontStyle.normal,
                         ),
                       ),
                     ),

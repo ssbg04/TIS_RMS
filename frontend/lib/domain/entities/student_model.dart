@@ -36,12 +36,32 @@ class StudentModel {
   })  : _latestGradeLevel = latestGradeLevel,
         _latestSection = latestSection;
 
-  /// Display name: "De La Cruz, Juan Jr. M."
-  String get fullName {
-    final ext = extension != null && extension!.isNotEmpty ? ' ${extension!}' : '';
-    final mi  = middleName != null && middleName!.isNotEmpty ? ' ${middleName![0]}.' : '';
-    return '$lastName, $firstName$ext$mi'.trim();
+  String _getValidExtension() {
+    if (extension == null || extension!.trim().isEmpty) return '';
+    // do not display the suffix with n/a regex
+    final RegExp naRegex = RegExp(r'^n\/?a$', caseSensitive: false);
+    if (naRegex.hasMatch(extension!.trim())) return '';
+    return extension!.trim();
   }
+
+  /// Format: [Lastname, Firstname, suffix, middle name]
+  String get listDisplayName {
+    final extStr = _getValidExtension();
+    final ext = extStr.isNotEmpty ? ' $extStr' : '';
+    final mName = middleName != null && middleName!.isNotEmpty ? ' $middleName' : '';
+    return '$lastName, $firstName$ext$mName'.trim();
+  }
+
+  /// Format: [First Name, Middle name, last name, suffix]
+  String get profileDisplayName {
+    final extStr = _getValidExtension();
+    final ext = extStr.isNotEmpty ? ' $extStr' : '';
+    final mName = middleName != null && middleName!.isNotEmpty ? ' $middleName' : '';
+    return '$firstName$mName $lastName$ext'.trim();
+  }
+
+  /// Legacy fullName alias (maps to listDisplayName to avoid breaking existing code where not updated yet)
+  String get fullName => listDisplayName;
 
   /// Traverses the enrollments list and dynamically resolves parameters matching
   /// the highest value of academicYearId or the highest lexicographical string sequence in yearRange.

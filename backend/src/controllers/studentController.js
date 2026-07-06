@@ -580,3 +580,107 @@ exports.bulkEnrollStudents = (req, res) => {
         res.status(500).json({ message: 'Failed to bulk enroll students', error: error.message });
     }
 };
+
+// ============================================================
+// POST /api/students/:id/enrollments
+// ============================================================
+exports.addEnrollment = (req, res) => {
+    const { id: studentId } = req.params;
+    const { academicYearId, sectionId, gradeLevel, trackStrand } = req.body;
+
+    if (!academicYearId || !sectionId || !gradeLevel) {
+        return res.status(400).json({ message: 'academicYearId, sectionId, and gradeLevel are required' });
+    }
+
+    const student = db.prepare('SELECT id FROM students WHERE id = ?').get(studentId);
+    if (!student) return res.status(404).json({ message: 'Student not found.' });
+
+    // ---- Enrollment downgrade restriction ----
+    const existingGradeRow = db.prepare(`
+        SELECT MAX(grade_level) as max_grade
+        FROM enrollments
+        WHERE student_id = ? AND academic_year_id = ?
+    `).get(studentId, academicYearId);
+    
+    const existingMaxGrade = existingGradeRow?.max_grade ?? null;
+    if (existingMaxGrade !== null && gradeLevel < existingMaxGrade) {
+        return res.status(400).json({
+            message: `Cannot add enrollment. This student is already in Grade ${existingMaxGrade} for this academic year. You cannot add them to Grade ${gradeLevel} in the same academic year.`,
+        });
+    }
+
+    try {
+        const info = db.prepare(`
+            INSERT INTO enrollments (student_id, academic_year_id, section_id, grade_level, track_strand)
+            VALUES (?, ?, ?, ?, ?)
+        `).run(studentId, academicYearId, sectionId, gradeLevel, trackStrand || null);
+
+        logActivity(req.user?.id, 'CREATE', 'enrollment', info.lastInsertRowid, `Added enrollment ${info.lastInsertRowid} for student ${studentId}`);
+        res.status(201).json({ message: 'Enrollment added successfully', id: info.lastInsertRowid });
+    } catch (error) {
+        console.error('addEnrollment error:', error);
+        res.status(500).json({ message: 'Failed to add enrollment', error: error.message });
+    }
+};
+
+// ============================================================
+// PUT /api/students/enrollments/:enrollmentId
+// ============================================================
+exports.updateEnrollment = (req, res) => {
+    const { enrollmentId } = req.params;
+    const { academicYearId, sectionId, gradeLevel, trackStrand } = req.body;
+
+    if (!academicYearId || !sectionId || !gradeLevel) {
+        return res.status(400).json({ message: 'academicYearId, sectionId, and gradeLevel are required' });
+    }
+
+    const existing = db.prepare('SELECT * FROM enrollments WHERE id = ?').get(enrollmentId);
+    if (!existing) return res.status(404).json({ message: 'Enrollment not found.' });
+
+    // ---- Enrollment downgrade restriction ----
+    const existingGradeRow = db.prepare(`
+        SELECT MAX(grade_level) as max_grade
+        FROM enrollments
+        WHERE student_id = ? AND academic_year_id = ? AND id != ?
+    `).get(existing.student_id, academicYearId, enrollmentId);
+    
+    const existingMaxGrade = existingGradeRow?.max_grade ?? null;
+    if (existingMaxGrade !== null && gradeLevel < existingMaxGrade) {
+        return res.status(400).json({
+            message: `Cannot downgrade enrollment. This student is already in Grade ${existingMaxGrade} for this academic year. You cannot change it to Grade ${gradeLevel} in the same academic year.`,
+        });
+    }
+
+    try {
+        db.prepare(`
+            UPDATE enrollments
+            SET academic_year_id = ?, section_id = ?, grade_level = ?, track_strand = ?
+            WHERE id = ?
+        `).run(academicYearId, sectionId, gradeLevel, trackStrand || null, enrollmentId);
+
+        logActivity(req.user?.id, 'UPDATE', 'enrollment', enrollmentId, `Updated enrollment ${enrollmentId} for student ${existing.student_id}`);
+        res.json({ message: 'Enrollment updated successfully' });
+    } catch (error) {
+        console.error('updateEnrollment error:', error);
+        res.status(500).json({ message: 'Failed to update enrollment', error: error.message });
+    }
+};
+
+// ============================================================
+// DELETE /api/students/enrollments/:enrollmentId
+// ============================================================
+exports.deleteEnrollment = (req, res) => {
+    const { enrollmentId } = req.params;
+
+    const existing = db.prepare('SELECT * FROM enrollments WHERE id = ?').get(enrollmentId);
+    if (!existing) return res.status(404).json({ message: 'Enrollment not found.' });
+
+    try {
+        db.prepare('DELETE FROM enrollments WHERE id = ?').run(enrollmentId);
+        logActivity(req.user?.id, 'DELETE', 'enrollment', enrollmentId, `Deleted enrollment ${enrollmentId} for student ${existing.student_id}`);
+        res.json({ message: 'Enrollment deleted successfully' });
+    } catch (error) {
+        console.error('deleteEnrollment error:', error);
+        res.status(500).json({ message: 'Failed to delete enrollment', error: error.message });
+    }
+};

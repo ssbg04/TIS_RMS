@@ -329,7 +329,7 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
                 children: [
                   Text(
                     'Are you sure you want to permanently delete '
-                    '"${student.fullName}"? This cannot be undone.',
+                    '"${student.listDisplayName}"? This cannot be undone.',
                   ),
                   const SizedBox(height: 16),
                   const Text('Please enter your password to confirm:'),
@@ -430,7 +430,7 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
     Future.microtask(() {
       if (mounted) {
         ref.read(openedFolderProvider.notifier).setFolder(
-          OpenedFolderData(id: student.id, name: student.fullName)
+          OpenedFolderData(id: student.id, name: student.listDisplayName)
         );
       }
     });
@@ -1170,7 +1170,7 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
                       onTap: () => _viewProfile(student),
                     ),
                     DataCell(
-                      Text(student.fullName),
+                      Text(student.listDisplayName),
                       onTap: () => _viewProfile(student),
                     ),
                     DataCell(
@@ -1314,7 +1314,7 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
                           children: [
                             Expanded(
                               child: Text(
-                                s.fullName,
+                                s.listDisplayName,
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
                                 style: const TextStyle(

@@ -281,4 +281,71 @@ class StudentRepository {
       throw Exception(msg);
     }
   }
+  // ----------------------------------------------------------------
+  // Update Enrollment
+  // ----------------------------------------------------------------
+  Future<void> updateEnrollment({
+    required int enrollmentId,
+    required int academicYearId,
+    required int gradeLevel,
+    required int sectionId,
+    String? trackStrand,
+  }) async {
+    try {
+      final options = await _getAuthOptions();
+      await _dio.put(
+        '/students/enrollments/$enrollmentId',
+        data: {
+          'academicYearId': academicYearId,
+          'gradeLevel':     gradeLevel,
+          'sectionId':      sectionId,
+          'trackStrand':    trackStrand,
+        },
+        options: options,
+      );
+    } on DioException catch (e) {
+      final msg = e.response?.data?['message'] ?? 'Failed to update enrollment.';
+      throw Exception(msg);
+    }
+  }
+
+  // ----------------------------------------------------------------
+  // Delete Enrollment
+  // ----------------------------------------------------------------
+  Future<void> deleteEnrollment(int enrollmentId) async {
+    try {
+      final options = await _getAuthOptions();
+      await _dio.delete('/students/enrollments/$enrollmentId', options: options);
+    } on DioException catch (e) {
+      final msg = e.response?.data?['message'] ?? 'Failed to delete enrollment.';
+      throw Exception(msg);
+    }
+  }
+  // ----------------------------------------------------------------
+  // Add Enrollment
+  // ----------------------------------------------------------------
+  Future<void> addEnrollment({
+    required int studentId,
+    required int academicYearId,
+    required int gradeLevel,
+    required int sectionId,
+    String? trackStrand,
+  }) async {
+    try {
+      final options = await _getAuthOptions();
+      await _dio.post(
+        '/students/$studentId/enrollments',
+        data: {
+          'academicYearId': academicYearId,
+          'gradeLevel':     gradeLevel,
+          'sectionId':      sectionId,
+          'trackStrand':    trackStrand,
+        },
+        options: options,
+      );
+    } on DioException catch (e) {
+      final msg = e.response?.data?['message'] ?? 'Failed to add enrollment.';
+      throw Exception(msg);
+    }
+  }
 }

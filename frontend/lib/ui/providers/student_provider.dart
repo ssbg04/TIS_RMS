@@ -325,4 +325,69 @@ class StudentMutationNotifier extends AsyncNotifier<void> {
       rethrow;
     }
   }
+  Future<void> updateEnrollment({
+    required int studentId,
+    required int enrollmentId,
+    required int academicYearId,
+    required int gradeLevel,
+    required int sectionId,
+    String? trackStrand,
+  }) async {
+    state = const AsyncLoading();
+    try {
+      final repo = ref.read(studentRepositoryProvider);
+      await repo.updateEnrollment(
+        enrollmentId:   enrollmentId,
+        academicYearId: academicYearId,
+        gradeLevel:     gradeLevel,
+        sectionId:      sectionId,
+        trackStrand:    trackStrand,
+      );
+      state = const AsyncData(null);
+      ref.invalidate(studentDetailProvider(studentId));
+    } catch (e, st) {
+      state = AsyncError(e, st);
+      rethrow;
+    }
+  }
+
+  Future<void> deleteEnrollment({
+    required int studentId,
+    required int enrollmentId,
+  }) async {
+    state = const AsyncLoading();
+    try {
+      final repo = ref.read(studentRepositoryProvider);
+      await repo.deleteEnrollment(enrollmentId);
+      state = const AsyncData(null);
+      ref.invalidate(studentDetailProvider(studentId));
+    } catch (e, st) {
+      state = AsyncError(e, st);
+      rethrow;
+    }
+  }
+  Future<void> addEnrollment({
+    required int studentId,
+    required int academicYearId,
+    required int gradeLevel,
+    required int sectionId,
+    String? trackStrand,
+  }) async {
+    state = const AsyncLoading();
+    try {
+      final repo = ref.read(studentRepositoryProvider);
+      await repo.addEnrollment(
+        studentId:      studentId,
+        academicYearId: academicYearId,
+        gradeLevel:     gradeLevel,
+        sectionId:      sectionId,
+        trackStrand:    trackStrand,
+      );
+      state = const AsyncData(null);
+      ref.invalidate(studentDetailProvider(studentId));
+    } catch (e, st) {
+      state = AsyncError(e, st);
+      rethrow;
+    }
+  }
 }

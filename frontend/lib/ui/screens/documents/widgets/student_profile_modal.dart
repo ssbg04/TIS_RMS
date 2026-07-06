@@ -5,6 +5,7 @@ import '../../../../domain/repositories/document_repository.dart'
     show MissingRequirements;
 import '../../../providers/student_provider.dart';
 import '../../../providers/document_provider.dart';
+import '../../students/widgets/edit_enrollment_modal.dart';
 
 // ─────────────────────────────────────────────────────────────
 // Public helper – call this anywhere to show the modal
@@ -148,11 +149,38 @@ class StudentProfileModalBody extends ConsumerWidget {
             _buildInfoCard(student),
             const SizedBox(height: 20),
 
-            if (student.enrollments != null &&
-                student.enrollments!.isNotEmpty) ...[
-              const Text('Enrollments',
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-              const SizedBox(height: 10),
+            const SizedBox(height: 20),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text('Enrollments',
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                if (userRole == 'admin' || userRole == 'super_admin')
+                  TextButton.icon(
+                    onPressed: () {
+                      showDialog(
+                        context: context,
+                        barrierColor: Colors.black.withValues(alpha: 0.45),
+                        builder: (ctx) => EditEnrollmentModal(
+                          studentId: studentId,
+                          enrollment: null,
+                        ),
+                      );
+                    },
+                    icon: const Icon(Icons.add, size: 16),
+                    label: const Text('Add Enrollment'),
+                    style: TextButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                      minimumSize: Size.zero,
+                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                    ),
+                  ),
+              ],
+            ),
+            const SizedBox(height: 10),
+            
+            if (student.enrollments != null && student.enrollments!.isNotEmpty) ...[
+
               ...(() {
                 final sorted = List.from(student.enrollments!);
                 sorted.sort((a, b) =>
@@ -169,7 +197,7 @@ class StudentProfileModalBody extends ConsumerWidget {
                 }
 
                 return uniqueEnrollments
-                    .map<Widget>((e) => _buildEnrollmentCard(e))
+                    .map<Widget>((e) => _buildEnrollmentCard(context, ref, e))
                     .toList();
               })(),
               const SizedBox(height: 20),
@@ -233,7 +261,7 @@ class StudentProfileModalBody extends ConsumerWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      '${student.firstName} ${student.middleName != null ? student.middleName! + ' ' : ''}${student.lastName}${student.extension?.isNotEmpty == true ? ', ${student.extension}' : ''}',
+                      student.profileDisplayName,
                       style: const TextStyle(
                           fontSize: 17, fontWeight: FontWeight.bold),
                     ),
@@ -353,7 +381,7 @@ class StudentProfileModalBody extends ConsumerWidget {
   }
 
   // ── Enrollment card ──────────────────────────────────────
-  Widget _buildEnrollmentCard(dynamic enrollment) {
+  Widget _buildEnrollmentCard(BuildContext context, WidgetRef ref, dynamic enrollment) {
     return Container(
       margin: const EdgeInsets.only(bottom: 8),
       padding: const EdgeInsets.all(12),
@@ -392,6 +420,53 @@ class StudentProfileModalBody extends ConsumerWidget {
               ],
             ),
           ),
+          if (userRole == 'admin' || userRole == 'super_admin') ...[
+            IconButton(
+              icon: const Icon(Icons.edit, size: 18, color: Colors.blue),
+              tooltip: 'Edit Enrollment',
+              onPressed: () {
+                showDialog(
+                  context: context,
+                  barrierColor: Colors.black.withValues(alpha: 0.45),
+                  builder: (ctx) => EditEnrollmentModal(
+                    studentId: studentId,
+                    enrollment: enrollment,
+                  ),
+                );
+              },
+            ),
+            IconButton(
+              icon: const Icon(Icons.delete_outline, size: 18, color: AppColors.error),
+              tooltip: 'Delete Enrollment',
+              onPressed: () {
+                showDialog(
+                  context: context,
+                  builder: (ctx) => AlertDialog(
+                    title: const Text('Delete Enrollment'),
+                    content: const Text(
+                        'Are you sure you want to delete this enrollment? This action cannot be undone.'),
+                    actions: [
+                      TextButton(
+                        onPressed: () => Navigator.of(ctx).pop(),
+                        child: const Text('CANCEL'),
+                      ),
+                      TextButton(
+                        onPressed: () {
+                          Navigator.of(ctx).pop();
+                          ref.read(studentMutationProvider.notifier).deleteEnrollment(
+                                studentId: studentId,
+                                enrollmentId: enrollment.id,
+                              );
+                        },
+                        style: TextButton.styleFrom(foregroundColor: AppColors.error),
+                        child: const Text('DELETE'),
+                      ),
+                    ],
+                  ),
+                );
+              },
+            ),
+          ],
         ],
       ),
     );

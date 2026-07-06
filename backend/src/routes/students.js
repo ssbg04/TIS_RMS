@@ -14,4 +14,8 @@ router.put('/bulk-graduate', authenticateToken, authorizeRoles('admin'), student
 router.put('/:id',  authenticateToken, authorizeRoles('admin'), studentController.updateStudent);
 router.delete('/:id', authenticateToken, authorizeRoles('admin'), studentController.deleteStudent);
 
+router.post('/:id/enrollments', authenticateToken, authorizeRoles('admin'), studentController.addEnrollment);
+router.put('/enrollments/:enrollmentId', authenticateToken, authorizeRoles('admin'), studentController.updateEnrollment);
+router.delete('/enrollments/:enrollmentId', authenticateToken, authorizeRoles('admin'), studentController.deleteEnrollment);
+
 module.exports = router;
