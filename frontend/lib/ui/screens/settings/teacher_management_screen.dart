@@ -22,8 +22,8 @@ class TeacherManagementModal extends ConsumerStatefulWidget {
   const TeacherManagementModal({super.key});
 
   static void open(BuildContext context) {
-    final isNarrow = MediaQuery.of(context).size.width < 480;
-    if (isNarrow) {
+    final isAndroid = Theme.of(context).platform == TargetPlatform.android;
+    if (isAndroid) {
       Navigator.push(
         context,
         MaterialPageRoute(builder: (_) => const TeacherManagementModal()),
@@ -64,25 +64,45 @@ class _TeacherManagementModalState extends ConsumerState<TeacherManagementModal>
   @override
   Widget build(BuildContext context) {
     final screenSize = MediaQuery.of(context).size;
-    final isNarrow = screenSize.width < 480;
+    final isAndroid = Theme.of(context).platform == TargetPlatform.android;
+
+    final content = Column(
+      children: [
+        _buildTabBar(isAndroid),
+        Expanded(
+          child: TabBarView(
+            controller: _tabController,
+            children: [_TeachersTab(), _AcademicYearsTab(), _SectionsTab()],
+          ),
+        ),
+      ],
+    );
+
+    if (isAndroid) {
+      return Scaffold(
+        backgroundColor: AppColors.pageBackground,
+        appBar: AppBar(
+          backgroundColor: AppColors.primaryGreen,
+          foregroundColor: Colors.white,
+          title: const Row(
+            children: [
+              Icon(Icons.school, size: 22),
+              SizedBox(width: 10),
+              Text('Teachers & Academic Setup', style: TextStyle(fontSize: 16)),
+            ],
+          ),
+        ),
+        body: SafeArea(child: content),
+      );
+    }
 
     return CustomModal(
       title: 'Teachers & Academic Setup',
       icon: Icons.school,
       maxWidth: 900,
       content: SizedBox(
-        height: isNarrow ? screenSize.height : screenSize.height * 0.8,
-        child: Column(
-          children: [
-            _buildTabBar(isNarrow),
-            Expanded(
-              child: TabBarView(
-                controller: _tabController,
-                children: [_TeachersTab(), _AcademicYearsTab(), _SectionsTab()],
-              ),
-            ),
-          ],
-        ),
+        height: screenSize.height * 0.8,
+        child: content,
       ),
     );
   }

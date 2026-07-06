@@ -22,7 +22,8 @@ class RequirementsModal extends ConsumerStatefulWidget {
   const RequirementsModal({super.key});
 
   static void open(BuildContext context) {
-    if (MediaQuery.of(context).size.width < 480) {
+    final isAndroid = Theme.of(context).platform == TargetPlatform.android;
+    if (isAndroid) {
       Navigator.of(context).push(
         MaterialPageRoute(builder: (_) => const RequirementsModal()),
       );
@@ -255,7 +256,7 @@ class _RequirementsModalState extends ConsumerState<RequirementsModal> {
   @override
   Widget build(BuildContext context) {
     final screenSize = MediaQuery.of(context).size;
-    final isNarrow = screenSize.width < 480;
+    final isAndroid = Theme.of(context).platform == TargetPlatform.android;
     final settingsAsync = ref.watch(requirementsSettingsProvider);
 
     final scaffold = Scaffold(
@@ -264,15 +265,15 @@ class _RequirementsModalState extends ConsumerState<RequirementsModal> {
         child: Column(
               children: [
                 _buildModalHeader(context),
-                _buildSearchAndControls(isNarrow),
-                _buildFilterBar(isNarrow),
+                _buildSearchAndControls(isAndroid),
+                _buildFilterBar(isAndroid),
                 const Divider(height: 1),
                 Expanded(
                   child: settingsAsync.when(
                     data: (settings) {
                       final all = [...settings.jhs, ...settings.shs];
                       final filtered = _applyFiltersAndSort(all);
-                      return _buildTable(filtered, isNarrow);
+                      return _buildTable(filtered, isAndroid);
                     },
                     loading: () =>
                         const Center(child: CircularProgressIndicator()),
@@ -303,7 +304,7 @@ class _RequirementsModalState extends ConsumerState<RequirementsModal> {
       floatingActionButton: _buildFAB(context),
     );
 
-    if (isNarrow) return scaffold;
+    if (isAndroid) return scaffold;
 
     return Dialog(
       backgroundColor: Colors.transparent,
@@ -320,7 +321,7 @@ class _RequirementsModalState extends ConsumerState<RequirementsModal> {
   // Modal header
   // ─────────────────────────────────────────────────────────
   Widget _buildModalHeader(BuildContext context) {
-    final isNarrow = MediaQuery.of(context).size.width < 480;
+    final isAndroid = Theme.of(context).platform == TargetPlatform.android;
     return Container(
       padding: const EdgeInsets.symmetric(
           horizontal: AppSizes.p16, vertical: AppSizes.p12),
@@ -378,7 +379,7 @@ class _RequirementsModalState extends ConsumerState<RequirementsModal> {
                           ? AppColors.primaryGreen
                           : AppColors.textSecondary,
                     ),
-                    if (!isNarrow) ...[
+                    if (!isAndroid) ...[
                       const SizedBox(width: 8),
                       Text(
                         _multiSelectMode ? 'Selecting' : 'Select',

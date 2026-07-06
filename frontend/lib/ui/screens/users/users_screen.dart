@@ -1,4 +1,4 @@
-import 'dart:ui';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -17,6 +17,7 @@ import '../../providers/navigation_provider.dart';
 import '../../shared/dialogs/error_dialog.dart';
 import '../../shared/dialogs/success_dialog.dart';
 import '../../shared/modals/custom_modal.dart';
+import '../../shared/modals/reset_requests_modal.dart';
 
 class UsersScreen extends ConsumerStatefulWidget {
   const UsersScreen({super.key});
@@ -320,16 +321,41 @@ class _UsersScreenState extends ConsumerState<UsersScreen> {
     });
 
     final usersAsync = ref.watch(usersProvider);
+    final resetRequestsAsync = ref.watch(resetRequestsProvider);
+    final resetCount = resetRequestsAsync.value?.length ?? 0;
 
     return Scaffold(
       backgroundColor: Colors.transparent,
       floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
-      floatingActionButton: MediaQuery.of(context).size.width > 800 ? null : FloatingActionButton(
-        onPressed: () => _openModal(),
-        backgroundColor: AppColors.primaryGreen,
-        foregroundColor: Colors.white,
-        shape: const CircleBorder(),
-        child: const Icon(Icons.add),
+      floatingActionButton: MediaQuery.of(context).size.width > 800 ? null : Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16.0),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            // Left FAB (Password Reset Requests)
+            Badge(
+              isLabelVisible: resetCount > 0,
+              label: Text(resetCount.toString()),
+              child: FloatingActionButton(
+                heroTag: 'reset_requests_fab',
+                onPressed: () => ResetRequestsModal.show(context),
+                backgroundColor: Colors.orange,
+                foregroundColor: Colors.white,
+                shape: const CircleBorder(),
+                child: const Icon(Icons.lock_clock),
+              ),
+            ),
+            // Right FAB (Add User)
+            FloatingActionButton(
+              heroTag: 'add_user_fab',
+              onPressed: () => _openModal(),
+              backgroundColor: AppColors.primaryGreen,
+              foregroundColor: Colors.white,
+              shape: const CircleBorder(),
+              child: const Icon(Icons.add),
+            ),
+          ],
+        ),
       ),
       body: SafeArea(
         child: Padding(
