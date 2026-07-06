@@ -406,7 +406,8 @@ class _RecentActivitiesScreenState
               )
               .toList(),
         ),
-      ),)
+      ),
+      ),
     );
   }
 

@@ -413,6 +413,7 @@ class _UserHistoryScreenState extends ConsumerState<UserHistoryScreen> {
               .toList(),
         ),
       ),
+      ),
     );
   }
 
