@@ -344,7 +344,7 @@ class _UploadOcrModalState extends ConsumerState<UploadOcrModal> {
           Container(
             padding: const EdgeInsets.all(AppSizes.p12),
             decoration: BoxDecoration(
-              color: Colors.blue.withOpacity(0.1),
+              color: Colors.blue.withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(AppSizes.radiusMedium),
               border: Border.all(color: Colors.blue.shade200),
             ),
@@ -377,78 +377,83 @@ class _UploadOcrModalState extends ConsumerState<UploadOcrModal> {
               final jhsReqs = requirements.where((r) => r.category == 'JHS').toList();
               final shsReqs = requirements.where((r) => r.category == 'SHS').toList();
 
-              List<DropdownMenuItem<int>> items = [];
-              int _headerIndex = -1;
-
-              void addGroup(String groupLabel, Color groupColor, List<dynamic> reqs) {
-                if (reqs.isEmpty) return;
-                // Section header (non-selectable)
-                items.add(DropdownMenuItem<int>(
-                  value: _headerIndex--, // Guaranteed unique negative value
+              final entries = <DropdownMenuEntry<int>>[];
+              
+              if (jhsReqs.isNotEmpty) {
+                entries.add(const DropdownMenuEntry<int>(
+                  value: -1,
+                  label: 'Junior High School',
                   enabled: false,
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(vertical: 4),
-                    decoration: BoxDecoration(
-                      border: Border(bottom: BorderSide(color: groupColor.withOpacity(0.3))),
-                    ),
-                    child: Row(children: [
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                        decoration: BoxDecoration(
-                          color: groupColor.withOpacity(0.15),
-                          borderRadius: BorderRadius.circular(4),
-                        ),
-                        child: Text(groupLabel,
-                            style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: groupColor)),
-                      ),
-                      const SizedBox(width: 6),
-                      Text('Requirements', style: TextStyle(fontSize: 11, color: groupColor)),
-                    ]),
+                  style: ButtonStyle(
+                    foregroundColor: WidgetStatePropertyAll(Colors.teal),
+                    textStyle: WidgetStatePropertyAll(TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
                   ),
                 ));
-                // Actual requirement items
-                for (final req in reqs) {
-                  items.add(DropdownMenuItem<int>(
+                for (final req in jhsReqs) {
+                  entries.add(DropdownMenuEntry<int>(
                     value: req.id,
-                    child: Padding(
-                      padding: const EdgeInsets.only(left: 8),
-                      child: Text(
-                        req.name,
-                        style: const TextStyle(fontSize: 13),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
+                    label: req.name,
+                    style: const ButtonStyle(
+                      padding: WidgetStatePropertyAll(EdgeInsets.only(left: 32)),
+                      textStyle: WidgetStatePropertyAll(TextStyle(fontSize: 14)),
                     ),
                   ));
                 }
               }
 
-              addGroup('JHS', Colors.teal, jhsReqs);
-              addGroup('SHS', Colors.purple, shsReqs);
+              if (shsReqs.isNotEmpty) {
+                entries.add(const DropdownMenuEntry<int>(
+                  value: -2,
+                  label: 'Senior High School',
+                  enabled: false,
+                  style: ButtonStyle(
+                    foregroundColor: WidgetStatePropertyAll(Colors.purple),
+                    textStyle: WidgetStatePropertyAll(TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
+                  ),
+                ));
+                for (final req in shsReqs) {
+                  entries.add(DropdownMenuEntry<int>(
+                    value: req.id,
+                    label: req.name,
+                    style: const ButtonStyle(
+                      padding: WidgetStatePropertyAll(EdgeInsets.only(left: 32)),
+                      textStyle: WidgetStatePropertyAll(TextStyle(fontSize: 14)),
+                    ),
+                  ));
+                }
+              }
 
-              return Container(
-                padding: const EdgeInsets.symmetric(horizontal: AppSizes.p16),
-                decoration: BoxDecoration(
-                  color: AppColors.surfaceWhite,
-                  borderRadius: BorderRadius.circular(AppSizes.radiusMedium),
-                  border: Border.all(color: Colors.grey.shade300),
-                ),
-                child: DropdownButtonHideUnderline(
-                  child: DropdownButton<int>(
-                    value: _selectedRequirementId,
-                    hint: const Text('Select Document Type'),
-                    isExpanded: true,
-                    items: items,
-                    onChanged: (val) {
-                      if (val == null || val < 0) return; // ignore headers
-                      setState(() {
-                        _selectedRequirementId = val;
-                        final reqMatch = requirements.firstWhere((r) => r.id == val);
-                        _selectedDocumentType = reqMatch.name;
-                      });
-                    },
+              return DropdownMenu<int>(
+                initialSelection: _selectedRequirementId,
+                hintText: 'Select Document Type',
+                expandedInsets: EdgeInsets.zero,
+                menuHeight: 300,
+                inputDecorationTheme: InputDecorationTheme(
+                  filled: true,
+                  fillColor: AppColors.surfaceWhite,
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(AppSizes.radiusMedium),
+                    borderSide: BorderSide(color: Colors.grey.shade300),
+                  ),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(AppSizes.radiusMedium),
+                    borderSide: BorderSide(color: Colors.grey.shade300),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(AppSizes.radiusMedium),
+                    borderSide: const BorderSide(color: AppColors.primaryGreen, width: 2),
                   ),
                 ),
+                dropdownMenuEntries: entries,
+                onSelected: (val) {
+                  if (val == null || val < 0) return;
+                  setState(() {
+                    _selectedRequirementId = val;
+                    final reqMatch = requirements.firstWhere((r) => r.id == val);
+                    _selectedDocumentType = reqMatch.name;
+                  });
+                },
               );
             },
             loading: () => const Center(child: CircularProgressIndicator(color: AppColors.primaryGreen)),

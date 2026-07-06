@@ -732,70 +732,53 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
       onTap: () => FocusScope.of(context).unfocus(),
       child: Scaffold(
         backgroundColor: Colors.transparent,
-        // FAB: visible on mobile only (Windows desktop uses the header Upload button)
-        floatingActionButton: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.end,
-          children: [
-            if (defaultTargetPlatform != TargetPlatform.windows &&
+        floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
+        floatingActionButton: (defaultTargetPlatform != TargetPlatform.windows &&
                 _tabController.index != 2 &&
-                !_isMultiSelectMode) ...[
-              const SizedBox(height: 12),
-              SpeedDial(
-                icon: Icons.menu,
-                activeIcon: Icons.close,
-                spacing: 3,
-                mini: false,
-                childPadding: const EdgeInsets.all(5),
-                spaceBetweenChildren: 4,
-                buttonSize: const Size(56.0, 56.0),
-                childrenButtonSize: const Size(56.0, 56.0),
-                visible: true,
-                direction: SpeedDialDirection.up,
-                switchLabelPosition: false,
-                closeManually: false,
-                renderOverlay: true,
-                overlayColor: Colors.black,
-                overlayOpacity: 0.3,
-                useRotationAnimation: true,
-                tooltip: 'Menu',
-                heroTag: 'speed-dial-hero-tag',
-                elevation: 8.0,
-                animationCurve: Curves.elasticInOut,
-                isOpenOnStart: false,
-                shape: const CircleBorder(),
-                backgroundColor: AppColors.primaryGreen,
-                foregroundColor: Colors.white,
-                children: [
-                  SpeedDialChild(
-                    child: const Icon(Icons.print, color: Colors.white),
-                    backgroundColor: AppColors.primaryGreen,
-                    foregroundColor: Colors.white,
-                    label: 'Print List',
-                    onTap: () {
-                      showDialog(context: context, builder: (_) => const PrintQueueModal());
-                    },
-                  ),
-                  if (_tabController.index == 1 || isFolderOpened)
-                    SpeedDialChild(
-                      child: const Icon(Icons.cloud_upload, color: Colors.white),
-                      backgroundColor: AppColors.primaryGreen,
-                      foregroundColor: Colors.white,
-                      label: 'Upload Document',
-                      onTap: () {
-                        showDialog(
-                          context: context,
-                          builder: (_) => UploadOcrModal(
-                            prefilledStudentId: _openedFolderStudentId ?? widget.initialStudentId,
-                          ),
-                        );
-                      },
+                !_isMultiSelectMode)
+            ? Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    // Left FAB: Print List
+                    Badge(
+                      label: Text('${ref.watch(printQueueProvider).value?.length ?? 0}'),
+                      isLabelVisible: (ref.watch(printQueueProvider).value?.length ?? 0) > 0,
+                      backgroundColor: AppColors.error,
+                      offset: const Offset(4, -4),
+                      child: FloatingActionButton(
+                        heroTag: 'fab-print-list',
+                        backgroundColor: AppColors.primaryGreen,
+                        shape: const CircleBorder(),
+                        onPressed: () {
+                          showDialog(context: context, builder: (_) => const PrintQueueModal());
+                        },
+                        child: const Icon(Icons.print, color: Colors.white),
+                      ),
                     ),
-                ],
-              ),
-            ]
-          ],
-        ),
+                    // Right FAB: Upload Document
+                    if (_tabController.index == 1 || isFolderOpened)
+                      FloatingActionButton(
+                        heroTag: 'fab-upload-doc',
+                        backgroundColor: AppColors.primaryGreen,
+                        shape: const CircleBorder(),
+                        onPressed: () {
+                          showDialog(
+                            context: context,
+                            builder: (_) => UploadOcrModal(
+                              prefilledStudentId: _openedFolderStudentId ?? widget.initialStudentId,
+                            ),
+                          );
+                        },
+                        child: const Icon(Icons.cloud_upload, color: Colors.white),
+                      )
+                    else
+                      const SizedBox.shrink(),
+                  ],
+                ),
+              )
+            : null,
         bottomNavigationBar: _isMultiSelectMode
             ? _buildBatchActionsBar()
             : null,
@@ -1789,7 +1772,10 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
         final List<dynamic> paginatedFolders = filteredFolders.isEmpty ? [] : filteredFolders.sublist(startIndex, endIndex);
 
         if (!_isGridView) {
-          return Container(
+          return Column(
+            children: [
+              Expanded(
+                child: Container(
             margin: EdgeInsets.all(isMobile ? 8 : 16),
             decoration: BoxDecoration(
               color: AppColors.surfaceWhite,
@@ -1942,11 +1928,14 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
                       },
                     ),
                   ),
-                  if (totalPages > 1) _buildFoldersPagination(totalPages, _foldersPage),
                 ],
               ),
             ),
-          );
+          ),
+        ),
+        if (totalPages > 1) _buildFoldersPagination(totalPages, _foldersPage),
+      ],
+    );
         }
 
         return LayoutBuilder(
@@ -2171,7 +2160,10 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
   Widget _buildListView(List documents, int totalPages, int currentPage) {
     final screenW = MediaQuery.of(context).size.width;
     final isMobileList = screenW < 700;
-    return Container(
+    return Column(
+      children: [
+        Expanded(
+          child: Container(
       margin: EdgeInsets.all(isMobileList ? 8 : 16),
       decoration: BoxDecoration(
         color: AppColors.surfaceWhite,
@@ -2299,14 +2291,17 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
                 },
               ),
             ),
-            if (totalPages > 1)
-              Container(
-                child: _buildPagination(totalPages, currentPage),
-              ),
           ],
         ),
       ),
-    );
+    ),
+    ),
+    if (totalPages > 1)
+      Container(
+        child: _buildPagination(totalPages, currentPage),
+      ),
+  ],
+);
   }
 
   /// Compact card row for mobile list view – stacks info vertically.
@@ -2341,21 +2336,24 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
 
     final isSelected = _selectedDocumentIds.contains(doc.id);
 
-    return InkWell(
-      onTap: () {
-        if (_isMultiSelectMode) {
-          setState(() {
-            if (isSelected) {
-              _selectedDocumentIds.remove(doc.id);
-            } else {
-              _selectedDocumentIds.add(doc.id);
-            }
-          });
-        } else {
-          showDocumentPreview(context: context, document: doc as DocumentModel);
-        }
-      },
-      child: Container(
+    return GestureDetector(
+      onSecondaryTapDown: (details) => _showDocumentContextMenu(context, details.globalPosition, doc as DocumentModel),
+      onLongPressStart: (details) => _showDocumentContextMenu(context, details.globalPosition, doc as DocumentModel),
+      child: InkWell(
+        onTap: () {
+          if (_isMultiSelectMode) {
+            setState(() {
+              if (isSelected) {
+                _selectedDocumentIds.remove(doc.id);
+              } else {
+                _selectedDocumentIds.add(doc.id);
+              }
+            });
+          } else {
+            showDocumentPreview(context: context, document: doc as DocumentModel);
+          }
+        },
+        child: Container(
         color: isSelected
             ? AppColors.primaryGreen.withValues(alpha: 0.05)
             : null,
@@ -2543,7 +2541,7 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
           ],
         ),
       ),
-    );
+    ));
   }
 
   // ══════════════════════════════════════════════════════════════
@@ -2723,6 +2721,82 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
           studentId: folder.studentId!,
           userRole: widget.userRole,
         );
+      }
+    });
+  }
+
+  void _showDocumentContextMenu(BuildContext context, Offset position, DocumentModel doc) {
+    if (_isMultiSelectMode) return;
+    final RenderBox overlay = Overlay.of(context).context.findRenderObject() as RenderBox;
+    
+    final items = <PopupMenuEntry<String>>[
+      const PopupMenuItem(
+        value: 'queue',
+        child: Row(
+          children: [
+            Icon(Icons.print, size: 18),
+            SizedBox(width: 12),
+            Text('Add to Print List', style: TextStyle(fontSize: 14)),
+          ],
+        ),
+      ),
+      const PopupMenuItem(
+        value: 'copy',
+        child: Row(
+          children: [
+            Icon(Icons.copy, size: 18),
+            SizedBox(width: 12),
+            Text('Copy', style: TextStyle(fontSize: 14)),
+          ],
+        ),
+      ),
+      const PopupMenuItem(
+        value: 'download',
+        child: Row(
+          children: [
+            Icon(Icons.download, size: 18),
+            SizedBox(width: 12),
+            Text('Download', style: TextStyle(fontSize: 14)),
+          ],
+        ),
+      ),
+      const PopupMenuDivider(),
+      const PopupMenuItem(
+        value: 'view_profile',
+        child: Row(
+          children: [
+            Icon(Icons.person, size: 18, color: AppColors.primaryGreen),
+            SizedBox(width: 12),
+            Text('View Student Profile', style: TextStyle(fontSize: 14)),
+          ],
+        ),
+      ),
+    ];
+    
+    if (widget.userRole != 'teacher') {
+      items.add(const PopupMenuDivider());
+      items.add(const PopupMenuItem(
+        value: 'delete',
+        child: Row(
+          children: [
+            Icon(Icons.delete, size: 18, color: AppColors.error),
+            SizedBox(width: 12),
+            Text('Delete', style: TextStyle(fontSize: 14, color: AppColors.error)),
+          ],
+        ),
+      ));
+    }
+
+    showMenu<String>(
+      context: context,
+      position: RelativeRect.fromRect(
+        position & const Size(40, 40),
+        Offset.zero & overlay.size,
+      ),
+      items: items,
+    ).then((value) {
+      if (value != null) {
+        _handleAction(value, doc);
       }
     });
   }

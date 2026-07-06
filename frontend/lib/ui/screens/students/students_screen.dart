@@ -505,7 +505,7 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     // ── Header + Controls ──
-                    _buildHeaderControls(context, query, ref),
+                    _buildHeaderControls(context, query, ref, activeCount),
                     const SizedBox(height: AppSizes.p24),
 
                     // ── Data Table / Cards ──
@@ -565,7 +565,7 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
   // ================================================================
   // HEADER + CONTROLS
   // ================================================================
-  Widget _buildHeaderControls(BuildContext context, StudentQueryParams query, WidgetRef ref) {
+  Widget _buildHeaderControls(BuildContext context, StudentQueryParams query, WidgetRef ref, int activeCount) {
 
     return LayoutBuilder(builder: (_, c) {
       final isDesktop = c.maxWidth > 800;
@@ -609,7 +609,11 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
                   height: 42,
                   child: OutlinedButton.icon(
                     onPressed: () => _openFilterDialog(query, ref.read(academicYearsListProvider), ref.read(sectionsListProvider)),
-                    icon: const Icon(Icons.tune_rounded, size: 20),
+                    icon: Badge(
+                      isLabelVisible: activeCount > 0,
+                      label: Text(activeCount.toString()),
+                      child: const Icon(Icons.tune_rounded, size: 20),
+                    ),
                     label: const Text('Filter'),
                     style: OutlinedButton.styleFrom(
                       foregroundColor: AppColors.primaryGreen,

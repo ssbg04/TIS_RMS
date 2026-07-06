@@ -147,7 +147,7 @@ class _UserHistoryScreenState extends ConsumerState<UserHistoryScreen> {
                     Container(
                       padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
                       decoration: BoxDecoration(
-                        color: Colors.grey.shade50,
+                        color: AppColors.primaryGreen.withValues(alpha: 0.1),
                         borderRadius: const BorderRadius.vertical(bottom: Radius.circular(14)),
                       ),
                       child: Row(
@@ -203,10 +203,10 @@ class _UserHistoryScreenState extends ConsumerState<UserHistoryScreen> {
           Container(
             width: double.infinity,
             color: Colors.white,
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
             child: Wrap(
-              spacing: 12,
-              runSpacing: 8,
+              spacing: 16,
+              runSpacing: 12,
               crossAxisAlignment: WrapCrossAlignment.center,
               children: [
                 ActionChip(
@@ -250,7 +250,12 @@ class _UserHistoryScreenState extends ConsumerState<UserHistoryScreen> {
                   : Column(
                       children: [
                         Expanded(child: _buildList(data.history)),
-                        _buildPagination(data, query.page),
+                        if (data.totalPages > 1)
+                          Container(
+                            color: Colors.white,
+                            padding: const EdgeInsets.only(top: 8),
+                            child: _buildPagination(data, query.page),
+                          ),
                       ],
                     ),
             ),
@@ -301,12 +306,20 @@ class _UserHistoryScreenState extends ConsumerState<UserHistoryScreen> {
   Widget _buildTable(List<UserHistoryEntry> history) {
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16),
-      child: Card(
-        elevation: 0,
-        shape: RoundedRectangleBorder(
+      child: Container(
+        decoration: BoxDecoration(
+          color: Colors.white,
           borderRadius: BorderRadius.circular(12),
-          side: BorderSide(color: Colors.grey.shade200),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.04),
+              blurRadius: 10,
+              offset: const Offset(0, 2),
+            ),
+          ],
         ),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(12),
         child: DataTable(
           showCheckboxColumn: false,
           columnSpacing: 20,
@@ -423,12 +436,19 @@ class _UserHistoryScreenState extends ConsumerState<UserHistoryScreen> {
               icon: _actionIcon(h.action),
             );
           },
-          child: Card(
-            elevation: 0,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(10),
-            side: BorderSide(color: Colors.grey.shade200),
-          ),
+          child: Container(
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: Colors.grey.shade100),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.02),
+                  blurRadius: 8,
+                  offset: const Offset(0, 2),
+                ),
+              ],
+            ),
           child: Padding(
             padding: const EdgeInsets.all(14),
             child: Column(
