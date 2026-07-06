@@ -4,6 +4,7 @@ import 'package:calendar_date_picker2/calendar_date_picker2.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/utils/date_utils.dart' as pht;
 import '../../shared/widgets/app_pagination.dart';
+import 'package:intl/intl.dart' as intl;
 
 import '../../../domain/entities/dashboard_models.dart';
 import '../../providers/dashboard_provider.dart';
@@ -307,106 +308,86 @@ class _RecentActivitiesScreenState
   }
 
   Widget _buildTable(List<RecentActivity> activities) {
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(16),
-      child: Container(
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(12),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.04),
-              blurRadius: 10,
-              offset: const Offset(0, 2),
-            ),
-          ],
-        ),
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(12),
-        child: DataTable(
-          showCheckboxColumn: false,
-          columnSpacing: 20,
-          headingRowColor: WidgetStateProperty.all(Colors.grey.shade50),
-          columns: const [
-            DataColumn(
-              label: Text(
-                'Action',
-                style: TextStyle(fontWeight: FontWeight.bold),
-              ),
-            ),
-            DataColumn(
-              label: Text(
-                'Entity',
-                style: TextStyle(fontWeight: FontWeight.bold),
-              ),
-            ),
-            DataColumn(
-              label: Text(
-                'Description',
-                style: TextStyle(fontWeight: FontWeight.bold),
-              ),
-            ),
-            DataColumn(
-              label: Text('By', style: TextStyle(fontWeight: FontWeight.bold)),
-            ),
-            DataColumn(
-              label: Text(
-                'Date',
-                style: TextStyle(fontWeight: FontWeight.bold),
-              ),
-            ),
-          ],
-          rows: activities
-              .map(
-                (a) => DataRow(
-                  onSelectChanged: (_) {
-                    ViewActivityModal.show(
-                      context: context,
-                      title: a.entityType.toUpperCase(),
-                      description: a.description,
-                      date: _formatDate(a.createdAt),
-                      performedBy: a.performedBy ?? a.username ?? 'System',
-                      action: a.action,
-                      actionColor: _actionColor(a.action),
-                      icon: _actionIcon(a.action, a.entityType),
-                    );
-                  },
-                  cells: [
-                    DataCell(_actionChip(a.action)),
-                    DataCell(
-                      Text(a.entityType, style: const TextStyle(fontSize: 13)),
-                    ),
-                    DataCell(
-                      ConstrainedBox(
-                        constraints: const BoxConstraints(maxWidth: 300),
-                        child: Text(
-                          a.description,
-                          style: const TextStyle(fontSize: 13),
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ),
-                    ),
-                    DataCell(
-                      Text(
-                        a.performedBy ?? a.username ?? '—',
-                        style: const TextStyle(fontSize: 13),
-                      ),
-                    ),
-                    DataCell(
-                      Text(
-                        _formatDate(a.createdAt),
-                        style: const TextStyle(
-                          fontSize: 12,
-                          color: Colors.grey,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              )
-              .toList(),
-        ),
+    return Container(
+      margin: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.04),
+            blurRadius: 10,
+            offset: const Offset(0, 2),
+          ),
+        ],
       ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(12),
+        child: Column(
+          children: [
+            // Sticky Header
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              color: Colors.grey.shade50,
+              child: const Row(
+                children: [
+                  Expanded(flex: 2, child: Text('Action', style: TextStyle(fontWeight: FontWeight.bold))),
+                  Expanded(flex: 2, child: Text('Entity Type', style: TextStyle(fontWeight: FontWeight.bold))),
+                  Expanded(flex: 4, child: Text('Description', style: TextStyle(fontWeight: FontWeight.bold))),
+                  Expanded(flex: 3, child: Text('Performed By', style: TextStyle(fontWeight: FontWeight.bold))),
+                  Expanded(flex: 2, child: Text('Date', style: TextStyle(fontWeight: FontWeight.bold))),
+                  Expanded(flex: 2, child: Text('Time', style: TextStyle(fontWeight: FontWeight.bold))),
+                ],
+              ),
+            ),
+            const Divider(height: 1),
+            // Scrollable Rows
+            Expanded(
+              child: ListView.separated(
+                itemCount: activities.length,
+                separatorBuilder: (_, __) => const Divider(height: 1),
+                itemBuilder: (context, index) {
+                  final a = activities[index];
+                  
+                  // Format Date and Time
+                  final DateTime parsedDate = DateTime.tryParse(a.createdAt) ?? DateTime.now();
+                  // [Month Day, Year] -> MMM dd, yyyy
+                  final dateStr = intl.DateFormat('MMM dd, yyyy').format(parsedDate);
+                  // [12-hour format] -> hh:mm a
+                  final timeStr = intl.DateFormat('hh:mm a').format(parsedDate);
+
+                  return InkWell(
+                    onTap: () {
+                      ViewActivityModal.show(
+                        context: context,
+                        title: a.entityType.toUpperCase(),
+                        description: a.description,
+                        date: '$dateStr $timeStr',
+                        performedBy: a.performedBy ?? a.username ?? 'System',
+                        action: a.action,
+                        actionColor: _actionColor(a.action),
+                        icon: _actionIcon(a.action, a.entityType),
+                      );
+                    },
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                      child: Row(
+                        children: [
+                          Expanded(flex: 2, child: Align(alignment: Alignment.centerLeft, child: _actionChip(a.action))),
+                          Expanded(flex: 2, child: Text(a.entityType, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600))),
+                          Expanded(flex: 4, child: Text(a.description, style: const TextStyle(fontSize: 13), maxLines: 2, overflow: TextOverflow.ellipsis)),
+                          Expanded(flex: 3, child: Text(a.performedBy ?? a.username ?? '—', style: const TextStyle(fontSize: 13))),
+                          Expanded(flex: 2, child: Text(dateStr, style: const TextStyle(fontSize: 13))),
+                          Expanded(flex: 2, child: Text(timeStr, style: const TextStyle(fontSize: 13, color: Colors.grey))),
+                        ],
+                      ),
+                    ),
+                  );
+                },
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

@@ -957,7 +957,18 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
               color: Colors.transparent,
               child: InkWell(
                 mouseCursor: SystemMouseCursors.click,
-                onTap: () {}, // Optional: Add a modal for user history details
+                onTap: () {
+                  ViewActivityModal.show(
+                    context: context,
+                    title: 'USER ACTIVITY',
+                    description: desc,
+                    date: _formatDate(h.createdAt),
+                    performedBy: h.performedByName ?? h.performedByUsername ?? 'System',
+                    action: h.action,
+                    actionColor: _actionColor(h.action),
+                    icon: _actionIcon(h.action, 'user'),
+                  );
+                },
                 child: Padding(
                   padding: const EdgeInsets.all(16),
                   child: Column(
@@ -999,7 +1010,18 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
           return Material(
             color: Colors.transparent,
             child: InkWell(
-              onTap: () {}, // Optional: Add a modal
+              onTap: () {
+                ViewActivityModal.show(
+                  context: context,
+                  title: 'USER ACTIVITY',
+                  description: desc,
+                  date: _formatDate(h.createdAt),
+                  performedBy: h.performedByName ?? h.performedByUsername ?? 'System',
+                  action: h.action,
+                  actionColor: _actionColor(h.action),
+                  icon: _actionIcon(h.action, 'user'),
+                );
+              },
               child: ListTile(
                 mouseCursor: SystemMouseCursors.click,
                 contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
