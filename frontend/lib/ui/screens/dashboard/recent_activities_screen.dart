@@ -136,7 +136,7 @@ class _RecentActivitiesScreenState
                                 contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                                 border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
                               ),
-                              items: ['All Entities', 'user', 'student', 'document']
+                              items: ['All Entities', 'student', 'document']
                                   .map((v) => DropdownMenuItem(value: v, child: Text(v.toUpperCase())))
                                   .toList(),
                               onChanged: (v) => setDialogState(() => pendingEntity = v!),

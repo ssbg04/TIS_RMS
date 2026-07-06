@@ -4,6 +4,20 @@ const path = require('path');
 const { createNotification } = require('./notificationController');
 
 // ============================================================
+// HELPER — insert one row into activity_log
+// ============================================================
+const logActivity = (userId, action, entityType, entityId, description) => {
+    if (!userId) return; // Skip if no user context
+    try {
+        db.prepare(`
+            INSERT INTO activity_log (user_id, action, entity_type, entity_id, description) VALUES (?, ?, ?, ?, ?)
+        `).run(userId, action, entityType, entityId, description);
+    } catch (err) {
+        console.error('logActivity error:', err.message);
+    }
+};
+
+// ============================================================
 // CONFIG — student directory root (configurable via .env)
 // ============================================================
 const STUDENT_DIR_ROOT = process.env.STUDENT_DIR_ROOT
@@ -28,7 +42,7 @@ exports.getAllStudents = (req, res) => {
     const {
         search = '',
         page = 1,
-        limit = 10,
+        limit = 20,
         gradeLevel = '',   // e.g. "7", "8", ... "12"
         status = '',       // e.g. "Enrolled"
         section = '',
@@ -320,6 +334,8 @@ exports.createStudent = (req, res) => {
             console.error('Warning: Failed to create folder record:', folderError.message);
         }
 
+        logActivity(req.user?.id, 'CREATE', 'student', newId, `Created student ${firstName} ${lastName}`);
+
         createNotification(null, 'Student Created', `New student ${firstName} ${lastName} (LRN: ${lrn.trim()}) has been enrolled.`, 'student', 'student', newId);
 
         res.status(201).json({
@@ -491,6 +507,8 @@ exports.updateStudent = (req, res) => {
             }
         })();
 
+        logActivity(req.user?.id, 'UPDATE', 'student', id, `Updated student details (LRN: ${lrn.trim()})`);
+
         res.json({ message: 'Student updated successfully' });
     } catch (error) {
         console.error('updateStudent error:', error);
@@ -507,11 +525,12 @@ exports.updateStudent = (req, res) => {
 exports.deleteStudent = (req, res) => {
     const { id } = req.params;
 
-    const existing = db.prepare('SELECT id FROM students WHERE id = ?').get(id);
+    const existing = db.prepare('SELECT id, first_name, last_name, lrn FROM students WHERE id = ?').get(id);
     if (!existing) return res.status(404).json({ message: 'Student not found.' });
 
     try {
         db.prepare('DELETE FROM students WHERE id = ?').run(id);
+        logActivity(req.user?.id, 'DELETE', 'student', id, `Deleted student ${existing.first_name} ${existing.last_name} (LRN: ${existing.lrn})`);
         res.json({ message: 'Student deleted successfully' });
     } catch (error) {
         console.error('deleteStudent error:', error);
@@ -554,6 +573,7 @@ exports.bulkEnrollStudents = (req, res) => {
                 updateStudentStatus.run('Enrolled', studentId);
             }
         })();
+        logActivity(req.user?.id, 'UPDATE', 'student', null, `Bulk enrolled ${studentIds.length} students`);
         res.json({ message: `Successfully enrolled ${studentIds.length} students.` });
     } catch (error) {
         console.error('bulkEnrollStudents error:', error);

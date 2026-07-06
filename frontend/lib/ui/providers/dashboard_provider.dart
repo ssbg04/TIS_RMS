@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../domain/repositories/dashboard_repository.dart';
+import '../../domain/repositories/activity_repository.dart';
 import '../../domain/entities/dashboard_models.dart';
 import 'auth_provider.dart';
 
@@ -11,12 +12,14 @@ final dashboardRepositoryProvider = Provider<DashboardRepository>((ref) {
 class DashboardData {
   final DashboardStats stats;
   final PaginatedActivities recentActivities;
+  final PaginatedUserHistory? userHistory;
 
-  DashboardData({required this.stats, required this.recentActivities});
+  DashboardData({required this.stats, required this.recentActivities, this.userHistory});
 }
 
 final dashboardDataProvider = FutureProvider<DashboardData>((ref) async {
   final repository = ref.read(dashboardRepositoryProvider);
+  final activityRepo = ActivityRepository();
   final user = ref.read(authProvider).value;
   final isTeacher = user?.role == 'teacher';
 
@@ -27,7 +30,12 @@ final dashboardDataProvider = FutureProvider<DashboardData>((ref) async {
     // Teachers only see student and document activities on the dashboard preview
     entityTypes: isTeacher ? 'student,document' : null,
   );
-  return DashboardData(stats: stats, recentActivities: activities);
+  PaginatedUserHistory? userHistory;
+  if (!isTeacher) {
+    userHistory = await activityRepo.getUserHistory(page: 1, limit: 5);
+  }
+
+  return DashboardData(stats: stats, recentActivities: activities, userHistory: userHistory);
 });
 
 // ── Full paginated activities (used by RecentActivitiesScreen) ─────────────

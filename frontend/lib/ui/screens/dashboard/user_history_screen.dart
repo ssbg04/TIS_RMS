@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart' as intl;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:calendar_date_picker2/calendar_date_picker2.dart';
 import '../../../core/constants/app_colors.dart';
@@ -304,115 +305,88 @@ class _UserHistoryScreenState extends ConsumerState<UserHistoryScreen> {
   }
 
   Widget _buildTable(List<UserHistoryEntry> history) {
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(16),
-      child: Container(
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(12),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.04),
-              blurRadius: 10,
-              offset: const Offset(0, 2),
-            ),
-          ],
-        ),
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(12),
-        child: DataTable(
-          showCheckboxColumn: false,
-          columnSpacing: 20,
-          headingRowColor: WidgetStateProperty.all(Colors.grey.shade50),
-          columns: const [
-            DataColumn(
-              label: Text(
-                'Action',
-                style: TextStyle(fontWeight: FontWeight.bold),
-              ),
-            ),
-            DataColumn(
-              label: Text(
-                'Username',
-                style: TextStyle(fontWeight: FontWeight.bold),
-              ),
-            ),
-            DataColumn(
-              label: Text(
-                'Full Name',
-                style: TextStyle(fontWeight: FontWeight.bold),
-              ),
-            ),
-            DataColumn(
-              label: Text(
-                'Role',
-                style: TextStyle(fontWeight: FontWeight.bold),
-              ),
-            ),
-            DataColumn(
-              label: Text(
-                'Performed By',
-                style: TextStyle(fontWeight: FontWeight.bold),
-              ),
-            ),
-            DataColumn(
-              label: Text(
-                'Date',
-                style: TextStyle(fontWeight: FontWeight.bold),
-              ),
-            ),
-          ],
-          rows: history
-              .map(
-                (h) => DataRow(
-                  onSelectChanged: (_) {
-                    ViewActivityModal.show(
-                      context: context,
-                      title: 'USER ACTIVITY',
-                      description: 'Action performed on ${h.fullName} (@${h.username})',
-                      date: _formatDate(h.createdAt),
-                      performedBy: h.performedByName ?? h.performedByUsername ?? 'System',
-                      action: h.action,
-                      actionColor: _actionColor(h.action),
-                      icon: _actionIcon(h.action),
-                    );
-                  },
-                  cells: [
-                    DataCell(_actionChip(h.action)),
-                    DataCell(
-                      Text(
-                        h.username,
-                        style: const TextStyle(
-                          fontSize: 13,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ),
-                    DataCell(
-                      Text(h.fullName, style: const TextStyle(fontSize: 13)),
-                    ),
-                    DataCell(_roleChip(h.role)),
-                    DataCell(
-                      Text(
-                        h.performedByName ?? h.performedByUsername ?? '—',
-                        style: const TextStyle(fontSize: 13),
-                      ),
-                    ),
-                    DataCell(
-                      Text(
-                        _formatDate(h.createdAt),
-                        style: const TextStyle(
-                          fontSize: 12,
-                          color: Colors.grey,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              )
-              .toList(),
-        ),
+    return Container(
+      margin: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.04),
+            blurRadius: 10,
+            offset: const Offset(0, 2),
+          ),
+        ],
       ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(12),
+        child: Column(
+          children: [
+            // Sticky Header
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              color: Colors.grey.shade50,
+              child: const Row(
+                children: [
+                  Expanded(flex: 2, child: Text('Action', style: TextStyle(fontWeight: FontWeight.bold))),
+                  Expanded(flex: 3, child: Text('Username', style: TextStyle(fontWeight: FontWeight.bold))),
+                  Expanded(flex: 3, child: Text('Full Name', style: TextStyle(fontWeight: FontWeight.bold))),
+                  Expanded(flex: 2, child: Text('Role', style: TextStyle(fontWeight: FontWeight.bold))),
+                  Expanded(flex: 3, child: Text('Performed By', style: TextStyle(fontWeight: FontWeight.bold))),
+                  Expanded(flex: 2, child: Text('Date', style: TextStyle(fontWeight: FontWeight.bold))),
+                  Expanded(flex: 2, child: Text('Time', style: TextStyle(fontWeight: FontWeight.bold))),
+                ],
+              ),
+            ),
+            const Divider(height: 1),
+            // Scrollable Rows
+            Expanded(
+              child: ListView.separated(
+                itemCount: history.length,
+                separatorBuilder: (_, __) => const Divider(height: 1),
+                itemBuilder: (context, index) {
+                  final h = history[index];
+                  
+                  // Format Date and Time
+                  final DateTime parsedDate = DateTime.tryParse(h.createdAt) ?? DateTime.now();
+                  // [Month Day, Year] -> MMM dd, yyyy
+                  final dateStr = intl.DateFormat('MMM dd, yyyy').format(parsedDate);
+                  // [12-hour format] -> hh:mm a
+                  final timeStr = intl.DateFormat('hh:mm a').format(parsedDate);
+
+                  return InkWell(
+                    onTap: () {
+                      ViewActivityModal.show(
+                        context: context,
+                        title: 'USER ACTIVITY',
+                        description: 'Action performed on ${h.fullName} (@${h.username})',
+                        date: '$dateStr $timeStr',
+                        performedBy: h.performedByName ?? h.performedByUsername ?? 'System',
+                        action: h.action,
+                        actionColor: _actionColor(h.action),
+                        icon: _actionIcon(h.action),
+                      );
+                    },
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                      child: Row(
+                        children: [
+                          Expanded(flex: 2, child: Align(alignment: Alignment.centerLeft, child: _actionChip(h.action))),
+                          Expanded(flex: 3, child: Text(h.username, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600))),
+                          Expanded(flex: 3, child: Text(h.fullName, style: const TextStyle(fontSize: 13))),
+                          Expanded(flex: 2, child: Align(alignment: Alignment.centerLeft, child: _roleChip(h.role))),
+                          Expanded(flex: 3, child: Text(h.performedByName ?? h.performedByUsername ?? '—', style: const TextStyle(fontSize: 13))),
+                          Expanded(flex: 2, child: Text(dateStr, style: const TextStyle(fontSize: 13))),
+                          Expanded(flex: 2, child: Text(timeStr, style: const TextStyle(fontSize: 13, color: Colors.grey))),
+                        ],
+                      ),
+                    ),
+                  );
+                },
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

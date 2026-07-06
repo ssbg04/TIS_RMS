@@ -318,7 +318,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                   const SizedBox(height: 24),
                   _buildStatGrid(data.stats, user),
                   const SizedBox(height: 32),
-                  _buildRecentActivitiesSection(data.recentActivities, user),
+                  _buildHistorySections(data, user),
                   const SizedBox(height: 48),
                 ],
               ),
@@ -721,84 +721,78 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     });
   }
 
-  // ── RECENT ACTIVITIES SECTION ─────────────────────────────────────────────
-  Widget _buildRecentActivitiesSection(PaginatedActivities paginatedActivities, UserModel? user) {
+  // ── HISTORY SECTIONS ─────────────────────────────────────────────
+  Widget _buildHistorySections(DashboardData data, UserModel? user) {
     final width = MediaQuery.of(context).size.width;
-    final isMobile = width < 600;
+    final isMobile = width < 800;
+    final isAdmin = user?.role == 'admin';
 
-    final headerWidget = isMobile
-        ? Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text(
-                'Recent Activities',
-                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.black87),
-              ),
-              const SizedBox(height: 8),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.start,
-                children: [
-                  if (user?.role == 'admin')
-                    Padding(
-                      padding: const EdgeInsets.only(right: 8),
-                      child: TextButton.icon(
-                        onPressed: () => Navigator.of(context).push(
-                          MaterialPageRoute(builder: (_) => const UserHistoryScreen()),
-                        ).then((_) => _handleRefresh()),
-                        icon: const Icon(Icons.history, size: 18),
-                        label: const Text('User History'),
-                        style: TextButton.styleFrom(foregroundColor: AppColors.primaryGreen, padding: EdgeInsets.zero),
-                      ),
-                    ),
-                  TextButton.icon(
-                    onPressed: () => Navigator.of(context).push(
-                      MaterialPageRoute(builder: (_) => const RecentActivitiesScreen()),
-                    ).then((_) => _handleRefresh()),
-                    icon: const Icon(Icons.open_in_new, size: 18),
-                    label: const Text('View All'),
-                    style: TextButton.styleFrom(foregroundColor: AppColors.primaryGreen, padding: EdgeInsets.zero),
-                  ),
-                ],
-              ),
-            ],
-          )
-        : Row(
+    Widget buildSection({
+      required String title,
+      required VoidCallback onViewAll,
+      required Widget listWidget,
+    }) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text(
-                'Recent Activities',
-                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.black87),
+              Text(
+                title,
+                style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.black87),
               ),
-              Row(
-                children: [
-                  if (user?.role == 'admin')
-                    TextButton.icon(
-                      onPressed: () => Navigator.of(context).push(
-                        MaterialPageRoute(builder: (_) => const UserHistoryScreen()),
-                      ).then((_) => _handleRefresh()),
-                      icon: const Icon(Icons.history, size: 18),
-                      label: const Text('User History'),
-                      style: TextButton.styleFrom(foregroundColor: AppColors.primaryGreen),
-                    ),
-                  TextButton.icon(
-                    onPressed: () => Navigator.of(context).push(
-                      MaterialPageRoute(builder: (_) => const RecentActivitiesScreen()),
-                    ).then((_) => _handleRefresh()),
-                    icon: const Icon(Icons.open_in_new, size: 18),
-                    label: const Text('View All'),
-                    style: TextButton.styleFrom(foregroundColor: AppColors.primaryGreen),
-                  ),
-                ],
+              TextButton.icon(
+                onPressed: onViewAll,
+                icon: const Icon(Icons.open_in_new, size: 18),
+                label: const Text('View All'),
+                style: TextButton.styleFrom(foregroundColor: AppColors.primaryGreen),
               ),
             ],
-          );
+          ),
+          const SizedBox(height: 12),
+          listWidget,
+        ],
+      );
+    }
 
-    return Column(
+    final recentActivitiesSection = buildSection(
+      title: 'Recent Activities',
+      onViewAll: () => Navigator.of(context).push(
+        MaterialPageRoute(builder: (_) => const RecentActivitiesScreen()),
+      ).then((_) => _handleRefresh()),
+      listWidget: _buildActivitiesList(data.recentActivities.activities),
+    );
+
+    if (!isAdmin) {
+      return recentActivitiesSection;
+    }
+
+    final userHistorySection = buildSection(
+      title: 'User History',
+      onViewAll: () => Navigator.of(context).push(
+        MaterialPageRoute(builder: (_) => const UserHistoryScreen()),
+      ).then((_) => _handleRefresh()),
+      listWidget: _buildUserHistoryList(data.userHistory?.history ?? []),
+    );
+
+    if (isMobile) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          userHistorySection,
+          const SizedBox(height: 32),
+          recentActivitiesSection,
+        ],
+      );
+    }
+
+    return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        headerWidget,
-        const SizedBox(height: 12),
-        _buildActivitiesList(paginatedActivities.activities),
+        Expanded(child: userHistorySection),
+        const SizedBox(width: 24),
+        Expanded(child: recentActivitiesSection),
       ],
     );
   }
@@ -923,6 +917,113 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
           ),
         );
       },
+      ),
+    );
+  }
+
+  Widget _buildUserHistoryList(List<UserHistoryEntry> history) {
+    if (history.isEmpty) {
+      return Container(
+        padding: const EdgeInsets.all(24),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(12),
+          boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.03), blurRadius: 10, offset: const Offset(0, 4))],
+        ),
+        child: const Center(child: Text('No user history yet.', style: TextStyle(color: Colors.grey))),
+      );
+    }
+
+    final width = MediaQuery.of(context).size.width;
+    final isMobile = width < 600;
+
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.03), blurRadius: 10, offset: const Offset(0, 4))],
+      ),
+      child: ListView.separated(
+        shrinkWrap: true,
+        physics: const NeverScrollableScrollPhysics(),
+        itemCount: history.length,
+        separatorBuilder: (_, _s) => Divider(height: 1, color: Colors.grey.shade200),
+        itemBuilder: (context, index) {
+          final h = history[index];
+          final desc = '${h.action.toUpperCase()} User: ${h.fullName}';
+
+          if (isMobile) {
+            return Material(
+              color: Colors.transparent,
+              child: InkWell(
+                mouseCursor: SystemMouseCursors.click,
+                onTap: () {}, // Optional: Add a modal for user history details
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          CircleAvatar(
+                            radius: 16,
+                            backgroundColor: _actionColor(h.action).withValues(alpha: 0.1),
+                            child: Icon(_actionIcon(h.action, 'user'), color: _actionColor(h.action), size: 16),
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              '${h.performedByName ?? h.performedByUsername ?? 'System'} · ${_formatDate(h.createdAt)}',
+                              style: TextStyle(fontSize: 12, color: Colors.grey.shade600, fontWeight: FontWeight.w600),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          _buildActionChip(h.action),
+                          const SizedBox(width: 8),
+                          Icon(Icons.chevron_right_rounded, size: 20, color: Colors.grey.shade400),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        desc,
+                        style: const TextStyle(fontWeight: FontWeight.w500, fontSize: 13, color: Colors.black87),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            );
+          }
+
+          return Material(
+            color: Colors.transparent,
+            child: InkWell(
+              onTap: () {}, // Optional: Add a modal
+              child: ListTile(
+                mouseCursor: SystemMouseCursors.click,
+                contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+                leading: CircleAvatar(
+                  backgroundColor: _actionColor(h.action).withValues(alpha: 0.1),
+                  child: Icon(_actionIcon(h.action, 'user'), color: _actionColor(h.action), size: 20),
+                ),
+                title: Text(desc, style: const TextStyle(fontWeight: FontWeight.w500, fontSize: 14)),
+                subtitle: Text(
+                  '${h.performedByName ?? h.performedByUsername ?? 'System'} · ${_formatDate(h.createdAt)}',
+                  style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
+                ),
+                trailing: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    _buildActionChip(h.action),
+                    const SizedBox(width: 8),
+                    Icon(Icons.chevron_right_rounded, size: 20, color: Colors.grey.shade400),
+                  ],
+                ),
+              ),
+            ),
+          );
+        },
       ),
     );
   }

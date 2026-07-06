@@ -147,15 +147,15 @@ class _AndroidBottomNavLayoutState extends ConsumerState<AndroidBottomNavLayout>
   @override
   Widget build(BuildContext context) {
     final primaryTabsConfig = [
-      {'label': 'Dashboard', 'icon': Icons.dashboard_outlined, 'screen': const DashboardScreen(), 'roles': ['admin', 'teacher']},
-      {'label': 'Students', 'icon': Icons.people_outline, 'screen': StudentsScreen(userRole: widget.userRole), 'roles': ['admin', 'teacher']},
-      {'label': 'Documents', 'icon': Icons.folder_outlined, 'screen': DocumentsScreen(userRole: widget.userRole), 'roles': ['admin', 'teacher']},
-      {'label': 'Archives', 'icon': Icons.archive_outlined, 'screen': ArchivesScreen(userRole: widget.userRole), 'roles': ['admin']},
+      {'label': 'Dashboard', 'icon': Icons.dashboard_outlined, 'activeIcon': Icons.dashboard, 'screen': const DashboardScreen(), 'roles': ['admin', 'teacher']},
+      {'label': 'Students', 'icon': Icons.people_outline, 'activeIcon': Icons.people, 'screen': StudentsScreen(userRole: widget.userRole), 'roles': ['admin', 'teacher']},
+      {'label': 'Documents', 'icon': Icons.folder_outlined, 'activeIcon': Icons.folder, 'screen': DocumentsScreen(userRole: widget.userRole), 'roles': ['admin', 'teacher']},
+      {'label': 'Archives', 'icon': Icons.archive_outlined, 'activeIcon': Icons.archive, 'screen': ArchivesScreen(userRole: widget.userRole), 'roles': ['admin']},
     ];
     final secondaryTabsConfig = [
-      {'label': 'Reports', 'icon': Icons.bar_chart, 'screen': ReportsScreen(userRole: widget.userRole), 'roles': ['admin']},
-      {'label': 'Users', 'icon': Icons.manage_accounts_outlined, 'screen': const UsersScreen(), 'roles': ['admin']},
-      {'label': 'Settings', 'icon': Icons.settings_outlined, 'screen': SettingsScreen(userRole: widget.userRole), 'roles': ['admin', 'teacher']},
+      {'label': 'Reports', 'icon': Icons.bar_chart, 'activeIcon': Icons.bar_chart, 'screen': ReportsScreen(userRole: widget.userRole), 'roles': ['admin']},
+      {'label': 'Users', 'icon': Icons.manage_accounts_outlined, 'activeIcon': Icons.manage_accounts, 'screen': const UsersScreen(), 'roles': ['admin']},
+      {'label': 'Settings', 'icon': Icons.settings_outlined, 'activeIcon': Icons.settings, 'screen': SettingsScreen(userRole: widget.userRole), 'roles': ['admin', 'teacher']},
     ];
     final allowedPrimary = primaryTabsConfig.where((t) => (t['roles'] as List<String>).contains(widget.userRole)).toList();
     final allowedSecondary = secondaryTabsConfig.where((t) => (t['roles'] as List<String>).contains(widget.userRole)).toList();
@@ -375,6 +375,7 @@ class _AndroidBottomNavLayoutState extends ConsumerState<AndroidBottomNavLayout>
   Widget _buildDrawerItem(Map<String, dynamic> tab, int currentIndex, List<Map<String, dynamic>> allTabs) {
     final label = tab['label'] as String;
     final icon = tab['icon'] as IconData;
+    final activeIcon = tab['activeIcon'] as IconData? ?? icon;
     final index = allTabs.indexWhere((t) => t['label'] == label);
     final isSelected = index == currentIndex;
 
@@ -394,7 +395,7 @@ class _AndroidBottomNavLayoutState extends ConsumerState<AndroidBottomNavLayout>
             child: Row(
               children: [
                 Icon(
-                  icon,
+                  isSelected ? activeIcon : icon,
                   color: isSelected ? AppColors.primaryGreen : Colors.grey.shade600,
                   size: 22,
                 ),
