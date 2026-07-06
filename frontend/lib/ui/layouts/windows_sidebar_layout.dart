@@ -245,13 +245,13 @@ class _WindowsSidebarLayoutState extends ConsumerState<WindowsSidebarLayout> {
   @override
   Widget build(BuildContext context) {
     final allTabs = [
-      {'category': 'OVERVIEW', 'label': 'Dashboard', 'icon': Icons.dashboard, 'activeIcon': Icons.dashboard, 'screen': const DashboardScreen(), 'roles': ['admin', 'teacher']},
-      {'category': 'OVERVIEW', 'label': 'Students', 'icon': Icons.people, 'activeIcon': Icons.people, 'screen': StudentsScreen(userRole: widget.userRole), 'roles': ['admin', 'teacher']},
-      {'category': 'OVERVIEW', 'label': 'Documents', 'icon': Icons.folder, 'activeIcon': Icons.folder, 'screen': DocumentsScreen(userRole: widget.userRole), 'roles': ['admin', 'teacher']},
-      {'category': 'ACCOUNT', 'label': 'Archives', 'icon': Icons.archive, 'activeIcon': Icons.archive, 'screen': ArchivesScreen(userRole: widget.userRole), 'roles': ['admin']},
+      {'category': 'OVERVIEW', 'label': 'Dashboard', 'icon': Icons.dashboard_outlined, 'activeIcon': Icons.dashboard, 'screen': const DashboardScreen(), 'roles': ['admin', 'teacher']},
+      {'category': 'OVERVIEW', 'label': 'Students', 'icon': Icons.people_outline, 'activeIcon': Icons.people, 'screen': StudentsScreen(userRole: widget.userRole), 'roles': ['admin', 'teacher']},
+      {'category': 'OVERVIEW', 'label': 'Documents', 'icon': Icons.folder_outlined, 'activeIcon': Icons.folder, 'screen': DocumentsScreen(userRole: widget.userRole), 'roles': ['admin', 'teacher']},
+      {'category': 'ACCOUNT', 'label': 'Archives', 'icon': Icons.archive_outlined, 'activeIcon': Icons.archive, 'screen': ArchivesScreen(userRole: widget.userRole), 'roles': ['admin']},
       {'category': 'ACCOUNT', 'label': 'Reports', 'icon': Icons.bar_chart, 'activeIcon': Icons.bar_chart, 'screen': ReportsScreen(userRole: widget.userRole), 'roles': ['admin']},
-      {'category': 'ACCOUNT', 'label': 'Users', 'icon': Icons.manage_accounts, 'activeIcon': Icons.manage_accounts, 'screen': const UsersScreen(), 'roles': ['admin']},
-      {'category': 'ACCOUNT', 'label': 'Settings', 'icon': Icons.settings, 'activeIcon': Icons.settings, 'screen': SettingsScreen(userRole: widget.userRole), 'roles': ['admin', 'teacher']},
+      {'category': 'ACCOUNT', 'label': 'Users', 'icon': Icons.manage_accounts_outlined, 'activeIcon': Icons.manage_accounts, 'screen': const UsersScreen(), 'roles': ['admin']},
+      {'category': 'ACCOUNT', 'label': 'Settings', 'icon': Icons.settings_outlined, 'activeIcon': Icons.settings, 'screen': SettingsScreen(userRole: widget.userRole), 'roles': ['admin', 'teacher']},
     ];
     final tabs = allTabs.where((tab) => (tab['roles'] as List<String>).contains(widget.userRole)).toList();
 

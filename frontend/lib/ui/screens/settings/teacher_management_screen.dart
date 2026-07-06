@@ -84,11 +84,12 @@ class _TeacherManagementModalState extends ConsumerState<TeacherManagementModal>
         appBar: AppBar(
           backgroundColor: AppColors.primaryGreen,
           foregroundColor: Colors.white,
+          iconTheme: const IconThemeData(color: Colors.white),
           title: const Row(
             children: [
-              Icon(Icons.school, size: 22),
+              Icon(Icons.school, size: 22, color: Colors.white),
               SizedBox(width: 10),
-              Text('Teachers & Academic Setup', style: TextStyle(fontSize: 16)),
+              Text('Teachers & Academic Setup', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: Colors.white)),
             ],
           ),
         ),

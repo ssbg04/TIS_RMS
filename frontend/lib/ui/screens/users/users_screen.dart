@@ -332,7 +332,6 @@ class _UsersScreenState extends ConsumerState<UsersScreen> {
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            // Left FAB (Password Reset Requests)
             Badge(
               isLabelVisible: resetCount > 0,
               label: Text(resetCount.toString()),
@@ -345,7 +344,6 @@ class _UsersScreenState extends ConsumerState<UsersScreen> {
                 child: const Icon(Icons.lock_clock),
               ),
             ),
-            // Right FAB (Add User)
             FloatingActionButton(
               heroTag: 'add_user_fab',
               onPressed: () => _openModal(),
@@ -363,8 +361,8 @@ class _UsersScreenState extends ConsumerState<UsersScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              _buildHeader(context),
-              const SizedBox(height: AppSizes.p16),
+              _buildHeader(context, resetCount),
+              const SizedBox(height: AppSizes.p24),
               Expanded(
                 child: usersAsync.when(
                   loading: () => const Center(child: CircularProgressIndicator()),
@@ -428,7 +426,7 @@ class _UsersScreenState extends ConsumerState<UsersScreen> {
 
 
 
-  Widget _buildHeader(BuildContext context) {
+  Widget _buildHeader(BuildContext context, int resetCount) {
     final isDesktop = MediaQuery.of(context).size.width > 800;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -439,17 +437,39 @@ class _UsersScreenState extends ConsumerState<UsersScreen> {
             const Text('User Management',
                 style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: AppColors.textPrimary)),
             if (isDesktop)
-              ElevatedButton.icon(
-                icon: const Icon(Icons.add, size: 18),
-                label: const Text('Add User', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.primaryGreen,
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                  elevation: 0,
-                ),
-                onPressed: () => _openModal(),
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Badge(
+                    isLabelVisible: resetCount > 0,
+                    label: Text(resetCount.toString()),
+                    child: ElevatedButton.icon(
+                      icon: const Icon(Icons.lock_clock, size: 18),
+                      label: const Text('Password Requests', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.orange,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                        elevation: 0,
+                      ),
+                      onPressed: () => ResetRequestsModal.show(context),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  ElevatedButton.icon(
+                    icon: const Icon(Icons.add, size: 18),
+                    label: const Text('Add User', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.primaryGreen,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                      elevation: 0,
+                    ),
+                    onPressed: () => _openModal(),
+                  ),
+                ],
               ),
           ],
         ),

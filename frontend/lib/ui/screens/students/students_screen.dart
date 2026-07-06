@@ -456,32 +456,35 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
 
     return Scaffold(
       backgroundColor: Colors.transparent,
-      floatingActionButton: (!isMobile || _showMultiSelect) ? null : Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.end,
-        children: [
-          FloatingActionButton(
-            heroTag: 'filter_fab',
-            backgroundColor: AppColors.surfaceWhite,
-            foregroundColor: AppColors.primaryGreen,
-            onPressed: () => _openFilterDialog(query, academicYearsAsync, sectionsAsync),
-            child: Badge(
-              isLabelVisible: activeCount > 0,
-              label: Text(activeCount.toString()),
-              child: const Icon(Icons.tune_rounded),
-            ),
-          ),
-          if (widget.userRole != 'teacher' && isMobile) ...[
-            const SizedBox(height: 12),
+      floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
+      floatingActionButton: (!isMobile || _showMultiSelect) ? null : Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16.0),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
             FloatingActionButton(
-              heroTag: 'add_student_fab',
-              backgroundColor: AppColors.primaryGreen,
-              foregroundColor: Colors.white,
-              onPressed: () => _openModal(),
-              child: const Icon(Icons.person_add),
+              heroTag: 'filter_fab',
+              backgroundColor: AppColors.surfaceWhite,
+              foregroundColor: AppColors.primaryGreen,
+              onPressed: () => _openFilterDialog(query, academicYearsAsync, sectionsAsync),
+              child: Badge(
+                isLabelVisible: activeCount > 0,
+                label: Text(activeCount.toString()),
+                child: const Icon(Icons.tune_rounded),
+              ),
             ),
+            if (widget.userRole != 'teacher')
+              FloatingActionButton(
+                heroTag: 'add_student_fab',
+                backgroundColor: AppColors.primaryGreen,
+                foregroundColor: Colors.white,
+                onPressed: () => _openModal(),
+                child: const Icon(Icons.person_add),
+              )
+            else
+              const SizedBox(width: 56), // spacer when add button is hidden
           ],
-        ],
+        ),
       ),
       body: Stack(
         children: [

@@ -32,6 +32,7 @@ class DashboardScreen extends ConsumerStatefulWidget {
 
 class _DashboardScreenState extends ConsumerState<DashboardScreen> {
   bool _setupBannerDismissed = false;
+  bool _setupBannerMinimized = false;
   final TextEditingController _searchController = TextEditingController();
   ProviderSubscription<String>? _tabListener;
   // Removed _bgController
@@ -294,46 +295,34 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
               ],
             ),
           ),
-          data: (data) => Stack(
-            children: [
-              RefreshIndicator(
-                onRefresh: _handleRefresh,
-                child: SingleChildScrollView(
-                  physics: const AlwaysScrollableScrollPhysics(),
-                  padding: const EdgeInsets.all(24),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      _buildTopBar(context, user),
-                      const SizedBox(height: 32),
-                      const Text('Dashboard Overview', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
-                      const SizedBox(height: 8),
-                      Text(
-                        'Welcome back, ${user?.firstName ?? 'Admin'}. Here is what is happening today.',
-                        style: TextStyle(fontSize: 16, color: Colors.grey.shade600),
-                      ),
-                      const SizedBox(height: 24),
-                      _buildStatGrid(data.stats, user),
-                      const SizedBox(height: 32),
-                      _buildRecentActivitiesSection(data.recentActivities, user),
-                      const SizedBox(height: 48),
-                    ],
+          data: (data) => RefreshIndicator(
+            onRefresh: _handleRefresh,
+            child: SingleChildScrollView(
+              physics: const AlwaysScrollableScrollPhysics(),
+              padding: const EdgeInsets.all(24),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _buildTopBar(context, user),
+                  if (isAdmin && !_setupBannerDismissed) ...[
+                    const SizedBox(height: 24),
+                    _buildSetupGuidanceBanner(context),
+                  ],
+                  const SizedBox(height: 32),
+                  const Text('Dashboard Overview', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
+                  const SizedBox(height: 8),
+                  Text(
+                    'Welcome back, ${user?.firstName ?? 'Admin'}. Here is what is happening today.',
+                    style: TextStyle(fontSize: 16, color: Colors.grey.shade600),
                   ),
-                ),
+                  const SizedBox(height: 24),
+                  _buildStatGrid(data.stats, user),
+                  const SizedBox(height: 32),
+                  _buildRecentActivitiesSection(data.recentActivities, user),
+                  const SizedBox(height: 48),
+                ],
               ),
-              if (isAdmin && !_setupBannerDismissed)
-                Positioned(
-                  top: 16,
-                  left: 16,
-                  right: 16,
-                  child: Center(
-                    child: ConstrainedBox(
-                      constraints: const BoxConstraints(maxWidth: 600),
-                      child: _buildSetupGuidanceBanner(context),
-                    ),
-                  ),
-                ),
-            ],
+            ),
           ),
         ),
       ),
@@ -398,6 +387,12 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                       ),
                     ),
                     IconButton(
+                      onPressed: () => setState(() => _setupBannerMinimized = !_setupBannerMinimized),
+                      icon: Icon(_setupBannerMinimized ? Icons.keyboard_arrow_down : Icons.keyboard_arrow_up, size: 18, color: Colors.black38),
+                      padding: EdgeInsets.zero,
+                      constraints: const BoxConstraints(),
+                    ),
+                    IconButton(
                       onPressed: () => setState(() => _setupBannerDismissed = true),
                       icon: const Icon(Icons.close, size: 18, color: Colors.black38),
                       padding: EdgeInsets.zero,
@@ -405,27 +400,29 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                     ),
                   ],
                 ),
-                const SizedBox(height: 16),
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    _setupNavButton(
-                      context,
-                      icon: Icons.people_outline,
-                      label: 'Teachers & Academic Setup',
-                      isMobile: true,
-                      onTap: () => TeacherManagementModal.open(context),
-                    ),
-                    const SizedBox(height: 10),
-                    _setupNavButton(
-                      context,
-                      icon: Icons.folder_open_outlined,
-                      label: 'Document Requirements',
-                      isMobile: true,
-                      onTap: () => RequirementsModal.open(context),
-                    ),
-                  ],
-                ),
+                if (!_setupBannerMinimized) ...[
+                  const SizedBox(height: 16),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      _setupNavButton(
+                        context,
+                        icon: Icons.people_outline,
+                        label: 'Teachers & Academic Setup',
+                        isMobile: true,
+                        onTap: () => TeacherManagementModal.open(context),
+                      ),
+                      const SizedBox(height: 10),
+                      _setupNavButton(
+                        context,
+                        icon: Icons.folder_open_outlined,
+                        label: 'Document Requirements',
+                        isMobile: true,
+                        onTap: () => RequirementsModal.open(context),
+                      ),
+                    ],
+                  ),
+                ],
               ],
             )
           : Row(
@@ -453,34 +450,48 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                         'Before using the system, please configure the following sections to get started:',
                         style: TextStyle(fontSize: 13, color: Colors.black54),
                       ),
-                      const SizedBox(height: 12),
-                      Wrap(
-                        spacing: 10,
-                        runSpacing: 8,
-                        children: [
-                          _setupNavButton(
-                            context,
-                            icon: Icons.people_outline,
-                            label: 'Teachers & Academic Setup',
-                            onTap: () => TeacherManagementModal.open(context),
-                          ),
-                          _setupNavButton(
-                            context,
-                            icon: Icons.folder_open_outlined,
-                            label: 'Document Requirements',
-                            onTap: () => RequirementsModal.open(context),
-                          ),
-                        ],
-                      ),
+                      if (!_setupBannerMinimized) ...[
+                        const SizedBox(height: 12),
+                        Wrap(
+                          spacing: 10,
+                          runSpacing: 8,
+                          children: [
+                            _setupNavButton(
+                              context,
+                              icon: Icons.people_outline,
+                              label: 'Teachers & Academic Setup',
+                              onTap: () => TeacherManagementModal.open(context),
+                            ),
+                            _setupNavButton(
+                              context,
+                              icon: Icons.folder_open_outlined,
+                              label: 'Document Requirements',
+                              onTap: () => RequirementsModal.open(context),
+                            ),
+                          ],
+                        ),
+                      ],
                     ],
                   ),
                 ),
-                // Dismiss button
-                IconButton(
-                  onPressed: () => setState(() => _setupBannerDismissed = true),
-                  icon: const Icon(Icons.close, size: 18, color: Colors.black38),
-                  padding: EdgeInsets.zero,
-                  constraints: const BoxConstraints(),
+                // Minimize and Dismiss buttons
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    IconButton(
+                      onPressed: () => setState(() => _setupBannerMinimized = !_setupBannerMinimized),
+                      icon: Icon(_setupBannerMinimized ? Icons.keyboard_arrow_down : Icons.keyboard_arrow_up, size: 18, color: Colors.black38),
+                      padding: EdgeInsets.zero,
+                      constraints: const BoxConstraints(),
+                    ),
+                    const SizedBox(width: 8),
+                    IconButton(
+                      onPressed: () => setState(() => _setupBannerDismissed = true),
+                      icon: const Icon(Icons.close, size: 18, color: Colors.black38),
+                      padding: EdgeInsets.zero,
+                      constraints: const BoxConstraints(),
+                    ),
+                  ],
                 ),
               ],
             ),

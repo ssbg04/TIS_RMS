@@ -455,20 +455,25 @@ exports.updateStudent = (req, res) => {
                 id
             );
 
-            // Get latest enrollment record
-            const latestEnrollment = db.prepare(`
+            // Get existing enrollment for the specific academic year and grade level
+            const existingEnrollment = db.prepare(`
                 SELECT e.* FROM enrollments e
-                JOIN academic_years ay ON e.academic_year_id = ay.id
-                WHERE e.student_id = ?
-                ORDER BY ay.year_range DESC, e.grade_level DESC, e.id DESC LIMIT 1
-            `).get(id);
+                WHERE e.student_id = ? AND e.academic_year_id = ? AND e.grade_level = ?
+                LIMIT 1
+            `).get(id, academicYearId, gradeLevel);
 
-            if (!latestEnrollment ||
-                latestEnrollment.academic_year_id !== parseInt(academicYearId) ||
-                latestEnrollment.grade_level !== parseInt(gradeLevel) ||
-                latestEnrollment.section_id !== parseInt(sectionId) ||
-                latestEnrollment.track_strand !== (trackStrand || null)
-            ) {
+            if (existingEnrollment) {
+                // Update section and track_strand if they differ
+                if (existingEnrollment.section_id !== parseInt(sectionId) ||
+                    existingEnrollment.track_strand !== (trackStrand || null)) {
+                    db.prepare(`
+                        UPDATE enrollments
+                        SET section_id = ?, track_strand = ?
+                        WHERE id = ?
+                    `).run(sectionId, trackStrand || null, existingEnrollment.id);
+                }
+            } else {
+                // No enrollment for this year and grade, create a new one
                 db.prepare(`
                     INSERT INTO enrollments (student_id, academic_year_id, section_id, grade_level, track_strand)
                     VALUES (?, ?, ?, ?, ?)
@@ -527,23 +532,23 @@ exports.bulkEnrollStudents = (req, res) => {
     }
     try {
         db.transaction(() => {
-            const getLatestEnrollment = db.prepare(`
+            const getExistingEnrollment = db.prepare(`
                 SELECT e.* FROM enrollments e
-                JOIN academic_years ay ON e.academic_year_id = ay.id
-                WHERE e.student_id = ?
-                ORDER BY ay.year_range DESC, e.grade_level DESC, e.id DESC LIMIT 1
+                WHERE e.student_id = ? AND e.academic_year_id = ? AND e.grade_level = ?
+                LIMIT 1
             `);
+            const updateEnrollment = db.prepare('UPDATE enrollments SET section_id = ?, track_strand = ? WHERE id = ?');
             const insertEnrollment = db.prepare('INSERT INTO enrollments (student_id, academic_year_id, section_id, grade_level, track_strand) VALUES (?, ?, ?, ?, ?)');
             const updateStudentStatus = db.prepare('UPDATE students SET status = ? WHERE id = ?');
             
             for (const studentId of studentIds) {
-                const latest = getLatestEnrollment.get(studentId);
-                if (!latest || 
-                    latest.academic_year_id !== parseInt(academicYearId) ||
-                    latest.grade_level !== parseInt(gradeLevel) ||
-                    latest.section_id !== parseInt(sectionId) ||
-                    latest.track_strand !== (trackStrand || null)
-                ) {
+                const existing = getExistingEnrollment.get(studentId, academicYearId, gradeLevel);
+                if (existing) {
+                    if (existing.section_id !== parseInt(sectionId) ||
+                        existing.track_strand !== (trackStrand || null)) {
+                        updateEnrollment.run(sectionId, trackStrand || null, existing.id);
+                    }
+                } else {
                     insertEnrollment.run(studentId, academicYearId, sectionId, gradeLevel, trackStrand || null);
                 }
                 updateStudentStatus.run('Enrolled', studentId);

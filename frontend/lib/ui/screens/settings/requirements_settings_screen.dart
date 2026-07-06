@@ -9,6 +9,7 @@ import '../../shared/dialogs/success_dialog.dart';
 import '../../shared/dialogs/error_dialog.dart';
 import '../../providers/document_provider.dart';
 import '../../../domain/entities/document_requirement_model.dart';
+import '../../shared/modals/custom_modal.dart';
 
 // ─────────────────────────────────────────────────────────────
 // Sort Mode Enum
@@ -259,148 +260,102 @@ class _RequirementsModalState extends ConsumerState<RequirementsModal> {
     final isAndroid = Theme.of(context).platform == TargetPlatform.android;
     final settingsAsync = ref.watch(requirementsSettingsProvider);
 
-    final scaffold = Scaffold(
-      backgroundColor: AppColors.surfaceWhite,
-      body: SafeArea(
-        child: Column(
-              children: [
-                _buildModalHeader(context),
-                _buildSearchAndControls(isAndroid),
-                _buildFilterBar(isAndroid),
-                const Divider(height: 1),
-                Expanded(
-                  child: settingsAsync.when(
-                    data: (settings) {
-                      final all = [...settings.jhs, ...settings.shs];
-                      final filtered = _applyFiltersAndSort(all);
-                      return _buildTable(filtered, isAndroid);
-                    },
-                    loading: () =>
-                        const Center(child: CircularProgressIndicator()),
-                    error: (e, _) => Center(
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          const Icon(Icons.error_outline,
-                              size: 48, color: AppColors.error),
-                          const SizedBox(height: AppSizes.p16),
-                          Text('Error: $e',
-                              style:
-                                  const TextStyle(color: AppColors.error)),
-                          const SizedBox(height: AppSizes.p16),
-                          TextButton(
-                            onPressed: () =>
-                                ref.invalidate(requirementsSettingsProvider),
-                            child: const Text('Retry'),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
+    final multiSelectWidget = Tooltip(
+      message: _multiSelectMode ? 'Exit selection' : 'Select multiple',
+      child: InkWell(
+        onTap: _toggleMultiSelect,
+        borderRadius: BorderRadius.circular(8),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                _multiSelectMode ? Icons.check_box : Icons.check_box_outline_blank,
+                color: Colors.white,
+              ),
+              if (!isAndroid) ...[
+                const SizedBox(width: 8),
+                Text(
+                  _multiSelectMode ? 'Selecting' : 'Select',
+                  style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 14),
                 ),
-              ],
+              ]
+            ],
           ),
         ),
-      floatingActionButton: _buildFAB(context),
-    );
-
-    if (isAndroid) return scaffold;
-
-    return Dialog(
-      backgroundColor: Colors.transparent,
-      elevation: 0,
-      insetPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(AppSizes.radiusLarge),
-        child: scaffold,
       ),
     );
-  }
 
-  // ─────────────────────────────────────────────────────────
-  // Modal header
-  // ─────────────────────────────────────────────────────────
-  Widget _buildModalHeader(BuildContext context) {
-    final isAndroid = Theme.of(context).platform == TargetPlatform.android;
-    return Container(
-      padding: const EdgeInsets.symmetric(
-          horizontal: AppSizes.p16, vertical: AppSizes.p12),
-      decoration: BoxDecoration(
-        color: AppColors.surfaceWhite,
-        border: Border(bottom: BorderSide(color: Colors.grey.shade200)),
-      ),
-      child: Row(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(
-              color: AppColors.primaryGreen.withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: const Icon(Icons.folder_copy,
-                color: AppColors.primaryGreen, size: 20),
-          ),
-          const SizedBox(width: AppSizes.p12),
-          const Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Document Requirements',
-                  style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                      color: AppColors.textPrimary),
-                ),
-                Text(
-                  'Manage required documents for JHS and SHS students',
-                  style: TextStyle(
-                      fontSize: 12, color: AppColors.textSecondary),
-                ),
-              ],
-            ),
-          ),
-          // Multi-select toggle
-          Tooltip(
-            message: _multiSelectMode ? 'Exit selection' : 'Select multiple',
-            child: InkWell(
-              onTap: _toggleMultiSelect,
-              borderRadius: BorderRadius.circular(8),
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(
-                      _multiSelectMode
-                          ? Icons.check_box
-                          : Icons.check_box_outline_blank,
-                      color: _multiSelectMode
-                          ? AppColors.primaryGreen
-                          : AppColors.textSecondary,
-                    ),
-                    if (!isAndroid) ...[
-                      const SizedBox(width: 8),
-                      Text(
-                        _multiSelectMode ? 'Selecting' : 'Select',
-                        style: TextStyle(
-                            color: _multiSelectMode
-                                ? AppColors.primaryGreen
-                                : AppColors.textSecondary,
-                            fontWeight: FontWeight.w600,
-                            fontSize: 14),
-                      ),
-                    ]
-                  ],
-                ),
+    final content = Column(
+      children: [
+        _buildSearchAndControls(isAndroid),
+        _buildFilterBar(isAndroid),
+        const Divider(height: 1),
+        Expanded(
+          child: settingsAsync.when(
+            data: (settings) {
+              final all = [...settings.jhs, ...settings.shs];
+              final filtered = _applyFiltersAndSort(all);
+              return _buildTable(filtered, isAndroid);
+            },
+            loading: () => const Center(child: CircularProgressIndicator()),
+            error: (e, _) => Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Icon(Icons.error_outline, size: 48, color: AppColors.error),
+                  const SizedBox(height: AppSizes.p16),
+                  Text('Error: $e', style: const TextStyle(color: AppColors.error)),
+                  const SizedBox(height: AppSizes.p16),
+                  TextButton(
+                    onPressed: () => ref.invalidate(requirementsSettingsProvider),
+                    child: const Text('Retry'),
+                  ),
+                ],
               ),
             ),
           ),
-          IconButton(
-            icon: const Icon(Icons.close, color: AppColors.textSecondary),
-            onPressed: () => Navigator.of(context).pop(),
+        ),
+      ],
+    );
+
+    if (isAndroid) {
+      return Scaffold(
+        backgroundColor: AppColors.surfaceWhite,
+        appBar: AppBar(
+          backgroundColor: AppColors.primaryGreen,
+          foregroundColor: Colors.white,
+          iconTheme: const IconThemeData(color: Colors.white),
+          title: const Row(
+            children: [
+              Icon(Icons.folder_open_outlined, size: 22, color: Colors.white),
+              SizedBox(width: 10),
+              Text('Document Requirements', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: Colors.white)),
+            ],
           ),
-        ],
+          actions: [
+            multiSelectWidget,
+            const SizedBox(width: 16),
+          ],
+        ),
+        body: SafeArea(child: content),
+        floatingActionButton: _buildFAB(context),
+      );
+    }
+
+    return CustomModal(
+      title: 'Document Requirements',
+      icon: Icons.folder_open_outlined,
+      maxWidth: 900,
+      headerActions: [multiSelectWidget, const SizedBox(width: 8)],
+      content: SizedBox(
+        height: screenSize.height * 0.8,
+        child: Scaffold(
+          backgroundColor: Colors.transparent,
+          body: content,
+          floatingActionButton: _buildFAB(context),
+        ),
       ),
     );
   }
