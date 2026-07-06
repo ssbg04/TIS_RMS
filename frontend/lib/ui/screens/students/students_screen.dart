@@ -466,6 +466,7 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
               heroTag: 'filter_fab',
               backgroundColor: AppColors.surfaceWhite,
               foregroundColor: AppColors.primaryGreen,
+              shape: const CircleBorder(),
               onPressed: () => _openFilterDialog(query, academicYearsAsync, sectionsAsync),
               child: Badge(
                 isLabelVisible: activeCount > 0,
@@ -478,6 +479,7 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
                 heroTag: 'add_student_fab',
                 backgroundColor: AppColors.primaryGreen,
                 foregroundColor: Colors.white,
+                shape: const CircleBorder(),
                 onPressed: () => _openModal(),
                 child: const Icon(Icons.person_add),
               )
