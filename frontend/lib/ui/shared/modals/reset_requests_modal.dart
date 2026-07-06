@@ -23,6 +23,14 @@ class ResetRequestsModal extends ConsumerStatefulWidget {
 
 class _ResetRequestsModalState extends ConsumerState<ResetRequestsModal> {
   @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      ref.invalidate(resetRequestsProvider);
+    });
+  }
+
+  @override
   Widget build(BuildContext context) {
     final requestsAsync = ref.watch(resetRequestsProvider);
 

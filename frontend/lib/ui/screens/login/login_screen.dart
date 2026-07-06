@@ -18,6 +18,7 @@ import '../../shared/dialogs/success_dialog.dart';
 import '../../../core/utils/validators.dart';
 import '../../../core/network/api_constants.dart';
 import '../../../core/network/server_discovery.dart';
+import '../../shared/inputs/password_strength_indicator.dart';
 
 class LoginScreen extends ConsumerStatefulWidget {
   final bool sessionExpired;
@@ -494,7 +495,9 @@ class _ForgotPasswordDialogState extends ConsumerState<_ForgotPasswordDialog> {
                     isPassword: true,
                     obscureText: _obscurePasswords,
                     validator: AppValidators.validatePasswordComplexity,
+                    onChanged: (v) => setState(() {}),
                   ),
+                  PasswordStrengthIndicator(password: _newPassCtrl.text),
                   const SizedBox(height: AppSizes.p12),
                   CustomTextField(
                     hintText: 'Confirm New Password',

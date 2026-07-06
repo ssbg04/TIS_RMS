@@ -37,6 +37,9 @@ class _UsersScreenState extends ConsumerState<UsersScreen> {
     _searchController.addListener(() {
       setState(() => _searchQuery = _searchController.text.toLowerCase());
     });
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      ref.invalidate(resetRequestsProvider);
+    });
   }
 
   @override
