@@ -46,11 +46,11 @@ class AddEditStudentModal extends ConsumerStatefulWidget {
       _AddEditStudentModalState();
 }
 
-class _AddEditStudentModalState extends ConsumerState<AddEditStudentModal>
-    with SingleTickerProviderStateMixin {
-  final _formKey = GlobalKey<FormState>();
+class _AddEditStudentModalState extends ConsumerState<AddEditStudentModal> {
+  // ---- Form & Stepper State ----
+  final _studentFormKey = GlobalKey<FormState>();
+  final _enrollmentFormKey = GlobalKey<FormState>();
   final _scrollCtrl = ScrollController();
-  late TabController _tabController;
 
   late TextEditingController _lrnController;
   late TextEditingController _firstNameController;
@@ -76,14 +76,13 @@ class _AddEditStudentModalState extends ConsumerState<AddEditStudentModal>
   static const _statuses = ['Enrolled', 'Graduated', 'Transferred', 'Dropped'];
   static const _extSuggestions = ['N/A', 'JR.', 'SR.', 'II', 'III', 'IV', 'V', 'VI'];
 
-  bool _showOcrStep = false;
+  int _currentStep = 0;
   String? _selectedOcrDocType;
   File? _ocrScannedFile;
 
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 2, vsync: this);
     final s = widget.student;
     _lrnController = TextEditingController(text: s?.lrn ?? '');
     _firstNameController = TextEditingController(text: s?.firstName ?? '');
@@ -95,9 +94,9 @@ class _AddEditStudentModalState extends ConsumerState<AddEditStudentModal>
       _selectedDob = s.birthDate;
       _selectedStatus = s.status;
       _is4ps = s.is4ps;
-      _showOcrStep = false;
+      _currentStep = 0;
     } else {
-      _showOcrStep = true;
+      _currentStep = 0;
     }
     // Refresh enrollment data every time the modal opens
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -107,22 +106,10 @@ class _AddEditStudentModalState extends ConsumerState<AddEditStudentModal>
         ref.invalidate(sectionsListProvider);
       }
     });
-    // Also refresh when the Enrollment tab is opened
-    _tabController.addListener(_onTabChanged);
-  }
-
-  void _onTabChanged() {
-    if (_tabController.index == 1 && mounted) {
-      ref.invalidate(academicYearsListProvider);
-      ref.invalidate(gradeLevelsListProvider);
-      ref.invalidate(sectionsListProvider);
-    }
   }
 
   @override
   void dispose() {
-    _tabController.removeListener(_onTabChanged);
-    _tabController.dispose();
     _lrnController.dispose();
     _firstNameController.dispose();
     _middleNameController.dispose();
@@ -350,7 +337,10 @@ class _AddEditStudentModalState extends ConsumerState<AddEditStudentModal>
         } else {
           _selectedDob = null;
         }
-        _showOcrStep = false;
+        _isLoading = false;
+        _ocrScannedFile = file;
+        _selectedOcrDocType = docType;
+        _currentStep = 1; // switch to manual form
       });
       if (!mounted) return;
       showInfoDialog(
@@ -464,8 +454,8 @@ class _AddEditStudentModalState extends ConsumerState<AddEditStudentModal>
     final lnErr = _validateRequired(_lastNameController.text, 'Last name');
 
     if (lrnErr != null || fnErr != null || lnErr != null || _selectedDob == null) {
-      _tabController.animateTo(0);
-      _formKey.currentState!.validate();
+      setState(() => _currentStep = widget.student != null ? 0 : 1);
+      _studentFormKey.currentState?.validate();
       // Build a descriptive message listing all missing fields
       final missing = <String>[];
       if (lrnErr != null) missing.add('LRN ($lrnErr)');
@@ -482,8 +472,8 @@ class _AddEditStudentModalState extends ConsumerState<AddEditStudentModal>
     if (_selectedAcademicYearId == null ||
         _selectedGradeLevel == null ||
         _selectedSectionId == null) {
-      _tabController.animateTo(1);
-      _formKey.currentState!.validate();
+      setState(() => _currentStep = widget.student != null ? 1 : 2);
+      _enrollmentFormKey.currentState?.validate();
       final missing = <String>[];
       if (_selectedAcademicYearId == null) missing.add('Academic Year');
       if (_selectedGradeLevel == null) missing.add('Grade Level');
@@ -498,7 +488,7 @@ class _AddEditStudentModalState extends ConsumerState<AddEditStudentModal>
     if (_selectedStatus == 'Graduated' &&
         _selectedGradeLevel != 10 &&
         _selectedGradeLevel != 12) {
-      _tabController.animateTo(1);
+      setState(() => _currentStep = widget.student != null ? 1 : 2);
       _showValidationDialog(
         'Graduation status is only applicable for Grade 10 and Grade 12 students.',
       );
@@ -520,7 +510,7 @@ class _AddEditStudentModalState extends ConsumerState<AddEditStudentModal>
               .map((e) => e.gradeLevel as int)
               .reduce((a, b) => a > b ? a : b);
           if (_selectedGradeLevel! < existingMaxGrade) {
-            _tabController.animateTo(1);
+            setState(() => _currentStep = widget.student != null ? 1 : 2);
             _showValidationDialog(
               'Cannot downgrade enrollment. This student is already '
               'in Grade $existingMaxGrade for this academic year. '
@@ -649,32 +639,23 @@ class _AddEditStudentModalState extends ConsumerState<AddEditStudentModal>
     double maxDialogWidth = isMobile ? 380 : 620;
 
     return CustomModal(
-      title: _showOcrStep 
-          ? 'Auto-Fill with OCR' 
-          : (widget.student != null ? 'Update Student Record' : 'Student Details'),
-      icon: _showOcrStep 
-          ? Icons.document_scanner_outlined 
-          : (widget.student != null ? Icons.edit : Icons.person_add),
-      maxWidth: maxDialogWidth,
-      onClose: _showOcrStep ? () => Navigator.of(context).pop() : _confirmClose,
+        title: widget.student != null ? 'Update Student Record' : 'Add New Student',
+        icon: widget.student != null ? Icons.edit : Icons.person_add,
+        maxWidth: maxDialogWidth,
+        onClose: _confirmClose,
       content: ConstrainedBox(
         constraints: BoxConstraints(
           maxHeight: dialogHeight,
         ),
         child: Padding(
           padding: EdgeInsets.all(isMobile ? 12 : AppSizes.p24),
-          child: AnimatedSwitcher(
-            duration: const Duration(milliseconds: 300),
-            child: _showOcrStep
-                ? _buildOcrStep()
-                : _buildManualForm(
-                    widget.student != null,
-                    yearsAsync,
-                    gradeLevelsAsync,
-                    sectionsAsync,
-                    isMobile,
-                    viewInsets.bottom,
-                  ),
+          child: _buildManualForm(
+            widget.student != null,
+            yearsAsync,
+            gradeLevelsAsync,
+            sectionsAsync,
+            isMobile,
+            viewInsets.bottom,
           ),
         ),
       ),
@@ -742,7 +723,7 @@ class _AddEditStudentModalState extends ConsumerState<AddEditStudentModal>
           Center(
             child: TextButton.icon(
               onPressed: () => setState(() {
-                _showOcrStep = false;
+                _currentStep = 1;
                 _errorMessage = null;
               }),
               icon: const Icon(
@@ -788,48 +769,115 @@ class _AddEditStudentModalState extends ConsumerState<AddEditStudentModal>
 
     return Theme(
       data: compactTheme,
-      child: Form(
-        key: _formKey,
-        child: Column(
-          mainAxisSize: MainAxisSize.max,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // ---- Tab Bar ----
-            TabBar(
-              controller: _tabController,
-              labelColor: AppColors.primaryGreen,
-              unselectedLabelColor: AppColors.textSecondary,
-              indicatorColor: AppColors.primaryGreen,
-              indicatorSize: TabBarIndicatorSize.tab,
-              labelStyle: const TextStyle(
-                fontWeight: FontWeight.bold,
-                fontSize: 13,
-              ),
-              tabs: const [
-                Tab(
-                  text: 'Student Details',
-                  icon: Icon(Icons.person, size: 18),
-                ),
-                Tab(
-                  text: 'Enrollment Details',
-                  icon: Icon(Icons.school, size: 18),
-                ),
-              ],
-            ),
-            SizedBox(height: isMobile ? 10 : 12),
-
-            // ---- Tab Bar View Content (Responsive Expanded) ----
-            Expanded(
-              child: TabBarView(
-                controller: _tabController,
+      child: Stepper(
+          type: isMobile ? StepperType.vertical : StepperType.horizontal,
+          currentStep: _currentStep,
+          onStepTapped: (step) {
+            if (step < _currentStep) {
+              setState(() {
+                _currentStep = step;
+              });
+            }
+          },
+          onStepCancel: () {
+            if (_currentStep > 0) {
+              setState(() {
+                _currentStep -= 1;
+              });
+            } else {
+              _confirmClose();
+            }
+          },
+          onStepContinue: () {
+            final isEdit = widget.student != null;
+            final isLastStep = _currentStep == (isEdit ? 1 : 2);
+            final detailsStepIndex = isEdit ? 0 : 1;
+            if (isLastStep) {
+              _handleSave();
+            } else {
+              if (_currentStep == detailsStepIndex) {
+                 if (!(_studentFormKey.currentState?.validate() ?? false)) return;
+              }
+              setState(() {
+                _currentStep += 1;
+              });
+            }
+          },
+          controlsBuilder: (context, details) {
+            final isEdit = widget.student != null;
+            final isLastStep = _currentStep == (isEdit ? 1 : 2);
+            final isOcrStep = !isEdit && _currentStep == 0;
+            return Padding(
+              padding: const EdgeInsets.only(top: 24.0),
+              child: Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                crossAxisAlignment: WrapCrossAlignment.center,
                 children: [
-                  // Tab 0: Student Details
-                  SingleChildScrollView(
-                    key: const ValueKey('student-details-tab'),
-                    padding: const EdgeInsets.only(right: 6, bottom: 12, top: 12),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
+                  if (_currentStep > 0)
+                    OutlinedButton(
+                      onPressed: details.onStepCancel ?? () {},
+                      child: const Text('BACK'),
+                    ),
+                  if (isOcrStep)
+                    OutlinedButton(
+                      onPressed: details.onStepContinue ?? () {},
+                      child: const Text('Skip OCR & Enter Manually'),
+                    )
+                  else
+                    PrimaryButton(
+                      label: isLastStep ? (isEdit ? 'UPDATE' : 'SAVE') : 'NEXT',
+                      isLoading: _isLoading && isLastStep,
+                      onPressed: details.onStepContinue ?? () {},
+                    ),
+                  if (!isEdit && _ocrScannedFile != null && !isOcrStep) ...[
+                    OutlinedButton.icon(
+                      onPressed: () => setState(() {
+                        _lrnController.clear();
+                        _firstNameController.clear();
+                        _middleNameController.clear();
+                        _lastNameController.clear();
+                        _extController.clear();
+                        _currentStep = 0;
+                      }),
+                      icon: const Icon(Icons.refresh, size: 16),
+                      label: const Text('RE-SCAN', style: TextStyle(fontSize: 12)),
+                    ),
+                    OutlinedButton.icon(
+                      onPressed: () {
+                        if (_ocrScannedFile != null) {
+                          showDocumentPreview(
+                            context: context,
+                            localFile: _ocrScannedFile!,
+                            localFileName: _ocrScannedFile!.path.split('/').last,
+                          );
+                        }
+                      },
+                      icon: const Icon(Icons.preview_outlined, size: 16),
+                      label: const Text('VIEW DOC', style: TextStyle(fontSize: 12)),
+                    ),
+                  ],
+                ],
+              ),
+            );
+          },
+          steps: [
+            if (widget.student == null)
+              Step(
+                title: const Text('Auto-Fill with OCR'),
+                content: _buildOcrStep(),
+                isActive: _currentStep >= 0,
+                state: _currentStep > 0 ? StepState.complete : StepState.indexed,
+              ),
+            Step(
+              title: const Text('Student Details'),
+              isActive: _currentStep >= (widget.student != null ? 0 : 1),
+              state: _currentStep > (widget.student != null ? 0 : 1) ? StepState.complete : StepState.indexed,
+              content: Form(
+                key: _studentFormKey,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
                         // ── Learner Reference Information section label ──
                         _SectionLabel(label: "LEARNER REFERENCE INFORMATION"),
                         const SizedBox(height: AppSizes.p8),
@@ -1070,16 +1118,18 @@ class _AddEditStudentModalState extends ConsumerState<AddEditStudentModal>
                             contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
                           ),
                         ),
-                      ],
-                    ),
-                  ),
-
-                  // Tab 1: Enrollment Details
-                  SingleChildScrollView(
-                    key: const ValueKey('enrollment-details-tab'),
-                    padding: const EdgeInsets.only(right: 6, bottom: 12, top: 12),
-                    child: Column(
-                      children: [
+                ],
+              ),
+              ),
+            ),
+            Step(
+              title: const Text('Enrollment Details'),
+              isActive: _currentStep >= (widget.student != null ? 1 : 2),
+              state: _currentStep > (widget.student != null ? 1 : 2) ? StepState.complete : StepState.indexed,
+              content: Form(
+                key: _enrollmentFormKey,
+                child: Column(
+                  children: [
                         yearsAsync.when(
                           data: (years) {
                             // Auto-default: pick current/most-recent active academic year for new students
@@ -1278,153 +1328,12 @@ class _AddEditStudentModalState extends ConsumerState<AddEditStudentModal>
                             },
                           ),
                         ],
-                      ],
-                    ),
-                  ),
                 ],
+              ),
               ),
             ),
-            const SizedBox(height: 8),
-
-            if (_errorMessage != null) ...[
-              _ErrorBanner(message: _errorMessage!),
-              const SizedBox(height: AppSizes.p12),
-            ],
-
-            // ---- Actions ----
-            if (isMobile)
-              Padding(
-                padding: const EdgeInsets.only(top: 8.0),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    PrimaryButton(
-                      label: isEdit ? 'UPDATE' : 'SAVE',
-                      isLoading: _isLoading,
-                      onPressed: _handleSave,
-                    ),
-                    const SizedBox(height: 8),
-                    if (!isEdit && _ocrScannedFile != null) ...[
-                      OutlinedButton.icon(
-                        onPressed: () => setState(() {
-                          _lrnController.clear();
-                          _firstNameController.clear();
-                          _middleNameController.clear();
-                          _lastNameController.clear();
-                          _extController.clear();
-                          _showOcrStep = true;
-                        }),
-                        icon: const Icon(Icons.refresh, size: 18),
-                        label: const Text('RE-SCAN', style: TextStyle(fontSize: 12)),
-                        style: OutlinedButton.styleFrom(
-                          foregroundColor: Colors.orange,
-                          side: const BorderSide(color: Colors.orange),
-                          padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 8),
-                        ),
-                      ),
-                      const SizedBox(height: 6),
-                      OutlinedButton.icon(
-                        onPressed: () {
-                          if (_ocrScannedFile != null) {
-                            showDocumentPreview(
-                              context: context,
-                              localFile: _ocrScannedFile!,
-                              localFileName: _ocrScannedFile!.path.split('/').last,
-                            );
-                          }
-                        },
-                        icon: const Icon(Icons.preview_outlined, size: 16),
-                        label: const Text('VIEW SCANNED DOCUMENT', style: TextStyle(fontSize: 12)),
-                        style: OutlinedButton.styleFrom(
-                          foregroundColor: AppColors.primaryGreen,
-                          side: const BorderSide(color: AppColors.primaryGreen),
-                          padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 8),
-                        ),
-                      ),
-                      const SizedBox(height: 6),
-                    ],
-                    TextButton(
-                      onPressed: _isLoading
-                          ? null
-                          : _confirmClose,
-                      child: const Text(
-                        'CANCEL',
-                        style: TextStyle(
-                          color: AppColors.textSecondary,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 14,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              )
-            else
-              Wrap(
-                alignment: WrapAlignment.end,
-                crossAxisAlignment: WrapCrossAlignment.center,
-                spacing: AppSizes.p12,
-                runSpacing: AppSizes.p8,
-                children: [
-                  if (!isEdit && _ocrScannedFile != null)
-                    TextButton.icon(
-                      onPressed: () => setState(() {
-                        _lrnController.clear();
-                        _firstNameController.clear();
-                        _middleNameController.clear();
-                        _lastNameController.clear();
-                        _extController.clear();
-                        _showOcrStep = true;
-                      }),
-                      icon: const Icon(Icons.refresh),
-                      label: const Text('RE-SCAN'),
-                      style: TextButton.styleFrom(
-                        foregroundColor: Colors.orange,
-                      ),
-                    ),
-                  if (!isEdit && _ocrScannedFile != null)
-                    TextButton.icon(
-                      onPressed: () {
-                        if (_ocrScannedFile != null) {
-                          showDocumentPreview(
-                            context: context,
-                            localFile: _ocrScannedFile!,
-                            localFileName: _ocrScannedFile!.path.split('/').last,
-                          );
-                        }
-                      },
-                      icon: const Icon(Icons.preview_outlined),
-                      label: const Text('VIEW SCANNED DOCUMENT'),
-                      style: TextButton.styleFrom(
-                        foregroundColor: AppColors.primaryGreen,
-                      ),
-                    ),
-                  TextButton(
-                    onPressed: _isLoading
-                        ? null
-                        : _confirmClose,
-                    child: const Text(
-                      'CANCEL',
-                      style: TextStyle(
-                        color: AppColors.textSecondary,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ),
-                  SizedBox(
-                    width: 170,
-                    child: PrimaryButton(
-                      label: isEdit ? 'UPDATE' : 'SAVE',
-                      isLoading: _isLoading,
-                      onPressed: _handleSave,
-                    ),
-                  ),
-                ],
-              ),
           ],
         ),
-      ),
     );
   }
 }
