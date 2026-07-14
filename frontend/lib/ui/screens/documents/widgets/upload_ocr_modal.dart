@@ -261,6 +261,30 @@ class _UploadOcrModalState extends ConsumerState<UploadOcrModal> {
               ),
               const Divider(height: 20),
 
+              if (widget.prefilledStudentId == null) ...[
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: AppColors.warning.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: AppColors.warning.withValues(alpha: 0.3)),
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.info_outline, color: AppColors.warning, size: 20),
+                      const SizedBox(width: 8),
+                      const Expanded(
+                        child: Text(
+                          'Notice: You are not inside a specific student directory. Please ensure you provide the correct LRN to link this document.',
+                          style: TextStyle(fontSize: 12, color: AppColors.textPrimary),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 16),
+              ],
+
               // ── Content (scrollable) ──
               Flexible(
                 child: AnimatedSwitcher(
