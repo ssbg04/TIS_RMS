@@ -5,6 +5,8 @@
 /// being converted to the Philippine Standard Time offset (+08:00).
 library;
 
+import 'package:intl/intl.dart' as intl;
+
 /// Parses a raw UTC timestamp string from the database and returns a
 /// [DateTime] adjusted to Philippine Standard Time (UTC+8).
 ///
@@ -54,6 +56,18 @@ String formatDateTime(String raw) {
     final h  = dt.hour.toString().padLeft(2, '0');
     final mi = dt.minute.toString().padLeft(2, '0');
     return '$d/$mo/${dt.year}  $h:$mi';
+  } catch (_) {
+    return raw.split('T').first;
+  }
+}
+
+/// Returns a formatted date-time string explicitly for Modals in `MMM d, yyyy, hh:mm a` format
+/// adjusted to Philippine Standard Time. Example: `Mar 4, 2005, 12:30 PM`
+String formatModalDate(String raw) {
+  if (raw.isEmpty) return '';
+  try {
+    final dt = parseToPht(raw);
+    return intl.DateFormat('MMM d, yyyy, hh:mm a').format(dt);
   } catch (_) {
     return raw.split('T').first;
   }

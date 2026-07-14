@@ -350,9 +350,9 @@ class _RecentActivitiesScreenState
                   final a = activities[index];
                   
                   // Format Date and Time
-                  final DateTime parsedDate = DateTime.tryParse(a.createdAt) ?? DateTime.now();
-                  // [Month Day, Year] -> MMM dd, yyyy
-                  final dateStr = intl.DateFormat('MMM dd, yyyy').format(parsedDate);
+                  final DateTime parsedDate = pht.parseToPht(a.createdAt);
+                  // [Month Day, Year] -> MMM d, yyyy
+                  final dateStr = intl.DateFormat('MMM d, yyyy').format(parsedDate);
                   // [12-hour format] -> hh:mm a
                   final timeStr = intl.DateFormat('hh:mm a').format(parsedDate);
 
@@ -362,7 +362,7 @@ class _RecentActivitiesScreenState
                         context: context,
                         title: a.entityType.toUpperCase(),
                         description: a.description,
-                        date: '$dateStr $timeStr',
+                        date: pht.formatModalDate(a.createdAt),
                         performedBy: a.performedBy ?? a.username ?? 'System',
                         action: a.action,
                         actionColor: _actionColor(a.action),
@@ -405,7 +405,7 @@ class _RecentActivitiesScreenState
               context: context,
               title: a.entityType.toUpperCase(),
               description: a.description,
-              date: _formatDate(a.createdAt),
+              date: pht.formatModalDate(a.createdAt),
               performedBy: a.performedBy ?? a.username ?? 'System',
               action: a.action,
               actionColor: _actionColor(a.action),

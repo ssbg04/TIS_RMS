@@ -348,9 +348,9 @@ class _UserHistoryScreenState extends ConsumerState<UserHistoryScreen> {
                   final h = history[index];
                   
                   // Format Date and Time
-                  final DateTime parsedDate = DateTime.tryParse(h.createdAt) ?? DateTime.now();
-                  // [Month Day, Year] -> MMM dd, yyyy
-                  final dateStr = intl.DateFormat('MMM dd, yyyy').format(parsedDate);
+                  final DateTime parsedDate = pht.parseToPht(h.createdAt);
+                  // [Month Day, Year] -> MMM d, yyyy
+                  final dateStr = intl.DateFormat('MMM d, yyyy').format(parsedDate);
                   // [12-hour format] -> hh:mm a
                   final timeStr = intl.DateFormat('hh:mm a').format(parsedDate);
 
@@ -360,7 +360,7 @@ class _UserHistoryScreenState extends ConsumerState<UserHistoryScreen> {
                         context: context,
                         title: 'USER ACTIVITY',
                         description: 'Action performed on ${h.fullName} (@${h.username})',
-                        date: '$dateStr $timeStr',
+                        date: pht.formatModalDate(h.createdAt),
                         performedBy: h.performedByName ?? h.performedByUsername ?? 'System',
                         action: h.action,
                         actionColor: _actionColor(h.action),
@@ -404,7 +404,7 @@ class _UserHistoryScreenState extends ConsumerState<UserHistoryScreen> {
               context: context,
               title: 'USER ACTIVITY',
               description: 'Action performed on ${h.fullName} (@${h.username})',
-              date: _formatDate(h.createdAt),
+              date: pht.formatModalDate(h.createdAt),
               performedBy: h.performedByName ?? h.performedByUsername ?? 'System',
               action: h.action,
               actionColor: _actionColor(h.action),

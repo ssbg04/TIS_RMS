@@ -18,14 +18,32 @@ class SplashScreen extends ConsumerStatefulWidget {
   ConsumerState<SplashScreen> createState() => _SplashScreenState();
 }
 
-class _SplashScreenState extends ConsumerState<SplashScreen> {
+class _SplashScreenState extends ConsumerState<SplashScreen> with SingleTickerProviderStateMixin {
   String _statusText = 'Starting up…';
   double? _scanProgress; // null = indeterminate, 0.0–1.0 = progress
+  
+  late AnimationController _logoAnimController;
+  late Animation<double> _logoScaleAnimation;
 
   @override
   void initState() {
     super.initState();
+    _logoAnimController = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 2),
+    )..repeat(reverse: true);
+    
+    _logoScaleAnimation = Tween<double>(begin: 0.95, end: 1.05).animate(
+      CurvedAnimation(parent: _logoAnimController, curve: Curves.easeInOut),
+    );
+    
     _initializeApp();
+  }
+  
+  @override
+  void dispose() {
+    _logoAnimController.dispose();
+    super.dispose();
   }
 
   Future<void> _initializeApp() async {
@@ -222,7 +240,13 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Image.asset('assets/images/logo.png', width: 150, height: 150),
+                  if (kIsWeb || Platform.isWindows || Platform.isMacOS || Platform.isLinux)
+                    ScaleTransition(
+                      scale: _logoScaleAnimation,
+                      child: Image.asset('assets/images/logo.png', width: 150, height: 150),
+                    )
+                  else
+                    Image.asset('assets/images/logo.png', width: 150, height: 150),
                   const SizedBox(height: 24),
                   const Text(
                     'TIS RMS',

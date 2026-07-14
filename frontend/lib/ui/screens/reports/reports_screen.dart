@@ -368,23 +368,40 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                   data: (data) => Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // 1. Yearly Comparison Chart
-                      _buildYearlyComparisonChart(),
-                      const SizedBox(height: AppSizes.p24),
-
-                      // 2. Filter Panel (collapsible)
+                      // 1. Filter Panel (collapsible)
                       _buildFilterPanel(context),
                       const SizedBox(height: AppSizes.p24),
 
-                      // 3. KPI Cards
+                      // 2. KPI Cards
                       _buildMetricsGrid(data.studentCounts),
                       const SizedBox(height: AppSizes.p24),
-                      
-                      // 4. Row of Missing Documents Chart
-                      _buildMissingDocsChart(data.missingDocsBreakdown),
+
+                      // 3. Side-by-Side Charts (Responsive)
+                      LayoutBuilder(
+                        builder: (context, constraints) {
+                          if (constraints.maxWidth > 1200) {
+                            return Row(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Expanded(flex: 5, child: _buildYearlyComparisonChart(isDesktop: true)),
+                                const SizedBox(width: AppSizes.p24),
+                                Expanded(flex: 5, child: _buildMissingDocsChart(data.missingDocsBreakdown, isDesktop: true)),
+                              ],
+                            );
+                          } else {
+                            return Column(
+                              children: [
+                                _buildYearlyComparisonChart(isDesktop: false),
+                                const SizedBox(height: AppSizes.p24),
+                                _buildMissingDocsChart(data.missingDocsBreakdown, isDesktop: false),
+                              ],
+                            );
+                          }
+                        },
+                      ),
                       const SizedBox(height: AppSizes.p24),
                       
-                      // 5. Interactive Student Compliance Table
+                      // 4. Interactive Student Compliance Table
                       _buildComplianceTable(data),
                     ],
                   ),
@@ -402,26 +419,6 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
   Widget _buildTitleAndExportActions(BuildContext context) {
     final statsAsync = ref.watch(reportStatsProvider);
     final isDesktop = MediaQuery.of(context).size.width > 900;
-    
-    final yearsAsync = ref.watch(academicYearsProvider);
-    final selectedYearId = ref.watch(selectedAcademicYearIdProvider);
-    final selectedGrade = ref.watch(selectedGradeLevelProvider);
-    final selectedSection = ref.watch(selectedSectionIdProvider);
-    final selectedStatus = ref.watch(selectedStatusFilterProvider);
-    final sections = ref.watch(filteredSectionsProvider);
-
-    final years = yearsAsync.asData?.value ?? [];
-    final yearLabel = selectedYearId != null
-        ? years.firstWhere((y) => y.id == selectedYearId, orElse: () => AcademicYear(id: 0, yearRange: 'Selected', status: '')).yearRange
-        : 'All Years';
-    final gradeLabel = selectedGrade != null ? 'Grade $selectedGrade' : 'All Grades';
-    final statusLabel = selectedStatus ?? 'All Statuses';
-
-    String sectionLabel = 'All Sections';
-    if (selectedSection != null && sections.isNotEmpty) {
-      final s = sections.firstWhere((sec) => (sec['id'] as num).toInt() == selectedSection, orElse: () => {});
-      if (s.isNotEmpty) sectionLabel = s['name'] as String;
-    }
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -750,7 +747,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
   }
 
   // ── Missing Documents Breakdown Card ──────────────────────────────────────
-  Widget _buildMissingDocsChart(List<MissingDocBreakdown> breakdown) {
+  Widget _buildMissingDocsChart(List<MissingDocBreakdown> breakdown, {required bool isDesktop}) {
     final isFilterExpanded = ref.watch(missingDocsFilterExpandedProvider);
 
     // Categorize by SHS (grade 11-12) vs JHS (grade 7-10)
@@ -774,6 +771,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
 
     return Container(
       width: double.infinity,
+      height: isDesktop ? 460 : null,
       padding: const EdgeInsets.all(AppSizes.p24),
       decoration: _cardDecoration(),
       child: Column(
@@ -796,36 +794,36 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
               ),
               const SizedBox(width: 12),
               // Show/Hide toggle
-              TextButton.icon(
-                onPressed: () => ref.read(missingDocsFilterExpandedProvider.notifier).state = !isFilterExpanded,
-                icon: Icon(isFilterExpanded ? Icons.visibility_off_outlined : Icons.visibility_outlined,
-                    size: 16, color: AppColors.primaryGreen),
-                label: Text(isFilterExpanded ? 'Hide' : 'Show',
-                    style: const TextStyle(color: AppColors.primaryGreen, fontSize: 13)),
-                style: TextButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8),
-                    side: const BorderSide(color: AppColors.primaryGreen, width: 0.8),
+              if (!isDesktop)
+                TextButton.icon(
+                  onPressed: () => ref.read(missingDocsFilterExpandedProvider.notifier).state = !isFilterExpanded,
+                  icon: Icon(isFilterExpanded ? Icons.visibility_off_outlined : Icons.visibility_outlined,
+                      size: 16, color: AppColors.primaryGreen),
+                  label: Text(isFilterExpanded ? 'Hide' : 'Show',
+                      style: const TextStyle(color: AppColors.primaryGreen, fontSize: 13)),
+                  style: TextButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                      side: const BorderSide(color: AppColors.primaryGreen, width: 0.8),
+                    ),
                   ),
                 ),
-              ),
             ],
           ),
+          
+          if (isDesktop)
+            const SizedBox(height: AppSizes.p24),
+            
           // ── Expandable content ──────────────────────────────────────────────
-          AnimatedCrossFade(
-            firstChild: const SizedBox.shrink(),
-            secondChild: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const SizedBox(height: AppSizes.p24),
-                if (breakdown.isEmpty)
-                  _emptyWidget('No missing document requirements found. Compliance is 100%!')
-                else
-                  ListView.separated(
-                    shrinkWrap: true,
-                    physics: const NeverScrollableScrollPhysics(),
-                    itemCount: breakdown.length,
+          if (isDesktop)
+            Expanded(
+              child: breakdown.isEmpty
+                  ? _emptyWidget('No missing document requirements found. Compliance is 100%!')
+                  : ListView.separated(
+                      shrinkWrap: false,
+                      physics: const AlwaysScrollableScrollPhysics(),
+                      itemCount: breakdown.length,
                     separatorBuilder: (context, index) => const SizedBox(height: 10),
                     itemBuilder: (context, index) {
                       final item = breakdown[index];
@@ -897,11 +895,97 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                       );
                     },
                   ),
-              ],
+            )
+          else
+            AnimatedCrossFade(
+              firstChild: const SizedBox.shrink(),
+              secondChild: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const SizedBox(height: AppSizes.p24),
+                  if (breakdown.isEmpty)
+                    _emptyWidget('No missing document requirements found. Compliance is 100%!')
+                  else
+                    ListView.separated(
+                      shrinkWrap: true,
+                      physics: const NeverScrollableScrollPhysics(),
+                      itemCount: breakdown.length,
+                      separatorBuilder: (context, index) => const SizedBox(height: 10),
+                      itemBuilder: (context, index) {
+                        final item = breakdown[index];
+                        final maxCount = breakdown.first.count;
+                        final pct = maxCount > 0 ? item.count / maxCount : 0.0;
+                        final level = detectLevel(item.name);
+
+                        return Row(
+                          crossAxisAlignment: CrossAxisAlignment.center,
+                          children: [
+                            // Level badge
+                            SizedBox(
+                              width: 34,
+                              child: level == 'SHS'
+                                  ? levelBadge('SHS', Colors.purple.shade50, Colors.purple.shade700)
+                                  : level == 'JHS'
+                                      ? levelBadge('JHS', Colors.teal.shade50, Colors.teal.shade700)
+                                      : levelBadge('ALL', Colors.grey.shade100, Colors.grey.shade600),
+                            ),
+                            const SizedBox(width: 8),
+                            // Name
+                            SizedBox(
+                              width: 155,
+                              child: Text(item.name,
+                                  style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 12),
+                                  overflow: TextOverflow.ellipsis,
+                                  maxLines: 1),
+                            ),
+                            const SizedBox(width: 10),
+                            // Progress bar (compact height)
+                            Expanded(
+                              child: Stack(
+                                children: [
+                                  Container(
+                                    height: 10,
+                                    decoration: BoxDecoration(
+                                        color: Colors.grey.shade100, borderRadius: BorderRadius.circular(5)),
+                                  ),
+                                  AnimatedContainer(
+                                    duration: const Duration(milliseconds: 600),
+                                    curve: Curves.easeOut,
+                                    height: 10,
+                                    width: (MediaQuery.of(context).size.width - 300) * 0.45 * pct,
+                                    decoration: BoxDecoration(
+                                      gradient: const LinearGradient(colors: [Colors.orange, Colors.redAccent]),
+                                      borderRadius: BorderRadius.circular(5),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            const SizedBox(width: 10),
+                            // Count badge
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+                              decoration: BoxDecoration(
+                                color: Colors.red.shade50,
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: Text(
+                                '${item.count}',
+                                style: TextStyle(
+                                    color: Colors.red.shade700,
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 11),
+                              ),
+                            ),
+                          ],
+                        );
+                      },
+                    ),
+                ],
+              ),
+              crossFadeState: isFilterExpanded ? CrossFadeState.showSecond : CrossFadeState.showFirst,
+              duration: const Duration(milliseconds: 250),
             ),
-            crossFadeState: isFilterExpanded ? CrossFadeState.showSecond : CrossFadeState.showFirst,
-            duration: const Duration(milliseconds: 250),
-          ),
         ],
       ),
     );
@@ -1134,7 +1218,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
       );
 
   // ── Yearly Comparison Chart ───────────────────────────────────────────────
-  Widget _buildYearlyComparisonChart() {
+  Widget _buildYearlyComparisonChart({required bool isDesktop}) {
     final yearlyAsync = ref.watch(yearlyComparisonProvider);
     final selectedYears = ref.watch(yearlyComparisonSelectedYearsProvider);
     final selectedStatuses = ref.watch(yearlyComparisonSelectedStatusesProvider);
@@ -1149,6 +1233,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
 
     return Container(
       width: double.infinity,
+      height: isDesktop ? 460 : null,
       padding: const EdgeInsets.all(AppSizes.p24),
       decoration: _cardDecoration(),
       child: Column(
