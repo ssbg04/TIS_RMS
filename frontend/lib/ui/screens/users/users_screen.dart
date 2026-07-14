@@ -18,6 +18,7 @@ import '../../shared/dialogs/error_dialog.dart';
 import '../../shared/dialogs/success_dialog.dart';
 import '../../shared/modals/custom_modal.dart';
 import '../../shared/modals/reset_requests_modal.dart';
+import 'package:wolt_modal_sheet/wolt_modal_sheet.dart';
 
 class UsersScreen extends ConsumerStatefulWidget {
   const UsersScreen({super.key});
@@ -140,11 +141,18 @@ class _UsersScreenState extends ConsumerState<UsersScreen> {
     }
   }
 
-  void _openModal({SystemUser? user}) {
-    showDialog(
-      context: context,
-      builder: (ctx) => AddEditUserModal(user: user),
-    );
+  Future<void> _openModal({SystemUser? user, bool fromDetails = false}) async {
+    final success = await AddEditUserModal.show(context, user: user);
+    if (fromDetails && user != null && mounted) {
+      final users = ref.read(usersProvider).value ?? [];
+      final updatedUser = users.firstWhere((u) => u.id == user.id, orElse: () => user);
+      _showUserDetailModal(updatedUser);
+      if (success == true) {
+        showSuccessDialog(context, title: 'User Updated', message: 'User updated successfully!');
+      }
+    } else if (success == true && mounted && user != null) {
+      showSuccessDialog(context, title: 'User Updated', message: 'User updated successfully!');
+    }
   }
 
   void _showUserDetailModal(SystemUser user) {
@@ -198,8 +206,8 @@ class _UsersScreenState extends ConsumerState<UsersScreen> {
                         icon: const Icon(Icons.edit, size: 16),
                         label: const Text('Edit'),
                         onPressed: () {
-                          Navigator.of(context).pop();
-                          _openModal(user: user);
+                          Navigator.of(context, rootNavigator: true).pop();
+                          _openModal(user: user, fromDetails: true);
                         },
                         style: OutlinedButton.styleFrom(
                           foregroundColor: AppColors.primaryGreen,
@@ -212,7 +220,7 @@ class _UsersScreenState extends ConsumerState<UsersScreen> {
                         icon: const Icon(Icons.lock_reset, size: 16),
                         label: const Text('Reset Pass'),
                         onPressed: () {
-                          Navigator.of(context).pop();
+                          Navigator.of(context, rootNavigator: true).pop();
                           _confirmResetPassword(user);
                         },
                         style: OutlinedButton.styleFrom(
@@ -227,7 +235,7 @@ class _UsersScreenState extends ConsumerState<UsersScreen> {
                           icon: const Icon(Icons.delete_outline, size: 16),
                           label: const Text('Delete'),
                           onPressed: () {
-                            Navigator.of(context).pop();
+                            Navigator.of(context, rootNavigator: true).pop();
                             _confirmDelete(user);
                           },
                           style: OutlinedButton.styleFrom(
@@ -653,12 +661,33 @@ class AddEditUserModal extends ConsumerStatefulWidget {
   final SystemUser? user;
   const AddEditUserModal({super.key, this.user});
 
+  static Future<bool?> show(BuildContext context, {SystemUser? user}) {
+    return WoltModalSheet.show<bool>(
+      context: context,
+      pageListBuilder: (modalSheetContext) {
+        return [
+          WoltModalSheetPage(
+            backgroundColor: AppColors.surfaceWhite,
+            hasSabGradient: false,
+            hasTopBarLayer: false,
+            child: AddEditUserModal(user: user),
+          ),
+        ];
+      },
+    );
+  }
+
   @override
   ConsumerState<AddEditUserModal> createState() => _AddEditUserModalState();
 }
 
 class _AddEditUserModalState extends ConsumerState<AddEditUserModal> {
-  final _formKey = GlobalKey<FormState>();
+  final List<GlobalKey<FormState>> _stepKeys = [
+    GlobalKey<FormState>(),
+    GlobalKey<FormState>(),
+    GlobalKey<FormState>(),
+  ];
+  int _currentStep = 0;
   late TextEditingController _usernameCtrl;
   late TextEditingController _firstNameCtrl;
   late TextEditingController _middleNameCtrl;
@@ -699,7 +728,9 @@ class _AddEditUserModalState extends ConsumerState<AddEditUserModal> {
   }
 
   Future<void> _handleSave() async {
-    if (!_formKey.currentState!.validate()) return;
+    for (final key in _stepKeys) {
+      if (!(key.currentState?.validate() ?? true)) return;
+    }
     setState(() => _isLoading = true);
 
     try {
@@ -716,10 +747,7 @@ class _AddEditUserModalState extends ConsumerState<AddEditUserModal> {
           phone: _phoneCtrl.text.trim(),
         );
         if (!mounted) return;
-        Navigator.of(context).pop();
-        
-        // ✅ Replaced SnackBar with Success Dialog
-        showSuccessDialog(context, title: 'User Updated', message: 'User updated successfully!');
+        Navigator.of(context).pop(true);
       } else {
         // Create — backend auto-generates a temporary password
         final username = _usernameCtrl.text.trim();
@@ -734,7 +762,7 @@ class _AddEditUserModalState extends ConsumerState<AddEditUserModal> {
           phone: _phoneCtrl.text.trim(),
         );
         if (!mounted) return;
-        Navigator.of(context).pop();
+        Navigator.of(context).pop(true);
         _showCredentialsDialog(context, username: username, tempPassword: tempPassword);
       }
     } catch (e) {
@@ -834,166 +862,347 @@ class _AddEditUserModalState extends ConsumerState<AddEditUserModal> {
   @override
   Widget build(BuildContext context) {
     final currentUser = ref.watch(authProvider).value;
-    return CustomModal(
-      title: _isEdit ? 'Edit System User' : 'Create New User',
-      icon: _isEdit ? Icons.edit : Icons.person_add,
-      maxWidth: 560,
-      content: SingleChildScrollView(
+    return ConstrainedBox(
+      constraints: const BoxConstraints(maxWidth: 560),
+      child: Padding(
         padding: const EdgeInsets.all(AppSizes.p24),
-        child: Form(
-          key: _formKey,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Name fields
-              _field(
-                'First Name', Icons.badge, _firstNameCtrl, 
-                required: true, 
-                textCapitalization: TextCapitalization.words,
-                inputFormatters: [_TitleCaseTextInputFormatter()],
-              ),
-              const SizedBox(height: AppSizes.p12),
-              _field(
-                'Middle Name', Icons.badge, _middleNameCtrl, 
-                textCapitalization: TextCapitalization.words,
-                inputFormatters: [_TitleCaseTextInputFormatter()],
-              ),
-              const SizedBox(height: AppSizes.p12),
-              _field(
-                'Last Name', Icons.badge, _lastNameCtrl, 
-                required: true, 
-                textCapitalization: TextCapitalization.words,
-                inputFormatters: [_TitleCaseTextInputFormatter()],
-              ),
-              const SizedBox(height: AppSizes.p12),
-              
-              // Autocomplete for extension
-              Autocomplete<String>(
-                optionsBuilder: (TextEditingValue textEditingValue) {
-                  const commonExts = ['Jr.', 'Sr.', 'II', 'III', 'IV'];
-                  if (textEditingValue.text.isEmpty) {
-                    return commonExts;
-                  }
-                  return commonExts.where((ext) => ext.toLowerCase().contains(textEditingValue.text.toLowerCase()));
-                },
-                onSelected: (String selection) {
-                  _extCtrl.text = selection;
-                },
-                fieldViewBuilder: (context, controller, focusNode, onEditingComplete) {
-                  controller.addListener(() {
-                    if (_extCtrl.text != controller.text) {
-                      _extCtrl.text = controller.text;
-                    }
-                  });
-                  if (controller.text.isEmpty && _extCtrl.text.isNotEmpty) {
-                    controller.text = _extCtrl.text;
-                  }
-                  return CustomTextField(
-                    hintText: 'Ext. (Jr, Sr, III)',
-                    prefixIcon: Icons.text_fields,
-                    controller: controller,
-                    focusNode: focusNode,
-                    textCapitalization: TextCapitalization.words,
-                    inputFormatters: [_TitleCaseTextInputFormatter()],
-                  );
-                },
-              ),
-              const SizedBox(height: AppSizes.p12),
-
-              // Username
-              _field('Username', Icons.person, _usernameCtrl, required: !_isEdit, readOnly: _isEdit),
-              const SizedBox(height: AppSizes.p12),
-
-              // Role dropdown
-              if (_isEdit && widget.user?.id == currentUser?.id)
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Header
+            Row(
+              children: [
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+                  padding: const EdgeInsets.all(8),
                   decoration: BoxDecoration(
-                    color: Colors.grey.shade100,
-                    borderRadius: BorderRadius.circular(AppSizes.radiusMedium),
-                    border: Border.all(color: Colors.grey.shade300),
-                  ),
-                  child: Row(children: [
-                    Icon(Icons.shield, color: _roleColor(widget.user!.role), size: 20),
-                    const SizedBox(width: 12),
-                    Text(widget.user!.role.toUpperCase(), style: TextStyle(fontWeight: FontWeight.bold, color: _roleColor(widget.user!.role))),
-                    const SizedBox(width: 8),
-                    const Icon(Icons.lock, color: Colors.grey, size: 14),
-                    const SizedBox(width: 4),
-                    const Text('(Your own role cannot be changed)', style: TextStyle(fontSize: 12, color: Colors.grey)),
-                  ]),
-                )
-              else
-                DropdownButtonFormField<String>(
-                  value: _selectedRole,
-                  decoration: const InputDecoration(prefixIcon: Icon(Icons.shield_outlined, color: AppColors.textSecondary)),
-                  items: const [
-                    DropdownMenuItem(value: 'teacher', child: Text('Teacher')),
-                    DropdownMenuItem(value: 'admin', child: Text('Admin')),
-                  ],
-                  onChanged: (val) => setState(() => _selectedRole = val!),
-                ),
-              const SizedBox(height: AppSizes.p12),
-
-              // Contact
-              _field('Email Address', Icons.email_outlined, _emailCtrl, validator: AppValidators.validateEmail),
-              const SizedBox(height: AppSizes.p12),
-              _field(
-                'Phone Number (Starts with 09)', 
-                Icons.phone_outlined, 
-                _phoneCtrl, 
-                validator: AppValidators.validatePhone,
-                maxLength: 11,
-                keyboardType: TextInputType.phone,
-                inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-              ),
-              const SizedBox(height: AppSizes.p12),
-
-              if (!_isEdit)
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                  decoration: BoxDecoration(
-                    color: AppColors.primaryGreen.withValues(alpha: 0.07),
+                    color: AppColors.primaryGreen.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: AppColors.primaryGreen.withValues(alpha: 0.3)),
                   ),
-                  child: const Row(children: [
-                    Icon(Icons.auto_awesome, color: AppColors.primaryGreen, size: 16),
-                    SizedBox(width: 8),
-                    Expanded(
-                      child: Text(
-                        'A secure temporary password will be auto-generated and shown once after creation.',
-                        style: TextStyle(fontSize: 12, color: AppColors.primaryGreen, fontWeight: FontWeight.w600),
-                      ),
-                    ),
-                  ]),
+                  child: Icon(_isEdit ? Icons.edit : Icons.person_add,
+                      color: AppColors.primaryGreen, size: 22),
                 ),
-
-              const SizedBox(height: AppSizes.p24),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.end,
-                children: [
-                  TextButton(onPressed: () => Navigator.pop(context), child: const Text('CANCEL')),
-                  const SizedBox(width: AppSizes.p16),
-                  SizedBox(
-                    width: 150,
-                    child: PrimaryButton(
-                      label: _isEdit ? 'UPDATE' : 'CREATE',
-                      isLoading: _isLoading,
-                      onPressed: _handleSave,
+                const SizedBox(width: AppSizes.p12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        _isEdit ? 'Edit System User' : 'Create New User',
+                        style: const TextStyle(
+                            fontSize: 20,
+                            fontWeight: FontWeight.bold,
+                            color: AppColors.textPrimary),
+                      ),
+                    ],
+                  ),
+                ),
+                IconButton(
+                  icon: const Icon(Icons.close, color: AppColors.textSecondary),
+                  onPressed: () => Navigator.of(context).pop(),
+                ),
+              ],
+            ),
+            const Divider(height: AppSizes.p32),
+            
+            Stepper(
+              currentStep: _currentStep,
+              type: StepperType.vertical,
+              onStepTapped: (step) => setState(() => _currentStep = step),
+              onStepContinue: () {
+                if (_stepKeys[_currentStep].currentState?.validate() ?? false) {
+                  if (_currentStep < 2) {
+                    setState(() => _currentStep += 1);
+                  } else {
+                    _handleSave();
+                  }
+                }
+              },
+              onStepCancel: () {
+                if (_currentStep > 0) {
+                  setState(() => _currentStep -= 1);
+                } else {
+                  Navigator.pop(context);
+                }
+              },
+              controlsBuilder: (context, details) {
+                final isLastStep = _currentStep == 2;
+                return Padding(
+                  padding: const EdgeInsets.only(top: 24),
+                  child: Row(
+                    children: [
+                      SizedBox(
+                        width: 150,
+                        child: PrimaryButton(
+                          label: isLastStep ? (_isEdit ? 'UPDATE' : 'CREATE') : 'CONTINUE',
+                          isLoading: _isLoading && isLastStep,
+                          onPressed: details.onStepContinue ?? () {},
+                        ),
+                      ),
+                      const SizedBox(width: 16),
+                      TextButton(
+                        onPressed: details.onStepCancel,
+                        child: Text(_currentStep == 0 ? 'CANCEL' : 'BACK'),
+                      ),
+                    ],
+                  ),
+                );
+              },
+              steps: [
+                Step(
+                  title: const Text('Personal Information', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: AppColors.textPrimary)),
+                  isActive: _currentStep >= 0,
+                  state: _currentStep > 0 ? StepState.complete : StepState.indexed,
+                  content: Form(
+                    key: _stepKeys[0],
+                    child: Padding(
+                      padding: const EdgeInsets.only(top: 16),
+                      child: LayoutBuilder(
+                        builder: (context, constraints) {
+                        final isMobile = constraints.maxWidth < 400;
+                        if (isMobile) {
+                          return Column(
+                            children: [
+                              _field('First Name', null, _firstNameCtrl, required: true, textCapitalization: TextCapitalization.words, inputFormatters: [_TitleCaseTextInputFormatter()]),
+                              const SizedBox(height: AppSizes.p12),
+                              _field('Middle Name', null, _middleNameCtrl, textCapitalization: TextCapitalization.words, inputFormatters: [_TitleCaseTextInputFormatter()]),
+                              const SizedBox(height: AppSizes.p12),
+                              _field('Last Name', null, _lastNameCtrl, required: true, textCapitalization: TextCapitalization.words, inputFormatters: [_TitleCaseTextInputFormatter()]),
+                              const SizedBox(height: AppSizes.p12),
+                              _buildExtensionField(),
+                            ],
+                          );
+                        }
+                        return Column(
+                          children: [
+                            Row(
+                              children: [
+                                Expanded(child: _field('First Name', null, _firstNameCtrl, required: true, textCapitalization: TextCapitalization.words, inputFormatters: [_TitleCaseTextInputFormatter()])),
+                                const SizedBox(width: AppSizes.p12),
+                                Expanded(child: _field('Middle Name', null, _middleNameCtrl, textCapitalization: TextCapitalization.words, inputFormatters: [_TitleCaseTextInputFormatter()])),
+                              ],
+                            ),
+                            const SizedBox(height: AppSizes.p12),
+                            Row(
+                              children: [
+                                Expanded(flex: 2, child: _field('Last Name', null, _lastNameCtrl, required: true, textCapitalization: TextCapitalization.words, inputFormatters: [_TitleCaseTextInputFormatter()])),
+                                const SizedBox(width: AppSizes.p12),
+                                Expanded(flex: 1, child: _buildExtensionField()),
+                              ],
+                            ),
+                          ],
+                        );
+                      },
+                    ),
                     ),
                   ),
-                ],
+                ),
+                Step(
+                  title: const Text('Account Details', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: AppColors.textPrimary)),
+                  isActive: _currentStep >= 1,
+                  state: _currentStep > 1 ? StepState.complete : StepState.indexed,
+                  content: Form(
+                    key: _stepKeys[1],
+                    child: Padding(
+                      padding: const EdgeInsets.only(top: 16),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        _field('Username', Icons.person, _usernameCtrl, required: !_isEdit, readOnly: _isEdit),
+                        const SizedBox(height: AppSizes.p12),
+                        _buildRoleDropdown(currentUser),
+                      ],
+                    ),
+                    ),
+                  ),
+                ),
+                Step(
+                  title: const Text('Contact Information', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: AppColors.textPrimary)),
+                  isActive: _currentStep >= 2,
+                  content: Form(
+                    key: _stepKeys[2],
+                    child: Padding(
+                      padding: const EdgeInsets.only(top: 16),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        _buildEmailField(),
+                        const SizedBox(height: AppSizes.p12),
+                        _field(
+                          'Phone Number (Starts with 09)', 
+                          Icons.phone_outlined, 
+                          _phoneCtrl, 
+                          validator: AppValidators.validatePhone,
+                          maxLength: 11,
+                          keyboardType: TextInputType.phone,
+                          inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                        ),
+                        if (!_isEdit) ...[
+                          const SizedBox(height: AppSizes.p12),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                            decoration: BoxDecoration(
+                              color: AppColors.primaryGreen.withValues(alpha: 0.07),
+                              borderRadius: BorderRadius.circular(8),
+                              border: Border.all(color: AppColors.primaryGreen.withValues(alpha: 0.3)),
+                            ),
+                            child: const Row(children: [
+                              Icon(Icons.auto_awesome, color: AppColors.primaryGreen, size: 16),
+                              SizedBox(width: 8),
+                              Expanded(
+                                child: Text(
+                                  'A secure temporary password will be auto-generated and shown once after creation.',
+                                  style: TextStyle(fontSize: 12, color: AppColors.primaryGreen, fontWeight: FontWeight.w600),
+                                ),
+                              ),
+                            ]),
+                          ),
+                        ],
+                      ],
+                    ),
+                  ),
+                ),
               ),
-            ],
-          ),
-        ),
-      ),
+              ],
+            ),
+      ],
+    ),
+  ),
+);
+  }
+
+
+  Widget _buildExtensionField() {
+    return Autocomplete<String>(
+      optionsBuilder: (TextEditingValue textEditingValue) {
+        const commonExts = ['Jr.', 'Sr.', 'II', 'III', 'IV'];
+        if (textEditingValue.text.isEmpty) {
+          return commonExts;
+        }
+        return commonExts.where((ext) => ext.toLowerCase().contains(textEditingValue.text.toLowerCase()));
+      },
+      onSelected: (String selection) {
+        _extCtrl.text = selection;
+      },
+      fieldViewBuilder: (context, controller, focusNode, onEditingComplete) {
+        controller.addListener(() {
+          if (_extCtrl.text != controller.text) {
+            _extCtrl.text = controller.text;
+          }
+        });
+        if (controller.text.isEmpty && _extCtrl.text.isNotEmpty) {
+          controller.text = _extCtrl.text;
+        }
+        return CustomTextField(
+          hintText: 'Ext. (Jr, Sr, III)',
+          prefixIcon: null,
+          controller: controller,
+          focusNode: focusNode,
+          textCapitalization: TextCapitalization.words,
+          inputFormatters: [_TitleCaseTextInputFormatter()],
+        );
+      },
     );
   }
 
-  Widget _field(String hint, IconData icon, TextEditingController ctrl, {
+  Widget _buildRoleDropdown(dynamic currentUser) {
+    if (_isEdit && widget.user?.id == currentUser?.id) {
+      return Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+        decoration: BoxDecoration(
+          color: Colors.grey.shade100,
+          borderRadius: BorderRadius.circular(AppSizes.radiusMedium),
+          border: Border.all(color: Colors.grey.shade300),
+        ),
+        child: Row(children: [
+          Icon(Icons.shield, color: _roleColor(widget.user!.role), size: 20),
+          const SizedBox(width: 12),
+          Text(widget.user!.role.toUpperCase(), style: TextStyle(fontWeight: FontWeight.bold, color: _roleColor(widget.user!.role))),
+          const SizedBox(width: 8),
+          const Icon(Icons.lock, color: Colors.grey, size: 14),
+          const SizedBox(width: 4),
+          const Text('(Your own role cannot be changed)', style: TextStyle(fontSize: 12, color: Colors.grey)),
+        ]),
+      );
+    }
+    return DropdownButtonFormField<String>(
+      initialValue: _selectedRole,
+      decoration: const InputDecoration(prefixIcon: Icon(Icons.shield_outlined, color: AppColors.textSecondary)),
+      items: const [
+        DropdownMenuItem(value: 'teacher', child: Text('Teacher')),
+        DropdownMenuItem(value: 'admin', child: Text('Admin')),
+      ],
+      onChanged: (val) => setState(() => _selectedRole = val!),
+    );
+  }
+
+  Widget _buildEmailField() {
+    return Autocomplete<String>(
+      optionsBuilder: (TextEditingValue textEditingValue) {
+        final text = textEditingValue.text;
+        if (!text.contains('@') || text.endsWith('@')) {
+          return const Iterable<String>.empty();
+        }
+        final parts = text.split('@');
+        final prefix = parts[0];
+        final query = parts.length > 1 ? parts[1] : '';
+        const domains = ['gmail.com', 'yahoo.com', 'outlook.com', 'deped.gov.ph'];
+        return domains
+            .where((domain) => domain.startsWith(query))
+            .map((domain) => '$prefix@$domain');
+      },
+      onSelected: (String selection) {
+        _emailCtrl.text = selection;
+      },
+      optionsViewBuilder: (BuildContext context, AutocompleteOnSelected<String> onSelected, Iterable<String> options) {
+        return Align(
+          alignment: Alignment.topLeft,
+          child: Material(
+            elevation: 4.0,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxHeight: 200, maxWidth: 300),
+              child: ListView.builder(
+                padding: EdgeInsets.zero,
+                shrinkWrap: true,
+                itemCount: options.length,
+                itemBuilder: (BuildContext context, int index) {
+                  final String option = options.elementAt(index);
+                  final display = '@${option.split('@').last}';
+                  return InkWell(
+                    onTap: () => onSelected(option),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
+                      child: Text(display, style: const TextStyle(fontWeight: FontWeight.w500)),
+                    ),
+                  );
+                },
+              ),
+            ),
+          ),
+        );
+      },
+      fieldViewBuilder: (context, controller, focusNode, onEditingComplete) {
+        controller.addListener(() {
+          if (_emailCtrl.text != controller.text) {
+            _emailCtrl.text = controller.text;
+          }
+        });
+        if (controller.text.isEmpty && _emailCtrl.text.isNotEmpty) {
+          controller.text = _emailCtrl.text;
+        }
+        return CustomTextField(
+          hintText: 'Email Address',
+          prefixIcon: Icons.email_outlined,
+          controller: controller,
+          focusNode: focusNode,
+          validator: AppValidators.validateEmail,
+        );
+      },
+    );
+  }
+
+  Widget _field(String hint, IconData? icon, TextEditingController ctrl, {
     bool required = false, 
     bool readOnly = false, 
     String? Function(String?)? validator,

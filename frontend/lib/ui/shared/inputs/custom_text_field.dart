@@ -3,7 +3,7 @@ import 'package:flutter/services.dart';
 
 class CustomTextField extends StatelessWidget {
   final String hintText;
-  final IconData prefixIcon;
+  final IconData? prefixIcon;
   final bool isPassword;
   final bool obscureText;
   final VoidCallback? onToggleVisibility;
@@ -23,7 +23,7 @@ class CustomTextField extends StatelessWidget {
   const CustomTextField({
     super.key,
     required this.hintText,
-    required this.prefixIcon,
+    this.prefixIcon,
     this.isPassword = false,
     this.obscureText = false,
     this.onToggleVisibility,
@@ -59,7 +59,7 @@ class CustomTextField extends StatelessWidget {
       onFieldSubmitted: onSubmitted,
       decoration: InputDecoration(
         labelText: hintText,
-        prefixIcon: Icon(prefixIcon, color: Colors.grey.shade600),
+        prefixIcon: prefixIcon != null ? Icon(prefixIcon, color: Colors.grey.shade600) : null,
         // Suffix icon only shows if it's a password field and a toggle callback is provided
         suffixIcon: isPassword && onToggleVisibility != null
             ? IconButton(
