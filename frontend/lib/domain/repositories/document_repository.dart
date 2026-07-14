@@ -1,3 +1,5 @@
+import 'dart:io';
+import 'dart:convert';
 import 'package:dio/dio.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import '../../core/network/api_constants.dart';
@@ -597,6 +599,34 @@ class DocumentRepository {
       await _dio.post('/documents/bulk-permanent-delete', data: {'ids': ids}, options: options);
     } on DioException catch (e) {
       final msg = e.response?.data?['message'] ?? 'Failed to bulk permanently delete documents.';
+      throw Exception(msg);
+    }
+  }
+
+  Future<List<int>> downloadDocumentBytes(int documentId) async {
+    try {
+      final options = await _getAuthOptions();
+      options.responseType = ResponseType.bytes;
+      final response = await _dio.get(
+        '/documents/$documentId/view',
+        queryParameters: {'download': 'true'},
+        options: options,
+      );
+      return response.data as List<int>;
+    } on DioException catch (e) {
+      String msg = 'Failed to download document.';
+      if (e.response?.data != null) {
+        try {
+          // If response is bytes, we might need to decode it to string to parse JSON
+          if (e.response!.data is List<int>) {
+             final str = utf8.decode(e.response!.data as List<int>);
+             final json = jsonDecode(str);
+             msg = json['message'] ?? msg;
+          } else if (e.response!.data is Map) {
+             msg = e.response!.data['message'] ?? msg;
+          }
+        } catch (_) {}
+      }
       throw Exception(msg);
     }
   }

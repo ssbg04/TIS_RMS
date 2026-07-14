@@ -1,5 +1,10 @@
+import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:printing/printing.dart';
+import 'package:syncfusion_flutter_pdf/pdf.dart';
+import 'package:wolt_modal_sheet/wolt_modal_sheet.dart';
+
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_sizes.dart';
 import '../../../../domain/repositories/document_repository.dart'
@@ -8,7 +13,6 @@ import '../../../shared/buttons/primary_button.dart';
 import '../../../shared/dialogs/success_dialog.dart';
 import '../../../shared/dialogs/error_dialog.dart';
 import '../../../providers/document_provider.dart';
-import 'package:wolt_modal_sheet/wolt_modal_sheet.dart';
 
 class PrintQueueModal extends ConsumerStatefulWidget {
   const PrintQueueModal({super.key});
@@ -41,6 +45,74 @@ class _PrintQueueModalState extends ConsumerState<PrintQueueModal> {
     setState(() => _isPrinting = true);
 
     try {
+      final docRepo = ref.read(documentRepositoryProvider);
+
+      // Merge all documents into a single PDF
+      final combinedPdf = PdfDocument();
+      
+      for (var item in items) {
+        final bytes = await docRepo.downloadDocumentBytes(item.documentId);
+        final isPdf = item.fileName.toLowerCase().endsWith('.pdf');
+        
+        if (isPdf) {
+          final loadedPdf = PdfDocument(inputBytes: bytes);
+          for (int i = 0; i < loadedPdf.pages.count; i++) {
+            final template = loadedPdf.pages[i].createTemplate();
+            final page = combinedPdf.pages.add();
+            page.graphics.drawPdfTemplate(template, const Offset(0, 0));
+          }
+          loadedPdf.dispose();
+        } else {
+          // Assume image
+          final page = combinedPdf.pages.add();
+          final pdfImage = PdfBitmap(bytes);
+          
+          // Calculate scale to fit page while maintaining aspect ratio
+          final clientSize = page.getClientSize();
+          final imgWidth = pdfImage.width.toDouble();
+          final imgHeight = pdfImage.height.toDouble();
+          
+          final ratio = imgWidth / imgHeight;
+          final clientRatio = clientSize.width / clientSize.height;
+          
+          double drawWidth = clientSize.width;
+          double drawHeight = clientSize.height;
+          
+          if (ratio > clientRatio) {
+            drawHeight = drawWidth / ratio;
+          } else {
+            drawWidth = drawHeight * ratio;
+          }
+          
+          page.graphics.drawImage(
+            pdfImage, 
+            Rect.fromLTWH(
+              (clientSize.width - drawWidth) / 2, 
+              (clientSize.height - drawHeight) / 2, 
+              drawWidth, 
+              drawHeight
+            )
+          );
+        }
+      }
+
+      final List<int> combinedBytes = await combinedPdf.save();
+      combinedPdf.dispose();
+
+      // Send to printer
+      final result = await Printing.layoutPdf(
+        onLayout: (format) async => Uint8List.fromList(combinedBytes),
+        name: 'Batch_Print_${DateTime.now().millisecondsSinceEpoch}',
+      );
+
+      // If the user cancelled the print dialog, we might not want to clear the queue
+      if (!result) {
+        if (!mounted) return;
+        setState(() => _isPrinting = false);
+        return; // User cancelled print dialog
+      }
+
+      // Log history and clear queue in backend
       await ref.read(printQueueMutationProvider.notifier).executePrint();
 
       if (!mounted) return;
@@ -113,69 +185,69 @@ class _PrintQueueModalState extends ConsumerState<PrintQueueModal> {
           children: [
             // ── Header ──
             Row(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(
-                      color: AppColors.primaryGreen.withValues(alpha: 0.1),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: const Icon(Icons.print,
-                        color: AppColors.primaryGreen, size: 22),
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: AppColors.primaryGreen.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(8),
                   ),
-                  const SizedBox(width: AppSizes.p12),
-                  const Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text('Print List',
-                            style: TextStyle(
-                                fontSize: 20,
-                                fontWeight: FontWeight.bold,
-                                color: AppColors.textPrimary)),
-                        Text('Staged documents. Note: This is only a list of documents to be printed or requested.',
-                            style: TextStyle(
-                                fontSize: 11,
-                                color: AppColors.textSecondary,
-                                fontStyle: FontStyle.italic)),
-                      ],
-                    ),
-                  ),
-                  IconButton(
-                    icon: const Icon(Icons.close,
-                        color: AppColors.textSecondary),
-                    onPressed: () => Navigator.of(context).pop(),
-                  ),
-                ],
-              ),
-              const Divider(height: AppSizes.p32),
-
-              // ── Queue Content ──
-              queueAsync.when(
-                loading: () => const Padding(
-                  padding: EdgeInsets.symmetric(vertical: 40),
-                  child: Center(
-                    child: CircularProgressIndicator(
-                        color: AppColors.primaryGreen),
+                  child: const Icon(Icons.print,
+                      color: AppColors.primaryGreen, size: 22),
+                ),
+                const SizedBox(width: AppSizes.p12),
+                const Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('Print List',
+                          style: TextStyle(
+                              fontSize: 20,
+                              fontWeight: FontWeight.bold,
+                              color: AppColors.textPrimary)),
+                      Text('Staged documents. Note: This is only a list of documents to be printed or requested.',
+                          style: TextStyle(
+                              fontSize: 11,
+                              color: AppColors.textSecondary,
+                              fontStyle: FontStyle.italic)),
+                    ],
                   ),
                 ),
-                error: (e, _) => _buildErrorState(e.toString()),
-                data: (items) => items.isEmpty
-                    ? _buildEmptyState()
-                    : _buildQueueList(items),
-              ),
+                IconButton(
+                  icon: const Icon(Icons.close,
+                      color: AppColors.textSecondary),
+                  onPressed: () => Navigator.of(context).pop(),
+                ),
+              ],
+            ),
+            const Divider(height: AppSizes.p32),
 
-              // ── Footer ──
-              queueAsync.maybeWhen(
-                data: (items) => items.isNotEmpty
-                    ? _buildFooter(items, isMobile)
-                    : const SizedBox.shrink(),
-                orElse: () => const SizedBox.shrink(),
+            // ── Queue Content ──
+            queueAsync.when(
+              loading: () => const Padding(
+                padding: EdgeInsets.symmetric(vertical: 40),
+                child: Center(
+                  child: CircularProgressIndicator(
+                      color: AppColors.primaryGreen),
+                ),
               ),
-            ],
-          ),
+              error: (e, _) => _buildErrorState(e.toString()),
+              data: (items) => items.isEmpty
+                  ? _buildEmptyState()
+                  : _buildQueueList(items),
+            ),
+
+            // ── Footer ──
+            queueAsync.maybeWhen(
+              data: (items) => items.isNotEmpty
+                  ? _buildFooter(items, isMobile)
+                  : const SizedBox.shrink(),
+              orElse: () => const SizedBox.shrink(),
+            ),
+          ],
         ),
-      );
+      ),
+    );
   }
 
   Widget _buildQueueList(List<PrintQueueItem> items) {
@@ -267,7 +339,6 @@ class _PrintQueueModalState extends ConsumerState<PrintQueueModal> {
     );
   }
 
-
   Widget _buildFooter(List<PrintQueueItem> items, bool isMobile) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -297,7 +368,7 @@ class _PrintQueueModalState extends ConsumerState<PrintQueueModal> {
               const SizedBox(width: 8),
               Expanded(
                 child: PrimaryButton(
-                  label: 'PRINT',
+                  label: _isPrinting ? 'PREPARING...' : 'PRINT',
                   isLoading: _isPrinting,
                   onPressed: () => _handlePrintAll(items),
                 ),
@@ -332,9 +403,9 @@ class _PrintQueueModalState extends ConsumerState<PrintQueueModal> {
                   ),
                   const SizedBox(width: AppSizes.p8),
                   SizedBox(
-                    width: 130,
+                    width: 140,
                     child: PrimaryButton(
-                      label: 'PRINT',
+                      label: _isPrinting ? 'PREPARING...' : 'PRINT',
                       isLoading: _isPrinting,
                       onPressed: () => _handlePrintAll(items),
                     ),
