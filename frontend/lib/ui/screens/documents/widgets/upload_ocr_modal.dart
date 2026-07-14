@@ -239,6 +239,12 @@ class _UploadOcrModalState extends ConsumerState<UploadOcrModal> {
                   ),
                 ),
               ),
+              if (Platform.isWindows)
+                IconButton(
+                  icon: const Icon(Icons.close_rounded, color: AppColors.textSecondary),
+                  onPressed: () => Navigator.of(context).pop(),
+                  tooltip: 'Close',
+                ),
             ],
           ),
           const SizedBox(height: 4),
