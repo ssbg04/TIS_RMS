@@ -21,6 +21,10 @@ import 'widgets/upload_ocr_modal.dart';
 import 'widgets/print_queue_modal.dart';
 import 'widgets/student_profile_modal.dart';
 import 'widgets/document_preview_modal.dart';
+import 'widgets/download_guide_dialog.dart';
+import '../../../../core/utils/download_service.dart';
+import '../../../../core/network/api_constants.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'widgets/recycle_bin_modal.dart';
 import '../../../domain/entities/document_model.dart';
 
@@ -282,7 +286,19 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
     } else if (action == 'preview') {
       showDocumentPreview(context: context, document: document);
     } else if (action == 'download') {
-      showSuccessDialog(context, message: 'Download started.');
+      try {
+        final token = await const FlutterSecureStorage().read(key: 'jwt_token');
+        if (token == null) return;
+        final url = '${ApiConstants.baseUrl}/documents/${document.id}/view?token=$token&download=true';
+        
+        showSuccessDialog(context, message: 'Download started...');
+        await DownloadService.downloadFile(url: url, fileName: document.fileName);
+        if (!context.mounted) return;
+        showSuccessDialog(context, message: 'Document downloaded successfully.');
+      } catch (e) {
+        if (!context.mounted) return;
+        showErrorDialog(context, 'Download Failed', e.toString());
+      }
     }
   }
 
@@ -383,6 +399,35 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
         'Copy Failed',
         e.toString().replaceFirst('Exception: ', ''),
       );
+    }
+  }
+
+  Future<void> _handleBatchDownload() async {
+    try {
+      final token = await const FlutterSecureStorage().read(key: 'jwt_token');
+      if (token == null) return;
+
+      showSuccessDialog(context, message: 'Downloading ${_selectedDocumentIds.length} documents...');
+      
+      final docs = ref.read(documentPageProvider).value?.documents ?? [];
+      int successCount = 0;
+
+      for (final docId in _selectedDocumentIds) {
+        final doc = docs.firstWhere((d) => d.id == docId);
+        final url = '${ApiConstants.baseUrl}/documents/${doc.id}/view?token=$token&download=true';
+        await DownloadService.downloadFile(url: url, fileName: doc.fileName);
+        successCount++;
+      }
+
+      setState(() {
+        _selectedDocumentIds.clear();
+        _isMultiSelectMode = false;
+      });
+      if (!mounted) return;
+      showSuccessDialog(context, message: 'Successfully downloaded $successCount documents.');
+    } catch (e) {
+      if (!mounted) return;
+      showErrorDialog(context, 'Download Failed', e.toString().replaceFirst('Exception: ', ''));
     }
   }
 
@@ -557,6 +602,12 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
                     onTap: count == 0 ? () {} : _handleBatchCopy,
                   ),
                   _batchActionBtn(
+                    icon: Icons.download_rounded,
+                    label: 'Download',
+                    color: AppColors.primaryGreen,
+                    onTap: count == 0 ? () {} : _handleBatchDownload,
+                  ),
+                  _batchActionBtn(
                     icon: Icons.check_circle_outline_rounded,
                     label: 'Complete',
                     color: AppColors.success,
@@ -638,6 +689,14 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
             ),
             tooltip: 'Add to Print List',
             onPressed: count == 0 ? null : _handleBatchPrint,
+          ),
+          IconButton(
+            icon: const Icon(
+              Icons.download_rounded,
+              color: AppColors.primaryGreen,
+            ),
+            tooltip: 'Download',
+            onPressed: count == 0 ? null : _handleBatchDownload,
           ),
           IconButton(
             icon: const Icon(Icons.copy_rounded, color: Colors.blue),
@@ -1030,7 +1089,18 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
                   ),
                 ),
               ],
-
+              const Spacer(),
+              // Info Button for Download Guide
+              IconButton(
+                icon: const Icon(Icons.info_outline, color: AppColors.primaryGreen, size: 20),
+                tooltip: 'Download Guide',
+                onPressed: () {
+                  showDialog(
+                    context: context,
+                    builder: (_) => const DownloadGuideDialog(),
+                  );
+                },
+              ),
             ],
           ),
 

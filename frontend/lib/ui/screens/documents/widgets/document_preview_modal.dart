@@ -7,8 +7,10 @@ import '../../../../core/constants/app_sizes.dart';
 import '../../../../core/network/api_constants.dart';
 import '../../../../domain/entities/document_model.dart';
 import '../../../shared/dialogs/error_dialog.dart';
+import '../../../shared/dialogs/success_dialog.dart';
 import '../../../shared/modals/custom_modal.dart';
 import 'package:syncfusion_flutter_pdfviewer/pdfviewer.dart';
+import '../../../../core/utils/download_service.dart';
 
 /// Shows a rich preview dialog for any document type:
 /// • Images (jpg/jpeg/png/gif/webp/bmp) → inline network image
@@ -146,13 +148,15 @@ class _DocumentPreviewDialogState extends State<_DocumentPreviewDialog> {
     return '${ApiConstants.baseUrl}/documents/${widget.document!.id}/view?token=$_token&download=true';
   }
 
-  Future<void> _openInBrowser() async {
-    final uri = Uri.parse(_downloadUrl);
-    if (await canLaunchUrl(uri)) {
-      await launchUrl(uri, mode: LaunchMode.externalApplication);
-    } else {
+  Future<void> _downloadFile() async {
+    try {
+      showSuccessDialog(context, message: 'Download started...');
+      await DownloadService.downloadFile(url: _downloadUrl, fileName: _fileName);
       if (!mounted) return;
-      showErrorDialog(context, 'Launch Failed', 'Could not open file in browser.');
+      showSuccessDialog(context, message: 'Document downloaded successfully.');
+    } catch (e) {
+      if (!mounted) return;
+      showErrorDialog(context, 'Download Failed', e.toString());
     }
   }
 
@@ -314,9 +318,9 @@ class _DocumentPreviewDialogState extends State<_DocumentPreviewDialog> {
               style: TextStyle(color: AppColors.textSecondary, fontSize: 14)),
           const SizedBox(height: 8),
           TextButton.icon(
-            onPressed: _openInBrowser,
-            icon: const Icon(Icons.open_in_browser, size: 16),
-            label: const Text('Open in browser'),
+            onPressed: _downloadFile,
+            icon: const Icon(Icons.download_rounded, size: 16),
+            label: const Text('Download File'),
             style: TextButton.styleFrom(foregroundColor: AppColors.primaryGreen),
           ),
         ],
@@ -356,10 +360,10 @@ class _DocumentPreviewDialogState extends State<_DocumentPreviewDialog> {
       detail: widget.document?.size ?? 'Size unknown',
       actions: [
         _actionButton(
-          icon: Icons.open_in_browser_rounded,
+          icon: Icons.download_rounded,
           label: 'DOWNLOAD',
           color: _typeColor,
-          onTap: _openInBrowser,
+          onTap: _downloadFile,
         ),
         _actionButton(
           icon: Icons.view_in_ar_rounded,
@@ -381,10 +385,10 @@ class _DocumentPreviewDialogState extends State<_DocumentPreviewDialog> {
       detail: widget.document?.size ?? 'Size unknown',
       actions: [
         _actionButton(
-          icon: Icons.open_in_browser_rounded,
-          label: 'OPEN',
+          icon: Icons.download_rounded,
+          label: 'DOWNLOAD',
           color: AppColors.primaryGreen,
-          onTap: _openInBrowser,
+          onTap: _downloadFile,
         ),
       ],
     );
