@@ -180,67 +180,99 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
               builder: (context, constraints) {
           if (constraints.maxWidth >= 800) {
             // Desktop: Split Layout
-            return Row(
-              children: [
-                Expanded(
-                  flex: 5,
-                  child: Container(
-                    decoration: const BoxDecoration(
-                      color: AppColors.primaryGreen,
-                      borderRadius: BorderRadius.only(
-                        topRight: Radius.circular(12.0),
-                        bottomRight: Radius.circular(12.0),
+            return Container(
+              color: AppColors.primaryGreen,
+              child: Row(
+                children: [
+                  Expanded(
+                    flex: 5,
+                    child: Container(
+                      padding: const EdgeInsets.all(AppSizes.p48),
+                      child: Center(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Image.asset('assets/images/logo.png', width: 220, height: 220),
+                            const SizedBox(height: AppSizes.p24),
+                            const Text('TIS RMS', style: TextStyle(fontSize: 42, fontWeight: FontWeight.bold, color: Colors.white, letterSpacing: 2.0)),
+                            const Text('Tiaong, Quezon', style: TextStyle(fontSize: 18, color: Colors.white70, letterSpacing: 1.0)),
+                            const SizedBox(height: AppSizes.p32),
+                            const Text('Record Management System', style: TextStyle(fontSize: 20, color: Colors.white, fontWeight: FontWeight.w600)),
+                            const SizedBox(height: AppSizes.p8),
+                            const Text('Secure Academic Records Database System', textAlign: TextAlign.center, style: TextStyle(fontSize: 15, color: Colors.white70)),
+                          ],
+                        ),
                       ),
                     ),
-                    padding: const EdgeInsets.all(AppSizes.p48),
-                    child: Center(
+                  ),
+                  Expanded(
+                    flex: 4,
+                    child: Container(
+                      decoration: const BoxDecoration(
+                        color: AppColors.pageBackground,
+                        borderRadius: BorderRadius.only(
+                          topLeft: Radius.circular(24.0),
+                          bottomLeft: Radius.circular(24.0),
+                        ),
+                      ),
+                      child: Center(
+                        child: ConstrainedBox(
+                          constraints: const BoxConstraints(maxWidth: 400),
+                          child: _buildLoginForm(),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            );
+          } else {
+            // Mobile: Stacked Layout
+            return Container(
+              color: AppColors.primaryGreen,
+              child: Column(
+                children: [
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.symmetric(vertical: AppSizes.p48, horizontal: AppSizes.p24),
+                    child: SafeArea(
+                      bottom: false,
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          Image.asset('assets/images/logo.png', width: 220, height: 220),
-                          const SizedBox(height: AppSizes.p24),
-                          const Text('TIS RMS', style: TextStyle(fontSize: 42, fontWeight: FontWeight.bold, color: Colors.white, letterSpacing: 2.0)),
-                          const Text('Tiaong, Quezon', style: TextStyle(fontSize: 18, color: Colors.white70, letterSpacing: 1.0)),
-                          const SizedBox(height: AppSizes.p32),
-                          const Text('Record Management System', style: TextStyle(fontSize: 20, color: Colors.white, fontWeight: FontWeight.w600)),
-                          const SizedBox(height: AppSizes.p8),
-                          const Text('Secure Academic Records Database System', textAlign: TextAlign.center, style: TextStyle(fontSize: 15, color: Colors.white70)),
+                          Image.asset('assets/images/logo.png', width: 100, height: 100),
+                          const SizedBox(height: AppSizes.p16),
+                          const Text('TIS RMS', style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: Colors.white, letterSpacing: 1.5)),
+                          const Text('Tiaong, Quezon', style: TextStyle(fontSize: 14, color: Colors.white70, letterSpacing: 1.0)),
+                          const SizedBox(height: AppSizes.p16),
+                          const Text('Record Management System', style: TextStyle(fontSize: 16, color: Colors.white, fontWeight: FontWeight.w600)),
+                          const SizedBox(height: AppSizes.p4),
+                          const Text('Secure Academic Records Database System', textAlign: TextAlign.center, style: TextStyle(fontSize: 12, color: Colors.white70)),
                         ],
                       ),
                     ),
                   ),
-                ),
-                Expanded(
-                  flex: 4,
-                  child: Center(
-                    child: ConstrainedBox(
-                      constraints: const BoxConstraints(maxWidth: 400),
-                      child: _buildLoginForm(),
+                  Expanded(
+                    child: Container(
+                      decoration: const BoxDecoration(
+                        color: AppColors.pageBackground,
+                        borderRadius: BorderRadius.only(
+                          topLeft: Radius.circular(24.0),
+                          topRight: Radius.circular(24.0),
+                        ),
+                      ),
+                      child: Center(
+                        child: SingleChildScrollView(
+                          padding: const EdgeInsets.all(AppSizes.p24),
+                          child: ConstrainedBox(
+                            constraints: const BoxConstraints(maxWidth: 400),
+                            child: _buildLoginForm(),
+                          ),
+                        ),
+                      ),
                     ),
                   ),
-                ),
-              ],
-            );
-          } else {
-            // Mobile: Stacked Layout
-            return Center(
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.all(AppSizes.p24),
-                child: ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 400),
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Image.asset('assets/images/logo.png', width: 120, height: 120),
-                      const SizedBox(height: AppSizes.p24),
-                      const Text('Welcome Back', style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: AppColors.primaryGreen)),
-                      const SizedBox(height: AppSizes.p8),
-                      const Text('Login to your account', style: TextStyle(fontSize: 16, color: AppColors.textSecondary)),
-                      const SizedBox(height: AppSizes.p48),
-                      _buildLoginForm(),
-                    ],
-                  ),
-                ),
+                ],
               ),
             );
           }

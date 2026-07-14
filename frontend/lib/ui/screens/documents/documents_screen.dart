@@ -752,7 +752,7 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
                         backgroundColor: AppColors.primaryGreen,
                         shape: const CircleBorder(),
                         onPressed: () {
-                          showDialog(context: context, builder: (_) => const PrintQueueModal());
+                          PrintQueueModal.show(context);
                         },
                         child: const Icon(Icons.print, color: Colors.white),
                       ),
@@ -1283,10 +1283,7 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
     return Tooltip(
       message: 'Print List',
       child: OutlinedButton.icon(
-        onPressed: () => showDialog(
-          context: context,
-          builder: (_) => const PrintQueueModal(),
-        ),
+        onPressed: () => PrintQueueModal.show(context),
         icon: Badge(
           isLabelVisible: count > 0,
           label: Text(count.toString()),

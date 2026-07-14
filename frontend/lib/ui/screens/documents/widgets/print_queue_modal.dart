@@ -8,9 +8,26 @@ import '../../../shared/buttons/primary_button.dart';
 import '../../../shared/dialogs/success_dialog.dart';
 import '../../../shared/dialogs/error_dialog.dart';
 import '../../../providers/document_provider.dart';
+import 'package:wolt_modal_sheet/wolt_modal_sheet.dart';
 
 class PrintQueueModal extends ConsumerStatefulWidget {
   const PrintQueueModal({super.key});
+
+  static void show(BuildContext context) {
+    WoltModalSheet.show<void>(
+      context: context,
+      pageListBuilder: (modalSheetContext) {
+        return [
+          WoltModalSheetPage(
+            backgroundColor: AppColors.surfaceWhite,
+            hasSabGradient: false,
+            hasTopBarLayer: false,
+            child: const PrintQueueModal(),
+          ),
+        ];
+      },
+    );
+  }
 
   @override
   ConsumerState<PrintQueueModal> createState() => _PrintQueueModalState();
@@ -86,22 +103,16 @@ class _PrintQueueModalState extends ConsumerState<PrintQueueModal> {
     final queueAsync = ref.watch(printQueueProvider);
     final isMobile = MediaQuery.of(context).size.width < 600;
 
-    return Dialog(
-      backgroundColor: AppColors.surfaceWhite,
-      insetPadding: EdgeInsets.all(isMobile ? 16 : 24),
-      shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(AppSizes.radiusLarge)),
-      child: ConstrainedBox(
-        constraints: BoxConstraints(
-            maxWidth: 520,
-            maxHeight: isMobile ? MediaQuery.of(context).size.height * 0.85 : 620),
-        child: Padding(
-          padding: EdgeInsets.all(isMobile ? 16 : AppSizes.p24),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // ── Header ──
-              Row(
+    return ConstrainedBox(
+      constraints: const BoxConstraints(maxWidth: 520),
+      child: Padding(
+        padding: EdgeInsets.all(isMobile ? 16 : AppSizes.p24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // ── Header ──
+            Row(
                 children: [
                   Container(
                     padding: const EdgeInsets.all(8),
@@ -140,16 +151,18 @@ class _PrintQueueModalState extends ConsumerState<PrintQueueModal> {
               const Divider(height: AppSizes.p32),
 
               // ── Queue Content ──
-              Expanded(
-                child: queueAsync.when(
-                  loading: () => const Center(
-                      child: CircularProgressIndicator(
-                          color: AppColors.primaryGreen)),
-                  error: (e, _) => _buildErrorState(e.toString()),
-                  data: (items) => items.isEmpty
-                      ? _buildEmptyState()
-                      : _buildQueueList(items),
+              queueAsync.when(
+                loading: () => const Padding(
+                  padding: EdgeInsets.symmetric(vertical: 40),
+                  child: Center(
+                    child: CircularProgressIndicator(
+                        color: AppColors.primaryGreen),
+                  ),
                 ),
+                error: (e, _) => _buildErrorState(e.toString()),
+                data: (items) => items.isEmpty
+                    ? _buildEmptyState()
+                    : _buildQueueList(items),
               ),
 
               // ── Footer ──
@@ -162,12 +175,13 @@ class _PrintQueueModalState extends ConsumerState<PrintQueueModal> {
             ],
           ),
         ),
-      ),
-    );
+      );
   }
 
   Widget _buildQueueList(List<PrintQueueItem> items) {
     return ListView.separated(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
       itemCount: items.length,
       separatorBuilder: (context, index) =>
           Divider(height: 1, color: Colors.grey.shade100),
