@@ -823,11 +823,9 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
                         backgroundColor: AppColors.primaryGreen,
                         shape: const CircleBorder(),
                         onPressed: () {
-                          showDialog(
-                            context: context,
-                            builder: (_) => UploadOcrModal(
-                              prefilledStudentId: _openedFolderStudentId ?? widget.initialStudentId,
-                            ),
+                          UploadOcrModal.show(
+                            context,
+                            prefilledStudentId: _openedFolderStudentId ?? widget.initialStudentId,
                           );
                         },
                         child: const Icon(Icons.cloud_upload, color: Colors.white),
@@ -1191,12 +1189,10 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
                     width: 120,
                     child: PrimaryButton(
                       label: 'UPLOAD',
-                      onPressed: () => showDialog(
-                        context: context,
-                        builder: (_) => UploadOcrModal(
-                          prefilledStudentId:
-                              _openedFolderStudentId ?? widget.initialStudentId,
-                        ),
+                      onPressed: () => UploadOcrModal.show(
+                        context,
+                        prefilledStudentId:
+                            _openedFolderStudentId ?? widget.initialStudentId,
                       ),
                     ),
                   ),

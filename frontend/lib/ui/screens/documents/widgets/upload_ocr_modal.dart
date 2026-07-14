@@ -13,12 +13,30 @@ import '../../../providers/document_provider.dart';
 import '../../../providers/student_provider.dart';
 import '../../../shared/dialogs/success_dialog.dart';
 import '../../../shared/dialogs/error_dialog.dart';
+import 'package:wolt_modal_sheet/wolt_modal_sheet.dart';
 
 class UploadOcrModal extends ConsumerStatefulWidget {
   /// If provided, the modal will automatically fetch and fill this student's LRN
   final int? prefilledStudentId;
 
   const UploadOcrModal({super.key, this.prefilledStudentId});
+
+  static void show(BuildContext context, {int? prefilledStudentId}) {
+    WoltModalSheet.show<void>(
+      context: context,
+      pageListBuilder: (modalSheetContext) {
+        return [
+          WoltModalSheetPage(
+            backgroundColor: AppColors.surfaceWhite,
+            hasSabGradient: false,
+            hasTopBarLayer: false,
+            isTopBarLayerAlwaysVisible: false,
+            child: UploadOcrModal(prefilledStudentId: prefilledStudentId),
+          ),
+        ];
+      },
+    );
+  }
 
   @override
   ConsumerState<UploadOcrModal> createState() => _UploadOcrModalState();
@@ -192,109 +210,78 @@ class _UploadOcrModalState extends ConsumerState<UploadOcrModal> {
     final screenSize = MediaQuery.of(context).size;
     final isSmall = screenSize.width < 600 || screenSize.height < 600;
 
-    // Compute adaptive constraints
-    final double maxW = isSmall ? screenSize.width * 0.98 : 600;
-    final double maxH = isSmall
-        ? screenSize.height * 0.92
-        : screenSize.height * 0.85;
-
-    return Dialog(
-      backgroundColor: AppColors.surfaceWhite,
-      insetPadding: EdgeInsets.symmetric(
-        horizontal: isSmall ? 8 : 24,
-        vertical: isSmall ? 16 : 40,
-      ),
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(
-          isSmall ? AppSizes.radiusMedium : AppSizes.radiusLarge,
-        ),
-      ),
-      child: ConstrainedBox(
-        constraints: BoxConstraints(
-          maxWidth: maxW,
-          maxHeight: maxH,
-        ),
-        child: Padding(
-          padding: EdgeInsets.all(isSmall ? AppSizes.p16 : AppSizes.p24),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
+    return Padding(
+      padding: EdgeInsets.all(isSmall ? AppSizes.p16 : AppSizes.p24),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // ── Header ──
+          Row(
             children: [
-              // ── Header ──
-              Row(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(
-                      color: AppColors.primaryGreen.withValues(alpha: 0.1),
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    child: const Icon(Icons.cloud_upload_rounded,
-                        color: AppColors.primaryGreen, size: 22),
-                  ),
-                  const SizedBox(width: 12),
-                  const Expanded(
-                    child: Text(
-                      'Upload Document',
-                      style: TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold,
-                        color: AppColors.textPrimary,
-                      ),
-                    ),
-                  ),
-                  IconButton(
-                    icon: const Icon(Icons.close_rounded, color: AppColors.textSecondary),
-                    onPressed: () => Navigator.of(context).pop(),
-                    tooltip: 'Close',
-                  ),
-                ],
-              ),
-              const SizedBox(height: 4),
-              // Step indicator
-              Row(
-                children: [
-                  _buildStepChip(1, 'Select File', _currentStep >= 0),
-                  _buildStepConnector(_currentStep >= 1),
-                  _buildStepChip(2, 'Document Info', _currentStep >= 1),
-                ],
-              ),
-              const Divider(height: 20),
-
-              if (widget.prefilledStudentId == null) ...[
-                Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: AppColors.warning.withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: AppColors.warning.withValues(alpha: 0.3)),
-                  ),
-                  child: Row(
-                    children: [
-                      const Icon(Icons.info_outline, color: AppColors.warning, size: 20),
-                      const SizedBox(width: 8),
-                      const Expanded(
-                        child: Text(
-                          'Notice: You are not inside a specific student directory. Please ensure you provide the correct LRN to link this document.',
-                          style: TextStyle(fontSize: 12, color: AppColors.textPrimary),
-                        ),
-                      ),
-                    ],
-                  ),
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: AppColors.primaryGreen.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(10),
                 ),
-                const SizedBox(height: 16),
-              ],
-
-              // ── Content (scrollable) ──
-              Flexible(
-                child: AnimatedSwitcher(
-                  duration: const Duration(milliseconds: 300),
-                  child: _buildCurrentStep(),
+                child: const Icon(Icons.cloud_upload_rounded,
+                    color: AppColors.primaryGreen, size: 22),
+              ),
+              const SizedBox(width: 12),
+              const Expanded(
+                child: Text(
+                  'Upload Document',
+                  style: TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.textPrimary,
+                  ),
                 ),
               ),
             ],
           ),
-        ),
+          const SizedBox(height: 4),
+          // Step indicator
+          Row(
+            children: [
+              _buildStepChip(1, 'Select File', _currentStep >= 0),
+              _buildStepConnector(_currentStep >= 1),
+              _buildStepChip(2, 'Document Info', _currentStep >= 1),
+            ],
+          ),
+          const Divider(height: 20),
+
+          if (widget.prefilledStudentId == null) ...[
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: AppColors.warning.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: AppColors.warning.withValues(alpha: 0.3)),
+              ),
+              child: Row(
+                children: [
+                  const Icon(Icons.info_outline, color: AppColors.warning, size: 20),
+                  const SizedBox(width: 8),
+                  const Expanded(
+                    child: Text(
+                      'Notice: You are not inside a specific student directory. Please ensure you provide the correct LRN to link this document.',
+                      style: TextStyle(fontSize: 12, color: AppColors.textPrimary),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 16),
+          ],
+
+          // ── Content (scrollable) ──
+          AnimatedSwitcher(
+            duration: const Duration(milliseconds: 300),
+            child: _buildCurrentStep(),
+          ),
+        ],
       ),
     );
   }
