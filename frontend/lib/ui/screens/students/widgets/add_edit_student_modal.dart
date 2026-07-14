@@ -720,25 +720,7 @@ class _AddEditStudentModalState extends ConsumerState<AddEditStudentModal> {
 
           const SizedBox(height: AppSizes.p24),
 
-          Center(
-            child: TextButton.icon(
-              onPressed: () => setState(() {
-                _currentStep = 1;
-                _errorMessage = null;
-              }),
-              icon: const Icon(
-                Icons.keyboard_alt_outlined,
-                color: AppColors.textSecondary,
-              ),
-              label: const Text(
-                'Skip OCR & Enter Manually',
-                style: TextStyle(
-                  color: AppColors.textSecondary,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ),
-          ),
+
         ],
       ),
     );
@@ -755,6 +737,7 @@ class _AddEditStudentModalState extends ConsumerState<AddEditStudentModal> {
     bool isMobile,
     double keyboardInset,
   ) {
+    final ocrState = ref.watch(ocrProvider);
     final compactTheme = Theme.of(context).copyWith(
       inputDecorationTheme: Theme.of(context).inputDecorationTheme.copyWith(
         isDense: true,
@@ -773,11 +756,16 @@ class _AddEditStudentModalState extends ConsumerState<AddEditStudentModal> {
           type: isMobile ? StepperType.vertical : StepperType.horizontal,
           currentStep: _currentStep,
           onStepTapped: (step) {
-            if (step < _currentStep) {
-              setState(() {
-                _currentStep = step;
-              });
+            final isEdit = widget.student != null;
+            if (step > _currentStep) {
+               final detailsStepIndex = isEdit ? 0 : 1;
+               if (_currentStep == detailsStepIndex) {
+                 if (!(_studentFormKey.currentState?.validate() ?? false)) return;
+               }
             }
+            setState(() {
+              _currentStep = step;
+            });
           },
           onStepCancel: () {
             if (_currentStep > 0) {
@@ -819,20 +807,21 @@ class _AddEditStudentModalState extends ConsumerState<AddEditStudentModal> {
                       onPressed: details.onStepCancel ?? () {},
                       child: const Text('BACK'),
                     ),
-                  if (isOcrStep)
+                  if (isOcrStep && !ocrState.isLoading)
                     OutlinedButton(
                       onPressed: details.onStepContinue ?? () {},
                       child: const Text('Skip OCR & Enter Manually'),
                     )
-                  else
+                  else if (!isOcrStep)
                     PrimaryButton(
                       label: isLastStep ? (isEdit ? 'UPDATE' : 'SAVE') : 'NEXT',
                       isLoading: _isLoading && isLastStep,
                       onPressed: details.onStepContinue ?? () {},
                     ),
                   if (!isEdit && _ocrScannedFile != null && !isOcrStep) ...[
-                    OutlinedButton.icon(
-                      onPressed: () => setState(() {
+                    const SizedBox(width: 8),
+                    InkWell(
+                      onTap: () => setState(() {
                         _lrnController.clear();
                         _firstNameController.clear();
                         _middleNameController.clear();
@@ -840,11 +829,23 @@ class _AddEditStudentModalState extends ConsumerState<AddEditStudentModal> {
                         _extController.clear();
                         _currentStep = 0;
                       }),
-                      icon: const Icon(Icons.refresh, size: 16),
-                      label: const Text('RE-SCAN', style: TextStyle(fontSize: 12)),
+                      child: const Padding(
+                        padding: EdgeInsets.symmetric(horizontal: 4, vertical: 8),
+                        child: Text(
+                          'RE-SCAN',
+                          style: TextStyle(
+                            fontSize: 13,
+                            color: AppColors.primaryGreen,
+                            decoration: TextDecoration.underline,
+                            decorationColor: AppColors.primaryGreen,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
                     ),
-                    OutlinedButton.icon(
-                      onPressed: () {
+                    const SizedBox(width: 4),
+                    InkWell(
+                      onTap: () {
                         if (_ocrScannedFile != null) {
                           showDocumentPreview(
                             context: context,
@@ -853,8 +854,19 @@ class _AddEditStudentModalState extends ConsumerState<AddEditStudentModal> {
                           );
                         }
                       },
-                      icon: const Icon(Icons.preview_outlined, size: 16),
-                      label: const Text('VIEW DOC', style: TextStyle(fontSize: 12)),
+                      child: const Padding(
+                        padding: EdgeInsets.symmetric(horizontal: 4, vertical: 8),
+                        child: Text(
+                          'VIEW DOC',
+                          style: TextStyle(
+                            fontSize: 13,
+                            color: AppColors.primaryGreen,
+                            decoration: TextDecoration.underline,
+                            decorationColor: AppColors.primaryGreen,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
                     ),
                   ],
                 ],
@@ -864,13 +876,27 @@ class _AddEditStudentModalState extends ConsumerState<AddEditStudentModal> {
           steps: [
             if (widget.student == null)
               Step(
-                title: const Text('Auto-Fill with OCR'),
+                title: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.document_scanner_outlined, size: isMobile ? 14 : 18, color: AppColors.primaryGreen),
+                    if (!isMobile) const SizedBox(width: 4),
+                    Text('OCR', style: TextStyle(fontSize: isMobile ? 12 : 14, fontWeight: FontWeight.bold)),
+                  ],
+                ),
                 content: _buildOcrStep(),
                 isActive: _currentStep >= 0,
                 state: _currentStep > 0 ? StepState.complete : StepState.indexed,
               ),
             Step(
-              title: const Text('Student Details'),
+              title: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(Icons.person, size: isMobile ? 14 : 18, color: AppColors.primaryGreen),
+                  if (!isMobile) const SizedBox(width: 4),
+                  Text('Student', style: TextStyle(fontSize: isMobile ? 12 : 14, fontWeight: FontWeight.bold)),
+                ],
+              ),
               isActive: _currentStep >= (widget.student != null ? 0 : 1),
               state: _currentStep > (widget.student != null ? 0 : 1) ? StepState.complete : StepState.indexed,
               content: Form(
@@ -1123,7 +1149,14 @@ class _AddEditStudentModalState extends ConsumerState<AddEditStudentModal> {
               ),
             ),
             Step(
-              title: const Text('Enrollment Details'),
+              title: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(Icons.school, size: isMobile ? 14 : 18, color: AppColors.primaryGreen),
+                  if (!isMobile) const SizedBox(width: 4),
+                  Text('Enrollment', style: TextStyle(fontSize: isMobile ? 12 : 14, fontWeight: FontWeight.bold)),
+                ],
+              ),
               isActive: _currentStep >= (widget.student != null ? 1 : 2),
               state: _currentStep > (widget.student != null ? 1 : 2) ? StepState.complete : StepState.indexed,
               content: Form(
