@@ -73,6 +73,7 @@ class _ArchivesScreenState extends ConsumerState<ArchivesScreen>
   final Set<int> _selectedDocumentIds = {};
 
   ProviderSubscription<String>? _tabListener;
+  ProviderSubscription<OpenedArchiveFolderData?>? _folderListener;
 
   bool get _isAdmin => widget.userRole == 'admin';
 
@@ -107,24 +108,52 @@ class _ArchivesScreenState extends ConsumerState<ArchivesScreen>
       }
     });
 
+    final initialArchiveFolder = ref.read(openedArchiveFolderProvider);
+    if (initialArchiveFolder != null) {
+      _openedFolderStudentId = initialArchiveFolder.id;
+      _openedFolderName = initialArchiveFolder.name;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        ref.read(archiveDocumentQueryProvider.notifier).setStudentId(initialArchiveFolder.id);
+      });
+    }
+
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
       ref.read(archiveDocumentQueryProvider.notifier).setPage(1);
 
+      _folderListener = ref.listenManual<OpenedArchiveFolderData?>(openedArchiveFolderProvider, (previous, current) {
+        if (!mounted) return;
+        if (current != null && current.id != _openedFolderStudentId) {
+          setState(() {
+            _openedFolderStudentId = current.id;
+            _openedFolderName = current.name;
+          });
+          if (mounted && _tabController.index != 0) {
+            _tabController.index = 0;
+          }
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (!mounted) return;
+            // Trigger refresh/fetch if needed, or query updates
+            ref.read(archiveDocumentQueryProvider.notifier).setStudentId(current.id);
+          });
+        }
+      });
+
       _tabListener = ref.listenManual<String>(activeTabProvider, (previous, next) {
         if (!mounted) return;
-        if (next == 'Archives' && previous != 'Archives') {
-          if (_openedFolderStudentId != null) {
-            setState(() {
-              _openedFolderStudentId = null;
-              _openedFolderName = null;
-            });
+        if (next != 'Archives') {
+          ref.read(openedArchiveFolderProvider.notifier).setFolder(null);
+          setState(() {
+            _openedFolderStudentId = null;
+            _openedFolderName = null;
+            _isMultiSelectMode = false;
+            if (_searchController.text.isNotEmpty) _searchController.clear();
+            _selectedDocumentIds.clear();
+          });
+          ref.read(archiveDocumentQueryProvider.notifier).reset();
+          if (mounted && _tabController.index != 0) {
+            _tabController.index = 0;
           }
-          if (_tabController.index != 0) {
-            _tabController.animateTo(0);
-          }
-          ref.invalidate(archiveStudentFoldersProvider);
-          ref.invalidate(archiveDocumentPageProvider);
         }
       });
     });
@@ -132,6 +161,7 @@ class _ArchivesScreenState extends ConsumerState<ArchivesScreen>
 
   @override
   void dispose() {
+    _folderListener?.close();
     _tabListener?.close();
     _pollingTimer?.cancel();
     _tabController.dispose();

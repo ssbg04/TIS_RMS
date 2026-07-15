@@ -670,13 +670,13 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
           crossAxisCount: crossAxisCount,
           crossAxisSpacing: 16,
           mainAxisSpacing: 16,
-          mainAxisExtent: 110,
+          mainAxisExtent: 130,
         ),
         children: [
           StatCard(
             title: 'Total Students',    
             value: stats.totalStudents.toString(),      
-            icon: Icons.groups_rounded,
+            icon: Icons.school_rounded,
             onTap: () {
               ref.read(studentQueryProvider.notifier).reset();
               ref.invalidate(studentPageProvider);
@@ -687,7 +687,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
             StatCard(
               title: 'Active Users',      
               value: stats.activeUsers.toString(),        
-              icon: Icons.manage_accounts_rounded,        
+              icon: Icons.group,        
               iconColor: Colors.blue,
               onTap: () {
                 ref.invalidate(usersProvider);

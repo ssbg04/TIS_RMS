@@ -447,11 +447,17 @@ class _WindowsSidebarLayoutState extends ConsumerState<WindowsSidebarLayout> {
                               onTap: () {
                                 if (_isMinimized) setState(() => _isMinimized = false);
                               },
-                              child: const CircleAvatar(
-                                radius: 20,
-                                backgroundColor: AppColors.primaryGreen,
-                                child: Icon(Icons.person, color: Colors.white),
-                              ),
+                              child: Builder(builder: (context) {
+                                final user = ref.watch(authProvider).value;
+                                final initials = user != null && user.firstName.isNotEmpty && user.lastName.isNotEmpty
+                                    ? '${user.firstName[0]}${user.lastName[0]}'.toUpperCase()
+                                    : 'SA';
+                                return CircleAvatar(
+                                  radius: 20,
+                                  backgroundColor: AppColors.primaryGreen,
+                                  child: Text(initials, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
+                                );
+                              }),
                             ),
                             const SizedBox(width: 12),
                             Expanded(

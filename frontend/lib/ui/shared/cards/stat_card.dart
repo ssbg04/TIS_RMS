@@ -69,8 +69,8 @@ class StatCard extends StatelessWidget {
                         children: [
                           Text(
                             title,
-                            maxLines: 1, // Prevent title from wrapping to two lines
-                            overflow: TextOverflow.ellipsis, // Add '...' if title is too long
+                            maxLines: 2, 
+                            overflow: TextOverflow.visible, 
                             style: TextStyle(
                               fontSize: titleFontSize,
                               color: Colors.grey.shade600,

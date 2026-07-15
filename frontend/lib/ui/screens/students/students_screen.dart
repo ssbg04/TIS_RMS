@@ -13,6 +13,7 @@ import '../../providers/setup_provider.dart';
 import '../../shared/inputs/app_search_bar.dart';
 import '../../providers/navigation_provider.dart';
 import '../../providers/document_provider.dart';
+import '../../providers/archives_provider.dart';
 import '../../providers/auth_provider.dart';
 
 import '../../shared/dialogs/error_dialog.dart';
@@ -424,16 +425,25 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
   }
 
   void _openDocumentsFolder(StudentModel student) {
-    // Navigate first
-    ref.read(activeTabProvider.notifier).setTab('Documents');
-    // Allow the UI to process the tab switch before updating the folder state
-    Future.microtask(() {
-      if (mounted) {
-        ref.read(openedFolderProvider.notifier).setFolder(
-          OpenedFolderData(id: student.id, name: student.listDisplayName)
-        );
-      }
-    });
+    if (student.status == 'Graduated' || student.status == 'Transferred' || student.status == 'Dropped') {
+      ref.read(activeTabProvider.notifier).setTab('Archives');
+      Future.microtask(() {
+        if (mounted) {
+          ref.read(openedArchiveFolderProvider.notifier).setFolder(
+            OpenedArchiveFolderData(id: student.id, name: student.listDisplayName)
+          );
+        }
+      });
+    } else {
+      ref.read(activeTabProvider.notifier).setTab('Documents');
+      Future.microtask(() {
+        if (mounted) {
+          ref.read(openedFolderProvider.notifier).setFolder(
+            OpenedFolderData(id: student.id, name: student.listDisplayName)
+          );
+        }
+      });
+    }
   }
 
   // ================================================================

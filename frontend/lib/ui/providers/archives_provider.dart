@@ -39,6 +39,25 @@ class ArchiveQueryParams {
   }
 }
 
+// ============================================================
+// Opened Archive Folder State
+// ============================================================
+class OpenedArchiveFolderData {
+  final int id;
+  final String name;
+  OpenedArchiveFolderData({required this.id, required this.name});
+}
+
+final openedArchiveFolderProvider = NotifierProvider<OpenedArchiveFolderNotifier, OpenedArchiveFolderData?>(
+  OpenedArchiveFolderNotifier.new,
+);
+
+class OpenedArchiveFolderNotifier extends Notifier<OpenedArchiveFolderData?> {
+  @override
+  OpenedArchiveFolderData? build() => null;
+  void setFolder(OpenedArchiveFolderData? data) => state = data;
+}
+
 final archiveQueryProvider = NotifierProvider<ArchiveQueryNotifier, ArchiveQueryParams>(ArchiveQueryNotifier.new);
 
 class ArchiveQueryNotifier extends Notifier<ArchiveQueryParams> {

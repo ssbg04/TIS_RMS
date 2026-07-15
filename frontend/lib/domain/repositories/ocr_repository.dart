@@ -40,7 +40,13 @@ class OcrRepository {
       return OcrResultModel.fromJson(response.data as Map<String, dynamic>);
       
     } on DioException catch (e) {
-      final msg = e.response?.data?['message'] ?? 'Failed to connect to OCR Server.';
+      final data = e.response?.data;
+      final msg = (data is Map && data['message'] != null) ? data['message'] : 'Failed to connect to OCR Server.';
+      final detail = (data is Map && data['error'] != null) ? data['error'] : null;
+      
+      if (detail != null) {
+        throw Exception('$msg\n$detail');
+      }
       throw Exception(msg);
     } catch (e) {
       throw Exception('An unexpected error occurred during OCR extraction.');

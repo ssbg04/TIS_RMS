@@ -26,6 +26,7 @@ const folderRoutes = require('./src/routes/folders');
 const requirementRoutes = require('./src/routes/requirements');
 const ocrRoutes = require('./src/routes/ocr.routes.js');
 const notificationRoutes = require('./src/routes/notifications');
+const backupRoutes = require('./src/routes/backup');
 
 const app = express();
 const PORT = process.env.PORT || 18484;
@@ -52,6 +53,7 @@ app.use('/api/folders', folderRoutes);
 app.use('/api/requirements', requirementRoutes);
 app.use('/api/ocr', ocrRoutes);
 app.use('/api/notifications', notificationRoutes);
+app.use('/api/backup', backupRoutes);
 
 app.get('/', (req, res) => {
     res.set('X-TIS-RMS', 'true');

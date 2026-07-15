@@ -12,6 +12,10 @@ import '../../providers/auth_provider.dart';
 import '../../providers/navigation_provider.dart';
 import '../../../core/utils/validators.dart';
 import 'requirements_settings_screen.dart';
+import 'package:file_picker/file_picker.dart';
+import 'dart:io';
+import '../../providers/backup_provider.dart';
+import '../../shared/dialogs/info_dialog.dart';
 import 'teacher_management_screen.dart';
 
 class SettingsScreen extends ConsumerStatefulWidget {
@@ -40,6 +44,13 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   
   // Single toggle for all password fields
   bool _obscurePasswords = true;
+
+  bool _isPassVisible = false;
+  bool _isNewPassVisible = false;
+  bool _isConfirmPassVisible = false;
+
+  bool _isBackupLoading = false;
+  bool _isRestoreLoading = false;
 
   int? _lastUserId;
   bool _isProfileLoading = false;
@@ -280,6 +291,79 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       showErrorDialog(context, 'Change Password Failed', e.toString().replaceAll('Exception: ', ''));
     } finally {
       if (mounted) setState(() => _isPasswordLoading = false);
+    }
+  }
+
+  Future<void> _handleBackup() async {
+    final saveResult = await FilePicker.saveFile(
+      dialogTitle: 'Save Backup',
+      fileName: 'tis_rms_backup_${DateTime.now().toIso8601String().split('T').first}.zip',
+      type: FileType.custom,
+      allowedExtensions: ['zip'],
+    );
+
+    if (saveResult == null) return;
+
+    setState(() => _isBackupLoading = true);
+    try {
+      await ref.read(backupProvider.notifier).downloadBackup(saveResult);
+      if (!mounted) return;
+      showInfoDialog(context, title: 'Backup Successful', message: 'System data backed up to $saveResult', icon: Icons.check_circle_outline, iconColor: AppColors.primaryGreen);
+    } catch (e) {
+      if (!mounted) return;
+      showErrorDialog(context, 'Backup Failed', e.toString().replaceAll('Exception: ', ''));
+    } finally {
+      if (mounted) setState(() => _isBackupLoading = false);
+    }
+  }
+
+  Future<void> _handleRestore() async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Restore System Data', style: TextStyle(color: AppColors.error)),
+        content: const Text(
+          'Restoring a backup will overwrite all current data and uploaded documents.\n\n'
+          'The server will shut down after completion. Are you sure you want to proceed?',
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('CANCEL')),
+          FilledButton(
+            style: FilledButton.styleFrom(backgroundColor: AppColors.error),
+            onPressed: () => Navigator.pop(ctx, true), 
+            child: const Text('RESTORE')
+          ),
+        ],
+      )
+    );
+
+    if (confirm != true) return;
+
+    final fileResult = await FilePicker.pickFiles(
+      dialogTitle: 'Select Backup File',
+      type: FileType.custom,
+      allowedExtensions: ['zip'],
+    );
+
+    if (fileResult == null || fileResult.files.single.path == null) return;
+
+    setState(() => _isRestoreLoading = true);
+    try {
+      final file = File(fileResult.files.single.path!);
+      await ref.read(backupProvider.notifier).restoreBackup(file);
+      if (!mounted) return;
+      showInfoDialog(
+        context, 
+        title: 'Restore Successful', 
+        message: 'Database and files restored successfully.\n\nThe server has been shut down to apply the changes. Please restart the TIS RMS server manually.', 
+        icon: Icons.power_settings_new, 
+        iconColor: AppColors.warning
+      );
+    } catch (e) {
+      if (!mounted) return;
+      showErrorDialog(context, 'Restore Failed', e.toString().replaceAll('Exception: ', ''));
+    } finally {
+      if (mounted) setState(() => _isRestoreLoading = false);
     }
   }
 
@@ -580,6 +664,72 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                                 ),
                               ],
                             ),
+                          ),
+                        ),
+                        const SizedBox(height: AppSizes.p24),
+
+                        // ── Database Management (Super Admin Only) ──
+                        _buildCard(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Row(children: [
+                                Icon(Icons.storage, color: AppColors.primaryGreen),
+                                SizedBox(width: AppSizes.p8),
+                                Expanded(child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text('Database Management', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                                    Text('Backup or restore system data and uploaded files', style: TextStyle(fontSize: 13, color: AppColors.textSecondary)),
+                                  ],
+                                )),
+                              ]),
+                              const SizedBox(height: 16),
+                              ref.watch(backupInfoProvider).when(
+                                data: (info) => Padding(
+                                  padding: const EdgeInsets.only(bottom: 16),
+                                  child: Row(
+                                    children: [
+                                      Expanded(child: Text('Last Backup: ${info['lastBackup']?.split('T').join(' ').split('.').first ?? 'Never'}', style: const TextStyle(fontSize: 12, color: AppColors.textSecondary))),
+                                      Expanded(child: Text('Last Restore: ${info['lastRestore']?.split('T').join(' ').split('.').first ?? 'Never'}', style: const TextStyle(fontSize: 12, color: AppColors.textSecondary))),
+                                    ],
+                                  ),
+                                ),
+                                loading: () => const SizedBox.shrink(),
+                                error: (_, __) => const SizedBox.shrink(),
+                              ),
+                              Row(
+                                children: [
+                                  Expanded(
+                                    child: OutlinedButton.icon(
+                                      onPressed: _isBackupLoading ? null : _handleBackup,
+                                      icon: _isBackupLoading 
+                                        ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
+                                        : const Icon(Icons.download_rounded),
+                                      label: const Text('Backup System Data'),
+                                      style: OutlinedButton.styleFrom(
+                                        padding: const EdgeInsets.symmetric(vertical: 16),
+                                        side: const BorderSide(color: AppColors.primaryGreen),
+                                      ),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 16),
+                                  Expanded(
+                                    child: FilledButton.icon(
+                                      onPressed: _isRestoreLoading ? null : _handleRestore,
+                                      icon: _isRestoreLoading
+                                        ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                                        : const Icon(Icons.upload_rounded),
+                                      label: const Text('Restore System Data'),
+                                      style: FilledButton.styleFrom(
+                                        backgroundColor: AppColors.warning,
+                                        padding: const EdgeInsets.symmetric(vertical: 16),
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ],
                           ),
                         ),
                         const SizedBox(height: AppSizes.p24),

@@ -52,7 +52,17 @@ exports.extractOcrData = async (req, res) => {
                     try {
                         await execFileAsync('gs', gsArgs);
                     } catch (fallbackErr) {
-                        await execFileAsync('gswin32c', gsArgs);
+                        try {
+                            await execFileAsync('gswin32c', gsArgs);
+                        } catch (finalErr) {
+                            if (finalErr.code === 'ENOENT') {
+                                return res.status(500).json({ 
+                                    message: 'Missing OCR Program', 
+                                    error: 'Ghostscript is not installed or not added to PATH. PDF conversion failed.' 
+                                });
+                            }
+                            throw finalErr;
+                        }
                     }
                 } else {
                     throw err;
@@ -74,11 +84,23 @@ exports.extractOcrData = async (req, res) => {
         // Ensure TESSDATA_PREFIX is set to the tesseract folder so it finds eng.traineddata
         const tessEnv = { ...process.env, TESSDATA_PREFIX: path.join(__dirname, '..', '..', 'tesseract', 'tessdata') };
         
-        const { stdout } = await execFileAsync('tesseract', [
-            imagePathToScan,
-            'stdout', // Output to standard output instead of a file
-            '-l', 'eng'
-        ], { env: tessEnv, maxBuffer: 1024 * 1024 * 10 }); // 10MB buffer just in case
+        let stdout;
+        try {
+            const result = await execFileAsync('tesseract', [
+                imagePathToScan,
+                'stdout', // Output to standard output instead of a file
+                '-l', 'eng'
+            ], { env: tessEnv, maxBuffer: 1024 * 1024 * 10 }); // 10MB buffer just in case
+            stdout = result.stdout;
+        } catch (tessErr) {
+            if (tessErr.code === 'ENOENT') {
+                return res.status(500).json({ 
+                    message: 'Missing OCR Program', 
+                    error: 'Tesseract OCR is not installed or not added to PATH.' 
+                });
+            }
+            throw tessErr;
+        }
         
         const text = stdout;
 

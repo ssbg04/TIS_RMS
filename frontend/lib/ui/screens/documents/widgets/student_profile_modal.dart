@@ -16,6 +16,7 @@ void showStudentProfileModal(
   required String userRole,
   VoidCallback? onEdit,
   VoidCallback? onDelete,
+  bool hideEnrollmentActions = false,
 }) {
   final screenW = MediaQuery.of(context).size.width;
   final isMobile = screenW < 700;
@@ -94,6 +95,7 @@ void showStudentProfileModal(
                 child: StudentProfileModalBody(
                   studentId: studentId,
                   userRole: userRole,
+                  hideEnrollmentActions: hideEnrollmentActions,
                 ),
               ),
             ],
@@ -110,11 +112,13 @@ void showStudentProfileModal(
 class StudentProfileModalBody extends ConsumerWidget {
   final int studentId;
   final String userRole;
+  final bool hideEnrollmentActions;
 
   const StudentProfileModalBody({
     super.key,
     required this.studentId,
     required this.userRole,
+    this.hideEnrollmentActions = false,
   });
 
   @override
@@ -155,7 +159,7 @@ class StudentProfileModalBody extends ConsumerWidget {
               children: [
                 const Text('Enrollments',
                     style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-                if (userRole == 'admin' || userRole == 'super_admin')
+                if (!hideEnrollmentActions && (userRole == 'admin' || userRole == 'super_admin'))
                   TextButton.icon(
                     onPressed: () {
                       showDialog(
@@ -420,7 +424,7 @@ class StudentProfileModalBody extends ConsumerWidget {
               ],
             ),
           ),
-          if (userRole == 'admin' || userRole == 'super_admin') ...[
+          if (!hideEnrollmentActions && (userRole == 'admin' || userRole == 'super_admin')) ...[
             IconButton(
               icon: const Icon(Icons.edit, size: 18, color: Colors.blue),
               tooltip: 'Edit Enrollment',

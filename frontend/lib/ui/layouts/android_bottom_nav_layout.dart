@@ -311,11 +311,17 @@ class _AndroidBottomNavLayoutState extends ConsumerState<AndroidBottomNavLayout>
                 padding: const EdgeInsets.fromLTRB(24, 16, 16, 24),
                 child: Row(
                   children: [
-                    const CircleAvatar(
-                      radius: 20,
-                      backgroundColor: AppColors.primaryGreen,
-                      child: Icon(Icons.person, color: Colors.white),
-                    ),
+                    Builder(builder: (context) {
+                      final user = ref.watch(authProvider).value;
+                      final initials = user != null && user.firstName.isNotEmpty && user.lastName.isNotEmpty
+                          ? '${user.firstName[0]}${user.lastName[0]}'.toUpperCase()
+                          : 'SA';
+                      return CircleAvatar(
+                        radius: 20,
+                        backgroundColor: AppColors.primaryGreen,
+                        child: Text(initials, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
+                      );
+                    }),
                     const SizedBox(width: 12),
                     Expanded(
                       child: Column(

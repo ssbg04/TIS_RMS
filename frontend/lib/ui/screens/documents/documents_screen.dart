@@ -257,6 +257,7 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
         context,
         studentId: studentId,
         userRole: widget.userRole,
+        hideEnrollmentActions: true,
       );
     } else if (action == 'delete') {
       _confirmDelete(documentId);
@@ -2207,7 +2208,7 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
                     }
                   },
                   onActionSelected: (a) => _handleAction(a, documents[i]),
-                  onViewProfile: (sid) => showStudentProfileModal(context, studentId: sid, userRole: widget.userRole),
+                  onViewProfile: (sid) => showStudentProfileModal(context, studentId: sid, userRole: widget.userRole, hideEnrollmentActions: true),
                 ),
               ),
             ),
@@ -2353,7 +2354,7 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
                             }
                           },
                           onActionSelected: (a) => _handleAction(a, documents[i]),
-                          onViewProfile: (sid) => showStudentProfileModal(context, studentId: sid, userRole: widget.userRole),
+                          onViewProfile: (sid) => showStudentProfileModal(context, studentId: sid, userRole: widget.userRole, hideEnrollmentActions: true),
                         );
                 },
               ),
@@ -2787,6 +2788,7 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
           context,
           studentId: folder.studentId!,
           userRole: widget.userRole,
+          hideEnrollmentActions: true,
         );
       }
     });

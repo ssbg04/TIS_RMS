@@ -1064,7 +1064,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                     : paginatedStudents.map((student) {
                         return DataRow(
                           onSelectChanged: (_) {
-                            showStudentProfileModal(context, studentId: student.id, userRole: widget.userRole);
+                            showStudentProfileModal(context, studentId: student.id, userRole: widget.userRole, hideEnrollmentActions: true);
                           },
                           cells: [
                             DataCell(Text(student.lrn, style: const TextStyle(fontWeight: FontWeight.w500))),
