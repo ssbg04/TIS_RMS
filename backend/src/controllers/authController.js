@@ -86,12 +86,15 @@ exports.changePassword = (req, res) => {
     if (newPassword.length < 6) {
         return res.status(400).json({ message: 'New password must be at least 6 characters.' });
     }
-
     try {
         const user = db.prepare('SELECT password FROM users WHERE id = ?').get(req.user.id);
 
         if (!bcrypt.compareSync(currentPassword, user.password)) {
             return res.status(400).json({ message: 'Current password is incorrect.' });
+        }
+
+        if (newPassword === currentPassword) {
+            return res.status(400).json({ message: 'New password cannot be the same as the current password.' });
         }
 
         const hashedNewPassword = bcrypt.hashSync(newPassword, 10);

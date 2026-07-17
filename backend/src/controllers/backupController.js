@@ -38,10 +38,13 @@ exports.downloadBackup = async (req, res) => {
         const dataDir = path.resolve('./data');
         const uploadsDir = path.resolve('./uploads');
 
-        // Add database file if exists
+        // Add database file using proper SQLite backup API to ensure consistency
         const dbFile = path.join(dataDir, 'tis_rms.db');
         if (fs.existsSync(dbFile)) {
-            zip.addLocalFile(dbFile, 'data');
+            const tempDbFile = path.join(dataDir, `temp_backup_${Date.now()}.db`);
+            await db.backup(tempDbFile);
+            zip.addLocalFile(tempDbFile, 'data', 'tis_rms.db');
+            fs.unlinkSync(tempDbFile);
         }
 
         // Add uploads folder if it exists
@@ -112,10 +115,16 @@ exports.restoreBackup = async (req, res) => {
 
         const currentDataDir = path.resolve('./data');
         const currentDbPath = path.join(currentDataDir, 'tis_rms.db');
+        const currentDbWalPath = path.join(currentDataDir, 'tis_rms.db-wal');
+        const currentDbShmPath = path.join(currentDataDir, 'tis_rms.db-shm');
         const currentUploadsDir = path.resolve('./uploads');
 
         console.log('[Backup] Overwriting database...');
         fs.copyFileSync(extractedDbPath, currentDbPath);
+
+        console.log('[Backup] Cleaning up WAL and SHM files...');
+        if (fs.existsSync(currentDbWalPath)) fs.unlinkSync(currentDbWalPath);
+        if (fs.existsSync(currentDbShmPath)) fs.unlinkSync(currentDbShmPath);
 
         console.log('[Backup] Replacing uploads directory...');
         if (fs.existsSync(extractedUploadsDir)) {

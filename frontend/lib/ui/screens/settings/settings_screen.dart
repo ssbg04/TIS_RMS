@@ -115,6 +115,9 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           _extCtrl.clear();
           _phoneCtrl.clear();
           _emailCtrl.clear();
+          setState(() {
+            _isPassVisible = false;
+          });
           ref.invalidate(profileProvider);
           _lastUserId = null;
         }
@@ -288,7 +291,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       showSuccessDialog(context, message: 'Password changed successfully!');
     } catch (e) {
       if (!mounted) return;
-      showErrorDialog(context, 'Change Password Failed', e.toString().replaceAll('Exception: ', ''));
+      showErrorDialog(context, 'Change Password', e.toString().replaceAll('Exception: ', ''));
     } finally {
       if (mounted) setState(() => _isPasswordLoading = false);
     }
@@ -308,6 +311,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     try {
       await ref.read(backupProvider.notifier).downloadBackup(saveResult);
       if (!mounted) return;
+      ref.invalidate(backupInfoProvider);
       showInfoDialog(context, title: 'Backup Successful', message: 'System data backed up to $saveResult', icon: Icons.check_circle_outline, iconColor: AppColors.primaryGreen);
     } catch (e) {
       if (!mounted) return;
@@ -352,6 +356,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       final file = File(fileResult.files.single.path!);
       await ref.read(backupProvider.notifier).restoreBackup(file);
       if (!mounted) return;
+      ref.invalidate(backupInfoProvider);
       showInfoDialog(
         context, 
         title: 'Restore Successful', 
@@ -743,25 +748,19 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Row(
+                                crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   const Icon(Icons.lock_outline, color: AppColors.textPrimary),
                                   const SizedBox(width: AppSizes.p8),
-                                  const Expanded(child: Text('Change Password', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold))),
-                                  TextButton.icon(
-                                    onPressed: () => setState(() => _obscurePasswords = !_obscurePasswords),
-                                    icon: Icon(_obscurePasswords ? Icons.visibility_off : Icons.visibility, size: 18),
-                                    label: Text(_obscurePasswords ? 'Show Passwords' : 'Hide Passwords'),
-                                    style: TextButton.styleFrom(
-                                      foregroundColor: AppColors.primaryGreen,
-                                      backgroundColor: AppColors.primaryGreen.withValues(alpha: 0.1),
-                                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-                                    ),
-                                  ),
+                                  Expanded(child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      const Text('Change Password', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                                      const Text('Set a new password for your account.', style: TextStyle(fontSize: 13, color: AppColors.textSecondary)),
+                                    ],
+                                  )),
                                 ],
                               ),
-                              const SizedBox(height: 6),
-                              const Text('Set a new password for your account.', style: TextStyle(fontSize: 13, color: AppColors.textSecondary)),
                               const Divider(height: 28),
 
                               CustomTextField(
@@ -769,7 +768,14 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                                 prefixIcon: Icons.lock_outline,
                                 controller: _newPassCtrl,
                                 isPassword: true,
-                                obscureText: _obscurePasswords,
+                                obscureText: !_isPassVisible,
+                                onToggleVisibility: () => setState(() => _isPassVisible = !_isPassVisible),
+                                onChanged: (v) {
+                                  // Re-validate confirm field if it's not empty
+                                  if (_confirmPassCtrl.text.isNotEmpty) {
+                                    _passwordFormKey.currentState?.validate();
+                                  }
+                                },
                                 validator: AppValidators.validatePasswordComplexity,
                               ),
                               if (_newPassCtrl.text.isNotEmpty) ...[
@@ -808,7 +814,9 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                                 prefixIcon: Icons.lock_outline,
                                 controller: _confirmPassCtrl,
                                 isPassword: true,
-                                obscureText: _obscurePasswords,
+                                obscureText: !_isPassVisible,
+                                onToggleVisibility: () => setState(() => _isPassVisible = !_isPassVisible),
+                                autovalidateMode: AutovalidateMode.onUserInteraction,
                                 validator: (v) {
                                   final req = AppValidators.validateRequired(v, 'Confirm Password');
                                   if (req != null) return req;

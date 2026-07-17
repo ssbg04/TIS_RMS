@@ -19,6 +19,7 @@ class CustomTextField extends StatelessWidget {
   final List<TextInputFormatter>? inputFormatters;
   final TextCapitalization textCapitalization;
   final FocusNode? focusNode;
+  final AutovalidateMode? autovalidateMode;
 
   const CustomTextField({
     super.key,
@@ -39,6 +40,7 @@ class CustomTextField extends StatelessWidget {
     this.inputFormatters,
     this.textCapitalization = TextCapitalization.none,
     this.focusNode,
+    this.autovalidateMode,
   });
 
   @override
@@ -50,6 +52,7 @@ class CustomTextField extends StatelessWidget {
       readOnly: readOnly,
       onChanged: onChanged,
       validator: validator,
+      autovalidateMode: autovalidateMode,
       maxLines: maxLines,
       maxLength: maxLength,
       textCapitalization: textCapitalization,
