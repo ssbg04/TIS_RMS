@@ -87,6 +87,7 @@ flutter:
   # To add assets to your application, add an assets section, like this:
   assets:
     - assets/images/logo.png
+    - assets/images/capstone_members.jpeg
     - assets/lottie/
     - assets/templates/School-Form-10-JHS.xlsx
     - assets/templates/SSHS-SF-10-v2026_corrected.xlsx
