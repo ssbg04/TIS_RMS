@@ -89,12 +89,9 @@ class _AppSearchBarState extends ConsumerState<AppSearchBar> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted || _overlayEntry != null || !_focusNode.hasFocus) return;
 
-      final renderBox = context.findRenderObject() as RenderBox?;
-      final actualWidth = renderBox?.size.width ?? 420.0;
-
       _overlayEntry = OverlayEntry(
         builder: (context) => Positioned(
-          width: actualWidth,
+          width: widget.maxWidth,
           child: CompositedTransformFollower(
             link: _layerLink,
             showWhenUnlinked: false,
