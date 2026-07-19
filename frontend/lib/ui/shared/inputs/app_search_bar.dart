@@ -199,17 +199,6 @@ class _AppSearchBarState extends ConsumerState<AppSearchBar> {
   @override
   Widget build(BuildContext context) {
     if (!_isExpanded && widget.collapsible) {
-      if (_hasText) {
-        return IconButton(
-          onPressed: () {
-            _controller.clear();
-            widget.onChanged?.call('');
-            if (widget.onSubmitted != null) widget.onSubmitted!('');
-          },
-          icon: const Icon(Icons.close, size: 28, color: Colors.redAccent),
-          tooltip: 'Clear search',
-        );
-      }
       return IconButton(
         onPressed: () {
           setState(() => _isExpanded = true);
