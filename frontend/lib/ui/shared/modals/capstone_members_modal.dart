@@ -35,7 +35,7 @@ class CapstoneMembersModal {
                         'assets/images/capstone_members.jpg',
                         width: double.infinity,
                         height: 220,
-                        fit: BoxFit.cover,
+                        fit: BoxFit.contain,
                       ),
                       Padding(
                         padding: const EdgeInsets.all(24.0),
@@ -51,7 +51,7 @@ class CapstoneMembersModal {
                           flex: 4,
                           child: Image.asset(
                             'assets/images/capstone_members.jpg',
-                            fit: BoxFit.cover,
+                            fit: BoxFit.contain,
                           ),
                         ),
                         Expanded(
