@@ -36,20 +36,24 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
   bool _setupBannerDismissed = false;
   bool _setupBannerMinimized = false;
   final TextEditingController _searchController = TextEditingController();
+  final FocusNode _searchFocusNode = FocusNode();
   ProviderSubscription<String>? _tabListener;
-  // Removed _bgController
 
   @override
   void dispose() {
     _tabListener?.close();
     _searchController.dispose();
+    _searchFocusNode.dispose();
     super.dispose();
   }
 
   @override
   void initState() {
     super.initState();
-    // Removed animated background controller
+
+    _searchFocusNode.addListener(() {
+      if (mounted) setState(() {});
+    });
 
     ref.invalidate(dashboardDataProvider);
     
@@ -238,34 +242,57 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
               ],
             ),
           ),
-          data: (data) => RefreshIndicator(
-            onRefresh: _handleRefresh,
-            child: SingleChildScrollView(
-              physics: const AlwaysScrollableScrollPhysics(),
-              padding: const EdgeInsets.all(24),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  _buildTopBar(context, user),
-                  if (isAdmin && !_setupBannerDismissed) ...[
-                    const SizedBox(height: 24),
-                    _buildSetupGuidanceBanner(context),
-                  ],
-                  const SizedBox(height: 32),
-                  const Text('Dashboard Overview', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
-                  const SizedBox(height: 8),
-                  Text(
-                    'Welcome back, ${user?.firstName ?? 'Admin'}. Here is what is happening today.',
-                    style: TextStyle(fontSize: 16, color: Colors.grey.shade600),
-                  ),
-                  const SizedBox(height: 24),
-                  _buildStatGrid(data.stats, user),
-                  const SizedBox(height: 32),
-                  _buildHistorySections(data, user),
-                  const SizedBox(height: 48),
-                ],
+          data: (data) => Column(
+            children: [
+              Padding(
+                padding: const EdgeInsets.only(left: 24, right: 24, top: 24),
+                child: _buildTopBar(context, user),
               ),
-            ),
+              Expanded(
+                child: Stack(
+                  children: [
+                    Positioned.fill(
+                      child: RefreshIndicator(
+                        onRefresh: _handleRefresh,
+                        child: SingleChildScrollView(
+                          physics: const AlwaysScrollableScrollPhysics(),
+                          padding: const EdgeInsets.all(24),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              if (isAdmin && !_setupBannerDismissed) ...[
+                                _buildSetupGuidanceBanner(context),
+                                const SizedBox(height: 32),
+                              ],
+                              const Text('Dashboard Overview', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
+                              const SizedBox(height: 8),
+                              Text(
+                                'Welcome back, ${user?.firstName ?? 'Admin'}. Here is what is happening today.',
+                                style: TextStyle(fontSize: 16, color: Colors.grey.shade600),
+                              ),
+                              const SizedBox(height: 24),
+                              _buildStatGrid(data.stats, user),
+                              const SizedBox(height: 32),
+                              _buildHistorySections(data, user),
+                              const SizedBox(height: 48),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                    if (_searchFocusNode.hasFocus)
+                      Positioned.fill(
+                        child: GestureDetector(
+                          onTap: () => _searchFocusNode.unfocus(),
+                          child: Container(
+                            color: Colors.black.withValues(alpha: 0.5),
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+            ],
           ),
         ),
       ),
@@ -502,6 +529,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
               alignment: Alignment.centerRight,
               child: AppSearchBar(
                 controller: _searchController,
+                focusNode: _searchFocusNode,
                 collapsible: true,
                 hideIconWhenExpanded: true,
                 hint: 'Search students by LRN or Name...',
