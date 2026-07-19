@@ -574,9 +574,9 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
               ),
             ),
           Flexible(
+            key: const ValueKey('student_search_bar_flex'),
             flex: isSearchActive ? 1 : 0,
             child: AppSearchBar(
-              key: const ValueKey('student_search_bar'),
               controller: _searchController,
               focusNode: _searchFocusNode,
               collapsible: true,
