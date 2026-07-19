@@ -115,8 +115,10 @@ class _AppSearchBarState extends ConsumerState<AppSearchBar> {
         final history = ref.watch(searchHistoryProvider);
         if (history.isEmpty) return const SizedBox.shrink();
 
-        return Material(
-          elevation: 4,
+        return TapRegion(
+          groupId: _focusNode,
+          child: Material(
+            elevation: 4,
           color: Colors.white,
           borderRadius: BorderRadius.circular(12),
           child: Container(
@@ -167,7 +169,8 @@ class _AppSearchBarState extends ConsumerState<AppSearchBar> {
               },
             ),
           ),
-        );
+        ),
+      );
       },
     );
   }
@@ -205,9 +208,12 @@ class _AppSearchBarState extends ConsumerState<AppSearchBar> {
       );
     }
 
-    return CompositedTransformTarget(
-      link: _layerLink,
-      child: AnimatedContainer(
+    return TapRegion(
+      groupId: _focusNode,
+      onTapOutside: (event) => _focusNode.unfocus(),
+      child: CompositedTransformTarget(
+        link: _layerLink,
+        child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
         width: widget.maxWidth,
         height: 42.0,
@@ -219,7 +225,6 @@ class _AppSearchBarState extends ConsumerState<AppSearchBar> {
           controller: _controller,
           focusNode: _focusNode,
           textInputAction: TextInputAction.search,
-          onTapOutside: (event) => _focusNode.unfocus(),
           onSubmitted: _handleSubmit,
           onChanged: widget.onChanged,
           style: const TextStyle(fontSize: 14),
@@ -258,6 +263,7 @@ class _AppSearchBarState extends ConsumerState<AppSearchBar> {
           ),
         ),
       ),
+    ),
     );
   }
 }
