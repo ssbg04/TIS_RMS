@@ -458,10 +458,6 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
   Widget build(BuildContext context) {
     final query    = ref.watch(studentQueryProvider);
     final pageAsync = ref.watch(studentPageProvider);
-    final isMobile = MediaQuery.of(context).size.width <= 800;
-    
-    final academicYearsAsync = ref.watch(academicYearsListProvider);
-    final sectionsAsync = ref.watch(sectionsListProvider);
     final activeCount = [
       query.schoolYear.isNotEmpty,
       query.gradeLevel.isNotEmpty,
@@ -471,37 +467,14 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
 
     return Scaffold(
       backgroundColor: Colors.transparent,
-      floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
-      floatingActionButton: (!isMobile || _showMultiSelect) ? null : Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16.0),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            FloatingActionButton(
-              heroTag: 'filter_fab',
-              backgroundColor: AppColors.surfaceWhite,
-              foregroundColor: AppColors.primaryGreen,
-              shape: const CircleBorder(),
-              onPressed: () => _openFilterDialog(query, academicYearsAsync, sectionsAsync),
-              child: Badge(
-                isLabelVisible: activeCount > 0,
-                label: Text(activeCount.toString()),
-                child: const Icon(Icons.tune_rounded),
-              ),
-            ),
-            if (widget.userRole != 'teacher')
-              FloatingActionButton(
-                heroTag: 'add_student_fab',
-                backgroundColor: AppColors.primaryGreen,
-                foregroundColor: Colors.white,
-                shape: const CircleBorder(),
-                onPressed: () => _openModal(),
-                child: const Icon(Icons.person_add),
-              )
-            else
-              const SizedBox(width: 56), // spacer when add button is hidden
-          ],
-        ),
+      floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
+      floatingActionButton: (widget.userRole == 'teacher' || _showMultiSelect) ? null : FloatingActionButton(
+        heroTag: 'add_student_fab',
+        backgroundColor: AppColors.primaryGreen,
+        foregroundColor: Colors.white,
+        shape: const CircleBorder(),
+        onPressed: () => _openModal(),
+        child: const Icon(Icons.person_add),
       ),
       body: Stack(
         children: [
@@ -581,78 +554,70 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
   // HEADER + CONTROLS
   // ================================================================
   Widget _buildHeaderControls(BuildContext context, StudentQueryParams query, WidgetRef ref, int activeCount) {
-
     return LayoutBuilder(builder: (_, c) {
       final isDesktop = c.maxWidth > 800;
-      return Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      final bool isSearchActive = _searchFocusNode.hasFocus;
+
+      return Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          // Title row
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
+          if (!isSearchActive)
+            Expanded(
+              child: Text(
                 'Students Directory',
                 style: TextStyle(
-                  fontSize:   isDesktop ? 28 : 22,
+                  fontSize: isDesktop ? 28 : 22,
                   fontWeight: FontWeight.bold,
-                  color:      AppColors.textPrimary,
+                  color: AppColors.textPrimary,
                 ),
+                overflow: TextOverflow.ellipsis,
               ),
-            ],
+            ),
+          Flexible(
+            flex: isSearchActive ? 1 : 0,
+            child: AppSearchBar(
+              controller: _searchController,
+              focusNode: _searchFocusNode,
+              collapsible: true,
+              hideIconWhenExpanded: true,
+              onSubmitted: _onSearchSubmitted,
+              hint: 'Search by LRN or name...',
+              maxWidth: isSearchActive ? c.maxWidth : (isDesktop ? 300 : c.maxWidth * 0.4),
+            ),
           ),
-          const SizedBox(height: AppSizes.p16),
-
-          // ── Search bar + multi-select ──
-          Row(
-            children: [
-              Flexible(
-                child: AppSearchBar(
-                  controller: _searchController,
-                  focusNode: _searchFocusNode,
-                  collapsible: true,
-                  hideIconWhenExpanded: true,
-                  onSubmitted: _onSearchSubmitted,
-                  hint: 'Search by LRN or name...',
-                  maxWidth: isDesktop ? 420 : c.maxWidth,
-                ),
-              ),
-              if (widget.userRole != 'teacher' && !_searchFocusNode.hasFocus) ...[
-                const SizedBox(width: 8),
-                _buildMultiSelectToggle(false),
-              ],
-              if (isDesktop && !_searchFocusNode.hasFocus) ...[
-                const SizedBox(width: 8),
-                SizedBox(
-                  height: 42,
-                  child: OutlinedButton.icon(
-                    onPressed: () => _openFilterDialog(query, ref.read(academicYearsListProvider), ref.read(sectionsListProvider)),
-                    icon: Badge(
-                      isLabelVisible: activeCount > 0,
-                      label: Text(activeCount.toString()),
-                      child: const Icon(Icons.tune_rounded, size: 20),
-                    ),
-                    label: const Text('Filter'),
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: AppColors.primaryGreen,
-                      side: const BorderSide(color: AppColors.primaryGreen),
-                    ),
+          if (!isSearchActive) ...[
+            if (widget.userRole != 'teacher') ...[
+              const SizedBox(width: 8),
+              _buildMultiSelectToggle(true),
+            ],
+            const SizedBox(width: 8),
+            if (isDesktop)
+              SizedBox(
+                height: 42,
+                child: OutlinedButton.icon(
+                  onPressed: () => _openFilterDialog(query, ref.read(academicYearsListProvider), ref.read(sectionsListProvider)),
+                  icon: Badge(
+                    isLabelVisible: activeCount > 0,
+                    label: Text(activeCount.toString()),
+                    child: const Icon(Icons.tune_rounded, size: 20),
+                  ),
+                  label: const Text('Filter'),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: AppColors.primaryGreen,
+                    side: const BorderSide(color: AppColors.primaryGreen),
                   ),
                 ),
-                if (widget.userRole != 'teacher') ...[
-                  const SizedBox(width: 8),
-                  SizedBox(
-                    width: 100,
-                    height: 42,
-                    child: PrimaryButton(
-                      label: 'ADD',
-                      onPressed: () => _openModal(),
-                    ),
-                  ),
-                ],
-              ],
-            ],
-          ),
+              )
+            else
+              IconButton(
+                onPressed: () => _openFilterDialog(query, ref.read(academicYearsListProvider), ref.read(sectionsListProvider)),
+                icon: Badge(
+                  isLabelVisible: activeCount > 0,
+                  label: Text(activeCount.toString()),
+                  child: const Icon(Icons.tune_rounded, color: AppColors.primaryGreen),
+                ),
+              ),
+          ],
         ],
       );
     });
@@ -706,48 +671,16 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
   Widget _buildMultiSelectToggle(bool isIconOnly) {
     return Tooltip(
       message: 'Multi-Select',
-      child: GestureDetector(
-        onTap: () {
+      child: IconButton(
+        onPressed: () {
           setState(() {
             _showMultiSelect = !_showMultiSelect;
             if (!_showMultiSelect) _selectedStudentIds.clear();
           });
         },
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 250),
-          padding: EdgeInsets.symmetric(horizontal: isIconOnly ? 12 : 14, vertical: 8),
-          height: 42,
-          decoration: BoxDecoration(
-            color: _showMultiSelect
-                ? AppColors.primaryGreen.withValues(alpha: 0.08)
-                : AppColors.surfaceWhite,
-            border: Border.all(
-              color: _showMultiSelect ? AppColors.primaryGreen : Colors.grey.shade300,
-              width: 1.2,
-            ),
-            borderRadius: BorderRadius.circular(8),
-          ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(
-                _showMultiSelect ? Icons.check_box_rounded : Icons.check_box_outline_blank_rounded,
-                size: 16,
-                color: _showMultiSelect ? AppColors.primaryGreen : AppColors.textSecondary,
-              ),
-              if (!isIconOnly) ...[
-                const SizedBox(width: 6),
-                Text(
-                  'Select',
-                  style: TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w600,
-                    color: _showMultiSelect ? AppColors.primaryGreen : AppColors.textSecondary,
-                  ),
-                ),
-              ],
-            ],
-          ),
+        icon: Icon(
+          _showMultiSelect ? Icons.check_box_rounded : Icons.check_box_outline_blank_rounded,
+          color: _showMultiSelect ? AppColors.primaryGreen : AppColors.textSecondary,
         ),
       ),
     );
