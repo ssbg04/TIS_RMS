@@ -481,7 +481,7 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
     return Scaffold(
       backgroundColor: Colors.transparent,
       floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
-      floatingActionButton: (widget.userRole == 'teacher' || _showMultiSelect) ? null : FloatingActionButton(
+      floatingActionButton: (widget.userRole == 'teacher' || _showMultiSelect || _searchFocusNode.hasFocus) ? null : FloatingActionButton(
         heroTag: 'add_student_fab',
         backgroundColor: AppColors.primaryGreen,
         foregroundColor: Colors.white,
@@ -539,9 +539,10 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
             ),
 
             // ── Pagination ──
-            pageAsync.maybeWhen(
-              data:   (page) => _buildPagination(query, page),
-              orElse: () => const SizedBox.shrink(),
+            if (!_searchFocusNode.hasFocus)
+              pageAsync.maybeWhen(
+                data:   (page) => _buildPagination(query, page),
+                orElse: () => const SizedBox.shrink(),
               ),
               ],
             ),
