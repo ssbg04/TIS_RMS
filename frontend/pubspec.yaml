@@ -88,6 +88,7 @@ flutter:
   assets:
     - assets/images/logo.png
     - assets/images/capstone_members.jpeg
+    - assets/images/capstone_members.jpg
     - assets/lottie/
     - assets/templates/School-Form-10-JHS.xlsx
     - assets/templates/SSHS-SF-10-v2026_corrected.xlsx

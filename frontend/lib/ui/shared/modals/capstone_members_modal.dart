@@ -4,12 +4,12 @@ import '../../../core/constants/app_colors.dart';
 class CapstoneMembersModal {
   static void show(BuildContext context) {
     const members = [
-      'Alibutod, Rhina Mhay C.',
-      'Antonio, Clara Maris B.',
-      'De Vera, Ermhar A.',
-      'Ellio, James Young G.',
-      'Garcia, Cris Charles V.',
-      'Pasigan, Chinee R.',
+      {'name': 'Alibutod, Rhina Mhay C.', 'role': 'Technical Writer'},
+      {'name': 'Antonio, Clara Maris B.', 'role': 'UI/UX Designer'},
+      {'name': 'De Vera, Ermhar A.', 'role': 'System Analyst'},
+      {'name': 'Ellio, James Young G.', 'role': 'Tester'},
+      {'name': 'Garcia, Cris Charles V.', 'role': 'Programmer'},
+      {'name': 'Pasigan, Chinee R.', 'role': 'Project Manager'},
     ];
 
     showDialog(
@@ -32,7 +32,7 @@ class CapstoneMembersModal {
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       Image.asset(
-                        'assets/images/capstone_members.jpeg',
+                        'assets/images/capstone_members.jpg',
                         width: double.infinity,
                         height: 220,
                         fit: BoxFit.cover,
@@ -50,7 +50,7 @@ class CapstoneMembersModal {
                         Expanded(
                           flex: 4,
                           child: Image.asset(
-                            'assets/images/capstone_members.jpeg',
+                            'assets/images/capstone_members.jpg',
                             fit: BoxFit.cover,
                           ),
                         ),
@@ -70,7 +70,7 @@ class CapstoneMembersModal {
     );
   }
 
-  static Widget _buildContent(BuildContext context, List<String> members) {
+  static Widget _buildContent(BuildContext context, List<Map<String, String>> members) {
     return Column(
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -83,13 +83,26 @@ class CapstoneMembersModal {
           ],
         ),
         const SizedBox(height: 20),
-        ...members.map((name) => Padding(
+        ...members.map((member) => Padding(
           padding: const EdgeInsets.symmetric(vertical: 6),
           child: Row(
             children: [
               const Icon(Icons.person_outline, size: 18, color: AppColors.primaryGreen),
               const SizedBox(width: 12),
-              Expanded(child: Text(name, style: const TextStyle(fontSize: 15))),
+              Expanded(
+                child: RichText(
+                  text: TextSpan(
+                    text: '${member['name']} ',
+                    style: const TextStyle(fontSize: 15, color: Colors.black87),
+                    children: [
+                      TextSpan(
+                        text: '(${member['role']})',
+                        style: const TextStyle(fontSize: 13, color: Colors.black54, fontStyle: FontStyle.italic),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
             ],
           ),
         )),
