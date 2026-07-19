@@ -86,22 +86,26 @@ class _AppSearchBarState extends ConsumerState<AppSearchBar> {
   void _showOverlay() {
     if (_overlayEntry != null) return;
 
-    final renderBox = context.findRenderObject() as RenderBox?;
-    final actualWidth = renderBox?.size.width ?? 420.0;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || _overlayEntry != null || !_focusNode.hasFocus) return;
 
-    _overlayEntry = OverlayEntry(
-      builder: (context) => Positioned(
-        width: actualWidth,
-        child: CompositedTransformFollower(
-          link: _layerLink,
-          showWhenUnlinked: false,
-          offset: const Offset(0, 48),
-          child: _buildHistoryOverlay(),
+      final renderBox = context.findRenderObject() as RenderBox?;
+      final actualWidth = renderBox?.size.width ?? 420.0;
+
+      _overlayEntry = OverlayEntry(
+        builder: (context) => Positioned(
+          width: actualWidth,
+          child: CompositedTransformFollower(
+            link: _layerLink,
+            showWhenUnlinked: false,
+            offset: const Offset(0, 48),
+            child: _buildHistoryOverlay(),
+          ),
         ),
-      ),
-    );
+      );
 
-    Overlay.of(context).insert(_overlayEntry!);
+      Overlay.of(context).insert(_overlayEntry!);
+    });
   }
 
   void _removeOverlay() {

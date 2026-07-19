@@ -54,6 +54,13 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
   @override
   void initState() {
     super.initState();
+    
+    // Sync initial search text if it was set externally (e.g. from Dashboard)
+    final initialQuery = ref.read(studentQueryProvider).search;
+    if (initialQuery.isNotEmpty) {
+      _searchController.text = initialQuery;
+    }
+
     _searchController.addListener(_onSearchChanged);
     _searchFocusNode.addListener(_onSearchFocusChanged);
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -68,6 +75,12 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
               _showMultiSelect = false;
               _selectedStudentIds.clear();
             });
+          }
+        } else {
+          // Sync search text if returning to Students tab with a pre-filled query
+          final currentQuery = ref.read(studentQueryProvider).search;
+          if (_searchController.text != currentQuery) {
+            _searchController.text = currentQuery;
           }
         }
       });
