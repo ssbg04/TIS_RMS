@@ -21,6 +21,7 @@ import '../providers/users_provider.dart';
 import '../providers/auth_provider.dart';
 import '../shared/dialogs/logout_dialog.dart';
 import '../providers/navigation_provider.dart';
+import '../shared/modals/capstone_members_modal.dart';
 
 // Dummy screen for placeholders
 class PlaceholderScreen extends StatelessWidget {
@@ -92,56 +93,7 @@ class _AndroidBottomNavLayoutState extends ConsumerState<AndroidBottomNavLayout>
   }
 
   void _showCapstoneMembers(BuildContext context) {
-    const members = [
-      'Alibutod, Rhina Mhay C.',
-      'Antonio, Clara Maris B.',
-      'De Vera, Ermhar A.',
-      'Ellio, James Young G.',
-      'Garcia, Cris Charles V.',
-      'Pasigan, Chinee R.',
-    ];
-    showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Row(
-          children: [
-            Icon(Icons.groups_rounded, color: AppColors.primaryGreen),
-            SizedBox(width: 8),
-            Text('Capstone Members', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-          ],
-        ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: members
-              .map((name) => Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 5),
-                    child: Row(
-                      children: [
-                        const Icon(Icons.person_outline, size: 16, color: AppColors.primaryGreen),
-                        const SizedBox(width: 10),
-                        Text(name, style: const TextStyle(fontSize: 13)),
-                      ],
-                    ),
-                  ))
-              .toList(),
-        ),
-        actions: [
-          SizedBox(
-            width: double.infinity,
-            child: ElevatedButton(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.primaryGreen,
-                foregroundColor: Colors.white,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-              ),
-              onPressed: () => Navigator.of(ctx).pop(),
-              child: const Text('Close'),
-            ),
-          ),
-        ],
-      ),
-    );
+    CapstoneMembersModal.show(context);
   }
 
   @override
