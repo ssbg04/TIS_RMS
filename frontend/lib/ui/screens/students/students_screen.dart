@@ -496,22 +496,28 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
               crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             Expanded(
-              child: Padding(
-                padding: const EdgeInsets.only(
-                  left: AppSizes.p24,
-                  right: AppSizes.p24,
-                  top: AppSizes.p24,
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // ── Header + Controls ──
-                    _buildHeaderControls(context, query, ref, activeCount),
-                    const SizedBox(height: AppSizes.p24),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // ── Header + Controls ──
+                  Padding(
+                    padding: const EdgeInsets.only(
+                      left: AppSizes.p24,
+                      right: AppSizes.p24,
+                      top: AppSizes.p24,
+                    ),
+                    child: _buildHeaderControls(context, query, ref, activeCount),
+                  ),
+                  const SizedBox(height: AppSizes.p24),
 
-                    // ── Data Table / Cards ──
-                    Expanded(
-                      child: pageAsync.when(
+                  // ── Data Table / Cards ──
+                  Expanded(
+                    child: Stack(
+                      children: [
+                        Positioned.fill(
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: AppSizes.p24),
+                            child: pageAsync.when(
                         loading: () => const Center(
                           child: CircularProgressIndicator(color: AppColors.primaryGreen),
                         ),
@@ -531,10 +537,23 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
                                 : _buildMobileCardList(page.students, noSections: hasNoSections),
                           );
                         },
-                      ),
+                            ),
+                          ),
+                        ),
+                        // ── Search Focus Backdrop ──
+                        if (_searchFocusNode.hasFocus)
+                          Positioned.fill(
+                            child: GestureDetector(
+                              onTap: () => _searchFocusNode.unfocus(),
+                              child: Container(
+                                color: Colors.black.withValues(alpha: 0.5),
+                              ),
+                            ),
+                          ),
+                      ],
                     ),
-                  ],
-                ),
+                  ),
+                ],
               ),
             ),
 
