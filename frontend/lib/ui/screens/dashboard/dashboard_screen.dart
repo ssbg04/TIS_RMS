@@ -242,69 +242,54 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
               ],
             ),
           ),
-          data: (data) => Stack(
+          data: (data) => Column(
             children: [
-              // 1. Scrollable content
-              Positioned.fill(
-                child: RefreshIndicator(
-                  onRefresh: _handleRefresh,
-                  child: SingleChildScrollView(
-                    physics: const AlwaysScrollableScrollPhysics(),
-                    padding: const EdgeInsets.only(left: 24, right: 24, top: 100, bottom: 24),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        if (isAdmin && !_setupBannerDismissed) ...[
-                          _buildSetupGuidanceBanner(context),
-                          const SizedBox(height: 32),
-                        ],
-                        const Text('Dashboard Overview', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
-                        const SizedBox(height: 8),
-                        Text(
-                          'Welcome back, ${user?.firstName ?? 'Admin'}. Here is what is happening today.',
-                          style: TextStyle(fontSize: 16, color: Colors.grey.shade600),
-                        ),
-                        const SizedBox(height: 24),
-                        _buildStatGrid(data.stats, user),
-                        const SizedBox(height: 32),
-                        _buildHistorySections(data, user),
-                        const SizedBox(height: 48),
-                      ],
-                    ),
-                  ),
-                ),
+              Padding(
+                padding: const EdgeInsets.only(left: 24, right: 24, top: 24),
+                child: _buildTopBar(context, user),
               ),
-              
-              // 2. Focus Scrim
-              if (_searchFocusNode.hasFocus)
-                Positioned.fill(
-                  child: GestureDetector(
-                    onTap: () => _searchFocusNode.unfocus(),
-                    child: Container(
-                      color: Colors.black.withValues(alpha: 0.5),
-                    ),
-                  ),
-                ),
-
-              // 3. Blurred Floating Top Bar
-              Positioned(
-                top: 0,
-                left: 0,
-                right: 0,
-                child: ClipRRect(
-                  child: BackdropFilter(
-                    filter: ImageFilter.blur(sigmaX: 12.0, sigmaY: 12.0),
-                    child: Container(
-                      padding: const EdgeInsets.only(left: 24, right: 24, top: 16, bottom: 16),
-                      decoration: BoxDecoration(
-                        color: AppColors.pageBackground.withValues(alpha: 0.75),
-                        border: Border(
-                          bottom: BorderSide(color: Colors.black.withValues(alpha: 0.05)),
+              Expanded(
+                child: Stack(
+                  children: [
+                    Positioned.fill(
+                      child: RefreshIndicator(
+                        onRefresh: _handleRefresh,
+                        child: SingleChildScrollView(
+                          physics: const AlwaysScrollableScrollPhysics(),
+                          padding: const EdgeInsets.all(24),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              if (isAdmin && !_setupBannerDismissed) ...[
+                                _buildSetupGuidanceBanner(context),
+                                const SizedBox(height: 32),
+                              ],
+                              const Text('Dashboard Overview', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
+                              const SizedBox(height: 8),
+                              Text(
+                                'Welcome back, ${user?.firstName ?? 'Admin'}. Here is what is happening today.',
+                                style: TextStyle(fontSize: 16, color: Colors.grey.shade600),
+                              ),
+                              const SizedBox(height: 24),
+                              _buildStatGrid(data.stats, user),
+                              const SizedBox(height: 32),
+                              _buildHistorySections(data, user),
+                              const SizedBox(height: 48),
+                            ],
+                          ),
                         ),
                       ),
-                      child: _buildTopBar(context, user),
                     ),
-                  ),
+                    if (_searchFocusNode.hasFocus)
+                      Positioned.fill(
+                        child: GestureDetector(
+                          onTap: () => _searchFocusNode.unfocus(),
+                          child: Container(
+                            color: Colors.black.withValues(alpha: 0.5),
+                          ),
+                        ),
+                      ),
+                  ],
                 ),
               ),
             ],

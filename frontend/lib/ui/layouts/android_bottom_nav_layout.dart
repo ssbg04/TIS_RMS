@@ -212,17 +212,24 @@ class _AndroidBottomNavLayoutState extends ConsumerState<AndroidBottomNavLayout>
         key: _scaffoldKey,
         backgroundColor: AppColors.pageBackground,
         appBar: AppBar(
-          backgroundColor: AppColors.primaryGreen,
-          foregroundColor: Colors.white,
-          iconTheme: const IconThemeData(color: Colors.white),
+          backgroundColor: Colors.white,
+          foregroundColor: AppColors.primaryGreen,
+          iconTheme: const IconThemeData(color: AppColors.primaryGreen),
           title: Text(
             tabs[currentIndex]['label'] as String, 
-            style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.white),
+            style: const TextStyle(fontWeight: FontWeight.bold, color: AppColors.primaryGreen),
           ),
           elevation: 0,
+          surfaceTintColor: Colors.transparent,
+          bottom: PreferredSize(
+            preferredSize: const Size.fromHeight(1.0),
+            child: Container(color: Colors.black12, height: 1.0),
+          ),
         ),
         drawer: Drawer(
-          width: 260, // Minimized width
+          backgroundColor: Colors.white,
+          surfaceTintColor: Colors.transparent,
+          width: 280,
           child: SafeArea(
             child: Column(
               children: [
