@@ -61,4 +61,16 @@ class NotificationRepository {
       throw Exception(e.response?.data['message'] ?? 'Failed to clear notifications.');
     }
   }
+
+  Future<void> deleteNotification(int id) async {
+    try {
+      final options = await _getAuthOptions();
+      await _dio.delete(
+        '/notifications/$id',
+        options: options,
+      );
+    } on DioException catch (e) {
+      throw Exception(e.response?.data['message'] ?? 'Failed to delete notification.');
+    }
+  }
 }

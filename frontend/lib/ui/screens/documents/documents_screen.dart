@@ -212,6 +212,12 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
     });
   }
 
+  void _onSearchSubmitted(String query) {
+    _debounce?.cancel();
+    setState(() => _foldersPage = 1);
+    ref.read(documentQueryProvider.notifier).setSearch(query);
+  }
+
   void _applyFilters() {
     setState(() => _foldersPage = 1);
     final n = ref.read(documentQueryProvider.notifier);
@@ -1118,7 +1124,10 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
                   hint: 'Search by name, LRN, file…',
                   controller: _searchController,
                   focusNode: _searchFocusNode,
+                  collapsible: true,
+                  hideIconWhenExpanded: true,
                   onChanged: _onSearchChanged,
+                  onSubmitted: _onSearchSubmitted,
                   maxWidth: double.infinity,
                 ),
               ),

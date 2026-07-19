@@ -177,6 +177,11 @@ class _ArchivesScreenState extends ConsumerState<ArchivesScreen>
     });
   }
 
+  void _onSearchSubmitted(String query) {
+    _debounce?.cancel();
+    ref.read(archiveDocumentQueryProvider.notifier).setSearch(query);
+  }
+
   void _applyFilters() {
     final n = ref.read(archiveDocumentQueryProvider.notifier);
     n.setStatus(_selectedStatus);
@@ -573,7 +578,10 @@ class _ArchivesScreenState extends ConsumerState<ArchivesScreen>
                     child: AppSearchBar(
                       hint: 'Search by name, LRN, file…',
                       controller: _searchController,
+                      collapsible: true,
+                      hideIconWhenExpanded: true,
                       onChanged: _onSearchChanged,
+                      onSubmitted: _onSearchSubmitted,
                       maxWidth: constraints.maxWidth,
                     ),
                   ),

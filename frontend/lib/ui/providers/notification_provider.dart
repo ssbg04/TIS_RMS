@@ -99,4 +99,21 @@ class NotificationNotifier extends AsyncNotifier<List<NotificationModel>> {
       // Keep original state on failure
     }
   }
+
+  Future<void> deleteNotification(int id) async {
+    try {
+      final repo = ref.read(notificationRepositoryProvider);
+      
+      // Optimistically remove from state
+      if (state.hasValue) {
+        final updatedList = state.value!.where((n) => n.id != id).toList();
+        state = AsyncData(updatedList);
+      }
+      
+      await repo.deleteNotification(id);
+    } catch (e) {
+      // Refresh to restore original state if delete fails
+      refreshNotifications();
+    }
+  }
 }

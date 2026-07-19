@@ -7,5 +7,6 @@ router.get('/', authenticateToken, notificationController.getNotifications);
 router.put('/mark-all-read', authenticateToken, notificationController.markAllRead);
 router.put('/:id/read', authenticateToken, notificationController.markRead);
 router.delete('/clear', authenticateToken, notificationController.clearNotifications);
+router.delete('/:id', authenticateToken, notificationController.deleteNotification);
 
 module.exports = router;

@@ -18,8 +18,10 @@ import 'recent_activities_screen.dart';
 import 'user_history_screen.dart';
 import '../../shared/menus/profile_dropdown_menu.dart';
 import '../../shared/inputs/app_search_bar.dart';
-import '../settings/teacher_management_screen.dart';
+import '../../shared/dialogs/error_dialog.dart';
 import '../settings/requirements_settings_screen.dart';
+import '../settings/teacher_management_screen.dart';
+import 'widgets/notification_dropdown.dart';
 import '../../shared/modals/view_activity_modal.dart';
 import '../../shared/modals/reset_requests_modal.dart';
 
@@ -185,84 +187,25 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
           )
         // ── Notification items ────────────────────────────────────────
         else
-          ...list.take(5).map((note) => PopupMenuItem(
-            mouseCursor: SystemMouseCursors.click,
-            onTap: () {
-              ref.read(notificationsProvider.notifier).markAsRead(note.id);
-              Future.delayed(const Duration(milliseconds: 100), () {
-                if (context.mounted) {
-                  final role = ref.read(authProvider).value?.role;
-                  if (note.title.toLowerCase().contains('password') && role == 'admin') {
-                    ResetRequestsModal.show(context);
-                  } else {
-                    ViewActivityModal.show(
-                      context: context,
-                      title: note.title,
-                      description: note.message,
-                      date: pht.formatModalDate(note.createdAt),
-                      icon: _getNotificationIcon(note.title),
-                      actionColor: _getNotificationColor(note.title),
-                    );
-                  }
-                }
-              });
-            },
-            child: SizedBox(
-              width: 300,
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(
-                      color: _getNotificationColor(note.title).withValues(alpha: 0.1),
-                      shape: BoxShape.circle,
-                    ),
-                    child: Icon(_getNotificationIcon(note.title), color: _getNotificationColor(note.title), size: 20),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Expanded(
-                            child: Text(
-                              note.title,
-                              style: TextStyle(
-                                fontWeight: note.isRead ? FontWeight.normal : FontWeight.bold,
-                                fontSize: 13,
-                                color: Colors.black87,
-                              ),
-                            ),
-                          ),
-                          if (!note.isRead)
-                            Container(
-                              width: 8, height: 8,
-                              decoration: const BoxDecoration(color: Colors.redAccent, shape: BoxShape.circle),
-                            ),
-                        ],
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        note.message,
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: note.isRead ? Colors.black54 : Colors.black87,
-                          fontWeight: note.isRead ? FontWeight.normal : FontWeight.w500,
-                        ),
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                      const SizedBox(height: 4),
-                      Text(_formatDate(note.createdAt), style: const TextStyle(fontSize: 10, color: Colors.black38)),
-                    ],
-                  )),
-                ],
-              ),
+          PopupMenuItem(
+            enabled: false,
+            padding: EdgeInsets.zero,
+            child: NotificationDropdownWidget(
+              notifications: list,
+              onViewActivity: (context, title, desc, date, icon, color) {
+                ViewActivityModal.show(
+                  context: context,
+                  title: title,
+                  description: desc,
+                  date: date,
+                  icon: icon,
+                  actionColor: color,
+                );
+              },
+              getIcon: _getNotificationIcon,
+              getColor: _getNotificationColor,
             ),
-          )),
+          ),
       ],
     );
   }
@@ -556,9 +499,11 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
         Expanded(
           child: LayoutBuilder(
             builder: (context, constraints) => Align(
-              alignment: Alignment.centerLeft,
+              alignment: Alignment.centerRight,
               child: AppSearchBar(
                 controller: _searchController,
+                collapsible: true,
+                hideIconWhenExpanded: true,
                 hint: 'Search students by LRN or Name...',
                 maxWidth: constraints.maxWidth > 420 ? 420 : constraints.maxWidth,
                 onSubmitted: (value) {
@@ -658,10 +603,12 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
 
     return LayoutBuilder(builder: (context, constraints) {
       int crossAxisCount;
-      if (constraints.maxWidth >= 800) {
+      if (constraints.maxWidth >= 1000) {
         crossAxisCount = isAdmin ? 4 : 3;
-      } else {
+      } else if (constraints.maxWidth >= 650) {
         crossAxisCount = 2;
+      } else {
+        crossAxisCount = 1;
       }
       return GridView(
         shrinkWrap: true,
@@ -670,7 +617,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
           crossAxisCount: crossAxisCount,
           crossAxisSpacing: 16,
           mainAxisSpacing: 16,
-          mainAxisExtent: 130,
+          mainAxisExtent: crossAxisCount == 1 ? 110 : 130,
         ),
         children: [
           StatCard(
@@ -827,95 +774,48 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
         itemBuilder: (context, index) {
           final a = activities[index];
 
-          if (isMobile) {
           return Material(
             color: Colors.transparent,
             child: InkWell(
               mouseCursor: SystemMouseCursors.click,
-            onTap: () => ViewActivityModal.show(
-              context: context,
-              title: a.entityType.toUpperCase(),
-              description: a.description,
-              date: pht.formatModalDate(a.createdAt),
-              performedBy: a.performedBy ?? a.username ?? 'System',
-              action: a.action,
-              actionColor: _actionColor(a.action),
-              icon: _actionIcon(a.action, a.entityType),
-            ),
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      CircleAvatar(
-                        radius: 16,
-                        backgroundColor: _actionColor(a.action).withValues(alpha: 0.1),
-                        child: Icon(_actionIcon(a.action, a.entityType), color: _actionColor(a.action), size: 16),
-                      ),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: Text(
-                          '${a.performedBy ?? a.username ?? 'System'} · ${_formatDate(a.createdAt)}',
-                          style: TextStyle(fontSize: 12, color: Colors.grey.shade600, fontWeight: FontWeight.w600),
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      _buildActionChip(a.action),
-                      const SizedBox(width: 8),
-                      Icon(Icons.chevron_right_rounded, size: 20, color: Colors.grey.shade400),
-                    ],
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    a.description,
-                    style: const TextStyle(fontWeight: FontWeight.w500, fontSize: 13, color: Colors.black87),
-                  ),
-                ],
+              onTap: () => ViewActivityModal.show(
+                context: context,
+                title: a.entityType.toUpperCase(),
+                description: a.description,
+                date: pht.formatModalDate(a.createdAt),
+                performedBy: a.performedBy ?? a.username ?? 'System',
+                action: a.action,
+                actionColor: _actionColor(a.action),
+                icon: _actionIcon(a.action, a.entityType),
               ),
-            ),
+              child: ListTile(
+                contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                leading: CircleAvatar(
+                  backgroundColor: _actionColor(a.action).withValues(alpha: 0.1),
+                  child: Icon(_actionIcon(a.action, a.entityType), color: _actionColor(a.action), size: 20),
+                ),
+                title: Padding(
+                  padding: const EdgeInsets.only(bottom: 6.0),
+                  child: Align(
+                    alignment: Alignment.centerLeft,
+                    child: _buildActionChip(a.action),
+                  ),
+                ),
+                subtitle: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(a.description, style: const TextStyle(fontWeight: FontWeight.w500, fontSize: 13, color: Colors.black87)),
+                    const SizedBox(height: 4),
+                    Text(
+                      '${a.performedBy ?? a.username ?? 'System'} · ${_formatDate(a.createdAt)}',
+                      style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
+                    ),
+                  ],
+                ),
+                trailing: Icon(Icons.chevron_right_rounded, size: 20, color: Colors.grey.shade400),
+              ),
             ),
           );
-        }
-
-        return Material(
-          color: Colors.transparent,
-          child: InkWell(
-            onTap: () => ViewActivityModal.show(
-              context: context,
-              title: a.entityType.toUpperCase(),
-              description: a.description,
-              date: pht.formatModalDate(a.createdAt),
-              performedBy: a.performedBy ?? a.username ?? 'System',
-              action: a.action,
-              actionColor: _actionColor(a.action),
-              icon: _actionIcon(a.action, a.entityType),
-            ),
-            child: ListTile(
-              mouseCursor: SystemMouseCursors.click,
-              contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-              leading: CircleAvatar(
-                backgroundColor: _actionColor(a.action).withValues(alpha: 0.1),
-                child: Icon(_actionIcon(a.action, a.entityType), color: _actionColor(a.action), size: 20),
-              ),
-              title: Text(a.description, style: const TextStyle(fontWeight: FontWeight.w500, fontSize: 14)),
-              subtitle: Text(
-                '${a.performedBy ?? a.username ?? 'System'} · ${_formatDate(a.createdAt)}',
-                style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
-              ),
-              trailing: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  _buildActionChip(a.action),
-                  const SizedBox(width: 8),
-                  Icon(Icons.chevron_right_rounded, size: 20, color: Colors.grey.shade400),
-                ],
-              ),
-            ),
-          ),
-        );
       },
       ),
     );
@@ -952,64 +852,10 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
           final h = history[index];
           final desc = '${h.action.toUpperCase()} User: ${h.fullName}';
 
-          if (isMobile) {
-            return Material(
-              color: Colors.transparent,
-              child: InkWell(
-                mouseCursor: SystemMouseCursors.click,
-                onTap: () {
-                  ViewActivityModal.show(
-                    context: context,
-                    title: 'USER ACTIVITY',
-                    description: desc,
-                    date: pht.formatModalDate(h.createdAt),
-                    performedBy: h.performedByName ?? h.performedByUsername ?? 'System',
-                    action: h.action,
-                    actionColor: _actionColor(h.action),
-                    icon: _actionIcon(h.action, 'user'),
-                  );
-                },
-                child: Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          CircleAvatar(
-                            radius: 16,
-                            backgroundColor: _actionColor(h.action).withValues(alpha: 0.1),
-                            child: Icon(_actionIcon(h.action, 'user'), color: _actionColor(h.action), size: 16),
-                          ),
-                          const SizedBox(width: 8),
-                          Expanded(
-                            child: Text(
-                              '${h.performedByName ?? h.performedByUsername ?? 'System'} · ${_formatDate(h.createdAt)}',
-                              style: TextStyle(fontSize: 12, color: Colors.grey.shade600, fontWeight: FontWeight.w600),
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          _buildActionChip(h.action),
-                          const SizedBox(width: 8),
-                          Icon(Icons.chevron_right_rounded, size: 20, color: Colors.grey.shade400),
-                        ],
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        desc,
-                        style: const TextStyle(fontWeight: FontWeight.w500, fontSize: 13, color: Colors.black87),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            );
-          }
-
           return Material(
             color: Colors.transparent,
             child: InkWell(
+              mouseCursor: SystemMouseCursors.click,
               onTap: () {
                 ViewActivityModal.show(
                   context: context,
@@ -1023,25 +869,33 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                 );
               },
               child: ListTile(
-                mouseCursor: SystemMouseCursors.click,
-                contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+                contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                 leading: CircleAvatar(
                   backgroundColor: _actionColor(h.action).withValues(alpha: 0.1),
-                  child: Icon(_actionIcon(h.action, 'user'), color: _actionColor(h.action), size: 20),
+                  child: Text(
+                    _getInitials(h.fullName),
+                    style: TextStyle(color: _actionColor(h.action), fontSize: 12, fontWeight: FontWeight.bold),
+                  ),
                 ),
-                title: Text(desc, style: const TextStyle(fontWeight: FontWeight.w500, fontSize: 14)),
-                subtitle: Text(
-                  '${h.performedByName ?? h.performedByUsername ?? 'System'} · ${_formatDate(h.createdAt)}',
-                  style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
+                title: Padding(
+                  padding: const EdgeInsets.only(bottom: 6.0),
+                  child: Align(
+                    alignment: Alignment.centerLeft,
+                    child: _buildActionChip(h.action),
+                  ),
                 ),
-                trailing: Row(
-                  mainAxisSize: MainAxisSize.min,
+                subtitle: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    _buildActionChip(h.action),
-                    const SizedBox(width: 8),
-                    Icon(Icons.chevron_right_rounded, size: 20, color: Colors.grey.shade400),
+                    Text(desc, style: const TextStyle(fontWeight: FontWeight.w500, fontSize: 13, color: Colors.black87)),
+                    const SizedBox(height: 4),
+                    Text(
+                      '${h.performedByName ?? h.performedByUsername ?? 'System'} · ${_formatDate(h.createdAt)}',
+                      style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
+                    ),
                   ],
                 ),
+                trailing: Icon(Icons.chevron_right_rounded, size: 20, color: Colors.grey.shade400),
               ),
             ),
           );
@@ -1097,4 +951,15 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
   }
 
   String _formatDate(String raw) => pht.formatRelative(raw);
+
+  String _getInitials(String name) {
+    if (name.trim().isEmpty) return '?';
+    final parts = name.trim().split(RegExp(r'\s+'));
+    if (parts.length > 1) {
+      return '${parts[0][0]}${parts[1][0]}'.toUpperCase();
+    }
+    return parts[0].length > 1 
+      ? parts[0].substring(0, 2).toUpperCase() 
+      : parts[0].toUpperCase();
+  }
 }

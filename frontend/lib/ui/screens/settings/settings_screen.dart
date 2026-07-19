@@ -17,6 +17,7 @@ import 'dart:io';
 import '../../providers/backup_provider.dart';
 import '../../shared/dialogs/info_dialog.dart';
 import 'teacher_management_screen.dart';
+import '../../../core/utils/date_utils.dart' as pht;
 
 class SettingsScreen extends ConsumerStatefulWidget {
   final String? userRole;
@@ -695,8 +696,18 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                                   padding: const EdgeInsets.only(bottom: 16),
                                   child: Row(
                                     children: [
-                                      Expanded(child: Text('Last Backup: ${info['lastBackup']?.split('T').join(' ').split('.').first ?? 'Never'}', style: const TextStyle(fontSize: 12, color: AppColors.textSecondary))),
-                                      Expanded(child: Text('Last Restore: ${info['lastRestore']?.split('T').join(' ').split('.').first ?? 'Never'}', style: const TextStyle(fontSize: 12, color: AppColors.textSecondary))),
+                                      Expanded(
+                                        child: Text(
+                                          'Last Backup: ${(info['lastBackup'] as String?)?.isNotEmpty == true ? pht.formatModalDate(info['lastBackup'] as String) : 'Never'}', 
+                                          style: const TextStyle(fontSize: 12, color: AppColors.textSecondary)
+                                        )
+                                      ),
+                                      Expanded(
+                                        child: Text(
+                                          'Last Restore: ${(info['lastRestore'] as String?)?.isNotEmpty == true ? pht.formatModalDate(info['lastRestore'] as String) : 'Never'}', 
+                                          style: const TextStyle(fontSize: 12, color: AppColors.textSecondary)
+                                        )
+                                      ),
                                     ],
                                   ),
                                 ),

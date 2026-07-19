@@ -13,6 +13,7 @@ import '../../../providers/document_provider.dart';
 import '../../../providers/student_provider.dart';
 import '../../../shared/dialogs/success_dialog.dart';
 import '../../../shared/dialogs/error_dialog.dart';
+import '../../../../domain/entities/student_model.dart';
 import 'package:wolt_modal_sheet/wolt_modal_sheet.dart';
 
 class UploadOcrModal extends ConsumerStatefulWidget {
@@ -56,33 +57,91 @@ class _UploadOcrModalState extends ConsumerState<UploadOcrModal> {
   int? _matchedStudentId;
 
   bool _isSubmitting = false;
+  bool _isSearchingStudent = false;
+  StudentModel? _matchedStudent;
 
   @override
   void initState() {
     super.initState();
-    // If we opened this from a specific student's folder, fetch their LRN automatically
     if (widget.prefilledStudentId != null) {
       _matchedStudentId = widget.prefilledStudentId;
       _fetchPrefilledStudentLrn();
     }
+    _lrnController.addListener(_onLrnChanged);
   }
 
   @override
   void dispose() {
+    _lrnController.removeListener(_onLrnChanged);
     _lrnController.dispose();
     super.dispose();
   }
 
+  void _onLrnChanged() {
+    final text = _lrnController.text.trim();
+    if (text.length == 12) {
+      if (_matchedStudent == null || _matchedStudent!.lrn != text) {
+        _searchStudentByLrn(text);
+      }
+    } else {
+      if (_matchedStudent != null) {
+        setState(() {
+          _matchedStudent = null;
+          _matchedStudentId = null;
+          _selectedRequirementId = null;
+          _selectedDocumentType = null;
+        });
+      }
+    }
+  }
+
   Future<void> _fetchPrefilledStudentLrn() async {
+    setState(() => _isSearchingStudent = true);
     try {
       final student = await ref.read(studentDetailProvider(widget.prefilledStudentId!).future);
       if (mounted) {
         setState(() {
-          _lrnController.text = student.lrn; // Auto-fill the LRN
+          _lrnController.text = student.lrn;
+          _matchedStudent = student;
+          _isSearchingStudent = false;
         });
       }
     } catch (e) {
-      // Fails silently, the user can still type it manually if needed
+      if (mounted) setState(() => _isSearchingStudent = false);
+    }
+  }
+
+  Future<void> _searchStudentByLrn(String lrn) async {
+    setState(() => _isSearchingStudent = true);
+    try {
+      final storage = const FlutterSecureStorage();
+      final token = await storage.read(key: 'jwt_token');
+      final dio = Dio(BaseOptions(baseUrl: ApiConstants.baseUrl, headers: {'Authorization': 'Bearer $token'}));
+
+      final studentsRes = await dio.get('/students', queryParameters: {'search': lrn});
+      final studentsList = studentsRes.data['students'] as List;
+      
+      if (studentsList.isNotEmpty) {
+        final studentId = studentsList[0]['id'] as int;
+        final student = await ref.read(studentDetailProvider(studentId).future);
+        if (mounted && _lrnController.text.trim() == lrn) {
+          setState(() {
+            _matchedStudent = student;
+            _matchedStudentId = studentId;
+            _isSearchingStudent = false;
+          });
+        }
+      } else {
+        if (mounted) {
+          setState(() {
+            _matchedStudent = null;
+            _matchedStudentId = null;
+            _isSearchingStudent = false;
+          });
+        }
+      }
+    } catch (e) {
+      if (mounted) setState(() => _isSearchingStudent = false);
     }
   }
 
@@ -389,93 +448,183 @@ class _UploadOcrModalState extends ConsumerState<UploadOcrModal> {
           const SizedBox(height: AppSizes.p16),
           
           // DOCUMENT TYPE DROPDOWN (Grouped by JHS / SHS)
-          requirementsAsync.when(
-            data: (requirements) {
-              final jhsReqs = requirements.where((r) => r.category == 'JHS').toList();
-              final shsReqs = requirements.where((r) => r.category == 'SHS').toList();
-
-              final entries = <DropdownMenuEntry<int>>[];
-              
-              if (jhsReqs.isNotEmpty) {
-                entries.add(const DropdownMenuEntry<int>(
-                  value: -1,
-                  label: 'Junior High School',
-                  enabled: false,
-                  style: ButtonStyle(
-                    foregroundColor: WidgetStatePropertyAll(Colors.teal),
-                    textStyle: WidgetStatePropertyAll(TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
-                  ),
-                ));
-                for (final req in jhsReqs) {
-                  entries.add(DropdownMenuEntry<int>(
-                    value: req.id,
-                    label: req.name,
-                    style: const ButtonStyle(
-                      padding: WidgetStatePropertyAll(EdgeInsets.only(left: 32)),
-                      textStyle: WidgetStatePropertyAll(TextStyle(fontSize: 14)),
-                    ),
-                  ));
+          if (_isSearchingStudent)
+             const Padding(
+               padding: EdgeInsets.symmetric(vertical: 24),
+               child: Center(child: CircularProgressIndicator(color: AppColors.primaryGreen)),
+             )
+          else if (_matchedStudent == null)
+             Container(
+               padding: const EdgeInsets.all(AppSizes.p16),
+               decoration: BoxDecoration(
+                 color: Colors.grey.shade50,
+                 borderRadius: BorderRadius.circular(AppSizes.radiusMedium),
+                 border: Border.all(color: Colors.grey.shade300),
+               ),
+               child: const Row(
+                 children: [
+                   Icon(Icons.search, color: AppColors.textSecondary),
+                   SizedBox(width: AppSizes.p12),
+                   Expanded(child: Text('Enter a valid 12-digit LRN to load applicable document types.', style: TextStyle(color: AppColors.textSecondary))),
+                 ],
+               ),
+             )
+          else
+            requirementsAsync.when(
+              data: (requirements) {
+                bool hasJHS = false;
+                bool hasSHS = false;
+                
+                if (_matchedStudent!.enrollments != null && _matchedStudent!.enrollments!.isNotEmpty) {
+                  for (final env in _matchedStudent!.enrollments!) {
+                    if (env.gradeLevel <= 10) hasJHS = true;
+                    if (env.gradeLevel >= 11) hasSHS = true;
+                  }
+                } else {
+                  // Fallback if no enrollments
+                  hasJHS = true;
+                  hasSHS = true;
                 }
-              }
 
-              if (shsReqs.isNotEmpty) {
-                entries.add(const DropdownMenuEntry<int>(
-                  value: -2,
-                  label: 'Senior High School',
-                  enabled: false,
-                  style: ButtonStyle(
-                    foregroundColor: WidgetStatePropertyAll(Colors.purple),
-                    textStyle: WidgetStatePropertyAll(TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
-                  ),
-                ));
-                for (final req in shsReqs) {
-                  entries.add(DropdownMenuEntry<int>(
-                    value: req.id,
-                    label: req.name,
-                    style: const ButtonStyle(
-                      padding: WidgetStatePropertyAll(EdgeInsets.only(left: 32)),
-                      textStyle: WidgetStatePropertyAll(TextStyle(fontSize: 14)),
-                    ),
-                  ));
-                }
-              }
+                List<dynamic> jhsReqs = [];
+                List<dynamic> shsReqs = [];
 
-              return DropdownMenu<int>(
-                initialSelection: _selectedRequirementId,
-                hintText: 'Select Document Type',
-                expandedInsets: EdgeInsets.zero,
-                menuHeight: 300,
-                inputDecorationTheme: InputDecorationTheme(
-                  filled: true,
-                  fillColor: AppColors.surfaceWhite,
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(AppSizes.radiusMedium),
-                    borderSide: BorderSide(color: Colors.grey.shade300),
-                  ),
-                  enabledBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(AppSizes.radiusMedium),
-                    borderSide: BorderSide(color: Colors.grey.shade300),
-                  ),
-                  focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(AppSizes.radiusMedium),
-                    borderSide: const BorderSide(color: AppColors.primaryGreen, width: 2),
-                  ),
-                ),
-                dropdownMenuEntries: entries,
-                onSelected: (val) {
-                  if (val == null || val < 0) return;
-                  setState(() {
-                    _selectedRequirementId = val;
-                    final reqMatch = requirements.firstWhere((r) => r.id == val);
-                    _selectedDocumentType = reqMatch.name;
+                if (hasJHS) {
+                  jhsReqs = requirements.where((r) => r.category == 'JHS').toList();
+                  jhsReqs.sort((a, b) {
+                    if (a.isMandatory && !b.isMandatory) return -1;
+                    if (!a.isMandatory && b.isMandatory) return 1;
+                    return a.name.compareTo(b.name);
                   });
-                },
-              );
-            },
-            loading: () => const Center(child: CircularProgressIndicator(color: AppColors.primaryGreen)),
-            error: (e, st) => Text('Failed to load types: $e', style: const TextStyle(color: AppColors.error)),
-          ),
+                }
+                
+                if (hasSHS) {
+                  shsReqs = requirements.where((r) => r.category == 'SHS').toList();
+                  shsReqs.sort((a, b) {
+                    if (a.isMandatory && !b.isMandatory) return -1;
+                    if (!a.isMandatory && b.isMandatory) return 1;
+                    return a.name.compareTo(b.name);
+                  });
+                }
+
+                final entries = <DropdownMenuEntry<int>>[];
+                
+                if (jhsReqs.isNotEmpty) {
+                  entries.add(const DropdownMenuEntry<int>(
+                    value: -1,
+                    label: 'Junior High School',
+                    enabled: false,
+                    style: ButtonStyle(
+                      foregroundColor: WidgetStatePropertyAll(Colors.teal),
+                      textStyle: WidgetStatePropertyAll(TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
+                    ),
+                  ));
+                  for (final req in jhsReqs) {
+                    entries.add(DropdownMenuEntry<int>(
+                      value: req.id,
+                      label: '${req.name}${req.isMandatory ? " *" : ""}',
+                      trailingIcon: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: req.isMandatory ? Colors.red.shade50 : Colors.grey.shade100,
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: req.isMandatory ? Colors.red.shade200 : Colors.grey.shade300),
+                        ),
+                        child: Text(
+                          req.isMandatory ? 'Mandatory' : 'Optional',
+                          style: TextStyle(
+                            fontSize: 10,
+                            fontWeight: FontWeight.bold,
+                            color: req.isMandatory ? Colors.red.shade700 : Colors.grey.shade600,
+                          ),
+                        ),
+                      ),
+                      style: const ButtonStyle(
+                        padding: WidgetStatePropertyAll(EdgeInsets.only(left: 32, right: 16)),
+                        textStyle: WidgetStatePropertyAll(TextStyle(fontSize: 14)),
+                      ),
+                    ));
+                  }
+                }
+
+                if (shsReqs.isNotEmpty) {
+                  entries.add(const DropdownMenuEntry<int>(
+                    value: -2,
+                    label: 'Senior High School',
+                    enabled: false,
+                    style: ButtonStyle(
+                      foregroundColor: WidgetStatePropertyAll(Colors.purple),
+                      textStyle: WidgetStatePropertyAll(TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
+                    ),
+                  ));
+                  for (final req in shsReqs) {
+                    entries.add(DropdownMenuEntry<int>(
+                      value: req.id,
+                      label: '${req.name}${req.isMandatory ? " *" : ""}',
+                      trailingIcon: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: req.isMandatory ? Colors.red.shade50 : Colors.grey.shade100,
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: req.isMandatory ? Colors.red.shade200 : Colors.grey.shade300),
+                        ),
+                        child: Text(
+                          req.isMandatory ? 'Mandatory' : 'Optional',
+                          style: TextStyle(
+                            fontSize: 10,
+                            fontWeight: FontWeight.bold,
+                            color: req.isMandatory ? Colors.red.shade700 : Colors.grey.shade600,
+                          ),
+                        ),
+                      ),
+                      style: const ButtonStyle(
+                        padding: WidgetStatePropertyAll(EdgeInsets.only(left: 32, right: 16)),
+                        textStyle: WidgetStatePropertyAll(TextStyle(fontSize: 14)),
+                      ),
+                    ));
+                  }
+                }
+
+                if (entries.isEmpty) {
+                  return const Text('No document types found for this student.', style: TextStyle(color: AppColors.error));
+                }
+
+                return DropdownMenu<int>(
+                  initialSelection: _selectedRequirementId,
+                  hintText: 'Select Document Type',
+                  expandedInsets: EdgeInsets.zero,
+                  menuHeight: 300,
+                  inputDecorationTheme: InputDecorationTheme(
+                    filled: true,
+                    fillColor: AppColors.surfaceWhite,
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(AppSizes.radiusMedium),
+                      borderSide: BorderSide(color: Colors.grey.shade300),
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(AppSizes.radiusMedium),
+                      borderSide: BorderSide(color: Colors.grey.shade300),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(AppSizes.radiusMedium),
+                      borderSide: const BorderSide(color: AppColors.primaryGreen, width: 2),
+                    ),
+                  ),
+                  dropdownMenuEntries: entries,
+                  onSelected: (val) {
+                    if (val == null || val < 0) return;
+                    setState(() {
+                      _selectedRequirementId = val;
+                      final reqMatch = requirements.firstWhere((r) => r.id == val);
+                      _selectedDocumentType = reqMatch.name;
+                    });
+                  },
+                );
+              },
+              loading: () => const Center(child: CircularProgressIndicator(color: AppColors.primaryGreen)),
+              error: (e, st) => Text('Failed to load types: $e', style: const TextStyle(color: AppColors.error)),
+            ),
           
           const SizedBox(height: AppSizes.p32),
 

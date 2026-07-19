@@ -126,3 +126,19 @@ exports.clearNotifications = (req, res) => {
     }
 };
 
+// DELETE /api/notifications/:id - Delete a specific notification
+exports.deleteNotification = (req, res) => {
+    const { id } = req.params;
+    try {
+        const userId = req.user.id;
+        const result = db.prepare('DELETE FROM notifications WHERE id = ? AND (user_id IS NULL OR user_id = ?)')
+            .run(id, userId);
+
+        if (result.changes === 0) {
+            return res.status(404).json({ message: 'Notification not found or access denied.' });
+        }
+        res.json({ message: 'Notification deleted' });
+    } catch (error) {
+        res.status(500).json({ message: 'Failed to delete notification', error: error.message });
+    }
+};

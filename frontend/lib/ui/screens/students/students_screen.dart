@@ -94,6 +94,11 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
     });
   }
 
+  void _onSearchSubmitted(String query) {
+    _debounce?.cancel();
+    ref.read(studentQueryProvider.notifier).setSearch(query);
+  }
+
   void _onSearchFocusChanged() {
     if (mounted) setState(() {});
   }
@@ -605,6 +610,9 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
                 child: AppSearchBar(
                   controller: _searchController,
                   focusNode: _searchFocusNode,
+                  collapsible: true,
+                  hideIconWhenExpanded: true,
+                  onSubmitted: _onSearchSubmitted,
                   hint: 'Search by LRN or name...',
                   maxWidth: isDesktop ? 420 : c.maxWidth,
                 ),
@@ -613,7 +621,7 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
                 const SizedBox(width: 8),
                 _buildMultiSelectToggle(false),
               ],
-              if (isDesktop) ...[
+              if (isDesktop && !_searchFocusNode.hasFocus) ...[
                 const SizedBox(width: 8),
                 SizedBox(
                   height: 42,
