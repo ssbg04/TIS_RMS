@@ -21,7 +21,7 @@ class CapstoneMembersModal {
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
           contentPadding: EdgeInsets.zero,
           content: Container(
-            width: isMobile ? MediaQuery.of(ctx).size.width * 0.9 : 700,
+            width: isMobile ? MediaQuery.of(ctx).size.width * 0.9 : 800,
             clipBehavior: Clip.antiAlias,
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(16),
@@ -34,8 +34,6 @@ class CapstoneMembersModal {
                       Image.asset(
                         'assets/images/capstone_members.jpg',
                         width: double.infinity,
-                        height: 220,
-                        fit: BoxFit.contain,
                       ),
                       Padding(
                         padding: const EdgeInsets.all(24.0),
@@ -43,26 +41,25 @@ class CapstoneMembersModal {
                       ),
                     ],
                   )
-                : IntrinsicHeight(
-                    child: Row(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        Expanded(
-                          flex: 4,
-                          child: Image.asset(
-                            'assets/images/capstone_members.jpg',
-                            fit: BoxFit.contain,
-                          ),
+                : Row(
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      Expanded(
+                        flex: 5,
+                        child: Image.asset(
+                          'assets/images/capstone_members.jpg',
+                          width: double.infinity,
+                          fit: BoxFit.fitWidth,
                         ),
-                        Expanded(
-                          flex: 5,
-                          child: Padding(
-                            padding: const EdgeInsets.all(32.0),
-                            child: _buildContent(ctx, members),
-                          ),
+                      ),
+                      Expanded(
+                        flex: 6,
+                        child: Padding(
+                          padding: const EdgeInsets.all(32.0),
+                          child: _buildContent(ctx, members),
                         ),
-                      ],
-                    ),
+                      ),
+                    ],
                   ),
           ),
         );
