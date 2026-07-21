@@ -10,6 +10,7 @@ import 'package:window_manager/window_manager.dart';
 import 'ui/screens/splash/splash_screen.dart'; 
 // Core Imports
 import 'core/theme/app_theme.dart'; // Add this import
+import 'core/constants/app_colors.dart';
 import 'ui/shared/widgets/inactivity_wrapper.dart';
 
 void main() async {
@@ -33,8 +34,8 @@ void main() async {
   }
 
   SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
-    systemNavigationBarColor: Colors.transparent,
-    statusBarColor: Colors.transparent,
+    systemNavigationBarColor: AppColors.primaryGreen,
+    statusBarColor: AppColors.primaryGreen,
   ));
   SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
 

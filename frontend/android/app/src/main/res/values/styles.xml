@@ -19,9 +19,13 @@
     <style name="SplashTheme" parent="@android:style/Theme.Light.NoTitleBar">
         <item name="android:windowBackground">#F9F9F9</item>
         <item name="android:forceDarkAllowed">false</item>
+        <item name="android:statusBarColor">#1C8248</item>
+        <item name="android:navigationBarColor">#1C8248</item>
     </style>
 
     <style name="NormalTheme" parent="@android:style/Theme.Light.NoTitleBar">
         <item name="android:windowBackground">?android:colorBackground</item>
+        <item name="android:statusBarColor">#1C8248</item>
+        <item name="android:navigationBarColor">#1C8248</item>
     </style>
 </resources>

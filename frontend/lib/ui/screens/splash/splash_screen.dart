@@ -282,9 +282,15 @@ class _SplashScreenState extends ConsumerState<SplashScreen> with SingleTickerPr
                               ),
                             ],
                           )
-                        : const LinearProgressIndicator(
-                            valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF1C8248)),
-                            backgroundColor: Color(0xFFE8F5E9),
+                        : const Center(
+                            child: SizedBox(
+                              width: 32,
+                              height: 32,
+                              child: CircularProgressIndicator(
+                                valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF1C8248)),
+                                strokeWidth: 3,
+                              ),
+                            ),
                           ),
                   ),
                   const SizedBox(height: 16),

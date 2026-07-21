@@ -253,14 +253,17 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     ),
                   ),
                   Expanded(
-                    child: Container(
-                      decoration: const BoxDecoration(
-                        color: AppColors.pageBackground,
-                        borderRadius: BorderRadius.only(
-                          topLeft: Radius.circular(24.0),
-                          topRight: Radius.circular(24.0),
+                    child: SafeArea(
+                      top: false,
+                      bottom: true,
+                      child: Container(
+                        decoration: const BoxDecoration(
+                          color: AppColors.pageBackground,
+                          borderRadius: BorderRadius.only(
+                            topLeft: Radius.circular(24.0),
+                            topRight: Radius.circular(24.0),
+                          ),
                         ),
-                      ),
                       child: Center(
                         child: SingleChildScrollView(
                           padding: const EdgeInsets.all(AppSizes.p24),
@@ -270,6 +273,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                           ),
                         ),
                       ),
+                    ),
                     ),
                   ),
                 ],
