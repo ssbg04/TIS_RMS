@@ -58,6 +58,7 @@ dependencies:
   wolt_modal_sheet: ^0.11.0
   printing: ^5.14.3
   pdf: ^3.12.0
+  intl: ^0.20.3
 
 dev_dependencies:
   flutter_test:

@@ -38,6 +38,7 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
   final List<int> _selectedStudentIds = [];
   bool _showMultiSelect = false;
   ProviderSubscription<String>? _tabListener;
+  String _docStatusSort = '';
 
   // Pending filter state (applied only when user taps "Apply now")
   String _pendingSchoolYear = 'All School Years';
@@ -533,7 +534,7 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
                               page.total == 0;
                           return LayoutBuilder(
                             builder: (ctx, c) => c.maxWidth > 800
-                                ? _buildDesktopTable(page.students, noSections: hasNoSections)
+                                ? _buildDesktopTable(page.students, query, noSections: hasNoSections)
                                 : _buildMobileCardList(page.students, noSections: hasNoSections),
                           );
                         },
@@ -1068,8 +1069,15 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
   // ================================================================
   // DESKTOP DATA TABLE
   // ================================================================
-  Widget _buildDesktopTable(List<StudentModel> students, {bool noSections = false}) {
-    if (students.isEmpty) return _buildEmptyState(noSections: noSections);
+  Widget _buildDesktopTable(List<StudentModel> rawStudents, StudentQueryParams query, {bool noSections = false}) {
+    if (rawStudents.isEmpty) return _buildEmptyState(noSections: noSections);
+
+    List<StudentModel> students = List.from(rawStudents);
+    if (_docStatusSort == 'asc') {
+      students.sort((a, b) => a.missingDocumentsCount.compareTo(b.missingDocumentsCount));
+    } else if (_docStatusSort == 'desc') {
+      students.sort((a, b) => b.missingDocumentsCount.compareTo(a.missingDocumentsCount));
+    }
 
     return LayoutBuilder(
       builder: (context, constraints) {
@@ -1124,10 +1132,66 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
                 const DataColumn2(size: ColumnSize.M, label: Text('LRN',           style: TextStyle(fontWeight: FontWeight.bold))),
                 const DataColumn2(size: ColumnSize.L, label: Text('Name',          style: TextStyle(fontWeight: FontWeight.bold))),
                 const DataColumn2(size: ColumnSize.M, label: Text('Grade & Sec.',  style: TextStyle(fontWeight: FontWeight.bold))),
-                const DataColumn2(size: ColumnSize.S, label: Text('4Ps',           style: TextStyle(fontWeight: FontWeight.bold))),
-                const DataColumn2(size: ColumnSize.S, label: Text('Status',        style: TextStyle(fontWeight: FontWeight.bold))),
-                const DataColumn2(size: ColumnSize.M, label: Text('Missing Docs',  style: TextStyle(fontWeight: FontWeight.bold))),
-                const DataColumn2(size: ColumnSize.S, label: Text('Actions',       style: TextStyle(fontWeight: FontWeight.bold))),
+                DataColumn2(
+                  size: ColumnSize.S,
+                  label: Row(
+                    children: [
+                      const Text('4Ps', style: TextStyle(fontWeight: FontWeight.bold)),
+                      PopupMenuButton<String>(
+                        icon: const Icon(Icons.arrow_drop_down, size: 18),
+                        onSelected: (val) {
+                          ref.read(studentQueryProvider.notifier).setIs4Ps(val);
+                        },
+                        itemBuilder: (ctx) => [
+                          CheckedPopupMenuItem(value: '', checked: query.is4Ps == '', child: const Text('All')),
+                          CheckedPopupMenuItem(value: 'true', checked: query.is4Ps == 'true', child: const Text('Yes')),
+                          CheckedPopupMenuItem(value: 'false', checked: query.is4Ps == 'false', child: const Text('No')),
+                        ],
+                      )
+                    ],
+                  ),
+                ),
+                DataColumn2(
+                  size: ColumnSize.S,
+                  label: Row(
+                    children: [
+                      const Text('Status', style: TextStyle(fontWeight: FontWeight.bold)),
+                      PopupMenuButton<String>(
+                        icon: const Icon(Icons.arrow_drop_down, size: 18),
+                        onSelected: (val) {
+                          ref.read(studentQueryProvider.notifier).setStatus(val);
+                        },
+                        itemBuilder: (ctx) => [
+                          CheckedPopupMenuItem(value: '', checked: query.status == '', child: const Text('All Status')),
+                          CheckedPopupMenuItem(value: 'Enrolled', checked: query.status == 'Enrolled', child: const Text('Enrolled')),
+                          CheckedPopupMenuItem(value: 'Graduated', checked: query.status == 'Graduated', child: const Text('Graduated')),
+                          CheckedPopupMenuItem(value: 'Transferred', checked: query.status == 'Transferred', child: const Text('Transferred')),
+                          CheckedPopupMenuItem(value: 'Dropped', checked: query.status == 'Dropped', child: const Text('Dropped')),
+                        ],
+                      )
+                    ],
+                  ),
+                ),
+                DataColumn2(
+                  size: ColumnSize.M,
+                  label: Row(
+                    children: [
+                      const Text('Doc Status', style: TextStyle(fontWeight: FontWeight.bold)),
+                      PopupMenuButton<String>(
+                        icon: const Icon(Icons.arrow_drop_down, size: 18),
+                        onSelected: (val) {
+                          setState(() => _docStatusSort = val);
+                        },
+                        itemBuilder: (ctx) => [
+                          CheckedPopupMenuItem(value: '', checked: _docStatusSort == '', child: const Text('None')),
+                          CheckedPopupMenuItem(value: 'asc', checked: _docStatusSort == 'asc', child: const Text('Least-Greatest')),
+                          CheckedPopupMenuItem(value: 'desc', checked: _docStatusSort == 'desc', child: const Text('Greatest-Least')),
+                        ],
+                      )
+                    ],
+                  ),
+                ),
+                const DataColumn2(size: ColumnSize.S, label: Text('Action', style: TextStyle(fontWeight: FontWeight.bold))),
               ],
               rows: students.map((student) {
                 final isSelected = _selectedStudentIds.contains(student.id);

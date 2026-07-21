@@ -296,8 +296,6 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                                 _buildSetupGuidanceBanner(context),
                                 const SizedBox(height: 32),
                               ],
-                              const Text('Dashboard Overview', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
-                              const SizedBox(height: 8),
                               Text(
                                 'Welcome back, ${user?.firstName ?? 'Admin'}. Here is what is happening today.',
                                 style: TextStyle(fontSize: 16, color: Colors.grey.shade600),
@@ -557,6 +555,13 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
+        if (!_searchFocusNode.hasFocus) ...[
+          const Text(
+            'Dashboard Overview',
+            style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(width: 16),
+        ],
         Expanded(
           child: LayoutBuilder(
             builder: (context, constraints) {

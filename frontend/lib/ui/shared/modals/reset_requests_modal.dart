@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:intl/intl.dart';
 import '../../../core/constants/app_colors.dart';
 
 import '../../providers/auth_provider.dart';
@@ -30,12 +31,65 @@ class _ResetRequestsModalState extends ConsumerState<ResetRequestsModal> {
     });
   }
 
+  String _formatDate(String isoString) {
+    try {
+      final dt = DateTime.parse(isoString).toLocal();
+      return DateFormat('MMM d, yyyy, hh:mm a').format(dt);
+    } catch (_) {
+      return isoString;
+    }
+  }
+
+  Future<void> _confirmAction(BuildContext context, Map<String, dynamic> req, {required bool isApprove}) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(isApprove ? 'Approve Request' : 'Reject Request'),
+        content: Text('Are you sure you want to ${isApprove ? 'approve' : 'reject'} the password reset request for @${req['username']}?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: const Text('CANCEL'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(true),
+            style: TextButton.styleFrom(foregroundColor: isApprove ? AppColors.success : Colors.red),
+            child: const Text('CONFIRM'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true && mounted) {
+      try {
+        final repo = ref.read(authRepositoryProvider);
+        if (isApprove) {
+          await repo.approveResetRequest(req['id'] as int);
+        } else {
+          await repo.rejectResetRequest(req['id'] as int);
+        }
+        ref.invalidate(resetRequestsProvider);
+        if (mounted) {
+          showSuccessDialog(
+            context, 
+            title: isApprove ? 'Approved' : 'Rejected', 
+            message: isApprove ? 'Password reset approved.' : 'Request rejected.',
+          );
+        }
+      } catch (e) {
+        if (mounted) {
+          showErrorDialog(context, isApprove ? 'Approval Failed' : 'Rejection Failed', e.toString());
+        }
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final requestsAsync = ref.watch(resetRequestsProvider);
 
     return CustomModal(
-      title: 'Password Reset Requests',
+      title: 'Reset Requests',
       icon: Icons.lock_clock,
       maxWidth: 500,
       content: requestsAsync.when(
@@ -56,44 +110,38 @@ class _ResetRequestsModalState extends ConsumerState<ResetRequestsModal> {
             separatorBuilder: (context, index) => const Divider(),
             itemBuilder: (context, index) {
               final req = requests[index];
-              return ListTile(
-                contentPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
-                title: Text('${req['first_name']} ${req['last_name']} (@${req['username']})'),
-                subtitle: Text('Role: ${(req['role'] as String).toUpperCase().replaceAll('_', ' ')} • Requested: ${(req['requested_at'] as String).split('T').first}'),
-                trailing: Row(
-                  mainAxisSize: MainAxisSize.min,
+              return Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    TextButton.icon(
-                      icon: const Icon(Icons.check_circle, color: AppColors.success, size: 18),
-                      label: const Text('Approve', style: TextStyle(color: AppColors.success)),
-                      onPressed: () async {
-                        try {
-                          final repo = ref.read(authRepositoryProvider);
-                          await repo.approveResetRequest(req['id'] as int);
-                          ref.invalidate(resetRequestsProvider);
-                          if (!context.mounted) return;
-                          showSuccessDialog(context, title: 'Approved', message: 'Password reset approved.');
-                        } catch (e) {
-                          if (!context.mounted) return;
-                          showErrorDialog(context, 'Approval Failed', e.toString());
-                        }
-                      },
-                    ),
-                    TextButton.icon(
-                      icon: const Icon(Icons.cancel, color: Colors.red, size: 18),
-                      label: const Text('Reject', style: TextStyle(color: Colors.red)),
-                      onPressed: () async {
-                        try {
-                          final repo = ref.read(authRepositoryProvider);
-                          await repo.rejectResetRequest(req['id'] as int);
-                          ref.invalidate(resetRequestsProvider);
-                          if (!context.mounted) return;
-                          showSuccessDialog(context, title: 'Rejected', message: 'Request rejected.');
-                        } catch (e) {
-                          if (!context.mounted) return;
-                          showErrorDialog(context, 'Rejection Failed', e.toString());
-                        }
-                      },
+                    Text('${req['first_name']} ${req['last_name']} (@${req['username']})',
+                         style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                    const SizedBox(height: 4),
+                    Text('Requested: ${_formatDate(req['requested_at'] as String)}',
+                         style: TextStyle(color: Colors.grey.shade600, fontSize: 14)),
+                    const SizedBox(height: 16),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        TextButton(
+                          style: TextButton.styleFrom(
+                            foregroundColor: AppColors.success,
+                            backgroundColor: AppColors.success.withValues(alpha: 0.1),
+                          ),
+                          child: const Text('Approve'),
+                          onPressed: () => _confirmAction(context, req, isApprove: true),
+                        ),
+                        const SizedBox(height: 8),
+                        TextButton(
+                          style: TextButton.styleFrom(
+                            foregroundColor: Colors.red,
+                            backgroundColor: Colors.red.withValues(alpha: 0.1),
+                          ),
+                          child: const Text('Reject'),
+                          onPressed: () => _confirmAction(context, req, isApprove: false),
+                        ),
+                      ],
                     ),
                   ],
                 ),
