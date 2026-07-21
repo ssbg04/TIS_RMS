@@ -292,9 +292,17 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
+                              Text(
+                                'Dashboard Overview',
+                                style: TextStyle(
+                                  fontSize: MediaQuery.of(context).size.width > 600 ? 28 : 24,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                              const SizedBox(height: 16),
                               if (isAdmin && !_setupBannerDismissed) ...[
                                 _buildSetupGuidanceBanner(context),
-                                const SizedBox(height: 32),
+                                const SizedBox(height: 24),
                               ],
                               Text(
                                 'Welcome back, ${user?.firstName ?? 'Admin'}. Here is what is happening today.',
@@ -555,20 +563,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-        if (!_searchFocusNode.hasFocus && _searchController.text.isEmpty) ...[
-          Flexible(
-            child: Text(
-              'Dashboard Overview',
-              style: TextStyle(
-                fontSize: MediaQuery.of(context).size.width > 600 ? 24 : 18, 
-                fontWeight: FontWeight.bold,
-              ),
-              maxLines: 2,
-              overflow: TextOverflow.visible,
-            ),
-          ),
-          const SizedBox(width: 16),
-        ],
+        // Dashboard Overview text moved to body
         Expanded(
           key: const ValueKey('dashboard_search_expanded'),
           child: LayoutBuilder(
