@@ -132,33 +132,34 @@ class _UserHistoryScreenState extends ConsumerState<UserHistoryScreen> {
                           const SizedBox(height: 16),
                           const Text('Action', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13, color: Colors.grey)),
                           const SizedBox(height: 8),
-                          DropdownButtonFormField<String>(
-                            value: pendingAction,
-                            decoration: InputDecoration(
-                              contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                              border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-                            ),
-                            items: ['All Actions', 'created', 'updated', 'deleted']
-                                .map((v) => DropdownMenuItem(
-                                      value: v,
-                                      child: Text(v == 'All Actions' ? v : v.toUpperCase()),
-                                    ))
-                                .toList(),
-                            onChanged: (v) => setDialogState(() => pendingAction = v!),
+                          Wrap(
+                            spacing: 8,
+                            runSpacing: 8,
+                            children: ['All Actions', 'created', 'updated', 'deleted'].map((v) {
+                              final isSelected = pendingAction == v;
+                              return ChoiceChip(
+                                label: Text(v == 'All Actions' ? v : v.toUpperCase()),
+                                selected: isSelected,
+                                selectedColor: AppColors.primaryGreen.withValues(alpha: 0.2),
+                                onSelected: (_) => setDialogState(() => pendingAction = v),
+                              );
+                            }).toList(),
                           ),
                           const SizedBox(height: 16),
                           const Text('Role', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13, color: Colors.grey)),
                           const SizedBox(height: 8),
-                          DropdownButtonFormField<String>(
-                            value: pendingRole,
-                            decoration: InputDecoration(
-                              contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                              border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-                            ),
-                            items: ['All Roles', 'admin', 'teacher']
-                                .map((v) => DropdownMenuItem(value: v, child: Text(v.toUpperCase())))
-                                .toList(),
-                            onChanged: (v) => setDialogState(() => pendingRole = v!),
+                          Wrap(
+                            spacing: 8,
+                            runSpacing: 8,
+                            children: ['All Roles', 'admin', 'teacher'].map((v) {
+                              final isSelected = pendingRole == v;
+                              return ChoiceChip(
+                                label: Text(v.toUpperCase()),
+                                selected: isSelected,
+                                selectedColor: AppColors.primaryGreen.withValues(alpha: 0.2),
+                                onSelected: (_) => setDialogState(() => pendingRole = v),
+                              );
+                            }).toList(),
                           ),
                         ],
                       ),

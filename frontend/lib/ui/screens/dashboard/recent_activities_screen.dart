@@ -135,31 +135,35 @@ class _RecentActivitiesScreenState
                           const SizedBox(height: 16),
                           const Text('Action', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13, color: Colors.grey)),
                           const SizedBox(height: 8),
-                          DropdownButtonFormField<String>(
-                            value: pendingAction,
-                            decoration: InputDecoration(
-                              contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                              border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-                            ),
-                            items: ['All Actions', 'CREATE', 'UPDATE', 'DELETE']
-                                .map((v) => DropdownMenuItem(value: v, child: Text(v)))
-                                .toList(),
-                            onChanged: (v) => setDialogState(() => pendingAction = v!),
+                          Wrap(
+                            spacing: 8,
+                            runSpacing: 8,
+                            children: ['All Actions', 'CREATE', 'UPDATE', 'DELETE'].map((v) {
+                              final isSelected = pendingAction == v;
+                              return ChoiceChip(
+                                label: Text(v),
+                                selected: isSelected,
+                                selectedColor: AppColors.primaryGreen.withValues(alpha: 0.2),
+                                onSelected: (_) => setDialogState(() => pendingAction = v),
+                              );
+                            }).toList(),
                           ),
                           if (!isTeacher) ...[
                             const SizedBox(height: 16),
                             const Text('Entity Type', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13, color: Colors.grey)),
                             const SizedBox(height: 8),
-                            DropdownButtonFormField<String>(
-                              value: pendingEntity,
-                              decoration: InputDecoration(
-                                contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                                border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-                              ),
-                              items: ['All Entities', 'student', 'document']
-                                  .map((v) => DropdownMenuItem(value: v, child: Text(v.toUpperCase())))
-                                  .toList(),
-                              onChanged: (v) => setDialogState(() => pendingEntity = v!),
+                            Wrap(
+                              spacing: 8,
+                              runSpacing: 8,
+                              children: ['All Entities', 'student', 'document'].map((v) {
+                                final isSelected = pendingEntity == v;
+                                return ChoiceChip(
+                                  label: Text(v.toUpperCase()),
+                                  selected: isSelected,
+                                  selectedColor: AppColors.primaryGreen.withValues(alpha: 0.2),
+                                  onSelected: (_) => setDialogState(() => pendingEntity = v),
+                                );
+                              }).toList(),
                             ),
                           ],
                         ],
