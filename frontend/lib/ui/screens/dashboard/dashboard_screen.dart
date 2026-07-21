@@ -556,9 +556,15 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
         if (!_searchFocusNode.hasFocus) ...[
-          const Text(
-            'Dashboard Overview',
-            style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+          const Flexible(
+            child: FittedBox(
+              fit: BoxFit.scaleDown,
+              alignment: Alignment.centerLeft,
+              child: Text(
+                'Dashboard Overview',
+                style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+              ),
+            ),
           ),
           const SizedBox(width: 16),
         ],
@@ -569,6 +575,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
               return Align(
                 alignment: Alignment.centerRight,
                 child: AppSearchBar(
+                  key: const ValueKey('dashboard_search'),
                   controller: _searchController,
                   focusNode: _searchFocusNode,
                   collapsible: true,

@@ -151,7 +151,7 @@ class _AppSearchBarState extends ConsumerState<AppSearchBar> {
               itemBuilder: (context, index) {
                 final term = history[index];
                 return InkWell(
-                  onTap: () {
+                  onTapDown: (_) {
                     _controller.text = term;
                     _focusNode.unfocus();
                     if (widget.onSubmitted != null) {
