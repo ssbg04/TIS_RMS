@@ -556,14 +556,15 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
         if (!_searchFocusNode.hasFocus && _searchController.text.isEmpty) ...[
-          const Flexible(
-            child: FittedBox(
-              fit: BoxFit.scaleDown,
-              alignment: Alignment.centerLeft,
-              child: Text(
-                'Dashboard Overview',
-                style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+          Flexible(
+            child: Text(
+              'Dashboard Overview',
+              style: TextStyle(
+                fontSize: MediaQuery.of(context).size.width > 600 ? 24 : 18, 
+                fontWeight: FontWeight.bold,
               ),
+              maxLines: 2,
+              overflow: TextOverflow.visible,
             ),
           ),
           const SizedBox(width: 16),
@@ -600,7 +601,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
               Builder(builder: (ctx) => Stack(
                 children: [
                   IconButton(
-                    icon: const Icon(Icons.notifications, size: 28),
+                    icon: const Icon(Icons.notifications, size: 32),
                     onPressed: () => _showNotifications(ctx),
                   ),
                   if (unreadCount > 0)

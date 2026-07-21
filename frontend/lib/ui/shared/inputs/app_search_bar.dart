@@ -222,7 +222,7 @@ class _AppSearchBarState extends ConsumerState<AppSearchBar> {
           setState(() => _isExpanded = true);
           _focusNode.requestFocus();
         },
-        icon: const Icon(Icons.search, size: 28),
+        icon: const Icon(Icons.search, size: 32),
         tooltip: 'Search',
       );
     }
@@ -264,6 +264,7 @@ class _AppSearchBarState extends ConsumerState<AppSearchBar> {
                       widget.onChanged?.call('');
                       if (widget.collapsible) {
                         _focusNode.unfocus();
+                        _removeOverlay();
                         setState(() => _isExpanded = false);
                       } else {
                         _focusNode.requestFocus();
