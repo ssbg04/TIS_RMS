@@ -44,6 +44,16 @@ class _AppSearchBarState extends ConsumerState<AppSearchBar> {
   final LayerLink _layerLink = LayerLink();
 
   @override
+  void didUpdateWidget(AppSearchBar oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.maxWidth != widget.maxWidth && _overlayEntry != null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) _overlayEntry?.markNeedsBuild();
+      });
+    }
+  }
+
+  @override
   void initState() {
     super.initState();
     _controller = widget.controller ?? TextEditingController();

@@ -550,7 +550,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     final unreadCount = notificationsAsync.value?.where((n) => !n.isRead).length ?? 0;
 
     return Container(
-      padding: const EdgeInsets.only(bottom: 16),
+      padding: const EdgeInsets.only(bottom: 1, top: 1),
       decoration: BoxDecoration(
         border: Border(bottom: BorderSide(color: Colors.grey.shade300, width: 1.0)),
       ),
@@ -559,55 +559,60 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
         children: [
         Expanded(
           child: LayoutBuilder(
-            builder: (context, constraints) => Align(
-              alignment: Alignment.centerRight,
-              child: AppSearchBar(
-                controller: _searchController,
-                focusNode: _searchFocusNode,
-                collapsible: true,
-                hideIconWhenExpanded: true,
-                hint: 'Search students by LRN or Name...',
-                maxWidth: constraints.maxWidth > 420 ? 420 : constraints.maxWidth,
-                onSubmitted: (value) {
-                  ref.read(studentQueryProvider.notifier).setSearch(value);
-                  ref.invalidate(studentPageProvider);
-                  ref.read(activeTabProvider.notifier).setTab('Students');
-                  _searchController.clear();
-                },
-              ),
-            ),
+            builder: (context, constraints) {
+              final isSearching = _searchFocusNode.hasFocus;
+              return Align(
+                alignment: Alignment.centerRight,
+                child: AppSearchBar(
+                  controller: _searchController,
+                  focusNode: _searchFocusNode,
+                  collapsible: true,
+                  hideIconWhenExpanded: true,
+                  hint: 'Search students by LRN or Name...',
+                  maxWidth: isSearching ? constraints.maxWidth : (constraints.maxWidth > 420 ? 420 : constraints.maxWidth),
+                  onSubmitted: (value) {
+                    ref.read(studentQueryProvider.notifier).setSearch(value);
+                    ref.invalidate(studentPageProvider);
+                    ref.read(activeTabProvider.notifier).setTab('Students');
+                    _searchController.clear();
+                  },
+                ),
+              );
+            },
           ),
         ),
-        const SizedBox(width: 16),
-        Row(
-          children: [
-            Builder(builder: (ctx) => Stack(
-              children: [
-                IconButton(
-                  icon: const Icon(Icons.notifications, size: 28),
-                  onPressed: () => _showNotifications(ctx),
-                ),
-                if (unreadCount > 0)
-                  Positioned(
-                    right: 8, top: 8,
-                    child: Container(
-                      padding: const EdgeInsets.all(4),
-                      decoration: const BoxDecoration(color: Colors.redAccent, shape: BoxShape.circle),
-                      child: Text(
-                        unreadCount.toString(),
-                        style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold),
+        if (!_searchFocusNode.hasFocus) ...[
+          const SizedBox(width: 16),
+          Row(
+            children: [
+              Builder(builder: (ctx) => Stack(
+                children: [
+                  IconButton(
+                    icon: const Icon(Icons.notifications, size: 28),
+                    onPressed: () => _showNotifications(ctx),
+                  ),
+                  if (unreadCount > 0)
+                    Positioned(
+                      right: 8, top: 8,
+                      child: Container(
+                        padding: const EdgeInsets.all(4),
+                        decoration: const BoxDecoration(color: Colors.redAccent, shape: BoxShape.circle),
+                        child: Text(
+                          unreadCount.toString(),
+                          style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold),
+                        ),
                       ),
                     ),
-                  ),
-              ],
-            )),
-            const SizedBox(width: 16),
-            ProfileDropdownMenu(
-              user: user,
-              onRefresh: _handleRefresh, 
-            ),
-          ],
-        ),
+                ],
+              )),
+              const SizedBox(width: 16),
+              ProfileDropdownMenu(
+                user: user,
+                onRefresh: _handleRefresh, 
+              ),
+            ],
+          ),
+        ],
       ],
     ));
   }
