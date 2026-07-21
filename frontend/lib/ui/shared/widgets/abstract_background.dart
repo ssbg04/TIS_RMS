@@ -2,8 +2,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import '../../../core/constants/app_colors.dart';
 
-/// A lightweight, static abstract background decorator that adds subtle,
-/// non-distracting geometric shapes to make screen backgrounds engaging.
+/// A lightweight, static abstract background decorator featuring large, solid shapes (no outlines).
 /// Fully responsive across Mobile, Web, and Desktop platforms.
 class AbstractBackground extends StatelessWidget {
   final Widget child;
@@ -46,121 +45,77 @@ class _AbstractShapesCanvas extends StatelessWidget {
             // Base background tint
             Container(color: AppColors.pageBackground),
 
-            // Shape 1: Top-Right Soft Circle Blob
+            // Shape 1: Top-Right Extra Large Solid Circle
             Positioned(
-              top: -height * 0.08,
-              right: -width * 0.05,
+              top: -height * 0.12,
+              right: -width * 0.10,
+              child: Container(
+                width: math.max(320, width * 0.55),
+                height: math.max(320, width * 0.55),
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: AppColors.primaryGreen.withValues(alpha: 0.075),
+                ),
+              ),
+            ),
+
+            // Shape 2: Top-Left Large Solid Tilted Block
+            Positioned(
+              top: height * 0.08,
+              left: -width * 0.12,
+              child: Transform.rotate(
+                angle: -math.pi / 6,
+                child: Container(
+                  width: math.max(260, width * 0.45),
+                  height: math.max(140, width * 0.22),
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(48),
+                    color: AppColors.darkGreen.withValues(alpha: 0.055),
+                  ),
+                ),
+              ),
+            ),
+
+            // Shape 3: Middle-Right Large Solid Circle
+            Positioned(
+              top: height * 0.35,
+              right: -width * 0.08,
               child: Container(
                 width: math.max(220, width * 0.38),
                 height: math.max(220, width * 0.38),
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  gradient: RadialGradient(
-                    colors: [
-                      AppColors.primaryGreen.withValues(alpha: 0.12),
-                      AppColors.primaryGreen.withValues(alpha: 0.0),
-                    ],
-                  ),
+                  color: AppColors.primaryGreen.withValues(alpha: 0.065),
                 ),
               ),
             ),
 
-            // Shape 2: Top-Left Tilted Rounded Rect
+            // Shape 4: Bottom-Left Extra Large Solid Blob
             Positioned(
-              top: height * 0.10,
-              left: -width * 0.04,
-              child: Transform.rotate(
-                angle: -math.pi / 6,
-                child: Container(
-                  width: math.max(160, width * 0.24),
-                  height: math.max(80, width * 0.12),
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(28),
-                    color: AppColors.darkGreen.withValues(alpha: 0.08),
-                  ),
-                ),
-              ),
-            ),
-
-            // Shape 3: Middle-Left Outline Ring
-            Positioned(
-              top: height * 0.42,
-              left: width * 0.02,
+              bottom: -height * 0.15,
+              left: -width * 0.12,
               child: Container(
-                width: math.max(90, width * 0.13),
-                height: math.max(90, width * 0.13),
+                width: math.max(340, width * 0.60),
+                height: math.max(340, width * 0.60),
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  border: Border.all(
-                    color: AppColors.primaryGreen.withValues(alpha: 0.10),
-                    width: 4,
-                  ),
+                  color: AppColors.primaryGreen.withValues(alpha: 0.07),
                 ),
               ),
             ),
 
-            // Shape 4: Bottom-Left Soft Radial Glow Blob
+            // Shape 5: Bottom-Right Large Solid Tilted Pill Capsule
             Positioned(
-              bottom: -height * 0.1,
-              left: -width * 0.08,
-              child: Container(
-                width: math.max(260, width * 0.42),
-                height: math.max(260, width * 0.42),
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  gradient: RadialGradient(
-                    colors: [
-                      AppColors.primaryGreen.withValues(alpha: 0.11),
-                      AppColors.primaryGreen.withValues(alpha: 0.0),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-
-            // Shape 5: Bottom-Right Tilted Pill Capsule
-            Positioned(
-              bottom: height * 0.12,
-              right: -width * 0.03,
+              bottom: height * 0.05,
+              right: -width * 0.06,
               child: Transform.rotate(
-                angle: math.pi / 4,
+                angle: math.pi / 5,
                 child: Container(
-                  width: math.max(180, width * 0.28),
-                  height: math.max(70, width * 0.10),
+                  width: math.max(280, width * 0.48),
+                  height: math.max(120, width * 0.20),
                   decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(36),
-                    color: AppColors.primaryGreen.withValues(alpha: 0.08),
-                  ),
-                ),
-              ),
-            ),
-
-            // Shape 6: Top-Center Subtle Dot Accent
-            Positioned(
-              top: height * 0.05,
-              left: width * 0.45,
-              child: Container(
-                width: 18,
-                height: 18,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: AppColors.primaryGreen.withValues(alpha: 0.12),
-                ),
-              ),
-            ),
-
-            // Shape 7: Bottom-Center Small Rotated Square
-            Positioned(
-              bottom: height * 0.07,
-              left: width * 0.48,
-              child: Transform.rotate(
-                angle: math.pi / 8,
-                child: Container(
-                  width: 26,
-                  height: 26,
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(8),
-                    color: AppColors.darkGreen.withValues(alpha: 0.09),
+                    borderRadius: BorderRadius.circular(60),
+                    color: AppColors.darkGreen.withValues(alpha: 0.06),
                   ),
                 ),
               ),
