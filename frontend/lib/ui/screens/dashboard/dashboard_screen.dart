@@ -555,27 +555,24 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-        if (!_searchFocusNode.hasFocus) ...[
+        if (!_searchFocusNode.hasFocus && _searchController.text.isEmpty) ...[
           const Flexible(
-            child: FittedBox(
-              fit: BoxFit.scaleDown,
-              alignment: Alignment.centerLeft,
-              child: Text(
-                'Dashboard Overview',
-                style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-              ),
+            child: Text(
+              'Dashboard Overview',
+              style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+              overflow: TextOverflow.ellipsis,
             ),
           ),
           const SizedBox(width: 16),
         ],
         Expanded(
+          key: const ValueKey('dashboard_search_expanded'),
           child: LayoutBuilder(
             builder: (context, constraints) {
-              final isSearching = _searchFocusNode.hasFocus;
+              final isSearching = _searchFocusNode.hasFocus || _searchController.text.isNotEmpty;
               return Align(
                 alignment: Alignment.centerRight,
                 child: AppSearchBar(
-                  key: const ValueKey('dashboard_search'),
                   controller: _searchController,
                   focusNode: _searchFocusNode,
                   collapsible: true,
@@ -593,7 +590,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
             },
           ),
         ),
-        if (!_searchFocusNode.hasFocus) ...[
+        if (!_searchFocusNode.hasFocus && _searchController.text.isEmpty) ...[
           const SizedBox(width: 16),
           Row(
             children: [

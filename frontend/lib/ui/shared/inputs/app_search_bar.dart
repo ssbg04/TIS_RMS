@@ -58,7 +58,7 @@ class _AppSearchBarState extends ConsumerState<AppSearchBar> {
     super.initState();
     _controller = widget.controller ?? TextEditingController();
     _focusNode = widget.focusNode ?? FocusNode();
-    _isExpanded = !widget.collapsible;
+    _isExpanded = !widget.collapsible || _controller.text.trim().isNotEmpty;
     _controller.addListener(_onTextChanged);
     _focusNode.addListener(_onFocusChanged);
   }
@@ -76,7 +76,7 @@ class _AppSearchBarState extends ConsumerState<AppSearchBar> {
   void _onFocusChanged() {
     if (mounted) {
       setState(() {
-        if (!_focusNode.hasFocus && widget.collapsible) {
+        if (!_focusNode.hasFocus && widget.collapsible && _controller.text.trim().isEmpty) {
           _isExpanded = false;
         }
       });
@@ -151,13 +151,15 @@ class _AppSearchBarState extends ConsumerState<AppSearchBar> {
               itemBuilder: (context, index) {
                 final term = history[index];
                 return InkWell(
-                  onTapDown: (_) {
+                  onTap: () {
                     _controller.text = term;
-                    _focusNode.unfocus();
                     if (widget.onSubmitted != null) {
                       widget.onSubmitted!(term);
                     }
                     ref.read(searchHistoryProvider.notifier).addSearch(term);
+                    Future.delayed(const Duration(milliseconds: 50), () {
+                      if (mounted) _focusNode.unfocus();
+                    });
                   },
                   child: Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
@@ -214,18 +216,7 @@ class _AppSearchBarState extends ConsumerState<AppSearchBar> {
 
   @override
   Widget build(BuildContext context) {
-    if (!_isExpanded && widget.collapsible) {
-      if (_hasText) {
-        return IconButton(
-          onPressed: () {
-            _controller.clear();
-            widget.onChanged?.call('');
-            if (widget.onSubmitted != null) widget.onSubmitted!('');
-          },
-          icon: const Icon(Icons.close, size: 28, color: Colors.redAccent),
-          tooltip: 'Clear search',
-        );
-      }
+    if (!_isExpanded && widget.collapsible && !_hasText) {
       return IconButton(
         onPressed: () {
           setState(() => _isExpanded = true);

@@ -590,7 +590,7 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
   Widget _buildHeaderControls(BuildContext context, StudentQueryParams query, WidgetRef ref, int activeCount) {
     return LayoutBuilder(builder: (_, c) {
       final isDesktop = c.maxWidth > 800;
-      final bool isSearchActive = _searchFocusNode.hasFocus;
+      final bool isSearchActive = _searchFocusNode.hasFocus || _searchController.text.isNotEmpty;
 
       return Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,

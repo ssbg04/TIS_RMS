@@ -33,9 +33,10 @@ class _ResetRequestsModalState extends ConsumerState<ResetRequestsModal> {
 
   String _formatDate(String isoString) {
     try {
-      final utcTime = DateTime.parse(isoString).toUtc();
-      final phTime = utcTime.add(const Duration(hours: 8));
-      return DateFormat('MMM d, yyyy, hh:mm a').format(phTime);
+      DateTime dt = DateTime.parse(isoString);
+      if (!dt.isUtc) dt = dt.toUtc();
+      dt = dt.add(const Duration(hours: 8));
+      return DateFormat('MMM d, yyyy, hh:mm a').format(dt);
     } catch (_) {
       return isoString;
     }
