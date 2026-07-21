@@ -15,6 +15,7 @@ import '../../providers/auth_provider.dart';
 import 'package:frontend/ui/providers/navigation_provider.dart';
 import '../../shared/dialogs/error_dialog.dart';
 import '../../shared/dialogs/success_dialog.dart';
+import '../../shared/widgets/abstract_background.dart';
 import '../../../core/utils/validators.dart';
 import '../../../core/network/api_constants.dart';
 import '../../../core/network/server_discovery.dart';
@@ -176,7 +177,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
               ),
             ),
           Expanded(
-            child: LayoutBuilder(
+            child: AbstractBackground(
+              child: LayoutBuilder(
               builder: (context, constraints) {
           if (constraints.maxWidth >= 800) {
             // Desktop: Split Layout
@@ -282,7 +284,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
           }
         },
       ),
-          ),
+    ),
+  ),
         ],
       ),
     );

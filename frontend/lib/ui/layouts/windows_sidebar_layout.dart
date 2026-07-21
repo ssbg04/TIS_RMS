@@ -19,6 +19,7 @@ import '../providers/reports_provider.dart';
 import '../providers/users_provider.dart';  
 import '../providers/auth_provider.dart';
 import '../shared/dialogs/logout_dialog.dart';
+import '../shared/widgets/abstract_background.dart';
 import '../providers/navigation_provider.dart';
 
 import 'dart:io' show Platform;
@@ -457,8 +458,9 @@ class _WindowsSidebarLayoutState extends ConsumerState<WindowsSidebarLayout> {
             // MAIN CONTENT AREA
             // ==========================================
             Expanded(
-              child: Stack(
-                children: [
+              child: AbstractBackground(
+                child: Stack(
+                  children: [
                   IndexedStack(
                     index: currentIndex,
                     children: tabs.asMap().entries.map((entry) {
@@ -477,6 +479,7 @@ class _WindowsSidebarLayoutState extends ConsumerState<WindowsSidebarLayout> {
                 ],
               ),
             ),
+          ),
                 ],
               ),
             ),

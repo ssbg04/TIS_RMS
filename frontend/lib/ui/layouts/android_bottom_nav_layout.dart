@@ -20,6 +20,7 @@ import '../providers/reports_provider.dart';
 import '../providers/users_provider.dart';
 import '../providers/auth_provider.dart';
 import '../shared/dialogs/logout_dialog.dart';
+import '../shared/widgets/abstract_background.dart';
 import '../providers/navigation_provider.dart';
 import '../shared/modals/capstone_members_modal.dart';
 
@@ -313,7 +314,8 @@ class _AndroidBottomNavLayoutState extends ConsumerState<AndroidBottomNavLayout>
           ),
         ),
       ),
-      body: Stack(
+      body: AbstractBackground(
+        child: Stack(
           children: [
             IndexedStack(
               index: currentIndex,
@@ -332,6 +334,7 @@ class _AndroidBottomNavLayoutState extends ConsumerState<AndroidBottomNavLayout>
               ),
           ],
         ),
+      ),
        ),
       ),
     );
