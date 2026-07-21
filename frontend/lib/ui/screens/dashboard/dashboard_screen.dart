@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'dart:ui';
+import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/utils/date_utils.dart' as pht;
@@ -38,9 +39,11 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
   final TextEditingController _searchController = TextEditingController();
   final FocusNode _searchFocusNode = FocusNode();
   ProviderSubscription<String>? _tabListener;
+  Timer? _pollingTimer;
 
   @override
   void dispose() {
+    _pollingTimer?.cancel();
     _tabListener?.close();
     _searchController.dispose();
     _searchFocusNode.dispose();
@@ -61,18 +64,46 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
       if (!mounted) return;
       ref.read(notificationsProvider.notifier).refreshNotifications();
 
+      if (ref.read(activeTabProvider) == 'Dashboard') {
+        _startPolling();
+      }
+
       // Listen to tab changes outside of build() so it is properly cleaned up.
       _tabListener = ref.listenManual<String>(activeTabProvider, (previous, next) {
         if (!mounted) return;
         if (next == 'Dashboard' && previous != 'Dashboard') {
+          setState(() {
+            _setupBannerDismissed = false;
+            _setupBannerMinimized = true;
+          });
+          if (_searchFocusNode.hasFocus) _searchFocusNode.unfocus();
+          _searchController.clear();
+
           _handleRefresh();
           ref.read(authProvider.notifier).refreshUser();
-        }
-        if (next != 'Dashboard' && _searchController.text.isNotEmpty) {
-          _searchController.clear();
+          _startPolling();
+        } else if (next != 'Dashboard') {
+          _stopPolling();
+          if (_searchController.text.isNotEmpty) {
+            _searchController.clear();
+          }
         }
       });
     });
+  }
+
+  void _startPolling() {
+    _pollingTimer?.cancel();
+    _pollingTimer = Timer.periodic(const Duration(seconds: 5), (_) {
+      if (mounted && ref.read(activeTabProvider) == 'Dashboard') {
+        ref.invalidate(dashboardDataProvider);
+        ref.read(notificationsProvider.notifier).refreshNotifications();
+      }
+    });
+  }
+
+  void _stopPolling() {
+    _pollingTimer?.cancel();
   }
 
   Future<void> _handleRefresh() async {
@@ -225,6 +256,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
       backgroundColor: AppColors.pageBackground,
       body: SafeArea(
           child: dashboardAsync.when(
+          skipLoadingOnReload: true,
           loading: () => const Center(child: CircularProgressIndicator()),
           error: (error, _) => Center(
             child: Column(
@@ -332,11 +364,6 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Container(
-                      padding: const EdgeInsets.all(10),
-                      decoration: BoxDecoration(
-                        color: AppColors.primaryGreen.withValues(alpha: 0.15),
-                        shape: BoxShape.circle,
-                      ),
                       child: const Icon(Icons.settings_suggest_rounded, color: AppColors.primaryGreen, size: 22),
                     ),
                     const SizedBox(width: 14),
@@ -348,11 +375,13 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                             'Setup Required',
                             style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: Colors.black87),
                           ),
-                          const SizedBox(height: 4),
-                          const Text(
-                            'Before using the system, please configure the following sections to get started:',
-                            style: TextStyle(fontSize: 13, color: Colors.black54),
-                          ),
+                          if (!_setupBannerMinimized) ...[
+                            const SizedBox(height: 4),
+                            const Text(
+                              'Before using the system, please configure the following sections to get started:',
+                              style: TextStyle(fontSize: 13, color: Colors.black54),
+                            ),
+                          ],
                         ],
                       ),
                     ),
@@ -415,12 +444,12 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                         'Setup Required',
                         style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: Colors.black87),
                       ),
-                      const SizedBox(height: 4),
-                      const Text(
-                        'Before using the system, please configure the following sections to get started:',
-                        style: TextStyle(fontSize: 13, color: Colors.black54),
-                      ),
                       if (!_setupBannerMinimized) ...[
+                        const SizedBox(height: 4),
+                        const Text(
+                          'Before using the system, please configure the following sections to get started:',
+                          style: TextStyle(fontSize: 13, color: Colors.black54),
+                        ),
                         const SizedBox(height: 12),
                         Wrap(
                           spacing: 10,
@@ -520,9 +549,14 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     final notificationsAsync = ref.watch(notificationsProvider);
     final unreadCount = notificationsAsync.value?.where((n) => !n.isRead).length ?? 0;
 
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
+    return Container(
+      padding: const EdgeInsets.only(bottom: 16),
+      decoration: BoxDecoration(
+        border: Border(bottom: BorderSide(color: Colors.grey.shade300, width: 1.0)),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
         Expanded(
           child: LayoutBuilder(
             builder: (context, constraints) => Align(
@@ -575,7 +609,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
           ],
         ),
       ],
-    );
+    ));
   }
 
   // ── STAT GRID ─────────────────────────────────────────────────────────────

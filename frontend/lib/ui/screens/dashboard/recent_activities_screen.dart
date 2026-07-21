@@ -29,7 +29,7 @@ class _RecentActivitiesScreenState
     super.dispose();
   }
 
-  Future<void> _pickDateRange() async {
+  Future<void> _pickDateRange({StateSetter? setDialogState}) async {
     final values = await showCalendarDatePicker2Dialog(
       context: context,
       config: CalendarDatePicker2WithActionButtonsConfig(
@@ -50,6 +50,7 @@ class _RecentActivitiesScreenState
         _fromDate = values[0];
         _toDate = values.length > 1 ? values[1] : values[0];
       });
+      if (setDialogState != null) setDialogState(() {});
       final notifier = ref.read(activityQueryProvider.notifier);
       if (_fromDate != null) {
         final f = _fromDate!;
@@ -114,6 +115,24 @@ class _RecentActivitiesScreenState
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
+                          const Text('Date Range', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13, color: Colors.grey)),
+                          const SizedBox(height: 8),
+                          SizedBox(
+                            width: double.infinity,
+                            child: OutlinedButton.icon(
+                              onPressed: () => _pickDateRange(setDialogState: setDialogState),
+                              icon: const Icon(Icons.calendar_today, size: 16),
+                              label: Text(_getDateRangeText()),
+                              style: OutlinedButton.styleFrom(
+                                alignment: Alignment.centerLeft,
+                                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                                foregroundColor: (_fromDate != null || _toDate != null) ? AppColors.primaryGreen : Colors.black87,
+                                side: BorderSide(color: (_fromDate != null || _toDate != null) ? AppColors.primaryGreen : Colors.grey.shade300),
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 16),
                           const Text('Action', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13, color: Colors.grey)),
                           const SizedBox(height: 8),
                           DropdownButtonFormField<String>(
@@ -150,17 +169,12 @@ class _RecentActivitiesScreenState
                     Container(
                       padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
                       decoration: BoxDecoration(
-                        color: Colors.grey.shade50,
+                        color: Colors.white,
                         borderRadius: const BorderRadius.vertical(bottom: Radius.circular(14)),
                       ),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.end,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
-                          TextButton(
-                            onPressed: () => Navigator.pop(ctx),
-                            child: const Text('Cancel', style: TextStyle(color: Colors.grey)),
-                          ),
-                          const SizedBox(width: 12),
                           ElevatedButton(
                             onPressed: () {
                               final actionToSet = pendingAction == 'All Actions' ? '' : pendingAction;
@@ -169,8 +183,22 @@ class _RecentActivitiesScreenState
                               ref.read(activityQueryProvider.notifier).setEntityTypes(entityToSet);
                               Navigator.pop(ctx);
                             },
-                            style: ElevatedButton.styleFrom(backgroundColor: AppColors.primaryGreen, foregroundColor: Colors.white),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: AppColors.primaryGreen, 
+                              foregroundColor: Colors.white,
+                              padding: const EdgeInsets.symmetric(vertical: 12),
+                            ),
                             child: const Text('Apply Filters'),
+                          ),
+                          const SizedBox(height: 8),
+                          OutlinedButton(
+                            onPressed: () => Navigator.pop(ctx),
+                            style: OutlinedButton.styleFrom(
+                              side: BorderSide(color: Colors.grey.shade300),
+                              foregroundColor: Colors.grey.shade700,
+                              padding: const EdgeInsets.symmetric(vertical: 12),
+                            ),
+                            child: const Text('Cancel'),
                           ),
                         ],
                       ),
@@ -207,10 +235,10 @@ class _RecentActivitiesScreenState
           Container(
             width: double.infinity,
             color: Colors.white,
-            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
             child: Wrap(
-              spacing: 16,
-              runSpacing: 12,
+              spacing: 12,
+              runSpacing: 8,
               crossAxisAlignment: WrapCrossAlignment.center,
               children: [
                 ActionChip(
@@ -220,7 +248,6 @@ class _RecentActivitiesScreenState
                   onPressed: () => _showFilterDialog(query, isTeacher),
                   side: BorderSide.none,
                 ),
-                _dateRangeChip(),
                 if (_fromDate != null || _toDate != null || query.action.isNotEmpty || query.entityTypes.isNotEmpty)
                   ActionChip(
                     avatar: const Icon(Icons.clear, size: 16),
@@ -255,11 +282,7 @@ class _RecentActivitiesScreenState
                       children: [
                         Expanded(child: _buildList(data.activities)),
                         if (data.totalPages > 1)
-                          Container(
-                            color: Colors.white,
-                            padding: const EdgeInsets.only(top: 8),
-                            child: _buildPagination(data, query.page),
-                          ),
+                          _buildPagination(data, query.page),
                       ],
                     ),
             ),
@@ -269,9 +292,8 @@ class _RecentActivitiesScreenState
     );
   }
 
-  Widget _dateRangeChip() {
-    final hasDates = _fromDate != null || _toDate != null;
-    String text = 'Date Range';
+  String _getDateRangeText() {
+    String text = 'Select Date Range';
     if (_fromDate != null && _toDate != null) {
       if (_fromDate!.year == _toDate!.year && _fromDate!.month == _toDate!.month && _fromDate!.day == _toDate!.day) {
         text = '${_fromDate!.day}/${_fromDate!.month}/${_fromDate!.year}';
@@ -283,218 +305,122 @@ class _RecentActivitiesScreenState
     } else if (_toDate != null) {
       text = 'To ${_toDate!.day}/${_toDate!.month}/${_toDate!.year}';
     }
-
-    return ActionChip(
-      avatar: const Icon(Icons.calendar_today, size: 16),
-      label: Text(text),
-      onPressed: _pickDateRange,
-      backgroundColor: hasDates
-          ? AppColors.primaryGreen.withValues(alpha: 0.1)
-          : null,
-      labelStyle: TextStyle(
-        color: hasDates ? AppColors.primaryGreen : Colors.black87,
-      ),
-    );
+    return text;
   }
 
   Widget _buildList(List<RecentActivity> activities) {
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final isWide = constraints.maxWidth > 700;
-        if (isWide) return _buildTable(activities);
-        return _buildCards(activities);
-      },
-    );
-  }
+    return Center(
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 800),
+        child: ListView.separated(
+          padding: const EdgeInsets.all(16),
+          itemCount: activities.length,
+          separatorBuilder: (_, _s) => const SizedBox(height: 12),
+          itemBuilder: (context, i) {
+            final a = activities[i];
+            
+            final DateTime parsedDate = pht.parseToPht(a.createdAt);
+            final dateStr = intl.DateFormat('MMM d, yyyy').format(parsedDate);
+            final timeStr = intl.DateFormat('hh:mm a').format(parsedDate);
 
-  Widget _buildTable(List<RecentActivity> activities) {
-    return Container(
-      margin: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.04),
-            blurRadius: 10,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(12),
-        child: Column(
-          children: [
-            // Sticky Header
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-              color: Colors.grey.shade50,
-              child: const Row(
-                children: [
-                  Expanded(flex: 2, child: Text('Action', style: TextStyle(fontWeight: FontWeight.bold))),
-                  Expanded(flex: 2, child: Text('Entity Type', style: TextStyle(fontWeight: FontWeight.bold))),
-                  Expanded(flex: 4, child: Text('Description', style: TextStyle(fontWeight: FontWeight.bold))),
-                  Expanded(flex: 3, child: Text('Performed By', style: TextStyle(fontWeight: FontWeight.bold))),
-                  Expanded(flex: 2, child: Text('Date', style: TextStyle(fontWeight: FontWeight.bold))),
-                  Expanded(flex: 2, child: Text('Time', style: TextStyle(fontWeight: FontWeight.bold))),
-                ],
-              ),
-            ),
-            const Divider(height: 1),
-            // Scrollable Rows
-            Expanded(
-              child: ListView.separated(
-                itemCount: activities.length,
-                separatorBuilder: (_, __) => const Divider(height: 1),
-                itemBuilder: (context, index) {
-                  final a = activities[index];
-                  
-                  // Format Date and Time
-                  final DateTime parsedDate = pht.parseToPht(a.createdAt);
-                  // [Month Day, Year] -> MMM d, yyyy
-                  final dateStr = intl.DateFormat('MMM d, yyyy').format(parsedDate);
-                  // [12-hour format] -> hh:mm a
-                  final timeStr = intl.DateFormat('hh:mm a').format(parsedDate);
-
-                  return InkWell(
-                    onTap: () {
-                      ViewActivityModal.show(
-                        context: context,
-                        title: a.entityType.toUpperCase(),
-                        description: a.description,
-                        date: pht.formatModalDate(a.createdAt),
-                        performedBy: a.performedBy ?? a.username ?? 'System',
-                        action: a.action,
-                        actionColor: _actionColor(a.action),
-                        icon: _actionIcon(a.action, a.entityType),
-                      );
-                    },
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                      child: Row(
+            return InkWell(
+              onTap: () {
+                ViewActivityModal.show(
+                  context: context,
+                  title: a.entityType.toUpperCase(),
+                  description: a.description,
+                  date: pht.formatModalDate(a.createdAt),
+                  performedBy: a.performedBy ?? a.username ?? 'System',
+                  action: a.action,
+                  actionColor: _actionColor(a.action),
+                  icon: _actionIcon(a.action, a.entityType),
+                );
+              },
+              child: Container(
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: Colors.grey.shade200),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.03),
+                      blurRadius: 10,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
+                ),
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          Expanded(flex: 2, child: Align(alignment: Alignment.centerLeft, child: _actionChip(a.action))),
-                          Expanded(flex: 2, child: Text(a.entityType, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600))),
-                          Expanded(flex: 4, child: Text(a.description, style: const TextStyle(fontSize: 13), maxLines: 2, overflow: TextOverflow.ellipsis)),
-                          Expanded(flex: 3, child: Text(a.performedBy ?? a.username ?? '—', style: const TextStyle(fontSize: 13))),
-                          Expanded(flex: 2, child: Text(dateStr, style: const TextStyle(fontSize: 13))),
-                          Expanded(flex: 2, child: Text(timeStr, style: const TextStyle(fontSize: 13, color: Colors.grey))),
+                          _actionChip(a.action),
+                          Text('$dateStr • $timeStr', style: const TextStyle(fontSize: 12, color: Colors.grey)),
                         ],
                       ),
-                    ),
-                  );
-                },
+                      const SizedBox(height: 14),
+                      Text(
+                        a.description,
+                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
+                      ),
+                      const SizedBox(height: 14),
+                      Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: Colors.grey.shade50,
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(color: Colors.grey.shade100),
+                        ),
+                        child: Column(
+                          children: [
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                const Text('Entity Type', style: TextStyle(fontSize: 13, color: Colors.grey)),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                                  decoration: BoxDecoration(
+                                    color: Colors.grey.shade200,
+                                    borderRadius: BorderRadius.circular(6),
+                                    border: Border.all(color: Colors.grey.shade300),
+                                  ),
+                                  child: Text(
+                                    a.entityType.toUpperCase(),
+                                    style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.grey.shade800),
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const Padding(
+                              padding: EdgeInsets.symmetric(vertical: 8),
+                              child: Divider(height: 1),
+                            ),
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                const Text('Performed By', style: TextStyle(fontSize: 13, color: Colors.grey)),
+                                Text(
+                                  a.performedBy ?? a.username ?? 'System',
+                                  style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
               ),
-            ),
-          ],
+            );
+          },
         ),
       ),
     );
   }
-
-  Widget _buildCards(List<RecentActivity> activities) {
-    return ListView.separated(
-      padding: const EdgeInsets.all(12),
-      itemCount: activities.length,
-      separatorBuilder: (_, _s) => const SizedBox(height: 8),
-      itemBuilder: (context, i) {
-        final a = activities[i];
-        return InkWell(
-          onTap: () {
-            ViewActivityModal.show(
-              context: context,
-              title: a.entityType.toUpperCase(),
-              description: a.description,
-              date: pht.formatModalDate(a.createdAt),
-              performedBy: a.performedBy ?? a.username ?? 'System',
-              action: a.action,
-              actionColor: _actionColor(a.action),
-              icon: _actionIcon(a.action, a.entityType),
-            );
-          },
-          child: Container(
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: Colors.grey.shade100),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.02),
-                  blurRadius: 8,
-                  offset: const Offset(0, 2),
-                ),
-              ],
-            ),
-          child: Padding(
-            padding: const EdgeInsets.all(14),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    _actionChip(a.action),
-                    const SizedBox(width: 8),
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 8,
-                        vertical: 2,
-                      ),
-                      decoration: BoxDecoration(
-                        color: Colors.grey.shade100,
-                        borderRadius: BorderRadius.circular(4),
-                      ),
-                      child: Text(
-                        a.entityType,
-                        style: const TextStyle(fontSize: 12),
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  a.description,
-                  style: const TextStyle(
-                    fontWeight: FontWeight.w500,
-                    fontSize: 14,
-                  ),
-                ),
-                const SizedBox(height: 6),
-                Row(
-                  children: [
-                    const Icon(
-                      Icons.person_outline,
-                      size: 14,
-                      color: Colors.grey,
-                    ),
-                    const SizedBox(width: 4),
-                    Text(
-                      a.performedBy ?? a.username ?? 'System',
-                      style: const TextStyle(fontSize: 12, color: Colors.grey),
-                    ),
-                    const SizedBox(width: 12),
-                    const Icon(Icons.calendar_today_outlined, size: 14, color: Colors.grey),
-                    const SizedBox(width: 4),
-                    Text(
-                      intl.DateFormat('MMM dd, yyyy').format(DateTime.tryParse(a.createdAt) ?? DateTime.now()),
-                      style: const TextStyle(fontSize: 12, color: Colors.grey),
-                    ),
-                    const SizedBox(width: 12),
-                    const Icon(Icons.access_time_outlined, size: 14, color: Colors.grey),
-                    const SizedBox(width: 4),
-                    Text(
-                      intl.DateFormat('hh:mm a').format(DateTime.tryParse(a.createdAt) ?? DateTime.now()),
-                      style: const TextStyle(fontSize: 12, color: Colors.grey),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-        ),
-      );
-    },
-  );
-}
 
   Widget _buildPagination(PaginatedActivities data, int current) {
     return AppPagination(
@@ -507,17 +433,17 @@ class _RecentActivitiesScreenState
   Widget _actionChip(String action) {
     final color = _actionColor(action);
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
       decoration: BoxDecoration(
-        color: Colors.grey.shade100,
-        borderRadius: BorderRadius.circular(4),
-        border: Border.all(color: Colors.grey.shade300),
+        color: color.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(6),
+        border: Border.all(color: color.withValues(alpha: 0.2)),
       ),
       child: Text(
         action.toUpperCase(),
         style: TextStyle(
-          fontSize: 11,
-          fontWeight: FontWeight.w600,
+          fontSize: 12,
+          fontWeight: FontWeight.bold,
           color: color,
         ),
       ),
