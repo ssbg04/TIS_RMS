@@ -33,6 +33,7 @@ migrate_working_dir/
 /build/
 /coverage/
 AGENT.md
+SETUP.md
 
 # Symbolication related
 app.*.symbols

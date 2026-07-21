@@ -2,36 +2,34 @@
 
 # Server
 
-## folder directory
+## Folder paths
 1. root: F:\SumbrerongBato\tis_rms_server\backend
 2. copy the root files including node module for fully standalone to F:\SumbrerongBato\tis_rms_server\backend_build
 - root folder have dummy data for testing, do not add data in the backend_build folder
 
 ## installer
-- use inno setup compiler
-- add save folder path for the installer, default to F:\SumbrerongBato\tis_rms_server\installers
-- add checkbox for auto startup
-- run in the background
-- save on specific location in local example C:\TIS_RMS
-- add logo icon on the installer
-- add uninstaller
-- separate with data and without data installer
-
-## OS Dependency Setup (Ghostscript & Tesseract OCR)
-The backend automatically detects the operating system on startup:
-
-### 1. Windows Systems
-- Uses the bundled binaries located inside the backend directory:
-  - `backend/ghostscript/bin`
-  - `backend/tesseract`
-- No manual package installation required.
-
-### 2. Linux / Ubuntu Systems
-- Uses system-installed `ghostscript` and `tesseract-ocr`.
-- The backend automatically checks for missing binaries on startup and attempts auto-installation if running as root/sudo.
-- **One-line manual setup command for Ubuntu**:
-  ```bash
-  sudo apt-get update && sudo apt-get install -y ghostscript tesseract-ocr tesseract-ocr-eng libtesseract-dev
-  ```
+1. use inno setup compiler
+2. separate with dummy data and without data installer
+3. save on specific location in local example C:\TIS_RMS
+4. add checkbox for auto startup
+5. add uninstaller
+6. run in the background
+7. add logo icon on the installer
+8. add save folder path for the installer, default to F:\SumbrerongBato\tis_rms_server\installers
 
 ---
+
+# Client
+
+## Windows App
+
+### Folder paths
+1. root release files: F:\SumbrerongBato\tis_rms_server\frontend\build\windows\x64\runner\Release
+2. folder copy: F:\SumbrerongBato\tis_rms_server\frontend_build
+
+## installer
+1. use inno setup compiler
+2. separate with dummy data and without data installer
+5. add uninstaller
+7. add logo icon on the installer
+8. add save folder path for the installer, default to F:\SumbrerongBato\tis_rms_server\installers
