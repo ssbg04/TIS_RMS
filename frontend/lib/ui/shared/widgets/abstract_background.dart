@@ -51,13 +51,13 @@ class _AbstractShapesCanvas extends StatelessWidget {
               top: -height * 0.08,
               right: -width * 0.05,
               child: Container(
-                width: math.max(180, width * 0.35),
-                height: math.max(180, width * 0.35),
+                width: math.max(220, width * 0.38),
+                height: math.max(220, width * 0.38),
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
                   gradient: RadialGradient(
                     colors: [
-                      AppColors.primaryGreen.withValues(alpha: 0.07),
+                      AppColors.primaryGreen.withValues(alpha: 0.12),
                       AppColors.primaryGreen.withValues(alpha: 0.0),
                     ],
                   ),
@@ -67,16 +67,16 @@ class _AbstractShapesCanvas extends StatelessWidget {
 
             // Shape 2: Top-Left Tilted Rounded Rect
             Positioned(
-              top: height * 0.12,
+              top: height * 0.10,
               left: -width * 0.04,
               child: Transform.rotate(
                 angle: -math.pi / 6,
                 child: Container(
-                  width: math.max(140, width * 0.22),
-                  height: math.max(70, width * 0.11),
+                  width: math.max(160, width * 0.24),
+                  height: math.max(80, width * 0.12),
                   decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(24),
-                    color: AppColors.darkGreen.withValues(alpha: 0.035),
+                    borderRadius: BorderRadius.circular(28),
+                    color: AppColors.darkGreen.withValues(alpha: 0.08),
                   ),
                 ),
               ),
@@ -84,16 +84,16 @@ class _AbstractShapesCanvas extends StatelessWidget {
 
             // Shape 3: Middle-Left Outline Ring
             Positioned(
-              top: height * 0.45,
-              left: width * 0.03,
+              top: height * 0.42,
+              left: width * 0.02,
               child: Container(
-                width: math.max(80, width * 0.12),
-                height: math.max(80, width * 0.12),
+                width: math.max(90, width * 0.13),
+                height: math.max(90, width * 0.13),
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
                   border: Border.all(
-                    color: AppColors.primaryGreen.withValues(alpha: 0.05),
-                    width: 3,
+                    color: AppColors.primaryGreen.withValues(alpha: 0.10),
+                    width: 4,
                   ),
                 ),
               ),
@@ -104,13 +104,13 @@ class _AbstractShapesCanvas extends StatelessWidget {
               bottom: -height * 0.1,
               left: -width * 0.08,
               child: Container(
-                width: math.max(220, width * 0.4),
-                height: math.max(220, width * 0.4),
+                width: math.max(260, width * 0.42),
+                height: math.max(260, width * 0.42),
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
                   gradient: RadialGradient(
                     colors: [
-                      AppColors.primaryGreen.withValues(alpha: 0.06),
+                      AppColors.primaryGreen.withValues(alpha: 0.11),
                       AppColors.primaryGreen.withValues(alpha: 0.0),
                     ],
                   ),
@@ -120,16 +120,16 @@ class _AbstractShapesCanvas extends StatelessWidget {
 
             // Shape 5: Bottom-Right Tilted Pill Capsule
             Positioned(
-              bottom: height * 0.15,
+              bottom: height * 0.12,
               right: -width * 0.03,
               child: Transform.rotate(
                 angle: math.pi / 4,
                 child: Container(
-                  width: math.max(160, width * 0.25),
-                  height: math.max(60, width * 0.09),
+                  width: math.max(180, width * 0.28),
+                  height: math.max(70, width * 0.10),
                   decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(30),
-                    color: AppColors.primaryGreen.withValues(alpha: 0.04),
+                    borderRadius: BorderRadius.circular(36),
+                    color: AppColors.primaryGreen.withValues(alpha: 0.08),
                   ),
                 ),
               ),
@@ -137,30 +137,30 @@ class _AbstractShapesCanvas extends StatelessWidget {
 
             // Shape 6: Top-Center Subtle Dot Accent
             Positioned(
-              top: height * 0.06,
-              left: width * 0.42,
+              top: height * 0.05,
+              left: width * 0.45,
               child: Container(
-                width: 14,
-                height: 14,
+                width: 18,
+                height: 18,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  color: AppColors.primaryGreen.withValues(alpha: 0.06),
+                  color: AppColors.primaryGreen.withValues(alpha: 0.12),
                 ),
               ),
             ),
 
             // Shape 7: Bottom-Center Small Rotated Square
             Positioned(
-              bottom: height * 0.08,
-              left: width * 0.5,
+              bottom: height * 0.07,
+              left: width * 0.48,
               child: Transform.rotate(
                 angle: math.pi / 8,
                 child: Container(
-                  width: 22,
-                  height: 22,
+                  width: 26,
+                  height: 26,
                   decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(6),
-                    color: AppColors.darkGreen.withValues(alpha: 0.04),
+                    borderRadius: BorderRadius.circular(8),
+                    color: AppColors.darkGreen.withValues(alpha: 0.09),
                   ),
                 ),
               ),

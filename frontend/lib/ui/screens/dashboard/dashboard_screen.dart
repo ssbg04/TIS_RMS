@@ -253,7 +253,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
 
     // Clean up if not used
     return Scaffold(
-      backgroundColor: AppColors.pageBackground,
+      backgroundColor: Colors.transparent,
       body: SafeArea(
           child: dashboardAsync.when(
           skipLoadingOnReload: true,
