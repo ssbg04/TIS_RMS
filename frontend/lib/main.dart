@@ -63,6 +63,15 @@ class TisRmsApp extends StatelessWidget {
         // Clean, centralized theme reference!
         theme: AppTheme.lightTheme, 
         
+        builder: (context, child) {
+          return ColoredBox(
+            color: AppColors.primaryGreen,
+            child: SafeArea(
+              child: child!,
+            ),
+          );
+        },
+        
         home: const SplashScreen(), 
       ),
     );
