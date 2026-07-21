@@ -557,10 +557,13 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
         children: [
         if (!_searchFocusNode.hasFocus && _searchController.text.isEmpty) ...[
           const Flexible(
-            child: Text(
-              'Dashboard Overview',
-              style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-              overflow: TextOverflow.ellipsis,
+            child: FittedBox(
+              fit: BoxFit.scaleDown,
+              alignment: Alignment.centerLeft,
+              child: Text(
+                'Dashboard Overview',
+                style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+              ),
             ),
           ),
           const SizedBox(width: 16),
@@ -591,7 +594,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
           ),
         ),
         if (!_searchFocusNode.hasFocus && _searchController.text.isEmpty) ...[
-          const SizedBox(width: 16),
+          const SizedBox(width: 4),
           Row(
             children: [
               Builder(builder: (ctx) => Stack(

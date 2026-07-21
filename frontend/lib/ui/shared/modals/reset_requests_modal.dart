@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:intl/intl.dart';
 import '../../../core/constants/app_colors.dart';
+import '../../../core/utils/date_utils.dart' as date_utils;
 
 import '../../providers/auth_provider.dart';
 import '../dialogs/error_dialog.dart';
@@ -29,17 +29,6 @@ class _ResetRequestsModalState extends ConsumerState<ResetRequestsModal> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       ref.invalidate(resetRequestsProvider);
     });
-  }
-
-  String _formatDate(String isoString) {
-    try {
-      DateTime dt = DateTime.parse(isoString);
-      if (!dt.isUtc) dt = dt.toUtc();
-      dt = dt.add(const Duration(hours: 8));
-      return DateFormat('MMM d, yyyy, hh:mm a').format(dt);
-    } catch (_) {
-      return isoString;
-    }
   }
 
   Future<void> _confirmAction(BuildContext context, Map<String, dynamic> req, {required bool isApprove}) async {
@@ -120,7 +109,7 @@ class _ResetRequestsModalState extends ConsumerState<ResetRequestsModal> {
                     Text('${req['first_name']} ${req['last_name']} (@${req['username']})',
                          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
                     const SizedBox(height: 4),
-                    Text('Requested: ${_formatDate(req['requested_at'] as String)}',
+                    Text('Requested: ${date_utils.formatModalDate(req['requested_at'] as String)}',
                          style: TextStyle(color: Colors.grey.shade600, fontSize: 14)),
                     const SizedBox(height: 16),
                     Column(

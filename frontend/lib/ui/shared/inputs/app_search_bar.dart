@@ -232,8 +232,7 @@ class _AppSearchBarState extends ConsumerState<AppSearchBar> {
       onTapOutside: (event) => _focusNode.unfocus(),
       child: CompositedTransformTarget(
         link: _layerLink,
-        child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
+        child: Container(
         width: widget.maxWidth,
         height: 42.0,
         decoration: BoxDecoration(
@@ -263,7 +262,12 @@ class _AppSearchBarState extends ConsumerState<AppSearchBar> {
                     onPressed: () {
                       _controller.clear();
                       widget.onChanged?.call('');
-                      _focusNode.requestFocus();
+                      if (widget.collapsible) {
+                        _focusNode.unfocus();
+                        setState(() => _isExpanded = false);
+                      } else {
+                        _focusNode.requestFocus();
+                      }
                     },
                   )
                 : null,
