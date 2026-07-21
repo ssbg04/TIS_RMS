@@ -43,30 +43,36 @@ exports.extractOcrData = async (req, res) => {
                 req.file.path // Input PDF file
             ];
 
+            const isWindows = process.platform === 'win32';
+
             try {
-                // Try gswin64c first, if it fails, fallback to gs
-                await execFileAsync('gswin64c', gsArgs);
-            } catch (err) {
-                if (err.code === 'ENOENT') {
-                    // Fallback to gs or gswin32c if gswin64c doesn't exist
+                if (isWindows) {
                     try {
-                        await execFileAsync('gs', gsArgs);
-                    } catch (fallbackErr) {
-                        try {
-                            await execFileAsync('gswin32c', gsArgs);
-                        } catch (finalErr) {
-                            if (finalErr.code === 'ENOENT') {
-                                return res.status(500).json({ 
-                                    message: 'Missing OCR Program', 
-                                    error: 'Ghostscript is not installed or not added to PATH. PDF conversion failed.' 
-                                });
+                        await execFileAsync('gswin64c', gsArgs);
+                    } catch (err) {
+                        if (err.code === 'ENOENT') {
+                            try {
+                                await execFileAsync('gs', gsArgs);
+                            } catch (fallbackErr) {
+                                await execFileAsync('gswin32c', gsArgs);
                             }
-                            throw finalErr;
-                        }
+                        } else throw err;
                     }
                 } else {
-                    throw err;
+                    // Linux / Ubuntu: Run 'gs' executable directly from system PATH
+                    await execFileAsync('gs', gsArgs);
                 }
+            } catch (finalErr) {
+                if (finalErr.code === 'ENOENT') {
+                    const missingErr = isWindows
+                        ? 'Ghostscript is not installed or missing from backend/ghostscript folder.'
+                        : 'Ghostscript (gs) is missing on Linux. Install via: sudo apt-get install -y ghostscript';
+                    return res.status(500).json({ 
+                        message: 'Missing OCR Program', 
+                        error: missingErr 
+                    });
+                }
+                throw finalErr;
             }
             
             console.log('[OCR] Ghostscript successfully generated PNG:', outputPngPath);
@@ -75,14 +81,16 @@ exports.extractOcrData = async (req, res) => {
         }
 
         // ==========================================
-        // 2. READ FILE INTO BUFFER
-        // ==========================================
-        // 3. RUN NATIVE TESSERACT EXECUTABLE
+        // 2. RUN NATIVE TESSERACT EXECUTABLE
         // ==========================================
         console.log('[OCR] Starting Native Tesseract Engine...');
         
-        // Ensure TESSDATA_PREFIX is set to the tesseract folder so it finds eng.traineddata
-        const tessEnv = { ...process.env, TESSDATA_PREFIX: path.join(__dirname, '..', '..', 'tesseract', 'tessdata') };
+        // Ensure TESSDATA_PREFIX fallback for both Windows and Linux
+        const defaultTessData = path.join(__dirname, '..', '..', 'tesseract', 'tessdata');
+        const tessEnv = { 
+            ...process.env, 
+            TESSDATA_PREFIX: process.env.TESSDATA_PREFIX || defaultTessData 
+        };
         
         let stdout;
         try {
@@ -94,9 +102,12 @@ exports.extractOcrData = async (req, res) => {
             stdout = result.stdout;
         } catch (tessErr) {
             if (tessErr.code === 'ENOENT') {
+                const missingErr = process.platform === 'win32'
+                    ? 'Tesseract OCR is not installed or missing from backend/tesseract folder.'
+                    : 'Tesseract OCR is missing on Linux. Install via: sudo apt-get install -y tesseract-ocr tesseract-ocr-eng';
                 return res.status(500).json({ 
                     message: 'Missing OCR Program', 
-                    error: 'Tesseract OCR is not installed or not added to PATH.' 
+                    error: missingErr 
                 });
             }
             throw tessErr;

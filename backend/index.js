@@ -6,11 +6,10 @@ const path = require('path');
 require('dotenv').config();
 
 // ==========================================
-// BUNDLED BINARIES FOR OCR (Ghostscript, Tesseract)
+// CROSS-PLATFORM SYSTEM SETUP (Ghostscript, Tesseract)
 // ==========================================
-const gsPath = path.join(__dirname, 'ghostscript', 'bin');
-const tessPath = path.join(__dirname, 'tesseract');
-process.env.PATH = `${gsPath}${path.delimiter}${tessPath}${path.delimiter}${process.env.PATH}`;
+const { setupSystemEnvironment } = require('./src/config/systemSetup');
+setupSystemEnvironment();
 
 
 const { initSchema } = require('./src/models/schema');
