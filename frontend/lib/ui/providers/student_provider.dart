@@ -268,11 +268,11 @@ class StudentMutationNotifier extends AsyncNotifier<void> {
     }
   }
 
-  Future<void> deleteStudent(int id) async {
+  Future<void> setStudentInactive(int id, StudentModel student) async {
     state = const AsyncLoading();
     try {
       final repo = ref.read(studentRepositoryProvider);
-      await repo.deleteStudent(id);
+      await repo.setStudentInactive(id, student);
       state = const AsyncData(null);
       ref.invalidate(studentPageProvider);
       ref.invalidate(studentDetailProvider(id));
@@ -319,6 +319,22 @@ class StudentMutationNotifier extends AsyncNotifier<void> {
       ref.invalidate(studentPageProvider);
       for (final id in studentIds) {
         ref.invalidate(studentDetailProvider(id));
+      }
+    } catch (e, st) {
+      state = AsyncError(e, st);
+      rethrow;
+    }
+  }
+
+  Future<void> bulkChangeStatus(List<StudentModel> students, String newStatus) async {
+    state = const AsyncLoading();
+    try {
+      final repo = ref.read(studentRepositoryProvider);
+      await repo.bulkChangeStatus(students, newStatus);
+      state = const AsyncData(null);
+      ref.invalidate(studentPageProvider);
+      for (final student in students) {
+        ref.invalidate(studentDetailProvider(student.id));
       }
     } catch (e, st) {
       state = AsyncError(e, st);

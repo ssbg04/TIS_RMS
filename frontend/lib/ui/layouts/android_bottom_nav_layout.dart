@@ -41,12 +41,60 @@ class AndroidBottomNavLayout extends ConsumerStatefulWidget {
   ConsumerState<AndroidBottomNavLayout> createState() => _AndroidBottomNavLayoutState();
 }
 
-class _AndroidBottomNavLayoutState extends ConsumerState<AndroidBottomNavLayout> {
+class _AndroidBottomNavLayoutState extends ConsumerState<AndroidBottomNavLayout> with TickerProviderStateMixin {
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
   final Set<int> _visitedIndices = {};
   Timer? _holdTimer;
   Timer? _tabLoadingTimer;
   bool _isTabLoading = false;
+
+  TabController? _tabController;
+  List<Map<String, dynamic>> _tabs = [];
+  List<Map<String, dynamic>> _allowedPrimary = [];
+  List<Map<String, dynamic>> _allowedSecondary = [];
+
+  @override
+  void initState() {
+    super.initState();
+    _initTabs();
+  }
+
+  void _initTabs() {
+    final primaryTabsConfig = [
+      {'label': 'Dashboard', 'icon': Icons.dashboard_outlined, 'activeIcon': Icons.dashboard, 'screen': const DashboardScreen(), 'roles': ['admin', 'teacher']},
+      {'label': 'Students', 'icon': Icons.people_outline, 'activeIcon': Icons.people, 'screen': StudentsScreen(userRole: widget.userRole), 'roles': ['admin', 'teacher']},
+      {'label': 'Documents', 'icon': Icons.folder_outlined, 'activeIcon': Icons.folder, 'screen': DocumentsScreen(userRole: widget.userRole), 'roles': ['admin', 'teacher']},
+      {'label': 'Archives', 'icon': Icons.archive_outlined, 'activeIcon': Icons.archive, 'screen': ArchivesScreen(userRole: widget.userRole), 'roles': ['admin']},
+    ];
+    final secondaryTabsConfig = [
+      {'label': 'Reports', 'icon': Icons.bar_chart, 'activeIcon': Icons.bar_chart, 'screen': ReportsScreen(userRole: widget.userRole), 'roles': ['admin']},
+      {'label': 'Users', 'icon': Icons.manage_accounts_outlined, 'activeIcon': Icons.manage_accounts, 'screen': const UsersScreen(), 'roles': ['admin']},
+      {'label': 'Settings', 'icon': Icons.settings_outlined, 'activeIcon': Icons.settings, 'screen': SettingsScreen(userRole: widget.userRole), 'roles': ['admin', 'teacher']},
+    ];
+    _allowedPrimary = primaryTabsConfig.where((t) => (t['roles'] as List<String>).contains(widget.userRole)).toList();
+    _allowedSecondary = secondaryTabsConfig.where((t) => (t['roles'] as List<String>).contains(widget.userRole)).toList();
+    _tabs = [..._allowedPrimary, ..._allowedSecondary];
+    
+    _tabController = TabController(length: _tabs.length, vsync: this);
+    _tabController!.addListener(_handleTabSelection);
+  }
+
+  void _handleTabSelection() {
+    if (_tabController!.indexIsChanging) return;
+    final newLabel = _tabs[_tabController!.index]['label'] as String;
+    if (ref.read(activeTabProvider) != newLabel) {
+      ref.read(activeTabProvider.notifier).setTab(newLabel);
+      _reloadTabContent(newLabel);
+    }
+  }
+
+  @override
+  void dispose() {
+    _tabController?.dispose();
+    _holdTimer?.cancel();
+    _tabLoadingTimer?.cancel();
+    super.dispose();
+  }
 
   void _reloadTabContent(String label) {
     switch (label) {
@@ -99,25 +147,14 @@ class _AndroidBottomNavLayoutState extends ConsumerState<AndroidBottomNavLayout>
 
   @override
   Widget build(BuildContext context) {
-    final primaryTabsConfig = [
-      {'label': 'Dashboard', 'icon': Icons.dashboard_outlined, 'activeIcon': Icons.dashboard, 'screen': const DashboardScreen(), 'roles': ['admin', 'teacher']},
-      {'label': 'Students', 'icon': Icons.people_outline, 'activeIcon': Icons.people, 'screen': StudentsScreen(userRole: widget.userRole), 'roles': ['admin', 'teacher']},
-      {'label': 'Documents', 'icon': Icons.folder_outlined, 'activeIcon': Icons.folder, 'screen': DocumentsScreen(userRole: widget.userRole), 'roles': ['admin', 'teacher']},
-      {'label': 'Archives', 'icon': Icons.archive_outlined, 'activeIcon': Icons.archive, 'screen': ArchivesScreen(userRole: widget.userRole), 'roles': ['admin']},
-    ];
-    final secondaryTabsConfig = [
-      {'label': 'Reports', 'icon': Icons.bar_chart, 'activeIcon': Icons.bar_chart, 'screen': ReportsScreen(userRole: widget.userRole), 'roles': ['admin']},
-      {'label': 'Users', 'icon': Icons.manage_accounts_outlined, 'activeIcon': Icons.manage_accounts, 'screen': const UsersScreen(), 'roles': ['admin']},
-      {'label': 'Settings', 'icon': Icons.settings_outlined, 'activeIcon': Icons.settings, 'screen': SettingsScreen(userRole: widget.userRole), 'roles': ['admin', 'teacher']},
-    ];
-    final allowedPrimary = primaryTabsConfig.where((t) => (t['roles'] as List<String>).contains(widget.userRole)).toList();
-    final allowedSecondary = secondaryTabsConfig.where((t) => (t['roles'] as List<String>).contains(widget.userRole)).toList();
-    final tabs = [...allowedPrimary, ...allowedSecondary];
-
     final activeTab = ref.watch(activeTabProvider);
 
-    int currentIndex = tabs.indexWhere((t) => t['label'] == activeTab);
+    int currentIndex = _tabs.indexWhere((t) => t['label'] == activeTab);
     if (currentIndex == -1) currentIndex = 0; // Fallback to Dashboard
+
+    if (_tabController != null && _tabController!.index != currentIndex) {
+      _tabController!.animateTo(currentIndex);
+    }
 
     _visitedIndices.add(currentIndex);
 
@@ -168,15 +205,25 @@ class _AndroidBottomNavLayoutState extends ConsumerState<AndroidBottomNavLayout>
           backgroundColor: Colors.white,
           foregroundColor: AppColors.primaryGreen,
           iconTheme: const IconThemeData(color: AppColors.primaryGreen),
-          title: Text(
-            tabs[currentIndex]['label'] as String, 
-            style: const TextStyle(fontWeight: FontWeight.bold, color: AppColors.primaryGreen),
+          title: const Text(
+            'TIS RMS', 
+            style: TextStyle(fontWeight: FontWeight.bold, color: AppColors.primaryGreen),
           ),
           elevation: 0,
           surfaceTintColor: Colors.transparent,
-          bottom: PreferredSize(
-            preferredSize: const Size.fromHeight(1.0),
-            child: Container(color: Colors.black12, height: 1.0),
+          bottom: TabBar(
+            controller: _tabController,
+            isScrollable: true,
+            indicatorColor: AppColors.primaryGreen,
+            labelColor: AppColors.primaryGreen,
+            unselectedLabelColor: Colors.black54,
+            tabAlignment: TabAlignment.start,
+            tabs: _tabs.map((t) {
+              return Tab(
+                icon: Icon(t['icon'] as IconData, size: 20),
+                text: t['label'] as String,
+              );
+            }).toList(),
           ),
         ),
         drawer: Drawer(
@@ -242,25 +289,41 @@ class _AndroidBottomNavLayoutState extends ConsumerState<AndroidBottomNavLayout>
                       child: ListView(
                         padding: EdgeInsets.zero,
                         children: [
-                          if (allowedPrimary.isNotEmpty) ...[
-                            const Padding(
-                              padding: EdgeInsets.fromLTRB(28, 16, 16, 8),
-                              child: Text('OVERVIEW', style: TextStyle(color: AppColors.textSecondary, fontWeight: FontWeight.bold, fontSize: 11, letterSpacing: 1.0)),
+                          if (_allowedPrimary.isNotEmpty) ...[
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+                              alignment: Alignment.centerLeft,
+                              child: const Text('MENU', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.black38)),
                             ),
-                            ...allowedPrimary.map((tab) => _buildDrawerItem(tab, currentIndex, tabs)),
+                            Padding(
+                              padding: const EdgeInsets.symmetric(horizontal: 12),
+                              child: Column(
+                                children: [
+                                  ..._allowedPrimary.map((tab) => _buildDrawerItem(tab, currentIndex, _tabs)),
+                                ],
+                              ),
+                            ),
                           ],
                         ],
                       ),
                     ),
-                    if (allowedSecondary.isNotEmpty)
+                    if (_allowedSecondary.isNotEmpty)
                       Column(
                         crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
-                          const Padding(
-                            padding: EdgeInsets.fromLTRB(28, 16, 16, 8),
-                            child: Text('ACCOUNT', style: TextStyle(color: AppColors.textSecondary, fontWeight: FontWeight.bold, fontSize: 11, letterSpacing: 1.0)),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+                            alignment: Alignment.centerLeft,
+                            child: const Text('SYSTEM', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.black38)),
                           ),
-                          ...allowedSecondary.map((tab) => _buildDrawerItem(tab, currentIndex, tabs)),
+                          Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 12),
+                            child: Column(
+                              children: [
+                                ..._allowedSecondary.map((tab) => _buildDrawerItem(tab, currentIndex, _tabs)),
+                              ],
+                            ),
+                          ),
                         ],
                       ),
                   ],
@@ -317,9 +380,9 @@ class _AndroidBottomNavLayoutState extends ConsumerState<AndroidBottomNavLayout>
       body: AbstractBackground(
         child: Stack(
           children: [
-            IndexedStack(
-              index: currentIndex,
-              children: tabs.asMap().entries.map((entry) {
+            TabBarView(
+              controller: _tabController,
+              children: _tabs.asMap().entries.map((entry) {
                 return _visitedIndices.contains(entry.key)
                     ? entry.value['screen'] as Widget
                     : const SizedBox.shrink();

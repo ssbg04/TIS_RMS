@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/constants/app_colors.dart';
@@ -37,6 +38,7 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
 
   final List<int> _selectedStudentIds = [];
   bool _showMultiSelect = false;
+  bool _isDragSelecting = false;
   ProviderSubscription<String>? _tabListener;
   String _docStatusSort = '';
 
@@ -228,6 +230,28 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
                 shape: const StadiumBorder(),
               ),
             ),
+            const SizedBox(width: 8),
+            ElevatedButton.icon(
+              onPressed: count == 0 ? null : () => _showBulkChangeStatusConfirm('Transferred', allStudents),
+              icon: const Icon(Icons.transfer_within_a_station, size: 18),
+              label: const Text('Transfer'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.orange,
+                foregroundColor: Colors.white,
+                shape: const StadiumBorder(),
+              ),
+            ),
+            const SizedBox(width: 8),
+            ElevatedButton.icon(
+              onPressed: count == 0 ? null : () => _showBulkChangeStatusConfirm('Dropped', allStudents),
+              icon: const Icon(Icons.person_off, size: 18),
+              label: const Text('Drop'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.red,
+                foregroundColor: Colors.white,
+                shape: const StadiumBorder(),
+              ),
+            ),
           ] else ...[
             IconButton(
               onPressed: count == 0 ? null : _showBulkEnrollModal,
@@ -238,6 +262,16 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
               onPressed: count == 0 ? null : _showBulkGraduateConfirm,
               icon: Icon(Icons.school, color: count == 0 ? Colors.grey : Colors.blue),
               tooltip: 'Graduate',
+            ),
+            IconButton(
+              onPressed: count == 0 ? null : () => _showBulkChangeStatusConfirm('Transferred', allStudents),
+              icon: Icon(Icons.transfer_within_a_station, color: count == 0 ? Colors.grey : Colors.orange),
+              tooltip: 'Transfer',
+            ),
+            IconButton(
+              onPressed: count == 0 ? null : () => _showBulkChangeStatusConfirm('Dropped', allStudents),
+              icon: Icon(Icons.person_off, color: count == 0 ? Colors.grey : Colors.red),
+              tooltip: 'Drop',
             ),
           ],
           const SizedBox(width: 4),
@@ -308,6 +342,45 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
     }
   }
 
+  void _showBulkChangeStatusConfirm(String newStatus, List<StudentModel> allStudents) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text('Bulk $newStatus'),
+        content: Text('Are you sure you want to change the status of ${_selectedStudentIds.length} selected student(s) to "$newStatus"?'),
+        actions: [
+          TextButton(onPressed: () => Navigator.of(ctx).pop(false), child: const Text('CANCEL')),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: newStatus == 'Dropped' ? Colors.red : Colors.orange,
+              foregroundColor: Colors.white,
+            ),
+            onPressed: () => Navigator.of(ctx).pop(true),
+            child: Text(newStatus.toUpperCase()),
+          ),
+        ],
+      ),
+    );
+    if (confirmed == true && mounted) {
+      try {
+        final selectedStudents = allStudents.where((s) => _selectedStudentIds.contains(s.id)).toList();
+        await ref.read(studentMutationProvider.notifier).bulkChangeStatus(selectedStudents, newStatus);
+        if (mounted) {
+          setState(() {
+            _selectedStudentIds.clear();
+            _showMultiSelect = false;
+          });
+          showSuccessDialog(context, message: 'Students successfully updated to $newStatus.');
+        }
+      } catch (e) {
+        if (mounted) {
+          final errMsg = e.toString().replaceAll('Exception: ', '');
+          showErrorDialog(context, 'Error', errMsg);
+        }
+      }
+    }
+  }
+
   // ----------------------------------------------------------------
   // DELETE CONFIRM
   // ----------------------------------------------------------------
@@ -328,8 +401,8 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'Are you sure you want to permanently delete '
-                    '"${student.listDisplayName}"? This cannot be undone.',
+                    'Are you sure you want to delete '
+                    '"${student.listDisplayName}"? The student will be marked as inactive and securely stored.',
                   ),
                   const SizedBox(height: 16),
                   const Text('Please enter your password to confirm:'),
@@ -387,9 +460,9 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
 
     if (confirmed == true && mounted) {
       try {
-        await ref.read(studentMutationProvider.notifier).deleteStudent(student.id);
+        await ref.read(studentMutationProvider.notifier).setStudentInactive(student.id, student);
         if (mounted) {
-          showSuccessDialog(context, message: 'Student deleted successfully.');
+          showSuccessDialog(context, message: 'Student deleted but still stored and marked as inactive.');
         }
       } catch (e) {
         if (mounted) {
@@ -462,7 +535,7 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
     return Scaffold(
       backgroundColor: Colors.transparent,
       floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
-      floatingActionButton: (widget.userRole == 'teacher' || _showMultiSelect || _searchFocusNode.hasFocus) ? null : FloatingActionButton(
+      floatingActionButton: (widget.userRole == 'teacher' || _showMultiSelect || _searchFocusNode.hasFocus || defaultTargetPlatform == TargetPlatform.windows) ? null : FloatingActionButton(
         heroTag: 'add_student_fab',
         backgroundColor: AppColors.primaryGreen,
         foregroundColor: Colors.white,
@@ -601,37 +674,36 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
             ),
           ),
           if (!isSearchActive) ...[
-            if (widget.userRole != 'teacher') ...[
+            if (widget.userRole != 'teacher' && defaultTargetPlatform != TargetPlatform.android) ...[
               const SizedBox(width: 8),
               _buildMultiSelectToggle(true),
             ],
             const SizedBox(width: 8),
-            if (isDesktop)
+            // "Add Student" button for Windows (replaces FAB)
+            if (defaultTargetPlatform == TargetPlatform.windows && widget.userRole != 'teacher') ...[
               SizedBox(
                 height: 42,
-                child: OutlinedButton.icon(
-                  onPressed: () => _openFilterDialog(query, ref.read(academicYearsListProvider), ref.read(sectionsListProvider)),
-                  icon: Badge(
-                    isLabelVisible: activeCount > 0,
-                    label: Text(activeCount.toString()),
-                    child: const Icon(Icons.tune_rounded, size: 20),
+                child: ElevatedButton.icon(
+                  onPressed: () => _openModal(),
+                  icon: const Icon(Icons.person_add, size: 20),
+                  label: const Text('Add Student'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.primaryGreen,
+                    foregroundColor: Colors.white,
                   ),
-                  label: const Text('Filter'),
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor: AppColors.primaryGreen,
-                    side: const BorderSide(color: AppColors.primaryGreen),
-                  ),
-                ),
-              )
-            else
-              IconButton(
-                onPressed: () => _openFilterDialog(query, ref.read(academicYearsListProvider), ref.read(sectionsListProvider)),
-                icon: Badge(
-                  isLabelVisible: activeCount > 0,
-                  label: Text(activeCount.toString()),
-                  child: const Icon(Icons.tune_rounded, color: AppColors.primaryGreen),
                 ),
               ),
+              const SizedBox(width: 8),
+            ],
+            // Filter icon (icon only, no background)
+            IconButton(
+              onPressed: () => _openFilterDialog(query, ref.read(academicYearsListProvider), ref.read(sectionsListProvider)),
+              icon: Badge(
+                isLabelVisible: activeCount > 0,
+                label: Text(activeCount.toString()),
+                child: const Icon(Icons.tune_rounded, color: AppColors.primaryGreen),
+              ),
+            ),
           ],
         ],
       );
@@ -1061,179 +1133,206 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
 
     return LayoutBuilder(
       builder: (context, constraints) {
-        return Container(
-          width:      double.infinity,
-          decoration: BoxDecoration(
-            color:        AppColors.surfaceWhite,
-            borderRadius: BorderRadius.circular(AppSizes.radiusLarge),
-            boxShadow: [
-              BoxShadow(
-                color:      Colors.black.withValues(alpha: 0.04),
-                blurRadius: 12,
-                offset:     const Offset(0, 4),
+        DataCell buildHoverCell(Widget child, StudentModel student) {
+          return DataCell(
+            MouseRegion(
+              hitTestBehavior: HitTestBehavior.translucent,
+              onEnter: (_) {
+                if (_isDragSelecting && defaultTargetPlatform == TargetPlatform.windows && widget.userRole != 'teacher') {
+                  setState(() {
+                    if (!_showMultiSelect) _showMultiSelect = true;
+                    if (!_selectedStudentIds.contains(student.id)) _selectedStudentIds.add(student.id);
+                  });
+                }
+              },
+              child: SizedBox(
+                width: double.infinity,
+                height: double.infinity,
+                child: Align(alignment: Alignment.centerLeft, child: child),
               ),
-            ],
-          ),
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(AppSizes.radiusLarge),
-            child: DataTable2(
-              minWidth: 900,
-              columnSpacing: 12,
-              horizontalMargin: 16,
-              headingRowColor: WidgetStateProperty.all(
-                AppColors.primaryGreen.withValues(alpha: 0.06),
-              ),
-              dataRowHeight: 56,
-              columns: [
-                if (widget.userRole != 'teacher' && _showMultiSelect)
-                  DataColumn2(
-                    fixedWidth: 40,
-                    label: Checkbox(
-                      activeColor: AppColors.primaryGreen,
-                      value: students.isNotEmpty &&
-                          students.every((s) => _selectedStudentIds.contains(s.id)),
-                      onChanged: (val) {
-                        setState(() {
-                          if (val == true) {
-                            for (var s in students) {
-                              if (!_selectedStudentIds.contains(s.id)) {
-                                _selectedStudentIds.add(s.id);
-                              }
-                            }
-                          } else {
-                            for (var s in students) {
-                              _selectedStudentIds.remove(s.id);
-                            }
-                          }
-                        });
-                      },
-                    ),
-                  ),
-                const DataColumn2(size: ColumnSize.M, label: Text('LRN',           style: TextStyle(fontWeight: FontWeight.bold))),
-                const DataColumn2(size: ColumnSize.L, label: Text('Name',          style: TextStyle(fontWeight: FontWeight.bold))),
-                const DataColumn2(size: ColumnSize.M, label: Text('Grade & Sec.',  style: TextStyle(fontWeight: FontWeight.bold))),
-                DataColumn2(
-                  size: ColumnSize.S,
-                  label: Row(
-                    children: [
-                      const Text('4Ps', style: TextStyle(fontWeight: FontWeight.bold)),
-                      PopupMenuButton<String>(
-                        icon: const Icon(Icons.arrow_drop_down, size: 18),
-                        onSelected: (val) {
-                          ref.read(studentQueryProvider.notifier).setIs4Ps(val);
-                        },
-                        itemBuilder: (ctx) => [
-                          CheckedPopupMenuItem(value: '', checked: query.is4Ps == '', child: const Text('All')),
-                          CheckedPopupMenuItem(value: 'true', checked: query.is4Ps == 'true', child: const Text('Yes')),
-                          CheckedPopupMenuItem(value: 'false', checked: query.is4Ps == 'false', child: const Text('No')),
-                        ],
-                      )
-                    ],
-                  ),
+            ),
+            onTap: () => _viewProfile(student),
+          );
+        }
+
+        return Listener(
+          onPointerDown: (_) => setState(() => _isDragSelecting = true),
+          onPointerUp: (_) => setState(() => _isDragSelecting = false),
+          child: Container(
+            width:      double.infinity,
+            decoration: BoxDecoration(
+              color:        AppColors.surfaceWhite,
+              borderRadius: BorderRadius.circular(AppSizes.radiusLarge),
+              boxShadow: [
+                BoxShadow(
+                  color:      Colors.black.withValues(alpha: 0.04),
+                  blurRadius: 12,
+                  offset:     const Offset(0, 4),
                 ),
-                DataColumn2(
-                  size: ColumnSize.S,
-                  label: Row(
-                    children: [
-                      const Text('Status', style: TextStyle(fontWeight: FontWeight.bold)),
-                      PopupMenuButton<String>(
-                        icon: const Icon(Icons.arrow_drop_down, size: 18),
-                        onSelected: (val) {
-                          ref.read(studentQueryProvider.notifier).setStatus(val);
-                        },
-                        itemBuilder: (ctx) => [
-                          CheckedPopupMenuItem(value: '', checked: query.status == '', child: const Text('All Status')),
-                          CheckedPopupMenuItem(value: 'Enrolled', checked: query.status == 'Enrolled', child: const Text('Enrolled')),
-                          CheckedPopupMenuItem(value: 'Graduated', checked: query.status == 'Graduated', child: const Text('Graduated')),
-                          CheckedPopupMenuItem(value: 'Transferred', checked: query.status == 'Transferred', child: const Text('Transferred')),
-                          CheckedPopupMenuItem(value: 'Dropped', checked: query.status == 'Dropped', child: const Text('Dropped')),
-                        ],
-                      )
-                    ],
-                  ),
-                ),
-                DataColumn2(
-                  size: ColumnSize.M,
-                  label: Row(
-                    children: [
-                      const Text('Doc Status', style: TextStyle(fontWeight: FontWeight.bold)),
-                      PopupMenuButton<String>(
-                        icon: const Icon(Icons.arrow_drop_down, size: 18),
-                        onSelected: (val) {
-                          setState(() => _docStatusSort = val);
-                        },
-                        itemBuilder: (ctx) => [
-                          CheckedPopupMenuItem(value: '', checked: _docStatusSort == '', child: const Text('None')),
-                          CheckedPopupMenuItem(value: 'asc', checked: _docStatusSort == 'asc', child: const Text('Least-Greatest')),
-                          CheckedPopupMenuItem(value: 'desc', checked: _docStatusSort == 'desc', child: const Text('Greatest-Least')),
-                        ],
-                      )
-                    ],
-                  ),
-                ),
-                const DataColumn2(size: ColumnSize.S, label: Text('Action', style: TextStyle(fontWeight: FontWeight.bold))),
               ],
-              rows: students.map((student) {
-                final isSelected = _selectedStudentIds.contains(student.id);
-                return DataRow(
-                  selected: isSelected,
-                  cells: [
-                    if (widget.userRole != 'teacher' && _showMultiSelect)
-                      DataCell(
-                        Checkbox(
-                          activeColor: AppColors.primaryGreen,
-                          value: isSelected,
-                          onChanged: (val) {
-                            setState(() {
-                              if (val == true) {
-                                _selectedStudentIds.add(student.id);
-                              } else {
-                                _selectedStudentIds.remove(student.id);
+            ),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(AppSizes.radiusLarge),
+              child: DataTable2(
+                minWidth: 900,
+                columnSpacing: 12,
+                horizontalMargin: 16,
+                headingRowColor: WidgetStateProperty.all(
+                  AppColors.primaryGreen.withValues(alpha: 0.06),
+                ),
+                dataRowHeight: 56,
+                columns: [
+                  if (widget.userRole != 'teacher' && _showMultiSelect)
+                    DataColumn2(
+                      fixedWidth: 40,
+                      label: defaultTargetPlatform == TargetPlatform.windows 
+                        ? const SizedBox.shrink() 
+                        : Checkbox(
+                        activeColor: AppColors.primaryGreen,
+                        value: students.isNotEmpty &&
+                            students.every((s) => _selectedStudentIds.contains(s.id)),
+                        onChanged: (val) {
+                          setState(() {
+                            if (val == true) {
+                              for (var s in students) {
+                                if (!_selectedStudentIds.contains(s.id)) {
+                                  _selectedStudentIds.add(s.id);
+                                }
                               }
-                            });
+                            } else {
+                              for (var s in students) {
+                                _selectedStudentIds.remove(s.id);
+                              }
+                            }
+                          });
+                        },
+                      ),
+                    ),
+                  const DataColumn2(size: ColumnSize.M, label: Text('LRN',           style: TextStyle(fontWeight: FontWeight.bold))),
+                  const DataColumn2(size: ColumnSize.L, label: Text('Name',          style: TextStyle(fontWeight: FontWeight.bold))),
+                  const DataColumn2(size: ColumnSize.M, label: Text('Grade & Sec.',  style: TextStyle(fontWeight: FontWeight.bold))),
+                  DataColumn2(
+                    size: ColumnSize.S,
+                    label: Row(
+                      children: [
+                        const Text('4Ps', style: TextStyle(fontWeight: FontWeight.bold)),
+                        PopupMenuButton<String>(
+                          icon: const Icon(Icons.arrow_drop_down, size: 18),
+                          onSelected: (val) {
+                            ref.read(studentQueryProvider.notifier).setIs4Ps(val);
                           },
+                          itemBuilder: (ctx) => [
+                            CheckedPopupMenuItem(value: '', checked: query.is4Ps == '', child: const Text('All')),
+                            CheckedPopupMenuItem(value: 'true', checked: query.is4Ps == 'true', child: const Text('Yes')),
+                            CheckedPopupMenuItem(value: 'false', checked: query.is4Ps == 'false', child: const Text('No')),
+                          ],
+                        )
+                      ],
+                    ),
+                  ),
+                  DataColumn2(
+                    size: ColumnSize.S,
+                    label: Row(
+                      children: [
+                        const Text('Status', style: TextStyle(fontWeight: FontWeight.bold)),
+                        PopupMenuButton<String>(
+                          icon: const Icon(Icons.arrow_drop_down, size: 18),
+                          onSelected: (val) {
+                            ref.read(studentQueryProvider.notifier).setStatus(val);
+                          },
+                          itemBuilder: (ctx) => [
+                            CheckedPopupMenuItem(value: '', checked: query.status == '', child: const Text('All Status')),
+                            CheckedPopupMenuItem(value: 'Enrolled', checked: query.status == 'Enrolled', child: const Text('Enrolled')),
+                            CheckedPopupMenuItem(value: 'Graduated', checked: query.status == 'Graduated', child: const Text('Graduated')),
+                            CheckedPopupMenuItem(value: 'Transferred', checked: query.status == 'Transferred', child: const Text('Transferred')),
+                            CheckedPopupMenuItem(value: 'Dropped', checked: query.status == 'Dropped', child: const Text('Dropped')),
+                          ],
+                        )
+                      ],
+                    ),
+                  ),
+                  DataColumn2(
+                    size: ColumnSize.M,
+                    label: Row(
+                      children: [
+                        const Text('Doc Status', style: TextStyle(fontWeight: FontWeight.bold)),
+                        PopupMenuButton<String>(
+                          icon: const Icon(Icons.arrow_drop_down, size: 18),
+                          onSelected: (val) {
+                            setState(() => _docStatusSort = val);
+                          },
+                          itemBuilder: (ctx) => [
+                            CheckedPopupMenuItem(value: '', checked: _docStatusSort == '', child: const Text('None')),
+                            CheckedPopupMenuItem(value: 'asc', checked: _docStatusSort == 'asc', child: const Text('Least-Greatest')),
+                            CheckedPopupMenuItem(value: 'desc', checked: _docStatusSort == 'desc', child: const Text('Greatest-Least')),
+                          ],
+                        )
+                      ],
+                    ),
+                  ),
+                  const DataColumn2(size: ColumnSize.S, label: Text('Action', style: TextStyle(fontWeight: FontWeight.bold))),
+                ],
+                rows: students.map((student) {
+                  final isSelected = _selectedStudentIds.contains(student.id);
+                  return DataRow(
+                    mouseCursor: defaultTargetPlatform == TargetPlatform.windows ? WidgetStateProperty.all(SystemMouseCursors.grab) : null,
+                    selected: isSelected,
+                    cells: [
+                      if (widget.userRole != 'teacher' && _showMultiSelect)
+                        DataCell(
+                          MouseRegion(
+                            hitTestBehavior: HitTestBehavior.translucent,
+                            onEnter: (_) {
+                              if (_isDragSelecting && defaultTargetPlatform == TargetPlatform.windows) {
+                                setState(() {
+                                  if (!_selectedStudentIds.contains(student.id)) _selectedStudentIds.add(student.id);
+                                });
+                              }
+                            },
+                            child: Checkbox(
+                              activeColor: AppColors.primaryGreen,
+                              value: isSelected,
+                              onChanged: (val) {
+                                setState(() {
+                                  if (val == true) {
+                                    _selectedStudentIds.add(student.id);
+                                  } else {
+                                    _selectedStudentIds.remove(student.id);
+                                  }
+                                });
+                              },
+                            ),
+                          ),
                         ),
+                      buildHoverCell(Text(student.lrn, style: const TextStyle(fontWeight: FontWeight.w600)), student),
+                      buildHoverCell(Text(student.listDisplayName), student),
+                      buildHoverCell(Text(student.gradeSection), student),
+                      buildHoverCell(
+                        student.is4ps 
+                            ? const Icon(Icons.check_circle, color: AppColors.primaryGreen, size: 20)
+                            : const Icon(Icons.cancel, color: Colors.grey, size: 20),
+                        student
                       ),
-                    DataCell(
-                      Text(student.lrn, style: const TextStyle(fontWeight: FontWeight.w600)),
-                      onTap: () => _viewProfile(student),
-                    ),
-                    DataCell(
-                      Text(student.listDisplayName),
-                      onTap: () => _viewProfile(student),
-                    ),
-                    DataCell(
-                      Text(student.gradeSection),
-                      onTap: () => _viewProfile(student),
-                    ),
-                    DataCell(
-                      student.is4ps 
-                          ? const Icon(Icons.check_circle, color: AppColors.primaryGreen, size: 20)
-                          : const Icon(Icons.cancel, color: Colors.grey, size: 20),
-                      onTap: () => _viewProfile(student),
-                    ),
-                    DataCell(
-                      _StatusChip(status: student.status),
-                      onTap: () => _viewProfile(student),
-                    ),
-                    DataCell(
-                      _DocumentProgressBar(
-                        missingCount: student.missingDocumentsCount,
-                        totalCount: student.totalDocumentsCount,
-                        missingDocuments: student.missingDocuments,
+                      buildHoverCell(_StatusChip(status: student.status), student),
+                      buildHoverCell(
+                        _DocumentProgressBar(
+                          missingCount: student.missingDocumentsCount,
+                          totalCount: student.totalDocumentsCount,
+                          missingDocuments: student.missingDocuments,
+                        ),
+                        student
                       ),
-                      onTap: () => _viewProfile(student),
-                    ),
-                    DataCell(_ActionButtons(
-                      onOpenDocuments:  () => _openDocumentsFolder(student),
-                    )),
-                  ],
-                );
-              }).toList(),
+                      DataCell(_ActionButtons(
+                        onOpenDocuments:  () => _openDocumentsFolder(student),
+                      )),
+                    ],
+                  );
+                }).toList(),
+              ),
             ),
           ),
-          );
-        },
+        );
+      },
     );
   }
 

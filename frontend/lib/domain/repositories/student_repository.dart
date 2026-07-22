@@ -224,14 +224,32 @@ class StudentRepository {
   }
 
   // ----------------------------------------------------------------
-  // Delete student
+  // Set student inactive (Soft delete)
   // ----------------------------------------------------------------
-  Future<void> deleteStudent(int id) async {
+  Future<void> setStudentInactive(int id, StudentModel student) async {
     try {
       final options = await _getAuthOptions();
-      await _dio.delete('/students/$id', options: options);
+      await _dio.put(
+        '/students/$id',
+        data: {
+          'lrn':            student.lrn,
+          'firstName':      student.firstName,
+          'middleName':     student.middleName,
+          'lastName':       student.lastName,
+          'extension':      student.extension,
+          'sex':            student.sex,
+          'birthDate':      student.birthDate.toIso8601String().split('T').first,
+          'status':         'Inactive', // Changed status to Inactive instead of deleting
+          'academicYearId': student.latestEnrollment?.academicYearId ?? 0,
+          'gradeLevel':     student.latestGradeLevel ?? 0,
+          'sectionId':      student.latestEnrollment?.sectionId ?? 0,
+          'trackStrand':    student.latestEnrollment?.trackStrand,
+          'is4ps':          student.is4ps,
+        },
+        options: options,
+      );
     } on DioException catch (e) {
-      final msg = e.response?.data?['message'] ?? 'Failed to delete student.';
+      final msg = e.response?.data?['message'] ?? 'Failed to update student to inactive.';
       throw Exception(msg);
     }
   }
@@ -279,6 +297,40 @@ class StudentRepository {
     } on DioException catch (e) {
       final msg = e.response?.data?['message'] ?? 'Failed to bulk graduate students.';
       throw Exception(msg);
+    }
+  }
+
+  // ----------------------------------------------------------------
+  // Bulk Change Status (Used for Dropped, Transferred, etc)
+  // ----------------------------------------------------------------
+  Future<void> bulkChangeStatus(List<StudentModel> students, String newStatus) async {
+    for (final student in students) {
+      try {
+        final options = await _getAuthOptions();
+        await _dio.put(
+          '/students/${student.id}',
+          data: {
+            'lrn':            student.lrn,
+            'firstName':      student.firstName,
+            'middleName':     student.middleName,
+            'lastName':       student.lastName,
+            'extension':      student.extension,
+            'sex':            student.sex,
+            'birthDate':      student.birthDate.toIso8601String().split('T').first,
+            'status':         newStatus,
+            'academicYearId': student.latestEnrollment?.academicYearId ?? 0,
+            'gradeLevel':     student.latestGradeLevel ?? 0,
+            'sectionId':      student.latestEnrollment?.sectionId ?? 0,
+            'trackStrand':    student.latestEnrollment?.trackStrand,
+            'is4ps':          student.is4ps,
+          },
+          options: options,
+        );
+      } catch (e) {
+        // Continue attempting others if one fails, or we could throw. 
+        // For now, continue to best-effort bulk update.
+        print('Failed to update status for student ${student.id}: $e');
+      }
     }
   }
   // ----------------------------------------------------------------

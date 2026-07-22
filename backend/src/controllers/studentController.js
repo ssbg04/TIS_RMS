@@ -431,7 +431,7 @@ exports.updateStudent = (req, res) => {
     if (!lastName  || !lastName.trim())      errors.push('Last name is required.');
     if (!sex       || !['Male', 'Female'].includes(sex)) errors.push('Sex must be Male or Female.');
     if (!birthDate)                          errors.push('Date of birth is required.');
-    if (status && !['Enrolled', 'Graduated', 'Transferred', 'Dropped'].includes(status)) {
+    if (status && !['Enrolled', 'Graduated', 'Transferred', 'Dropped', 'Inactive'].includes(status)) {
         errors.push('Invalid status value.');
     }
     if (status === 'Graduated' && gradeLevel !== 10 && gradeLevel !== 12) {
