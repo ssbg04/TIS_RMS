@@ -68,7 +68,7 @@ class _TeacherManagementModalState extends ConsumerState<TeacherManagementModal>
   }
 
   void _refreshData() {
-    ref.invalidate(usersListProvider);
+    ref.invalidate(usersProvider);
     ref.invalidate(academicYearsListProvider);
     ref.invalidate(sectionsListProvider);
   }
