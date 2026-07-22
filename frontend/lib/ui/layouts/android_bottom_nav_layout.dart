@@ -152,9 +152,9 @@ class _AndroidBottomNavLayoutState extends ConsumerState<AndroidBottomNavLayout>
     int currentIndex = _tabs.indexWhere((t) => t['label'] == activeTab);
     if (currentIndex == -1) currentIndex = 0; // Fallback to Dashboard
 
-    if (_tabController != null && _tabController!.index != currentIndex) {
-      _tabController!.animateTo(currentIndex);
-    }
+    // if (_tabController != null && _tabController!.index != currentIndex) {
+    //   _tabController!.animateTo(currentIndex);
+    // }
 
     _visitedIndices.add(currentIndex);
 
@@ -366,9 +366,8 @@ class _AndroidBottomNavLayoutState extends ConsumerState<AndroidBottomNavLayout>
       body: AbstractBackground(
         child: Stack(
           children: [
-            TabBarView(
-              controller: _tabController,
-              physics: const NeverScrollableScrollPhysics(),
+            IndexedStack(
+              index: currentIndex,
               children: _tabs.asMap().entries.map((entry) {
                 return _visitedIndices.contains(entry.key)
                     ? entry.value['screen'] as Widget

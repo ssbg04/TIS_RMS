@@ -9,5 +9,6 @@ router.get('/enrollment-by-grade', authenticateToken, reportsController.getEnrol
 router.get('/document-status', authenticateToken, reportsController.getDocumentStatus);
 router.get('/export-data', authenticateToken, reportsController.getExportData);
 router.get('/yearly-comparison', authenticateToken, reportsController.getYearlyComparison);
+router.get('/storage', authenticateToken, reportsController.getStorageUsed);
 
 module.exports = router;

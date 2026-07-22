@@ -295,3 +295,49 @@ exports.getYearlyComparison = (req, res) => {
         res.status(500).json({ message: 'Failed to fetch yearly comparison', error: error.message });
     }
 };
+
+// GET /api/reports/storage
+exports.getStorageUsed = async (req, res) => {
+    const fs = require('fs');
+    const path = require('path');
+    const { promisify } = require('util');
+    const stat = promisify(fs.stat);
+    const readdir = promisify(fs.readdir);
+
+    const getDirSize = async (dirPath) => {
+        let size = 0;
+        try {
+            const files = await readdir(dirPath);
+            for (const file of files) {
+                const filePath = path.join(dirPath, file);
+                const fileStat = await stat(filePath);
+                if (fileStat.isDirectory()) {
+                    size += await getDirSize(filePath);
+                } else {
+                    size += fileStat.size;
+                }
+            }
+        } catch (e) {
+            // Ignore missing or inaccessible files
+        }
+        return size;
+    };
+
+    try {
+        const rootDir = path.join(__dirname, '../../../');
+        const uploadsPath = path.join(rootDir, 'uploads');
+        const dbPath = path.join(rootDir, 'tis_rms.db');
+
+        let totalSize = 0;
+        totalSize += await getDirSize(uploadsPath);
+
+        try {
+            const dbStat = await stat(dbPath);
+            totalSize += dbStat.size;
+        } catch (e) {}
+
+        res.json({ bytes: totalSize });
+    } catch (error) {
+        res.status(500).json({ message: 'Failed to fetch storage usage', error: error.message });
+    }
+};

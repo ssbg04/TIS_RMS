@@ -338,6 +338,8 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
   @override
   Widget build(BuildContext context) {
     final statsAsync = ref.watch(reportStatsProvider);
+    final storageAsync = ref.watch(storageStatsProvider);
+    
     return Scaffold(
       backgroundColor: Colors.transparent,
       body: SafeArea(
@@ -346,6 +348,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
             ref.invalidate(reportStatsProvider);
             ref.invalidate(academicYearsProvider);
             ref.invalidate(yearlyComparisonProvider);
+            ref.invalidate(storageStatsProvider);
           },
           child: SingleChildScrollView(
             controller: _scrollController,
@@ -373,7 +376,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                       const SizedBox(height: AppSizes.p24),
 
                       // 2. KPI Cards
-                      _buildMetricsGrid(data.studentCounts),
+                      _buildMetricsGrid(data.studentCounts, storageAsync.asData?.value),
                       const SizedBox(height: AppSizes.p24),
 
                       // 3. Side-by-Side Charts (Responsive)
@@ -715,16 +718,25 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
   );
 
   // ── KPI Cards: Student status grid ────────────────────────────────────────
-  Widget _buildMetricsGrid(StudentCounts counts) {
+  Widget _buildMetricsGrid(StudentCounts counts, int? storageBytes) {
     final total = counts.active + counts.dropped + counts.transferee + counts.graduated;
     final gradRate = total > 0 ? (counts.graduated / total * 100).toStringAsFixed(1) : '0.0';
     final dropRate = total > 0 ? (counts.dropped / total * 100).toStringAsFixed(1) : '0.0';
     final transRate = total > 0 ? (counts.transferee / total * 100).toStringAsFixed(1) : '0.0';
     final fourPsRate = total > 0 ? (counts.fourPs / total * 100).toStringAsFixed(1) : '0.0';
 
+    String formatBytes(int bytes) {
+      if (bytes < 1024) return '$bytes B';
+      if (bytes < 1048576) return '${(bytes / 1024).toStringAsFixed(1)} KB';
+      if (bytes < 1073741824) return '${(bytes / 1048576).toStringAsFixed(1)} MB';
+      return '${(bytes / 1073741824).toStringAsFixed(1)} GB';
+    }
+    
+    final storageString = storageBytes != null ? formatBytes(storageBytes) : 'Loading...';
+
     return LayoutBuilder(
       builder: (ctx, constraints) {
-        final cols = constraints.maxWidth >= 900 ? 5 : (constraints.maxWidth >= 600 ? 3 : 2);
+        final cols = constraints.maxWidth >= 900 ? 6 : (constraints.maxWidth >= 600 ? 3 : 2);
         return GridView(
           shrinkWrap: true,
           physics: const NeverScrollableScrollPhysics(),
@@ -740,6 +752,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
             StatCard(title: 'Transferees', value: counts.transferee.toString(), subtitle: 'Transferee Rate: $transRate%', icon: Icons.swap_horiz_outlined, iconColor: Colors.orange),
             StatCard(title: 'Graduated Students', value: counts.graduated.toString(), subtitle: 'Graduation Rate: $gradRate%', icon: Icons.school_outlined, iconColor: Colors.blue),
             StatCard(title: '4Ps Beneficiaries', value: counts.fourPs.toString(), subtitle: '$fourPsRate% of students', icon: Icons.family_restroom, iconColor: Colors.deepPurple),
+            StatCard(title: 'Storage Used', value: storageString, subtitle: 'Database & Uploads', icon: Icons.storage_outlined, iconColor: Colors.blueGrey),
           ],
         );
       },

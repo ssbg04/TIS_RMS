@@ -149,6 +149,11 @@ final yearlyComparisonProvider = FutureProvider.autoDispose<List<YearlyCompariso
   return await ref.read(reportRepositoryProvider).getYearlyComparison();
 });
 
+// Storage usage data
+final storageStatsProvider = FutureProvider.autoDispose<int>((ref) async {
+  return await ref.read(reportRepositoryProvider).getStorageUsed();
+});
+
 // ── Internal helper Notifier for simple bool toggles ─────────────────────────
 class _BoolNotifier extends Notifier<bool> {
   final bool initial;

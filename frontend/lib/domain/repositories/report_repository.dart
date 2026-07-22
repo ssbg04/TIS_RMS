@@ -64,4 +64,13 @@ class ReportRepository {
       throw Exception(e.response?.data['message'] ?? 'Failed to fetch yearly comparison.');
     }
   }
+
+  Future<int> getStorageUsed() async {
+    try {
+      final res = await _dio.get('/reports/storage', options: await _authOptions());
+      return res.data['bytes'] as int;
+    } on DioException catch (e) {
+      throw Exception(e.response?.data['message'] ?? 'Failed to fetch storage usage.');
+    }
+  }
 }
