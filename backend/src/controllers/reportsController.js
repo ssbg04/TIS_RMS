@@ -324,8 +324,8 @@ exports.getStorageUsed = async (req, res) => {
     };
 
     try {
-        const rootDir = path.join(__dirname, '../../../');
-        const uploadsPath = path.join(rootDir, 'uploads');
+        const rootDir = path.join(__dirname, '../../');
+        const uploadsPath = path.join(rootDir, 'data');
         const dbPath = path.join(rootDir, 'tis_rms.db');
 
         let totalSize = 0;

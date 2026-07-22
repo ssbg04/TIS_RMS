@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 import 'package:excel/excel.dart' hide Border, TextSpan;
 import 'package:file_picker/file_picker.dart';
@@ -28,6 +29,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
   bool _isExporting = false;
   final ScrollController _scrollController = ScrollController();
   ProviderSubscription<String>? _tabListener;
+  Timer? _pollingTimer;
 
   int _currentPage = 0;
   final int _rowsPerPage = 10;
@@ -38,6 +40,11 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
+      
+      // Initial fetch
+      _refreshData();
+
+      // Setup tab listener
       _tabListener = ref.listenManual<String>(activeTabProvider, (previous, next) {
         if (!mounted) return;
         if (previous == 'Reports' || next == 'Reports') {
@@ -46,11 +53,26 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
           }
         }
       });
+      
+      // Polling every 5 seconds
+      _pollingTimer = Timer.periodic(const Duration(seconds: 5), (_) {
+        if (mounted && ref.read(activeTabProvider) == 'Reports') {
+          _refreshData();
+        }
+      });
     });
+  }
+
+  void _refreshData() {
+    ref.invalidate(reportStatsProvider);
+    ref.invalidate(academicYearsProvider);
+    ref.invalidate(yearlyComparisonProvider);
+    ref.invalidate(storageStatsProvider);
   }
 
   @override
   void dispose() {
+    _pollingTimer?.cancel();
     _tabListener?.close();
     _scrollController.dispose();
     super.dispose();

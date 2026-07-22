@@ -18,6 +18,7 @@ import '../../providers/backup_provider.dart';
 import '../../shared/dialogs/info_dialog.dart';
 import 'teacher_management_screen.dart';
 import '../../../core/utils/date_utils.dart' as pht;
+import '../../providers/reports_provider.dart';
 
 class SettingsScreen extends ConsumerStatefulWidget {
   final String? userRole;
@@ -299,6 +300,35 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   }
 
   Future<void> _handleBackup() async {
+    setState(() => _isBackupLoading = true);
+    
+    // Estimate size
+    String estimatedSizeStr = 'Unknown';
+    try {
+      final bytes = await ref.read(reportRepositoryProvider).getStorageUsed();
+      if (bytes < 1024) estimatedSizeStr = '$bytes B';
+      else if (bytes < 1048576) estimatedSizeStr = '${(bytes / 1024).toStringAsFixed(1)} KB';
+      else if (bytes < 1073741824) estimatedSizeStr = '${(bytes / 1048576).toStringAsFixed(1)} MB';
+      else estimatedSizeStr = '${(bytes / 1073741824).toStringAsFixed(1)} GB';
+    } catch (_) {}
+
+    setState(() => _isBackupLoading = false);
+
+    if (!mounted) return;
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Confirm Backup'),
+        content: Text('Are you sure you want to backup the system data and uploaded files?\n\nEstimated ZIP size: $estimatedSizeStr'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('CANCEL')),
+          TextButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('BACKUP')),
+        ],
+      ),
+    );
+
+    if (confirmed != true) return;
+
     final saveResult = await FilePicker.saveFile(
       dialogTitle: 'Save Backup',
       fileName: 'tis_rms_backup_${DateTime.now().toIso8601String().split('T').first}.zip',

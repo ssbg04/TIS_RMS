@@ -385,7 +385,7 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
   // DELETE CONFIRM
   // ----------------------------------------------------------------
   Future<void> _confirmDelete(StudentModel student) async {
-    final passwordController = TextEditingController();
+    final confirmController = TextEditingController();
     bool isLoading = false;
     String? errorMessage;
 
@@ -405,13 +405,12 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
                     '"${student.listDisplayName}"? The student will be marked as inactive and securely stored.',
                   ),
                   const SizedBox(height: 16),
-                  const Text('Please enter your password to confirm:'),
+                  const Text('Please type "confirm" to delete:'),
                   const SizedBox(height: 8),
                   TextField(
-                    controller: passwordController,
-                    obscureText: true,
+                    controller: confirmController,
                     decoration: InputDecoration(
-                      labelText: 'Password',
+                      labelText: 'Type confirm',
                       errorText: errorMessage,
                       border: const OutlineInputBorder(),
                     ),
@@ -427,24 +426,16 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
                   onPressed: isLoading
                       ? null
                       : () async {
-                          final pwd = passwordController.text;
-                          if (pwd.isEmpty) {
-                            setState(() => errorMessage = 'Password is required');
+                          final text = confirmController.text.trim();
+                          if (text.isEmpty) {
+                            setState(() => errorMessage = 'Input is required');
                             return;
                           }
-                          setState(() {
-                            isLoading = true;
-                            errorMessage = null;
-                          });
-                          final isVerified = await ref.read(authProvider.notifier).verifyPassword(pwd);
-                          if (!isVerified) {
-                            setState(() {
-                              isLoading = false;
-                              errorMessage = 'Incorrect password';
-                            });
-                          } else {
-                            Navigator.of(ctx).pop(true);
+                          if (text.toLowerCase() != 'confirm') {
+                            setState(() => errorMessage = 'Please type "confirm"');
+                            return;
                           }
+                          Navigator.of(ctx).pop(true);
                         },
                   style: TextButton.styleFrom(foregroundColor: AppColors.error),
                   child: isLoading

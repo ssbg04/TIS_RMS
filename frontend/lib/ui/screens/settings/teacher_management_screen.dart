@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/constants/app_colors.dart';
@@ -45,6 +46,7 @@ class TeacherManagementModal extends ConsumerStatefulWidget {
 class _TeacherManagementModalState extends ConsumerState<TeacherManagementModal>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
+  Timer? _pollingTimer;
 
   // Tab indices: 0=Teachers, 1=Academic Years, 2=Sections
   static const int _tabCount = 3;
@@ -53,10 +55,27 @@ class _TeacherManagementModalState extends ConsumerState<TeacherManagementModal>
   void initState() {
     super.initState();
     _tabController = TabController(length: _tabCount, vsync: this);
+    
+    // Initial fetch
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _refreshData();
+    });
+
+    // Polling every 5 seconds
+    _pollingTimer = Timer.periodic(const Duration(seconds: 5), (_) {
+      _refreshData();
+    });
+  }
+
+  void _refreshData() {
+    ref.invalidate(usersListProvider);
+    ref.invalidate(academicYearsListProvider);
+    ref.invalidate(sectionsListProvider);
   }
 
   @override
   void dispose() {
+    _pollingTimer?.cancel();
     _tabController.dispose();
     super.dispose();
   }
