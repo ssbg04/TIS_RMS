@@ -677,18 +677,9 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     }
 
     return LayoutBuilder(builder: (context, constraints) {
-      final isWindowsApp = Theme.of(context).platform == TargetPlatform.windows || constraints.maxWidth >= 1000;
-
-      int crossAxisCount;
-      if (constraints.maxWidth >= 1000) {
-        crossAxisCount = isAdmin ? 4 : 3;
-      } else if (constraints.maxWidth >= 650) {
-        crossAxisCount = 2;
-      } else {
-        crossAxisCount = 1;
-      }
-
-      final isSquare = isWindowsApp && crossAxisCount > 1;
+      final isWindowsApp = Theme.of(context).platform == TargetPlatform.windows || constraints.maxWidth >= 800;
+      final int crossAxisCount = isWindowsApp ? (isAdmin ? 4 : 3) : 1;
+      final bool isSquare = isWindowsApp;
 
       return GridView(
         shrinkWrap: true,
@@ -697,7 +688,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
           crossAxisCount: crossAxisCount,
           crossAxisSpacing: 16,
           mainAxisSpacing: 16,
-          mainAxisExtent: isSquare ? 115 : (crossAxisCount == 1 ? 85 : 95),
+          mainAxisExtent: isSquare ? 115 : 85,
         ),
         children: [
           StatCard(

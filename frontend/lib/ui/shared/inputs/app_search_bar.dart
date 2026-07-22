@@ -46,6 +46,13 @@ class _AppSearchBarState extends ConsumerState<AppSearchBar> {
   @override
   void didUpdateWidget(AppSearchBar oldWidget) {
     super.didUpdateWidget(oldWidget);
+    final currentHasText = _controller.text.isNotEmpty;
+    if (currentHasText != _hasText) {
+      setState(() {
+        _hasText = currentHasText;
+        if (currentHasText) _isExpanded = true;
+      });
+    }
     if (oldWidget.maxWidth != widget.maxWidth && _overlayEntry != null) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted) _overlayEntry?.markNeedsBuild();
@@ -58,6 +65,7 @@ class _AppSearchBarState extends ConsumerState<AppSearchBar> {
     super.initState();
     _controller = widget.controller ?? TextEditingController();
     _focusNode = widget.focusNode ?? FocusNode();
+    _hasText = _controller.text.isNotEmpty;
     _isExpanded = !widget.collapsible || _controller.text.trim().isNotEmpty;
     _controller.addListener(_onTextChanged);
     _focusNode.addListener(_onFocusChanged);
@@ -255,7 +263,7 @@ class _AppSearchBarState extends ConsumerState<AppSearchBar> {
             prefixIconConstraints: widget.hideIconWhenExpanded
                 ? const BoxConstraints(minWidth: 16, minHeight: 0)
                 : const BoxConstraints(minWidth: 42, minHeight: 42),
-            suffixIcon: widget.showClear && _hasText
+            suffixIcon: widget.showClear && (_hasText || _controller.text.isNotEmpty)
                 ? IconButton(
                     icon: Icon(Icons.close_rounded, size: 18, color: Colors.grey.shade500),
                     splashRadius: 16,
@@ -263,6 +271,10 @@ class _AppSearchBarState extends ConsumerState<AppSearchBar> {
                       _controller.clear();
                       widget.onChanged?.call('');
                       widget.onSubmitted?.call('');
+                      setState(() {
+                        _hasText = false;
+                        _isExpanded = true;
+                      });
                       _focusNode.requestFocus();
                     },
                   )
