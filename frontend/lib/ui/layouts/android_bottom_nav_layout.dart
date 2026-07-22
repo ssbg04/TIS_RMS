@@ -205,26 +205,12 @@ class _AndroidBottomNavLayoutState extends ConsumerState<AndroidBottomNavLayout>
           backgroundColor: Colors.white,
           foregroundColor: AppColors.primaryGreen,
           iconTheme: const IconThemeData(color: AppColors.primaryGreen),
-          title: const Text(
-            'TIS RMS', 
-            style: TextStyle(fontWeight: FontWeight.bold, color: AppColors.primaryGreen),
+          title: Text(
+            activeTab, 
+            style: const TextStyle(fontWeight: FontWeight.bold, color: AppColors.primaryGreen),
           ),
           elevation: 0,
           surfaceTintColor: Colors.transparent,
-          bottom: TabBar(
-            controller: _tabController,
-            isScrollable: true,
-            indicatorColor: AppColors.primaryGreen,
-            labelColor: AppColors.primaryGreen,
-            unselectedLabelColor: Colors.black54,
-            tabAlignment: TabAlignment.start,
-            tabs: _tabs.map((t) {
-              return Tab(
-                icon: Icon(t['icon'] as IconData, size: 20),
-                text: t['label'] as String,
-              );
-            }).toList(),
-          ),
         ),
         drawer: Drawer(
           backgroundColor: Colors.white,
