@@ -434,12 +434,14 @@ exports.updateStudent = (req, res) => {
     if (status && !['Enrolled', 'Graduated', 'Transferred', 'Dropped', 'Inactive'].includes(status)) {
         errors.push('Invalid status value.');
     }
-    if (status === 'Graduated' && gradeLevel !== 10 && gradeLevel !== 12) {
+    if (status === 'Graduated' && gradeLevel && gradeLevel !== 10 && gradeLevel !== 12) {
         errors.push('Graduation status is only applicable for Grade 10 and Grade 12 students.');
     }
-    if (!academicYearId)                     errors.push('Academic year is required.');
-    if (!gradeLevel)                         errors.push('Grade level is required.');
-    if (!sectionId)                          errors.push('Section is required.');
+    if (academicYearId > 0 || sectionId > 0) {
+        if (!academicYearId)                     errors.push('Academic year is required.');
+        if (!gradeLevel)                         errors.push('Grade level is required.');
+        if (!sectionId)                          errors.push('Section is required.');
+    }
 
     if (errors.length) return res.status(400).json({ message: errors[0], errors });
 
@@ -471,29 +473,31 @@ exports.updateStudent = (req, res) => {
                 id
             );
 
-            // Get existing enrollment for the specific academic year and grade level
-            const existingEnrollment = db.prepare(`
-                SELECT e.* FROM enrollments e
-                WHERE e.student_id = ? AND e.academic_year_id = ? AND e.grade_level = ?
-                LIMIT 1
-            `).get(id, academicYearId, gradeLevel);
+            if (academicYearId > 0 && gradeLevel > 0 && sectionId > 0) {
+                // Get existing enrollment for the specific academic year and grade level
+                const existingEnrollment = db.prepare(`
+                    SELECT e.* FROM enrollments e
+                    WHERE e.student_id = ? AND e.academic_year_id = ? AND e.grade_level = ?
+                    LIMIT 1
+                `).get(id, academicYearId, gradeLevel);
 
-            if (existingEnrollment) {
-                // Update section and track_strand if they differ
-                if (existingEnrollment.section_id !== parseInt(sectionId) ||
-                    existingEnrollment.track_strand !== (trackStrand || null)) {
+                if (existingEnrollment) {
+                    // Update section and track_strand if they differ
+                    if (existingEnrollment.section_id !== parseInt(sectionId) ||
+                        existingEnrollment.track_strand !== (trackStrand || null)) {
+                        db.prepare(`
+                            UPDATE enrollments
+                            SET section_id = ?, track_strand = ?
+                            WHERE id = ?
+                        `).run(sectionId, trackStrand || null, existingEnrollment.id);
+                    }
+                } else {
+                    // No enrollment for this year and grade, create a new one
                     db.prepare(`
-                        UPDATE enrollments
-                        SET section_id = ?, track_strand = ?
-                        WHERE id = ?
-                    `).run(sectionId, trackStrand || null, existingEnrollment.id);
+                        INSERT INTO enrollments (student_id, academic_year_id, section_id, grade_level, track_strand)
+                        VALUES (?, ?, ?, ?, ?)
+                    `).run(id, academicYearId, sectionId, gradeLevel, trackStrand || null);
                 }
-            } else {
-                // No enrollment for this year and grade, create a new one
-                db.prepare(`
-                    INSERT INTO enrollments (student_id, academic_year_id, section_id, grade_level, track_strand)
-                    VALUES (?, ?, ?, ?, ?)
-                `).run(id, academicYearId, sectionId, gradeLevel, trackStrand || null);
             }
 
             // Auto-archive documents if status is non-enrolled
