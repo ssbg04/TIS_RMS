@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../domain/repositories/notification_repository.dart';
 import '../../domain/entities/notification_model.dart';
 import '../../core/services/notification_service.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:math' as math;
 
 final notificationRepositoryProvider = Provider<NotificationRepository>((ref) {
@@ -50,6 +51,12 @@ class NotificationNotifier extends AsyncNotifier<List<NotificationModel>> {
             body: note.message,
           );
         }
+      }
+
+      if (list.isNotEmpty) {
+        final highestId = list.map((e) => e.id).reduce(math.max);
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setInt('last_seen_notification_id', highestId);
       }
 
       state = AsyncData(list);

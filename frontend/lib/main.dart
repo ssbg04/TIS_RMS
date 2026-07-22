@@ -12,7 +12,9 @@ import 'ui/screens/splash/splash_screen.dart';
 import 'core/theme/app_theme.dart'; // Add this import
 import 'core/constants/app_colors.dart';
 import 'core/services/notification_service.dart';
+import 'core/services/background_sync_service.dart';
 import 'ui/shared/widgets/inactivity_wrapper.dart';
+import 'package:workmanager/workmanager.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -46,6 +48,22 @@ void main() async {
   ]);
   
   await NotificationService().initialize();
+  
+  if (!kIsWeb && (Platform.isAndroid || Platform.isIOS)) {
+    Workmanager().initialize(
+      callbackDispatcher,
+      isInDebugMode: false,
+    );
+    // Register periodic task
+    Workmanager().registerPeriodicTask(
+      "1",
+      "background_sync_task",
+      frequency: const Duration(minutes: 15),
+      constraints: Constraints(
+        networkType: NetworkType.connected,
+      ),
+    );
+  }
   
   runApp(const ProviderScope(child: TisRmsApp()));
 }
