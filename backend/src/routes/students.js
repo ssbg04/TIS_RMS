@@ -11,6 +11,7 @@ router.get('/:id', authenticateToken, studentController.getStudentById);
 router.post('/',    authenticateToken, authorizeRoles('admin'), studentController.createStudent);
 router.post('/bulk-enroll', authenticateToken, authorizeRoles('admin'), studentController.bulkEnrollStudents);
 router.put('/bulk-graduate', authenticateToken, authorizeRoles('admin'), studentController.bulkGraduate);
+router.post('/bulk-status', authenticateToken, authorizeRoles('admin'), studentController.bulkStatusStudents);
 router.put('/:id',  authenticateToken, authorizeRoles('admin'), studentController.updateStudent);
 router.delete('/:id', authenticateToken, authorizeRoles('admin'), studentController.deleteStudent);
 

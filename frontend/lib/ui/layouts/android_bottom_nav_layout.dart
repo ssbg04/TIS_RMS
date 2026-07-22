@@ -129,7 +129,7 @@ class _AndroidBottomNavLayoutState extends ConsumerState<AndroidBottomNavLayout>
     });
 
     _tabLoadingTimer?.cancel();
-    _tabLoadingTimer = Timer(const Duration(milliseconds: 500), () {
+    _tabLoadingTimer = Timer(const Duration(milliseconds: 100), () {
       if (mounted) {
         setState(() {
           _isTabLoading = false;
@@ -368,6 +368,7 @@ class _AndroidBottomNavLayoutState extends ConsumerState<AndroidBottomNavLayout>
           children: [
             TabBarView(
               controller: _tabController,
+              physics: const NeverScrollableScrollPhysics(),
               children: _tabs.asMap().entries.map((entry) {
                 return _visitedIndices.contains(entry.key)
                     ? entry.value['screen'] as Widget

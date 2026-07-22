@@ -2,6 +2,8 @@ import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../domain/repositories/notification_repository.dart';
 import '../../domain/entities/notification_model.dart';
+import '../../core/services/notification_service.dart';
+import 'dart:math' as math;
 
 final notificationRepositoryProvider = Provider<NotificationRepository>((ref) {
   return NotificationRepository();
@@ -33,8 +35,23 @@ class NotificationNotifier extends AsyncNotifier<List<NotificationModel>> {
 
   Future<void> refreshNotifications() async {
     try {
+      final oldList = state.value ?? [];
       final repo = ref.read(notificationRepositoryProvider);
       final list = await repo.getNotifications();
+      
+      // Trigger native notification for newly fetched items
+      if (oldList.isNotEmpty && list.isNotEmpty) {
+        final highestOldId = oldList.map((e) => e.id).reduce(math.max);
+        final newNotes = list.where((e) => e.id > highestOldId).toList();
+        
+        for (var note in newNotes) {
+          NotificationService().showNotification(
+            title: note.title, 
+            body: note.message,
+          );
+        }
+      }
+
       state = AsyncData(list);
     } catch (e, st) {
       state = AsyncError(e, st);

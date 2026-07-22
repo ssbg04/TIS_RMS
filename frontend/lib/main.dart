@@ -11,6 +11,7 @@ import 'ui/screens/splash/splash_screen.dart';
 // Core Imports
 import 'core/theme/app_theme.dart'; // Add this import
 import 'core/constants/app_colors.dart';
+import 'core/services/notification_service.dart';
 import 'ui/shared/widgets/inactivity_wrapper.dart';
 
 void main() async {
@@ -43,6 +44,9 @@ void main() async {
     DeviceOrientation.portraitUp,
     DeviceOrientation.portraitDown,
   ]);
+  
+  await NotificationService().initialize();
+  
   runApp(const ProviderScope(child: TisRmsApp()));
 }
 

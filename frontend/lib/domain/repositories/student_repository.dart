@@ -304,33 +304,22 @@ class StudentRepository {
   // Bulk Change Status (Used for Dropped, Transferred, etc)
   // ----------------------------------------------------------------
   Future<void> bulkChangeStatus(List<StudentModel> students, String newStatus) async {
-    for (final student in students) {
-      try {
-        final options = await _getAuthOptions();
-        await _dio.put(
-          '/students/${student.id}',
-          data: {
-            'lrn':            student.lrn,
-            'firstName':      student.firstName,
-            'middleName':     student.middleName,
-            'lastName':       student.lastName,
-            'extension':      student.extension,
-            'sex':            student.sex,
-            'birthDate':      student.birthDate.toIso8601String().split('T').first,
-            'status':         newStatus,
-            'academicYearId': student.latestEnrollment?.academicYearId ?? 0,
-            'gradeLevel':     student.latestGradeLevel ?? 0,
-            'sectionId':      student.latestEnrollment?.sectionId ?? 0,
-            'trackStrand':    student.latestEnrollment?.trackStrand,
-            'is4ps':          student.is4ps,
-          },
-          options: options,
-        );
-      } catch (e) {
-        // Continue attempting others if one fails, or we could throw. 
-        // For now, continue to best-effort bulk update.
-        print('Failed to update status for student ${student.id}: $e');
-      }
+    if (students.isEmpty) return;
+    
+    try {
+      final options = await _getAuthOptions();
+      final studentIds = students.map((s) => s.id).toList();
+      
+      await _dio.post(
+        '/students/bulk-status',
+        data: {
+          'studentIds': studentIds,
+          'status': newStatus,
+        },
+        options: options,
+      );
+    } on DioException catch (e) {
+      throw Exception(e.response?.data['message'] ?? 'Failed to perform bulk status change.');
     }
   }
   // ----------------------------------------------------------------

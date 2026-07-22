@@ -586,6 +586,50 @@ exports.bulkEnrollStudents = (req, res) => {
 };
 
 // ============================================================
+// POST /api/students/bulk-status
+// ============================================================
+exports.bulkStatusStudents = (req, res) => {
+    const { studentIds, status } = req.body;
+    if (!Array.isArray(studentIds) || studentIds.length === 0) {
+        return res.status(400).json({ message: 'studentIds must be a non-empty array' });
+    }
+    if (!status) {
+        return res.status(400).json({ message: 'status is required' });
+    }
+    
+    try {
+        let studentDetails = [];
+        db.transaction(() => {
+            const updateStudentStatus = db.prepare('UPDATE students SET status = ? WHERE id = ?');
+            const archiveDocuments = db.prepare('UPDATE documents SET status = ? WHERE student_id = ? AND deleted_at IS NULL');
+            const getStudent = db.prepare('SELECT lrn, last_name FROM students WHERE id = ?');
+            
+            for (const studentId of studentIds) {
+                updateStudentStatus.run(status, studentId);
+                
+                // Auto-archive documents if status is non-enrolled
+                if (['Graduated', 'Transferred', 'Dropped'].includes(status)) {
+                    archiveDocuments.run('Archived', studentId);
+                }
+                
+                const student = getStudent.get(studentId);
+                if (student) {
+                    studentDetails.push(`${student.lrn} ${student.last_name}`);
+                }
+            }
+        })();
+        
+        const detailsString = studentDetails.join(', ');
+        logActivity(req.user?.id, 'UPDATE', 'student', null, `Bulk changed status to ${status} for: ${detailsString}`);
+        
+        res.json({ message: `Successfully changed status for ${studentIds.length} students.` });
+    } catch (error) {
+        console.error('bulkStatusStudents error:', error);
+        res.status(500).json({ message: 'Failed to bulk change status', error: error.message });
+    }
+};
+
+// ============================================================
 // POST /api/students/:id/enrollments
 // ============================================================
 exports.addEnrollment = (req, res) => {
