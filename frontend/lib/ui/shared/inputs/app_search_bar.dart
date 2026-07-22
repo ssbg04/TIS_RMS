@@ -262,13 +262,8 @@ class _AppSearchBarState extends ConsumerState<AppSearchBar> {
                     onPressed: () {
                       _controller.clear();
                       widget.onChanged?.call('');
-                      if (widget.collapsible) {
-                        _focusNode.unfocus();
-                        _removeOverlay();
-                        setState(() => _isExpanded = false);
-                      } else {
-                        _focusNode.requestFocus();
-                      }
+                      widget.onSubmitted?.call('');
+                      _focusNode.requestFocus();
                     },
                   )
                 : null,

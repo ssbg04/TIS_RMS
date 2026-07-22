@@ -677,6 +677,8 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     }
 
     return LayoutBuilder(builder: (context, constraints) {
+      final isWindowsApp = Theme.of(context).platform == TargetPlatform.windows || constraints.maxWidth >= 1000;
+
       int crossAxisCount;
       if (constraints.maxWidth >= 1000) {
         crossAxisCount = isAdmin ? 4 : 3;
@@ -685,6 +687,9 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
       } else {
         crossAxisCount = 1;
       }
+
+      final isSquare = isWindowsApp && crossAxisCount > 1;
+
       return GridView(
         shrinkWrap: true,
         physics: const NeverScrollableScrollPhysics(),
@@ -692,13 +697,14 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
           crossAxisCount: crossAxisCount,
           crossAxisSpacing: 16,
           mainAxisSpacing: 16,
-          mainAxisExtent: crossAxisCount == 1 ? 110 : 130,
+          mainAxisExtent: isSquare ? 115 : (crossAxisCount == 1 ? 85 : 95),
         ),
         children: [
           StatCard(
             title: 'Total Students',    
             value: stats.totalStudents.toString(),      
             icon: Icons.school_rounded,
+            isSquare: isSquare,
             onTap: () {
               ref.read(studentQueryProvider.notifier).reset();
               ref.invalidate(studentPageProvider);
@@ -711,6 +717,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
               value: stats.activeUsers.toString(),        
               icon: Icons.group,        
               iconColor: Colors.blue,
+              isSquare: isSquare,
               onTap: () {
                 ref.invalidate(usersProvider);
                 ref.read(activeTabProvider.notifier).setTab('Users');
@@ -721,6 +728,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
             value: stats.completedDocuments.toString(), 
             icon: Icons.fact_check_rounded,     
             iconColor: AppColors.primaryGreen,
+            isSquare: isSquare,
             onTap: () {
               ref.invalidate(foldersProvider);
               ref.invalidate(documentPageProvider);
@@ -732,6 +740,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
             value: stats.missingDocuments.toString(),   
             icon: Icons.assignment_late_rounded,   
             iconColor: Colors.orange,
+            isSquare: isSquare,
             onTap: () {
               ref.invalidate(foldersProvider);
               ref.invalidate(documentPageProvider);
