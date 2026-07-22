@@ -268,18 +268,21 @@ class _AppSearchBarState extends ConsumerState<AppSearchBar> {
             prefixIconConstraints: widget.hideIconWhenExpanded
                 ? const BoxConstraints(minWidth: 16, minHeight: 0)
                 : const BoxConstraints(minWidth: 42, minHeight: 42),
-            suffixIcon: widget.showClear && (_hasText || _controller.text.isNotEmpty)
+            suffixIcon: widget.showClear && (_hasText || _controller.text.isNotEmpty || (widget.collapsible && _isExpanded))
                 ? IconButton(
                     icon: Icon(Icons.close_rounded, size: 18, color: Colors.grey.shade500),
                     splashRadius: 16,
                     onPressed: () {
+                      _focusNode.unfocus();
                       _controller.clear();
                       widget.onChanged?.call('');
                       widget.onSubmitted?.call('');
                       setState(() {
                         _hasText = false;
+                        if (widget.collapsible) {
+                          _isExpanded = false;
+                        }
                       });
-                      _focusNode.unfocus();
                     },
                   )
                 : null,
