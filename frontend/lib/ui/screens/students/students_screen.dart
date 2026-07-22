@@ -82,6 +82,7 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
           final currentQuery = ref.read(studentQueryProvider).search;
           if (_searchController.text != currentQuery) {
             _searchController.text = currentQuery;
+            if (mounted) setState(() {});
           }
         }
       });
@@ -254,28 +255,7 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
     );
   }
 
-  Widget _batchActionBtn({
-    required IconData icon,
-    required String label,
-    required Color color,
-    required VoidCallback onTap,
-  }) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(8),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(icon, color: color, size: 22),
-            const SizedBox(height: 4),
-            Text(label, style: TextStyle(color: color, fontSize: 11, fontWeight: FontWeight.bold)),
-          ],
-        ),
-      ),
-    );
-  }
+
 
   void _showBulkEnrollModal() {
     showDialog(

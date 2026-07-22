@@ -73,7 +73,12 @@ class _AppSearchBarState extends ConsumerState<AppSearchBar> {
 
   void _onTextChanged() {
     final hasText = _controller.text.isNotEmpty;
-    if (hasText != _hasText) setState(() => _hasText = hasText);
+    if (hasText != _hasText) {
+      setState(() {
+        _hasText = hasText;
+        if (hasText) _isExpanded = true;
+      });
+    }
     
     // Update overlay if history is visible
     if (_overlayEntry != null && widget.enableHistory) {
@@ -273,9 +278,8 @@ class _AppSearchBarState extends ConsumerState<AppSearchBar> {
                       widget.onSubmitted?.call('');
                       setState(() {
                         _hasText = false;
-                        _isExpanded = true;
                       });
-                      _focusNode.requestFocus();
+                      _focusNode.unfocus();
                     },
                   )
                 : null,

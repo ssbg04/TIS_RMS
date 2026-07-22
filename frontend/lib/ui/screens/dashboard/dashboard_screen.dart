@@ -688,7 +688,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
           crossAxisCount: crossAxisCount,
           crossAxisSpacing: 16,
           mainAxisSpacing: 16,
-          mainAxisExtent: isSquare ? 115 : 85,
+          mainAxisExtent: isSquare ? 135 : 85,
         ),
         children: [
           StatCard(
