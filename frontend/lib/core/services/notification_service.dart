@@ -45,6 +45,13 @@ class NotificationService {
       },
     );
 
+    if (!kIsWeb && Platform.isAndroid) {
+      final AndroidFlutterLocalNotificationsPlugin? androidImplementation =
+          _flutterLocalNotificationsPlugin.resolvePlatformSpecificImplementation<
+              AndroidFlutterLocalNotificationsPlugin>();
+      await androidImplementation?.requestNotificationsPermission();
+    }
+
     _initialized = true;
   }
 
