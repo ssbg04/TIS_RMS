@@ -4,7 +4,7 @@ class OcrResultModel {
   final String lastName;
   final String middleName;
   final String extension; // Added Ext
-  final String? dob;      // Nullable for SF9
+  final String? dob; // Nullable for SF9
   final String sex;
   final String gradeLevel;
   final String section;
@@ -29,7 +29,7 @@ class OcrResultModel {
 
   factory OcrResultModel.fromJson(Map<String, dynamic> json) {
     final extracted = json['extracted'] as Map<String, dynamic>? ?? {};
-    
+
     return OcrResultModel(
       lrn: extracted['lrn']?.toString() ?? '',
       firstName: extracted['firstName']?.toString() ?? '',

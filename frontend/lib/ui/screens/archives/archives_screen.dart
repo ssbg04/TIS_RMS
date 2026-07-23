@@ -39,7 +39,7 @@ class _ArchivesScreenState extends ConsumerState<ArchivesScreen>
   // Folder open state
   int? _openedFolderStudentId;
   String? _openedFolderName;
-  
+
   // Folder pagination
   int _foldersPage = 1;
   final int _foldersPerPage = 10;
@@ -113,7 +113,9 @@ class _ArchivesScreenState extends ConsumerState<ArchivesScreen>
       _openedFolderStudentId = initialArchiveFolder.id;
       _openedFolderName = initialArchiveFolder.name;
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        ref.read(archiveDocumentQueryProvider.notifier).setStudentId(initialArchiveFolder.id);
+        ref
+            .read(archiveDocumentQueryProvider.notifier)
+            .setStudentId(initialArchiveFolder.id);
       });
     }
 
@@ -121,25 +123,33 @@ class _ArchivesScreenState extends ConsumerState<ArchivesScreen>
       if (!mounted) return;
       ref.read(archiveDocumentQueryProvider.notifier).setPage(1);
 
-      _folderListener = ref.listenManual<OpenedArchiveFolderData?>(openedArchiveFolderProvider, (previous, current) {
-        if (!mounted) return;
-        if (current != null && current.id != _openedFolderStudentId) {
-          setState(() {
-            _openedFolderStudentId = current.id;
-            _openedFolderName = current.name;
-          });
-          if (mounted && _tabController.index != 0) {
-            _tabController.index = 0;
+      _folderListener = ref.listenManual<OpenedArchiveFolderData?>(
+        openedArchiveFolderProvider,
+        (previous, current) {
+          if (!mounted) return;
+          if (current != null && current.id != _openedFolderStudentId) {
+            setState(() {
+              _openedFolderStudentId = current.id;
+              _openedFolderName = current.name;
+            });
+            if (mounted && _tabController.index != 0) {
+              _tabController.index = 0;
+            }
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              if (!mounted) return;
+              // Trigger refresh/fetch if needed, or query updates
+              ref
+                  .read(archiveDocumentQueryProvider.notifier)
+                  .setStudentId(current.id);
+            });
           }
-          WidgetsBinding.instance.addPostFrameCallback((_) {
-            if (!mounted) return;
-            // Trigger refresh/fetch if needed, or query updates
-            ref.read(archiveDocumentQueryProvider.notifier).setStudentId(current.id);
-          });
-        }
-      });
+        },
+      );
 
-      _tabListener = ref.listenManual<String>(activeTabProvider, (previous, next) {
+      _tabListener = ref.listenManual<String>(activeTabProvider, (
+        previous,
+        next,
+      ) {
         if (!mounted) return;
         if (next != 'Archives') {
           ref.read(openedArchiveFolderProvider.notifier).setFolder(null);
@@ -314,19 +324,26 @@ class _ArchivesScreenState extends ConsumerState<ArchivesScreen>
       barrierDismissible: false,
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setState) => AlertDialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
           title: const Row(
             children: [
               Icon(Icons.security, color: AppColors.error),
               SizedBox(width: 8),
-              Text('Security Verification', style: TextStyle(color: AppColors.error)),
+              Text(
+                'Security Verification',
+                style: TextStyle(color: AppColors.error),
+              ),
             ],
           ),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text('Please enter your admin password to confirm the permanent purge:'),
+              const Text(
+                'Please enter your admin password to confirm the permanent purge:',
+              ),
               const SizedBox(height: 16),
               CustomTextField(
                 hintText: 'Admin Password',
@@ -334,11 +351,15 @@ class _ArchivesScreenState extends ConsumerState<ArchivesScreen>
                 controller: passwordController,
                 isPassword: true,
                 obscureText: obscurePassword,
-                onToggleVisibility: () => setState(() => obscurePassword = !obscurePassword),
+                onToggleVisibility: () =>
+                    setState(() => obscurePassword = !obscurePassword),
               ),
               if (errorMessage != null) ...[
                 const SizedBox(height: 8),
-                Text(errorMessage!, style: const TextStyle(color: AppColors.error, fontSize: 13)),
+                Text(
+                  errorMessage!,
+                  style: const TextStyle(color: AppColors.error, fontSize: 13),
+                ),
               ],
             ],
           ),
@@ -359,14 +380,16 @@ class _ArchivesScreenState extends ConsumerState<ArchivesScreen>
                   return;
                 }
                 try {
-                  final isVerified = await ref.read(authProvider.notifier).verifyPassword(pwd);
+                  final isVerified = await ref
+                      .read(authProvider.notifier)
+                      .verifyPassword(pwd);
                   if (isVerified) {
                     Navigator.pop(ctx, true);
                   } else {
                     setState(() => errorMessage = 'Incorrect password');
                   }
                 } catch (e) {
-                   setState(() => errorMessage = 'Error verifying password');
+                  setState(() => errorMessage = 'Error verifying password');
                 }
               },
               child: const Text('CONFIRM PURGE'),
@@ -471,7 +494,6 @@ class _ArchivesScreenState extends ConsumerState<ArchivesScreen>
                 ),
               ),
 
-
               const Divider(height: 1),
 
               // ── Tab Body ──
@@ -562,7 +584,6 @@ class _ArchivesScreenState extends ConsumerState<ArchivesScreen>
                   ],
                 ),
               ),
-
             ],
           ),
 
@@ -588,8 +609,6 @@ class _ArchivesScreenState extends ConsumerState<ArchivesScreen>
                 ),
               ),
               const SizedBox(width: 8),
-
-
 
               if (_tabController.index == 1 || isFolderOpened) ...[
                 // Filter button
@@ -619,7 +638,11 @@ class _ArchivesScreenState extends ConsumerState<ArchivesScreen>
                             Badge(
                               isLabelVisible: _getActiveFilterCount() > 0,
                               label: Text(_getActiveFilterCount().toString()),
-                              child: const Icon(Icons.tune_rounded, size: 18, color: AppColors.primaryGreen),
+                              child: const Icon(
+                                Icons.tune_rounded,
+                                size: 18,
+                                color: AppColors.primaryGreen,
+                              ),
                             ),
                             if (!isMobile) ...[
                               const SizedBox(width: 6),
@@ -676,10 +699,16 @@ class _ArchivesScreenState extends ConsumerState<ArchivesScreen>
         builder: (ctx, setDialogState) {
           return Dialog(
             backgroundColor: Colors.transparent,
-            insetPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 40),
+            insetPadding: const EdgeInsets.symmetric(
+              horizontal: 20,
+              vertical: 40,
+            ),
             child: ConstrainedBox(
               constraints: const BoxConstraints(maxWidth: 440),
-              child: _buildFilterPanelContent(setDialogState, () => Navigator.of(ctx).pop()),
+              child: _buildFilterPanelContent(
+                setDialogState,
+                () => Navigator.of(ctx).pop(),
+              ),
             ),
           );
         },
@@ -687,18 +716,33 @@ class _ArchivesScreenState extends ConsumerState<ArchivesScreen>
     );
   }
 
-  Widget _buildFilterPanelContent(StateSetter setDialogState, VoidCallback onApply) {
+  Widget _buildFilterPanelContent(
+    StateSetter setDialogState,
+    VoidCallback onApply,
+  ) {
     final academicYearsAsync = ref.watch(academicYearsProvider);
     final requirementsAsync = ref.watch(documentRequirementsProvider);
 
     final jhsItems = requirementsAsync.when(
-      data: (reqs) => reqs.where((r) => r.category == 'JHS').map((r) => r.name as String).toSet().toList()..sort(),
+      data: (reqs) =>
+          reqs
+              .where((r) => r.category == 'JHS')
+              .map((r) => r.name as String)
+              .toSet()
+              .toList()
+            ..sort(),
       loading: () => <String>[],
       error: (_, _) => <String>[],
     );
 
     final shsItems = requirementsAsync.when(
-      data: (reqs) => reqs.where((r) => r.category == 'SHS').map((r) => r.name as String).toSet().toList()..sort(),
+      data: (reqs) =>
+          reqs
+              .where((r) => r.category == 'SHS')
+              .map((r) => r.name as String)
+              .toSet()
+              .toList()
+            ..sort(),
       loading: () => <String>[],
       error: (_, _) => <String>[],
     );
@@ -706,7 +750,13 @@ class _ArchivesScreenState extends ConsumerState<ArchivesScreen>
     if (jhsItems.isNotEmpty) _jhsItems = jhsItems;
     if (shsItems.isNotEmpty) _shsItems = shsItems;
 
-    final docTypes = ['All Types', 'All JHS', 'All SHS', ...jhsItems, ...shsItems];
+    final docTypes = [
+      'All Types',
+      'All JHS',
+      'All SHS',
+      ...jhsItems,
+      ...shsItems,
+    ];
 
     final years = academicYearsAsync.when(
       data: (y) => ['All Years', ...y.map((ay) => ay.yearRange)],
@@ -736,7 +786,11 @@ class _ArchivesScreenState extends ConsumerState<ArchivesScreen>
             padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
             child: Row(
               children: [
-                const Icon(Icons.tune_rounded, size: 18, color: AppColors.primaryGreen),
+                const Icon(
+                  Icons.tune_rounded,
+                  size: 18,
+                  color: AppColors.primaryGreen,
+                ),
                 const SizedBox(width: 8),
                 const Text(
                   'Filter Archives',
@@ -754,10 +808,16 @@ class _ArchivesScreenState extends ConsumerState<ArchivesScreen>
 
           _buildFilterSection(
             label: 'Student Status',
-            onReset: () => setDialogState(() => _pendingStatus = 'All Statuses'),
+            onReset: () =>
+                setDialogState(() => _pendingStatus = 'All Statuses'),
             child: _buildFilterDropdown(
               value: _pendingStatus,
-              items: const ['All Statuses', 'Graduated', 'Transferred', 'Dropped'],
+              items: const [
+                'All Statuses',
+                'Graduated',
+                'Transferred',
+                'Dropped',
+              ],
               onChanged: (v) => setDialogState(() => _pendingStatus = v!),
             ),
           ),
@@ -766,9 +826,12 @@ class _ArchivesScreenState extends ConsumerState<ArchivesScreen>
 
           _buildFilterSection(
             label: 'Document Type',
-            onReset: () => setDialogState(() => _pendingDocumentType = 'All Types'),
+            onReset: () =>
+                setDialogState(() => _pendingDocumentType = 'All Types'),
             child: _buildFilterDropdown(
-              value: docTypes.contains(_pendingDocumentType) ? _pendingDocumentType : 'All Types',
+              value: docTypes.contains(_pendingDocumentType)
+                  ? _pendingDocumentType
+                  : 'All Types',
               items: docTypes,
               onChanged: (v) => setDialogState(() => _pendingDocumentType = v!),
             ),
@@ -778,7 +841,8 @@ class _ArchivesScreenState extends ConsumerState<ArchivesScreen>
 
           _buildFilterSection(
             label: 'Grade Level',
-            onReset: () => setDialogState(() => _pendingGradeLevel = 'All Grades'),
+            onReset: () =>
+                setDialogState(() => _pendingGradeLevel = 'All Grades'),
             child: _buildFilterDropdown(
               value: _pendingGradeLevel,
               items: const ['All Grades', '7', '8', '9', '10', '11', '12'],
@@ -790,9 +854,12 @@ class _ArchivesScreenState extends ConsumerState<ArchivesScreen>
 
           _buildFilterSection(
             label: 'School Year',
-            onReset: () => setDialogState(() => _pendingSchoolYear = 'All Years'),
+            onReset: () =>
+                setDialogState(() => _pendingSchoolYear = 'All Years'),
             child: _buildFilterDropdown(
-              value: years.contains(_pendingSchoolYear) ? _pendingSchoolYear : 'All Years',
+              value: years.contains(_pendingSchoolYear)
+                  ? _pendingSchoolYear
+                  : 'All Years',
               items: years,
               onChanged: (v) => setDialogState(() => _pendingSchoolYear = v!),
             ),
@@ -808,7 +875,9 @@ class _ArchivesScreenState extends ConsumerState<ArchivesScreen>
                       foregroundColor: AppColors.textSecondary,
                       side: BorderSide(color: Colors.grey.shade300),
                       padding: const EdgeInsets.symmetric(vertical: 12),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
                     ),
                     onPressed: () {
                       setDialogState(() {
@@ -825,7 +894,10 @@ class _ArchivesScreenState extends ConsumerState<ArchivesScreen>
                       });
                       _applyFilters();
                     },
-                    child: const Text('Reset all', style: TextStyle(fontWeight: FontWeight.w600)),
+                    child: const Text(
+                      'Reset all',
+                      style: TextStyle(fontWeight: FontWeight.w600),
+                    ),
                   ),
                 ),
                 const SizedBox(width: 12),
@@ -836,7 +908,9 @@ class _ArchivesScreenState extends ConsumerState<ArchivesScreen>
                       backgroundColor: AppColors.primaryGreen,
                       foregroundColor: Colors.white,
                       padding: const EdgeInsets.symmetric(vertical: 12),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
                       elevation: 0,
                     ),
                     onPressed: () {
@@ -849,7 +923,13 @@ class _ArchivesScreenState extends ConsumerState<ArchivesScreen>
                       _applyFilters();
                       onApply();
                     },
-                    child: const Text('Apply now', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 14)),
+                    child: const Text(
+                      'Apply now',
+                      style: TextStyle(
+                        fontWeight: FontWeight.w700,
+                        fontSize: 14,
+                      ),
+                    ),
                   ),
                 ),
               ],
@@ -922,8 +1002,19 @@ class _ArchivesScreenState extends ConsumerState<ArchivesScreen>
           isExpanded: true,
           isDense: true,
           style: const TextStyle(fontSize: 14, color: AppColors.textPrimary),
-          icon: const Icon(Icons.keyboard_arrow_down, color: AppColors.textMuted, size: 20),
-          items: items.map((i) => DropdownMenuItem(value: i, child: Text(i, style: const TextStyle(fontSize: 14)))).toList(),
+          icon: const Icon(
+            Icons.keyboard_arrow_down,
+            color: AppColors.textMuted,
+            size: 20,
+          ),
+          items: items
+              .map(
+                (i) => DropdownMenuItem(
+                  value: i,
+                  child: Text(i, style: const TextStyle(fontSize: 14)),
+                ),
+              )
+              .toList(),
           onChanged: onChanged,
         ),
       ),
@@ -987,8 +1078,18 @@ class _ArchivesScreenState extends ConsumerState<ArchivesScreen>
               data: (pageData) => pageData.documents.isEmpty
                   ? _buildEmptyState('No archived documents for this student.')
                   : _isGridView
-                  ? _buildArchiveGridView(pageData.documents, isMobile, pageData.totalPages, query.page)
-                  : _buildArchiveListView(pageData.documents, isMobile, pageData.totalPages, query.page),
+                  ? _buildArchiveGridView(
+                      pageData.documents,
+                      isMobile,
+                      pageData.totalPages,
+                      query.page,
+                    )
+                  : _buildArchiveListView(
+                      pageData.documents,
+                      isMobile,
+                      pageData.totalPages,
+                      query.page,
+                    ),
             ),
           ),
         ],
@@ -1008,8 +1109,10 @@ class _ArchivesScreenState extends ConsumerState<ArchivesScreen>
         }
 
         final totalRows = folders.length;
-        final totalPages = totalRows > 0 ? (totalRows / _foldersPerPage).ceil() : 1;
-        
+        final totalPages = totalRows > 0
+            ? (totalRows / _foldersPerPage).ceil()
+            : 1;
+
         // Ensure current page is valid
         if (_foldersPage > totalPages) {
           _foldersPage = totalPages;
@@ -1018,41 +1121,54 @@ class _ArchivesScreenState extends ConsumerState<ArchivesScreen>
         }
 
         final startIndex = (_foldersPage - 1) * _foldersPerPage;
-        final endIndex = (startIndex + _foldersPerPage > totalRows) ? totalRows : startIndex + _foldersPerPage;
+        final endIndex = (startIndex + _foldersPerPage > totalRows)
+            ? totalRows
+            : startIndex + _foldersPerPage;
         final paginatedFolders = folders.sublist(startIndex, endIndex);
 
         Widget containerList = Container(
-            margin: EdgeInsets.all(isMobile ? 8 : 16),
-            decoration: BoxDecoration(
-              color: AppColors.surfaceWhite,
-              borderRadius: BorderRadius.circular(12),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.04),
-                  blurRadius: 10,
-                  offset: const Offset(0, 2),
-                ),
-              ],
-            ),
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(12),
-              child: Column(
-                children: [
-                  // Table header
-                  Container(
-                    padding: EdgeInsets.symmetric(
-                      horizontal: isMobile ? 12 : 16,
-                      vertical: 10,
-                    ),
-                    color: AppColors.primaryGreen.withValues(alpha: 0.06),
-                    child: Row(
-                      children: [
-                        const SizedBox(width: 40),
-                        const SizedBox(width: 12),
+          margin: EdgeInsets.all(isMobile ? 8 : 16),
+          decoration: BoxDecoration(
+            color: AppColors.surfaceWhite,
+            borderRadius: BorderRadius.circular(12),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.04),
+                blurRadius: 10,
+                offset: const Offset(0, 2),
+              ),
+            ],
+          ),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(12),
+            child: Column(
+              children: [
+                // Table header
+                Container(
+                  padding: EdgeInsets.symmetric(
+                    horizontal: isMobile ? 12 : 16,
+                    vertical: 10,
+                  ),
+                  color: AppColors.primaryGreen.withValues(alpha: 0.06),
+                  child: Row(
+                    children: [
+                      const SizedBox(width: 40),
+                      const SizedBox(width: 12),
+                      const Expanded(
+                        flex: 3,
+                        child: Text(
+                          'Student Name',
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 12,
+                            color: AppColors.textSecondary,
+                          ),
+                        ),
+                      ),
+                      if (!isMobile) ...[
                         const Expanded(
-                          flex: 3,
                           child: Text(
-                            'Student Name',
+                            'Status',
                             style: TextStyle(
                               fontWeight: FontWeight.bold,
                               fontSize: 12,
@@ -1060,127 +1176,117 @@ class _ArchivesScreenState extends ConsumerState<ArchivesScreen>
                             ),
                           ),
                         ),
-                        if (!isMobile) ...[
-                          const Expanded(
-                            child: Text(
-                              'Status',
-                              style: TextStyle(
-                                fontWeight: FontWeight.bold,
-                                fontSize: 12,
-                                color: AppColors.textSecondary,
-                              ),
+                        const Expanded(
+                          child: Text(
+                            'Documents',
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 12,
+                              color: AppColors.textSecondary,
                             ),
                           ),
-                          const Expanded(
-                            child: Text(
-                              'Documents',
-                              style: TextStyle(
-                                fontWeight: FontWeight.bold,
-                                fontSize: 12,
-                                color: AppColors.textSecondary,
-                              ),
-                            ),
-                          ),
-                        ],
-                        if (_isAdmin) const SizedBox(width: 80),
+                        ),
                       ],
-                    ),
+                      if (_isAdmin) const SizedBox(width: 80),
+                    ],
                   ),
-                  Expanded(
-                    child: ListView.separated(
-                      itemCount: paginatedFolders.length,
-                      separatorBuilder: (_, _) =>
-                          Divider(height: 1, color: Colors.grey.shade100),
-                      itemBuilder: (ctx, i) {
-                        final folder = paginatedFolders[i];
-                        final studentName =
-                            '${folder.studentLastName ?? ''}, ${folder.studentFirstName ?? ''}';
+                ),
+                Expanded(
+                  child: ListView.separated(
+                    itemCount: paginatedFolders.length,
+                    separatorBuilder: (_, _) =>
+                        Divider(height: 1, color: Colors.grey.shade100),
+                    itemBuilder: (ctx, i) {
+                      final folder = paginatedFolders[i];
+                      final studentName =
+                          '${folder.studentLastName ?? ''}, ${folder.studentFirstName ?? ''}';
 
-                        return InkWell(
-                          onTap: () {
-                            if (folder.studentId != null) {
-                              setState(() {
-                                _openedFolderStudentId = folder.studentId;
-                                _openedFolderName = studentName;
-                              });
-                              ref
-                                  .read(archiveDocumentQueryProvider.notifier)
-                                  .setStudentId(folder.studentId);
-                            }
-                          },
-                          child: Padding(
-                            padding: EdgeInsets.symmetric(
-                              horizontal: isMobile ? 12 : 16,
-                              vertical: isMobile ? 10 : 12,
-                            ),
-                            child: Row(
-                              children: [
-                                const Icon(
-                                  Icons.folder_special_rounded,
-                                  size: 28,
-                                  color: Colors.deepOrange,
-                                ),
-                                const SizedBox(width: 12),
-                                Expanded(
-                                  flex: 3,
-                                  child: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      Text(
-                                        studentName,
-                                        style: const TextStyle(
-                                          fontWeight: FontWeight.bold,
-                                          fontSize: 14,
-                                        ),
-                                        maxLines: 1,
-                                        overflow: TextOverflow.ellipsis,
-                                      ),
-                                      Text(
-                                        folder.studentLrn ?? '',
-                                        style: const TextStyle(
-                                          fontSize: 11,
-                                          color: AppColors.textSecondary,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                                if (!isMobile) ...[
-                                  Expanded(
-                                    child: _buildStudentStatusChip(folder.studentStatus ?? 'Archived'),
-                                  ),
-                                  Expanded(
-                                    child: Text(
-                                      '${folder.documentCount ?? 0} docs',
+                      return InkWell(
+                        onTap: () {
+                          if (folder.studentId != null) {
+                            setState(() {
+                              _openedFolderStudentId = folder.studentId;
+                              _openedFolderName = studentName;
+                            });
+                            ref
+                                .read(archiveDocumentQueryProvider.notifier)
+                                .setStudentId(folder.studentId);
+                          }
+                        },
+                        child: Padding(
+                          padding: EdgeInsets.symmetric(
+                            horizontal: isMobile ? 12 : 16,
+                            vertical: isMobile ? 10 : 12,
+                          ),
+                          child: Row(
+                            children: [
+                              const Icon(
+                                Icons.folder_special_rounded,
+                                size: 28,
+                                color: Colors.deepOrange,
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                flex: 3,
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      studentName,
                                       style: const TextStyle(
-                                        fontSize: 13,
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 14,
+                                      ),
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                    Text(
+                                      folder.studentLrn ?? '',
+                                      style: const TextStyle(
+                                        fontSize: 11,
                                         color: AppColors.textSecondary,
                                       ),
                                     ),
+                                  ],
+                                ),
+                              ),
+                              if (!isMobile) ...[
+                                Expanded(
+                                  child: _buildStudentStatusChip(
+                                    folder.studentStatus ?? 'Archived',
                                   ),
-                                ],
-                                if (_isAdmin)
-                                  _buildFolderActionMenu(
-                                    folder.studentId!,
-                                    studentName,
+                                ),
+                                Expanded(
+                                  child: Text(
+                                    '${folder.documentCount ?? 0} docs',
+                                    style: const TextStyle(
+                                      fontSize: 13,
+                                      color: AppColors.textSecondary,
+                                    ),
                                   ),
-                                const Icon(
-                                  Icons.chevron_right,
-                                  size: 18,
-                                  color: AppColors.textMuted,
                                 ),
                               ],
-                            ),
+                              if (_isAdmin)
+                                _buildFolderActionMenu(
+                                  folder.studentId!,
+                                  studentName,
+                                ),
+                              const Icon(
+                                Icons.chevron_right,
+                                size: 18,
+                                color: AppColors.textMuted,
+                              ),
+                            ],
                           ),
-                        );
-                      },
-                    ),
+                        ),
+                      );
+                    },
                   ),
-                ],
-              ),
+                ),
+              ],
             ),
-          );
+          ),
+        );
 
         // Grid view
         Widget gridView = LayoutBuilder(
@@ -1252,7 +1358,9 @@ class _ArchivesScreenState extends ConsumerState<ArchivesScreen>
                           ),
                         ),
                         const SizedBox(height: 4),
-                        _buildStudentStatusChip(folder.studentStatus ?? 'Archived'),
+                        _buildStudentStatusChip(
+                          folder.studentStatus ?? 'Archived',
+                        ),
                         const SizedBox(height: 4),
                         Text(
                           '${folder.documentCount ?? 0} docs',
@@ -1279,9 +1387,7 @@ class _ArchivesScreenState extends ConsumerState<ArchivesScreen>
 
         return Column(
           children: [
-            Expanded(
-              child: !_isGridView ? containerList : gridView,
-            ),
+            Expanded(child: !_isGridView ? containerList : gridView),
             if (totalPages > 1)
               _buildFoldersPagination(totalPages, _foldersPage),
           ],
@@ -1361,8 +1467,18 @@ class _ArchivesScreenState extends ConsumerState<ArchivesScreen>
                     'No archived documents found.\nAdjust filters or search terms.',
                   )
                 : _isGridView
-                ? _buildArchiveGridView(pageData.documents, isMobile, pageData.totalPages, query.page)
-                : _buildArchiveListView(pageData.documents, isMobile, pageData.totalPages, query.page),
+                ? _buildArchiveGridView(
+                    pageData.documents,
+                    isMobile,
+                    pageData.totalPages,
+                    query.page,
+                  )
+                : _buildArchiveListView(
+                    pageData.documents,
+                    isMobile,
+                    pageData.totalPages,
+                    query.page,
+                  ),
           ),
         ),
       ],
@@ -1372,7 +1488,12 @@ class _ArchivesScreenState extends ConsumerState<ArchivesScreen>
   // ════════════════════════════════════════════════════════════════
   // ARCHIVE LIST VIEW
   // ════════════════════════════════════════════════════════════════
-  Widget _buildArchiveListView(List<DocumentModel> documents, bool isMobile, int totalPages, int currentPage) {
+  Widget _buildArchiveListView(
+    List<DocumentModel> documents,
+    bool isMobile,
+    int totalPages,
+    int currentPage,
+  ) {
     return Container(
       margin: EdgeInsets.all(isMobile ? 8 : 16),
       decoration: BoxDecoration(
@@ -1700,7 +1821,12 @@ class _ArchivesScreenState extends ConsumerState<ArchivesScreen>
   // ════════════════════════════════════════════════════════════════
   // ARCHIVE GRID VIEW
   // ════════════════════════════════════════════════════════════════
-  Widget _buildArchiveGridView(List<DocumentModel> documents, bool isMobile, int totalPages, int currentPage) {
+  Widget _buildArchiveGridView(
+    List<DocumentModel> documents,
+    bool isMobile,
+    int totalPages,
+    int currentPage,
+  ) {
     return LayoutBuilder(
       builder: (ctx, c) {
         final cols = isMobile ? 2 : (c.maxWidth / 180).floor().clamp(2, 6);
@@ -1708,119 +1834,121 @@ class _ArchivesScreenState extends ConsumerState<ArchivesScreen>
           children: [
             Expanded(
               child: GridView.builder(
-          padding: EdgeInsets.all(isMobile ? 10 : 16),
-          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: cols,
-            crossAxisSpacing: isMobile ? 10 : 12,
-            mainAxisSpacing: isMobile ? 10 : 12,
-            childAspectRatio: isMobile ? 0.85 : 1.0,
-          ),
-          itemCount: documents.length,
-          itemBuilder: (ctx, i) {
-            final doc = documents[i];
-            final isSelected = _selectedDocumentIds.contains(doc.id);
-            return InkWell(
-              onTap: () {
-                if (_isMultiSelectMode) {
-                  setState(() {
-                    if (isSelected) {
-                      _selectedDocumentIds.remove(doc.id);
-                    } else {
-                      _selectedDocumentIds.add(doc.id);
-                    }
-                  });
-                } else {
-                  _handlePreview(doc);
-                }
-              },
-              borderRadius: BorderRadius.circular(12),
-              child: Container(
-                decoration: BoxDecoration(
-                  color: isSelected
-                      ? AppColors.primaryGreen.withValues(alpha: 0.08)
-                      : AppColors.surfaceWhite,
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(
-                    color: isSelected
-                        ? AppColors.primaryGreen
-                        : Colors.grey.shade200,
-                  ),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.03),
-                      blurRadius: 6,
-                      offset: const Offset(0, 2),
-                    ),
-                  ],
+                padding: EdgeInsets.all(isMobile ? 10 : 16),
+                gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: cols,
+                  crossAxisSpacing: isMobile ? 10 : 12,
+                  mainAxisSpacing: isMobile ? 10 : 12,
+                  childAspectRatio: isMobile ? 0.85 : 1.0,
                 ),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    if (_isMultiSelectMode)
-                      Checkbox(
-                        value: isSelected,
-                        activeColor: AppColors.primaryGreen,
-                        onChanged: (val) {
-                          setState(() {
-                            if (val == true) {
-                              _selectedDocumentIds.add(doc.id);
-                            } else {
-                              _selectedDocumentIds.remove(doc.id);
-                            }
-                          });
-                        },
-                      )
-                    else
-                      _buildFileIcon(
-                        doc.documentType,
-                        size: isMobile ? 32 : 40,
-                      ),
-                    const SizedBox(height: 8),
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 8),
-                      child: Text(
-                        doc.fileName,
-                        textAlign: TextAlign.center,
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                        style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: isMobile ? 10 : 12,
+                itemCount: documents.length,
+                itemBuilder: (ctx, i) {
+                  final doc = documents[i];
+                  final isSelected = _selectedDocumentIds.contains(doc.id);
+                  return InkWell(
+                    onTap: () {
+                      if (_isMultiSelectMode) {
+                        setState(() {
+                          if (isSelected) {
+                            _selectedDocumentIds.remove(doc.id);
+                          } else {
+                            _selectedDocumentIds.add(doc.id);
+                          }
+                        });
+                      } else {
+                        _handlePreview(doc);
+                      }
+                    },
+                    borderRadius: BorderRadius.circular(12),
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: isSelected
+                            ? AppColors.primaryGreen.withValues(alpha: 0.08)
+                            : AppColors.surfaceWhite,
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                          color: isSelected
+                              ? AppColors.primaryGreen
+                              : Colors.grey.shade200,
                         ),
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    _buildStatusChip(doc.status),
-                    if (doc.studentName != null) ...[
-                      const SizedBox(height: 2),
-                      Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 6),
-                        child: Text(
-                          doc.studentName!,
-                          textAlign: TextAlign.center,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
-                            fontSize: 10,
-                            color: AppColors.textSecondary,
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withValues(alpha: 0.03),
+                            blurRadius: 6,
+                            offset: const Offset(0, 2),
                           ),
-                        ),
+                        ],
                       ),
-                    ],
-                  ],
-                ),
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          if (_isMultiSelectMode)
+                            Checkbox(
+                              value: isSelected,
+                              activeColor: AppColors.primaryGreen,
+                              onChanged: (val) {
+                                setState(() {
+                                  if (val == true) {
+                                    _selectedDocumentIds.add(doc.id);
+                                  } else {
+                                    _selectedDocumentIds.remove(doc.id);
+                                  }
+                                });
+                              },
+                            )
+                          else
+                            _buildFileIcon(
+                              doc.documentType,
+                              size: isMobile ? 32 : 40,
+                            ),
+                          const SizedBox(height: 8),
+                          Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 8),
+                            child: Text(
+                              doc.fileName,
+                              textAlign: TextAlign.center,
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: isMobile ? 10 : 12,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          _buildStatusChip(doc.status),
+                          if (doc.studentName != null) ...[
+                            const SizedBox(height: 2),
+                            Padding(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 6,
+                              ),
+                              child: Text(
+                                doc.studentName!,
+                                textAlign: TextAlign.center,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(
+                                  fontSize: 10,
+                                  color: AppColors.textSecondary,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ],
+                      ),
+                    ),
+                  );
+                },
               ),
-            );
-          },
-        ),
-      ),
-      if (totalPages > 1)
-        Padding(
-          padding: const EdgeInsets.only(top: 8.0, bottom: 16.0),
-          child: _buildPagination(totalPages, currentPage),
-        ),
-    ],
-  );
+            ),
+            if (totalPages > 1)
+              Padding(
+                padding: const EdgeInsets.only(top: 8.0, bottom: 16.0),
+                child: _buildPagination(totalPages, currentPage),
+              ),
+          ],
+        );
       },
     );
   }
@@ -1931,7 +2059,8 @@ class _ArchivesScreenState extends ConsumerState<ArchivesScreen>
       child: AppPagination(
         currentPage: currentPage,
         totalPages: totalPages,
-        onPageChanged: (p) => ref.read(archiveDocumentQueryProvider.notifier).setPage(p),
+        onPageChanged: (p) =>
+            ref.read(archiveDocumentQueryProvider.notifier).setPage(p),
       ),
     );
   }
@@ -2031,7 +2160,11 @@ class _ArchivesScreenState extends ConsumerState<ArchivesScreen>
           ),
           child: Text(
             status,
-            style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: fg),
+            style: TextStyle(
+              fontSize: 10,
+              fontWeight: FontWeight.w600,
+              color: fg,
+            ),
           ),
         ),
       ],

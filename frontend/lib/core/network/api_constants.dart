@@ -12,4 +12,4 @@ class ApiConstants {
     final clean = url.replaceAll(RegExp(r'/+$'), '');
     _baseUrl = clean.endsWith('/api') ? clean : '$clean/api';
   }
-}
+}

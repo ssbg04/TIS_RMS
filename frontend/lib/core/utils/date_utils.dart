@@ -32,13 +32,13 @@ DateTime parseToPht(String raw) {
 String formatRelative(String raw) {
   if (raw.isEmpty) return '';
   try {
-    final dt  = parseToPht(raw);
+    final dt = parseToPht(raw);
     final now = DateTime.now().toUtc().add(const Duration(hours: 8));
     final diff = now.difference(dt);
-    if (diff.inMinutes < 1)  return 'Just now';
+    if (diff.inMinutes < 1) return 'Just now';
     if (diff.inMinutes < 60) return '${diff.inMinutes}m ago';
-    if (diff.inHours   < 24) return '${diff.inHours}h ago';
-    if (diff.inDays    < 7)  return '${diff.inDays}d ago';
+    if (diff.inHours < 24) return '${diff.inHours}h ago';
+    if (diff.inDays < 7) return '${diff.inDays}d ago';
     return '${dt.day.toString().padLeft(2, '0')}/${dt.month.toString().padLeft(2, '0')}/${dt.year}';
   } catch (_) {
     return raw.split('T').first;
@@ -51,9 +51,9 @@ String formatDateTime(String raw) {
   if (raw.isEmpty) return '';
   try {
     final dt = parseToPht(raw);
-    final d  = dt.day.toString().padLeft(2, '0');
+    final d = dt.day.toString().padLeft(2, '0');
     final mo = dt.month.toString().padLeft(2, '0');
-    final h  = dt.hour.toString().padLeft(2, '0');
+    final h = dt.hour.toString().padLeft(2, '0');
     final mi = dt.minute.toString().padLeft(2, '0');
     return '$d/$mo/${dt.year}  $h:$mi';
   } catch (_) {

@@ -59,7 +59,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     });
 
     ref.invalidate(dashboardDataProvider);
-    
+
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
       ref.read(notificationsProvider.notifier).refreshNotifications();
@@ -69,7 +69,10 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
       }
 
       // Listen to tab changes outside of build() so it is properly cleaned up.
-      _tabListener = ref.listenManual<String>(activeTabProvider, (previous, next) {
+      _tabListener = ref.listenManual<String>(activeTabProvider, (
+        previous,
+        next,
+      ) {
         if (!mounted) return;
         if (next == 'Dashboard' && previous != 'Dashboard') {
           setState(() {
@@ -136,11 +139,15 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     final list = notificationsAsync.value ?? [];
 
     final RenderBox button = context.findRenderObject() as RenderBox;
-    final RenderBox overlay = Navigator.of(context).overlay!.context.findRenderObject() as RenderBox;
+    final RenderBox overlay =
+        Navigator.of(context).overlay!.context.findRenderObject() as RenderBox;
     final position = RelativeRect.fromRect(
       Rect.fromPoints(
         button.localToGlobal(Offset.zero, ancestor: overlay),
-        button.localToGlobal(button.size.bottomRight(Offset.zero), ancestor: overlay),
+        button.localToGlobal(
+          button.size.bottomRight(Offset.zero),
+          ancestor: overlay,
+        ),
       ),
       Offset.zero & overlay.size,
     );
@@ -165,7 +172,11 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
               children: [
                 const Text(
                   'Notifications',
-                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Colors.black87),
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 16,
+                    color: Colors.black87,
+                  ),
                 ),
                 Row(
                   mainAxisSize: MainAxisSize.min,
@@ -175,11 +186,17 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                         mouseCursor: SystemMouseCursors.click,
                         onTap: () {
                           Navigator.pop(context);
-                          ref.read(notificationsProvider.notifier).markAllAsRead();
+                          ref
+                              .read(notificationsProvider.notifier)
+                              .markAllAsRead();
                         },
                         child: const Text(
                           'Mark all read',
-                          style: TextStyle(fontSize: 12, color: Color(0xFF1C8248), fontWeight: FontWeight.w600),
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: Color(0xFF1C8248),
+                            fontWeight: FontWeight.w600,
+                          ),
                         ),
                       ),
                       const SizedBox(width: 10),
@@ -187,11 +204,17 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                         mouseCursor: SystemMouseCursors.click,
                         onTap: () {
                           Navigator.pop(context);
-                          ref.read(notificationsProvider.notifier).clearNotifications();
+                          ref
+                              .read(notificationsProvider.notifier)
+                              .clearNotifications();
                         },
                         child: const Text(
                           'Clear',
-                          style: TextStyle(fontSize: 12, color: Colors.redAccent, fontWeight: FontWeight.w600),
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: Colors.redAccent,
+                            fontWeight: FontWeight.w600,
+                          ),
                         ),
                       ),
                     ],
@@ -212,9 +235,16 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    const Icon(Icons.notifications_off_rounded, size: 48, color: Colors.grey),
+                    const Icon(
+                      Icons.notifications_off_rounded,
+                      size: 48,
+                      color: Colors.grey,
+                    ),
                     const SizedBox(height: 12),
-                    const Text('No new notifications', style: TextStyle(color: Colors.grey, fontSize: 13)),
+                    const Text(
+                      'No new notifications',
+                      style: TextStyle(color: Colors.grey, fontSize: 13),
+                    ),
                   ],
                 ),
               ),
@@ -248,14 +278,14 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
   @override
   Widget build(BuildContext context) {
     final dashboardAsync = ref.watch(dashboardDataProvider);
-    final user           = ref.watch(authProvider).value;
-    final isAdmin        = user?.role == 'admin';
+    final user = ref.watch(authProvider).value;
+    final isAdmin = user?.role == 'admin';
 
     // Clean up if not used
     return Scaffold(
       backgroundColor: Colors.transparent,
       body: SafeArea(
-          child: dashboardAsync.when(
+        child: dashboardAsync.when(
           skipLoadingOnReload: true,
           loading: () => const Center(child: CircularProgressIndicator()),
           error: (error, _) => Center(
@@ -295,7 +325,10 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                               Text(
                                 'Dashboard Overview',
                                 style: TextStyle(
-                                  fontSize: MediaQuery.of(context).size.width > 600 ? 28 : 24,
+                                  fontSize:
+                                      MediaQuery.of(context).size.width > 600
+                                      ? 28
+                                      : 24,
                                   fontWeight: FontWeight.bold,
                                 ),
                               ),
@@ -306,7 +339,10 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                               ],
                               Text(
                                 'Welcome back, ${user?.firstName ?? 'Admin'}. Here is what is happening today.',
-                                style: TextStyle(fontSize: 16, color: Colors.grey.shade600),
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  color: Colors.grey.shade600,
+                                ),
                               ),
                               const SizedBox(height: 24),
                               _buildStatGrid(data.stats, user),
@@ -363,14 +399,112 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
             border: Border.all(color: Colors.grey.shade200, width: 1.0),
           ),
           child: isMobile
-          ? Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
+              ? Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Container(
+                          child: const Icon(
+                            Icons.settings_suggest_rounded,
+                            color: AppColors.primaryGreen,
+                            size: 22,
+                          ),
+                        ),
+                        const SizedBox(width: 14),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Text(
+                                'Setup Required',
+                                style: TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 15,
+                                  color: Colors.black87,
+                                ),
+                              ),
+                              if (!_setupBannerMinimized) ...[
+                                const SizedBox(height: 4),
+                                const Text(
+                                  'Before using the system, please configure the following sections to get started:',
+                                  style: TextStyle(
+                                    fontSize: 13,
+                                    color: Colors.black54,
+                                  ),
+                                ),
+                              ],
+                            ],
+                          ),
+                        ),
+                        IconButton(
+                          onPressed: () => setState(
+                            () =>
+                                _setupBannerMinimized = !_setupBannerMinimized,
+                          ),
+                          icon: Icon(
+                            _setupBannerMinimized
+                                ? Icons.keyboard_arrow_down
+                                : Icons.keyboard_arrow_up,
+                            size: 18,
+                            color: Colors.black38,
+                          ),
+                          padding: EdgeInsets.zero,
+                          constraints: const BoxConstraints(),
+                        ),
+                        IconButton(
+                          onPressed: () =>
+                              setState(() => _setupBannerDismissed = true),
+                          icon: const Icon(
+                            Icons.close,
+                            size: 18,
+                            color: Colors.black38,
+                          ),
+                          padding: EdgeInsets.zero,
+                          constraints: const BoxConstraints(),
+                        ),
+                      ],
+                    ),
+                    if (!_setupBannerMinimized) ...[
+                      const SizedBox(height: 16),
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          _setupNavButton(
+                            context,
+                            icon: Icons.people_outline,
+                            label: 'Teachers & Academic Setup',
+                            isMobile: true,
+                            onTap: () => TeacherManagementModal.open(context),
+                          ),
+                          const SizedBox(height: 10),
+                          _setupNavButton(
+                            context,
+                            icon: Icons.folder_open_outlined,
+                            label: 'Document Requirements',
+                            isMobile: true,
+                            onTap: () => RequirementsModal.open(context),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ],
+                )
+              : Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Container(
-                      child: const Icon(Icons.settings_suggest_rounded, color: AppColors.primaryGreen, size: 22),
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(
+                        color: AppColors.primaryGreen.withValues(alpha: 0.15),
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(
+                        Icons.settings_suggest_rounded,
+                        color: AppColors.primaryGreen,
+                        size: 22,
+                      ),
                     ),
                     const SizedBox(width: 14),
                     Expanded(
@@ -379,133 +513,87 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                         children: [
                           const Text(
                             'Setup Required',
-                            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: Colors.black87),
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 15,
+                              color: Colors.black87,
+                            ),
                           ),
                           if (!_setupBannerMinimized) ...[
                             const SizedBox(height: 4),
                             const Text(
                               'Before using the system, please configure the following sections to get started:',
-                              style: TextStyle(fontSize: 13, color: Colors.black54),
+                              style: TextStyle(
+                                fontSize: 13,
+                                color: Colors.black54,
+                              ),
+                            ),
+                            const SizedBox(height: 12),
+                            Wrap(
+                              spacing: 10,
+                              runSpacing: 8,
+                              children: [
+                                _setupNavButton(
+                                  context,
+                                  icon: Icons.people_outline,
+                                  label: 'Teachers & Academic Setup',
+                                  onTap: () =>
+                                      TeacherManagementModal.open(context),
+                                ),
+                                _setupNavButton(
+                                  context,
+                                  icon: Icons.folder_open_outlined,
+                                  label: 'Document Requirements',
+                                  onTap: () => RequirementsModal.open(context),
+                                ),
+                              ],
                             ),
                           ],
                         ],
                       ),
                     ),
-                    IconButton(
-                      onPressed: () => setState(() => _setupBannerMinimized = !_setupBannerMinimized),
-                      icon: Icon(_setupBannerMinimized ? Icons.keyboard_arrow_down : Icons.keyboard_arrow_up, size: 18, color: Colors.black38),
-                      padding: EdgeInsets.zero,
-                      constraints: const BoxConstraints(),
-                    ),
-                    IconButton(
-                      onPressed: () => setState(() => _setupBannerDismissed = true),
-                      icon: const Icon(Icons.close, size: 18, color: Colors.black38),
-                      padding: EdgeInsets.zero,
-                      constraints: const BoxConstraints(),
-                    ),
-                  ],
-                ),
-                if (!_setupBannerMinimized) ...[
-                  const SizedBox(height: 16),
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      _setupNavButton(
-                        context,
-                        icon: Icons.people_outline,
-                        label: 'Teachers & Academic Setup',
-                        isMobile: true,
-                        onTap: () => TeacherManagementModal.open(context),
-                      ),
-                      const SizedBox(height: 10),
-                      _setupNavButton(
-                        context,
-                        icon: Icons.folder_open_outlined,
-                        label: 'Document Requirements',
-                        isMobile: true,
-                        onTap: () => RequirementsModal.open(context),
-                      ),
-                    ],
-                  ),
-                ],
-              ],
-            )
-          : Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(10),
-                  decoration: BoxDecoration(
-                    color: AppColors.primaryGreen.withValues(alpha: 0.15),
-                    shape: BoxShape.circle,
-                  ),
-                  child: const Icon(Icons.settings_suggest_rounded, color: AppColors.primaryGreen, size: 22),
-                ),
-                const SizedBox(width: 14),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text(
-                        'Setup Required',
-                        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: Colors.black87),
-                      ),
-                      if (!_setupBannerMinimized) ...[
-                        const SizedBox(height: 4),
-                        const Text(
-                          'Before using the system, please configure the following sections to get started:',
-                          style: TextStyle(fontSize: 13, color: Colors.black54),
+                    // Minimize and Dismiss buttons
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        IconButton(
+                          onPressed: () => setState(
+                            () =>
+                                _setupBannerMinimized = !_setupBannerMinimized,
+                          ),
+                          icon: Icon(
+                            _setupBannerMinimized
+                                ? Icons.keyboard_arrow_down
+                                : Icons.keyboard_arrow_up,
+                            size: 18,
+                            color: Colors.black38,
+                          ),
+                          padding: EdgeInsets.zero,
+                          constraints: const BoxConstraints(),
                         ),
-                        const SizedBox(height: 12),
-                        Wrap(
-                          spacing: 10,
-                          runSpacing: 8,
-                          children: [
-                            _setupNavButton(
-                              context,
-                              icon: Icons.people_outline,
-                              label: 'Teachers & Academic Setup',
-                              onTap: () => TeacherManagementModal.open(context),
-                            ),
-                            _setupNavButton(
-                              context,
-                              icon: Icons.folder_open_outlined,
-                              label: 'Document Requirements',
-                              onTap: () => RequirementsModal.open(context),
-                            ),
-                          ],
+                        const SizedBox(width: 8),
+                        IconButton(
+                          onPressed: () =>
+                              setState(() => _setupBannerDismissed = true),
+                          icon: const Icon(
+                            Icons.close,
+                            size: 18,
+                            color: Colors.black38,
+                          ),
+                          padding: EdgeInsets.zero,
+                          constraints: const BoxConstraints(),
                         ),
                       ],
-                    ],
-                  ),
-                ),
-                // Minimize and Dismiss buttons
-                Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    IconButton(
-                      onPressed: () => setState(() => _setupBannerMinimized = !_setupBannerMinimized),
-                      icon: Icon(_setupBannerMinimized ? Icons.keyboard_arrow_down : Icons.keyboard_arrow_up, size: 18, color: Colors.black38),
-                      padding: EdgeInsets.zero,
-                      constraints: const BoxConstraints(),
-                    ),
-                    const SizedBox(width: 8),
-                    IconButton(
-                      onPressed: () => setState(() => _setupBannerDismissed = true),
-                      icon: const Icon(Icons.close, size: 18, color: Colors.black38),
-                      padding: EdgeInsets.zero,
-                      constraints: const BoxConstraints(),
                     ),
                   ],
                 ),
-              ],
-            ),
         ),
       ),
     );
   }
 
-  Widget _setupNavButton(BuildContext context, {
+  Widget _setupNavButton(
+    BuildContext context, {
     required IconData icon,
     required String label,
     required VoidCallback onTap,
@@ -520,9 +608,15 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(8),
-          border: Border.all(color: AppColors.primaryGreen.withValues(alpha: 0.4)),
+          border: Border.all(
+            color: AppColors.primaryGreen.withValues(alpha: 0.4),
+          ),
           boxShadow: [
-            BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 4, offset: const Offset(0, 2)),
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.04),
+              blurRadius: 4,
+              offset: const Offset(0, 2),
+            ),
           ],
         ),
         child: Row(
@@ -534,16 +628,28 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
               Expanded(
                 child: Text(
                   label,
-                  style: const TextStyle(fontSize: 13, color: AppColors.primaryGreen, fontWeight: FontWeight.w600),
+                  style: const TextStyle(
+                    fontSize: 13,
+                    color: AppColors.primaryGreen,
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
               )
             else
               Text(
                 label,
-                style: const TextStyle(fontSize: 13, color: AppColors.primaryGreen, fontWeight: FontWeight.w600),
+                style: const TextStyle(
+                  fontSize: 13,
+                  color: AppColors.primaryGreen,
+                  fontWeight: FontWeight.w600,
+                ),
               ),
             const SizedBox(width: 4),
-            const Icon(Icons.arrow_forward_ios, size: 12, color: AppColors.primaryGreen),
+            const Icon(
+              Icons.arrow_forward_ios,
+              size: 12,
+              color: AppColors.primaryGreen,
+            ),
           ],
         ),
       ),
@@ -553,76 +659,93 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
   // ── TOP BAR ──────────────────────────────────────────────────────────────
   Widget _buildTopBar(BuildContext context, UserModel? user) {
     final notificationsAsync = ref.watch(notificationsProvider);
-    final unreadCount = notificationsAsync.value?.where((n) => !n.isRead).length ?? 0;
+    final unreadCount =
+        notificationsAsync.value?.where((n) => !n.isRead).length ?? 0;
 
     return Container(
       padding: const EdgeInsets.only(bottom: 1, top: 1),
       decoration: BoxDecoration(
-        border: Border(bottom: BorderSide(color: Colors.grey.shade300, width: 1.0)),
+        border: Border(
+          bottom: BorderSide(color: Colors.grey.shade300, width: 1.0),
+        ),
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-        // Dashboard Overview text moved to body
-        Expanded(
-          key: const ValueKey('dashboard_search_expanded'),
-          child: LayoutBuilder(
-            builder: (context, constraints) {
-              final isSearching = _searchFocusNode.hasFocus || _searchController.text.isNotEmpty;
-              return Align(
-                alignment: Alignment.centerRight,
-                child: AppSearchBar(
-                  controller: _searchController,
-                  focusNode: _searchFocusNode,
-                  collapsible: true,
-                  hideIconWhenExpanded: true,
-                  hint: 'Search students by LRN or Name...',
-                  maxWidth: isSearching ? constraints.maxWidth : (constraints.maxWidth > 420 ? 420 : constraints.maxWidth),
-                  onSubmitted: (value) {
-                    ref.read(studentQueryProvider.notifier).setSearch(value);
-                    ref.invalidate(studentPageProvider);
-                    ref.read(activeTabProvider.notifier).setTab('Students');
-                    _searchController.clear();
-                  },
-                ),
-              );
-            },
-          ),
-        ),
-        if (!_searchFocusNode.hasFocus && _searchController.text.isEmpty) ...[
-          const SizedBox(width: 4),
-          Row(
-            children: [
-              Builder(builder: (ctx) => Stack(
-                children: [
-                  IconButton(
-                    icon: const Icon(Icons.notifications, size: 32),
-                    onPressed: () => _showNotifications(ctx),
+          // Dashboard Overview text moved to body
+          Expanded(
+            key: const ValueKey('dashboard_search_expanded'),
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                final isSearching =
+                    _searchFocusNode.hasFocus ||
+                    _searchController.text.isNotEmpty;
+                return Align(
+                  alignment: Alignment.centerRight,
+                  child: AppSearchBar(
+                    controller: _searchController,
+                    focusNode: _searchFocusNode,
+                    collapsible: true,
+                    hideIconWhenExpanded: true,
+                    hint: 'Search students by LRN or Name...',
+                    maxWidth: isSearching
+                        ? constraints.maxWidth
+                        : (constraints.maxWidth > 420
+                              ? 420
+                              : constraints.maxWidth),
+                    onSubmitted: (value) {
+                      ref.read(studentQueryProvider.notifier).setSearch(value);
+                      ref.invalidate(studentPageProvider);
+                      ref.read(activeTabProvider.notifier).setTab('Students');
+                      _searchController.clear();
+                    },
                   ),
-                  if (unreadCount > 0)
-                    Positioned(
-                      right: 8, top: 8,
-                      child: Container(
-                        padding: const EdgeInsets.all(4),
-                        decoration: const BoxDecoration(color: Colors.redAccent, shape: BoxShape.circle),
-                        child: Text(
-                          unreadCount.toString(),
-                          style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold),
-                        ),
-                      ),
-                    ),
-                ],
-              )),
-              const SizedBox(width: 16),
-              ProfileDropdownMenu(
-                user: user,
-                onRefresh: _handleRefresh, 
-              ),
-            ],
+                );
+              },
+            ),
           ),
+          if (!_searchFocusNode.hasFocus && _searchController.text.isEmpty) ...[
+            const SizedBox(width: 4),
+            Row(
+              children: [
+                Builder(
+                  builder: (ctx) => Stack(
+                    children: [
+                      IconButton(
+                        icon: const Icon(Icons.notifications, size: 32),
+                        onPressed: () => _showNotifications(ctx),
+                      ),
+                      if (unreadCount > 0)
+                        Positioned(
+                          right: 8,
+                          top: 8,
+                          child: Container(
+                            padding: const EdgeInsets.all(4),
+                            decoration: const BoxDecoration(
+                              color: Colors.redAccent,
+                              shape: BoxShape.circle,
+                            ),
+                            child: Text(
+                              unreadCount.toString(),
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 10,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 16),
+                ProfileDropdownMenu(user: user, onRefresh: _handleRefresh),
+              ],
+            ),
+          ],
         ],
-      ],
-    ));
+      ),
+    );
   }
 
   // ── STAT GRID ─────────────────────────────────────────────────────────────
@@ -654,7 +777,11 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                 color: Colors.orange.shade50,
                 shape: BoxShape.circle,
               ),
-              child: Icon(Icons.class_outlined, size: 56, color: Colors.orange.shade400),
+              child: Icon(
+                Icons.class_outlined,
+                size: 56,
+                color: Colors.orange.shade400,
+              ),
             ),
             const SizedBox(height: 20),
             const Text(
@@ -669,78 +796,86 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
             const Text(
               'You have no sections assigned to your account yet.\nContact your administrator to assign sections so you can see your students here.',
               textAlign: TextAlign.center,
-              style: TextStyle(color: AppColors.textSecondary, fontSize: 14, height: 1.5),
+              style: TextStyle(
+                color: AppColors.textSecondary,
+                fontSize: 14,
+                height: 1.5,
+              ),
             ),
           ],
         ),
       );
     }
 
-    return LayoutBuilder(builder: (context, constraints) {
-      final isWindowsApp = Theme.of(context).platform == TargetPlatform.windows || constraints.maxWidth >= 800;
-      final int crossAxisCount = isWindowsApp ? (isAdmin ? 4 : 3) : 1;
-      final bool isSquare = isWindowsApp;
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final isWindowsApp =
+            Theme.of(context).platform == TargetPlatform.windows ||
+            constraints.maxWidth >= 800;
+        final int crossAxisCount = isWindowsApp ? (isAdmin ? 4 : 3) : 1;
+        final bool isSquare = isWindowsApp;
 
-      return GridView(
-        shrinkWrap: true,
-        physics: const NeverScrollableScrollPhysics(),
-        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-          crossAxisCount: crossAxisCount,
-          crossAxisSpacing: 16,
-          mainAxisSpacing: 16,
-          mainAxisExtent: isSquare ? 135 : 85,
-        ),
-        children: [
-          StatCard(
-            title: 'Total Students',    
-            value: stats.totalStudents.toString(),      
-            icon: Icons.school_rounded,
-            isSquare: isSquare,
-            onTap: () {
-              ref.read(studentQueryProvider.notifier).reset();
-              ref.invalidate(studentPageProvider);
-              ref.read(activeTabProvider.notifier).setTab('Students');
-            },
+        return GridView(
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: crossAxisCount,
+            crossAxisSpacing: 16,
+            mainAxisSpacing: 16,
+            mainAxisExtent: isSquare ? 135 : 85,
           ),
-          if (isAdmin)
+          children: [
             StatCard(
-              title: 'Active Users',      
-              value: stats.activeUsers.toString(),        
-              icon: Icons.group,        
-              iconColor: Colors.blue,
+              title: 'Total Students',
+              value: stats.totalStudents.toString(),
+              icon: Icons.school_rounded,
               isSquare: isSquare,
               onTap: () {
-                ref.invalidate(usersProvider);
-                ref.read(activeTabProvider.notifier).setTab('Users');
+                ref.read(studentQueryProvider.notifier).reset();
+                ref.invalidate(studentPageProvider);
+                ref.read(activeTabProvider.notifier).setTab('Students');
               },
             ),
-          StatCard(
-            title: 'Complete Docs',     
-            value: stats.completedDocuments.toString(), 
-            icon: Icons.fact_check_rounded,     
-            iconColor: AppColors.primaryGreen,
-            isSquare: isSquare,
-            onTap: () {
-              ref.invalidate(foldersProvider);
-              ref.invalidate(documentPageProvider);
-              ref.read(activeTabProvider.notifier).setTab('Documents');
-            },
-          ),
-          StatCard(
-            title: 'Missing Docs',      
-            value: stats.missingDocuments.toString(),   
-            icon: Icons.assignment_late_rounded,   
-            iconColor: Colors.orange,
-            isSquare: isSquare,
-            onTap: () {
-              ref.invalidate(foldersProvider);
-              ref.invalidate(documentPageProvider);
-              ref.read(activeTabProvider.notifier).setTab('Documents');
-            },
-          ),
-        ],
-      );
-    });
+            if (isAdmin)
+              StatCard(
+                title: 'Active Users',
+                value: stats.activeUsers.toString(),
+                icon: Icons.group,
+                iconColor: Colors.blue,
+                isSquare: isSquare,
+                onTap: () {
+                  ref.invalidate(usersProvider);
+                  ref.read(activeTabProvider.notifier).setTab('Users');
+                },
+              ),
+            StatCard(
+              title: 'Complete Docs',
+              value: stats.completedDocuments.toString(),
+              icon: Icons.fact_check_rounded,
+              iconColor: AppColors.primaryGreen,
+              isSquare: isSquare,
+              onTap: () {
+                ref.invalidate(foldersProvider);
+                ref.invalidate(documentPageProvider);
+                ref.read(activeTabProvider.notifier).setTab('Documents');
+              },
+            ),
+            StatCard(
+              title: 'Missing Docs',
+              value: stats.missingDocuments.toString(),
+              icon: Icons.assignment_late_rounded,
+              iconColor: Colors.orange,
+              isSquare: isSquare,
+              onTap: () {
+                ref.invalidate(foldersProvider);
+                ref.invalidate(documentPageProvider);
+                ref.read(activeTabProvider.notifier).setTab('Documents');
+              },
+            ),
+          ],
+        );
+      },
+    );
   }
 
   // ── HISTORY SECTIONS ─────────────────────────────────────────────
@@ -762,13 +897,19 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
             children: [
               Text(
                 title,
-                style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.black87),
+                style: const TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.black87,
+                ),
               ),
               TextButton.icon(
                 onPressed: onViewAll,
                 icon: const Icon(Icons.open_in_new, size: 18),
                 label: const Text('View All'),
-                style: TextButton.styleFrom(foregroundColor: AppColors.primaryGreen),
+                style: TextButton.styleFrom(
+                  foregroundColor: AppColors.primaryGreen,
+                ),
               ),
             ],
           ),
@@ -780,9 +921,11 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
 
     final recentActivitiesSection = buildSection(
       title: 'Recent Activities',
-      onViewAll: () => Navigator.of(context).push(
-        MaterialPageRoute(builder: (_) => const RecentActivitiesScreen()),
-      ).then((_) => _handleRefresh()),
+      onViewAll: () => Navigator.of(context)
+          .push(
+            MaterialPageRoute(builder: (_) => const RecentActivitiesScreen()),
+          )
+          .then((_) => _handleRefresh()),
       listWidget: _buildActivitiesList(data.recentActivities.activities),
     );
 
@@ -792,9 +935,9 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
 
     final userHistorySection = buildSection(
       title: 'User History',
-      onViewAll: () => Navigator.of(context).push(
-        MaterialPageRoute(builder: (_) => const UserHistoryScreen()),
-      ).then((_) => _handleRefresh()),
+      onViewAll: () => Navigator.of(context)
+          .push(MaterialPageRoute(builder: (_) => const UserHistoryScreen()))
+          .then((_) => _handleRefresh()),
       listWidget: _buildUserHistoryList(data.userHistory?.history ?? []),
     );
 
@@ -826,9 +969,20 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(12),
-          boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.03), blurRadius: 10, offset: const Offset(0, 4))],
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.03),
+              blurRadius: 10,
+              offset: const Offset(0, 4),
+            ),
+          ],
         ),
-        child: const Center(child: Text('No recent activities yet.', style: TextStyle(color: Colors.grey))),
+        child: const Center(
+          child: Text(
+            'No recent activities yet.',
+            style: TextStyle(color: Colors.grey),
+          ),
+        ),
       );
     }
 
@@ -839,13 +993,20 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(12),
-        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.03), blurRadius: 10, offset: const Offset(0, 4))],
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.03),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
       ),
       child: ListView.separated(
         shrinkWrap: true,
         physics: const NeverScrollableScrollPhysics(),
         itemCount: activities.length,
-        separatorBuilder: (_, _s) => Divider(height: 1, color: Colors.grey.shade200),
+        separatorBuilder: (_, _s) =>
+            Divider(height: 1, color: Colors.grey.shade200),
         itemBuilder: (context, index) {
           final a = activities[index];
 
@@ -864,10 +1025,19 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                 icon: _actionIcon(a.action, a.entityType),
               ),
               child: ListTile(
-                contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 12,
+                ),
                 leading: CircleAvatar(
-                  backgroundColor: _actionColor(a.action).withValues(alpha: 0.1),
-                  child: Icon(_actionIcon(a.action, a.entityType), color: _actionColor(a.action), size: 20),
+                  backgroundColor: _actionColor(
+                    a.action,
+                  ).withValues(alpha: 0.1),
+                  child: Icon(
+                    _actionIcon(a.action, a.entityType),
+                    color: _actionColor(a.action),
+                    size: 20,
+                  ),
                 ),
                 title: Padding(
                   padding: const EdgeInsets.only(bottom: 6.0),
@@ -879,19 +1049,33 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                 subtitle: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(a.description, style: const TextStyle(fontWeight: FontWeight.w500, fontSize: 13, color: Colors.black87)),
+                    Text(
+                      a.description,
+                      style: const TextStyle(
+                        fontWeight: FontWeight.w500,
+                        fontSize: 13,
+                        color: Colors.black87,
+                      ),
+                    ),
                     const SizedBox(height: 4),
                     Text(
                       '${a.performedBy ?? a.username ?? 'System'} · ${_formatDate(a.createdAt)}',
-                      style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Colors.grey.shade600,
+                      ),
                     ),
                   ],
                 ),
-                trailing: Icon(Icons.chevron_right_rounded, size: 20, color: Colors.grey.shade400),
+                trailing: Icon(
+                  Icons.chevron_right_rounded,
+                  size: 20,
+                  color: Colors.grey.shade400,
+                ),
               ),
             ),
           );
-      },
+        },
       ),
     );
   }
@@ -903,9 +1087,20 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(12),
-          boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.03), blurRadius: 10, offset: const Offset(0, 4))],
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.03),
+              blurRadius: 10,
+              offset: const Offset(0, 4),
+            ),
+          ],
         ),
-        child: const Center(child: Text('No user history yet.', style: TextStyle(color: Colors.grey))),
+        child: const Center(
+          child: Text(
+            'No user history yet.',
+            style: TextStyle(color: Colors.grey),
+          ),
+        ),
       );
     }
 
@@ -916,13 +1111,20 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(12),
-        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.03), blurRadius: 10, offset: const Offset(0, 4))],
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.03),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
       ),
       child: ListView.separated(
         shrinkWrap: true,
         physics: const NeverScrollableScrollPhysics(),
         itemCount: history.length,
-        separatorBuilder: (_, _s) => Divider(height: 1, color: Colors.grey.shade200),
+        separatorBuilder: (_, _s) =>
+            Divider(height: 1, color: Colors.grey.shade200),
         itemBuilder: (context, index) {
           final h = history[index];
           final desc = '${h.action.toUpperCase()} User: ${h.fullName}';
@@ -937,19 +1139,29 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                   title: 'USER ACTIVITY',
                   description: desc,
                   date: pht.formatModalDate(h.createdAt),
-                  performedBy: h.performedByName ?? h.performedByUsername ?? 'System',
+                  performedBy:
+                      h.performedByName ?? h.performedByUsername ?? 'System',
                   action: h.action,
                   actionColor: _actionColor(h.action),
                   icon: _actionIcon(h.action, 'user'),
                 );
               },
               child: ListTile(
-                contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 12,
+                ),
                 leading: CircleAvatar(
-                  backgroundColor: _actionColor(h.action).withValues(alpha: 0.1),
+                  backgroundColor: _actionColor(
+                    h.action,
+                  ).withValues(alpha: 0.1),
                   child: Text(
                     _getInitials(h.fullName),
-                    style: TextStyle(color: _actionColor(h.action), fontSize: 12, fontWeight: FontWeight.bold),
+                    style: TextStyle(
+                      color: _actionColor(h.action),
+                      fontSize: 12,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                 ),
                 title: Padding(
@@ -962,15 +1174,29 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                 subtitle: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(desc, style: const TextStyle(fontWeight: FontWeight.w500, fontSize: 13, color: Colors.black87)),
+                    Text(
+                      desc,
+                      style: const TextStyle(
+                        fontWeight: FontWeight.w500,
+                        fontSize: 13,
+                        color: Colors.black87,
+                      ),
+                    ),
                     const SizedBox(height: 4),
                     Text(
                       '${h.performedByName ?? h.performedByUsername ?? 'System'} · ${_formatDate(h.createdAt)}',
-                      style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Colors.grey.shade600,
+                      ),
                     ),
                   ],
                 ),
-                trailing: Icon(Icons.chevron_right_rounded, size: 20, color: Colors.grey.shade400),
+                trailing: Icon(
+                  Icons.chevron_right_rounded,
+                  size: 20,
+                  color: Colors.grey.shade400,
+                ),
               ),
             ),
           );
@@ -982,31 +1208,43 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
   // ── HELPERS ───────────────────────────────────────────────────────────────
   Color _actionColor(String action) {
     switch (action.toUpperCase()) {
-      case 'CREATE': return AppColors.primaryGreen;
-      case 'DELETE': return Colors.red;
-      default:       return Colors.blue;
+      case 'CREATE':
+        return AppColors.primaryGreen;
+      case 'DELETE':
+        return Colors.red;
+      default:
+        return Colors.blue;
     }
   }
 
   IconData _actionIcon(String action, String entityType) {
     if (entityType == 'user') {
       switch (action.toUpperCase()) {
-        case 'CREATE': return Icons.person_add_alt_1_rounded;
-        case 'DELETE': return Icons.person_off_rounded;
-        default:       return Icons.manage_accounts_rounded;
+        case 'CREATE':
+          return Icons.person_add_alt_1_rounded;
+        case 'DELETE':
+          return Icons.person_off_rounded;
+        default:
+          return Icons.manage_accounts_rounded;
       }
     }
     if (entityType == 'student') {
       switch (action.toUpperCase()) {
-        case 'CREATE': return Icons.school_rounded;
-        case 'DELETE': return Icons.delete_forever_rounded;
-        default:       return Icons.edit_rounded;
+        case 'CREATE':
+          return Icons.school_rounded;
+        case 'DELETE':
+          return Icons.delete_forever_rounded;
+        default:
+          return Icons.edit_rounded;
       }
     }
     switch (action.toUpperCase()) {
-      case 'CREATE': return Icons.upload_file_rounded;
-      case 'DELETE': return Icons.delete_sweep_rounded;
-      default:       return Icons.description_rounded;
+      case 'CREATE':
+        return Icons.upload_file_rounded;
+      case 'DELETE':
+        return Icons.delete_sweep_rounded;
+      default:
+        return Icons.description_rounded;
     }
   }
 
@@ -1020,7 +1258,11 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
       ),
       child: Text(
         action.toUpperCase(),
-        style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: color),
+        style: TextStyle(
+          fontSize: 11,
+          fontWeight: FontWeight.bold,
+          color: color,
+        ),
       ),
     );
   }
@@ -1033,8 +1275,8 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     if (parts.length > 1) {
       return '${parts[0][0]}${parts[1][0]}'.toUpperCase();
     }
-    return parts[0].length > 1 
-      ? parts[0].substring(0, 2).toUpperCase() 
-      : parts[0].toUpperCase();
+    return parts[0].length > 1
+        ? parts[0].substring(0, 2).toUpperCase()
+        : parts[0].toUpperCase();
   }
 }

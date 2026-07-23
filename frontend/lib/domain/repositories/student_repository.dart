@@ -1,5 +1,5 @@
 import 'package:dio/dio.dart';
-import 'dart:async';  
+import 'dart:async';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:socket_io_client/socket_io_client.dart' as IO;
 import '../../core/network/api_constants.dart';
@@ -27,9 +27,9 @@ class StudentPage {
       students: (json['students'] as List)
           .map((s) => StudentModel.fromJson(s as Map<String, dynamic>))
           .toList(),
-      total:      (pagination['total']      as num).toInt(),
-      page:       (pagination['page']       as num).toInt(),
-      limit:      (pagination['limit']      as num).toInt(),
+      total: (pagination['total'] as num).toInt(),
+      page: (pagination['page'] as num).toInt(),
+      limit: (pagination['limit'] as num).toInt(),
       totalPages: (pagination['totalPages'] as num).toInt(),
     );
   }
@@ -40,7 +40,8 @@ class StudentRepository {
   final FlutterSecureStorage _storage = const FlutterSecureStorage();
 
   IO.Socket? _socket;
-  final StreamController<void> _studentUpdateController = StreamController.broadcast();
+  final StreamController<void> _studentUpdateController =
+      StreamController.broadcast();
 
   Stream<void> get onStudentChanged => _studentUpdateController.stream;
 
@@ -59,11 +60,15 @@ class StudentRepository {
     // Sockets usually connect to the root domain 'http://192.168.1.10:3000'
     final socketUrl = ApiConstants.baseUrl.replaceAll('/api', '');
 
-    _socket = IO.io(socketUrl, IO.OptionBuilder()
-        .setTransports(['websocket'])
-        .setAuth({'token': token}) // Pass token for secure backend verification
-        .disableAutoConnect()
-        .build()
+    _socket = IO.io(
+      socketUrl,
+      IO.OptionBuilder()
+          .setTransports(['websocket'])
+          .setAuth({
+            'token': token,
+          }) // Pass token for secure backend verification
+          .disableAutoConnect()
+          .build(),
     );
 
     _socket?.connect();
@@ -78,7 +83,7 @@ class StudentRepository {
     _socket?.on('student_deleted', (_) => _studentUpdateController.add(null));
   }
 
-  void dispose() {  
+  void dispose() {
     _socket?.dispose();
     _studentUpdateController.close();
   }
@@ -87,27 +92,27 @@ class StudentRepository {
   // Fetch paginated students with optional search + filters
   // ----------------------------------------------------------------
   Future<StudentPage> getStudents({
-    String search     = '',
-    int    page       = 1,
-    int    limit      = 10,
+    String search = '',
+    int page = 1,
+    int limit = 10,
     String gradeLevel = '',
-    String status     = '',
-    String section    = '',
+    String status = '',
+    String section = '',
     String schoolYear = '',
-    String is4ps      = '',
+    String is4ps = '',
   }) async {
     try {
       final options = await _getAuthOptions();
       final response = await _dio.get(
         '/students',
         queryParameters: {
-          if (search.trim().isNotEmpty)     'search':     search.trim(),
+          if (search.trim().isNotEmpty) 'search': search.trim(),
           if (gradeLevel.trim().isNotEmpty) 'gradeLevel': gradeLevel.trim(),
-          if (status.trim().isNotEmpty)     'status':     status.trim(),
-          if (section.trim().isNotEmpty)    'section':    section.trim(),
+          if (status.trim().isNotEmpty) 'status': status.trim(),
+          if (section.trim().isNotEmpty) 'section': section.trim(),
           if (schoolYear.trim().isNotEmpty) 'schoolYear': schoolYear.trim(),
-          if (is4ps.trim().isNotEmpty)      'is4ps':      is4ps.trim(),
-          'page':  page,
+          if (is4ps.trim().isNotEmpty) 'is4ps': is4ps.trim(),
+          'page': page,
           'limit': limit,
         },
         options: options,
@@ -124,7 +129,7 @@ class StudentRepository {
   // ----------------------------------------------------------------
   Future<StudentModel> getStudentById(int id) async {
     try {
-      final options  = await _getAuthOptions();
+      final options = await _getAuthOptions();
       final response = await _dio.get('/students/$id', options: options);
       return StudentModel.fromJson(response.data as Map<String, dynamic>);
     } on DioException catch (e) {
@@ -139,9 +144,9 @@ class StudentRepository {
   Future<int> createStudent({
     required String lrn,
     required String firstName,
-    String?         middleName,
+    String? middleName,
     required String lastName,
-    String?         extension,
+    String? extension,
     required String sex,
     required DateTime birthDate,
     required int academicYearId,
@@ -151,22 +156,23 @@ class StudentRepository {
     bool is4ps = false,
   }) async {
     try {
-      final options  = await _getAuthOptions();
+      final options = await _getAuthOptions();
       final response = await _dio.post(
         '/students',
         data: {
-          'lrn':            lrn.trim(),
-          'firstName':      firstName.trim(),
-          'middleName':     middleName?.trim(),
-          'lastName':       lastName.trim(),
-          'extension':      extension?.trim(),
-          'sex':            sex,
-          'birthDate':      '${birthDate.year}-${birthDate.month.toString().padLeft(2, '0')}-${birthDate.day.toString().padLeft(2, '0')}',
+          'lrn': lrn.trim(),
+          'firstName': firstName.trim(),
+          'middleName': middleName?.trim(),
+          'lastName': lastName.trim(),
+          'extension': extension?.trim(),
+          'sex': sex,
+          'birthDate':
+              '${birthDate.year}-${birthDate.month.toString().padLeft(2, '0')}-${birthDate.day.toString().padLeft(2, '0')}',
           'academicYearId': academicYearId,
-          'gradeLevel':     gradeLevel,
-          'sectionId':      sectionId,
-          'trackStrand':    trackStrand,
-          'is4ps':          is4ps,
+          'gradeLevel': gradeLevel,
+          'sectionId': sectionId,
+          'trackStrand': trackStrand,
+          'is4ps': is4ps,
         },
         options: options,
       );
@@ -181,39 +187,40 @@ class StudentRepository {
   // Update student
   // ----------------------------------------------------------------
   Future<void> updateStudent({
-    required int    id,
+    required int id,
     required String lrn,
     required String firstName,
-    String?         middleName,
+    String? middleName,
     required String lastName,
-    String?         extension,
+    String? extension,
     required String sex,
     required DateTime birthDate,
     required int academicYearId,
     required int gradeLevel,
     required int sectionId,
     String? trackStrand,
-    String          status = 'Enrolled',
-    bool            is4ps = false,
+    String status = 'Enrolled',
+    bool is4ps = false,
   }) async {
     try {
       final options = await _getAuthOptions();
       await _dio.put(
         '/students/$id',
         data: {
-          'lrn':            lrn.trim(),
-          'firstName':      firstName.trim(),
-          'middleName':     middleName?.trim(),
-          'lastName':       lastName.trim(),
-          'extension':      extension?.trim(),
-          'sex':            sex,
-          'birthDate':      '${birthDate.year}-${birthDate.month.toString().padLeft(2, '0')}-${birthDate.day.toString().padLeft(2, '0')}',
-          'status':         status,
+          'lrn': lrn.trim(),
+          'firstName': firstName.trim(),
+          'middleName': middleName?.trim(),
+          'lastName': lastName.trim(),
+          'extension': extension?.trim(),
+          'sex': sex,
+          'birthDate':
+              '${birthDate.year}-${birthDate.month.toString().padLeft(2, '0')}-${birthDate.day.toString().padLeft(2, '0')}',
+          'status': status,
           'academicYearId': academicYearId,
-          'gradeLevel':     gradeLevel,
-          'sectionId':      sectionId,
-          'trackStrand':    trackStrand,
-          'is4ps':          is4ps,
+          'gradeLevel': gradeLevel,
+          'sectionId': sectionId,
+          'trackStrand': trackStrand,
+          'is4ps': is4ps,
         },
         options: options,
       );
@@ -232,24 +239,27 @@ class StudentRepository {
       await _dio.put(
         '/students/$id',
         data: {
-          'lrn':            student.lrn,
-          'firstName':      student.firstName,
-          'middleName':     student.middleName,
-          'lastName':       student.lastName,
-          'extension':      student.extension,
-          'sex':            student.sex,
-          'birthDate':      student.birthDate.toIso8601String().split('T').first,
-          'status':         'Inactive', // Changed status to Inactive instead of deleting
+          'lrn': student.lrn,
+          'firstName': student.firstName,
+          'middleName': student.middleName,
+          'lastName': student.lastName,
+          'extension': student.extension,
+          'sex': student.sex,
+          'birthDate': student.birthDate.toIso8601String().split('T').first,
+          'status':
+              'Inactive', // Changed status to Inactive instead of deleting
           'academicYearId': student.latestEnrollment?.academicYearId ?? 0,
-          'gradeLevel':     student.latestGradeLevel ?? 0,
-          'sectionId':      student.latestEnrollment?.sectionId ?? 0,
-          'trackStrand':    student.latestEnrollment?.trackStrand,
-          'is4ps':          student.is4ps,
+          'gradeLevel': student.latestGradeLevel ?? 0,
+          'sectionId': student.latestEnrollment?.sectionId ?? 0,
+          'trackStrand': student.latestEnrollment?.trackStrand,
+          'is4ps': student.is4ps,
         },
         options: options,
       );
     } on DioException catch (e) {
-      final msg = e.response?.data?['message'] ?? 'Failed to update student to inactive.';
+      final msg =
+          e.response?.data?['message'] ??
+          'Failed to update student to inactive.';
       throw Exception(msg);
     }
   }
@@ -269,16 +279,17 @@ class StudentRepository {
       await _dio.post(
         '/students/bulk-enroll',
         data: {
-          'studentIds':     studentIds,
+          'studentIds': studentIds,
           'academicYearId': academicYearId,
-          'gradeLevel':     gradeLevel,
-          'sectionId':      sectionId,
-          'trackStrand':    trackStrand,
+          'gradeLevel': gradeLevel,
+          'sectionId': sectionId,
+          'trackStrand': trackStrand,
         },
         options: options,
       );
     } on DioException catch (e) {
-      final msg = e.response?.data?['message'] ?? 'Failed to bulk enroll students.';
+      final msg =
+          e.response?.data?['message'] ?? 'Failed to bulk enroll students.';
       throw Exception(msg);
     }
   }
@@ -295,7 +306,8 @@ class StudentRepository {
         options: options,
       );
     } on DioException catch (e) {
-      final msg = e.response?.data?['message'] ?? 'Failed to bulk graduate students.';
+      final msg =
+          e.response?.data?['message'] ?? 'Failed to bulk graduate students.';
       throw Exception(msg);
     }
   }
@@ -303,25 +315,28 @@ class StudentRepository {
   // ----------------------------------------------------------------
   // Bulk Change Status (Used for Dropped, Transferred, etc)
   // ----------------------------------------------------------------
-  Future<void> bulkChangeStatus(List<StudentModel> students, String newStatus) async {
+  Future<void> bulkChangeStatus(
+    List<StudentModel> students,
+    String newStatus,
+  ) async {
     if (students.isEmpty) return;
-    
+
     try {
       final options = await _getAuthOptions();
       final studentIds = students.map((s) => s.id).toList();
-      
+
       await _dio.post(
         '/students/bulk-status',
-        data: {
-          'studentIds': studentIds,
-          'status': newStatus,
-        },
+        data: {'studentIds': studentIds, 'status': newStatus},
         options: options,
       );
     } on DioException catch (e) {
-      throw Exception(e.response?.data['message'] ?? 'Failed to perform bulk status change.');
+      throw Exception(
+        e.response?.data['message'] ?? 'Failed to perform bulk status change.',
+      );
     }
   }
+
   // ----------------------------------------------------------------
   // Update Enrollment
   // ----------------------------------------------------------------
@@ -338,14 +353,15 @@ class StudentRepository {
         '/students/enrollments/$enrollmentId',
         data: {
           'academicYearId': academicYearId,
-          'gradeLevel':     gradeLevel,
-          'sectionId':      sectionId,
-          'trackStrand':    trackStrand,
+          'gradeLevel': gradeLevel,
+          'sectionId': sectionId,
+          'trackStrand': trackStrand,
         },
         options: options,
       );
     } on DioException catch (e) {
-      final msg = e.response?.data?['message'] ?? 'Failed to update enrollment.';
+      final msg =
+          e.response?.data?['message'] ?? 'Failed to update enrollment.';
       throw Exception(msg);
     }
   }
@@ -356,12 +372,17 @@ class StudentRepository {
   Future<void> deleteEnrollment(int enrollmentId) async {
     try {
       final options = await _getAuthOptions();
-      await _dio.delete('/students/enrollments/$enrollmentId', options: options);
+      await _dio.delete(
+        '/students/enrollments/$enrollmentId',
+        options: options,
+      );
     } on DioException catch (e) {
-      final msg = e.response?.data?['message'] ?? 'Failed to delete enrollment.';
+      final msg =
+          e.response?.data?['message'] ?? 'Failed to delete enrollment.';
       throw Exception(msg);
     }
   }
+
   // ----------------------------------------------------------------
   // Add Enrollment
   // ----------------------------------------------------------------
@@ -378,9 +399,9 @@ class StudentRepository {
         '/students/$studentId/enrollments',
         data: {
           'academicYearId': academicYearId,
-          'gradeLevel':     gradeLevel,
-          'sectionId':      sectionId,
-          'trackStrand':    trackStrand,
+          'gradeLevel': gradeLevel,
+          'sectionId': sectionId,
+          'trackStrand': trackStrand,
         },
         options: options,
       );

@@ -16,7 +16,7 @@ class AppPagination extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (totalPages <= 1) return const SizedBox.shrink();
-    
+
     return Container(
       color: Colors.transparent,
       padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),

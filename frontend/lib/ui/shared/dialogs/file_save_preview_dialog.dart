@@ -12,36 +12,41 @@ enum SaveFileType { excel, pdf, image, word, other }
 extension SaveFileTypeExt on SaveFileType {
   String get label => switch (this) {
     SaveFileType.excel => 'Excel Spreadsheet',
-    SaveFileType.pdf   => 'PDF Document',
+    SaveFileType.pdf => 'PDF Document',
     SaveFileType.image => 'Image File',
-    SaveFileType.word  => 'Word Document',
+    SaveFileType.word => 'Word Document',
     SaveFileType.other => 'File',
   };
 
   IconData get icon => switch (this) {
     SaveFileType.excel => Icons.table_chart_outlined,
-    SaveFileType.pdf   => Icons.picture_as_pdf_outlined,
+    SaveFileType.pdf => Icons.picture_as_pdf_outlined,
     SaveFileType.image => Icons.image_outlined,
-    SaveFileType.word  => Icons.description_outlined,
+    SaveFileType.word => Icons.description_outlined,
     SaveFileType.other => Icons.insert_drive_file_outlined,
   };
 
   Color get color => switch (this) {
     SaveFileType.excel => const Color(0xFF1D6F42),
-    SaveFileType.pdf   => const Color(0xFFD32F2F),
+    SaveFileType.pdf => const Color(0xFFD32F2F),
     SaveFileType.image => const Color(0xFF1565C0),
-    SaveFileType.word  => const Color(0xFF1976D2),
+    SaveFileType.word => const Color(0xFF1976D2),
     SaveFileType.other => AppColors.textSecondary,
   };
 
   static SaveFileType fromExtension(String fileName) {
     final ext = fileName.split('.').last.toLowerCase();
     return switch (ext) {
-      'xlsx' || 'xls' || 'csv'                           => SaveFileType.excel,
-      'pdf'                                               => SaveFileType.pdf,
-      'jpg' || 'jpeg' || 'png' || 'webp' || 'gif' || 'bmp' => SaveFileType.image,
-      'doc' || 'docx'                                     => SaveFileType.word,
-      _                                                   => SaveFileType.other,
+      'xlsx' || 'xls' || 'csv' => SaveFileType.excel,
+      'pdf' => SaveFileType.pdf,
+      'jpg' ||
+      'jpeg' ||
+      'png' ||
+      'webp' ||
+      'gif' ||
+      'bmp' => SaveFileType.image,
+      'doc' || 'docx' => SaveFileType.word,
+      _ => SaveFileType.other,
     };
   }
 }
@@ -61,10 +66,13 @@ class FilePreviewRow {
 class SheetPreviewData {
   /// Name of the sheet.
   final String sheetName;
+
   /// Column header labels.
   final List<String> headers;
+
   /// Data rows — each row is a list of cell strings aligned to [headers].
   final List<List<String>> rows;
+
   /// Max rows to show in preview (default 100).
   final int maxPreviewRows;
 
@@ -93,11 +101,11 @@ class SheetPreviewData {
 Future<bool?> showFileSavePreviewDialog(
   BuildContext context, {
   required String fileName,
-  SaveFileType?   fileType,
-  List<int>?      fileBytes,
+  SaveFileType? fileType,
+  List<int>? fileBytes,
   List<FilePreviewRow> previewRows = const [],
   List<SheetPreviewData> sheets = const [],
-  File?           imageFile,
+  File? imageFile,
   required Future<void> Function(String resolvedFileName) onSave,
 }) {
   return showDialog<bool>(
@@ -105,12 +113,12 @@ Future<bool?> showFileSavePreviewDialog(
     barrierDismissible: false,
     builder: (_) => _FileSavePreviewDialog(
       initialFileName: fileName,
-      fileType:        fileType ?? SaveFileTypeExt.fromExtension(fileName),
-      fileBytes:       fileBytes,
-      previewRows:     previewRows,
-      sheets:          sheets,
-      imageFile:       imageFile,
-      onSave:          onSave,
+      fileType: fileType ?? SaveFileTypeExt.fromExtension(fileName),
+      fileBytes: fileBytes,
+      previewRows: previewRows,
+      sheets: sheets,
+      imageFile: imageFile,
+      onSave: onSave,
     ),
   );
 }
@@ -120,12 +128,12 @@ Future<bool?> showFileSavePreviewDialog(
 // ─────────────────────────────────────────────────────────────────────────────
 
 class _FileSavePreviewDialog extends StatefulWidget {
-  final String               initialFileName;
-  final SaveFileType         fileType;
-  final List<int>?           fileBytes;
+  final String initialFileName;
+  final SaveFileType fileType;
+  final List<int>? fileBytes;
   final List<FilePreviewRow> previewRows;
   final List<SheetPreviewData> sheets;
-  final File?                imageFile;
+  final File? imageFile;
   final Future<void> Function(String) onSave;
 
   const _FileSavePreviewDialog({
@@ -144,7 +152,7 @@ class _FileSavePreviewDialog extends StatefulWidget {
 
 class _FileSavePreviewDialogState extends State<_FileSavePreviewDialog> {
   late TextEditingController _fileNameCtrl;
-  bool    _isSaving = false;
+  bool _isSaving = false;
   String? _error;
 
   @override
@@ -174,15 +182,19 @@ class _FileSavePreviewDialogState extends State<_FileSavePreviewDialog> {
       setState(() => _error = 'File name cannot be empty.');
       return;
     }
-    setState(() { _isSaving = true; _error = null; });
+    setState(() {
+      _isSaving = true;
+      _error = null;
+    });
     try {
       await widget.onSave(name);
       if (mounted) Navigator.of(context).pop(true);
     } catch (e) {
-      if (mounted) setState(() {
-        _isSaving = false;
-        _error    = e.toString().replaceFirst('Exception: ', '');
-      });
+      if (mounted)
+        setState(() {
+          _isSaving = false;
+          _error = e.toString().replaceFirst('Exception: ', '');
+        });
     }
   }
 
@@ -190,13 +202,13 @@ class _FileSavePreviewDialogState extends State<_FileSavePreviewDialog> {
 
   @override
   Widget build(BuildContext context) {
-    final ki       = MediaQuery.viewInsetsOf(context);
-    final sh       = MediaQuery.sizeOf(context).height;
-    final maxH     = (sh * 0.92 - ki.bottom).clamp(400.0, double.infinity);
-    final accent   = widget.fileType.color;
+    final ki = MediaQuery.viewInsetsOf(context);
+    final sh = MediaQuery.sizeOf(context).height;
+    final maxH = (sh * 0.92 - ki.bottom).clamp(400.0, double.infinity);
+    final accent = widget.fileType.color;
 
     return Dialog(
-      insetPadding:    const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+      insetPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
       backgroundColor: AppColors.surfaceWhite,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(AppSizes.radiusLarge),
@@ -225,7 +237,7 @@ class _FileSavePreviewDialogState extends State<_FileSavePreviewDialog> {
     return Container(
       padding: const EdgeInsets.symmetric(
         horizontal: AppSizes.p20,
-        vertical:   AppSizes.p12,
+        vertical: AppSizes.p12,
       ),
       decoration: BoxDecoration(
         color: accent.withValues(alpha: 0.06),
@@ -238,7 +250,7 @@ class _FileSavePreviewDialogState extends State<_FileSavePreviewDialog> {
           Container(
             padding: const EdgeInsets.all(8),
             decoration: BoxDecoration(
-              color:  accent.withValues(alpha: 0.12),
+              color: accent.withValues(alpha: 0.12),
               borderRadius: BorderRadius.circular(8),
             ),
             child: Icon(widget.fileType.icon, color: accent, size: 22),
@@ -255,8 +267,14 @@ class _FileSavePreviewDialogState extends State<_FileSavePreviewDialog> {
             ),
           ),
           IconButton(
-            icon: const Icon(Icons.close, size: 20, color: AppColors.textSecondary),
-            onPressed: _isSaving ? null : () => Navigator.of(context).pop(false),
+            icon: const Icon(
+              Icons.close,
+              size: 20,
+              color: AppColors.textSecondary,
+            ),
+            onPressed: _isSaving
+                ? null
+                : () => Navigator.of(context).pop(false),
           ),
         ],
       ),
@@ -267,10 +285,7 @@ class _FileSavePreviewDialogState extends State<_FileSavePreviewDialog> {
 
   Widget _buildBreadcrumbs(Color accent) {
     // Build all chips: user-supplied rows + auto size
-    final allRows = [
-      ...widget.previewRows,
-      FilePreviewRow('Size', _sizeLabel),
-    ];
+    final allRows = [...widget.previewRows, FilePreviewRow('Size', _sizeLabel)];
 
     return Container(
       height: 42,
@@ -278,10 +293,14 @@ class _FileSavePreviewDialogState extends State<_FileSavePreviewDialog> {
       color: AppColors.pageBackground,
       child: ListView.separated(
         scrollDirection: Axis.horizontal,
-        itemCount:  allRows.length,
+        itemCount: allRows.length,
         separatorBuilder: (_, __) => const Padding(
           padding: EdgeInsets.symmetric(horizontal: 4),
-          child: Icon(Icons.chevron_right, size: 14, color: AppColors.textMuted),
+          child: Icon(
+            Icons.chevron_right,
+            size: 14,
+            color: AppColors.textMuted,
+          ),
         ),
         itemBuilder: (_, i) {
           final row = allRows[i];
@@ -289,9 +308,9 @@ class _FileSavePreviewDialogState extends State<_FileSavePreviewDialog> {
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
               decoration: BoxDecoration(
-                color:        accent.withValues(alpha: 0.08),
+                color: accent.withValues(alpha: 0.08),
                 borderRadius: BorderRadius.circular(20),
-                border:       Border.all(color: accent.withValues(alpha: 0.18)),
+                border: Border.all(color: accent.withValues(alpha: 0.18)),
               ),
               child: RichText(
                 text: TextSpan(
@@ -300,15 +319,15 @@ class _FileSavePreviewDialogState extends State<_FileSavePreviewDialog> {
                       text: '${row.label}: ',
                       style: const TextStyle(
                         fontSize: 11,
-                        color:    AppColors.textSecondary,
+                        color: AppColors.textSecondary,
                       ),
                     ),
                     TextSpan(
                       text: row.value,
                       style: TextStyle(
-                        fontSize:   11,
+                        fontSize: 11,
                         fontWeight: FontWeight.bold,
-                        color:      accent,
+                        color: accent,
                       ),
                     ),
                   ],
@@ -327,24 +346,24 @@ class _FileSavePreviewDialogState extends State<_FileSavePreviewDialog> {
     return switch (widget.fileType) {
       SaveFileType.image => _buildImagePreview(),
       SaveFileType.excel => _buildExcelPreview(accent),
-      SaveFileType.pdf   => _buildPlaceholderPreview(
-          accent,
-          Icons.picture_as_pdf_outlined,
-          'PDF Preview',
-          'PDF rendering requires an external viewer.\nThe file will open correctly after saving.',
-        ),
-      SaveFileType.word  => _buildPlaceholderPreview(
-          accent,
-          Icons.description_outlined,
-          'Word Document',
-          'Word preview not available in-app.\nThe document will open correctly after saving.',
-        ),
-      _                  => _buildPlaceholderPreview(
-          accent,
-          Icons.insert_drive_file_outlined,
-          'File Preview',
-          'No preview available for this file type.',
-        ),
+      SaveFileType.pdf => _buildPlaceholderPreview(
+        accent,
+        Icons.picture_as_pdf_outlined,
+        'PDF Preview',
+        'PDF rendering requires an external viewer.\nThe file will open correctly after saving.',
+      ),
+      SaveFileType.word => _buildPlaceholderPreview(
+        accent,
+        Icons.description_outlined,
+        'Word Document',
+        'Word preview not available in-app.\nThe document will open correctly after saving.',
+      ),
+      _ => _buildPlaceholderPreview(
+        accent,
+        Icons.insert_drive_file_outlined,
+        'File Preview',
+        'No preview available for this file type.',
+      ),
     };
   }
 
@@ -363,8 +382,8 @@ class _FileSavePreviewDialogState extends State<_FileSavePreviewDialog> {
       maxScale: 4.0,
       child: Image.file(
         widget.imageFile!,
-        width:  double.infinity,
-        fit:    BoxFit.contain,
+        width: double.infinity,
+        fit: BoxFit.contain,
         errorBuilder: (_, __, ___) => _buildPlaceholderPreview(
           widget.fileType.color,
           Icons.broken_image_outlined,
@@ -428,7 +447,7 @@ class _FileSavePreviewDialogState extends State<_FileSavePreviewDialog> {
     }
 
     final visibleRows = tp.rows.take(tp.maxPreviewRows).toList();
-    final hasMore     = tp.rows.length > tp.maxPreviewRows;
+    final hasMore = tp.rows.length > tp.maxPreviewRows;
 
     return SingleChildScrollView(
       padding: const EdgeInsets.all(AppSizes.p16),
@@ -437,18 +456,20 @@ class _FileSavePreviewDialogState extends State<_FileSavePreviewDialog> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // Spreadsheet chrome label
-          Row(children: [
-            Icon(Icons.table_chart, size: 14, color: accent),
-            const SizedBox(width: 4),
-            Text(
-              'Sheet: ${tp.sheetName}  •  ${tp.rows.length} rows',
-              style: TextStyle(
-                fontSize: 11,
-                color:    accent,
-                fontWeight: FontWeight.w600,
+          Row(
+            children: [
+              Icon(Icons.table_chart, size: 14, color: accent),
+              const SizedBox(width: 4),
+              Text(
+                'Sheet: ${tp.sheetName}  •  ${tp.rows.length} rows',
+                style: TextStyle(
+                  fontSize: 11,
+                  color: accent,
+                  fontWeight: FontWeight.w600,
+                ),
               ),
-            ),
-          ]),
+            ],
+          ),
           const SizedBox(height: AppSizes.p8),
 
           // Table
@@ -463,12 +484,14 @@ class _FileSavePreviewDialogState extends State<_FileSavePreviewDialog> {
                 defaultColumnWidth: const IntrinsicColumnWidth(),
                 border: TableBorder(
                   horizontalInside: BorderSide(color: Colors.grey.shade200),
-                  verticalInside:   BorderSide(color: Colors.grey.shade200),
+                  verticalInside: BorderSide(color: Colors.grey.shade200),
                 ),
                 children: [
                   // Header row
                   TableRow(
-                    decoration: BoxDecoration(color: accent.withValues(alpha: 0.10)),
+                    decoration: BoxDecoration(
+                      color: accent.withValues(alpha: 0.10),
+                    ),
                     children: tp.headers.asMap().entries.map((e) {
                       return _tableCell(
                         e.value.isEmpty ? '#' : e.value,
@@ -517,9 +540,11 @@ class _FileSavePreviewDialogState extends State<_FileSavePreviewDialog> {
       child: Text(
         text,
         style: TextStyle(
-          fontSize:   12,
+          fontSize: 12,
           fontWeight: isHeader ? FontWeight.bold : FontWeight.normal,
-          color:      isHeader ? (accent ?? AppColors.textPrimary) : AppColors.textPrimary,
+          color: isHeader
+              ? (accent ?? AppColors.textPrimary)
+              : AppColors.textPrimary,
         ),
       ),
     );
@@ -527,7 +552,10 @@ class _FileSavePreviewDialogState extends State<_FileSavePreviewDialog> {
 
   /// Fallback placeholder for PDF, Word, and unknown types.
   Widget _buildPlaceholderPreview(
-    Color accent, IconData icon, String title, String subtitle,
+    Color accent,
+    IconData icon,
+    String title,
+    String subtitle,
   ) {
     return Center(
       child: Padding(
@@ -538,7 +566,7 @@ class _FileSavePreviewDialogState extends State<_FileSavePreviewDialog> {
             Container(
               padding: const EdgeInsets.all(AppSizes.p20),
               decoration: BoxDecoration(
-                color:  accent.withValues(alpha: 0.08),
+                color: accent.withValues(alpha: 0.08),
                 shape: BoxShape.circle,
               ),
               child: Icon(icon, size: 52, color: accent),
@@ -572,26 +600,32 @@ class _FileSavePreviewDialogState extends State<_FileSavePreviewDialog> {
   Widget _buildBottom(Color accent) {
     return Padding(
       padding: const EdgeInsets.fromLTRB(
-        AppSizes.p20, AppSizes.p12, AppSizes.p20, AppSizes.p16,
+        AppSizes.p20,
+        AppSizes.p12,
+        AppSizes.p20,
+        AppSizes.p16,
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
           // File name field
           TextField(
-            controller:      _fileNameCtrl,
-            enabled:         !_isSaving,
+            controller: _fileNameCtrl,
+            enabled: !_isSaving,
             textInputAction: TextInputAction.done,
-            scrollPadding:   const EdgeInsets.only(bottom: 120),
+            scrollPadding: const EdgeInsets.only(bottom: 120),
             style: const TextStyle(fontSize: 13),
             decoration: InputDecoration(
-              isDense:    true,
-              labelText:  'File Name',
+              isDense: true,
+              labelText: 'File Name',
               prefixIcon: Icon(widget.fileType.icon, color: accent, size: 18),
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(AppSizes.radiusMedium),
               ),
-              contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+              contentPadding: const EdgeInsets.symmetric(
+                horizontal: 14,
+                vertical: 12,
+              ),
             ),
           ),
 
@@ -603,45 +637,62 @@ class _FileSavePreviewDialogState extends State<_FileSavePreviewDialog> {
           const SizedBox(height: AppSizes.p12),
 
           // Buttons
-          Row(children: [
-            Expanded(
-              child: OutlinedButton(
-                onPressed: _isSaving ? null : () => Navigator.of(context).pop(false),
-                style: OutlinedButton.styleFrom(
-                  foregroundColor: AppColors.textSecondary,
-                  side: BorderSide(color: Colors.grey.shade300),
-                  padding: const EdgeInsets.symmetric(vertical: 13),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(AppSizes.radiusMedium),
+          Row(
+            children: [
+              Expanded(
+                child: OutlinedButton(
+                  onPressed: _isSaving
+                      ? null
+                      : () => Navigator.of(context).pop(false),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: AppColors.textSecondary,
+                    side: BorderSide(color: Colors.grey.shade300),
+                    padding: const EdgeInsets.symmetric(vertical: 13),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(
+                        AppSizes.radiusMedium,
+                      ),
+                    ),
                   ),
-                ),
-                child: const Text('CANCEL', style: TextStyle(fontWeight: FontWeight.bold)),
-              ),
-            ),
-            const SizedBox(width: AppSizes.p12),
-            Expanded(
-              flex: 2,
-              child: ElevatedButton.icon(
-                onPressed: _isSaving ? null : _save,
-                icon: _isSaving
-                    ? const SizedBox(
-                        width: 16, height: 16,
-                        child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
-                      )
-                    : const Icon(Icons.save_alt_outlined, size: 18),
-                label: Text(_isSaving ? 'Saving…' : 'SAVE FILE',
-                    style: const TextStyle(fontWeight: FontWeight.bold)),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: accent,
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(vertical: 13),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(AppSizes.radiusMedium),
+                  child: const Text(
+                    'CANCEL',
+                    style: TextStyle(fontWeight: FontWeight.bold),
                   ),
                 ),
               ),
-            ),
-          ]),
+              const SizedBox(width: AppSizes.p12),
+              Expanded(
+                flex: 2,
+                child: ElevatedButton.icon(
+                  onPressed: _isSaving ? null : _save,
+                  icon: _isSaving
+                      ? const SizedBox(
+                          width: 16,
+                          height: 16,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: Colors.white,
+                          ),
+                        )
+                      : const Icon(Icons.save_alt_outlined, size: 18),
+                  label: Text(
+                    _isSaving ? 'Saving…' : 'SAVE FILE',
+                    style: const TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: accent,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 13),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(
+                        AppSizes.radiusMedium,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
         ],
       ),
     );
@@ -649,20 +700,27 @@ class _FileSavePreviewDialogState extends State<_FileSavePreviewDialog> {
 
   Widget _buildErrorBanner(String message) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: AppSizes.p12, vertical: AppSizes.p8),
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppSizes.p12,
+        vertical: AppSizes.p8,
+      ),
       decoration: BoxDecoration(
-        color:        AppColors.error.withValues(alpha: 0.08),
-        border:       Border.all(color: AppColors.error.withValues(alpha: 0.4)),
+        color: AppColors.error.withValues(alpha: 0.08),
+        border: Border.all(color: AppColors.error.withValues(alpha: 0.4)),
         borderRadius: BorderRadius.circular(AppSizes.radiusMedium),
       ),
-      child: Row(children: [
-        const Icon(Icons.error_outline, color: AppColors.error, size: 16),
-        const SizedBox(width: AppSizes.p8),
-        Expanded(
-          child: Text(message,
-              style: const TextStyle(color: AppColors.error, fontSize: 12)),
-        ),
-      ]),
+      child: Row(
+        children: [
+          const Icon(Icons.error_outline, color: AppColors.error, size: 16),
+          const SizedBox(width: AppSizes.p8),
+          Expanded(
+            child: Text(
+              message,
+              style: const TextStyle(color: AppColors.error, fontSize: 12),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

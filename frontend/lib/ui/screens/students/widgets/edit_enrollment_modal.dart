@@ -11,7 +11,8 @@ import '../../../../domain/entities/setup_models.dart';
 
 class EditEnrollmentModal extends ConsumerStatefulWidget {
   final int studentId;
-  final dynamic enrollment; // If null, it's an Add operation. If set, it's an Edit operation.
+  final dynamic
+  enrollment; // If null, it's an Add operation. If set, it's an Edit operation.
 
   const EditEnrollmentModal({
     Key? key,
@@ -20,7 +21,8 @@ class EditEnrollmentModal extends ConsumerStatefulWidget {
   }) : super(key: key);
 
   @override
-  ConsumerState<EditEnrollmentModal> createState() => _EditEnrollmentModalState();
+  ConsumerState<EditEnrollmentModal> createState() =>
+      _EditEnrollmentModalState();
 }
 
 class _EditEnrollmentModalState extends ConsumerState<EditEnrollmentModal> {
@@ -30,7 +32,7 @@ class _EditEnrollmentModalState extends ConsumerState<EditEnrollmentModal> {
   int? _selectedGradeLevel;
   int? _selectedSectionId;
   String? _trackStrand;
-  
+
   bool _isLoading = false;
   String? _errorMessage;
 
@@ -55,7 +57,7 @@ class _EditEnrollmentModalState extends ConsumerState<EditEnrollmentModal> {
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(),
             child: const Text('OK'),
-          )
+          ),
         ],
       ),
     );
@@ -128,18 +130,21 @@ class _EditEnrollmentModalState extends ConsumerState<EditEnrollmentModal> {
 
     return CustomModal(
       title: widget.enrollment == null ? 'Add Enrollment' : 'Edit Enrollment',
-      icon: widget.enrollment == null ? Icons.add_box_outlined : Icons.edit_document,
+      icon: widget.enrollment == null
+          ? Icons.add_box_outlined
+          : Icons.edit_document,
       maxWidth: 450,
       onClose: () => Navigator.of(context).pop(),
       content: ConstrainedBox(
-        constraints: BoxConstraints(
-          maxHeight: dialogHeight,
-        ),
+        constraints: BoxConstraints(maxHeight: dialogHeight),
         child: Column(
           children: [
             Expanded(
               child: SingleChildScrollView(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 8,
+                ),
                 child: Form(
                   key: _formKey,
                   child: Column(
@@ -155,10 +160,12 @@ class _EditEnrollmentModalState extends ConsumerState<EditEnrollmentModal> {
                               prefixIcon: Icon(Icons.calendar_today),
                             ),
                             items: years
-                                .map((y) => DropdownMenuItem<int>(
-                                      value: y.id,
-                                      child: Text(y.yearRange),
-                                    ))
+                                .map(
+                                  (y) => DropdownMenuItem<int>(
+                                    value: y.id,
+                                    child: Text(y.yearRange),
+                                  ),
+                                )
                                 .toList(),
                             onChanged: (val) {
                               setState(() {
@@ -166,11 +173,16 @@ class _EditEnrollmentModalState extends ConsumerState<EditEnrollmentModal> {
                                 _selectedSectionId = null;
                               });
                             },
-                            validator: (v) => v == null ? 'Academic year is required.' : null,
+                            validator: (v) =>
+                                v == null ? 'Academic year is required.' : null,
                           );
                         },
-                        loading: () => const Center(child: CircularProgressIndicator()),
-                        error: (err, _) => Text('Error: $err', style: const TextStyle(color: Colors.red)),
+                        loading: () =>
+                            const Center(child: CircularProgressIndicator()),
+                        error: (err, _) => Text(
+                          'Error: $err',
+                          style: const TextStyle(color: Colors.red),
+                        ),
                       ),
                       const SizedBox(height: AppSizes.p16),
 
@@ -185,10 +197,12 @@ class _EditEnrollmentModalState extends ConsumerState<EditEnrollmentModal> {
                               prefixIcon: Icon(Icons.grade),
                             ),
                             items: grades
-                                .map((g) => DropdownMenuItem<int>(
-                                      value: g.level,
-                                      child: Text(g.name),
-                                    ))
+                                .map(
+                                  (g) => DropdownMenuItem<int>(
+                                    value: g.level,
+                                    child: Text(g.name),
+                                  ),
+                                )
                                 .toList(),
                             onChanged: (val) {
                               setState(() {
@@ -196,11 +210,16 @@ class _EditEnrollmentModalState extends ConsumerState<EditEnrollmentModal> {
                                 _selectedSectionId = null;
                               });
                             },
-                            validator: (v) => v == null ? 'Grade level is required.' : null,
+                            validator: (v) =>
+                                v == null ? 'Grade level is required.' : null,
                           );
                         },
-                        loading: () => const Center(child: CircularProgressIndicator()),
-                        error: (err, _) => Text('Error: $err', style: const TextStyle(color: Colors.red)),
+                        loading: () =>
+                            const Center(child: CircularProgressIndicator()),
+                        error: (err, _) => Text(
+                          'Error: $err',
+                          style: const TextStyle(color: Colors.red),
+                        ),
                       ),
                       const SizedBox(height: AppSizes.p16),
 
@@ -210,13 +229,18 @@ class _EditEnrollmentModalState extends ConsumerState<EditEnrollmentModal> {
                           final filtered = sections
                               .where(
                                 (sec) =>
-                                    sec.academicYearId == _selectedAcademicYearId &&
+                                    sec.academicYearId ==
+                                        _selectedAcademicYearId &&
                                     sec.gradeLevel == _selectedGradeLevel,
                               )
                               .toList();
 
-                          final matches = filtered.where((s) => s.id == _selectedSectionId);
-                          final initialSectionName = matches.isNotEmpty ? matches.first.name : '';
+                          final matches = filtered.where(
+                            (s) => s.id == _selectedSectionId,
+                          );
+                          final initialSectionName = matches.isNotEmpty
+                              ? matches.first.name
+                              : '';
 
                           final autocompleteKey = ValueKey(
                             'section_${_selectedGradeLevel}_${_selectedAcademicYearId}',
@@ -224,52 +248,79 @@ class _EditEnrollmentModalState extends ConsumerState<EditEnrollmentModal> {
 
                           return Autocomplete<SectionModel>(
                             key: autocompleteKey,
-                            initialValue: TextEditingValue(text: initialSectionName),
+                            initialValue: TextEditingValue(
+                              text: initialSectionName,
+                            ),
                             displayStringForOption: (sec) => sec.name,
                             optionsBuilder: (textEditingValue) {
                               if (textEditingValue.text.isEmpty) {
                                 return filtered;
                               }
-                              return filtered.where((sec) =>
-                                  sec.name.toLowerCase().contains(textEditingValue.text.toLowerCase()));
+                              return filtered.where(
+                                (sec) => sec.name.toLowerCase().contains(
+                                  textEditingValue.text.toLowerCase(),
+                                ),
+                              );
                             },
                             onSelected: (sec) {
                               setState(() => _selectedSectionId = sec.id);
                             },
-                            fieldViewBuilder: (context, controller, focusNode, onFieldSubmitted) {
-                              return TextFormField(
-                                controller: controller,
-                                focusNode: focusNode,
-                                decoration: const InputDecoration(
-                                  labelText: 'Section (Type or Select)',
-                                  prefixIcon: Icon(Icons.segment),
-                                  suffixIcon: Icon(Icons.arrow_drop_down),
-                                ),
-                                onChanged: (val) {
-                                  if (val.isEmpty) {
-                                    setState(() => _selectedSectionId = null);
-                                  } else {
-                                    final exactMatches =
-                                        filtered.where((s) => s.name.toLowerCase() == val.toLowerCase());
-                                    setState(() => _selectedSectionId =
-                                        exactMatches.isNotEmpty ? exactMatches.first.id : null);
-                                  }
+                            fieldViewBuilder:
+                                (
+                                  context,
+                                  controller,
+                                  focusNode,
+                                  onFieldSubmitted,
+                                ) {
+                                  return TextFormField(
+                                    controller: controller,
+                                    focusNode: focusNode,
+                                    decoration: const InputDecoration(
+                                      labelText: 'Section (Type or Select)',
+                                      prefixIcon: Icon(Icons.segment),
+                                      suffixIcon: Icon(Icons.arrow_drop_down),
+                                    ),
+                                    onChanged: (val) {
+                                      if (val.isEmpty) {
+                                        setState(
+                                          () => _selectedSectionId = null,
+                                        );
+                                      } else {
+                                        final exactMatches = filtered.where(
+                                          (s) =>
+                                              s.name.toLowerCase() ==
+                                              val.toLowerCase(),
+                                        );
+                                        setState(
+                                          () => _selectedSectionId =
+                                              exactMatches.isNotEmpty
+                                              ? exactMatches.first.id
+                                              : null,
+                                        );
+                                      }
+                                    },
+                                    validator: (v) {
+                                      if (v == null ||
+                                          v.isEmpty ||
+                                          _selectedSectionId == null) {
+                                        return 'Please select a valid section.';
+                                      }
+                                      return null;
+                                    },
+                                  );
                                 },
-                                validator: (v) {
-                                  if (v == null || v.isEmpty || _selectedSectionId == null) {
-                                    return 'Please select a valid section.';
-                                  }
-                                  return null;
-                                },
-                              );
-                            },
                           );
                         },
-                        loading: () => const Center(child: CircularProgressIndicator()),
-                        error: (err, _) => Text('Error: $err', style: const TextStyle(color: Colors.red)),
+                        loading: () =>
+                            const Center(child: CircularProgressIndicator()),
+                        error: (err, _) => Text(
+                          'Error: $err',
+                          style: const TextStyle(color: Colors.red),
+                        ),
                       ),
-                      
-                      if (_selectedGradeLevel != null && _selectedGradeLevel! >= 11) ...[
+
+                      if (_selectedGradeLevel != null &&
+                          _selectedGradeLevel! >= 11) ...[
                         const SizedBox(height: AppSizes.p16),
                         TextFormField(
                           initialValue: _trackStrand,
@@ -277,7 +328,9 @@ class _EditEnrollmentModalState extends ConsumerState<EditEnrollmentModal> {
                             labelText: 'Track & Strand (for SHS)',
                             prefixIcon: Icon(Icons.school_outlined),
                           ),
-                          onChanged: (val) => _trackStrand = val.trim().isEmpty ? null : val.trim(),
+                          onChanged: (val) => _trackStrand = val.trim().isEmpty
+                              ? null
+                              : val.trim(),
                         ),
                       ],
                     ],
@@ -285,32 +338,44 @@ class _EditEnrollmentModalState extends ConsumerState<EditEnrollmentModal> {
                 ),
               ),
             ),
-            
+
             if (_errorMessage != null) ...[
               const SizedBox(height: 8),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 12,
+                ),
                 decoration: BoxDecoration(
                   color: AppColors.error.withValues(alpha: 0.08),
-                  border: Border.all(color: AppColors.error.withValues(alpha: 0.4)),
+                  border: Border.all(
+                    color: AppColors.error.withValues(alpha: 0.4),
+                  ),
                   borderRadius: BorderRadius.circular(AppSizes.radiusMedium),
                 ),
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Icon(Icons.error_outline, color: AppColors.error, size: 20),
+                    const Icon(
+                      Icons.error_outline,
+                      color: AppColors.error,
+                      size: 20,
+                    ),
                     const SizedBox(width: 8),
                     Expanded(
                       child: Text(
                         _errorMessage!,
-                        style: const TextStyle(color: AppColors.error, fontSize: 14),
+                        style: const TextStyle(
+                          color: AppColors.error,
+                          fontSize: 14,
+                        ),
                       ),
                     ),
                   ],
                 ),
               ),
             ],
-            
+
             const SizedBox(height: 16),
             Wrap(
               alignment: WrapAlignment.end,
@@ -319,7 +384,9 @@ class _EditEnrollmentModalState extends ConsumerState<EditEnrollmentModal> {
               runSpacing: AppSizes.p8,
               children: [
                 TextButton(
-                  onPressed: _isLoading ? null : () => Navigator.of(context).pop(),
+                  onPressed: _isLoading
+                      ? null
+                      : () => Navigator.of(context).pop(),
                   child: const Text(
                     'CANCEL',
                     style: TextStyle(

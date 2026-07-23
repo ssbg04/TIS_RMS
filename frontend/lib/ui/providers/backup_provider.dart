@@ -6,9 +6,13 @@ final backupRepositoryProvider = Provider<BackupRepository>((ref) {
   return BackupRepository();
 });
 
-final backupProvider = AsyncNotifierProvider<BackupNotifier, void>(BackupNotifier.new);
+final backupProvider = AsyncNotifierProvider<BackupNotifier, void>(
+  BackupNotifier.new,
+);
 
-final backupInfoProvider = FutureProvider.autoDispose<Map<String, String?>>((ref) async {
+final backupInfoProvider = FutureProvider.autoDispose<Map<String, String?>>((
+  ref,
+) async {
   final repo = ref.read(backupRepositoryProvider);
   return await repo.getBackupInfo();
 });

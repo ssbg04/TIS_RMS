@@ -5,11 +5,13 @@ import '../../core/network/api_constants.dart';
 import '../entities/ocr_result_model.dart';
 
 class OcrRepository {
-  final Dio _dio = Dio(BaseOptions(
-    baseUrl: ApiConstants.baseUrl,
-    connectTimeout: const Duration(seconds: 60), // OCR takes time
-    receiveTimeout: const Duration(seconds: 60),
-  ));
+  final Dio _dio = Dio(
+    BaseOptions(
+      baseUrl: ApiConstants.baseUrl,
+      connectTimeout: const Duration(seconds: 60), // OCR takes time
+      receiveTimeout: const Duration(seconds: 60),
+    ),
+  );
   final FlutterSecureStorage _storage = const FlutterSecureStorage();
 
   Future<Options> _getAuthOptions() async {
@@ -38,12 +40,15 @@ class OcrRepository {
       );
 
       return OcrResultModel.fromJson(response.data as Map<String, dynamic>);
-      
     } on DioException catch (e) {
       final data = e.response?.data;
-      final msg = (data is Map && data['message'] != null) ? data['message'] : 'Failed to connect to OCR Server.';
-      final detail = (data is Map && data['error'] != null) ? data['error'] : null;
-      
+      final msg = (data is Map && data['message'] != null)
+          ? data['message']
+          : 'Failed to connect to OCR Server.';
+      final detail = (data is Map && data['error'] != null)
+          ? data['error']
+          : null;
+
       if (detail != null) {
         throw Exception('$msg\n$detail');
       }

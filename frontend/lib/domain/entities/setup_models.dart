@@ -38,7 +38,9 @@ class SectionModel {
       id: (json['id'] as num).toInt(),
       name: json['name'] as String,
       gradeLevel: (json['grade_level'] as num).toInt(),
-      academicYearId: json['academic_year_id'] != null ? (json['academic_year_id'] as num).toInt() : null,
+      academicYearId: json['academic_year_id'] != null
+          ? (json['academic_year_id'] as num).toInt()
+          : null,
       academicYearRange: json['academic_year_range'] as String?,
     );
   }
@@ -49,11 +51,7 @@ class GradeLevelModel {
   final int level;
   final String name;
 
-  GradeLevelModel({
-    required this.id,
-    required this.level,
-    required this.name,
-  });
+  GradeLevelModel({required this.id, required this.level, required this.name});
 
   factory GradeLevelModel.fromJson(Map<String, dynamic> json) {
     return GradeLevelModel(

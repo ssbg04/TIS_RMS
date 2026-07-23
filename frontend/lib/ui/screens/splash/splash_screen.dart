@@ -18,10 +18,11 @@ class SplashScreen extends ConsumerStatefulWidget {
   ConsumerState<SplashScreen> createState() => _SplashScreenState();
 }
 
-class _SplashScreenState extends ConsumerState<SplashScreen> with SingleTickerProviderStateMixin {
+class _SplashScreenState extends ConsumerState<SplashScreen>
+    with SingleTickerProviderStateMixin {
   String _statusText = 'Starting up…';
   double? _scanProgress; // null = indeterminate, 0.0–1.0 = progress
-  
+
   late AnimationController _logoAnimController;
   late Animation<double> _logoScaleAnimation;
 
@@ -32,14 +33,14 @@ class _SplashScreenState extends ConsumerState<SplashScreen> with SingleTickerPr
       vsync: this,
       duration: const Duration(seconds: 2),
     )..repeat(reverse: true);
-    
+
     _logoScaleAnimation = Tween<double>(begin: 0.95, end: 1.05).animate(
       CurvedAnimation(parent: _logoAnimController, curve: Curves.easeInOut),
     );
-    
+
     _initializeApp();
   }
-  
+
   @override
   void dispose() {
     _logoAnimController.dispose();
@@ -73,9 +74,9 @@ class _SplashScreenState extends ConsumerState<SplashScreen> with SingleTickerPr
         ),
       );
     } else {
-      Navigator.of(context).pushReplacement(
-        MaterialPageRoute(builder: (_) => const LoginScreen()),
-      );
+      Navigator.of(
+        context,
+      ).pushReplacement(MaterialPageRoute(builder: (_) => const LoginScreen()));
     }
   }
 
@@ -116,7 +117,9 @@ class _SplashScreenState extends ConsumerState<SplashScreen> with SingleTickerPr
 
     if (prefixes.isEmpty) {
       // No LAN interface found — go straight to manual entry
-      await _showManualEntryDialog(reason: 'No Wi-Fi or LAN connection detected.');
+      await _showManualEntryDialog(
+        reason: 'No Wi-Fi or LAN connection detected.',
+      );
       return;
     }
 
@@ -164,15 +167,27 @@ class _SplashScreenState extends ConsumerState<SplashScreen> with SingleTickerPr
       barrierDismissible: false,
       builder: (ctx) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        icon: const Icon(Icons.wifi_find, color: AppColors.primaryGreen, size: 36),
-        title: const Text('Server Not Found', textAlign: TextAlign.center,
-            style: TextStyle(fontWeight: FontWeight.bold)),
+        icon: const Icon(
+          Icons.wifi_find,
+          color: AppColors.primaryGreen,
+          size: 36,
+        ),
+        title: const Text(
+          'Server Not Found',
+          textAlign: TextAlign.center,
+          style: TextStyle(fontWeight: FontWeight.bold),
+        ),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text(reason,
-                textAlign: TextAlign.center,
-                style: const TextStyle(color: AppColors.textSecondary, fontSize: 13)),
+            Text(
+              reason,
+              textAlign: TextAlign.center,
+              style: const TextStyle(
+                color: AppColors.textSecondary,
+                fontSize: 13,
+              ),
+            ),
             const SizedBox(height: 16),
             TextField(
               controller: controller,
@@ -181,7 +196,9 @@ class _SplashScreenState extends ConsumerState<SplashScreen> with SingleTickerPr
                 labelText: 'Server IP Address',
                 hintText: '192.168.1.x',
                 prefixIcon: const Icon(Icons.dns_outlined),
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(10),
+                ),
               ),
             ),
           ],
@@ -193,11 +210,18 @@ class _SplashScreenState extends ConsumerState<SplashScreen> with SingleTickerPr
               // Re-run scan
               await _runScan();
             },
-            child: const Text('Retry Scan',
-                style: TextStyle(color: AppColors.primaryGreen, fontWeight: FontWeight.bold)),
+            child: const Text(
+              'Retry Scan',
+              style: TextStyle(
+                color: AppColors.primaryGreen,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
           ),
           FilledButton(
-            style: FilledButton.styleFrom(backgroundColor: AppColors.primaryGreen),
+            style: FilledButton.styleFrom(
+              backgroundColor: AppColors.primaryGreen,
+            ),
             onPressed: () {
               final ip = controller.text.trim();
               if (ip.isNotEmpty) {
@@ -224,15 +248,21 @@ class _SplashScreenState extends ConsumerState<SplashScreen> with SingleTickerPr
       backgroundColor: const Color(0xFFF9F9F9),
       body: Column(
         children: [
-          if (!kIsWeb && (Platform.isWindows || Platform.isLinux || Platform.isMacOS))
+          if (!kIsWeb &&
+              (Platform.isWindows || Platform.isLinux || Platform.isMacOS))
             const SizedBox(
               height: 32,
               child: WindowCaption(
                 brightness: Brightness.dark,
                 backgroundColor: AppColors.primaryGreen,
-                title: Text('TIS RMS',
-                    style: TextStyle(
-                        color: Colors.white, fontSize: 13, fontWeight: FontWeight.w500)),
+                title: Text(
+                  'TIS RMS',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
               ),
             ),
           Expanded(
@@ -240,13 +270,24 @@ class _SplashScreenState extends ConsumerState<SplashScreen> with SingleTickerPr
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  if (kIsWeb || Platform.isWindows || Platform.isMacOS || Platform.isLinux)
+                  if (kIsWeb ||
+                      Platform.isWindows ||
+                      Platform.isMacOS ||
+                      Platform.isLinux)
                     ScaleTransition(
                       scale: _logoScaleAnimation,
-                      child: Image.asset('assets/images/logo.png', width: 150, height: 150),
+                      child: Image.asset(
+                        'assets/images/logo.png',
+                        width: 150,
+                        height: 150,
+                      ),
                     )
                   else
-                    Image.asset('assets/images/logo.png', width: 150, height: 150),
+                    Image.asset(
+                      'assets/images/logo.png',
+                      width: 150,
+                      height: 150,
+                    ),
                   const SizedBox(height: 24),
                   const Text(
                     'TIS RMS',
@@ -276,8 +317,10 @@ class _SplashScreenState extends ConsumerState<SplashScreen> with SingleTickerPr
                                   value: _scanProgress,
                                   minHeight: 6,
                                   backgroundColor: Colors.grey.shade200,
-                                  valueColor: const AlwaysStoppedAnimation<Color>(
-                                      Color(0xFF1C8248)),
+                                  valueColor:
+                                      const AlwaysStoppedAnimation<Color>(
+                                        Color(0xFF1C8248),
+                                      ),
                                 ),
                               ),
                             ],
@@ -287,7 +330,9 @@ class _SplashScreenState extends ConsumerState<SplashScreen> with SingleTickerPr
                               width: 32,
                               height: 32,
                               child: CircularProgressIndicator(
-                                valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF1C8248)),
+                                valueColor: AlwaysStoppedAnimation<Color>(
+                                  Color(0xFF1C8248),
+                                ),
                                 strokeWidth: 3,
                               ),
                             ),

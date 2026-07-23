@@ -31,12 +31,18 @@ class _ResetRequestsModalState extends ConsumerState<ResetRequestsModal> {
     });
   }
 
-  Future<void> _confirmAction(BuildContext context, Map<String, dynamic> req, {required bool isApprove}) async {
+  Future<void> _confirmAction(
+    BuildContext context,
+    Map<String, dynamic> req, {
+    required bool isApprove,
+  }) async {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
         title: Text(isApprove ? 'Approve Request' : 'Reject Request'),
-        content: Text('Are you sure you want to ${isApprove ? 'approve' : 'reject'} the password reset request for @${req['username']}?'),
+        content: Text(
+          'Are you sure you want to ${isApprove ? 'approve' : 'reject'} the password reset request for @${req['username']}?',
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(false),
@@ -44,7 +50,9 @@ class _ResetRequestsModalState extends ConsumerState<ResetRequestsModal> {
           ),
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(true),
-            style: TextButton.styleFrom(foregroundColor: isApprove ? AppColors.success : Colors.red),
+            style: TextButton.styleFrom(
+              foregroundColor: isApprove ? AppColors.success : Colors.red,
+            ),
             child: const Text('CONFIRM'),
           ),
         ],
@@ -62,14 +70,20 @@ class _ResetRequestsModalState extends ConsumerState<ResetRequestsModal> {
         ref.invalidate(resetRequestsProvider);
         if (mounted) {
           showSuccessDialog(
-            context, 
-            title: isApprove ? 'Approved' : 'Rejected', 
-            message: isApprove ? 'Password reset approved.' : 'Request rejected.',
+            context,
+            title: isApprove ? 'Approved' : 'Rejected',
+            message: isApprove
+                ? 'Password reset approved.'
+                : 'Request rejected.',
           );
         }
       } catch (e) {
         if (mounted) {
-          showErrorDialog(context, isApprove ? 'Approval Failed' : 'Rejection Failed', e.toString());
+          showErrorDialog(
+            context,
+            isApprove ? 'Approval Failed' : 'Rejection Failed',
+            e.toString(),
+          );
         }
       }
     }
@@ -84,15 +98,28 @@ class _ResetRequestsModalState extends ConsumerState<ResetRequestsModal> {
       icon: Icons.lock_clock,
       maxWidth: 500,
       content: requestsAsync.when(
-        loading: () => const Center(child: Padding(padding: EdgeInsets.all(32), child: CircularProgressIndicator())),
-        error: (e, _) => Center(child: Padding(padding: EdgeInsets.all(32), child: Text('Error: $e', style: const TextStyle(color: Colors.red)))),
+        loading: () => const Center(
+          child: Padding(
+            padding: EdgeInsets.all(32),
+            child: CircularProgressIndicator(),
+          ),
+        ),
+        error: (e, _) => Center(
+          child: Padding(
+            padding: EdgeInsets.all(32),
+            child: Text('Error: $e', style: const TextStyle(color: Colors.red)),
+          ),
+        ),
         data: (requests) {
           if (requests.isEmpty) {
             return const Center(
               child: Padding(
                 padding: EdgeInsets.all(32),
-                child: Text('No pending password reset requests.', style: TextStyle(color: Colors.grey)),
-              )
+                child: Text(
+                  'No pending password reset requests.',
+                  style: TextStyle(color: Colors.grey),
+                ),
+              ),
             );
           }
           return ListView.separated(
@@ -102,15 +129,28 @@ class _ResetRequestsModalState extends ConsumerState<ResetRequestsModal> {
             itemBuilder: (context, index) {
               final req = requests[index];
               return Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 24,
+                  vertical: 12,
+                ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('${req['first_name']} ${req['last_name']} (@${req['username']})',
-                         style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                    Text(
+                      '${req['first_name']} ${req['last_name']} (@${req['username']})',
+                      style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16,
+                      ),
+                    ),
                     const SizedBox(height: 4),
-                    Text('Requested: ${date_utils.formatModalDate(req['requested_at'] as String)}',
-                         style: TextStyle(color: Colors.grey.shade600, fontSize: 14)),
+                    Text(
+                      'Requested: ${date_utils.formatModalDate(req['requested_at'] as String)}',
+                      style: TextStyle(
+                        color: Colors.grey.shade600,
+                        fontSize: 14,
+                      ),
+                    ),
                     const SizedBox(height: 16),
                     Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -118,10 +158,13 @@ class _ResetRequestsModalState extends ConsumerState<ResetRequestsModal> {
                         TextButton(
                           style: TextButton.styleFrom(
                             foregroundColor: AppColors.success,
-                            backgroundColor: AppColors.success.withValues(alpha: 0.1),
+                            backgroundColor: AppColors.success.withValues(
+                              alpha: 0.1,
+                            ),
                           ),
                           child: const Text('Approve'),
-                          onPressed: () => _confirmAction(context, req, isApprove: true),
+                          onPressed: () =>
+                              _confirmAction(context, req, isApprove: true),
                         ),
                         const SizedBox(height: 8),
                         TextButton(
@@ -130,7 +173,8 @@ class _ResetRequestsModalState extends ConsumerState<ResetRequestsModal> {
                             backgroundColor: Colors.red.withValues(alpha: 0.1),
                           ),
                           child: const Text('Reject'),
-                          onPressed: () => _confirmAction(context, req, isApprove: false),
+                          onPressed: () =>
+                              _confirmAction(context, req, isApprove: false),
                         ),
                       ],
                     ),

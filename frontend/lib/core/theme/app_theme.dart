@@ -12,7 +12,7 @@ class AppTheme {
       useMaterial3: true,
       scaffoldBackgroundColor: AppColors.pageBackground,
       primaryColor: AppColors.primaryGreen,
-      
+
       // Color Scheme
       colorScheme: ColorScheme.fromSeed(
         seedColor: AppColors.primaryGreen,
@@ -112,7 +112,7 @@ class AppTheme {
         filled: true,
         fillColor: AppColors.inputBackground,
         contentPadding: const EdgeInsets.symmetric(
-          horizontal: AppSizes.p16, 
+          horizontal: AppSizes.p16,
           vertical: AppSizes.p16,
         ),
         border: OutlineInputBorder(
@@ -125,7 +125,10 @@ class AppTheme {
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(AppSizes.radiusMedium),
-          borderSide: const BorderSide(color: AppColors.primaryGreen, width: 2.0),
+          borderSide: const BorderSide(
+            color: AppColors.primaryGreen,
+            width: 2.0,
+          ),
         ),
         errorBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(AppSizes.radiusMedium),

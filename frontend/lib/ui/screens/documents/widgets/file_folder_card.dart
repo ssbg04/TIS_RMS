@@ -1,4 +1,5 @@
-import 'package:flutter/foundation.dart' show defaultTargetPlatform, TargetPlatform;
+import 'package:flutter/foundation.dart'
+    show defaultTargetPlatform, TargetPlatform;
 import 'package:flutter/material.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_sizes.dart';
@@ -44,7 +45,9 @@ class _FileFolderCardState extends State<FileFolderCard> {
   IconData get _fileIcon {
     final name = widget.document.fileName.toLowerCase();
     if (name.endsWith('.pdf')) return Icons.picture_as_pdf;
-    if (name.endsWith('.png') || name.endsWith('.jpg') || name.endsWith('.jpeg')) {
+    if (name.endsWith('.png') ||
+        name.endsWith('.jpg') ||
+        name.endsWith('.jpeg')) {
       return Icons.image;
     }
     return Icons.insert_drive_file;
@@ -53,7 +56,9 @@ class _FileFolderCardState extends State<FileFolderCard> {
   Color get _fileColor {
     final name = widget.document.fileName.toLowerCase();
     if (name.endsWith('.pdf')) return Colors.redAccent;
-    if (name.endsWith('.png') || name.endsWith('.jpg') || name.endsWith('.jpeg')) {
+    if (name.endsWith('.png') ||
+        name.endsWith('.jpg') ||
+        name.endsWith('.jpeg')) {
       return Colors.blueAccent;
     }
     return AppColors.primaryGreen;
@@ -74,49 +79,64 @@ class _FileFolderCardState extends State<FileFolderCard> {
     final items = <PopupMenuEntry<String>>[
       const PopupMenuItem(
         value: 'queue',
-        child: Row(children: [
-          Icon(Icons.print, size: 18),
-          SizedBox(width: 12),
-          Text('Add to Print List', style: TextStyle(fontSize: 14)),
-        ]),
+        child: Row(
+          children: [
+            Icon(Icons.print, size: 18),
+            SizedBox(width: 12),
+            Text('Add to Print List', style: TextStyle(fontSize: 14)),
+          ],
+        ),
       ),
       const PopupMenuItem(
         value: 'copy',
-        child: Row(children: [
-          Icon(Icons.copy, size: 18),
-          SizedBox(width: 12),
-          Text('Copy', style: TextStyle(fontSize: 14)),
-        ]),
+        child: Row(
+          children: [
+            Icon(Icons.copy, size: 18),
+            SizedBox(width: 12),
+            Text('Copy', style: TextStyle(fontSize: 14)),
+          ],
+        ),
       ),
       const PopupMenuItem(
         value: 'download',
-        child: Row(children: [
-          Icon(Icons.download, size: 18),
-          SizedBox(width: 12),
-          Text('Download', style: TextStyle(fontSize: 14)),
-        ]),
+        child: Row(
+          children: [
+            Icon(Icons.download, size: 18),
+            SizedBox(width: 12),
+            Text('Download', style: TextStyle(fontSize: 14)),
+          ],
+        ),
       ),
       const PopupMenuDivider(),
       const PopupMenuItem(
         value: 'view_profile',
-        child: Row(children: [
-          Icon(Icons.person, size: 18, color: AppColors.primaryGreen),
-          SizedBox(width: 12),
-          Text('View Student Profile', style: TextStyle(fontSize: 14)),
-        ]),
+        child: Row(
+          children: [
+            Icon(Icons.person, size: 18, color: AppColors.primaryGreen),
+            SizedBox(width: 12),
+            Text('View Student Profile', style: TextStyle(fontSize: 14)),
+          ],
+        ),
       ),
     ];
 
     if (widget.userRole != 'teacher') {
       items.add(const PopupMenuDivider());
-      items.add(const PopupMenuItem(
-        value: 'delete',
-        child: Row(children: [
-          Icon(Icons.delete, size: 18, color: AppColors.error),
-          SizedBox(width: 12),
-          Text('Delete', style: TextStyle(fontSize: 14, color: AppColors.error)),
-        ]),
-      ));
+      items.add(
+        const PopupMenuItem(
+          value: 'delete',
+          child: Row(
+            children: [
+              Icon(Icons.delete, size: 18, color: AppColors.error),
+              SizedBox(width: 12),
+              Text(
+                'Delete',
+                style: TextStyle(fontSize: 14, color: AppColors.error),
+              ),
+            ],
+          ),
+        ),
+      );
     }
     return items;
   }
@@ -224,12 +244,14 @@ class _FileFolderCardState extends State<FileFolderCard> {
                       widget.document.studentName != null
                           ? 'Student Folders / ${widget.document.studentName}'
                           : (widget.document.studentLrn != null
-                              ? 'Student Folders / LRN: ${widget.document.studentLrn}'
-                              : '—'),
+                                ? 'Student Folders / LRN: ${widget.document.studentLrn}'
+                                : '—'),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: const TextStyle(
-                          fontSize: 11, color: AppColors.textSecondary),
+                        fontSize: 11,
+                        color: AppColors.textSecondary,
+                      ),
                     ),
                     const SizedBox(height: 6),
                     _buildStatusBadge(small: true),
@@ -242,8 +264,11 @@ class _FileFolderCardState extends State<FileFolderCard> {
                   top: 2,
                   right: 2,
                   child: PopupMenuButton<String>(
-                    icon: const Icon(Icons.more_vert,
-                        color: AppColors.textSecondary, size: 18),
+                    icon: const Icon(
+                      Icons.more_vert,
+                      color: AppColors.textSecondary,
+                      size: 18,
+                    ),
                     onSelected: widget.onActionSelected,
                     itemBuilder: (_) => _buildMenuItems(),
                   ),
@@ -322,12 +347,14 @@ class _FileFolderCardState extends State<FileFolderCard> {
                     widget.document.studentName != null
                         ? 'Student Folders / ${widget.document.studentName}'
                         : (widget.document.studentLrn != null
-                            ? 'Student Folders / LRN: ${widget.document.studentLrn}'
-                            : '—'),
+                              ? 'Student Folders / LRN: ${widget.document.studentLrn}'
+                              : '—'),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: const TextStyle(
-                        fontSize: 12, color: AppColors.textSecondary),
+                      fontSize: 12,
+                      color: AppColors.textSecondary,
+                    ),
                   ),
                 ),
 
@@ -339,7 +366,9 @@ class _FileFolderCardState extends State<FileFolderCard> {
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: const TextStyle(
-                        fontSize: 12, color: AppColors.textSecondary),
+                      fontSize: 12,
+                      color: AppColors.textSecondary,
+                    ),
                   ),
                 ),
 
@@ -352,8 +381,11 @@ class _FileFolderCardState extends State<FileFolderCard> {
                   child: (widget.isMultiSelectMode || _isMobile)
                       ? const SizedBox.shrink()
                       : PopupMenuButton<String>(
-                          icon: const Icon(Icons.more_vert,
-                              size: 18, color: AppColors.textSecondary),
+                          icon: const Icon(
+                            Icons.more_vert,
+                            size: 18,
+                            color: AppColors.textSecondary,
+                          ),
                           onSelected: widget.onActionSelected,
                           itemBuilder: (_) => _buildMenuItems(),
                         ),
@@ -369,7 +401,9 @@ class _FileFolderCardState extends State<FileFolderCard> {
   Widget _buildStatusBadge({bool small = false}) {
     return Container(
       padding: EdgeInsets.symmetric(
-          horizontal: small ? 6 : 8, vertical: small ? 2 : 3),
+        horizontal: small ? 6 : 8,
+        vertical: small ? 2 : 3,
+      ),
       decoration: BoxDecoration(
         color: _statusColor.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(20),

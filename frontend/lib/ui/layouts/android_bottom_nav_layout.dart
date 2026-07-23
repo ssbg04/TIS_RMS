@@ -29,7 +29,8 @@ class PlaceholderScreen extends StatelessWidget {
   final String title;
   const PlaceholderScreen(this.title, {super.key});
   @override
-  Widget build(BuildContext context) => Center(child: Text(title, style: const TextStyle(fontSize: 24)));
+  Widget build(BuildContext context) =>
+      Center(child: Text(title, style: const TextStyle(fontSize: 24)));
 }
 
 class AndroidBottomNavLayout extends ConsumerStatefulWidget {
@@ -38,10 +39,12 @@ class AndroidBottomNavLayout extends ConsumerStatefulWidget {
   const AndroidBottomNavLayout({super.key, required this.userRole});
 
   @override
-  ConsumerState<AndroidBottomNavLayout> createState() => _AndroidBottomNavLayoutState();
+  ConsumerState<AndroidBottomNavLayout> createState() =>
+      _AndroidBottomNavLayoutState();
 }
 
-class _AndroidBottomNavLayoutState extends ConsumerState<AndroidBottomNavLayout> with TickerProviderStateMixin {
+class _AndroidBottomNavLayoutState extends ConsumerState<AndroidBottomNavLayout>
+    with TickerProviderStateMixin {
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
   final Set<int> _visitedIndices = {};
   Timer? _holdTimer;
@@ -61,20 +64,66 @@ class _AndroidBottomNavLayoutState extends ConsumerState<AndroidBottomNavLayout>
 
   void _initTabs() {
     final primaryTabsConfig = [
-      {'label': 'Dashboard', 'icon': Icons.dashboard_outlined, 'activeIcon': Icons.dashboard, 'screen': const DashboardScreen(), 'roles': ['admin', 'teacher']},
-      {'label': 'Students', 'icon': Icons.people_outline, 'activeIcon': Icons.people, 'screen': StudentsScreen(userRole: widget.userRole), 'roles': ['admin', 'teacher']},
-      {'label': 'Documents', 'icon': Icons.folder_outlined, 'activeIcon': Icons.folder, 'screen': DocumentsScreen(userRole: widget.userRole), 'roles': ['admin', 'teacher']},
-      {'label': 'Archives', 'icon': Icons.archive_outlined, 'activeIcon': Icons.archive, 'screen': ArchivesScreen(userRole: widget.userRole), 'roles': ['admin']},
+      {
+        'label': 'Dashboard',
+        'icon': Icons.dashboard_outlined,
+        'activeIcon': Icons.dashboard,
+        'screen': const DashboardScreen(),
+        'roles': ['admin', 'teacher'],
+      },
+      {
+        'label': 'Students',
+        'icon': Icons.people_outline,
+        'activeIcon': Icons.people,
+        'screen': StudentsScreen(userRole: widget.userRole),
+        'roles': ['admin', 'teacher'],
+      },
+      {
+        'label': 'Documents',
+        'icon': Icons.folder_outlined,
+        'activeIcon': Icons.folder,
+        'screen': DocumentsScreen(userRole: widget.userRole),
+        'roles': ['admin', 'teacher'],
+      },
+      {
+        'label': 'Archives',
+        'icon': Icons.archive_outlined,
+        'activeIcon': Icons.archive,
+        'screen': ArchivesScreen(userRole: widget.userRole),
+        'roles': ['admin'],
+      },
     ];
     final secondaryTabsConfig = [
-      {'label': 'Reports', 'icon': Icons.bar_chart, 'activeIcon': Icons.bar_chart, 'screen': ReportsScreen(userRole: widget.userRole), 'roles': ['admin']},
-      {'label': 'Users', 'icon': Icons.manage_accounts_outlined, 'activeIcon': Icons.manage_accounts, 'screen': const UsersScreen(), 'roles': ['admin']},
-      {'label': 'Settings', 'icon': Icons.settings_outlined, 'activeIcon': Icons.settings, 'screen': SettingsScreen(userRole: widget.userRole), 'roles': ['admin', 'teacher']},
+      {
+        'label': 'Reports',
+        'icon': Icons.bar_chart,
+        'activeIcon': Icons.bar_chart,
+        'screen': ReportsScreen(userRole: widget.userRole),
+        'roles': ['admin'],
+      },
+      {
+        'label': 'Users',
+        'icon': Icons.manage_accounts_outlined,
+        'activeIcon': Icons.manage_accounts,
+        'screen': const UsersScreen(),
+        'roles': ['admin'],
+      },
+      {
+        'label': 'Settings',
+        'icon': Icons.settings_outlined,
+        'activeIcon': Icons.settings,
+        'screen': SettingsScreen(userRole: widget.userRole),
+        'roles': ['admin', 'teacher'],
+      },
     ];
-    _allowedPrimary = primaryTabsConfig.where((t) => (t['roles'] as List<String>).contains(widget.userRole)).toList();
-    _allowedSecondary = secondaryTabsConfig.where((t) => (t['roles'] as List<String>).contains(widget.userRole)).toList();
+    _allowedPrimary = primaryTabsConfig
+        .where((t) => (t['roles'] as List<String>).contains(widget.userRole))
+        .toList();
+    _allowedSecondary = secondaryTabsConfig
+        .where((t) => (t['roles'] as List<String>).contains(widget.userRole))
+        .toList();
     _tabs = [..._allowedPrimary, ..._allowedSecondary];
-    
+
     _tabController = TabController(length: _tabs.length, vsync: this);
     _tabController!.addListener(_handleTabSelection);
   }
@@ -162,7 +211,7 @@ class _AndroidBottomNavLayoutState extends ConsumerState<AndroidBottomNavLayout>
       canPop: false,
       onPopInvokedWithResult: (didPop, result) async {
         if (didPop) return;
-        
+
         if (activeTab != 'Dashboard') {
           _onNavTapped('Dashboard');
           return;
@@ -171,7 +220,9 @@ class _AndroidBottomNavLayoutState extends ConsumerState<AndroidBottomNavLayout>
         final shouldExit = await showDialog<bool>(
           context: context,
           builder: (context) => AlertDialog(
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
             title: const Row(
               children: [
                 Icon(Icons.warning_amber_rounded, color: Colors.redAccent),
@@ -183,213 +234,297 @@ class _AndroidBottomNavLayoutState extends ConsumerState<AndroidBottomNavLayout>
             actions: [
               TextButton(
                 onPressed: () => Navigator.of(context).pop(false),
-                child: const Text('CANCEL', style: TextStyle(color: Colors.grey)),
+                child: const Text(
+                  'CANCEL',
+                  style: TextStyle(color: Colors.grey),
+                ),
               ),
               TextButton(
                 onPressed: () => Navigator.of(context).pop(true),
-                child: const Text('EXIT', style: TextStyle(color: Colors.redAccent, fontWeight: FontWeight.bold)),
+                child: const Text(
+                  'EXIT',
+                  style: TextStyle(
+                    color: Colors.redAccent,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
               ),
             ],
           ),
         );
-        
+
         if (shouldExit == true) {
           SystemNavigator.pop();
         }
       },
       child: SafeArea(
         child: Scaffold(
-        key: _scaffoldKey,
-        backgroundColor: AppColors.pageBackground,
-        appBar: AppBar(
-          backgroundColor: Colors.white,
-          foregroundColor: AppColors.primaryGreen,
-          iconTheme: const IconThemeData(color: AppColors.primaryGreen),
-          title: Text(
-            activeTab, 
-            style: const TextStyle(fontWeight: FontWeight.bold, color: AppColors.primaryGreen),
-          ),
-          elevation: 0,
-          surfaceTintColor: Colors.transparent,
-        ),
-        drawer: Drawer(
-          backgroundColor: Colors.white,
-          surfaceTintColor: Colors.transparent,
-          width: 280,
-          child: SafeArea(
-            child: Column(
-              children: [
-                Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.only(top: 16, bottom: 16, left: 24, right: 16),
-                  child: Row(
-                  children: [
-                    GestureDetector(
-                      onLongPressStart: (_) {
-                        _holdTimer = Timer(const Duration(seconds: 2), () {
-                          _showCapstoneMembers(context);
-                        });
-                      },
-                      onLongPressEnd: (_) => _holdTimer?.cancel(),
-                      onLongPressCancel: () => _holdTimer?.cancel(),
-                      child: Container(
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(8),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withOpacity(0.05),
-                              blurRadius: 4,
-                              offset: const Offset(0, 2),
-                            )
-                          ],
-                        ),
-                        child: ClipRRect(
-                          borderRadius: BorderRadius.circular(8),
-                          child: Image.asset(
-                            'assets/images/logo.png',
-                            width: 36,
-                            height: 36,
-                            fit: BoxFit.contain,
-                          ),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    const Text(
-                      'TIS RMS',
-                      style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18, letterSpacing: 1.2, color: Colors.black87),
-                    ),
-                    const Spacer(),
-                    IconButton(
-                      icon: const Icon(Icons.menu, color: Colors.black54),
-                      onPressed: () => Navigator.pop(context),
-                    ),
-                  ],
-                ),
+          key: _scaffoldKey,
+          backgroundColor: AppColors.pageBackground,
+          appBar: AppBar(
+            backgroundColor: Colors.white,
+            foregroundColor: AppColors.primaryGreen,
+            iconTheme: const IconThemeData(color: AppColors.primaryGreen),
+            title: Text(
+              activeTab,
+              style: const TextStyle(
+                fontWeight: FontWeight.bold,
+                color: AppColors.primaryGreen,
               ),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    Expanded(
-                      child: ListView(
-                        padding: EdgeInsets.zero,
-                        children: [
-                          if (_allowedPrimary.isNotEmpty) ...[
-                            Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
-                              alignment: Alignment.centerLeft,
-                              child: const Text('MENU', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.black38)),
-                            ),
-                            Padding(
-                              padding: const EdgeInsets.symmetric(horizontal: 12),
-                              child: Column(
-                                children: [
-                                  ..._allowedPrimary.map((tab) => _buildDrawerItem(tab, currentIndex, _tabs)),
-                                ],
-                              ),
-                            ),
-                          ],
-                        ],
-                      ),
+            ),
+            elevation: 0,
+            surfaceTintColor: Colors.transparent,
+          ),
+          drawer: Drawer(
+            backgroundColor: Colors.white,
+            surfaceTintColor: Colors.transparent,
+            width: 280,
+            child: SafeArea(
+              child: Column(
+                children: [
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.only(
+                      top: 16,
+                      bottom: 16,
+                      left: 24,
+                      right: 16,
                     ),
-                    if (_allowedSecondary.isNotEmpty)
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: [
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
-                            alignment: Alignment.centerLeft,
-                            child: const Text('SYSTEM', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.black38)),
-                          ),
-                          Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 12),
-                            child: Column(
-                              children: [
-                                ..._allowedSecondary.map((tab) => _buildDrawerItem(tab, currentIndex, _tabs)),
+                    child: Row(
+                      children: [
+                        GestureDetector(
+                          onLongPressStart: (_) {
+                            _holdTimer = Timer(const Duration(seconds: 2), () {
+                              _showCapstoneMembers(context);
+                            });
+                          },
+                          onLongPressEnd: (_) => _holdTimer?.cancel(),
+                          onLongPressCancel: () => _holdTimer?.cancel(),
+                          child: Container(
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(8),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.black.withOpacity(0.05),
+                                  blurRadius: 4,
+                                  offset: const Offset(0, 2),
+                                ),
                               ],
                             ),
+                            child: ClipRRect(
+                              borderRadius: BorderRadius.circular(8),
+                              child: Image.asset(
+                                'assets/images/logo.png',
+                                width: 36,
+                                height: 36,
+                                fit: BoxFit.contain,
+                              ),
+                            ),
                           ),
-                        ],
-                      ),
-                  ],
-                ),
-              ),
-              const Divider(),
-              Padding(
-                padding: const EdgeInsets.fromLTRB(24, 16, 16, 24),
-                child: Row(
-                  children: [
-                    Builder(builder: (context) {
-                      final user = ref.watch(authProvider).value;
-                      final initials = user != null && user.firstName.isNotEmpty && user.lastName.isNotEmpty
-                          ? '${user.firstName[0]}${user.lastName[0]}'.toUpperCase()
-                          : 'SA';
-                      return CircleAvatar(
-                        radius: 20,
-                        backgroundColor: AppColors.primaryGreen,
-                        child: Text(initials, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
-                      );
-                    }),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            ref.watch(authProvider).value?.fullName ?? 'Unknown User',
-                            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: Colors.black87),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
+                        ),
+                        const SizedBox(width: 12),
+                        const Text(
+                          'TIS RMS',
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 18,
+                            letterSpacing: 1.2,
+                            color: Colors.black87,
                           ),
-                          Text(
-                            widget.userRole.toUpperCase(),
-                            style: const TextStyle(fontSize: 12, color: Colors.black54),
-                          ),
-                        ],
-                      ),
+                        ),
+                        const Spacer(),
+                        IconButton(
+                          icon: const Icon(Icons.menu, color: Colors.black54),
+                          onPressed: () => Navigator.pop(context),
+                        ),
+                      ],
                     ),
-                    IconButton(
-                      icon: const Icon(Icons.logout, color: Colors.black54),
-                      onPressed: () {
-                        Navigator.pop(context); // Close drawer first
-                        showLogoutConfirmationDialog(context);
-                      },
+                  ),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        Expanded(
+                          child: ListView(
+                            physics: const NeverScrollableScrollPhysics(),
+                            padding: EdgeInsets.zero,
+                            children: [
+                              if (_allowedPrimary.isNotEmpty) ...[
+                                Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 24,
+                                    vertical: 8,
+                                  ),
+                                  alignment: Alignment.centerLeft,
+                                  child: const Text(
+                                    'MENU',
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.bold,
+                                      color: Colors.black38,
+                                    ),
+                                  ),
+                                ),
+                                Padding(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 12,
+                                  ),
+                                  child: Column(
+                                    children: [
+                                      ..._allowedPrimary.map(
+                                        (tab) => _buildDrawerItem(
+                                          tab,
+                                          currentIndex,
+                                          _tabs,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            ],
+                          ),
+                        ),
+                        if (_allowedSecondary.isNotEmpty)
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 24,
+                                  vertical: 8,
+                                ),
+                                alignment: Alignment.centerLeft,
+                                child: const Text(
+                                  'SYSTEM',
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.black38,
+                                  ),
+                                ),
+                              ),
+                              Padding(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 12,
+                                ),
+                                child: Column(
+                                  children: [
+                                    ..._allowedSecondary.map(
+                                      (tab) => _buildDrawerItem(
+                                        tab,
+                                        currentIndex,
+                                        _tabs,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                      ],
                     ),
-                  ],
-                ),
+                  ),
+                  const Divider(),
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(24, 16, 16, 24),
+                    child: Row(
+                      children: [
+                        Builder(
+                          builder: (context) {
+                            final user = ref.watch(authProvider).value;
+                            final initials =
+                                user != null &&
+                                    user.firstName.isNotEmpty &&
+                                    user.lastName.isNotEmpty
+                                ? '${user.firstName[0]}${user.lastName[0]}'
+                                      .toUpperCase()
+                                : 'SA';
+                            return CircleAvatar(
+                              radius: 20,
+                              backgroundColor: AppColors.primaryGreen,
+                              child: Text(
+                                initials,
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 16,
+                                ),
+                              ),
+                            );
+                          },
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                ref.watch(authProvider).value?.fullName ??
+                                    'Unknown User',
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 14,
+                                  color: Colors.black87,
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                              Text(
+                                widget.userRole.toUpperCase(),
+                                style: const TextStyle(
+                                  fontSize: 12,
+                                  color: Colors.black54,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        IconButton(
+                          icon: const Icon(Icons.logout, color: Colors.black54),
+                          onPressed: () {
+                            Navigator.pop(context); // Close drawer first
+                            showLogoutConfirmationDialog(context);
+                          },
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
               ),
-            ],
+            ),
+          ),
+          body: AbstractBackground(
+            child: Stack(
+              children: [
+                IndexedStack(
+                  index: currentIndex,
+                  children: _tabs.asMap().entries.map((entry) {
+                    return _visitedIndices.contains(entry.key)
+                        ? entry.value['screen'] as Widget
+                        : const SizedBox.shrink();
+                  }).toList(),
+                ),
+                if (_isTabLoading)
+                  Container(
+                    color: AppColors.pageBackground,
+                    width: double.infinity,
+                    height: double.infinity,
+                    child: const _PageSkeletonLoader(),
+                  ),
+              ],
+            ),
           ),
         ),
-      ),
-      body: AbstractBackground(
-        child: Stack(
-          children: [
-            IndexedStack(
-              index: currentIndex,
-              children: _tabs.asMap().entries.map((entry) {
-                return _visitedIndices.contains(entry.key)
-                    ? entry.value['screen'] as Widget
-                    : const SizedBox.shrink();
-              }).toList(),
-            ),
-            if (_isTabLoading)
-              Container(
-                color: AppColors.pageBackground,
-                width: double.infinity,
-                height: double.infinity,
-                child: const _PageSkeletonLoader(),
-              ),
-          ],
-        ),
-      ),
-       ),
       ),
     );
   }
 
-  Widget _buildDrawerItem(Map<String, dynamic> tab, int currentIndex, List<Map<String, dynamic>> allTabs) {
+  Widget _buildDrawerItem(
+    Map<String, dynamic> tab,
+    int currentIndex,
+    List<Map<String, dynamic>> allTabs,
+  ) {
     final label = tab['label'] as String;
     final icon = tab['icon'] as IconData;
     final activeIcon = tab['activeIcon'] as IconData? ?? icon;
@@ -399,7 +534,9 @@ class _AndroidBottomNavLayoutState extends ConsumerState<AndroidBottomNavLayout>
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 4.0),
       child: Material(
-        color: isSelected ? AppColors.primaryGreen.withOpacity(0.12) : Colors.transparent,
+        color: isSelected
+            ? AppColors.primaryGreen.withOpacity(0.12)
+            : Colors.transparent,
         borderRadius: BorderRadius.circular(12),
         clipBehavior: Clip.antiAlias,
         child: InkWell(
@@ -408,12 +545,17 @@ class _AndroidBottomNavLayoutState extends ConsumerState<AndroidBottomNavLayout>
             _onNavTapped(label);
           },
           child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
+            padding: const EdgeInsets.symmetric(
+              horizontal: 16.0,
+              vertical: 12.0,
+            ),
             child: Row(
               children: [
                 Icon(
                   isSelected ? activeIcon : icon,
-                  color: isSelected ? AppColors.primaryGreen : Colors.grey.shade600,
+                  color: isSelected
+                      ? AppColors.primaryGreen
+                      : Colors.grey.shade600,
                   size: 22,
                 ),
                 const SizedBox(width: 16),
@@ -422,7 +564,9 @@ class _AndroidBottomNavLayoutState extends ConsumerState<AndroidBottomNavLayout>
                   style: TextStyle(
                     fontSize: 14,
                     fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
-                    color: isSelected ? AppColors.primaryGreen : Colors.grey.shade700,
+                    color: isSelected
+                        ? AppColors.primaryGreen
+                        : Colors.grey.shade700,
                   ),
                 ),
               ],
@@ -441,13 +585,17 @@ class _PageSkeletonLoader extends StatefulWidget {
   State<_PageSkeletonLoader> createState() => _PageSkeletonLoaderState();
 }
 
-class _PageSkeletonLoaderState extends State<_PageSkeletonLoader> with SingleTickerProviderStateMixin {
+class _PageSkeletonLoaderState extends State<_PageSkeletonLoader>
+    with SingleTickerProviderStateMixin {
   late AnimationController _controller;
 
   @override
   void initState() {
     super.initState();
-    _controller = AnimationController(vsync: this, duration: const Duration(seconds: 1))..repeat(reverse: true);
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 1),
+    )..repeat(reverse: true);
   }
 
   @override
@@ -468,14 +616,33 @@ class _PageSkeletonLoaderState extends State<_PageSkeletonLoader> with SingleTic
             Container(
               height: 40,
               width: 180,
-              decoration: BoxDecoration(color: Colors.grey.shade300, borderRadius: BorderRadius.circular(8)),
+              decoration: BoxDecoration(
+                color: Colors.grey.shade300,
+                borderRadius: BorderRadius.circular(8),
+              ),
             ),
             const SizedBox(height: 24),
             Row(
               children: [
-                Expanded(child: Container(height: 80, decoration: BoxDecoration(color: Colors.grey.shade200, borderRadius: BorderRadius.circular(12)))),
+                Expanded(
+                  child: Container(
+                    height: 80,
+                    decoration: BoxDecoration(
+                      color: Colors.grey.shade200,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                ),
                 const SizedBox(width: 16),
-                Expanded(child: Container(height: 80, decoration: BoxDecoration(color: Colors.grey.shade200, borderRadius: BorderRadius.circular(12)))),
+                Expanded(
+                  child: Container(
+                    height: 80,
+                    decoration: BoxDecoration(
+                      color: Colors.grey.shade200,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                ),
               ],
             ),
             const SizedBox(height: 24),
@@ -486,7 +653,10 @@ class _PageSkeletonLoaderState extends State<_PageSkeletonLoader> with SingleTic
                 separatorBuilder: (_, __) => const SizedBox(height: 16),
                 itemBuilder: (_, __) => Container(
                   height: 60,
-                  decoration: BoxDecoration(color: Colors.grey.shade200, borderRadius: BorderRadius.circular(8)),
+                  decoration: BoxDecoration(
+                    color: Colors.grey.shade200,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
                 ),
               ),
             ),

@@ -107,18 +107,18 @@ class FolderModel {
           : null,
       subfolders: json['subfolders'] != null
           ? (json['subfolders'] as List)
-              .map((f) => FolderModel.fromJson(f as Map<String, dynamic>))
-              .toList()
+                .map((f) => FolderModel.fromJson(f as Map<String, dynamic>))
+                .toList()
           : null,
       physicalFolders: json['physicalFolders'] != null
           ? (json['physicalFolders'] as List)
-              .map((e) => PhysicalEntry.fromJson(e as Map<String, dynamic>))
-              .toList()
+                .map((e) => PhysicalEntry.fromJson(e as Map<String, dynamic>))
+                .toList()
           : null,
       physicalFiles: json['physicalFiles'] != null
           ? (json['physicalFiles'] as List)
-              .map((e) => PhysicalEntry.fromJson(e as Map<String, dynamic>))
-              .toList()
+                .map((e) => PhysicalEntry.fromJson(e as Map<String, dynamic>))
+                .toList()
           : null,
       folderPath: json['folderPath'] as String?,
     );
@@ -142,8 +142,10 @@ class StudentInfo {
     return StudentInfo(
       id: json['id'] as int,
       lrn: json['lrn'] as String,
-      firstName: json['firstName'] as String? ?? json['first_name'] as String? ?? '',
-      lastName: json['lastName'] as String? ?? json['last_name'] as String? ?? '',
+      firstName:
+          json['firstName'] as String? ?? json['first_name'] as String? ?? '',
+      lastName:
+          json['lastName'] as String? ?? json['last_name'] as String? ?? '',
     );
   }
 }
@@ -152,10 +154,7 @@ class PhysicalEntry {
   final String name;
   final bool isDirectory;
 
-  PhysicalEntry({
-    required this.name,
-    required this.isDirectory,
-  });
+  PhysicalEntry({required this.name, required this.isDirectory});
 
   factory PhysicalEntry.fromJson(Map<String, dynamic> json) {
     return PhysicalEntry(

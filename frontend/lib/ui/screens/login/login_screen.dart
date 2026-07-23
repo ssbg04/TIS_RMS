@@ -52,7 +52,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 Text('Session Expired'),
               ],
             ),
-            content: const Text('You have been logged out due to 5 minutes of inactivity.'),
+            content: const Text(
+              'You have been logged out due to 5 minutes of inactivity.',
+            ),
             actions: [
               TextButton(
                 onPressed: () => Navigator.of(ctx).pop(),
@@ -69,7 +71,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   Future<void> _loadRememberMe() async {
     final prefs = await SharedPreferences.getInstance();
     final isRemembered = prefs.getBool('rememberMe') ?? false;
-    
+
     if (isRemembered) {
       setState(() {
         _rememberMe = true;
@@ -88,22 +90,25 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   }
 
   void _handleLogin() async {
-    if (_usernameController.text.trim().isEmpty || _passwordController.text.isEmpty) {
+    if (_usernameController.text.trim().isEmpty ||
+        _passwordController.text.isEmpty) {
       showErrorDialog(
         context,
-        'Missing Credentials', 
-        'Please enter both your username and password to continue.'
+        'Missing Credentials',
+        'Please enter both your username and password to continue.',
       );
       return;
     }
 
     FocusScope.of(context).unfocus();
 
-    final success = await ref.read(authProvider.notifier).login(
-      _usernameController.text.trim(),
-      _passwordController.text,
-      rememberMe: _rememberMe,
-    );
+    final success = await ref
+        .read(authProvider.notifier)
+        .login(
+          _usernameController.text.trim(),
+          _passwordController.text,
+          rememberMe: _rememberMe,
+        );
 
     if (!mounted) return;
 
@@ -112,7 +117,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       final prefs = await SharedPreferences.getInstance();
       if (_rememberMe) {
         await prefs.setBool('rememberMe', true);
-        await prefs.setString('saved_username', _usernameController.text.trim());
+        await prefs.setString(
+          'saved_username',
+          _usernameController.text.trim(),
+        );
       } else {
         await prefs.remove('rememberMe');
         await prefs.remove('saved_username');
@@ -121,10 +129,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
       final user = ref.read(authProvider).value;
       final isDesktop = MediaQuery.of(context).size.width >= 800;
-      
+
       // Ensure we always redirect to Dashboard after a successful login
       ref.read(activeTabProvider.notifier).setTab('Dashboard');
-      
+
       Navigator.of(context).pushReplacement(
         MaterialPageRoute(
           builder: (_) => isDesktop
@@ -136,8 +144,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       final error = ref.read(authProvider).error.toString();
       showErrorDialog(
         context,
-        'Login Failed', 
-        error.replaceAll('Exception: ', '')
+        'Login Failed',
+        error.replaceAll('Exception: ', ''),
       );
     }
   }
@@ -149,11 +157,12 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
         onSuccess: (msg) {
           Navigator.pop(ctx);
           showSuccessDialog(
-            context, 
-            title: 'Request Submitted', 
-            message: msg, 
+            context,
+            title: 'Request Submitted',
+            message: msg,
+
             ///onDismissed: () {}
-            );
+          );
         },
       ),
     );
@@ -165,127 +174,207 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       backgroundColor: AppColors.pageBackground,
       body: Column(
         children: [
-          if (!kIsWeb && (Platform.isWindows || Platform.isLinux || Platform.isMacOS))
+          if (!kIsWeb &&
+              (Platform.isWindows || Platform.isLinux || Platform.isMacOS))
             const SizedBox(
               height: 32,
-              
+
               child: WindowCaption(
                 brightness: Brightness.dark,
                 backgroundColor: AppColors.primaryGreen,
-                title: Text('TIS RMS', style: TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w500)),
-                
+                title: Text(
+                  'TIS RMS',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
               ),
             ),
           Expanded(
             child: AbstractBackground(
               child: LayoutBuilder(
-              builder: (context, constraints) {
-          if (constraints.maxWidth >= 800) {
-            // Desktop: Split Layout
-            return Container(
-              color: AppColors.primaryGreen,
-              child: Row(
-                children: [
-                  Expanded(
-                    flex: 5,
-                    child: Container(
-                      padding: const EdgeInsets.all(AppSizes.p48),
-                      child: Center(
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Image.asset('assets/images/logo.png', width: 220, height: 220),
-                            const SizedBox(height: AppSizes.p24),
-                            const Text('TIS RMS', style: TextStyle(fontSize: 42, fontWeight: FontWeight.bold, color: Colors.white, letterSpacing: 2.0)),
-                            const Text('Tiaong, Quezon', style: TextStyle(fontSize: 18, color: Colors.white70, letterSpacing: 1.0)),
-                            const SizedBox(height: AppSizes.p32),
-                            const Text('Record Management System', style: TextStyle(fontSize: 20, color: Colors.white, fontWeight: FontWeight.w600)),
-                            const SizedBox(height: AppSizes.p8),
-                            const Text('Secure Academic Records Database System', textAlign: TextAlign.center, style: TextStyle(fontSize: 15, color: Colors.white70)),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ),
-                  Expanded(
-                    flex: 4,
-                    child: Container(
-                      decoration: const BoxDecoration(
-                        color: AppColors.pageBackground,
-                        borderRadius: BorderRadius.only(
-                          topLeft: Radius.circular(24.0),
-                          bottomLeft: Radius.circular(24.0),
-                        ),
-                      ),
-                      child: Center(
-                        child: ConstrainedBox(
-                          constraints: const BoxConstraints(maxWidth: 400),
-                          child: _buildLoginForm(),
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            );
-          } else {
-            // Mobile: Stacked Layout
-            return Container(
-              color: AppColors.primaryGreen,
-              child: Column(
-                children: [
-                  Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.symmetric(vertical: AppSizes.p48, horizontal: AppSizes.p24),
-                    child: SafeArea(
-                      bottom: false,
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
+                builder: (context, constraints) {
+                  if (constraints.maxWidth >= 800) {
+                    // Desktop: Split Layout
+                    return Container(
+                      color: AppColors.primaryGreen,
+                      child: Row(
                         children: [
-                          Image.asset('assets/images/logo.png', width: 100, height: 100),
-                          const SizedBox(height: AppSizes.p16),
-                          const Text('TIS RMS', style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: Colors.white, letterSpacing: 1.5)),
-                          const Text('Tiaong, Quezon', style: TextStyle(fontSize: 14, color: Colors.white70, letterSpacing: 1.0)),
-                          const SizedBox(height: AppSizes.p16),
-                          const Text('Record Management System', style: TextStyle(fontSize: 16, color: Colors.white, fontWeight: FontWeight.w600)),
-                          const SizedBox(height: AppSizes.p4),
-                          const Text('Secure Academic Records Database System', textAlign: TextAlign.center, style: TextStyle(fontSize: 12, color: Colors.white70)),
+                          Expanded(
+                            flex: 5,
+                            child: Container(
+                              padding: const EdgeInsets.all(AppSizes.p48),
+                              child: Center(
+                                child: Column(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Image.asset(
+                                      'assets/images/logo.png',
+                                      width: 220,
+                                      height: 220,
+                                    ),
+                                    const SizedBox(height: AppSizes.p24),
+                                    const Text(
+                                      'TIS RMS',
+                                      style: TextStyle(
+                                        fontSize: 42,
+                                        fontWeight: FontWeight.bold,
+                                        color: Colors.white,
+                                        letterSpacing: 2.0,
+                                      ),
+                                    ),
+                                    const Text(
+                                      'Tiaong, Quezon',
+                                      style: TextStyle(
+                                        fontSize: 18,
+                                        color: Colors.white70,
+                                        letterSpacing: 1.0,
+                                      ),
+                                    ),
+                                    const SizedBox(height: AppSizes.p32),
+                                    const Text(
+                                      'Record Management System',
+                                      style: TextStyle(
+                                        fontSize: 20,
+                                        color: Colors.white,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                                    const SizedBox(height: AppSizes.p8),
+                                    const Text(
+                                      'Secure Academic Records Database System',
+                                      textAlign: TextAlign.center,
+                                      style: TextStyle(
+                                        fontSize: 15,
+                                        color: Colors.white70,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ),
+                          Expanded(
+                            flex: 4,
+                            child: Container(
+                              decoration: const BoxDecoration(
+                                color: AppColors.pageBackground,
+                                borderRadius: BorderRadius.only(
+                                  topLeft: Radius.circular(24.0),
+                                  bottomLeft: Radius.circular(24.0),
+                                ),
+                              ),
+                              child: Center(
+                                child: ConstrainedBox(
+                                  constraints: const BoxConstraints(
+                                    maxWidth: 400,
+                                  ),
+                                  child: _buildLoginForm(),
+                                ),
+                              ),
+                            ),
+                          ),
                         ],
                       ),
-                    ),
-                  ),
-                  Expanded(
-                    child: SafeArea(
-                      top: false,
-                      bottom: true,
-                      child: Container(
-                        decoration: const BoxDecoration(
-                          color: AppColors.pageBackground,
-                          borderRadius: BorderRadius.only(
-                            topLeft: Radius.circular(24.0),
-                            topRight: Radius.circular(24.0),
+                    );
+                  } else {
+                    // Mobile: Stacked Layout
+                    return Container(
+                      color: AppColors.primaryGreen,
+                      child: Column(
+                        children: [
+                          Container(
+                            width: double.infinity,
+                            padding: const EdgeInsets.symmetric(
+                              vertical: AppSizes.p48,
+                              horizontal: AppSizes.p24,
+                            ),
+                            child: SafeArea(
+                              bottom: false,
+                              child: Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Image.asset(
+                                    'assets/images/logo.png',
+                                    width: 100,
+                                    height: 100,
+                                  ),
+                                  const SizedBox(height: AppSizes.p16),
+                                  const Text(
+                                    'TIS RMS',
+                                    style: TextStyle(
+                                      fontSize: 28,
+                                      fontWeight: FontWeight.bold,
+                                      color: Colors.white,
+                                      letterSpacing: 1.5,
+                                    ),
+                                  ),
+                                  const Text(
+                                    'Tiaong, Quezon',
+                                    style: TextStyle(
+                                      fontSize: 14,
+                                      color: Colors.white70,
+                                      letterSpacing: 1.0,
+                                    ),
+                                  ),
+                                  const SizedBox(height: AppSizes.p16),
+                                  const Text(
+                                    'Record Management System',
+                                    style: TextStyle(
+                                      fontSize: 16,
+                                      color: Colors.white,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                  const SizedBox(height: AppSizes.p4),
+                                  const Text(
+                                    'Secure Academic Records Database System',
+                                    textAlign: TextAlign.center,
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      color: Colors.white70,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
                           ),
-                        ),
-                      child: Center(
-                        child: SingleChildScrollView(
-                          padding: const EdgeInsets.all(AppSizes.p24),
-                          child: ConstrainedBox(
-                            constraints: const BoxConstraints(maxWidth: 400),
-                            child: _buildLoginForm(),
+                          Expanded(
+                            child: SafeArea(
+                              top: false,
+                              bottom: true,
+                              child: Container(
+                                decoration: const BoxDecoration(
+                                  color: AppColors.pageBackground,
+                                  borderRadius: BorderRadius.only(
+                                    topLeft: Radius.circular(24.0),
+                                    topRight: Radius.circular(24.0),
+                                  ),
+                                ),
+                                child: Center(
+                                  child: SingleChildScrollView(
+                                    padding: const EdgeInsets.all(AppSizes.p24),
+                                    child: ConstrainedBox(
+                                      constraints: const BoxConstraints(
+                                        maxWidth: 400,
+                                      ),
+                                      child: _buildLoginForm(),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ),
                           ),
-                        ),
+                        ],
                       ),
-                    ),
-                    ),
-                  ),
-                ],
+                    );
+                  }
+                },
               ),
-            );
-          }
-        },
-      ),
-    ),
-  ),
+            ),
+          ),
         ],
       ),
     );
@@ -297,7 +386,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       context: context,
       builder: (ctx) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Text('Server Configuration', style: TextStyle(fontWeight: FontWeight.bold)),
+        title: const Text(
+          'Server Configuration',
+          style: TextStyle(fontWeight: FontWeight.bold),
+        ),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -306,7 +398,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
               decoration: InputDecoration(
                 labelText: 'Server URL',
                 hintText: 'http://192.168.1.x:18484/api',
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(10),
+                ),
               ),
             ),
           ],
@@ -317,7 +411,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
             child: const Text('Cancel'),
           ),
           FilledButton(
-            style: FilledButton.styleFrom(backgroundColor: AppColors.primaryGreen),
+            style: FilledButton.styleFrom(
+              backgroundColor: AppColors.primaryGreen,
+            ),
             onPressed: () async {
               final newUrl = controller.text.trim();
               if (newUrl.isNotEmpty) {
@@ -339,74 +435,92 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     final isLoading = authState.isLoading;
 
     return CallbackShortcuts(
-      bindings:{
+      bindings: {
         const SingleActivator(LogicalKeyboardKey.enter): _handleLogin,
         const SingleActivator(LogicalKeyboardKey.numpadEnter): _handleLogin,
-      }, child: Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        CustomTextField(
-          hintText: 'Username',
-          prefixIcon: Icons.person_outline,
-          controller: _usernameController,
-          textInputAction: TextInputAction.next,
-          onSubmitted: (_) => FocusScope.of(context).nextFocus(),
-        ),
-        const SizedBox(height: AppSizes.p16),
-        CustomTextField(
-          hintText: 'Password',
-          prefixIcon: Icons.lock_outline,
-          controller: _passwordController,
-          isPassword: true,
-          obscureText: _obscurePassword,
-          onToggleVisibility: () => setState(() => _obscurePassword = !_obscurePassword),
-          textInputAction: TextInputAction.done,
-          onSubmitted: (_) => _handleLogin(),
-        ),
-        const SizedBox(height: AppSizes.p8),
-
-        // Remember Me + Forgot Password row
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Row(
-              children: [
-                Checkbox(
-                  value: _rememberMe,
-                  activeColor: AppColors.primaryGreen,
-                  onChanged: (val) => setState(() => _rememberMe = val ?? false),
-                ),
-                const Text('Remember Me', style: TextStyle(fontSize: 13, color: AppColors.textSecondary)),
-              ],
-            ),
-            TextButton(
-              onPressed: _showForgotPasswordDialog,
-              child: const Text('Forgot Password?', style: TextStyle(color: AppColors.primaryGreen, fontWeight: FontWeight.w600)),
-            ),
-          ],
-        ),
-
-        const SizedBox(height: AppSizes.p16),
-        PrimaryButton(
-          label: 'LOGIN',
-          isLoading: isLoading,
-          onPressed: _handleLogin,
-        ),
-        const SizedBox(height: AppSizes.p24),
-        Center(
-          child: ActionChip(
-            label: Text(
-              'Server: ${ApiConstants.baseUrl}  ·  Change',
-              style: const TextStyle(fontSize: 11, color: AppColors.textSecondary),
-            ),
-            backgroundColor: Colors.transparent,
-            side: BorderSide(color: Colors.grey.shade300),
-            onPressed: _showServerConfigDialog,
+      },
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          CustomTextField(
+            hintText: 'Username',
+            prefixIcon: Icons.person_outline,
+            controller: _usernameController,
+            textInputAction: TextInputAction.next,
+            onSubmitted: (_) => FocusScope.of(context).nextFocus(),
           ),
-        ),
-      ],
-    )
+          const SizedBox(height: AppSizes.p16),
+          CustomTextField(
+            hintText: 'Password',
+            prefixIcon: Icons.lock_outline,
+            controller: _passwordController,
+            isPassword: true,
+            obscureText: _obscurePassword,
+            onToggleVisibility: () =>
+                setState(() => _obscurePassword = !_obscurePassword),
+            textInputAction: TextInputAction.done,
+            onSubmitted: (_) => _handleLogin(),
+          ),
+          const SizedBox(height: AppSizes.p8),
+
+          // Remember Me + Forgot Password row
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Row(
+                children: [
+                  Checkbox(
+                    value: _rememberMe,
+                    activeColor: AppColors.primaryGreen,
+                    onChanged: (val) =>
+                        setState(() => _rememberMe = val ?? false),
+                  ),
+                  const Text(
+                    'Remember Me',
+                    style: TextStyle(
+                      fontSize: 13,
+                      color: AppColors.textSecondary,
+                    ),
+                  ),
+                ],
+              ),
+              TextButton(
+                onPressed: _showForgotPasswordDialog,
+                child: const Text(
+                  'Forgot Password?',
+                  style: TextStyle(
+                    color: AppColors.primaryGreen,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+            ],
+          ),
+
+          const SizedBox(height: AppSizes.p16),
+          PrimaryButton(
+            label: 'LOGIN',
+            isLoading: isLoading,
+            onPressed: _handleLogin,
+          ),
+          const SizedBox(height: AppSizes.p24),
+          Center(
+            child: ActionChip(
+              label: Text(
+                'Server: ${ApiConstants.baseUrl}  ·  Change',
+                style: const TextStyle(
+                  fontSize: 11,
+                  color: AppColors.textSecondary,
+                ),
+              ),
+              backgroundColor: Colors.transparent,
+              side: BorderSide(color: Colors.grey.shade300),
+              onPressed: _showServerConfigDialog,
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
@@ -419,7 +533,8 @@ class _ForgotPasswordDialog extends ConsumerStatefulWidget {
   const _ForgotPasswordDialog({required this.onSuccess});
 
   @override
-  ConsumerState<_ForgotPasswordDialog> createState() => _ForgotPasswordDialogState();
+  ConsumerState<_ForgotPasswordDialog> createState() =>
+      _ForgotPasswordDialogState();
 }
 
 class _ForgotPasswordDialogState extends ConsumerState<_ForgotPasswordDialog> {
@@ -446,11 +561,13 @@ class _ForgotPasswordDialogState extends ConsumerState<_ForgotPasswordDialog> {
     final confirmPass = _confirmPassCtrl.text;
 
     if (newPass != confirmPass) {
-      showErrorDialog(context, 'Password Mismatch', 'Passwords do not match.', );
+      showErrorDialog(context, 'Password Mismatch', 'Passwords do not match.');
       return;
     }
 
-    setState(() { _isLoading = true;});
+    setState(() {
+      _isLoading = true;
+    });
 
     try {
       final repo = ref.read(authRepositoryProvider);
@@ -464,7 +581,11 @@ class _ForgotPasswordDialogState extends ConsumerState<_ForgotPasswordDialog> {
       }
     } catch (e) {
       if (mounted) {
-        showErrorDialog(context, 'Request Failed', e.toString().replaceAll('Exception: ', ''));
+        showErrorDialog(
+          context,
+          'Request Failed',
+          e.toString().replaceAll('Exception: ', ''),
+        );
       }
     } finally {
       if (mounted) setState(() => _isLoading = false);
@@ -474,9 +595,11 @@ class _ForgotPasswordDialogState extends ConsumerState<_ForgotPasswordDialog> {
   @override
   Widget build(BuildContext context) {
     final isMobile = MediaQuery.of(context).size.width < 600;
-    
+
     return Dialog(
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppSizes.radiusLarge)),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(AppSizes.radiusLarge),
+      ),
       insetPadding: EdgeInsets.all(isMobile ? 16 : 24),
       child: ConstrainedBox(
         constraints: const BoxConstraints(maxWidth: 420),
@@ -491,40 +614,79 @@ class _ForgotPasswordDialogState extends ConsumerState<_ForgotPasswordDialog> {
                 children: [
                   Row(
                     children: [
-                      Icon(Icons.lock_reset, color: AppColors.primaryGreen, size: isMobile ? 24 : 28),
+                      Icon(
+                        Icons.lock_reset,
+                        color: AppColors.primaryGreen,
+                        size: isMobile ? 24 : 28,
+                      ),
                       SizedBox(width: isMobile ? 8 : 12),
                       Expanded(
-                        child: Text('Forgot Password', style: TextStyle(fontSize: isMobile ? 18 : 22, fontWeight: FontWeight.bold)),
+                        child: Text(
+                          'Forgot Password',
+                          style: TextStyle(
+                            fontSize: isMobile ? 18 : 22,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
                       ),
                       if (!isMobile)
                         TextButton.icon(
-                          onPressed: () => setState(() => _obscurePasswords = !_obscurePasswords),
-                          icon: Icon(_obscurePasswords ? Icons.visibility_off : Icons.visibility, size: 18),
-                          label: Text(_obscurePasswords ? 'Show Passwords' : 'Hide Passwords'),
-                          style: TextButton.styleFrom(foregroundColor: AppColors.textSecondary),
+                          onPressed: () => setState(
+                            () => _obscurePasswords = !_obscurePasswords,
+                          ),
+                          icon: Icon(
+                            _obscurePasswords
+                                ? Icons.visibility_off
+                                : Icons.visibility,
+                            size: 18,
+                          ),
+                          label: Text(
+                            _obscurePasswords
+                                ? 'Show Passwords'
+                                : 'Hide Passwords',
+                          ),
+                          style: TextButton.styleFrom(
+                            foregroundColor: AppColors.textSecondary,
+                          ),
                         ),
                       if (isMobile)
                         IconButton(
-                          onPressed: () => setState(() => _obscurePasswords = !_obscurePasswords),
-                          icon: Icon(_obscurePasswords ? Icons.visibility_off : Icons.visibility, size: 20),
+                          onPressed: () => setState(
+                            () => _obscurePasswords = !_obscurePasswords,
+                          ),
+                          icon: Icon(
+                            _obscurePasswords
+                                ? Icons.visibility_off
+                                : Icons.visibility,
+                            size: 20,
+                          ),
                           color: AppColors.textSecondary,
-                          tooltip: _obscurePasswords ? 'Show Passwords' : 'Hide Passwords',
+                          tooltip: _obscurePasswords
+                              ? 'Show Passwords'
+                              : 'Hide Passwords',
                         ),
-                      IconButton(icon: Icon(Icons.close, size: isMobile ? 20 : 24), onPressed: () => Navigator.pop(context)),
+                      IconButton(
+                        icon: Icon(Icons.close, size: isMobile ? 20 : 24),
+                        onPressed: () => Navigator.pop(context),
+                      ),
                     ],
                   ),
                   SizedBox(height: isMobile ? 4 : 8),
                   Text(
                     'Admin and Teacher accounts only. Your request will be reviewed by the Admin.',
-                    style: TextStyle(fontSize: isMobile ? 12 : 14, color: AppColors.textSecondary),
+                    style: TextStyle(
+                      fontSize: isMobile ? 12 : 14,
+                      color: AppColors.textSecondary,
+                    ),
                   ),
                   Divider(height: isMobile ? 20 : 28),
-  
+
                   CustomTextField(
-                    hintText: 'Your Username', 
-                    prefixIcon: Icons.person_outline, 
+                    hintText: 'Your Username',
+                    prefixIcon: Icons.person_outline,
                     controller: _usernameCtrl,
-                    validator: (v) => AppValidators.validateRequired(v, 'Username'),
+                    validator: (v) =>
+                        AppValidators.validateRequired(v, 'Username'),
                   ),
                   const SizedBox(height: AppSizes.p12),
                   CustomTextField(
@@ -544,14 +706,18 @@ class _ForgotPasswordDialogState extends ConsumerState<_ForgotPasswordDialog> {
                     controller: _confirmPassCtrl,
                     isPassword: true,
                     obscureText: _obscurePasswords,
-                    validator: (v) => AppValidators.validateRequired(v, 'Confirm Password'),
+                    validator: (v) =>
+                        AppValidators.validateRequired(v, 'Confirm Password'),
                   ),
-  
+
                   SizedBox(height: isMobile ? 16 : 24),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.end,
                     children: [
-                      TextButton(onPressed: () => Navigator.pop(context), child: const Text('CANCEL')),
+                      TextButton(
+                        onPressed: () => Navigator.pop(context),
+                        child: const Text('CANCEL'),
+                      ),
                       const SizedBox(width: 12),
                       SizedBox(
                         width: isMobile ? 130 : 140,

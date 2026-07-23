@@ -12,6 +12,7 @@ import 'dashboard_provider.dart';
 import 'setup_provider.dart';
 import 'reports_provider.dart';
 import 'ocr_provider.dart';
+
 final authRepositoryProvider = Provider<AuthRepository>(
   (ref) => AuthRepository(),
 );

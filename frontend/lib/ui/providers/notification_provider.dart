@@ -10,9 +10,10 @@ final notificationRepositoryProvider = Provider<NotificationRepository>((ref) {
   return NotificationRepository();
 });
 
-final notificationsProvider = AsyncNotifierProvider<NotificationNotifier, List<NotificationModel>>(() {
-  return NotificationNotifier();
-});
+final notificationsProvider =
+    AsyncNotifierProvider<NotificationNotifier, List<NotificationModel>>(() {
+      return NotificationNotifier();
+    });
 
 class NotificationNotifier extends AsyncNotifier<List<NotificationModel>> {
   Timer? _pollingTimer;
@@ -39,15 +40,15 @@ class NotificationNotifier extends AsyncNotifier<List<NotificationModel>> {
       final oldList = state.value ?? [];
       final repo = ref.read(notificationRepositoryProvider);
       final list = await repo.getNotifications();
-      
+
       // Trigger native notification for newly fetched items
       if (oldList.isNotEmpty && list.isNotEmpty) {
         final highestOldId = oldList.map((e) => e.id).reduce(math.max);
         final newNotes = list.where((e) => e.id > highestOldId).toList();
-        
+
         for (var note in newNotes) {
           NotificationService().showNotification(
-            title: note.title, 
+            title: note.title,
             body: note.message,
           );
         }
@@ -69,17 +70,19 @@ class NotificationNotifier extends AsyncNotifier<List<NotificationModel>> {
     try {
       final repo = ref.read(notificationRepositoryProvider);
       await repo.markAllAsRead();
-      
+
       if (state.hasValue) {
         final updatedList = state.value!
-            .map((n) => NotificationModel(
-                  id: n.id,
-                  userId: n.userId,
-                  title: n.title,
-                  message: n.message,
-                  isRead: true,
-                  createdAt: n.createdAt,
-                ))
+            .map(
+              (n) => NotificationModel(
+                id: n.id,
+                userId: n.userId,
+                title: n.title,
+                message: n.message,
+                isRead: true,
+                createdAt: n.createdAt,
+              ),
+            )
             .toList();
         state = AsyncData(updatedList);
       }
@@ -92,19 +95,21 @@ class NotificationNotifier extends AsyncNotifier<List<NotificationModel>> {
     try {
       final repo = ref.read(notificationRepositoryProvider);
       await repo.markAsRead(id);
-      
+
       if (state.hasValue) {
         final updatedList = state.value!
-            .map((n) => n.id == id
-                ? NotificationModel(
-                    id: n.id,
-                    userId: n.userId,
-                    title: n.title,
-                    message: n.message,
-                    isRead: true,
-                    createdAt: n.createdAt,
-                  )
-                : n)
+            .map(
+              (n) => n.id == id
+                  ? NotificationModel(
+                      id: n.id,
+                      userId: n.userId,
+                      title: n.title,
+                      message: n.message,
+                      isRead: true,
+                      createdAt: n.createdAt,
+                    )
+                  : n,
+            )
             .toList();
         state = AsyncData(updatedList);
       }
@@ -127,13 +132,13 @@ class NotificationNotifier extends AsyncNotifier<List<NotificationModel>> {
   Future<void> deleteNotification(int id) async {
     try {
       final repo = ref.read(notificationRepositoryProvider);
-      
+
       // Optimistically remove from state
       if (state.hasValue) {
         final updatedList = state.value!.where((n) => n.id != id).toList();
         state = AsyncData(updatedList);
       }
-      
+
       await repo.deleteNotification(id);
     } catch (e) {
       // Refresh to restore original state if delete fails

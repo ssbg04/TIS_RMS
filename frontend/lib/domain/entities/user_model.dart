@@ -24,7 +24,9 @@ class UserModel {
   });
 
   // Helper to get full formatted name
-  String get fullName => '$firstName ${middleName != null && middleName!.isNotEmpty ? '${middleName![0]}. ' : ''}$lastName ${extension ?? ''}'.trim();
+  String get fullName =>
+      '$firstName ${middleName != null && middleName!.isNotEmpty ? '${middleName![0]}. ' : ''}$lastName ${extension ?? ''}'
+          .trim();
 
   factory UserModel.fromJson(Map<String, dynamic> json) {
     return UserModel(

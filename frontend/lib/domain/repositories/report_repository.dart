@@ -14,10 +14,17 @@ class ReportRepository {
 
   Future<List<AcademicYear>> getAcademicYears() async {
     try {
-      final res = await _dio.get('/reports/academic-years', options: await _authOptions());
-      return (res.data as List).map((e) => AcademicYear.fromJson(e as Map<String, dynamic>)).toList();
+      final res = await _dio.get(
+        '/reports/academic-years',
+        options: await _authOptions(),
+      );
+      return (res.data as List)
+          .map((e) => AcademicYear.fromJson(e as Map<String, dynamic>))
+          .toList();
     } on DioException catch (e) {
-      throw Exception(e.response?.data['message'] ?? 'Failed to fetch academic years.');
+      throw Exception(
+        e.response?.data['message'] ?? 'Failed to fetch academic years.',
+      );
     }
   }
 
@@ -29,7 +36,8 @@ class ReportRepository {
   }) async {
     try {
       final queryParams = <String, dynamic>{};
-      if (academicYearId != null) queryParams['academicYearId'] = academicYearId;
+      if (academicYearId != null)
+        queryParams['academicYearId'] = academicYearId;
       if (gradeLevel != null) queryParams['gradeLevel'] = gradeLevel;
       if (sectionId != null) queryParams['sectionId'] = sectionId;
       if (status != null) queryParams['status'] = status;
@@ -53,24 +61,39 @@ class ReportRepository {
       );
       return (res.data as List).map((e) => e as Map<String, dynamic>).toList();
     } on DioException catch (e) {
-      throw Exception(e.response?.data['message'] ?? 'Failed to fetch sections.');
+      throw Exception(
+        e.response?.data['message'] ?? 'Failed to fetch sections.',
+      );
     }
   }
+
   Future<List<YearlyComparisonData>> getYearlyComparison() async {
     try {
-      final res = await _dio.get('/reports/yearly-comparison', options: await _authOptions());
-      return (res.data as List).map((e) => YearlyComparisonData.fromJson(e as Map<String, dynamic>)).toList();
+      final res = await _dio.get(
+        '/reports/yearly-comparison',
+        options: await _authOptions(),
+      );
+      return (res.data as List)
+          .map((e) => YearlyComparisonData.fromJson(e as Map<String, dynamic>))
+          .toList();
     } on DioException catch (e) {
-      throw Exception(e.response?.data['message'] ?? 'Failed to fetch yearly comparison.');
+      throw Exception(
+        e.response?.data['message'] ?? 'Failed to fetch yearly comparison.',
+      );
     }
   }
 
   Future<int> getStorageUsed() async {
     try {
-      final res = await _dio.get('/reports/storage', options: await _authOptions());
+      final res = await _dio.get(
+        '/reports/storage',
+        options: await _authOptions(),
+      );
       return res.data['bytes'] as int;
     } on DioException catch (e) {
-      throw Exception(e.response?.data['message'] ?? 'Failed to fetch storage usage.');
+      throw Exception(
+        e.response?.data['message'] ?? 'Failed to fetch storage usage.',
+      );
     }
   }
 }

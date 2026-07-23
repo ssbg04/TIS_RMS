@@ -55,7 +55,7 @@ class _TeacherManagementModalState extends ConsumerState<TeacherManagementModal>
   void initState() {
     super.initState();
     _tabController = TabController(length: _tabCount, vsync: this);
-    
+
     // Initial fetch
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _refreshData();
@@ -108,7 +108,14 @@ class _TeacherManagementModalState extends ConsumerState<TeacherManagementModal>
             children: [
               Icon(Icons.school, size: 22, color: Colors.white),
               SizedBox(width: 10),
-              Text('Teachers & Academic Setup', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: Colors.white)),
+              Text(
+                'Teachers & Academic Setup',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.white,
+                ),
+              ),
             ],
           ),
         ),
@@ -120,10 +127,7 @@ class _TeacherManagementModalState extends ConsumerState<TeacherManagementModal>
       title: 'Teachers & Academic Setup',
       icon: Icons.school,
       maxWidth: 900,
-      content: SizedBox(
-        height: screenSize.height * 0.8,
-        child: content,
-      ),
+      content: SizedBox(height: screenSize.height * 0.8, child: content),
     );
   }
 

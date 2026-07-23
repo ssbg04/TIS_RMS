@@ -39,10 +39,7 @@ class _RecentActivitiesScreenState
         selectedDayHighlightColor: AppColors.primaryGreen,
       ),
       dialogSize: const Size(325, 400),
-      value: [
-        if (_fromDate != null) _fromDate!,
-        if (_toDate != null) _toDate!,
-      ],
+      value: [if (_fromDate != null) _fromDate!, if (_toDate != null) _toDate!],
       borderRadius: BorderRadius.circular(15),
     );
     if (values != null && values.isNotEmpty) {
@@ -54,11 +51,15 @@ class _RecentActivitiesScreenState
       final notifier = ref.read(activityQueryProvider.notifier);
       if (_fromDate != null) {
         final f = _fromDate!;
-        notifier.setDateFrom('${f.year}-${f.month.toString().padLeft(2, '0')}-${f.day.toString().padLeft(2, '0')}');
+        notifier.setDateFrom(
+          '${f.year}-${f.month.toString().padLeft(2, '0')}-${f.day.toString().padLeft(2, '0')}',
+        );
       }
       if (_toDate != null) {
         final t = _toDate!;
-        notifier.setDateTo('${t.year}-${t.month.toString().padLeft(2, '0')}-${t.day.toString().padLeft(2, '0')}');
+        notifier.setDateTo(
+          '${t.year}-${t.month.toString().padLeft(2, '0')}-${t.day.toString().padLeft(2, '0')}',
+        );
       }
     }
   }
@@ -73,7 +74,9 @@ class _RecentActivitiesScreenState
 
   void _showFilterDialog(ActivityQueryParams query, bool isTeacher) {
     String pendingAction = query.action.isEmpty ? 'All Actions' : query.action;
-    String pendingEntity = query.entityTypes.isEmpty ? 'All Entities' : query.entityTypes;
+    String pendingEntity = query.entityTypes.isEmpty
+        ? 'All Entities'
+        : query.entityTypes;
 
     showDialog(
       context: context,
@@ -82,7 +85,10 @@ class _RecentActivitiesScreenState
         builder: (ctx, setDialogState) {
           return Dialog(
             backgroundColor: Colors.transparent,
-            insetPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 40),
+            insetPadding: const EdgeInsets.symmetric(
+              horizontal: 20,
+              vertical: 40,
+            ),
             child: ConstrainedBox(
               constraints: const BoxConstraints(maxWidth: 440),
               child: Container(
@@ -92,7 +98,11 @@ class _RecentActivitiesScreenState
                   borderRadius: BorderRadius.circular(14),
                   border: Border.all(color: Colors.grey.shade200),
                   boxShadow: [
-                    BoxShadow(color: Colors.black.withValues(alpha: 0.07), blurRadius: 16, offset: const Offset(0, 4)),
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.07),
+                      blurRadius: 16,
+                      offset: const Offset(0, 4),
+                    ),
                   ],
                 ),
                 child: Column(
@@ -103,67 +113,128 @@ class _RecentActivitiesScreenState
                       padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
                       child: Row(
                         children: [
-                          const Icon(Icons.tune_rounded, size: 18, color: AppColors.primaryGreen),
+                          const Icon(
+                            Icons.tune_rounded,
+                            size: 18,
+                            color: AppColors.primaryGreen,
+                          ),
                           const SizedBox(width: 8),
-                          const Text('Filter Activities', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                          const Text(
+                            'Filter Activities',
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
                         ],
                       ),
                     ),
                     const Divider(height: 20),
                     Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 20,
+                        vertical: 8,
+                      ),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const Text('Date Range', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13, color: Colors.grey)),
+                          const Text(
+                            'Date Range',
+                            style: TextStyle(
+                              fontWeight: FontWeight.w600,
+                              fontSize: 13,
+                              color: Colors.grey,
+                            ),
+                          ),
                           const SizedBox(height: 8),
                           SizedBox(
                             width: double.infinity,
                             child: OutlinedButton.icon(
-                              onPressed: () => _pickDateRange(setDialogState: setDialogState),
+                              onPressed: () => _pickDateRange(
+                                setDialogState: setDialogState,
+                              ),
                               icon: const Icon(Icons.calendar_today, size: 16),
                               label: Text(_getDateRangeText()),
                               style: OutlinedButton.styleFrom(
                                 alignment: Alignment.centerLeft,
-                                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-                                foregroundColor: (_fromDate != null || _toDate != null) ? AppColors.primaryGreen : Colors.black87,
-                                side: BorderSide(color: (_fromDate != null || _toDate != null) ? AppColors.primaryGreen : Colors.grey.shade300),
-                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 12,
+                                  vertical: 12,
+                                ),
+                                foregroundColor:
+                                    (_fromDate != null || _toDate != null)
+                                    ? AppColors.primaryGreen
+                                    : Colors.black87,
+                                side: BorderSide(
+                                  color: (_fromDate != null || _toDate != null)
+                                      ? AppColors.primaryGreen
+                                      : Colors.grey.shade300,
+                                ),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
                               ),
                             ),
                           ),
                           const SizedBox(height: 16),
-                          const Text('Action', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13, color: Colors.grey)),
+                          const Text(
+                            'Action',
+                            style: TextStyle(
+                              fontWeight: FontWeight.w600,
+                              fontSize: 13,
+                              color: Colors.grey,
+                            ),
+                          ),
                           const SizedBox(height: 8),
                           Wrap(
                             spacing: 8,
                             runSpacing: 8,
-                            children: ['All Actions', 'CREATE', 'UPDATE', 'DELETE'].map((v) {
-                              final isSelected = pendingAction == v;
-                              return ChoiceChip(
-                                label: Text(v),
-                                selected: isSelected,
-                                selectedColor: AppColors.primaryGreen.withValues(alpha: 0.2),
-                                onSelected: (_) => setDialogState(() => pendingAction = v),
-                              );
-                            }).toList(),
+                            children:
+                                [
+                                  'All Actions',
+                                  'CREATE',
+                                  'UPDATE',
+                                  'DELETE',
+                                ].map((v) {
+                                  final isSelected = pendingAction == v;
+                                  return ChoiceChip(
+                                    label: Text(v),
+                                    selected: isSelected,
+                                    selectedColor: AppColors.primaryGreen
+                                        .withValues(alpha: 0.2),
+                                    onSelected: (_) =>
+                                        setDialogState(() => pendingAction = v),
+                                  );
+                                }).toList(),
                           ),
                           if (!isTeacher) ...[
                             const SizedBox(height: 16),
-                            const Text('Entity Type', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13, color: Colors.grey)),
+                            const Text(
+                              'Entity Type',
+                              style: TextStyle(
+                                fontWeight: FontWeight.w600,
+                                fontSize: 13,
+                                color: Colors.grey,
+                              ),
+                            ),
                             const SizedBox(height: 8),
                             Wrap(
                               spacing: 8,
                               runSpacing: 8,
-                              children: ['All Entities', 'student', 'document'].map((v) {
-                                final isSelected = pendingEntity == v;
-                                return ChoiceChip(
-                                  label: Text(v.toUpperCase()),
-                                  selected: isSelected,
-                                  selectedColor: AppColors.primaryGreen.withValues(alpha: 0.2),
-                                  onSelected: (_) => setDialogState(() => pendingEntity = v),
-                                );
-                              }).toList(),
+                              children: ['All Entities', 'student', 'document']
+                                  .map((v) {
+                                    final isSelected = pendingEntity == v;
+                                    return ChoiceChip(
+                                      label: Text(v.toUpperCase()),
+                                      selected: isSelected,
+                                      selectedColor: AppColors.primaryGreen
+                                          .withValues(alpha: 0.2),
+                                      onSelected: (_) => setDialogState(
+                                        () => pendingEntity = v,
+                                      ),
+                                    );
+                                  })
+                                  .toList(),
                             ),
                           ],
                         ],
@@ -174,21 +245,32 @@ class _RecentActivitiesScreenState
                       padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
                       decoration: BoxDecoration(
                         color: Colors.white,
-                        borderRadius: const BorderRadius.vertical(bottom: Radius.circular(14)),
+                        borderRadius: const BorderRadius.vertical(
+                          bottom: Radius.circular(14),
+                        ),
                       ),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
                           ElevatedButton(
                             onPressed: () {
-                              final actionToSet = pendingAction == 'All Actions' ? '' : pendingAction;
-                              final entityToSet = pendingEntity == 'All Entities' ? '' : pendingEntity;
-                              ref.read(activityQueryProvider.notifier).setAction(actionToSet);
-                              ref.read(activityQueryProvider.notifier).setEntityTypes(entityToSet);
+                              final actionToSet = pendingAction == 'All Actions'
+                                  ? ''
+                                  : pendingAction;
+                              final entityToSet =
+                                  pendingEntity == 'All Entities'
+                                  ? ''
+                                  : pendingEntity;
+                              ref
+                                  .read(activityQueryProvider.notifier)
+                                  .setAction(actionToSet);
+                              ref
+                                  .read(activityQueryProvider.notifier)
+                                  .setEntityTypes(entityToSet);
                               Navigator.pop(ctx);
                             },
                             style: ElevatedButton.styleFrom(
-                              backgroundColor: AppColors.primaryGreen, 
+                              backgroundColor: AppColors.primaryGreen,
                               foregroundColor: Colors.white,
                               padding: const EdgeInsets.symmetric(vertical: 12),
                             ),
@@ -246,13 +328,26 @@ class _RecentActivitiesScreenState
               crossAxisAlignment: WrapCrossAlignment.center,
               children: [
                 ActionChip(
-                  avatar: const Icon(Icons.tune_rounded, size: 16, color: Colors.white),
-                  label: const Text('Filters', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600)),
+                  avatar: const Icon(
+                    Icons.tune_rounded,
+                    size: 16,
+                    color: Colors.white,
+                  ),
+                  label: const Text(
+                    'Filters',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
                   backgroundColor: AppColors.primaryGreen,
                   onPressed: () => _showFilterDialog(query, isTeacher),
                   side: BorderSide.none,
                 ),
-                if (_fromDate != null || _toDate != null || query.action.isNotEmpty || query.entityTypes.isNotEmpty)
+                if (_fromDate != null ||
+                    _toDate != null ||
+                    query.action.isNotEmpty ||
+                    query.entityTypes.isNotEmpty)
                   ActionChip(
                     avatar: const Icon(Icons.clear, size: 16),
                     label: const Text('Clear'),
@@ -299,10 +394,13 @@ class _RecentActivitiesScreenState
   String _getDateRangeText() {
     String text = 'Select Date Range';
     if (_fromDate != null && _toDate != null) {
-      if (_fromDate!.year == _toDate!.year && _fromDate!.month == _toDate!.month && _fromDate!.day == _toDate!.day) {
+      if (_fromDate!.year == _toDate!.year &&
+          _fromDate!.month == _toDate!.month &&
+          _fromDate!.day == _toDate!.day) {
         text = '${_fromDate!.day}/${_fromDate!.month}/${_fromDate!.year}';
       } else {
-        text = '${_fromDate!.day}/${_fromDate!.month}/${_fromDate!.year} - ${_toDate!.day}/${_toDate!.month}/${_toDate!.year}';
+        text =
+            '${_fromDate!.day}/${_fromDate!.month}/${_fromDate!.year} - ${_toDate!.day}/${_toDate!.month}/${_toDate!.year}';
       }
     } else if (_fromDate != null) {
       text = 'From ${_fromDate!.day}/${_fromDate!.month}/${_fromDate!.year}';
@@ -322,7 +420,7 @@ class _RecentActivitiesScreenState
           separatorBuilder: (_, _s) => const SizedBox(height: 12),
           itemBuilder: (context, i) {
             final a = activities[i];
-            
+
             final DateTime parsedDate = pht.parseToPht(a.createdAt);
             final dateStr = intl.DateFormat('MMM d, yyyy').format(parsedDate);
             final timeStr = intl.DateFormat('hh:mm a').format(parsedDate);
@@ -362,13 +460,22 @@ class _RecentActivitiesScreenState
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
                           _actionChip(a.action),
-                          Text('$dateStr • $timeStr', style: const TextStyle(fontSize: 12, color: Colors.grey)),
+                          Text(
+                            '$dateStr • $timeStr',
+                            style: const TextStyle(
+                              fontSize: 12,
+                              color: Colors.grey,
+                            ),
+                          ),
                         ],
                       ),
                       const SizedBox(height: 14),
                       Text(
                         a.description,
-                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
+                        style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 15,
+                        ),
                       ),
                       const SizedBox(height: 14),
                       Container(
@@ -383,17 +490,32 @@ class _RecentActivitiesScreenState
                             Row(
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
-                                const Text('Entity Type', style: TextStyle(fontSize: 13, color: Colors.grey)),
+                                const Text(
+                                  'Entity Type',
+                                  style: TextStyle(
+                                    fontSize: 13,
+                                    color: Colors.grey,
+                                  ),
+                                ),
                                 Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 10,
+                                    vertical: 4,
+                                  ),
                                   decoration: BoxDecoration(
                                     color: Colors.grey.shade200,
                                     borderRadius: BorderRadius.circular(6),
-                                    border: Border.all(color: Colors.grey.shade300),
+                                    border: Border.all(
+                                      color: Colors.grey.shade300,
+                                    ),
                                   ),
                                   child: Text(
                                     a.entityType.toUpperCase(),
-                                    style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.grey.shade800),
+                                    style: TextStyle(
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.bold,
+                                      color: Colors.grey.shade800,
+                                    ),
                                   ),
                                 ),
                               ],
@@ -405,10 +527,19 @@ class _RecentActivitiesScreenState
                             Row(
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
-                                const Text('Performed By', style: TextStyle(fontSize: 13, color: Colors.grey)),
+                                const Text(
+                                  'Performed By',
+                                  style: TextStyle(
+                                    fontSize: 13,
+                                    color: Colors.grey,
+                                  ),
+                                ),
                                 Text(
                                   a.performedBy ?? a.username ?? 'System',
-                                  style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+                                  style: const TextStyle(
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w600,
+                                  ),
                                 ),
                               ],
                             ),
@@ -468,22 +599,31 @@ class _RecentActivitiesScreenState
   IconData _actionIcon(String action, String entityType) {
     if (entityType == 'user') {
       switch (action.toUpperCase()) {
-        case 'CREATE': return Icons.person_add;
-        case 'DELETE': return Icons.person_off;
-        default:       return Icons.manage_accounts;
+        case 'CREATE':
+          return Icons.person_add;
+        case 'DELETE':
+          return Icons.person_off;
+        default:
+          return Icons.manage_accounts;
       }
     }
     if (entityType == 'student') {
       switch (action.toUpperCase()) {
-        case 'CREATE': return Icons.school;
-        case 'DELETE': return Icons.delete_forever;
-        default:       return Icons.edit;
+        case 'CREATE':
+          return Icons.school;
+        case 'DELETE':
+          return Icons.delete_forever;
+        default:
+          return Icons.edit;
       }
     }
     switch (action.toUpperCase()) {
-      case 'CREATE': return Icons.upload_file;
-      case 'DELETE': return Icons.delete;
-      default:       return Icons.description;
+      case 'CREATE':
+        return Icons.upload_file;
+      case 'DELETE':
+        return Icons.delete;
+      default:
+        return Icons.description;
     }
   }
 

@@ -46,7 +46,7 @@ class CustomModal extends StatelessWidget {
   Widget build(BuildContext context) {
     final screenW = MediaQuery.of(context).size.width;
     final isMobile = screenW < 700;
-    
+
     return Dialog(
       backgroundColor: Colors.transparent,
       insetPadding: isMobile
@@ -62,7 +62,10 @@ class CustomModal extends StatelessWidget {
             children: [
               // ── Modal header ──
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 20,
+                  vertical: 10,
+                ),
                 decoration: const BoxDecoration(
                   color: AppColors.primaryGreen,
                   borderRadius: BorderRadius.vertical(top: Radius.circular(12)),
@@ -85,7 +88,11 @@ class CustomModal extends StatelessWidget {
                     ),
                     if (headerActions != null) ...headerActions!,
                     IconButton(
-                      icon: const Icon(Icons.close, color: Colors.white, size: 20),
+                      icon: const Icon(
+                        Icons.close,
+                        color: Colors.white,
+                        size: 20,
+                      ),
                       padding: EdgeInsets.zero,
                       constraints: const BoxConstraints(),
                       onPressed: onClose ?? () => Navigator.of(context).pop(),
@@ -94,9 +101,7 @@ class CustomModal extends StatelessWidget {
                 ),
               ),
               // ── Modal body ──
-              Flexible(
-                child: content,
-              ),
+              Flexible(child: content),
             ],
           ),
         ),

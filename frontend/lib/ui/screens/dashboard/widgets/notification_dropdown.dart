@@ -11,7 +11,8 @@ import '../../settings/requirements_settings_screen.dart';
 
 class NotificationDropdownWidget extends ConsumerStatefulWidget {
   final List<NotificationModel> notifications;
-  final Function(BuildContext, String, String, String, IconData, Color) onViewActivity;
+  final Function(BuildContext, String, String, String, IconData, Color)
+  onViewActivity;
   final Function(String) getIcon;
   final Function(String) getColor;
 
@@ -24,10 +25,12 @@ class NotificationDropdownWidget extends ConsumerStatefulWidget {
   });
 
   @override
-  ConsumerState<NotificationDropdownWidget> createState() => _NotificationDropdownWidgetState();
+  ConsumerState<NotificationDropdownWidget> createState() =>
+      _NotificationDropdownWidgetState();
 }
 
-class _NotificationDropdownWidgetState extends ConsumerState<NotificationDropdownWidget> {
+class _NotificationDropdownWidgetState
+    extends ConsumerState<NotificationDropdownWidget> {
   int _displayCount = 5;
   int? _hoveredId;
 
@@ -46,9 +49,16 @@ class _NotificationDropdownWidgetState extends ConsumerState<NotificationDropdow
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Icon(Icons.notifications_off_rounded, size: 48, color: Colors.grey),
+              const Icon(
+                Icons.notifications_off_rounded,
+                size: 48,
+                color: Colors.grey,
+              ),
               const SizedBox(height: 12),
-              const Text('No new notifications', style: TextStyle(color: Colors.grey, fontSize: 13)),
+              const Text(
+                'No new notifications',
+                style: TextStyle(color: Colors.grey, fontSize: 13),
+              ),
             ],
           ),
         ),
@@ -57,7 +67,10 @@ class _NotificationDropdownWidgetState extends ConsumerState<NotificationDropdow
 
     return SizedBox(
       width: 320,
-      height: math.min(400, (displayList.length * 80.0) + (hasMore ? 50.0 : 0.0) + 16.0), // fixed max height
+      height: math.min(
+        400,
+        (displayList.length * 80.0) + (hasMore ? 50.0 : 0.0) + 16.0,
+      ), // fixed max height
       child: ListView.builder(
         shrinkWrap: true,
         itemCount: displayList.length + (hasMore ? 1 : 0),
@@ -72,7 +85,14 @@ class _NotificationDropdownWidgetState extends ConsumerState<NotificationDropdow
               child: Container(
                 padding: const EdgeInsets.symmetric(vertical: 12),
                 alignment: Alignment.center,
-                child: const Text('Load More', style: TextStyle(color: Color(0xFF1C8248), fontWeight: FontWeight.w600, fontSize: 13)),
+                child: const Text(
+                  'Load More',
+                  style: TextStyle(
+                    color: Color(0xFF1C8248),
+                    fontWeight: FontWeight.w600,
+                    fontSize: 13,
+                  ),
+                ),
               ),
             );
           }
@@ -85,7 +105,9 @@ class _NotificationDropdownWidgetState extends ConsumerState<NotificationDropdow
             key: ValueKey(note.id),
             direction: DismissDirection.horizontal,
             onDismissed: (_) {
-              ref.read(notificationsProvider.notifier).deleteNotification(note.id);
+              ref
+                  .read(notificationsProvider.notifier)
+                  .deleteNotification(note.id);
             },
             background: Container(
               color: Colors.redAccent,
@@ -108,17 +130,28 @@ class _NotificationDropdownWidgetState extends ConsumerState<NotificationDropdow
                   Future.delayed(const Duration(milliseconds: 100), () {
                     if (context.mounted) {
                       final role = ref.read(authProvider).value?.role;
-                      if (note.title.toLowerCase().contains('password') && role == 'admin') {
+                      if (note.title.toLowerCase().contains('password') &&
+                          role == 'admin') {
                         ResetRequestsModal.show(context);
                       } else {
-                        widget.onViewActivity(context, note.title, note.message, pht.formatModalDate(note.createdAt), icon, color);
+                        widget.onViewActivity(
+                          context,
+                          note.title,
+                          note.message,
+                          pht.formatModalDate(note.createdAt),
+                          icon,
+                          color,
+                        );
                       }
                     }
                   });
                 },
                 child: Container(
                   width: 320,
-                  padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+                  padding: const EdgeInsets.symmetric(
+                    vertical: 8,
+                    horizontal: 16,
+                  ),
                   child: Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -142,7 +175,9 @@ class _NotificationDropdownWidgetState extends ConsumerState<NotificationDropdow
                                   child: Text(
                                     note.title,
                                     style: TextStyle(
-                                      fontWeight: note.isRead ? FontWeight.normal : FontWeight.bold,
+                                      fontWeight: note.isRead
+                                          ? FontWeight.normal
+                                          : FontWeight.bold,
                                       fontSize: 13,
                                       color: Colors.black87,
                                     ),
@@ -150,8 +185,12 @@ class _NotificationDropdownWidgetState extends ConsumerState<NotificationDropdow
                                 ),
                                 if (!note.isRead)
                                   Container(
-                                    width: 8, height: 8,
-                                    decoration: const BoxDecoration(color: Colors.redAccent, shape: BoxShape.circle),
+                                    width: 8,
+                                    height: 8,
+                                    decoration: const BoxDecoration(
+                                      color: Colors.redAccent,
+                                      shape: BoxShape.circle,
+                                    ),
                                   ),
                               ],
                             ),
@@ -160,22 +199,38 @@ class _NotificationDropdownWidgetState extends ConsumerState<NotificationDropdow
                               note.message,
                               style: TextStyle(
                                 fontSize: 12,
-                                color: note.isRead ? Colors.black54 : Colors.black87,
-                                fontWeight: note.isRead ? FontWeight.normal : FontWeight.w500,
+                                color: note.isRead
+                                    ? Colors.black54
+                                    : Colors.black87,
+                                fontWeight: note.isRead
+                                    ? FontWeight.normal
+                                    : FontWeight.w500,
                               ),
                               maxLines: 2,
                               overflow: TextOverflow.ellipsis,
                             ),
                             const SizedBox(height: 4),
-                            Text(pht.formatRelative(note.createdAt), style: const TextStyle(fontSize: 10, color: Colors.black38)),
+                            Text(
+                              pht.formatRelative(note.createdAt),
+                              style: const TextStyle(
+                                fontSize: 10,
+                                color: Colors.black38,
+                              ),
+                            ),
                           ],
                         ),
                       ),
                       if (_hoveredId == note.id)
                         IconButton(
-                          icon: const Icon(Icons.close, size: 16, color: Colors.grey),
+                          icon: const Icon(
+                            Icons.close,
+                            size: 16,
+                            color: Colors.grey,
+                          ),
                           onPressed: () {
-                            ref.read(notificationsProvider.notifier).deleteNotification(note.id);
+                            ref
+                                .read(notificationsProvider.notifier)
+                                .deleteNotification(note.id);
                           },
                           padding: EdgeInsets.zero,
                           constraints: const BoxConstraints(),

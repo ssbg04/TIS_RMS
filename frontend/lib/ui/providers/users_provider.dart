@@ -2,11 +2,15 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../domain/repositories/user_repository.dart';
 import '../../domain/entities/system_user.dart';
 
-final userRepositoryProvider = Provider<UserRepository>((ref) => UserRepository());
+final userRepositoryProvider = Provider<UserRepository>(
+  (ref) => UserRepository(),
+);
 
-final usersProvider = AsyncNotifierProvider<UsersNotifier, List<SystemUser>>(() {
-  return UsersNotifier();
-});
+final usersProvider = AsyncNotifierProvider<UsersNotifier, List<SystemUser>>(
+  () {
+    return UsersNotifier();
+  },
+);
 
 class UsersNotifier extends AsyncNotifier<List<SystemUser>> {
   @override
@@ -16,7 +20,9 @@ class UsersNotifier extends AsyncNotifier<List<SystemUser>> {
 
   Future<void> refresh() async {
     state = const AsyncLoading();
-    state = await AsyncValue.guard(() => ref.read(userRepositoryProvider).getUsers());
+    state = await AsyncValue.guard(
+      () => ref.read(userRepositoryProvider).getUsers(),
+    );
   }
 
   /// Returns the generated temporary password to display once.
@@ -32,11 +38,19 @@ class UsersNotifier extends AsyncNotifier<List<SystemUser>> {
     String? phone,
   }) async {
     try {
-      final tempPassword = await ref.read(userRepositoryProvider).createUser(
-        username: username, password: password, firstName: firstName,
-        middleName: middleName, lastName: lastName, extension: extension,
-        role: role, email: email, phone: phone,
-      );
+      final tempPassword = await ref
+          .read(userRepositoryProvider)
+          .createUser(
+            username: username,
+            password: password,
+            firstName: firstName,
+            middleName: middleName,
+            lastName: lastName,
+            extension: extension,
+            role: role,
+            email: email,
+            phone: phone,
+          );
       await refresh();
       return tempPassword;
     } catch (e) {
@@ -45,15 +59,28 @@ class UsersNotifier extends AsyncNotifier<List<SystemUser>> {
   }
 
   Future<bool> updateUser({
-    required int id, required String firstName, String? middleName,
-    required String lastName, String? extension, required String role,
-    String? email, String? phone,
+    required int id,
+    required String firstName,
+    String? middleName,
+    required String lastName,
+    String? extension,
+    required String role,
+    String? email,
+    String? phone,
   }) async {
     try {
-      await ref.read(userRepositoryProvider).updateUser(
-        id: id, firstName: firstName, middleName: middleName, lastName: lastName,
-        extension: extension, role: role, email: email, phone: phone,
-      );
+      await ref
+          .read(userRepositoryProvider)
+          .updateUser(
+            id: id,
+            firstName: firstName,
+            middleName: middleName,
+            lastName: lastName,
+            extension: extension,
+            role: role,
+            email: email,
+            phone: phone,
+          );
       await refresh();
       return true;
     } catch (e) {
@@ -63,22 +90,26 @@ class UsersNotifier extends AsyncNotifier<List<SystemUser>> {
 
   Future<bool> resetPassword(int id, {required String adminPassword}) async {
     try {
-      await ref.read(userRepositoryProvider).resetPassword(id, adminPassword: adminPassword);
+      await ref
+          .read(userRepositoryProvider)
+          .resetPassword(id, adminPassword: adminPassword);
       return true;
     } catch (e) {
       rethrow;
     }
   }
 
-  Future<bool> deleteUser(int id, {required String reason, required String password}) async {
+  Future<bool> deleteUser(
+    int id, {
+    required String reason,
+    required String password,
+  }) async {
     try {
       // ✅ Pass the reason and password down to the repository!
-      await ref.read(userRepositoryProvider).deleteUser(
-        id, 
-        reason: reason, 
-        password: password,
-      );
-      
+      await ref
+          .read(userRepositoryProvider)
+          .deleteUser(id, reason: reason, password: password);
+
       await refresh();
       return true;
     } catch (e) {

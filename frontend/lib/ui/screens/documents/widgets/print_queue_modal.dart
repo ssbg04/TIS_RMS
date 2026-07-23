@@ -25,7 +25,50 @@ class PrintQueueModal extends ConsumerStatefulWidget {
           WoltModalSheetPage(
             backgroundColor: AppColors.surfaceWhite,
             hasSabGradient: false,
-            hasTopBarLayer: false,
+            hasTopBarLayer: true,
+            isTopBarLayerAlwaysVisible: true,
+            topBarTitle: Padding(
+              padding: const EdgeInsets.only(left: 16),
+              child: Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(6),
+                    decoration: BoxDecoration(
+                      color: AppColors.primaryGreen.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: const Icon(Icons.print,
+                        color: AppColors.primaryGreen, size: 20),
+                  ),
+                  const SizedBox(width: AppSizes.p12),
+                  const Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text('Print List',
+                            style: TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                                color: AppColors.textPrimary)),
+                        Text('Staged documents for print or request.',
+                            style: TextStyle(
+                                fontSize: 11,
+                                color: AppColors.textSecondary,
+                                fontStyle: FontStyle.italic)),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            trailingNavBarWidget: Padding(
+              padding: const EdgeInsets.only(right: 8, top: 4),
+              child: IconButton(
+                icon: const Icon(Icons.close, color: AppColors.textSecondary),
+                onPressed: () => Navigator.of(modalSheetContext).pop(),
+              ),
+            ),
             child: const PrintQueueModal(),
           ),
         ];
@@ -183,44 +226,8 @@ class _PrintQueueModalState extends ConsumerState<PrintQueueModal> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // ── Header ──
-            Row(
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    color: AppColors.primaryGreen.withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: const Icon(Icons.print,
-                      color: AppColors.primaryGreen, size: 22),
-                ),
-                const SizedBox(width: AppSizes.p12),
-                const Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text('Print List',
-                          style: TextStyle(
-                              fontSize: 20,
-                              fontWeight: FontWeight.bold,
-                              color: AppColors.textPrimary)),
-                      Text('Staged documents. Note: This is only a list of documents to be printed or requested.',
-                          style: TextStyle(
-                              fontSize: 11,
-                              color: AppColors.textSecondary,
-                              fontStyle: FontStyle.italic)),
-                    ],
-                  ),
-                ),
-                IconButton(
-                  icon: const Icon(Icons.close,
-                      color: AppColors.textSecondary),
-                  onPressed: () => Navigator.of(context).pop(),
-                ),
-              ],
-            ),
-            const Divider(height: AppSizes.p32),
+            // Header is now fixed at the top of the modal via topBarTitle
+            const SizedBox(height: 8),
 
             // ── Queue Content ──
             queueAsync.when(

@@ -36,16 +36,15 @@ class OcrNotifier extends AsyncNotifier<OcrResultModel?> {
         fileName: fileName,
         docType: docType,
       );
-      
+
       state = AsyncData(result); // Success! Save the data in state.
       return result; // Return it so the UI can use it immediately
-
     } catch (e, st) {
       state = AsyncError(e, st); // Fails gracefully
       rethrow; // Let the UI catch it to show a SnackBar/Error message
     }
   }
-  
+
   /// Resets the OCR state if the user cancels or closes the modal
   void reset() {
     state = const AsyncData(null);

@@ -25,9 +25,9 @@ class RequirementsModal extends ConsumerStatefulWidget {
   static void open(BuildContext context) {
     final isAndroid = Theme.of(context).platform == TargetPlatform.android;
     if (isAndroid) {
-      Navigator.of(context).push(
-        MaterialPageRoute(builder: (_) => const RequirementsModal()),
-      );
+      Navigator.of(
+        context,
+      ).push(MaterialPageRoute(builder: (_) => const RequirementsModal()));
     } else {
       showDialog(
         context: context,
@@ -46,7 +46,7 @@ class _RequirementsModalState extends ConsumerState<RequirementsModal> {
   bool _showJhs = true;
   bool _showShs = true;
   bool? _filterMandatory; // null = all
-  bool? _filterEnabled;   // null = all
+  bool? _filterEnabled; // null = all
 
   // ── Sort ─────────────────────────────────────────────────
   _SortMode _sortMode = _SortMode.az;
@@ -69,7 +69,8 @@ class _RequirementsModalState extends ConsumerState<RequirementsModal> {
   // Filter + Sort pipeline
   // ─────────────────────────────────────────────────────────
   List<DocumentRequirementModel> _applyFiltersAndSort(
-      List<DocumentRequirementModel> all) {
+    List<DocumentRequirementModel> all,
+  ) {
     var result = all.where((r) {
       // Category filter
       final cat = r.category.toUpperCase();
@@ -189,9 +190,12 @@ class _RequirementsModalState extends ConsumerState<RequirementsModal> {
       context: context,
       builder: (ctx) => AlertDialog(
         shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(AppSizes.radiusLarge)),
+          borderRadius: BorderRadius.circular(AppSizes.radiusLarge),
+        ),
         title: Text(
-          isBulk ? 'Delete ${targets.length} Requirements' : 'Delete Requirement',
+          isBulk
+              ? 'Delete ${targets.length} Requirements'
+              : 'Delete Requirement',
           style: const TextStyle(color: AppColors.error),
         ),
         content: Text(
@@ -206,7 +210,9 @@ class _RequirementsModalState extends ConsumerState<RequirementsModal> {
           ),
           ElevatedButton(
             style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.error, foregroundColor: Colors.white),
+              backgroundColor: AppColors.error,
+              foregroundColor: Colors.white,
+            ),
             onPressed: () async {
               Navigator.pop(ctx);
               try {
@@ -220,10 +226,12 @@ class _RequirementsModalState extends ConsumerState<RequirementsModal> {
                   _selectedIds.removeAll(targets.map((t) => t.id));
                   if (_selectedIds.isEmpty) _multiSelectMode = false;
                 });
-                showSuccessDialog(context,
-                    message: isBulk
-                        ? '${targets.length} requirements deleted'
-                        : 'Requirement deleted successfully');
+                showSuccessDialog(
+                  context,
+                  message: isBulk
+                      ? '${targets.length} requirements deleted'
+                      : 'Requirement deleted successfully',
+                );
               } catch (e) {
                 if (!mounted) return;
                 showErrorDialog(context, 'Failed to delete', e.toString());
@@ -271,16 +279,22 @@ class _RequirementsModalState extends ConsumerState<RequirementsModal> {
             mainAxisSize: MainAxisSize.min,
             children: [
               Icon(
-                _multiSelectMode ? Icons.check_box : Icons.check_box_outline_blank,
+                _multiSelectMode
+                    ? Icons.check_box
+                    : Icons.check_box_outline_blank,
                 color: Colors.white,
               ),
               if (!isAndroid) ...[
                 const SizedBox(width: 8),
                 Text(
                   _multiSelectMode ? 'Selecting' : 'Select',
-                  style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 14),
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w600,
+                    fontSize: 14,
+                  ),
                 ),
-              ]
+              ],
             ],
           ),
         ),
@@ -304,12 +318,20 @@ class _RequirementsModalState extends ConsumerState<RequirementsModal> {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  const Icon(Icons.error_outline, size: 48, color: AppColors.error),
+                  const Icon(
+                    Icons.error_outline,
+                    size: 48,
+                    color: AppColors.error,
+                  ),
                   const SizedBox(height: AppSizes.p16),
-                  Text('Error: $e', style: const TextStyle(color: AppColors.error)),
+                  Text(
+                    'Error: $e',
+                    style: const TextStyle(color: AppColors.error),
+                  ),
                   const SizedBox(height: AppSizes.p16),
                   TextButton(
-                    onPressed: () => ref.invalidate(requirementsSettingsProvider),
+                    onPressed: () =>
+                        ref.invalidate(requirementsSettingsProvider),
                     child: const Text('Retry'),
                   ),
                 ],
@@ -331,13 +353,17 @@ class _RequirementsModalState extends ConsumerState<RequirementsModal> {
             children: [
               Icon(Icons.folder_open_outlined, size: 22, color: Colors.white),
               SizedBox(width: 10),
-              Text('Document Requirements', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: Colors.white)),
+              Text(
+                'Document Requirements',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.white,
+                ),
+              ),
             ],
           ),
-          actions: [
-            multiSelectWidget,
-            const SizedBox(width: 16),
-          ],
+          actions: [multiSelectWidget, const SizedBox(width: 16)],
         ),
         body: SafeArea(child: content),
         floatingActionButton: _buildFAB(context),
@@ -366,7 +392,11 @@ class _RequirementsModalState extends ConsumerState<RequirementsModal> {
   Widget _buildSearchAndControls(bool isNarrow) {
     return Padding(
       padding: const EdgeInsets.fromLTRB(
-          AppSizes.p16, AppSizes.p12, AppSizes.p16, 0),
+        AppSizes.p16,
+        AppSizes.p12,
+        AppSizes.p16,
+        0,
+      ),
       child: Row(
         children: [
           Expanded(
@@ -378,31 +408,46 @@ class _RequirementsModalState extends ConsumerState<RequirementsModal> {
                 decoration: InputDecoration(
                   hintText: 'Search requirements…',
                   hintStyle: const TextStyle(
-                      fontSize: 13, color: AppColors.textMuted),
-                  prefixIcon: const Icon(Icons.search,
-                      size: 18, color: AppColors.textSecondary),
+                    fontSize: 13,
+                    color: AppColors.textMuted,
+                  ),
+                  prefixIcon: const Icon(
+                    Icons.search,
+                    size: 18,
+                    color: AppColors.textSecondary,
+                  ),
                   suffixIcon: _searchQuery.isNotEmpty
                       ? IconButton(
-                          icon: const Icon(Icons.clear,
-                              size: 16, color: AppColors.textSecondary),
+                          icon: const Icon(
+                            Icons.clear,
+                            size: 16,
+                            color: AppColors.textSecondary,
+                          ),
                           onPressed: () {
                             _searchCtrl.clear();
                             setState(() => _searchQuery = '');
                           },
                         )
                       : null,
-                  contentPadding:
-                      const EdgeInsets.symmetric(vertical: 0, horizontal: 12),
+                  contentPadding: const EdgeInsets.symmetric(
+                    vertical: 0,
+                    horizontal: 12,
+                  ),
                   border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(8),
-                      borderSide: BorderSide(color: Colors.grey.shade300)),
+                    borderRadius: BorderRadius.circular(8),
+                    borderSide: BorderSide(color: Colors.grey.shade300),
+                  ),
                   enabledBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(8),
-                      borderSide: BorderSide(color: Colors.grey.shade300)),
+                    borderRadius: BorderRadius.circular(8),
+                    borderSide: BorderSide(color: Colors.grey.shade300),
+                  ),
                   focusedBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(8),
-                      borderSide: const BorderSide(
-                          color: AppColors.primaryGreen, width: 1.5)),
+                    borderRadius: BorderRadius.circular(8),
+                    borderSide: const BorderSide(
+                      color: AppColors.primaryGreen,
+                      width: 1.5,
+                    ),
+                  ),
                   filled: true,
                   fillColor: Colors.grey.shade50,
                 ),
@@ -419,9 +464,15 @@ class _RequirementsModalState extends ConsumerState<RequirementsModal> {
               _sortMenuItem(_SortMode.az, Icons.sort_by_alpha, 'A → Z'),
               _sortMenuItem(_SortMode.za, Icons.sort_by_alpha, 'Z → A'),
               _sortMenuItem(
-                  _SortMode.mandatoryFirst, Icons.star, 'Mandatory first'),
+                _SortMode.mandatoryFirst,
+                Icons.star,
+                'Mandatory first',
+              ),
               _sortMenuItem(
-                  _SortMode.dueDateFirst, Icons.calendar_today, 'Due date first'),
+                _SortMode.dueDateFirst,
+                Icons.calendar_today,
+                'Due date first',
+              ),
             ],
             child: Container(
               height: 40,
@@ -434,13 +485,20 @@ class _RequirementsModalState extends ConsumerState<RequirementsModal> {
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  const Icon(Icons.sort,
-                      size: 16, color: AppColors.textSecondary),
+                  const Icon(
+                    Icons.sort,
+                    size: 16,
+                    color: AppColors.textSecondary,
+                  ),
                   if (!isNarrow) ...[
                     const SizedBox(width: 4),
-                    const Text('Sort',
-                        style: TextStyle(
-                            fontSize: 13, color: AppColors.textSecondary)),
+                    const Text(
+                      'Sort',
+                      style: TextStyle(
+                        fontSize: 13,
+                        color: AppColors.textSecondary,
+                      ),
+                    ),
                   ],
                 ],
               ),
@@ -452,25 +510,33 @@ class _RequirementsModalState extends ConsumerState<RequirementsModal> {
   }
 
   PopupMenuItem<_SortMode> _sortMenuItem(
-      _SortMode mode, IconData icon, String label) {
+    _SortMode mode,
+    IconData icon,
+    String label,
+  ) {
     return PopupMenuItem(
       value: mode,
       child: Row(
         children: [
-          Icon(icon,
-              size: 16,
+          Icon(
+            icon,
+            size: 16,
+            color: _sortMode == mode
+                ? AppColors.primaryGreen
+                : AppColors.textSecondary,
+          ),
+          const SizedBox(width: 8),
+          Text(
+            label,
+            style: TextStyle(
               color: _sortMode == mode
                   ? AppColors.primaryGreen
-                  : AppColors.textSecondary),
-          const SizedBox(width: 8),
-          Text(label,
-              style: TextStyle(
-                  color: _sortMode == mode
-                      ? AppColors.primaryGreen
-                      : AppColors.textPrimary,
-                  fontWeight: _sortMode == mode
-                      ? FontWeight.w600
-                      : FontWeight.normal)),
+                  : AppColors.textPrimary,
+              fontWeight: _sortMode == mode
+                  ? FontWeight.w600
+                  : FontWeight.normal,
+            ),
+          ),
           if (_sortMode == mode) ...[
             const Spacer(),
             const Icon(Icons.check, size: 14, color: AppColors.primaryGreen),
@@ -487,18 +553,25 @@ class _RequirementsModalState extends ConsumerState<RequirementsModal> {
     return SingleChildScrollView(
       scrollDirection: Axis.horizontal,
       padding: const EdgeInsets.fromLTRB(
-          AppSizes.p16, AppSizes.p8, AppSizes.p16, AppSizes.p8),
+        AppSizes.p16,
+        AppSizes.p8,
+        AppSizes.p16,
+        AppSizes.p8,
+      ),
       child: Row(
         children: [
           const Row(
             children: [
               Icon(Icons.filter_list, size: 16, color: AppColors.textSecondary),
               SizedBox(width: 4),
-              Text('Filters:',
-                  style: TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w600,
-                      color: AppColors.textSecondary)),
+              Text(
+                'Filters:',
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.textSecondary,
+                ),
+              ),
             ],
           ),
           const SizedBox(width: AppSizes.p8),
@@ -521,7 +594,12 @@ class _RequirementsModalState extends ConsumerState<RequirementsModal> {
           ),
           const SizedBox(width: AppSizes.p12),
 
-          const VerticalDivider(width: 1, thickness: 1, indent: 4, endIndent: 4),
+          const VerticalDivider(
+            width: 1,
+            thickness: 1,
+            indent: 4,
+            endIndent: 4,
+          ),
           const SizedBox(width: AppSizes.p12),
 
           // Mandatory
@@ -530,8 +608,8 @@ class _RequirementsModalState extends ConsumerState<RequirementsModal> {
             selectedIndex: _filterMandatory == null
                 ? 0
                 : _filterMandatory!
-                    ? 1
-                    : 2,
+                ? 1
+                : 2,
             color: AppColors.error,
             onSelected: (i) => setState(() {
               _filterMandatory = i == 0 ? null : i == 1;
@@ -539,7 +617,12 @@ class _RequirementsModalState extends ConsumerState<RequirementsModal> {
           ),
           const SizedBox(width: AppSizes.p12),
 
-          const VerticalDivider(width: 1, thickness: 1, indent: 4, endIndent: 4),
+          const VerticalDivider(
+            width: 1,
+            thickness: 1,
+            indent: 4,
+            endIndent: 4,
+          ),
           const SizedBox(width: AppSizes.p12),
 
           // Enabled
@@ -548,8 +631,8 @@ class _RequirementsModalState extends ConsumerState<RequirementsModal> {
             selectedIndex: _filterEnabled == null
                 ? 0
                 : _filterEnabled!
-                    ? 1
-                    : 2,
+                ? 1
+                : 2,
             color: AppColors.success,
             onSelected: (i) => setState(() {
               _filterEnabled = i == 0 ? null : i == 1;
@@ -572,10 +655,14 @@ class _RequirementsModalState extends ConsumerState<RequirementsModal> {
         duration: const Duration(milliseconds: 150),
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
         decoration: BoxDecoration(
-          color: selected ? color.withValues(alpha: 0.12) : Colors.grey.shade100,
+          color: selected
+              ? color.withValues(alpha: 0.12)
+              : Colors.grey.shade100,
           borderRadius: BorderRadius.circular(20),
           border: Border.all(
-              color: selected ? color : Colors.grey.shade300, width: 1.5),
+            color: selected ? color : Colors.grey.shade300,
+            width: 1.5,
+          ),
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
@@ -583,7 +670,11 @@ class _RequirementsModalState extends ConsumerState<RequirementsModal> {
             if (selected)
               Icon(Icons.check, size: 12, color: color)
             else
-              Icon(Icons.circle_outlined, size: 12, color: Colors.grey.shade400),
+              Icon(
+                Icons.circle_outlined,
+                size: 12,
+                color: Colors.grey.shade400,
+              ),
             const SizedBox(width: 4),
             Text(
               label,
@@ -621,7 +712,9 @@ class _RequirementsModalState extends ConsumerState<RequirementsModal> {
               duration: const Duration(milliseconds: 150),
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
               decoration: BoxDecoration(
-                color: isActive ? color.withValues(alpha: 0.12) : Colors.transparent,
+                color: isActive
+                    ? color.withValues(alpha: 0.12)
+                    : Colors.transparent,
                 borderRadius: BorderRadius.circular(20),
               ),
               child: Text(
@@ -642,19 +735,22 @@ class _RequirementsModalState extends ConsumerState<RequirementsModal> {
   // ─────────────────────────────────────────────────────────
   // Table list
   // ─────────────────────────────────────────────────────────
-  Widget _buildTable(
-      List<DocumentRequirementModel> filtered, bool isNarrow) {
+  Widget _buildTable(List<DocumentRequirementModel> filtered, bool isNarrow) {
     if (filtered.isEmpty) {
       return Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.folder_off_outlined,
-                size: 56, color: Colors.grey.shade300),
+            Icon(
+              Icons.folder_off_outlined,
+              size: 56,
+              color: Colors.grey.shade300,
+            ),
             const SizedBox(height: AppSizes.p16),
-            const Text('No requirements match your filters',
-                style: TextStyle(
-                    color: AppColors.textSecondary, fontSize: 15)),
+            const Text(
+              'No requirements match your filters',
+              style: TextStyle(color: AppColors.textSecondary, fontSize: 15),
+            ),
             const SizedBox(height: AppSizes.p8),
             TextButton(
               onPressed: () => setState(() {
@@ -678,7 +774,9 @@ class _RequirementsModalState extends ConsumerState<RequirementsModal> {
         Container(
           color: Colors.grey.shade50,
           padding: const EdgeInsets.symmetric(
-              horizontal: AppSizes.p16, vertical: AppSizes.p8),
+            horizontal: AppSizes.p16,
+            vertical: AppSizes.p8,
+          ),
           child: Row(
             children: [
               if (_multiSelectMode) ...[
@@ -715,10 +813,11 @@ class _RequirementsModalState extends ConsumerState<RequirementsModal> {
                   child: Text(
                     'CATEGORY',
                     style: TextStyle(
-                        fontSize: 11,
-                        fontWeight: FontWeight.w700,
-                        color: AppColors.textMuted,
-                        letterSpacing: 0.5),
+                      fontSize: 11,
+                      fontWeight: FontWeight.w700,
+                      color: AppColors.textMuted,
+                      letterSpacing: 0.5,
+                    ),
                     textAlign: TextAlign.center,
                   ),
                 ),
@@ -744,8 +843,9 @@ class _RequirementsModalState extends ConsumerState<RequirementsModal> {
 
   Widget _buildRow(DocumentRequirementModel req, bool isNarrow) {
     final isSelected = _selectedIds.contains(req.id);
-    final catColor =
-        req.category.toUpperCase() == 'JHS' ? Colors.blue : Colors.purple;
+    final catColor = req.category.toUpperCase() == 'JHS'
+        ? Colors.blue
+        : Colors.purple;
 
     return Material(
       color: isSelected
@@ -769,7 +869,9 @@ class _RequirementsModalState extends ConsumerState<RequirementsModal> {
         },
         child: Padding(
           padding: const EdgeInsets.symmetric(
-              horizontal: AppSizes.p16, vertical: 12),
+            horizontal: AppSizes.p16,
+            vertical: 12,
+          ),
           child: Row(
             children: [
               // Checkbox (multiselect)
@@ -816,9 +918,10 @@ class _RequirementsModalState extends ConsumerState<RequirementsModal> {
                     Text(
                       req.name,
                       style: const TextStyle(
-                          fontWeight: FontWeight.w600,
-                          fontSize: 14,
-                          color: AppColors.textPrimary),
+                        fontWeight: FontWeight.w600,
+                        fontSize: 14,
+                        color: AppColors.textPrimary,
+                      ),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),
@@ -833,8 +936,16 @@ class _RequirementsModalState extends ConsumerState<RequirementsModal> {
                         AnimatedSwitcher(
                           duration: const Duration(milliseconds: 300),
                           child: req.isMandatory
-                              ? _badge('Mandatory', AppColors.primaryGreen, key: const ValueKey('man'))
-                              : _badge('Optional', Colors.grey.shade600, key: const ValueKey('opt')),
+                              ? _badge(
+                                  'Mandatory',
+                                  AppColors.primaryGreen,
+                                  key: const ValueKey('man'),
+                                )
+                              : _badge(
+                                  'Optional',
+                                  Colors.grey.shade600,
+                                  key: const ValueKey('opt'),
+                                ),
                         ),
                         if (req.isMandatory && !req.isEnabled)
                           const SizedBox(width: 4),
@@ -844,13 +955,18 @@ class _RequirementsModalState extends ConsumerState<RequirementsModal> {
                           const SizedBox(width: 4),
                           Row(
                             children: [
-                              Icon(Icons.calendar_today,
-                                  size: 10, color: Colors.grey.shade400),
+                              Icon(
+                                Icons.calendar_today,
+                                size: 10,
+                                color: Colors.grey.shade400,
+                              ),
                               const SizedBox(width: 2),
                               Text(
                                 _formatDate(req.dueDate!),
                                 style: TextStyle(
-                                    fontSize: 10, color: Colors.grey.shade500),
+                                  fontSize: 10,
+                                  color: Colors.grey.shade500,
+                                ),
                               ),
                             ],
                           ),
@@ -870,8 +986,11 @@ class _RequirementsModalState extends ConsumerState<RequirementsModal> {
               ],
 
               // Chevron
-              const Icon(Icons.chevron_right,
-                  size: 18, color: AppColors.textMuted),
+              const Icon(
+                Icons.chevron_right,
+                size: 18,
+                color: AppColors.textMuted,
+              ),
             ],
           ),
         ),
@@ -890,7 +1009,10 @@ class _RequirementsModalState extends ConsumerState<RequirementsModal> {
       child: Text(
         category.toUpperCase(),
         style: TextStyle(
-            fontSize: 11, fontWeight: FontWeight.w700, color: color),
+          fontSize: 11,
+          fontWeight: FontWeight.w700,
+          color: color,
+        ),
       ),
     );
   }
@@ -903,9 +1025,14 @@ class _RequirementsModalState extends ConsumerState<RequirementsModal> {
         color: color.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(4),
       ),
-      child: Text(label,
-          style: TextStyle(
-              fontSize: 10, fontWeight: FontWeight.w600, color: color)),
+      child: Text(
+        label,
+        style: TextStyle(
+          fontSize: 10,
+          fontWeight: FontWeight.w600,
+          color: color,
+        ),
+      ),
     );
   }
 
@@ -956,9 +1083,10 @@ class _RequirementsModalState extends ConsumerState<RequirementsModal> {
                 Text(
                   '${_selectedIds.length} selected',
                   style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 13,
-                      fontWeight: FontWeight.w600),
+                    color: Colors.white,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
                 const SizedBox(width: 12),
                 // Edit button (only if single selection)
@@ -969,11 +1097,15 @@ class _RequirementsModalState extends ConsumerState<RequirementsModal> {
                     showLabel: !isNarrow,
                     color: Colors.white,
                     onTap: () {
-                      final settingsAsync = ref.read(requirementsSettingsProvider);
+                      final settingsAsync = ref.read(
+                        requirementsSettingsProvider,
+                      );
                       settingsAsync.whenData((settings) {
                         final all = [...settings.jhs, ...settings.shs];
-                        final req = all.firstWhere((r) => r.id == _selectedIds.first,
-                            orElse: () => all.first);
+                        final req = all.firstWhere(
+                          (r) => r.id == _selectedIds.first,
+                          orElse: () => all.first,
+                        );
                         setState(() {
                           _selectedIds.clear();
                           _multiSelectMode = false;
@@ -989,11 +1121,14 @@ class _RequirementsModalState extends ConsumerState<RequirementsModal> {
                     showLabel: !isNarrow,
                     color: Colors.white,
                     onTap: () {
-                      final settingsAsync = ref.read(requirementsSettingsProvider);
+                      final settingsAsync = ref.read(
+                        requirementsSettingsProvider,
+                      );
                       settingsAsync.whenData((settings) {
                         final all = [...settings.jhs, ...settings.shs];
-                        final targets =
-                            all.where((r) => _selectedIds.contains(r.id)).toList();
+                        final targets = all
+                            .where((r) => _selectedIds.contains(r.id))
+                            .toList();
                         _bulkEdit(targets);
                       });
                     },
@@ -1006,11 +1141,14 @@ class _RequirementsModalState extends ConsumerState<RequirementsModal> {
                   showLabel: !isNarrow,
                   color: Colors.redAccent.shade100,
                   onTap: () {
-                    final settingsAsync = ref.read(requirementsSettingsProvider);
+                    final settingsAsync = ref.read(
+                      requirementsSettingsProvider,
+                    );
                     settingsAsync.whenData((settings) {
                       final all = [...settings.jhs, ...settings.shs];
-                      final targets =
-                          all.where((r) => _selectedIds.contains(r.id)).toList();
+                      final targets = all
+                          .where((r) => _selectedIds.contains(r.id))
+                          .toList();
                       _confirmDelete(targets);
                     });
                   },
@@ -1038,19 +1176,24 @@ class _RequirementsModalState extends ConsumerState<RequirementsModal> {
         borderRadius: BorderRadius.circular(24),
         child: Padding(
           padding: EdgeInsets.symmetric(
-              horizontal: showLabel ? 10 : 6, vertical: 6),
+            horizontal: showLabel ? 10 : 6,
+            vertical: 6,
+          ),
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
               Icon(icon, size: 16, color: color),
               if (showLabel) ...[
                 const SizedBox(width: 4),
-                Text(label,
-                    style: TextStyle(
-                        color: color,
-                        fontSize: 12,
-                        fontWeight: FontWeight.w600)),
-              ]
+                Text(
+                  label,
+                  style: TextStyle(
+                    color: color,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ],
             ],
           ),
         ),
@@ -1058,8 +1201,7 @@ class _RequirementsModalState extends ConsumerState<RequirementsModal> {
     );
   }
 
-  String _formatDate(DateTime date) =>
-      '${date.month}/${date.day}/${date.year}';
+  String _formatDate(DateTime date) => '${date.month}/${date.day}/${date.year}';
 }
 
 // ─────────────────────────────────────────────────────────────
@@ -1079,12 +1221,14 @@ class _RequirementDetailModal extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final req = requirement;
-    final catColor =
-        req.category.toUpperCase() == 'JHS' ? Colors.blue : Colors.purple;
+    final catColor = req.category.toUpperCase() == 'JHS'
+        ? Colors.blue
+        : Colors.purple;
 
     return Dialog(
       shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(AppSizes.radiusLarge)),
+        borderRadius: BorderRadius.circular(AppSizes.radiusLarge),
+      ),
       child: ConstrainedBox(
         constraints: const BoxConstraints(maxWidth: 480),
         child: Column(
@@ -1097,9 +1241,9 @@ class _RequirementDetailModal extends StatelessWidget {
               decoration: BoxDecoration(
                 color: AppColors.primaryGreen.withValues(alpha: 0.05),
                 borderRadius: const BorderRadius.vertical(
-                    top: Radius.circular(AppSizes.radiusLarge)),
-                border: Border(
-                    bottom: BorderSide(color: Colors.grey.shade200)),
+                  top: Radius.circular(AppSizes.radiusLarge),
+                ),
+                border: Border(bottom: BorderSide(color: Colors.grey.shade200)),
               ),
               child: Row(
                 children: [
@@ -1127,17 +1271,16 @@ class _RequirementDetailModal extends StatelessWidget {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(req.name,
-                            style: const TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.bold,
-                                color: AppColors.textPrimary)),
-                        const SizedBox(height: 4),
-                        Row(
-                          children: [
-                            _catChip(req.category, catColor),
-                          ],
+                        Text(
+                          req.name,
+                          style: const TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                            color: AppColors.textPrimary,
+                          ),
                         ),
+                        const SizedBox(height: 4),
+                        Row(children: [_catChip(req.category, catColor)]),
                       ],
                     ),
                   ),
@@ -1172,8 +1315,9 @@ class _RequirementDetailModal extends StatelessWidget {
                       req.dueDate != null
                           ? _formatDate(req.dueDate!)
                           : 'No due date',
-                      valueColor:
-                          req.dueDate != null ? null : AppColors.textMuted,
+                      valueColor: req.dueDate != null
+                          ? null
+                          : AppColors.textMuted,
                     ),
                     const Divider(height: 20),
                     _detailTile(
@@ -1215,7 +1359,9 @@ class _RequirementDetailModal extends StatelessWidget {
             // Actions
             Container(
               padding: const EdgeInsets.symmetric(
-                  horizontal: AppSizes.p16, vertical: AppSizes.p12),
+                horizontal: AppSizes.p16,
+                vertical: AppSizes.p12,
+              ),
               decoration: BoxDecoration(
                 border: Border(top: BorderSide(color: Colors.grey.shade200)),
               ),
@@ -1224,17 +1370,25 @@ class _RequirementDetailModal extends StatelessWidget {
                   Expanded(
                     child: OutlinedButton.icon(
                       onPressed: onDelete,
-                      icon: const Icon(Icons.delete_outline,
-                          size: 16, color: AppColors.error),
-                      label: const Text('Delete',
-                          style: TextStyle(color: AppColors.error)),
+                      icon: const Icon(
+                        Icons.delete_outline,
+                        size: 16,
+                        color: AppColors.error,
+                      ),
+                      label: const Text(
+                        'Delete',
+                        style: TextStyle(color: AppColors.error),
+                      ),
                       style: OutlinedButton.styleFrom(
                         side: BorderSide(
-                            color: AppColors.error.withValues(alpha: 0.5)),
+                          color: AppColors.error.withValues(alpha: 0.5),
+                        ),
                         padding: const EdgeInsets.symmetric(vertical: 10),
                         shape: RoundedRectangleBorder(
-                            borderRadius:
-                                BorderRadius.circular(AppSizes.radiusMedium)),
+                          borderRadius: BorderRadius.circular(
+                            AppSizes.radiusMedium,
+                          ),
+                        ),
                       ),
                     ),
                   ),
@@ -1242,17 +1396,24 @@ class _RequirementDetailModal extends StatelessWidget {
                   Expanded(
                     child: ElevatedButton.icon(
                       onPressed: onEdit,
-                      icon: const Icon(Icons.edit_outlined,
-                          size: 16, color: Colors.white),
-                      label: const Text('Edit',
-                          style: TextStyle(color: Colors.white)),
+                      icon: const Icon(
+                        Icons.edit_outlined,
+                        size: 16,
+                        color: Colors.white,
+                      ),
+                      label: const Text(
+                        'Edit',
+                        style: TextStyle(color: Colors.white),
+                      ),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: AppColors.primaryGreen,
                         padding: const EdgeInsets.symmetric(vertical: 10),
                         elevation: 0,
                         shape: RoundedRectangleBorder(
-                            borderRadius:
-                                BorderRadius.circular(AppSizes.radiusMedium)),
+                          borderRadius: BorderRadius.circular(
+                            AppSizes.radiusMedium,
+                          ),
+                        ),
                       ),
                     ),
                   ),
@@ -1276,13 +1437,20 @@ class _RequirementDetailModal extends StatelessWidget {
       child: Text(
         category.toUpperCase(),
         style: TextStyle(
-            fontSize: 11, fontWeight: FontWeight.w700, color: color),
+          fontSize: 11,
+          fontWeight: FontWeight.w700,
+          color: color,
+        ),
       ),
     );
   }
 
-  Widget _detailTile(IconData icon, String label, String value,
-      {Color? valueColor}) {
+  Widget _detailTile(
+    IconData icon,
+    String label,
+    String value, {
+    Color? valueColor,
+  }) {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -1292,17 +1460,23 @@ class _RequirementDetailModal extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(label,
-                  style: const TextStyle(
-                      fontSize: 11,
-                      fontWeight: FontWeight.w700,
-                      color: AppColors.textMuted,
-                      letterSpacing: 0.4)),
+              Text(
+                label,
+                style: const TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.textMuted,
+                  letterSpacing: 0.4,
+                ),
+              ),
               const SizedBox(height: 2),
-              Text(value,
-                  style: TextStyle(
-                      fontSize: 13,
-                      color: valueColor ?? AppColors.textPrimary)),
+              Text(
+                value,
+                style: TextStyle(
+                  fontSize: 13,
+                  color: valueColor ?? AppColors.textPrimary,
+                ),
+              ),
             ],
           ),
         ),
@@ -1330,12 +1504,15 @@ class _RequirementDetailModal extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(label,
-              style: const TextStyle(
-                  fontSize: 10,
-                  fontWeight: FontWeight.w700,
-                  color: AppColors.textMuted,
-                  letterSpacing: 0.4)),
+          Text(
+            label,
+            style: const TextStyle(
+              fontSize: 10,
+              fontWeight: FontWeight.w700,
+              color: AppColors.textMuted,
+              letterSpacing: 0.4,
+            ),
+          ),
           const SizedBox(height: 4),
           Row(
             children: [
@@ -1345,11 +1522,14 @@ class _RequirementDetailModal extends StatelessWidget {
                 color: color,
               ),
               const SizedBox(width: 4),
-              Text(displayLabel,
-                  style: TextStyle(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w600,
-                      color: color)),
+              Text(
+                displayLabel,
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                  color: color,
+                ),
+              ),
             ],
           ),
         ],
@@ -1357,8 +1537,7 @@ class _RequirementDetailModal extends StatelessWidget {
     );
   }
 
-  String _formatDate(DateTime date) =>
-      '${date.month}/${date.day}/${date.year}';
+  String _formatDate(DateTime date) => '${date.month}/${date.day}/${date.year}';
 }
 
 // ─────────────────────────────────────────────────────────────
@@ -1403,101 +1582,116 @@ class _BulkEditModalState extends ConsumerState<_BulkEditModal> {
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(
-                      color: AppColors.primaryGreen.withValues(alpha: 0.1),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: const Icon(Icons.edit,
-                        color: AppColors.primaryGreen, size: 18),
-                  ),
-                  const SizedBox(width: AppSizes.p12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
                       children: [
-                        const Text('Bulk Edit',
-                            style: TextStyle(
-                                fontSize: 16, fontWeight: FontWeight.bold)),
-                        Text(
-                          'Editing ${widget.targets.length} requirements',
-                          style: const TextStyle(
-                              fontSize: 12, color: AppColors.textSecondary),
+                        Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: AppColors.primaryGreen.withValues(
+                              alpha: 0.1,
+                            ),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: const Icon(
+                            Icons.edit,
+                            color: AppColors.primaryGreen,
+                            size: 18,
+                          ),
+                        ),
+                        const SizedBox(width: AppSizes.p12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Text(
+                                'Bulk Edit',
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                              Text(
+                                'Editing ${widget.targets.length} requirements',
+                                style: const TextStyle(
+                                  fontSize: 12,
+                                  color: AppColors.textSecondary,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        IconButton(
+                          icon: const Icon(Icons.close, size: 20),
+                          onPressed: () => Navigator.pop(context),
                         ),
                       ],
                     ),
-                  ),
-                  IconButton(
-                    icon: const Icon(Icons.close, size: 20),
-                    onPressed: () => Navigator.pop(context),
-                  ),
-                ],
-              ),
-              const SizedBox(height: AppSizes.p20),
-              const Text(
-                'Leave a field as "No change" to keep each requirement\'s current value.',
-                style: TextStyle(
-                    fontSize: 12, color: AppColors.textSecondary),
-              ),
-              const SizedBox(height: AppSizes.p16),
-              _buildSelectRow(
-                label: 'Mandatory',
-                value: _isMandatory,
-                trueLabel: 'Set Mandatory',
-                falseLabel: 'Set Optional',
-                onChanged: (v) => setState(() => _isMandatory = v),
-              ),
-              const SizedBox(height: AppSizes.p12),
-              _buildSelectRow(
-                label: 'Enabled',
-                value: _isEnabled,
-                trueLabel: 'Set Enabled',
-                falseLabel: 'Set Disabled',
-                onChanged: (v) => setState(() => _isEnabled = v),
-              ),
-              const SizedBox(height: AppSizes.p24),
-              Row(
-                children: [
-                  Expanded(
-                    child: OutlinedButton(
-                      onPressed: () => Navigator.pop(context),
-                      child: const Text('CANCEL'),
-                    ),
-                  ),
-                  const SizedBox(width: AppSizes.p12),
-                  Expanded(
-                    child: ElevatedButton(
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColors.primaryGreen,
-                        foregroundColor: Colors.white,
+                    const SizedBox(height: AppSizes.p20),
+                    const Text(
+                      'Leave a field as "No change" to keep each requirement\'s current value.',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: AppColors.textSecondary,
                       ),
-                      onPressed:
-                          (_isMandatory == null && _isEnabled == null) ||
-                                  _isLoading
-                              ? null
-                              : _handleBulkSave,
-                      child: _isLoading
-                          ? const SizedBox(
-                              width: 16,
-                              height: 16,
-                              child: CircularProgressIndicator(
-                                  strokeWidth: 2, color: Colors.white),
-                            )
-                          : const Text('APPLY'),
                     ),
-                  ),
-                ],
-              ),
-                ],
+                    const SizedBox(height: AppSizes.p16),
+                    _buildSelectRow(
+                      label: 'Mandatory',
+                      value: _isMandatory,
+                      trueLabel: 'Set Mandatory',
+                      falseLabel: 'Set Optional',
+                      onChanged: (v) => setState(() => _isMandatory = v),
+                    ),
+                    const SizedBox(height: AppSizes.p12),
+                    _buildSelectRow(
+                      label: 'Enabled',
+                      value: _isEnabled,
+                      trueLabel: 'Set Enabled',
+                      falseLabel: 'Set Disabled',
+                      onChanged: (v) => setState(() => _isEnabled = v),
+                    ),
+                    const SizedBox(height: AppSizes.p24),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: OutlinedButton(
+                            onPressed: () => Navigator.pop(context),
+                            child: const Text('CANCEL'),
+                          ),
+                        ),
+                        const SizedBox(width: AppSizes.p12),
+                        Expanded(
+                          child: ElevatedButton(
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: AppColors.primaryGreen,
+                              foregroundColor: Colors.white,
+                            ),
+                            onPressed:
+                                (_isMandatory == null && _isEnabled == null) ||
+                                    _isLoading
+                                ? null
+                                : _handleBulkSave,
+                            child: _isLoading
+                                ? const SizedBox(
+                                    width: 16,
+                                    height: 16,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                      color: Colors.white,
+                                    ),
+                                  )
+                                : const Text('APPLY'),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
               ),
             ),
           ),
         ),
-      ),
       ),
     );
   }
@@ -1512,47 +1706,66 @@ class _BulkEditModalState extends ConsumerState<_BulkEditModal> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(label,
-            style: const TextStyle(
-                fontSize: 12,
-                fontWeight: FontWeight.w600,
-                color: AppColors.textSecondary)),
+        Text(
+          label,
+          style: const TextStyle(
+            fontSize: 12,
+            fontWeight: FontWeight.w600,
+            color: AppColors.textSecondary,
+          ),
+        ),
         const SizedBox(height: 6),
         Row(
           children: [
             _selectChip('No change', value == null, () => onChanged(null)),
             const SizedBox(width: 6),
-            _selectChip(trueLabel, value == true, () => onChanged(true),
-                color: AppColors.primaryGreen),
+            _selectChip(
+              trueLabel,
+              value == true,
+              () => onChanged(true),
+              color: AppColors.primaryGreen,
+            ),
             const SizedBox(width: 6),
-            _selectChip(falseLabel, value == false, () => onChanged(false),
-                color: AppColors.textSecondary),
+            _selectChip(
+              falseLabel,
+              value == false,
+              () => onChanged(false),
+              color: AppColors.textSecondary,
+            ),
           ],
         ),
       ],
     );
   }
 
-  Widget _selectChip(String label, bool selected, VoidCallback onTap,
-      {Color color = AppColors.textMuted}) {
+  Widget _selectChip(
+    String label,
+    bool selected,
+    VoidCallback onTap, {
+    Color color = AppColors.textMuted,
+  }) {
     return GestureDetector(
       onTap: onTap,
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 120),
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
         decoration: BoxDecoration(
-          color: selected ? color.withValues(alpha: 0.12) : Colors.grey.shade100,
+          color: selected
+              ? color.withValues(alpha: 0.12)
+              : Colors.grey.shade100,
           borderRadius: BorderRadius.circular(8),
           border: Border.all(
-              color: selected ? color : Colors.grey.shade300, width: 1.5),
+            color: selected ? color : Colors.grey.shade300,
+            width: 1.5,
+          ),
         ),
         child: Text(
           label,
           style: TextStyle(
-              fontSize: 12,
-              fontWeight:
-                  selected ? FontWeight.w700 : FontWeight.normal,
-              color: selected ? color : AppColors.textSecondary),
+            fontSize: 12,
+            fontWeight: selected ? FontWeight.w700 : FontWeight.normal,
+            color: selected ? color : AppColors.textSecondary,
+          ),
         ),
       ),
     );
@@ -1573,9 +1786,10 @@ class _BulkEditModalState extends ConsumerState<_BulkEditModal> {
       if (!mounted) return;
       widget.onDone();
       Navigator.pop(context);
-      showSuccessDialog(context,
-          message:
-              '${widget.targets.length} requirements updated successfully');
+      showSuccessDialog(
+        context,
+        message: '${widget.targets.length} requirements updated successfully',
+      );
     } catch (e) {
       if (!mounted) return;
       showErrorDialog(context, 'Bulk update failed', e.toString());
@@ -1613,8 +1827,6 @@ class _RequirementFormModalState extends ConsumerState<RequirementFormModal> {
 
   bool _isLoading = false;
 
-
-
   @override
   void initState() {
     super.initState();
@@ -1635,8 +1847,8 @@ class _RequirementFormModalState extends ConsumerState<RequirementFormModal> {
     _isMandatory = req?.isMandatory ?? true;
     _isEnabled = req?.isEnabled ?? true;
 
-    String savedTypes =
-        (req?.acceptedFileTypes ?? 'pdf,jpg,jpeg,png').replaceAll(' ', '');
+    String savedTypes = (req?.acceptedFileTypes ?? 'pdf,jpg,jpeg,png')
+        .replaceAll(' ', '');
     const validItems = [
       'pdf',
       'pdf,jpg,jpeg,png',
@@ -1666,7 +1878,8 @@ class _RequirementFormModalState extends ConsumerState<RequirementFormModal> {
 
     return Dialog(
       shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(AppSizes.radiusLarge)),
+        borderRadius: BorderRadius.circular(AppSizes.radiusLarge),
+      ),
       insetPadding: isNarrow
           ? const EdgeInsets.symmetric(horizontal: 12, vertical: 24)
           : const EdgeInsets.symmetric(horizontal: 40, vertical: 40),
@@ -1679,13 +1892,17 @@ class _RequirementFormModalState extends ConsumerState<RequirementFormModal> {
             // Header
             Container(
               padding: const EdgeInsets.fromLTRB(
-                  AppSizes.p20, AppSizes.p16, AppSizes.p12, AppSizes.p16),
+                AppSizes.p20,
+                AppSizes.p16,
+                AppSizes.p12,
+                AppSizes.p16,
+              ),
               decoration: BoxDecoration(
                 color: AppColors.primaryGreen.withValues(alpha: 0.05),
                 borderRadius: const BorderRadius.vertical(
-                    top: Radius.circular(AppSizes.radiusLarge)),
-                border: Border(
-                    bottom: BorderSide(color: Colors.grey.shade200)),
+                  top: Radius.circular(AppSizes.radiusLarge),
+                ),
+                border: Border(bottom: BorderSide(color: Colors.grey.shade200)),
               ),
               child: Row(
                 children: [
@@ -1695,19 +1912,21 @@ class _RequirementFormModalState extends ConsumerState<RequirementFormModal> {
                       color: AppColors.primaryGreen.withValues(alpha: 0.12),
                       borderRadius: BorderRadius.circular(8),
                     ),
-                    child: const Icon(Icons.document_scanner,
-                        color: AppColors.primaryGreen, size: 18),
+                    child: const Icon(
+                      Icons.document_scanner,
+                      color: AppColors.primaryGreen,
+                      size: 18,
+                    ),
                   ),
                   const SizedBox(width: AppSizes.p12),
                   Expanded(
                     child: Text(
-                      isEditing
-                          ? 'Edit Requirement'
-                          : 'Add Requirement',
+                      isEditing ? 'Edit Requirement' : 'Add Requirement',
                       style: const TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                          color: AppColors.textPrimary),
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                        color: AppColors.textPrimary,
+                      ),
                     ),
                   ),
                   IconButton(
@@ -1731,10 +1950,9 @@ class _RequirementFormModalState extends ConsumerState<RequirementFormModal> {
                         hintText: 'Document Name *',
                         controller: _nameController,
                         prefixIcon: Icons.description,
-                        validator: (v) =>
-                            v?.trim().isEmpty == true
-                                ? 'Name is required'
-                                : null,
+                        validator: (v) => v?.trim().isEmpty == true
+                            ? 'Name is required'
+                            : null,
                       ),
                       const SizedBox(height: AppSizes.p16),
                       CustomTextField(
@@ -1755,9 +1973,10 @@ class _RequirementFormModalState extends ConsumerState<RequirementFormModal> {
                       const Text(
                         'Category',
                         style: TextStyle(
-                            fontSize: 13,
-                            fontWeight: FontWeight.w600,
-                            color: AppColors.textSecondary),
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.textSecondary,
+                        ),
                       ),
                       const SizedBox(height: 8),
                       Container(
@@ -1790,7 +2009,9 @@ class _RequirementFormModalState extends ConsumerState<RequirementFormModal> {
                           child: Text(
                             'Please select at least one category',
                             style: TextStyle(
-                                fontSize: 11, color: AppColors.error),
+                              fontSize: 11,
+                              color: AppColors.error,
+                            ),
                           ),
                         ),
                       const SizedBox(height: AppSizes.p16),
@@ -1800,36 +2021,48 @@ class _RequirementFormModalState extends ConsumerState<RequirementFormModal> {
                         initialValue: _acceptedFileTypes,
                         decoration: InputDecoration(
                           labelText: 'Accepted File Types',
-                          prefixIcon: const Icon(Icons.attach_file,
-                              color: AppColors.primaryGreen),
+                          prefixIcon: const Icon(
+                            Icons.attach_file,
+                            color: AppColors.primaryGreen,
+                          ),
                           border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(8)),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
                           enabledBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(8),
-                              borderSide:
-                                  BorderSide(color: Colors.grey.shade300)),
+                            borderRadius: BorderRadius.circular(8),
+                            borderSide: BorderSide(color: Colors.grey.shade300),
+                          ),
                           focusedBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(8),
-                              borderSide: const BorderSide(
-                                  color: AppColors.primaryGreen, width: 2)),
+                            borderRadius: BorderRadius.circular(8),
+                            borderSide: const BorderSide(
+                              color: AppColors.primaryGreen,
+                              width: 2,
+                            ),
+                          ),
                           filled: true,
                           fillColor: Colors.grey.shade50,
                         ),
                         items: const [
                           DropdownMenuItem(
-                              value: 'pdf', child: Text('PDF only')),
+                            value: 'pdf',
+                            child: Text('PDF only'),
+                          ),
                           DropdownMenuItem(
-                              value: 'pdf,jpg,jpeg,png',
-                              child: Text('PDF, JPG, PNG')),
+                            value: 'pdf,jpg,jpeg,png',
+                            child: Text('PDF, JPG, PNG'),
+                          ),
                           DropdownMenuItem(
-                              value: 'pdf,doc,docx',
-                              child: Text('PDF & Word')),
+                            value: 'pdf,doc,docx',
+                            child: Text('PDF & Word'),
+                          ),
                           DropdownMenuItem(
-                              value: 'pdf,doc,docx,xls,xlsx',
-                              child: Text('PDF, Word & Excel')),
+                            value: 'pdf,doc,docx,xls,xlsx',
+                            child: Text('PDF, Word & Excel'),
+                          ),
                           DropdownMenuItem(
-                              value: 'pdf,jpg,jpeg,png,doc,docx,xls,xlsx',
-                              child: Text('All Formats')),
+                            value: 'pdf,jpg,jpeg,png,doc,docx,xls,xlsx',
+                            child: Text('All Formats'),
+                          ),
                         ],
                         onChanged: (v) =>
                             setState(() => _acceptedFileTypes = v!),
@@ -1846,10 +2079,13 @@ class _RequirementFormModalState extends ConsumerState<RequirementFormModal> {
                         child: Column(
                           children: [
                             SwitchListTile(
-                              title: const Text('Mandatory Requirement',
-                                  style: TextStyle(
-                                      fontWeight: FontWeight.w500,
-                                      fontSize: 14)),
+                              title: const Text(
+                                'Mandatory Requirement',
+                                style: TextStyle(
+                                  fontWeight: FontWeight.w500,
+                                  fontSize: 14,
+                                ),
+                              ),
                               subtitle: const Text(
                                 'Students must upload this document',
                                 style: TextStyle(fontSize: 12),
@@ -1861,17 +2097,19 @@ class _RequirementFormModalState extends ConsumerState<RequirementFormModal> {
                             ),
                             const Divider(height: 1),
                             SwitchListTile(
-                              title: const Text('Enabled',
-                                  style: TextStyle(
-                                      fontWeight: FontWeight.w500,
-                                      fontSize: 14)),
+                              title: const Text(
+                                'Enabled',
+                                style: TextStyle(
+                                  fontWeight: FontWeight.w500,
+                                  fontSize: 14,
+                                ),
+                              ),
                               subtitle: const Text(
                                 'Show this requirement in the system',
                                 style: TextStyle(fontSize: 12),
                               ),
                               value: _isEnabled,
-                              onChanged: (v) =>
-                                  setState(() => _isEnabled = v),
+                              onChanged: (v) => setState(() => _isEnabled = v),
                               activeThumbColor: AppColors.success,
                             ),
                           ],
@@ -1886,7 +2124,9 @@ class _RequirementFormModalState extends ConsumerState<RequirementFormModal> {
             // Footer actions
             Container(
               padding: const EdgeInsets.symmetric(
-                  horizontal: AppSizes.p16, vertical: AppSizes.p12),
+                horizontal: AppSizes.p16,
+                vertical: AppSizes.p12,
+              ),
               decoration: BoxDecoration(
                 border: Border(top: BorderSide(color: Colors.grey.shade200)),
               ),
@@ -1896,11 +2136,12 @@ class _RequirementFormModalState extends ConsumerState<RequirementFormModal> {
                     child: OutlinedButton(
                       onPressed: () => Navigator.pop(context),
                       style: OutlinedButton.styleFrom(
-                        padding:
-                            const EdgeInsets.symmetric(vertical: 12),
+                        padding: const EdgeInsets.symmetric(vertical: 12),
                         shape: RoundedRectangleBorder(
-                            borderRadius:
-                                BorderRadius.circular(AppSizes.radiusMedium)),
+                          borderRadius: BorderRadius.circular(
+                            AppSizes.radiusMedium,
+                          ),
+                        ),
                       ),
                       child: const Text('CANCEL'),
                     ),
@@ -1929,11 +2170,14 @@ class _RequirementFormModalState extends ConsumerState<RequirementFormModal> {
     required ValueChanged<bool?> onChanged,
   }) {
     return CheckboxListTile(
-      title: Text(label,
-          style: TextStyle(
-              fontSize: 13,
-              fontWeight: FontWeight.w500,
-              color: value ? color : AppColors.textPrimary)),
+      title: Text(
+        label,
+        style: TextStyle(
+          fontSize: 13,
+          fontWeight: FontWeight.w500,
+          color: value ? color : AppColors.textPrimary,
+        ),
+      ),
       value: value,
       onChanged: onChanged,
       activeColor: color,

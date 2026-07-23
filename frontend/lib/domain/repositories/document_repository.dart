@@ -134,10 +134,14 @@ class RequirementsSettings {
   factory RequirementsSettings.fromJson(Map<String, dynamic> json) {
     return RequirementsSettings(
       jhs: (json['jhs'] as List)
-          .map((r) => DocumentRequirementModel.fromJson(r as Map<String, dynamic>))
+          .map(
+            (r) => DocumentRequirementModel.fromJson(r as Map<String, dynamic>),
+          )
           .toList(),
       shs: (json['shs'] as List)
-          .map((r) => DocumentRequirementModel.fromJson(r as Map<String, dynamic>))
+          .map(
+            (r) => DocumentRequirementModel.fromJson(r as Map<String, dynamic>),
+          )
           .toList(),
       documentTypes: (json['documentTypes'] as List)
           .map((t) => t as String)
@@ -170,13 +174,19 @@ class MissingRequirements {
       category: json['category'] as String,
       gradeLevel: json['gradeLevel'] as int,
       missing: (json['missing'] as List)
-          .map((r) => DocumentRequirementModel.fromJson(r as Map<String, dynamic>))
+          .map(
+            (r) => DocumentRequirementModel.fromJson(r as Map<String, dynamic>),
+          )
           .toList(),
       pending: (json['pending'] as List)
-          .map((r) => DocumentRequirementModel.fromJson(r as Map<String, dynamic>))
+          .map(
+            (r) => DocumentRequirementModel.fromJson(r as Map<String, dynamic>),
+          )
           .toList(),
       verified: (json['verified'] as List)
-          .map((r) => DocumentRequirementModel.fromJson(r as Map<String, dynamic>))
+          .map(
+            (r) => DocumentRequirementModel.fromJson(r as Map<String, dynamic>),
+          )
           .toList(),
       totalRequired: json['totalRequired'] as int,
       totalVerified: json['totalVerified'] as int,
@@ -221,8 +231,10 @@ class DocumentRepository {
         '/documents',
         queryParameters: {
           if (search.trim().isNotEmpty) 'search': search.trim(),
-          if (status.trim().isNotEmpty && status != 'All Statuses') 'status': status.trim(),
-          if (documentType.trim().isNotEmpty && documentType != 'All Types') 'documentType': documentType.trim(),
+          if (status.trim().isNotEmpty && status != 'All Statuses')
+            'status': status.trim(),
+          if (documentType.trim().isNotEmpty && documentType != 'All Types')
+            'documentType': documentType.trim(),
           if (gradeLevel.trim().isNotEmpty) 'gradeLevel': gradeLevel.trim(),
           if (schoolYear.trim().isNotEmpty) 'schoolYear': schoolYear.trim(),
           if (studentId != null) 'studentId': studentId,
@@ -241,7 +253,11 @@ class DocumentRepository {
   Future<void> updateDocumentStatus(int id, String status) async {
     try {
       final options = await _getAuthOptions();
-      await _dio.patch('/documents/$id/status', data: {'status': status}, options: options);
+      await _dio.patch(
+        '/documents/$id/status',
+        data: {'status': status},
+        options: options,
+      );
     } on DioException catch (e) {
       final msg = e.response?.data?['message'] ?? 'Failed to update status.';
       throw Exception(msg);
@@ -271,9 +287,14 @@ class DocumentRepository {
   Future<void> bulkDeleteDocuments(List<int> ids) async {
     try {
       final options = await _getAuthOptions();
-      await _dio.post('/documents/bulk-delete', data: {'ids': ids}, options: options);
+      await _dio.post(
+        '/documents/bulk-delete',
+        data: {'ids': ids},
+        options: options,
+      );
     } on DioException catch (e) {
-      final msg = e.response?.data?['message'] ?? 'Failed to bulk delete documents.';
+      final msg =
+          e.response?.data?['message'] ?? 'Failed to bulk delete documents.';
       throw Exception(msg);
     }
   }
@@ -281,9 +302,14 @@ class DocumentRepository {
   Future<void> bulkUpdateStatus(List<int> ids, String status) async {
     try {
       final options = await _getAuthOptions();
-      await _dio.post('/documents/bulk-status', data: {'ids': ids, 'status': status}, options: options);
+      await _dio.post(
+        '/documents/bulk-status',
+        data: {'ids': ids, 'status': status},
+        options: options,
+      );
     } on DioException catch (e) {
-      final msg = e.response?.data?['message'] ?? 'Failed to bulk update status.';
+      final msg =
+          e.response?.data?['message'] ?? 'Failed to bulk update status.';
       throw Exception(msg);
     }
   }
@@ -291,9 +317,14 @@ class DocumentRepository {
   Future<void> bulkAddToPrintQueue(List<int> ids) async {
     try {
       final options = await _getAuthOptions();
-      await _dio.post('/documents/bulk-print', data: {'ids': ids}, options: options);
+      await _dio.post(
+        '/documents/bulk-print',
+        data: {'ids': ids},
+        options: options,
+      );
     } on DioException catch (e) {
-      final msg = e.response?.data?['message'] ?? 'Failed to bulk add to print queue.';
+      final msg =
+          e.response?.data?['message'] ?? 'Failed to bulk add to print queue.';
       throw Exception(msg);
     }
   }
@@ -301,9 +332,14 @@ class DocumentRepository {
   Future<void> bulkCopyDocuments(List<int> ids) async {
     try {
       final options = await _getAuthOptions();
-      await _dio.post('/documents/bulk-copy', data: {'ids': ids}, options: options);
+      await _dio.post(
+        '/documents/bulk-copy',
+        data: {'ids': ids},
+        options: options,
+      );
     } on DioException catch (e) {
-      final msg = e.response?.data?['message'] ?? 'Failed to bulk copy documents.';
+      final msg =
+          e.response?.data?['message'] ?? 'Failed to bulk copy documents.';
       throw Exception(msg);
     }
   }
@@ -319,7 +355,8 @@ class DocumentRepository {
           .map((d) => DocumentModel.fromJson(d as Map<String, dynamic>))
           .toList();
     } on DioException catch (e) {
-      final msg = e.response?.data?['message'] ?? 'Failed to fetch student documents.';
+      final msg =
+          e.response?.data?['message'] ?? 'Failed to fetch student documents.';
       throw Exception(msg);
     }
   }
@@ -342,10 +379,13 @@ class DocumentRepository {
         options: options,
       );
       return (response.data as List)
-          .map((r) => DocumentRequirementModel.fromJson(r as Map<String, dynamic>))
+          .map(
+            (r) => DocumentRequirementModel.fromJson(r as Map<String, dynamic>),
+          )
           .toList();
     } on DioException catch (e) {
-      final msg = e.response?.data?['message'] ?? 'Failed to fetch requirements.';
+      final msg =
+          e.response?.data?['message'] ?? 'Failed to fetch requirements.';
       throw Exception(msg);
     }
   }
@@ -353,10 +393,17 @@ class DocumentRepository {
   Future<RequirementsSettings> getRequirementsSettings() async {
     try {
       final options = await _getAuthOptions();
-      final response = await _dio.get('/requirements/settings', options: options);
-      return RequirementsSettings.fromJson(response.data as Map<String, dynamic>);
+      final response = await _dio.get(
+        '/requirements/settings',
+        options: options,
+      );
+      return RequirementsSettings.fromJson(
+        response.data as Map<String, dynamic>,
+      );
     } on DioException catch (e) {
-      final msg = e.response?.data?['message'] ?? 'Failed to fetch requirements settings.';
+      final msg =
+          e.response?.data?['message'] ??
+          'Failed to fetch requirements settings.';
       throw Exception(msg);
     }
   }
@@ -364,10 +411,17 @@ class DocumentRepository {
   Future<MissingRequirements> getMissingRequirements(int studentId) async {
     try {
       final options = await _getAuthOptions();
-      final response = await _dio.get('/requirements/missing/$studentId', options: options);
-      return MissingRequirements.fromJson(response.data as Map<String, dynamic>);
+      final response = await _dio.get(
+        '/requirements/missing/$studentId',
+        options: options,
+      );
+      return MissingRequirements.fromJson(
+        response.data as Map<String, dynamic>,
+      );
     } on DioException catch (e) {
-      final msg = e.response?.data?['message'] ?? 'Failed to fetch missing requirements.';
+      final msg =
+          e.response?.data?['message'] ??
+          'Failed to fetch missing requirements.';
       throw Exception(msg);
     }
   }
@@ -375,9 +429,14 @@ class DocumentRepository {
   Future<void> createRequirement(DocumentRequirementModel requirement) async {
     try {
       final options = await _getAuthOptions();
-      await _dio.post('/requirements', data: requirement.toJson(), options: options);
+      await _dio.post(
+        '/requirements',
+        data: requirement.toJson(),
+        options: options,
+      );
     } on DioException catch (e) {
-      final msg = e.response?.data?['message'] ?? 'Failed to create requirement.';
+      final msg =
+          e.response?.data?['message'] ?? 'Failed to create requirement.';
       throw Exception(msg);
     }
   }
@@ -385,9 +444,14 @@ class DocumentRepository {
   Future<void> updateRequirement(DocumentRequirementModel requirement) async {
     try {
       final options = await _getAuthOptions();
-      await _dio.put('/requirements/${requirement.id}', data: requirement.toJson(), options: options);
+      await _dio.put(
+        '/requirements/${requirement.id}',
+        data: requirement.toJson(),
+        options: options,
+      );
     } on DioException catch (e) {
-      final msg = e.response?.data?['message'] ?? 'Failed to update requirement.';
+      final msg =
+          e.response?.data?['message'] ?? 'Failed to update requirement.';
       throw Exception(msg);
     }
   }
@@ -397,23 +461,35 @@ class DocumentRepository {
       final options = await _getAuthOptions();
       await _dio.delete('/requirements/$id', options: options);
     } on DioException catch (e) {
-      final msg = e.response?.data?['message'] ?? 'Failed to delete requirement.';
+      final msg =
+          e.response?.data?['message'] ?? 'Failed to delete requirement.';
       throw Exception(msg);
     }
   }
 
-  Future<void> bulkUpdateRequirements(List<Map<String, dynamic>> requirements) async {
+  Future<void> bulkUpdateRequirements(
+    List<Map<String, dynamic>> requirements,
+  ) async {
     try {
       final options = await _getAuthOptions();
-      await _dio.put('/requirements/bulk', data: {'requirements': requirements}, options: options);
+      await _dio.put(
+        '/requirements/bulk',
+        data: {'requirements': requirements},
+        options: options,
+      );
     } on DioException catch (e) {
-      final msg = e.response?.data?['message'] ?? 'Failed to bulk update requirements.';
+      final msg =
+          e.response?.data?['message'] ?? 'Failed to bulk update requirements.';
       throw Exception(msg);
     }
   }
 
   // Folders
-  Future<List<FolderModel>> getFolders({int? studentId, int? parentId, String search = ''}) async {
+  Future<List<FolderModel>> getFolders({
+    int? studentId,
+    int? parentId,
+    String search = '',
+  }) async {
     try {
       final options = await _getAuthOptions();
       final response = await _dio.get(
@@ -437,15 +513,24 @@ class DocumentRepository {
   Future<FolderModel> getStudentFolder(int studentId) async {
     try {
       final options = await _getAuthOptions();
-      final response = await _dio.get('/folders/student/$studentId', options: options);
+      final response = await _dio.get(
+        '/folders/student/$studentId',
+        options: options,
+      );
       return FolderModel.fromJson(response.data as Map<String, dynamic>);
     } on DioException catch (e) {
-      final msg = e.response?.data?['message'] ?? 'Failed to fetch student folder.';
+      final msg =
+          e.response?.data?['message'] ?? 'Failed to fetch student folder.';
       throw Exception(msg);
     }
   }
 
-  Future<int> createFolder({required String name, int? parentId, int? studentId, String? category}) async {
+  Future<int> createFolder({
+    required String name,
+    int? parentId,
+    int? studentId,
+    String? category,
+  }) async {
     try {
       final options = await _getAuthOptions();
       final response = await _dio.post(
@@ -488,7 +573,11 @@ class DocumentRepository {
   Future<void> syncFolders(int studentId) async {
     try {
       final options = await _getAuthOptions();
-      await _dio.post('/folders/sync', data: {'studentId': studentId}, options: options);
+      await _dio.post(
+        '/folders/sync',
+        data: {'studentId': studentId},
+        options: options,
+      );
     } on DioException catch (e) {
       final msg = e.response?.data?['message'] ?? 'Failed to sync folders.';
       throw Exception(msg);
@@ -499,12 +588,16 @@ class DocumentRepository {
   Future<List<PrintQueueItem>> getPrintQueue() async {
     try {
       final options = await _getAuthOptions();
-      final response = await _dio.get('/documents/print-queue', options: options);
+      final response = await _dio.get(
+        '/documents/print-queue',
+        options: options,
+      );
       return (response.data as List)
           .map((i) => PrintQueueItem.fromJson(i as Map<String, dynamic>))
           .toList();
     } on DioException catch (e) {
-      final msg = e.response?.data?['message'] ?? 'Failed to fetch print queue.';
+      final msg =
+          e.response?.data?['message'] ?? 'Failed to fetch print queue.';
       throw Exception(msg);
     }
   }
@@ -512,9 +605,14 @@ class DocumentRepository {
   Future<void> addToPrintQueue(int documentId) async {
     try {
       final options = await _getAuthOptions();
-      await _dio.post('/documents/print-queue', data: {'documentId': documentId}, options: options);
+      await _dio.post(
+        '/documents/print-queue',
+        data: {'documentId': documentId},
+        options: options,
+      );
     } on DioException catch (e) {
-      final msg = e.response?.data?['message'] ?? 'Failed to add to print queue.';
+      final msg =
+          e.response?.data?['message'] ?? 'Failed to add to print queue.';
       throw Exception(msg);
     }
   }
@@ -524,7 +622,8 @@ class DocumentRepository {
       final options = await _getAuthOptions();
       await _dio.delete('/documents/print-queue/$queueId', options: options);
     } on DioException catch (e) {
-      final msg = e.response?.data?['message'] ?? 'Failed to remove from print queue.';
+      final msg =
+          e.response?.data?['message'] ?? 'Failed to remove from print queue.';
       throw Exception(msg);
     }
   }
@@ -534,7 +633,8 @@ class DocumentRepository {
       final options = await _getAuthOptions();
       await _dio.delete('/documents/print-queue/clear', options: options);
     } on DioException catch (e) {
-      final msg = e.response?.data?['message'] ?? 'Failed to clear print queue.';
+      final msg =
+          e.response?.data?['message'] ?? 'Failed to clear print queue.';
       throw Exception(msg);
     }
   }
@@ -544,7 +644,8 @@ class DocumentRepository {
       final options = await _getAuthOptions();
       await _dio.post('/documents/print-queue/print', options: options);
     } on DioException catch (e) {
-      final msg = e.response?.data?['message'] ?? 'Failed to log print list execution.';
+      final msg =
+          e.response?.data?['message'] ?? 'Failed to log print list execution.';
       throw Exception(msg);
     }
   }
@@ -558,7 +659,8 @@ class DocumentRepository {
           .map((i) => TrashDocumentModel.fromJson(i as Map<String, dynamic>))
           .toList();
     } on DioException catch (e) {
-      final msg = e.response?.data?['message'] ?? 'Failed to fetch Recycle Bin.';
+      final msg =
+          e.response?.data?['message'] ?? 'Failed to fetch Recycle Bin.';
       throw Exception(msg);
     }
   }
@@ -576,9 +678,14 @@ class DocumentRepository {
   Future<void> bulkRestoreDocuments(List<int> ids) async {
     try {
       final options = await _getAuthOptions();
-      await _dio.post('/documents/bulk-restore', data: {'ids': ids}, options: options);
+      await _dio.post(
+        '/documents/bulk-restore',
+        data: {'ids': ids},
+        options: options,
+      );
     } on DioException catch (e) {
-      final msg = e.response?.data?['message'] ?? 'Failed to bulk restore documents.';
+      final msg =
+          e.response?.data?['message'] ?? 'Failed to bulk restore documents.';
       throw Exception(msg);
     }
   }
@@ -588,7 +695,9 @@ class DocumentRepository {
       final options = await _getAuthOptions();
       await _dio.delete('/documents/$id/permanent', options: options);
     } on DioException catch (e) {
-      final msg = e.response?.data?['message'] ?? 'Failed to permanently delete document.';
+      final msg =
+          e.response?.data?['message'] ??
+          'Failed to permanently delete document.';
       throw Exception(msg);
     }
   }
@@ -596,9 +705,15 @@ class DocumentRepository {
   Future<void> bulkPermanentDeleteDocuments(List<int> ids) async {
     try {
       final options = await _getAuthOptions();
-      await _dio.post('/documents/bulk-permanent-delete', data: {'ids': ids}, options: options);
+      await _dio.post(
+        '/documents/bulk-permanent-delete',
+        data: {'ids': ids},
+        options: options,
+      );
     } on DioException catch (e) {
-      final msg = e.response?.data?['message'] ?? 'Failed to bulk permanently delete documents.';
+      final msg =
+          e.response?.data?['message'] ??
+          'Failed to bulk permanently delete documents.';
       throw Exception(msg);
     }
   }
@@ -619,11 +734,11 @@ class DocumentRepository {
         try {
           // If response is bytes, we might need to decode it to string to parse JSON
           if (e.response!.data is List<int>) {
-             final str = utf8.decode(e.response!.data as List<int>);
-             final json = jsonDecode(str);
-             msg = json['message'] ?? msg;
+            final str = utf8.decode(e.response!.data as List<int>);
+            final json = jsonDecode(str);
+            msg = json['message'] ?? msg;
           } else if (e.response!.data is Map) {
-             msg = e.response!.data['message'] ?? msg;
+            msg = e.response!.data['message'] ?? msg;
           }
         } catch (_) {}
       }
@@ -631,4 +746,3 @@ class DocumentRepository {
     }
   }
 }
-

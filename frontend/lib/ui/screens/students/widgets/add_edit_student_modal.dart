@@ -74,7 +74,16 @@ class _AddEditStudentModalState extends ConsumerState<AddEditStudentModal> {
   List<dynamic>? _loadedEnrollments;
 
   static const _statuses = ['Enrolled', 'Graduated', 'Transferred', 'Dropped'];
-  static const _extSuggestions = ['N/A', 'JR.', 'SR.', 'II', 'III', 'IV', 'V', 'VI'];
+  static const _extSuggestions = [
+    'N/A',
+    'JR.',
+    'SR.',
+    'II',
+    'III',
+    'IV',
+    'V',
+    'VI',
+  ];
 
   int _currentStep = 0;
   String? _selectedOcrDocType;
@@ -230,7 +239,12 @@ class _AddEditStudentModalState extends ConsumerState<AddEditStudentModal> {
           textAlign: TextAlign.center,
           style: TextStyle(fontSize: 14, color: AppColors.textSecondary),
         ),
-        actionsPadding: const EdgeInsets.only(left: 16, right: 16, bottom: 20, top: 8),
+        actionsPadding: const EdgeInsets.only(
+          left: 16,
+          right: 16,
+          bottom: 20,
+          top: 8,
+        ),
         actions: [
           SizedBox(
             width: double.infinity,
@@ -242,16 +256,21 @@ class _AddEditStudentModalState extends ConsumerState<AddEditStudentModal> {
                     style: OutlinedButton.styleFrom(
                       side: const BorderSide(color: AppColors.primaryGreen),
                       shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(AppSizes.radiusMedium),
+                        borderRadius: BorderRadius.circular(
+                          AppSizes.radiusMedium,
+                        ),
                       ),
                       padding: const EdgeInsets.symmetric(vertical: 12),
                     ),
-                    child: const Text('SF9\nReport Card',
-                        textAlign: TextAlign.center,
-                        style: TextStyle(
-                            fontSize: 13,
-                            fontWeight: FontWeight.bold,
-                            color: AppColors.primaryGreen)),
+                    child: const Text(
+                      'SF9\nReport Card',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.bold,
+                        color: AppColors.primaryGreen,
+                      ),
+                    ),
                   ),
                 ),
                 const SizedBox(width: 12),
@@ -261,13 +280,20 @@ class _AddEditStudentModalState extends ConsumerState<AddEditStudentModal> {
                     style: FilledButton.styleFrom(
                       backgroundColor: AppColors.primaryGreen,
                       shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(AppSizes.radiusMedium),
+                        borderRadius: BorderRadius.circular(
+                          AppSizes.radiusMedium,
+                        ),
                       ),
                       padding: const EdgeInsets.symmetric(vertical: 12),
                     ),
-                    child: const Text('SF10\nPermanent Record',
-                        textAlign: TextAlign.center,
-                        style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
+                    child: const Text(
+                      'SF10\nPermanent Record',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
                   ),
                 ),
               ],
@@ -305,11 +331,7 @@ class _AddEditStudentModalState extends ConsumerState<AddEditStudentModal> {
     try {
       final ocrResult = await ref
           .read(ocrProvider.notifier)
-          .processDocument(
-            file: file,
-            fileName: fileName,
-            docType: docType,
-          );
+          .processDocument(file: file, fileName: fileName, docType: docType);
       if (!mounted || ocrResult == null) return;
       setState(() {
         if (ocrResult.lrn.isNotEmpty) _lrnController.text = ocrResult.lrn;
@@ -414,10 +436,7 @@ class _AddEditStudentModalState extends ConsumerState<AddEditStudentModal> {
         title: const Text(
           'Incomplete Details',
           textAlign: TextAlign.center,
-          style: TextStyle(
-            fontWeight: FontWeight.bold,
-            fontSize: 18,
-          ),
+          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
         ),
         content: Text(
           message,
@@ -453,7 +472,10 @@ class _AddEditStudentModalState extends ConsumerState<AddEditStudentModal> {
     final fnErr = _validateRequired(_firstNameController.text, 'First name');
     final lnErr = _validateRequired(_lastNameController.text, 'Last name');
 
-    if (lrnErr != null || fnErr != null || lnErr != null || _selectedDob == null) {
+    if (lrnErr != null ||
+        fnErr != null ||
+        lnErr != null ||
+        _selectedDob == null) {
       setState(() => _currentStep = widget.student != null ? 0 : 1);
       _studentFormKey.currentState?.validate();
       // Build a descriptive message listing all missing fields
@@ -502,9 +524,9 @@ class _AddEditStudentModalState extends ConsumerState<AddEditStudentModal> {
       // populated in edit mode, unlike widget.student!.enrollments which may be null.
       final enrollments = _loadedEnrollments;
       if (enrollments != null && enrollments.isNotEmpty) {
-        final sameYearEnrollments = enrollments.where(
-          (e) => e.academicYearId == _selectedAcademicYearId,
-        ).toList();
+        final sameYearEnrollments = enrollments
+            .where((e) => e.academicYearId == _selectedAcademicYearId)
+            .toList();
         if (sameYearEnrollments.isNotEmpty) {
           final existingMaxGrade = sameYearEnrollments
               .map((e) => e.gradeLevel as int)
@@ -596,7 +618,8 @@ class _AddEditStudentModalState extends ConsumerState<AddEditStudentModal> {
         // Cache the enrollment list for use in validation
         if (_loadedEnrollments == null && fullStudent.enrollments != null) {
           Future.microtask(() {
-            if (mounted) setState(() => _loadedEnrollments = fullStudent.enrollments);
+            if (mounted)
+              setState(() => _loadedEnrollments = fullStudent.enrollments);
           });
         }
         if (fullStudent.enrollments != null &&
@@ -639,14 +662,14 @@ class _AddEditStudentModalState extends ConsumerState<AddEditStudentModal> {
     double maxDialogWidth = isMobile ? 380 : 620;
 
     return CustomModal(
-        title: widget.student != null ? 'Update Student Record' : 'Add New Student',
-        icon: widget.student != null ? Icons.edit : Icons.person_add,
-        maxWidth: maxDialogWidth,
-        onClose: _confirmClose,
+      title: widget.student != null
+          ? 'Update Student Record'
+          : 'Add New Student',
+      icon: widget.student != null ? Icons.edit : Icons.person_add,
+      maxWidth: maxDialogWidth,
+      onClose: _confirmClose,
       content: ConstrainedBox(
-        constraints: BoxConstraints(
-          maxHeight: dialogHeight,
-        ),
+        constraints: BoxConstraints(maxHeight: dialogHeight),
         child: Padding(
           padding: EdgeInsets.all(isMobile ? 12 : AppSizes.p24),
           child: _buildManualForm(
@@ -690,13 +713,17 @@ class _AddEditStudentModalState extends ConsumerState<AddEditStudentModal> {
               color: AppColors.primaryGreen.withValues(alpha: 0.07),
               borderRadius: BorderRadius.circular(AppSizes.radiusMedium),
               border: Border.all(
-                  color: AppColors.primaryGreen.withValues(alpha: 0.25)),
+                color: AppColors.primaryGreen.withValues(alpha: 0.25),
+              ),
             ),
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Icon(Icons.auto_awesome,
-                    size: 18, color: AppColors.primaryGreen),
+                const Icon(
+                  Icons.auto_awesome,
+                  size: 18,
+                  color: AppColors.primaryGreen,
+                ),
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
@@ -704,7 +731,9 @@ class _AddEditStudentModalState extends ConsumerState<AddEditStudentModal> {
                     'detected automatically from the filename. If it cannot '
                     'be detected, you will be asked to confirm.',
                     style: const TextStyle(
-                        fontSize: 12, color: AppColors.textSecondary),
+                      fontSize: 12,
+                      color: AppColors.textSecondary,
+                    ),
                   ),
                 ),
               ],
@@ -719,8 +748,6 @@ class _AddEditStudentModalState extends ConsumerState<AddEditStudentModal> {
           ),
 
           const SizedBox(height: AppSizes.p24),
-
-
         ],
       ),
     );
@@ -753,620 +780,680 @@ class _AddEditStudentModalState extends ConsumerState<AddEditStudentModal> {
     return Theme(
       data: compactTheme,
       child: Stepper(
-          type: isMobile ? StepperType.vertical : StepperType.horizontal,
-          currentStep: _currentStep,
-          onStepTapped: (step) {
-            final isEdit = widget.student != null;
-            if (step > _currentStep) {
-               final detailsStepIndex = isEdit ? 0 : 1;
-               if (_currentStep == detailsStepIndex) {
-                 if (!(_studentFormKey.currentState?.validate() ?? false)) return;
-               }
+        type: isMobile ? StepperType.vertical : StepperType.horizontal,
+        currentStep: _currentStep,
+        onStepTapped: (step) {
+          final isEdit = widget.student != null;
+          if (step > _currentStep) {
+            final detailsStepIndex = isEdit ? 0 : 1;
+            if (_currentStep == detailsStepIndex) {
+              if (!(_studentFormKey.currentState?.validate() ?? false)) return;
+            }
+          }
+          setState(() {
+            _currentStep = step;
+          });
+        },
+        onStepCancel: () {
+          if (_currentStep > 0) {
+            setState(() {
+              _currentStep -= 1;
+            });
+          } else {
+            _confirmClose();
+          }
+        },
+        onStepContinue: () {
+          final isEdit = widget.student != null;
+          final isLastStep = _currentStep == (isEdit ? 1 : 2);
+          final detailsStepIndex = isEdit ? 0 : 1;
+          if (isLastStep) {
+            _handleSave();
+          } else {
+            if (_currentStep == detailsStepIndex) {
+              if (!(_studentFormKey.currentState?.validate() ?? false)) return;
             }
             setState(() {
-              _currentStep = step;
+              _currentStep += 1;
             });
-          },
-          onStepCancel: () {
-            if (_currentStep > 0) {
-              setState(() {
-                _currentStep -= 1;
-              });
-            } else {
-              _confirmClose();
-            }
-          },
-          onStepContinue: () {
-            final isEdit = widget.student != null;
-            final isLastStep = _currentStep == (isEdit ? 1 : 2);
-            final detailsStepIndex = isEdit ? 0 : 1;
-            if (isLastStep) {
-              _handleSave();
-            } else {
-              if (_currentStep == detailsStepIndex) {
-                 if (!(_studentFormKey.currentState?.validate() ?? false)) return;
-              }
-              setState(() {
-                _currentStep += 1;
-              });
-            }
-          },
-          controlsBuilder: (context, details) {
-            final isEdit = widget.student != null;
-            final isLastStep = _currentStep == (isEdit ? 1 : 2);
-            final isOcrStep = !isEdit && _currentStep == 0;
-            return Padding(
-              padding: const EdgeInsets.only(top: 24.0),
-              child: Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                crossAxisAlignment: WrapCrossAlignment.center,
-                children: [
-                  if (_currentStep > 0)
-                    OutlinedButton(
-                      onPressed: details.onStepCancel ?? () {},
-                      child: const Text('BACK'),
-                    ),
-                  if (isOcrStep && !ocrState.isLoading)
-                    OutlinedButton(
-                      onPressed: details.onStepContinue ?? () {},
-                      child: const Text('Skip OCR & Enter Manually'),
-                    )
-                  else if (!isOcrStep)
-                    PrimaryButton(
-                      label: isLastStep ? (isEdit ? 'UPDATE' : 'SAVE') : 'NEXT',
-                      isLoading: _isLoading && isLastStep,
-                      onPressed: details.onStepContinue ?? () {},
-                    ),
-                  if (!isEdit && _ocrScannedFile != null && !isOcrStep) ...[
-                    const SizedBox(width: 8),
-                    InkWell(
-                      onTap: () => setState(() {
-                        _lrnController.clear();
-                        _firstNameController.clear();
-                        _middleNameController.clear();
-                        _lastNameController.clear();
-                        _extController.clear();
-                        _currentStep = 0;
-                      }),
-                      child: const Padding(
-                        padding: EdgeInsets.symmetric(horizontal: 4, vertical: 8),
-                        child: Text(
-                          'RE-SCAN',
-                          style: TextStyle(
-                            fontSize: 13,
-                            color: AppColors.primaryGreen,
-                            decoration: TextDecoration.underline,
-                            decorationColor: AppColors.primaryGreen,
-                            fontWeight: FontWeight.w600,
-                          ),
+          }
+        },
+        controlsBuilder: (context, details) {
+          final isEdit = widget.student != null;
+          final isLastStep = _currentStep == (isEdit ? 1 : 2);
+          final isOcrStep = !isEdit && _currentStep == 0;
+          return Padding(
+            padding: const EdgeInsets.only(top: 24.0),
+            child: Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              crossAxisAlignment: WrapCrossAlignment.center,
+              children: [
+                if (_currentStep > 0)
+                  OutlinedButton(
+                    onPressed: details.onStepCancel ?? () {},
+                    child: const Text('BACK'),
+                  ),
+                if (isOcrStep && !ocrState.isLoading)
+                  OutlinedButton(
+                    onPressed: details.onStepContinue ?? () {},
+                    child: const Text('Skip OCR & Enter Manually'),
+                  )
+                else if (!isOcrStep)
+                  PrimaryButton(
+                    label: isLastStep ? (isEdit ? 'UPDATE' : 'SAVE') : 'NEXT',
+                    isLoading: _isLoading && isLastStep,
+                    onPressed: details.onStepContinue ?? () {},
+                  ),
+                if (!isEdit && _ocrScannedFile != null && !isOcrStep) ...[
+                  const SizedBox(width: 8),
+                  InkWell(
+                    onTap: () => setState(() {
+                      _lrnController.clear();
+                      _firstNameController.clear();
+                      _middleNameController.clear();
+                      _lastNameController.clear();
+                      _extController.clear();
+                      _currentStep = 0;
+                    }),
+                    child: const Padding(
+                      padding: EdgeInsets.symmetric(horizontal: 4, vertical: 8),
+                      child: Text(
+                        'RE-SCAN',
+                        style: TextStyle(
+                          fontSize: 13,
+                          color: AppColors.primaryGreen,
+                          decoration: TextDecoration.underline,
+                          decorationColor: AppColors.primaryGreen,
+                          fontWeight: FontWeight.w600,
                         ),
                       ),
                     ),
-                    const SizedBox(width: 4),
-                    InkWell(
-                      onTap: () {
-                        if (_ocrScannedFile != null) {
-                          showDocumentPreview(
-                            context: context,
-                            localFile: _ocrScannedFile!,
-                            localFileName: _ocrScannedFile!.path.split('/').last,
-                          );
-                        }
-                      },
-                      child: const Padding(
-                        padding: EdgeInsets.symmetric(horizontal: 4, vertical: 8),
-                        child: Text(
-                          'VIEW DOC',
-                          style: TextStyle(
-                            fontSize: 13,
-                            color: AppColors.primaryGreen,
-                            decoration: TextDecoration.underline,
-                            decorationColor: AppColors.primaryGreen,
-                            fontWeight: FontWeight.w600,
-                          ),
+                  ),
+                  const SizedBox(width: 4),
+                  InkWell(
+                    onTap: () {
+                      if (_ocrScannedFile != null) {
+                        showDocumentPreview(
+                          context: context,
+                          localFile: _ocrScannedFile!,
+                          localFileName: _ocrScannedFile!.path.split('/').last,
+                        );
+                      }
+                    },
+                    child: const Padding(
+                      padding: EdgeInsets.symmetric(horizontal: 4, vertical: 8),
+                      child: Text(
+                        'VIEW DOC',
+                        style: TextStyle(
+                          fontSize: 13,
+                          color: AppColors.primaryGreen,
+                          decoration: TextDecoration.underline,
+                          decorationColor: AppColors.primaryGreen,
+                          fontWeight: FontWeight.w600,
                         ),
                       ),
                     ),
-                  ],
+                  ),
                 ],
-              ),
-            );
-          },
-          steps: [
-            if (widget.student == null)
-              Step(
-                title: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(Icons.document_scanner_outlined, size: isMobile ? 14 : 18, color: AppColors.primaryGreen),
-                    if (!isMobile) const SizedBox(width: 4),
-                    Text('OCR', style: TextStyle(fontSize: isMobile ? 12 : 14, fontWeight: FontWeight.bold)),
-                  ],
-                ),
-                content: _buildOcrStep(),
-                isActive: _currentStep >= 0,
-                state: _currentStep > 0 ? StepState.complete : StepState.indexed,
-              ),
+              ],
+            ),
+          );
+        },
+        steps: [
+          if (widget.student == null)
             Step(
               title: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Icon(Icons.person, size: isMobile ? 14 : 18, color: AppColors.primaryGreen),
+                  Icon(
+                    Icons.document_scanner_outlined,
+                    size: isMobile ? 14 : 18,
+                    color: AppColors.primaryGreen,
+                  ),
                   if (!isMobile) const SizedBox(width: 4),
-                  Text('Student', style: TextStyle(fontSize: isMobile ? 12 : 14, fontWeight: FontWeight.bold)),
+                  Text(
+                    'OCR',
+                    style: TextStyle(
+                      fontSize: isMobile ? 12 : 14,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
                 ],
               ),
-              isActive: _currentStep >= (widget.student != null ? 0 : 1),
-              state: _currentStep > (widget.student != null ? 0 : 1) ? StepState.complete : StepState.indexed,
-              content: Form(
-                key: _studentFormKey,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                        // ── Learner Reference Information section label ──
-                        _SectionLabel(label: "LEARNER REFERENCE INFORMATION"),
-                        const SizedBox(height: AppSizes.p8),
-                        
-                        // LRN
-                        TextFormField(
-                          controller: _lrnController,
-                          keyboardType: TextInputType.number,
-                          maxLength: 12,
-                          inputFormatters: [
-                            FilteringTextInputFormatter.digitsOnly,
-                          ],
-                          validator: _validateLRN,
-                          decoration: const InputDecoration(
-                            labelText: 'LRN (Learner Reference Number)',
-                            hintText: '12-digit number',
-                            prefixIcon: Icon(Icons.pin_outlined),
-                            counterText: '',
-                          ),
-                        ),
-                        const SizedBox(height: AppSizes.p16),
+              content: _buildOcrStep(),
+              isActive: _currentStep >= 0,
+              state: _currentStep > 0 ? StepState.complete : StepState.indexed,
+            ),
+          Step(
+            title: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  Icons.person,
+                  size: isMobile ? 14 : 18,
+                  color: AppColors.primaryGreen,
+                ),
+                if (!isMobile) const SizedBox(width: 4),
+                Text(
+                  'Student',
+                  style: TextStyle(
+                    fontSize: isMobile ? 12 : 14,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ],
+            ),
+            isActive: _currentStep >= (widget.student != null ? 0 : 1),
+            state: _currentStep > (widget.student != null ? 0 : 1)
+                ? StepState.complete
+                : StepState.indexed,
+            content: Form(
+              key: _studentFormKey,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // ── Learner Reference Information section label ──
+                  _SectionLabel(label: "LEARNER REFERENCE INFORMATION"),
+                  const SizedBox(height: AppSizes.p8),
 
-                        // ── NAME section label ──
-                        _SectionLabel(label: 'NAME'),
-                        const SizedBox(height: AppSizes.p8),
+                  // LRN
+                  TextFormField(
+                    controller: _lrnController,
+                    keyboardType: TextInputType.number,
+                    maxLength: 12,
+                    inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                    validator: _validateLRN,
+                    decoration: const InputDecoration(
+                      labelText: 'LRN (Learner Reference Number)',
+                      hintText: '12-digit number',
+                      prefixIcon: Icon(Icons.pin_outlined),
+                      counterText: '',
+                    ),
+                  ),
+                  const SizedBox(height: AppSizes.p16),
 
-                        // Names & Ext — order: First Name | Ext | Middle Name (row 1), Last Name (row 2)
-                        LayoutBuilder(
-                          builder: (ctx, c) {
-                            final wide = c.maxWidth > 480;
-                            if (wide) {
-                              return Column(
-                                children: [
-                                  Row(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      // First Name
-                                      Expanded(
-                                        flex: 3,
-                                        child: TextFormField(
-                                          controller: _firstNameController,
-                                          textCapitalization: TextCapitalization.characters,
-                                          inputFormatters: [_UpperCaseWordsFormatter()],
-                                          validator: (v) => _validateRequired(
-                                            v,
-                                            'First name',
-                                          ),
-                                          decoration: const InputDecoration(
-                                            labelText: 'FIRST NAME',
-                                            prefixIcon: Icon(
-                                              Icons.badge_outlined,
-                                            ),
-                                          ),
-                                        ),
-                                      ),
-                                      const SizedBox(width: AppSizes.p12),
-                                      // Extension (right after first name)
-                                      Expanded(
-                                        flex: 2,
-                                        child: _ExtensionNameField(
-                                          controller: _extController,
-                                          suggestions: _extSuggestions,
-                                        ),
-                                      ),
-                                      const SizedBox(width: AppSizes.p12),
-                                      // Middle Name
-                                      Expanded(
-                                        flex: 3,
-                                        child: TextFormField(
-                                          controller: _middleNameController,
-                                          textCapitalization: TextCapitalization.characters,
-                                          inputFormatters: [_UpperCaseWordsFormatter()],
-                                          decoration: const InputDecoration(
-                                            labelText: 'MIDDLE NAME (optional)',
-                                            prefixIcon: Icon(
-                                              Icons.badge_outlined,
-                                            ),
-                                          ),
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                  const SizedBox(height: AppSizes.p12),
-                                  // Last Name — full width
-                                  TextFormField(
-                                    controller: _lastNameController,
-                                    textCapitalization: TextCapitalization.characters,
-                                    inputFormatters: [_UpperCaseWordsFormatter()],
-                                    validator: (v) =>
-                                        _validateRequired(v, 'Last name'),
-                                    decoration: const InputDecoration(
-                                      labelText: 'LAST NAME',
-                                      prefixIcon: Icon(
-                                        Icons.badge_outlined,
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              );
-                            } else {
-                              return Column(
-                                children: [
-                                  TextFormField(
+                  // ── NAME section label ──
+                  _SectionLabel(label: 'NAME'),
+                  const SizedBox(height: AppSizes.p8),
+
+                  // Names & Ext — order: First Name | Ext | Middle Name (row 1), Last Name (row 2)
+                  LayoutBuilder(
+                    builder: (ctx, c) {
+                      final wide = c.maxWidth > 480;
+                      if (wide) {
+                        return Column(
+                          children: [
+                            Row(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                // First Name
+                                Expanded(
+                                  flex: 3,
+                                  child: TextFormField(
                                     controller: _firstNameController,
-                                    textCapitalization: TextCapitalization.characters,
-                                    inputFormatters: [_UpperCaseWordsFormatter()],
+                                    textCapitalization:
+                                        TextCapitalization.characters,
+                                    inputFormatters: [
+                                      _UpperCaseWordsFormatter(),
+                                    ],
                                     validator: (v) =>
                                         _validateRequired(v, 'First name'),
                                     decoration: const InputDecoration(
                                       labelText: 'FIRST NAME',
+                                      prefixIcon: Icon(Icons.badge_outlined),
                                     ),
                                   ),
-                                  const SizedBox(height: AppSizes.p12),
-                                  _ExtensionNameField(
+                                ),
+                                const SizedBox(width: AppSizes.p12),
+                                // Extension (right after first name)
+                                Expanded(
+                                  flex: 2,
+                                  child: _ExtensionNameField(
                                     controller: _extController,
                                     suggestions: _extSuggestions,
                                   ),
-                                  const SizedBox(height: AppSizes.p12),
-                                  TextFormField(
+                                ),
+                                const SizedBox(width: AppSizes.p12),
+                                // Middle Name
+                                Expanded(
+                                  flex: 3,
+                                  child: TextFormField(
                                     controller: _middleNameController,
-                                    textCapitalization: TextCapitalization.characters,
-                                    inputFormatters: [_UpperCaseWordsFormatter()],
+                                    textCapitalization:
+                                        TextCapitalization.characters,
+                                    inputFormatters: [
+                                      _UpperCaseWordsFormatter(),
+                                    ],
                                     decoration: const InputDecoration(
-                                      labelText: 'MIDDLE NAME',
+                                      labelText: 'MIDDLE NAME (optional)',
+                                      prefixIcon: Icon(Icons.badge_outlined),
                                     ),
                                   ),
-                                  const SizedBox(height: AppSizes.p12),
-                                  TextFormField(
-                                    controller: _lastNameController,
-                                    textCapitalization: TextCapitalization.characters,
-                                    inputFormatters: [_UpperCaseWordsFormatter()],
-                                    validator: (v) =>
-                                        _validateRequired(v, 'Last name'),
-                                    decoration: const InputDecoration(
-                                      labelText: 'LAST NAME',
-                                    ),
-                                  ),
-                                ],
-                              );
-                            }
-                          },
-                        ),
-                        const SizedBox(height: AppSizes.p16),
-
-                        // ── PERSONAL INFORMATION section label ──
-                        _SectionLabel(label: 'PERSONAL INFORMATION'),
-                        const SizedBox(height: AppSizes.p8),
-
-                        // Sex
-                        DropdownButtonFormField<String>(
-                          key: ValueKey('sex_$_selectedSex'),
-                          initialValue: _selectedSex,
-                          validator: (v) =>
-                              v == null ? 'Please select sex.' : null,
-                          isExpanded: true,
-                          decoration: const InputDecoration(
-                            labelText: 'SEX',
-                            prefixIcon: Icon(Icons.wc),
-                          ),
-                          items: ['Male', 'Female']
-                              .map(
-                                (s) =>
-                                    DropdownMenuItem(value: s, child: Text(s)),
-                              )
-                              .toList(),
-                          onChanged: (v) => setState(() => _selectedSex = v!),
-                        ),
-                        const SizedBox(height: AppSizes.p12),
-
-                        // DOB
-                        GestureDetector(
-                          onTap: _selectDate,
-                          child: InputDecorator(
-                            decoration: InputDecoration(
-                              labelText: 'DATE OF BIRTH',
-                              prefixIcon: const Icon(
-                                Icons.calendar_today,
-                                color: AppColors.textSecondary,
-                              ),
-                              errorText: null,
+                                ),
+                              ],
                             ),
-                            child: Text(
-                              _selectedDob == null
-                                  ? 'Select date…'
-                                  : '${_selectedDob!.year}-'
-                                        '${_selectedDob!.month.toString().padLeft(2, '0')}-'
-                                        '${_selectedDob!.day.toString().padLeft(2, '0')}',
-                              style: TextStyle(
-                                color: _selectedDob == null
-                                    ? AppColors.textMuted
-                                    : AppColors.textPrimary,
-                                fontSize: 16,
-                              ),
-                            ),
-                          ),
-                        ),
-                        const SizedBox(height: AppSizes.p16),
-
-                        // ── 4Ps STATUS section label ──
-                        _SectionLabel(label: 'GOVERNMENT AID STATUS'),
-                        const SizedBox(height: AppSizes.p8),
-
-                        // 4Ps Toggle
-                        Container(
-                          decoration: BoxDecoration(
-                            color: _is4ps
-                                ? Colors.deepPurple.withValues(alpha: 0.06)
-                                : Colors.grey.shade50,
-                            borderRadius: BorderRadius.circular(AppSizes.radiusMedium),
-                            border: Border.all(
-                              color: _is4ps
-                                  ? Colors.deepPurple.withValues(alpha: 0.3)
-                                  : Colors.grey.shade200,
-                            ),
-                          ),
-                          child: SwitchListTile(
-                            value: _is4ps,
-                            onChanged: (val) => setState(() => _is4ps = val),
-                            activeColor: Colors.deepPurple,
-                            title: const Text(
-                              '4Ps Beneficiary',
-                              style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
-                            ),
-                            subtitle: Text(
-                              _is4ps
-                                  ? 'Student is a 4Ps (Pantawid Pamilyang Pilipino Program) beneficiary'
-                                  : 'Student is NOT a 4Ps beneficiary',
-                              style: TextStyle(
-                                fontSize: 11,
-                                color: _is4ps ? Colors.deepPurple.shade600 : AppColors.textSecondary,
-                              ),
-                            ),
-                            secondary: Icon(
-                              Icons.family_restroom,
-                              color: _is4ps ? Colors.deepPurple : Colors.grey.shade400,
-                            ),
-                            dense: true,
-                            contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-                          ),
-                        ),
-                ],
-              ),
-              ),
-            ),
-            Step(
-              title: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(Icons.school, size: isMobile ? 14 : 18, color: AppColors.primaryGreen),
-                  if (!isMobile) const SizedBox(width: 4),
-                  Text('Enrollment', style: TextStyle(fontSize: isMobile ? 12 : 14, fontWeight: FontWeight.bold)),
-                ],
-              ),
-              isActive: _currentStep >= (widget.student != null ? 1 : 2),
-              state: _currentStep > (widget.student != null ? 1 : 2) ? StepState.complete : StepState.indexed,
-              content: Form(
-                key: _enrollmentFormKey,
-                child: Column(
-                  children: [
-                        yearsAsync.when(
-                          data: (years) {
-                            // Auto-default: pick current/most-recent active academic year for new students
-                            if (!isEdit && _selectedAcademicYearId == null && years.isNotEmpty) {
-                              final active = years.where((y) => y.status.toLowerCase() == 'active').toList();
-                              final candidate = active.isNotEmpty ? active.last : years.last;
-                              Future.microtask(() {
-                                if (mounted && _selectedAcademicYearId == null) {
-                                  setState(() => _selectedAcademicYearId = candidate.id);
-                                }
-                              });
-                            }
-                            return DropdownButtonFormField<int>(
-                              key: ValueKey('academic_$_selectedAcademicYearId'),
-                              initialValue: _selectedAcademicYearId,
-                              decoration: const InputDecoration(
-                                labelText: 'Academic Year',
-                                prefixIcon: Icon(Icons.calendar_today),
-                              ),
-                              items: years
-                                  .map(
-                                    (y) => DropdownMenuItem<int>(
-                                      value: y.id,
-                                      child: Text(y.yearRange),
-                                    ),
-                                  )
-                                  .toList(),
-                              onChanged: (val) {
-                                setState(() {
-                                  _selectedAcademicYearId = val;
-                                  _selectedSectionId = null;
-                                });
-                              },
-                              validator: (v) => v == null
-                                  ? 'Academic year is required.'
-                                  : null,
-                            );
-                          },
-                          loading: () =>
-                              const Center(child: CircularProgressIndicator()),
-                          error: (err, _) => Text(
-                            'Error: $err',
-                            style: const TextStyle(color: Colors.red),
-                          ),
-                        ),
-                        const SizedBox(height: AppSizes.p12),
-
-                        gradeLevelsAsync.when(
-                          data: (grades) {
-                            return DropdownButtonFormField<int>(
-                              key: ValueKey('grade_$_selectedGradeLevel'),
-                              initialValue: _selectedGradeLevel,
-                              decoration: const InputDecoration(
-                                labelText: 'Grade Level',
-                                prefixIcon: Icon(Icons.grade),
-                              ),
-                              items: grades
-                                  .map(
-                                    (g) => DropdownMenuItem<int>(
-                                      value: g.level,
-                                      child: Text(g.name),
-                                    ),
-                                  )
-                                  .toList(),
-                              onChanged: (val) {
-                                setState(() {
-                                  _selectedGradeLevel = val;
-                                  _selectedSectionId = null;
-                                });
-                              },
+                            const SizedBox(height: AppSizes.p12),
+                            // Last Name — full width
+                            TextFormField(
+                              controller: _lastNameController,
+                              textCapitalization: TextCapitalization.characters,
+                              inputFormatters: [_UpperCaseWordsFormatter()],
                               validator: (v) =>
-                                  v == null ? 'Grade level is required.' : null,
-                            );
-                          },
-                          loading: () =>
-                              const Center(child: CircularProgressIndicator()),
-                          error: (err, _) => Text(
-                            'Error: $err',
-                            style: const TextStyle(color: Colors.red),
-                          ),
-                        ),
-                        const SizedBox(height: AppSizes.p12),
-
-                        sectionsAsync.when(
-                          data: (sections) {
-                            final filtered = sections
-                                .where(
-                                  (sec) =>
-                                      sec.academicYearId ==
-                                          _selectedAcademicYearId &&
-                                      sec.gradeLevel == _selectedGradeLevel,
-                                )
-                                .toList();
-
-                            final matches = filtered.where((s) => s.id == _selectedSectionId);
-                            final initialSectionName = matches.isNotEmpty ? matches.first.name : '';
-
-                            // Key based on grade+year ensures Autocomplete fully rebuilds
-                            // when grade level or academic year changes — fixes the bug
-                            // where user had to type and erase before dropdown refreshed.
-                            final autocompleteKey = ValueKey(
-                              'section_${_selectedGradeLevel}_${_selectedAcademicYearId}',
-                            );
-
-                            return Autocomplete<SectionModel>(
-                              key: autocompleteKey,
-                              initialValue: TextEditingValue(text: initialSectionName),
-                              displayStringForOption: (sec) => sec.name,
-                              optionsBuilder: (textEditingValue) {
-                                if (textEditingValue.text.isEmpty) {
-                                  return filtered;
-                                }
-                                return filtered.where((sec) => sec.name
-                                    .toLowerCase()
-                                    .contains(textEditingValue.text.toLowerCase()));
-                              },
-                              onSelected: (sec) {
-                                setState(() => _selectedSectionId = sec.id);
-                              },
-                              fieldViewBuilder: (context, controller, focusNode, onFieldSubmitted) {
-                                return TextFormField(
-                                  controller: controller,
-                                  focusNode: focusNode,
-                                  decoration: const InputDecoration(
-                                    labelText: 'Section (Type or Select)',
-                                    prefixIcon: Icon(Icons.segment),
-                                    suffixIcon: Icon(Icons.arrow_drop_down),
-                                  ),
-                                  onChanged: (val) {
-                                    if (val.isEmpty) {
-                                      setState(() => _selectedSectionId = null);
-                                    } else {
-                                      final exactMatches = filtered.where((s) => s.name.toLowerCase() == val.toLowerCase());
-                                      setState(() => _selectedSectionId = exactMatches.isNotEmpty ? exactMatches.first.id : null);
-                                    }
-                                  },
-                                  validator: (v) {
-                                    if (v == null || v.isEmpty || _selectedSectionId == null) {
-                                      return 'Please select a valid section.';
-                                    }
-                                    return null;
-                                  },
-                                );
-                              },
-                            );
-                          },
-                          loading: () =>
-                              const Center(child: CircularProgressIndicator()),
-                          error: (err, _) => Text(
-                            'Error: $err',
-                            style: const TextStyle(color: Colors.red),
-                          ),
-                        ),
-
-                        if (_selectedGradeLevel != null &&
-                            _selectedGradeLevel! >= 11) ...[
-                          const SizedBox(height: AppSizes.p12),
-                          TextFormField(
-                            initialValue: _trackStrand,
-                            decoration: const InputDecoration(
-                              labelText: 'Track & Strand (for SHS)',
-                              prefixIcon: Icon(Icons.school_outlined),
+                                  _validateRequired(v, 'Last name'),
+                              decoration: const InputDecoration(
+                                labelText: 'LAST NAME',
+                                prefixIcon: Icon(Icons.badge_outlined),
+                              ),
                             ),
-                            onChanged: (val) => _trackStrand =
-                                val.trim().isEmpty ? null : val.trim(),
-                          ),
-                        ],
-
-                        if (isEdit) ...[
-                          const SizedBox(height: AppSizes.p12),
-                          DropdownButtonFormField<String>(
-                            key: ValueKey('status_$_selectedStatus'),
-                            initialValue: _selectedStatus,
-                            isExpanded: true,
-                            decoration: const InputDecoration(
-                              labelText: 'Status',
-                              prefixIcon: Icon(Icons.info_outline),
+                          ],
+                        );
+                      } else {
+                        return Column(
+                          children: [
+                            TextFormField(
+                              controller: _firstNameController,
+                              textCapitalization: TextCapitalization.characters,
+                              inputFormatters: [_UpperCaseWordsFormatter()],
+                              validator: (v) =>
+                                  _validateRequired(v, 'First name'),
+                              decoration: const InputDecoration(
+                                labelText: 'FIRST NAME',
+                              ),
                             ),
-                            items: _statuses
-                                .map(
-                                  (s) => DropdownMenuItem(
-                                    value: s,
-                                    child: Text(s),
-                                  ),
-                                )
-                                .toList(),
-                            onChanged: (v) =>
-                                setState(() => _selectedStatus = v!),
-                            validator: (v) {
-                              if (v == 'Graduated' &&
-                                  _selectedGradeLevel != 10 &&
-                                  _selectedGradeLevel != 12) {
-                                return 'Graduation only allowed for Grade 10 and Grade 12.';
-                              }
-                              return null;
-                            },
-                          ),
-                        ],
+                            const SizedBox(height: AppSizes.p12),
+                            _ExtensionNameField(
+                              controller: _extController,
+                              suggestions: _extSuggestions,
+                            ),
+                            const SizedBox(height: AppSizes.p12),
+                            TextFormField(
+                              controller: _middleNameController,
+                              textCapitalization: TextCapitalization.characters,
+                              inputFormatters: [_UpperCaseWordsFormatter()],
+                              decoration: const InputDecoration(
+                                labelText: 'MIDDLE NAME',
+                              ),
+                            ),
+                            const SizedBox(height: AppSizes.p12),
+                            TextFormField(
+                              controller: _lastNameController,
+                              textCapitalization: TextCapitalization.characters,
+                              inputFormatters: [_UpperCaseWordsFormatter()],
+                              validator: (v) =>
+                                  _validateRequired(v, 'Last name'),
+                              decoration: const InputDecoration(
+                                labelText: 'LAST NAME',
+                              ),
+                            ),
+                          ],
+                        );
+                      }
+                    },
+                  ),
+                  const SizedBox(height: AppSizes.p16),
+
+                  // ── PERSONAL INFORMATION section label ──
+                  _SectionLabel(label: 'PERSONAL INFORMATION'),
+                  const SizedBox(height: AppSizes.p8),
+
+                  // Sex
+                  DropdownButtonFormField<String>(
+                    key: ValueKey('sex_$_selectedSex'),
+                    initialValue: _selectedSex,
+                    validator: (v) => v == null ? 'Please select sex.' : null,
+                    isExpanded: true,
+                    decoration: const InputDecoration(
+                      labelText: 'SEX',
+                      prefixIcon: Icon(Icons.wc),
+                    ),
+                    items: ['Male', 'Female']
+                        .map((s) => DropdownMenuItem(value: s, child: Text(s)))
+                        .toList(),
+                    onChanged: (v) => setState(() => _selectedSex = v!),
+                  ),
+                  const SizedBox(height: AppSizes.p12),
+
+                  // DOB
+                  GestureDetector(
+                    onTap: _selectDate,
+                    child: InputDecorator(
+                      decoration: InputDecoration(
+                        labelText: 'DATE OF BIRTH',
+                        prefixIcon: const Icon(
+                          Icons.calendar_today,
+                          color: AppColors.textSecondary,
+                        ),
+                        errorText: null,
+                      ),
+                      child: Text(
+                        _selectedDob == null
+                            ? 'Select date…'
+                            : '${_selectedDob!.year}-'
+                                  '${_selectedDob!.month.toString().padLeft(2, '0')}-'
+                                  '${_selectedDob!.day.toString().padLeft(2, '0')}',
+                        style: TextStyle(
+                          color: _selectedDob == null
+                              ? AppColors.textMuted
+                              : AppColors.textPrimary,
+                          fontSize: 16,
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: AppSizes.p16),
+
+                  // ── 4Ps STATUS section label ──
+                  _SectionLabel(label: 'GOVERNMENT AID STATUS'),
+                  const SizedBox(height: AppSizes.p8),
+
+                  // 4Ps Toggle
+                  Container(
+                    decoration: BoxDecoration(
+                      color: _is4ps
+                          ? Colors.deepPurple.withValues(alpha: 0.06)
+                          : Colors.grey.shade50,
+                      borderRadius: BorderRadius.circular(
+                        AppSizes.radiusMedium,
+                      ),
+                      border: Border.all(
+                        color: _is4ps
+                            ? Colors.deepPurple.withValues(alpha: 0.3)
+                            : Colors.grey.shade200,
+                      ),
+                    ),
+                    child: SwitchListTile(
+                      value: _is4ps,
+                      onChanged: (val) => setState(() => _is4ps = val),
+                      activeColor: Colors.deepPurple,
+                      title: const Text(
+                        '4Ps Beneficiary',
+                        style: TextStyle(
+                          fontWeight: FontWeight.w600,
+                          fontSize: 14,
+                        ),
+                      ),
+                      subtitle: Text(
+                        _is4ps
+                            ? 'Student is a 4Ps (Pantawid Pamilyang Pilipino Program) beneficiary'
+                            : 'Student is NOT a 4Ps beneficiary',
+                        style: TextStyle(
+                          fontSize: 11,
+                          color: _is4ps
+                              ? Colors.deepPurple.shade600
+                              : AppColors.textSecondary,
+                        ),
+                      ),
+                      secondary: Icon(
+                        Icons.family_restroom,
+                        color: _is4ps
+                            ? Colors.deepPurple
+                            : Colors.grey.shade400,
+                      ),
+                      dense: true,
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 4,
+                      ),
+                    ),
+                  ),
                 ],
               ),
+            ),
+          ),
+          Step(
+            title: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  Icons.school,
+                  size: isMobile ? 14 : 18,
+                  color: AppColors.primaryGreen,
+                ),
+                if (!isMobile) const SizedBox(width: 4),
+                Text(
+                  'Enrollment',
+                  style: TextStyle(
+                    fontSize: isMobile ? 12 : 14,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ],
+            ),
+            isActive: _currentStep >= (widget.student != null ? 1 : 2),
+            state: _currentStep > (widget.student != null ? 1 : 2)
+                ? StepState.complete
+                : StepState.indexed,
+            content: Form(
+              key: _enrollmentFormKey,
+              child: Column(
+                children: [
+                  yearsAsync.when(
+                    data: (years) {
+                      // Auto-default: pick current/most-recent active academic year for new students
+                      if (!isEdit &&
+                          _selectedAcademicYearId == null &&
+                          years.isNotEmpty) {
+                        final active = years
+                            .where((y) => y.status.toLowerCase() == 'active')
+                            .toList();
+                        final candidate = active.isNotEmpty
+                            ? active.last
+                            : years.last;
+                        Future.microtask(() {
+                          if (mounted && _selectedAcademicYearId == null) {
+                            setState(
+                              () => _selectedAcademicYearId = candidate.id,
+                            );
+                          }
+                        });
+                      }
+                      return DropdownButtonFormField<int>(
+                        key: ValueKey('academic_$_selectedAcademicYearId'),
+                        initialValue: _selectedAcademicYearId,
+                        decoration: const InputDecoration(
+                          labelText: 'Academic Year',
+                          prefixIcon: Icon(Icons.calendar_today),
+                        ),
+                        items: years
+                            .map(
+                              (y) => DropdownMenuItem<int>(
+                                value: y.id,
+                                child: Text(y.yearRange),
+                              ),
+                            )
+                            .toList(),
+                        onChanged: (val) {
+                          setState(() {
+                            _selectedAcademicYearId = val;
+                            _selectedSectionId = null;
+                          });
+                        },
+                        validator: (v) =>
+                            v == null ? 'Academic year is required.' : null,
+                      );
+                    },
+                    loading: () =>
+                        const Center(child: CircularProgressIndicator()),
+                    error: (err, _) => Text(
+                      'Error: $err',
+                      style: const TextStyle(color: Colors.red),
+                    ),
+                  ),
+                  const SizedBox(height: AppSizes.p12),
+
+                  gradeLevelsAsync.when(
+                    data: (grades) {
+                      return DropdownButtonFormField<int>(
+                        key: ValueKey('grade_$_selectedGradeLevel'),
+                        initialValue: _selectedGradeLevel,
+                        decoration: const InputDecoration(
+                          labelText: 'Grade Level',
+                          prefixIcon: Icon(Icons.grade),
+                        ),
+                        items: grades
+                            .map(
+                              (g) => DropdownMenuItem<int>(
+                                value: g.level,
+                                child: Text(g.name),
+                              ),
+                            )
+                            .toList(),
+                        onChanged: (val) {
+                          setState(() {
+                            _selectedGradeLevel = val;
+                            _selectedSectionId = null;
+                          });
+                        },
+                        validator: (v) =>
+                            v == null ? 'Grade level is required.' : null,
+                      );
+                    },
+                    loading: () =>
+                        const Center(child: CircularProgressIndicator()),
+                    error: (err, _) => Text(
+                      'Error: $err',
+                      style: const TextStyle(color: Colors.red),
+                    ),
+                  ),
+                  const SizedBox(height: AppSizes.p12),
+
+                  sectionsAsync.when(
+                    data: (sections) {
+                      final filtered = sections
+                          .where(
+                            (sec) =>
+                                sec.academicYearId == _selectedAcademicYearId &&
+                                sec.gradeLevel == _selectedGradeLevel,
+                          )
+                          .toList();
+
+                      final matches = filtered.where(
+                        (s) => s.id == _selectedSectionId,
+                      );
+                      final initialSectionName = matches.isNotEmpty
+                          ? matches.first.name
+                          : '';
+
+                      // Key based on grade+year ensures Autocomplete fully rebuilds
+                      // when grade level or academic year changes — fixes the bug
+                      // where user had to type and erase before dropdown refreshed.
+                      final autocompleteKey = ValueKey(
+                        'section_${_selectedGradeLevel}_${_selectedAcademicYearId}',
+                      );
+
+                      return Autocomplete<SectionModel>(
+                        key: autocompleteKey,
+                        initialValue: TextEditingValue(
+                          text: initialSectionName,
+                        ),
+                        displayStringForOption: (sec) => sec.name,
+                        optionsBuilder: (textEditingValue) {
+                          if (textEditingValue.text.isEmpty) {
+                            return filtered;
+                          }
+                          return filtered.where(
+                            (sec) => sec.name.toLowerCase().contains(
+                              textEditingValue.text.toLowerCase(),
+                            ),
+                          );
+                        },
+                        onSelected: (sec) {
+                          setState(() => _selectedSectionId = sec.id);
+                        },
+                        fieldViewBuilder:
+                            (context, controller, focusNode, onFieldSubmitted) {
+                              return TextFormField(
+                                controller: controller,
+                                focusNode: focusNode,
+                                decoration: const InputDecoration(
+                                  labelText: 'Section (Type or Select)',
+                                  prefixIcon: Icon(Icons.segment),
+                                  suffixIcon: Icon(Icons.arrow_drop_down),
+                                ),
+                                onChanged: (val) {
+                                  if (val.isEmpty) {
+                                    setState(() => _selectedSectionId = null);
+                                  } else {
+                                    final exactMatches = filtered.where(
+                                      (s) =>
+                                          s.name.toLowerCase() ==
+                                          val.toLowerCase(),
+                                    );
+                                    setState(
+                                      () => _selectedSectionId =
+                                          exactMatches.isNotEmpty
+                                          ? exactMatches.first.id
+                                          : null,
+                                    );
+                                  }
+                                },
+                                validator: (v) {
+                                  if (v == null ||
+                                      v.isEmpty ||
+                                      _selectedSectionId == null) {
+                                    return 'Please select a valid section.';
+                                  }
+                                  return null;
+                                },
+                              );
+                            },
+                      );
+                    },
+                    loading: () =>
+                        const Center(child: CircularProgressIndicator()),
+                    error: (err, _) => Text(
+                      'Error: $err',
+                      style: const TextStyle(color: Colors.red),
+                    ),
+                  ),
+
+                  if (_selectedGradeLevel != null &&
+                      _selectedGradeLevel! >= 11) ...[
+                    const SizedBox(height: AppSizes.p12),
+                    TextFormField(
+                      initialValue: _trackStrand,
+                      decoration: const InputDecoration(
+                        labelText: 'Track & Strand (for SHS)',
+                        prefixIcon: Icon(Icons.school_outlined),
+                      ),
+                      onChanged: (val) =>
+                          _trackStrand = val.trim().isEmpty ? null : val.trim(),
+                    ),
+                  ],
+
+                  if (isEdit) ...[
+                    const SizedBox(height: AppSizes.p12),
+                    DropdownButtonFormField<String>(
+                      key: ValueKey('status_$_selectedStatus'),
+                      initialValue: _selectedStatus,
+                      isExpanded: true,
+                      decoration: const InputDecoration(
+                        labelText: 'Status',
+                        prefixIcon: Icon(Icons.info_outline),
+                      ),
+                      items: _statuses
+                          .map(
+                            (s) => DropdownMenuItem(value: s, child: Text(s)),
+                          )
+                          .toList(),
+                      onChanged: (v) => setState(() => _selectedStatus = v!),
+                      validator: (v) {
+                        if (v == 'Graduated' &&
+                            _selectedGradeLevel != 10 &&
+                            _selectedGradeLevel != 12) {
+                          return 'Graduation only allowed for Grade 10 and Grade 12.';
+                        }
+                        return null;
+                      },
+                    ),
+                  ],
+                ],
               ),
             ),
-          ],
-        ),
+          ),
+        ],
+      ),
     );
   }
 }
@@ -1560,9 +1647,7 @@ class _SectionLabel extends StatelessWidget {
           ),
         ),
         const SizedBox(width: 8),
-        const Expanded(
-          child: Divider(height: 1, thickness: 1),
-        ),
+        const Expanded(child: Divider(height: 1, thickness: 1)),
       ],
     );
   }
@@ -1588,9 +1673,7 @@ class _ExtensionNameField extends StatelessWidget {
       optionsBuilder: (textEditingValue) {
         final query = textEditingValue.text.trim().toUpperCase();
         if (query.isEmpty) return suggestions;
-        return suggestions.where(
-          (s) => s.toUpperCase().startsWith(query),
-        );
+        return suggestions.where((s) => s.toUpperCase().startsWith(query));
       },
       fieldViewBuilder: (ctx, fieldController, focusNode, onSubmit) {
         // Sync the autocomplete field controller back to our controller

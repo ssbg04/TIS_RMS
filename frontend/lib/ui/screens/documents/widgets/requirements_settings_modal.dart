@@ -10,17 +10,21 @@ class RequirementsSettingsModal extends ConsumerStatefulWidget {
   const RequirementsSettingsModal({super.key});
 
   @override
-  ConsumerState<RequirementsSettingsModal> createState() => _RequirementsSettingsModalState();
+  ConsumerState<RequirementsSettingsModal> createState() =>
+      _RequirementsSettingsModalState();
 }
 
-class _RequirementsSettingsModalState extends ConsumerState<RequirementsSettingsModal> {
+class _RequirementsSettingsModalState
+    extends ConsumerState<RequirementsSettingsModal> {
   @override
   Widget build(BuildContext context) {
     final settingsAsync = ref.watch(requirementsSettingsProvider);
 
     return Dialog(
       backgroundColor: AppColors.surfaceWhite,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppSizes.radiusLarge)),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(AppSizes.radiusLarge),
+      ),
       child: ConstrainedBox(
         constraints: const BoxConstraints(maxWidth: 800, maxHeight: 700),
         child: Padding(
@@ -34,16 +38,27 @@ class _RequirementsSettingsModalState extends ConsumerState<RequirementsSettings
                 children: [
                   const Row(
                     children: [
-                      Icon(Icons.settings, color: AppColors.primaryGreen, size: 28),
+                      Icon(
+                        Icons.settings,
+                        color: AppColors.primaryGreen,
+                        size: 28,
+                      ),
                       SizedBox(width: AppSizes.p12),
                       Text(
                         'Document Requirements Settings',
-                        style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: AppColors.textPrimary),
+                        style: TextStyle(
+                          fontSize: 22,
+                          fontWeight: FontWeight.bold,
+                          color: AppColors.textPrimary,
+                        ),
                       ),
                     ],
                   ),
                   IconButton(
-                    icon: const Icon(Icons.close, color: AppColors.textSecondary),
+                    icon: const Icon(
+                      Icons.close,
+                      color: AppColors.textSecondary,
+                    ),
                     onPressed: () => Navigator.of(context).pop(),
                   ),
                 ],
@@ -53,15 +68,27 @@ class _RequirementsSettingsModalState extends ConsumerState<RequirementsSettings
               // Content
               Expanded(
                 child: settingsAsync.when(
-                  loading: () => const Center(child: CircularProgressIndicator()),
-                  error: (e, _) => Center(child: Text('Error: $e', style: const TextStyle(color: AppColors.error))),
+                  loading: () =>
+                      const Center(child: CircularProgressIndicator()),
+                  error: (e, _) => Center(
+                    child: Text(
+                      'Error: $e',
+                      style: const TextStyle(color: AppColors.error),
+                    ),
+                  ),
                   data: (settings) => SingleChildScrollView(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        _buildCategorySection('Junior High School (JHS)', settings.jhs),
+                        _buildCategorySection(
+                          'Junior High School (JHS)',
+                          settings.jhs,
+                        ),
                         const SizedBox(height: AppSizes.p24),
-                        _buildCategorySection('Senior High School (SHS)', settings.shs),
+                        _buildCategorySection(
+                          'Senior High School (SHS)',
+                          settings.shs,
+                        ),
                       ],
                     ),
                   ),
@@ -91,14 +118,23 @@ class _RequirementsSettingsModalState extends ConsumerState<RequirementsSettings
     );
   }
 
-  Widget _buildCategorySection(String title, List<DocumentRequirementModel> requirements) {
+  Widget _buildCategorySection(
+    String title,
+    List<DocumentRequirementModel> requirements,
+  ) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(title, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+        Text(
+          title,
+          style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+        ),
         const SizedBox(height: AppSizes.p16),
         if (requirements.isEmpty)
-          const Text('No requirements configured.', style: TextStyle(color: AppColors.textSecondary))
+          const Text(
+            'No requirements configured.',
+            style: TextStyle(color: AppColors.textSecondary),
+          )
         else
           ListView.builder(
             shrinkWrap: true,
@@ -108,9 +144,14 @@ class _RequirementsSettingsModalState extends ConsumerState<RequirementsSettings
               final req = requirements[index];
               return Card(
                 margin: const EdgeInsets.only(bottom: AppSizes.p8),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppSizes.radiusMedium)),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(AppSizes.radiusMedium),
+                ),
                 child: ListTile(
-                  title: Text(req.name, style: const TextStyle(fontWeight: FontWeight.w600)),
+                  title: Text(
+                    req.name,
+                    style: const TextStyle(fontWeight: FontWeight.w600),
+                  ),
                   subtitle: Text(
                     '${req.description ?? "No description"} | Mandatory: ${req.isMandatory ? "Yes" : "No"}',
                     style: const TextStyle(fontSize: 12),
@@ -141,7 +182,9 @@ class _RequirementsSettingsModalState extends ConsumerState<RequirementsSettings
 
   void _addNewRequirement() {
     // Show dialog to add a new requirement
-    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Add requirement form coming soon')));
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Add requirement form coming soon')),
+    );
   }
 
   void _toggleRequirement(DocumentRequirementModel req, bool isEnabled) async {
@@ -157,21 +200,29 @@ class _RequirementsSettingsModalState extends ConsumerState<RequirementsSettings
         acceptedFileTypes: req.acceptedFileTypes,
         schoolLevels: req.schoolLevels,
       );
-      await ref.read(requirementMutationProvider.notifier).updateRequirement(updatedReq);
+      await ref
+          .read(requirementMutationProvider.notifier)
+          .updateRequirement(updatedReq);
       ref.invalidate(requirementsSettingsProvider);
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Error: $e')));
     }
   }
 
   void _deleteRequirement(int id) async {
     try {
-      await ref.read(requirementMutationProvider.notifier).deleteRequirement(id);
+      await ref
+          .read(requirementMutationProvider.notifier)
+          .deleteRequirement(id);
       ref.invalidate(requirementsSettingsProvider);
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Error: $e')));
     }
   }
 }

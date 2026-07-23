@@ -43,7 +43,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   // Password controllers
   final _newPassCtrl = TextEditingController();
   final _confirmPassCtrl = TextEditingController();
-  
+
   // Single toggle for all password fields
   bool _obscurePasswords = true;
 
@@ -66,7 +66,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   void _evaluatePasswordStrength() {
     final password = _newPassCtrl.text;
     double strength = 0.0;
-    
+
     if (password.isNotEmpty) {
       if (password.length >= 8) strength += 0.25;
       if (RegExp(r'[A-Z]').hasMatch(password)) strength += 0.25;
@@ -106,7 +106,10 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     _newPassCtrl.addListener(_evaluatePasswordStrength);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
-      _tabListener = ref.listenManual<String>(activeTabProvider, (previous, next) {
+      _tabListener = ref.listenManual<String>(activeTabProvider, (
+        previous,
+        next,
+      ) {
         if (!mounted) return;
         if (next == 'Settings' && previous != 'Settings') {
           _newPassCtrl.clear();
@@ -153,7 +156,9 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         return StatefulBuilder(
           builder: (context, setState) {
             return AlertDialog(
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
               title: const Text('Confirm Changes'),
               content: Form(
                 key: dialogFormKey,
@@ -161,7 +166,10 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text('Please enter your current password to save profile changes.', style: TextStyle(fontSize: 14)),
+                    const Text(
+                      'Please enter your current password to save profile changes.',
+                      style: TextStyle(fontSize: 14),
+                    ),
                     const SizedBox(height: 16),
                     CustomTextField(
                       hintText: 'Current Password',
@@ -169,8 +177,10 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                       controller: ctrl,
                       isPassword: true,
                       obscureText: obscure,
-                      onToggleVisibility: () => setState(() => obscure = !obscure),
-                      validator: (v) => AppValidators.validateRequired(v, 'Password'),
+                      onToggleVisibility: () =>
+                          setState(() => obscure = !obscure),
+                      validator: (v) =>
+                          AppValidators.validateRequired(v, 'Password'),
                     ),
                   ],
                 ),
@@ -178,7 +188,10 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               actions: [
                 TextButton(
                   onPressed: () => Navigator.pop(ctx, null),
-                  child: const Text('CANCEL', style: TextStyle(color: Colors.grey)),
+                  child: const Text(
+                    'CANCEL',
+                    style: TextStyle(color: Colors.grey),
+                  ),
                 ),
                 TextButton(
                   onPressed: () {
@@ -186,13 +199,19 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                       Navigator.pop(ctx, ctrl.text);
                     }
                   },
-                  child: const Text('CONFIRM', style: TextStyle(color: AppColors.primaryGreen, fontWeight: FontWeight.bold)),
+                  child: const Text(
+                    'CONFIRM',
+                    style: TextStyle(
+                      color: AppColors.primaryGreen,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
                 ),
               ],
             );
-          }
+          },
         );
-      }
+      },
     );
 
     if (password == null || password.isEmpty) return;
@@ -214,7 +233,11 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       showSuccessDialog(context, message: 'Profile updated successfully!');
     } catch (e) {
       if (!mounted) return;
-      showErrorDialog(context, 'Update Failed', e.toString().replaceAll('Exception: ', ''));
+      showErrorDialog(
+        context,
+        'Update Failed',
+        e.toString().replaceAll('Exception: ', ''),
+      );
     } finally {
       if (mounted) setState(() => _isProfileLoading = false);
     }
@@ -235,7 +258,9 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         return StatefulBuilder(
           builder: (context, setState) {
             return AlertDialog(
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
               title: const Text('Confirm Changes'),
               content: Form(
                 key: dialogFormKey,
@@ -243,7 +268,10 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text('Please enter your current password to save password changes.', style: TextStyle(fontSize: 14)),
+                    const Text(
+                      'Please enter your current password to save password changes.',
+                      style: TextStyle(fontSize: 14),
+                    ),
                     const SizedBox(height: 16),
                     CustomTextField(
                       hintText: 'Current Password',
@@ -251,8 +279,10 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                       controller: ctrl,
                       isPassword: true,
                       obscureText: obscure,
-                      onToggleVisibility: () => setState(() => obscure = !obscure),
-                      validator: (v) => AppValidators.validateRequired(v, 'Password'),
+                      onToggleVisibility: () =>
+                          setState(() => obscure = !obscure),
+                      validator: (v) =>
+                          AppValidators.validateRequired(v, 'Password'),
                     ),
                   ],
                 ),
@@ -260,7 +290,10 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               actions: [
                 TextButton(
                   onPressed: () => Navigator.pop(ctx, null),
-                  child: const Text('CANCEL', style: TextStyle(color: Colors.grey)),
+                  child: const Text(
+                    'CANCEL',
+                    style: TextStyle(color: Colors.grey),
+                  ),
                 ),
                 TextButton(
                   onPressed: () {
@@ -268,13 +301,19 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                       Navigator.pop(ctx, ctrl.text);
                     }
                   },
-                  child: const Text('CONFIRM', style: TextStyle(color: AppColors.primaryGreen, fontWeight: FontWeight.bold)),
+                  child: const Text(
+                    'CONFIRM',
+                    style: TextStyle(
+                      color: AppColors.primaryGreen,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
                 ),
               ],
             );
-          }
+          },
         );
-      }
+      },
     );
 
     if (current == null || current.isEmpty) return;
@@ -293,7 +332,11 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       showSuccessDialog(context, message: 'Password changed successfully!');
     } catch (e) {
       if (!mounted) return;
-      showErrorDialog(context, 'Change Password', e.toString().replaceAll('Exception: ', ''));
+      showErrorDialog(
+        context,
+        'Change Password',
+        e.toString().replaceAll('Exception: ', ''),
+      );
     } finally {
       if (mounted) setState(() => _isPasswordLoading = false);
     }
@@ -301,15 +344,19 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
 
   Future<void> _handleBackup() async {
     setState(() => _isBackupLoading = true);
-    
+
     // Estimate size
     String estimatedSizeStr = 'Unknown';
     try {
       final bytes = await ref.read(reportRepositoryProvider).getStorageUsed();
-      if (bytes < 1024) estimatedSizeStr = '$bytes B';
-      else if (bytes < 1048576) estimatedSizeStr = '${(bytes / 1024).toStringAsFixed(1)} KB';
-      else if (bytes < 1073741824) estimatedSizeStr = '${(bytes / 1048576).toStringAsFixed(1)} MB';
-      else estimatedSizeStr = '${(bytes / 1073741824).toStringAsFixed(1)} GB';
+      if (bytes < 1024)
+        estimatedSizeStr = '$bytes B';
+      else if (bytes < 1048576)
+        estimatedSizeStr = '${(bytes / 1024).toStringAsFixed(1)} KB';
+      else if (bytes < 1073741824)
+        estimatedSizeStr = '${(bytes / 1048576).toStringAsFixed(1)} MB';
+      else
+        estimatedSizeStr = '${(bytes / 1073741824).toStringAsFixed(1)} GB';
     } catch (_) {}
 
     setState(() => _isBackupLoading = false);
@@ -319,10 +366,18 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       context: context,
       builder: (ctx) => AlertDialog(
         title: const Text('Confirm Backup'),
-        content: Text('Are you sure you want to backup the system data and uploaded files?\n\nEstimated ZIP size: $estimatedSizeStr'),
+        content: Text(
+          'Are you sure you want to backup the system data and uploaded files?\n\nEstimated ZIP size: $estimatedSizeStr',
+        ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('CANCEL')),
-          TextButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('BACKUP')),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('CANCEL'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('BACKUP'),
+          ),
         ],
       ),
     );
@@ -331,7 +386,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
 
     final saveResult = await FilePicker.saveFile(
       dialogTitle: 'Save Backup',
-      fileName: 'tis_rms_backup_${DateTime.now().toIso8601String().split('T').first}.zip',
+      fileName:
+          'tis_rms_backup_${DateTime.now().toIso8601String().split('T').first}.zip',
       type: FileType.custom,
       allowedExtensions: ['zip'],
     );
@@ -343,10 +399,20 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       await ref.read(backupProvider.notifier).downloadBackup(saveResult);
       if (!mounted) return;
       ref.invalidate(backupInfoProvider);
-      showInfoDialog(context, title: 'Backup Successful', message: 'System data backed up to $saveResult', icon: Icons.check_circle_outline, iconColor: AppColors.primaryGreen);
+      showInfoDialog(
+        context,
+        title: 'Backup Successful',
+        message: 'System data backed up to $saveResult',
+        icon: Icons.check_circle_outline,
+        iconColor: AppColors.primaryGreen,
+      );
     } catch (e) {
       if (!mounted) return;
-      showErrorDialog(context, 'Backup Failed', e.toString().replaceAll('Exception: ', ''));
+      showErrorDialog(
+        context,
+        'Backup Failed',
+        e.toString().replaceAll('Exception: ', ''),
+      );
     } finally {
       if (mounted) setState(() => _isBackupLoading = false);
     }
@@ -356,20 +422,26 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     final confirm = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Restore System Data', style: TextStyle(color: AppColors.error)),
+        title: const Text(
+          'Restore System Data',
+          style: TextStyle(color: AppColors.error),
+        ),
         content: const Text(
           'Restoring a backup will overwrite all current data and uploaded documents.\n\n'
           'The server will shut down after completion. Are you sure you want to proceed?',
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('CANCEL')),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('CANCEL'),
+          ),
           FilledButton(
             style: FilledButton.styleFrom(backgroundColor: AppColors.error),
-            onPressed: () => Navigator.pop(ctx, true), 
-            child: const Text('RESTORE')
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('RESTORE'),
           ),
         ],
-      )
+      ),
     );
 
     if (confirm != true) return;
@@ -389,15 +461,20 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       if (!mounted) return;
       ref.invalidate(backupInfoProvider);
       showInfoDialog(
-        context, 
-        title: 'Restore Successful', 
-        message: 'Database and files restored successfully.\n\nThe server has been shut down to apply the changes. Please restart the TIS RMS server manually.', 
-        icon: Icons.power_settings_new, 
-        iconColor: AppColors.warning
+        context,
+        title: 'Restore Successful',
+        message:
+            'Database and files restored successfully.\n\nThe server has been shut down to apply the changes. Please restart the TIS RMS server manually.',
+        icon: Icons.power_settings_new,
+        iconColor: AppColors.warning,
       );
     } catch (e) {
       if (!mounted) return;
-      showErrorDialog(context, 'Restore Failed', e.toString().replaceAll('Exception: ', ''));
+      showErrorDialog(
+        context,
+        'Restore Failed',
+        e.toString().replaceAll('Exception: ', ''),
+      );
     } finally {
       if (mounted) setState(() => _isRestoreLoading = false);
     }
@@ -407,9 +484,15 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(label, style: const TextStyle(fontSize: 12, color: AppColors.textSecondary)),
+        Text(
+          label,
+          style: const TextStyle(fontSize: 12, color: AppColors.textSecondary),
+        ),
         const SizedBox(height: 4),
-        Text(value, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w500)),
+        Text(
+          value,
+          style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w500),
+        ),
       ],
     );
   }
@@ -433,34 +516,36 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         CustomTextField(
-                          hintText: 'First Name', 
-                          prefixIcon: Icons.badge_outlined, 
+                          hintText: 'First Name',
+                          prefixIcon: Icons.badge_outlined,
                           controller: _firstNameCtrl,
-                          validator: (v) => AppValidators.validateRequired(v, 'First Name'),
+                          validator: (v) =>
+                              AppValidators.validateRequired(v, 'First Name'),
                         ),
                         const SizedBox(height: AppSizes.p16),
                         CustomTextField(
-                          hintText: 'Middle Name', 
-                          prefixIcon: Icons.badge_outlined, 
+                          hintText: 'Middle Name',
+                          prefixIcon: Icons.badge_outlined,
                           controller: _middleNameCtrl,
                         ),
                         const SizedBox(height: AppSizes.p16),
                         CustomTextField(
-                          hintText: 'Last Name', 
-                          prefixIcon: Icons.badge_outlined, 
+                          hintText: 'Last Name',
+                          prefixIcon: Icons.badge_outlined,
                           controller: _lastNameCtrl,
-                          validator: (v) => AppValidators.validateRequired(v, 'Last Name'),
+                          validator: (v) =>
+                              AppValidators.validateRequired(v, 'Last Name'),
                         ),
                         const SizedBox(height: AppSizes.p16),
                         CustomTextField(
-                          hintText: 'Ext. (Jr)', 
-                          prefixIcon: Icons.text_format, 
+                          hintText: 'Ext. (Jr)',
+                          prefixIcon: Icons.text_format,
                           controller: _extCtrl,
                         ),
                         const SizedBox(height: AppSizes.p16),
                         CustomTextField(
-                          hintText: 'Phone Number (Starts with 09)', 
-                          prefixIcon: Icons.phone_outlined, 
+                          hintText: 'Phone Number (Starts with 09)',
+                          prefixIcon: Icons.phone_outlined,
                           controller: _phoneCtrl,
                           inputFormatters: [
                             FilteringTextInputFormatter.digitsOnly,
@@ -471,8 +556,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                         ),
                         const SizedBox(height: AppSizes.p16),
                         CustomTextField(
-                          hintText: 'Email Address', 
-                          prefixIcon: Icons.email_outlined, 
+                          hintText: 'Email Address',
+                          prefixIcon: Icons.email_outlined,
                           controller: _emailCtrl,
                           keyboardType: TextInputType.emailAddress,
                           validator: AppValidators.validateEmail,
@@ -483,18 +568,29 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 ),
               ),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: AppSizes.p24, vertical: AppSizes.p16),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: AppSizes.p24,
+                  vertical: AppSizes.p16,
+                ),
                 decoration: BoxDecoration(
                   color: Colors.grey.shade50,
                   border: Border(top: BorderSide(color: Colors.grey.shade200)),
-                  borderRadius: const BorderRadius.vertical(bottom: Radius.circular(12)),
+                  borderRadius: const BorderRadius.vertical(
+                    bottom: Radius.circular(12),
+                  ),
                 ),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.end,
                   children: [
                     TextButton(
                       onPressed: () => Navigator.pop(context),
-                      child: const Text('CANCEL', style: TextStyle(color: Colors.grey, fontWeight: FontWeight.w600)),
+                      child: const Text(
+                        'CANCEL',
+                        style: TextStyle(
+                          color: Colors.grey,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
                     ),
                     const SizedBox(width: AppSizes.p16),
                     SizedBox(
@@ -514,11 +610,10 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               ),
             ],
           );
-        }
+        },
       ),
     );
   }
-
 
   @override
   Widget build(BuildContext context) {
@@ -554,9 +649,22 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       // Header
-                      const Text('Account Settings', style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: AppColors.textPrimary)),
+                      const Text(
+                        'Account Settings',
+                        style: TextStyle(
+                          fontSize: 28,
+                          fontWeight: FontWeight.bold,
+                          color: AppColors.textPrimary,
+                        ),
+                      ),
                       const SizedBox(height: AppSizes.p8),
-                      const Text('Manage your profile information and security settings.', style: TextStyle(fontSize: 16, color: AppColors.textSecondary)),
+                      const Text(
+                        'Manage your profile information and security settings.',
+                        style: TextStyle(
+                          fontSize: 16,
+                          color: AppColors.textSecondary,
+                        ),
+                      ),
                       const SizedBox(height: AppSizes.p32),
 
                       // ── Profile Card ──────────────────────────────────────
@@ -564,41 +672,106 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Row(children: [
-                              const CircleAvatar(
-                                radius: 30,
-                                backgroundColor: AppColors.primaryGreen,
-                                child: Icon(Icons.person, size: 30, color: Colors.white),
+                            Row(
+                              children: [
+                                const CircleAvatar(
+                                  radius: 30,
+                                  backgroundColor: AppColors.primaryGreen,
+                                  child: Icon(
+                                    Icons.person,
+                                    size: 30,
+                                    color: Colors.white,
+                                  ),
+                                ),
+                                const SizedBox(width: AppSizes.p16),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      const Text(
+                                        'Profile Details',
+                                        style: TextStyle(
+                                          fontSize: 18,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                      Text(
+                                        'Role: ${user.role.toUpperCase().replaceAll('_', ' ')}',
+                                        style: const TextStyle(
+                                          color: AppColors.primaryGreen,
+                                          fontWeight: FontWeight.w600,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                TextButton.icon(
+                                  onPressed: () =>
+                                      _showEditProfileModal(context),
+                                  icon: const Icon(Icons.edit, size: 18),
+                                  label: const Text('Edit'),
+                                ),
+                              ],
+                            ),
+                            const Padding(
+                              padding: EdgeInsets.symmetric(
+                                vertical: AppSizes.p24,
                               ),
-                              const SizedBox(width: AppSizes.p16),
-                              Expanded(
-                                child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                                  const Text('Profile Details', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-                                  Text('Role: ${user.role.toUpperCase().replaceAll('_', ' ')}',
-                                      style: const TextStyle(color: AppColors.primaryGreen, fontWeight: FontWeight.w600)),
-                                ]),
-                              ),
-                              TextButton.icon(
-                                onPressed: () => _showEditProfileModal(context),
-                                icon: const Icon(Icons.edit, size: 18),
-                                label: const Text('Edit'),
-                              ),
-                            ]),
-                            const Padding(padding: EdgeInsets.symmetric(vertical: AppSizes.p24), child: Divider()),
+                              child: Divider(),
+                            ),
 
                             Row(
                               children: [
-                                Expanded(child: _buildInfoItem('First Name', user.firstName)),
-                                Expanded(child: _buildInfoItem('Middle Name', user.middleName?.isNotEmpty == true ? user.middleName! : '-')),
-                                Expanded(child: _buildInfoItem('Last Name', user.lastName)),
+                                Expanded(
+                                  child: _buildInfoItem(
+                                    'First Name',
+                                    user.firstName,
+                                  ),
+                                ),
+                                Expanded(
+                                  child: _buildInfoItem(
+                                    'Middle Name',
+                                    user.middleName?.isNotEmpty == true
+                                        ? user.middleName!
+                                        : '-',
+                                  ),
+                                ),
+                                Expanded(
+                                  child: _buildInfoItem(
+                                    'Last Name',
+                                    user.lastName,
+                                  ),
+                                ),
                               ],
                             ),
                             const SizedBox(height: AppSizes.p16),
                             Row(
                               children: [
-                                Expanded(child: _buildInfoItem('Ext. (Jr)', user.extension?.isNotEmpty == true ? user.extension! : '-')),
-                                Expanded(child: _buildInfoItem('Phone Number', user.phone?.isNotEmpty == true ? user.phone! : '-')),
-                                Expanded(child: _buildInfoItem('Email Address', user.email?.isNotEmpty == true ? user.email! : '-')),
+                                Expanded(
+                                  child: _buildInfoItem(
+                                    'Ext. (Jr)',
+                                    user.extension?.isNotEmpty == true
+                                        ? user.extension!
+                                        : '-',
+                                  ),
+                                ),
+                                Expanded(
+                                  child: _buildInfoItem(
+                                    'Phone Number',
+                                    user.phone?.isNotEmpty == true
+                                        ? user.phone!
+                                        : '-',
+                                  ),
+                                ),
+                                Expanded(
+                                  child: _buildInfoItem(
+                                    'Email Address',
+                                    user.email?.isNotEmpty == true
+                                        ? user.email!
+                                        : '-',
+                                  ),
+                                ),
                               ],
                             ),
                           ],
@@ -611,41 +784,82 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                       if (widget.userRole == 'admin') ...[
                         _buildCard(
                           child: InkWell(
-                            borderRadius: BorderRadius.circular(AppSizes.radiusLarge),
+                            borderRadius: BorderRadius.circular(
+                              AppSizes.radiusLarge,
+                            ),
                             onTap: () => RequirementsModal.open(context),
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                const Row(children: [
-                                  Icon(Icons.folder_copy, color: AppColors.primaryGreen),
-                                  SizedBox(width: AppSizes.p8),
-                                  Expanded(child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      Text('Document Requirements', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-                                      Text('Configure required documents for JHS and SHS', style: TextStyle(fontSize: 13, color: AppColors.textSecondary)),
-                                    ],
-                                  )),
-                                  Icon(Icons.chevron_right, color: AppColors.textSecondary),
-                                ]),
+                                const Row(
+                                  children: [
+                                    Icon(
+                                      Icons.folder_copy,
+                                      color: AppColors.primaryGreen,
+                                    ),
+                                    SizedBox(width: AppSizes.p8),
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          Text(
+                                            'Document Requirements',
+                                            style: TextStyle(
+                                              fontSize: 18,
+                                              fontWeight: FontWeight.bold,
+                                            ),
+                                          ),
+                                          Text(
+                                            'Configure required documents for JHS and SHS',
+                                            style: TextStyle(
+                                              fontSize: 13,
+                                              color: AppColors.textSecondary,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                    Icon(
+                                      Icons.chevron_right,
+                                      color: AppColors.textSecondary,
+                                    ),
+                                  ],
+                                ),
                                 const SizedBox(height: 12),
                                 Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 12,
+                                    vertical: 10,
+                                  ),
                                   decoration: BoxDecoration(
-                                    color: AppColors.primaryGreen.withValues(alpha: 0.06),
+                                    color: AppColors.primaryGreen.withValues(
+                                      alpha: 0.06,
+                                    ),
                                     borderRadius: BorderRadius.circular(8),
-                                    border: Border.all(color: AppColors.primaryGreen.withValues(alpha: 0.2)),
+                                    border: Border.all(
+                                      color: AppColors.primaryGreen.withValues(
+                                        alpha: 0.2,
+                                      ),
+                                    ),
                                   ),
                                   child: const Row(
                                     children: [
-                                      Icon(Icons.info_outline, size: 16, color: AppColors.primaryGreen),
+                                      Icon(
+                                        Icons.info_outline,
+                                        size: 16,
+                                        color: AppColors.primaryGreen,
+                                      ),
                                       SizedBox(width: 8),
                                       Expanded(
                                         child: Text(
                                           'Define which documents are required for enrollment per grade level '
                                           '(e.g., Form 137, Birth Certificate, Good Moral). Students with missing '
                                           'required documents will appear in the Missing Docs dashboard tile.',
-                                          style: TextStyle(fontSize: 12, color: AppColors.primaryGreen),
+                                          style: TextStyle(
+                                            fontSize: 12,
+                                            color: AppColors.primaryGreen,
+                                          ),
                                         ),
                                       ),
                                     ],
@@ -658,41 +872,78 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                         const SizedBox(height: AppSizes.p24),
                         _buildCard(
                           child: InkWell(
-                            borderRadius: BorderRadius.circular(AppSizes.radiusLarge),
+                            borderRadius: BorderRadius.circular(
+                              AppSizes.radiusLarge,
+                            ),
                             onTap: () => TeacherManagementModal.open(context),
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                const Row(children: [
-                                  Icon(Icons.people_alt, color: AppColors.primaryGreen),
-                                  SizedBox(width: AppSizes.p8),
-                                  Expanded(child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      Text('Teachers & Academic Setup', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-                                      Text('Manage teachers, academic years, grade levels, and sections', style: TextStyle(fontSize: 13, color: AppColors.textSecondary)),
-                                    ],
-                                  )),
-                                  Icon(Icons.chevron_right, color: AppColors.textSecondary),
-                                ]),
+                                const Row(
+                                  children: [
+                                    Icon(
+                                      Icons.people_alt,
+                                      color: AppColors.primaryGreen,
+                                    ),
+                                    SizedBox(width: AppSizes.p8),
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          Text(
+                                            'Teachers & Academic Setup',
+                                            style: TextStyle(
+                                              fontSize: 18,
+                                              fontWeight: FontWeight.bold,
+                                            ),
+                                          ),
+                                          Text(
+                                            'Manage teachers, academic years, grade levels, and sections',
+                                            style: TextStyle(
+                                              fontSize: 13,
+                                              color: AppColors.textSecondary,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                    Icon(
+                                      Icons.chevron_right,
+                                      color: AppColors.textSecondary,
+                                    ),
+                                  ],
+                                ),
                                 const SizedBox(height: 12),
                                 Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 12,
+                                    vertical: 10,
+                                  ),
                                   decoration: BoxDecoration(
                                     color: Colors.blue.withValues(alpha: 0.06),
                                     borderRadius: BorderRadius.circular(8),
-                                    border: Border.all(color: Colors.blue.withValues(alpha: 0.2)),
+                                    border: Border.all(
+                                      color: Colors.blue.withValues(alpha: 0.2),
+                                    ),
                                   ),
                                   child: const Row(
                                     children: [
-                                      Icon(Icons.info_outline, size: 16, color: Colors.blue),
+                                      Icon(
+                                        Icons.info_outline,
+                                        size: 16,
+                                        color: Colors.blue,
+                                      ),
                                       SizedBox(width: 8),
                                       Expanded(
                                         child: Text(
                                           'Set up academic years, grade levels, and sections. Assign teachers to '
                                           'their sections so they can view and manage their students\' records. '
                                           'Changes here affect enrollment options across the system.',
-                                          style: TextStyle(fontSize: 12, color: Colors.blue),
+                                          style: TextStyle(
+                                            fontSize: 12,
+                                            color: Colors.blue,
+                                          ),
                                         ),
                                       ),
                                     ],
@@ -709,67 +960,120 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              const Row(children: [
-                                Icon(Icons.storage, color: AppColors.primaryGreen),
-                                SizedBox(width: AppSizes.p8),
-                                Expanded(child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text('Database Management', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-                                    Text('Backup or restore system data and uploaded files', style: TextStyle(fontSize: 13, color: AppColors.textSecondary)),
-                                  ],
-                                )),
-                              ]),
-                              const SizedBox(height: 16),
-                              ref.watch(backupInfoProvider).when(
-                                data: (info) => Padding(
-                                  padding: const EdgeInsets.only(bottom: 16),
-                                  child: Row(
-                                    children: [
-                                      Expanded(
-                                        child: Text(
-                                          'Last Backup: ${(info['lastBackup'] as String?)?.isNotEmpty == true ? pht.formatModalDate(info['lastBackup'] as String) : 'Never'}', 
-                                          style: const TextStyle(fontSize: 12, color: AppColors.textSecondary)
-                                        )
-                                      ),
-                                      Expanded(
-                                        child: Text(
-                                          'Last Restore: ${(info['lastRestore'] as String?)?.isNotEmpty == true ? pht.formatModalDate(info['lastRestore'] as String) : 'Never'}', 
-                                          style: const TextStyle(fontSize: 12, color: AppColors.textSecondary)
-                                        )
-                                      ),
-                                    ],
+                              const Row(
+                                children: [
+                                  Icon(
+                                    Icons.storage,
+                                    color: AppColors.primaryGreen,
                                   ),
-                                ),
-                                loading: () => const SizedBox.shrink(),
-                                error: (_, __) => const SizedBox.shrink(),
+                                  SizedBox(width: AppSizes.p8),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          'Database Management',
+                                          style: TextStyle(
+                                            fontSize: 18,
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                        ),
+                                        Text(
+                                          'Backup or restore system data and uploaded files',
+                                          style: TextStyle(
+                                            fontSize: 13,
+                                            color: AppColors.textSecondary,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ],
                               ),
+                              const SizedBox(height: 16),
+                              ref
+                                  .watch(backupInfoProvider)
+                                  .when(
+                                    data: (info) => Padding(
+                                      padding: const EdgeInsets.only(
+                                        bottom: 16,
+                                      ),
+                                      child: Row(
+                                        children: [
+                                          Expanded(
+                                            child: Text(
+                                              'Last Backup: ${(info['lastBackup'] as String?)?.isNotEmpty == true ? pht.formatModalDate(info['lastBackup'] as String) : 'Never'}',
+                                              style: const TextStyle(
+                                                fontSize: 12,
+                                                color: AppColors.textSecondary,
+                                              ),
+                                            ),
+                                          ),
+                                          Expanded(
+                                            child: Text(
+                                              'Last Restore: ${(info['lastRestore'] as String?)?.isNotEmpty == true ? pht.formatModalDate(info['lastRestore'] as String) : 'Never'}',
+                                              style: const TextStyle(
+                                                fontSize: 12,
+                                                color: AppColors.textSecondary,
+                                              ),
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                    loading: () => const SizedBox.shrink(),
+                                    error: (_, __) => const SizedBox.shrink(),
+                                  ),
                               Row(
                                 children: [
                                   Expanded(
                                     child: OutlinedButton.icon(
-                                      onPressed: _isBackupLoading ? null : _handleBackup,
-                                      icon: _isBackupLoading 
-                                        ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
-                                        : const Icon(Icons.download_rounded),
+                                      onPressed: _isBackupLoading
+                                          ? null
+                                          : _handleBackup,
+                                      icon: _isBackupLoading
+                                          ? const SizedBox(
+                                              width: 16,
+                                              height: 16,
+                                              child: CircularProgressIndicator(
+                                                strokeWidth: 2,
+                                              ),
+                                            )
+                                          : const Icon(Icons.download_rounded),
                                       label: const Text('Backup System Data'),
                                       style: OutlinedButton.styleFrom(
-                                        padding: const EdgeInsets.symmetric(vertical: 16),
-                                        side: const BorderSide(color: AppColors.primaryGreen),
+                                        padding: const EdgeInsets.symmetric(
+                                          vertical: 16,
+                                        ),
+                                        side: const BorderSide(
+                                          color: AppColors.primaryGreen,
+                                        ),
                                       ),
                                     ),
                                   ),
                                   const SizedBox(width: 16),
                                   Expanded(
                                     child: FilledButton.icon(
-                                      onPressed: _isRestoreLoading ? null : _handleRestore,
+                                      onPressed: _isRestoreLoading
+                                          ? null
+                                          : _handleRestore,
                                       icon: _isRestoreLoading
-                                        ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                                        : const Icon(Icons.upload_rounded),
+                                          ? const SizedBox(
+                                              width: 16,
+                                              height: 16,
+                                              child: CircularProgressIndicator(
+                                                strokeWidth: 2,
+                                                color: Colors.white,
+                                              ),
+                                            )
+                                          : const Icon(Icons.upload_rounded),
                                       label: const Text('Restore System Data'),
                                       style: FilledButton.styleFrom(
                                         backgroundColor: AppColors.warning,
-                                        padding: const EdgeInsets.symmetric(vertical: 16),
+                                        padding: const EdgeInsets.symmetric(
+                                          vertical: 16,
+                                        ),
                                       ),
                                     ),
                                   ),
@@ -791,15 +1095,33 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                               Row(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  const Icon(Icons.lock_outline, color: AppColors.textPrimary),
+                                  const Icon(
+                                    Icons.lock_outline,
+                                    color: AppColors.textPrimary,
+                                  ),
                                   const SizedBox(width: AppSizes.p8),
-                                  Expanded(child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      const Text('Change Password', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-                                      const Text('Set a new password for your account.', style: TextStyle(fontSize: 13, color: AppColors.textSecondary)),
-                                    ],
-                                  )),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        const Text(
+                                          'Change Password',
+                                          style: TextStyle(
+                                            fontSize: 18,
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                        ),
+                                        const Text(
+                                          'Set a new password for your account.',
+                                          style: TextStyle(
+                                            fontSize: 13,
+                                            color: AppColors.textSecondary,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
                                 ],
                               ),
                               const Divider(height: 28),
@@ -810,14 +1132,17 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                                 controller: _newPassCtrl,
                                 isPassword: true,
                                 obscureText: !_isPassVisible,
-                                onToggleVisibility: () => setState(() => _isPassVisible = !_isPassVisible),
+                                onToggleVisibility: () => setState(
+                                  () => _isPassVisible = !_isPassVisible,
+                                ),
                                 onChanged: (v) {
                                   // Re-validate confirm field if it's not empty
                                   if (_confirmPassCtrl.text.isNotEmpty) {
                                     _passwordFormKey.currentState?.validate();
                                   }
                                 },
-                                validator: AppValidators.validatePasswordComplexity,
+                                validator:
+                                    AppValidators.validatePasswordComplexity,
                               ),
                               if (_newPassCtrl.text.isNotEmpty) ...[
                                 const SizedBox(height: 8),
@@ -856,12 +1181,19 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                                 controller: _confirmPassCtrl,
                                 isPassword: true,
                                 obscureText: !_isPassVisible,
-                                onToggleVisibility: () => setState(() => _isPassVisible = !_isPassVisible),
-                                autovalidateMode: AutovalidateMode.onUserInteraction,
+                                onToggleVisibility: () => setState(
+                                  () => _isPassVisible = !_isPassVisible,
+                                ),
+                                autovalidateMode:
+                                    AutovalidateMode.onUserInteraction,
                                 validator: (v) {
-                                  final req = AppValidators.validateRequired(v, 'Confirm Password');
+                                  final req = AppValidators.validateRequired(
+                                    v,
+                                    'Confirm Password',
+                                  );
                                   if (req != null) return req;
-                                  if (v != _newPassCtrl.text) return 'Passwords do not match';
+                                  if (v != _newPassCtrl.text)
+                                    return 'Passwords do not match';
                                   return null;
                                 },
                               ),
@@ -870,7 +1202,11 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                                 alignment: Alignment.centerRight,
                                 child: SizedBox(
                                   width: 200,
-                                  child: PrimaryButton(label: 'UPDATE', isLoading: _isPasswordLoading, onPressed: _handleChangePassword),
+                                  child: PrimaryButton(
+                                    label: 'UPDATE',
+                                    isLoading: _isPasswordLoading,
+                                    onPressed: _handleChangePassword,
+                                  ),
                                 ),
                               ),
                             ],
@@ -897,7 +1233,13 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       decoration: BoxDecoration(
         color: AppColors.surfaceWhite,
         borderRadius: BorderRadius.circular(AppSizes.radiusLarge),
-        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.03), blurRadius: 10, offset: const Offset(0, 4))],
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.03),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
         border: Border.all(color: Colors.grey.shade200),
       ),
       child: child,

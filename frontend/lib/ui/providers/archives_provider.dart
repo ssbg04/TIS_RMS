@@ -48,9 +48,10 @@ class OpenedArchiveFolderData {
   OpenedArchiveFolderData({required this.id, required this.name});
 }
 
-final openedArchiveFolderProvider = NotifierProvider<OpenedArchiveFolderNotifier, OpenedArchiveFolderData?>(
-  OpenedArchiveFolderNotifier.new,
-);
+final openedArchiveFolderProvider =
+    NotifierProvider<OpenedArchiveFolderNotifier, OpenedArchiveFolderData?>(
+      OpenedArchiveFolderNotifier.new,
+    );
 
 class OpenedArchiveFolderNotifier extends Notifier<OpenedArchiveFolderData?> {
   @override
@@ -58,20 +59,27 @@ class OpenedArchiveFolderNotifier extends Notifier<OpenedArchiveFolderData?> {
   void setFolder(OpenedArchiveFolderData? data) => state = data;
 }
 
-final archiveQueryProvider = NotifierProvider<ArchiveQueryNotifier, ArchiveQueryParams>(ArchiveQueryNotifier.new);
+final archiveQueryProvider =
+    NotifierProvider<ArchiveQueryNotifier, ArchiveQueryParams>(
+      ArchiveQueryNotifier.new,
+    );
 
 class ArchiveQueryNotifier extends Notifier<ArchiveQueryParams> {
   @override
   ArchiveQueryParams build() => const ArchiveQueryParams();
 
-  void setSearch(String value) => state = state.copyWith(search: value, page: 1);
+  void setSearch(String value) =>
+      state = state.copyWith(search: value, page: 1);
   void setPage(int page) => state = state.copyWith(page: page);
   void setLimit(int limit) => state = state.copyWith(limit: limit, page: 1);
-  void setStatus(String status) => state = state.copyWith(status: status, page: 1);
+  void setStatus(String status) =>
+      state = state.copyWith(status: status, page: 1);
   void reset() => state = const ArchiveQueryParams();
 }
 
-final archivePageProvider = FutureProvider.autoDispose<ArchivePage>((ref) async {
+final archivePageProvider = FutureProvider.autoDispose<ArchivePage>((
+  ref,
+) async {
   final query = ref.watch(archiveQueryProvider);
   final repo = ref.read(archiveRepositoryProvider);
 
@@ -83,7 +91,10 @@ final archivePageProvider = FutureProvider.autoDispose<ArchivePage>((ref) async 
   );
 });
 
-final archiveMutationProvider = AsyncNotifierProvider<ArchiveMutationNotifier, void>(ArchiveMutationNotifier.new);
+final archiveMutationProvider =
+    AsyncNotifierProvider<ArchiveMutationNotifier, void>(
+      ArchiveMutationNotifier.new,
+    );
 
 class ArchiveMutationNotifier extends AsyncNotifier<void> {
   @override
@@ -127,7 +138,7 @@ class ArchiveDocumentQueryParams {
   final String search;
   final int page;
   final int limit;
-  final String status;        // student status filter
+  final String status; // student status filter
   final String documentType;
   final String gradeLevel;
   final String schoolYear;
@@ -170,34 +181,41 @@ class ArchiveDocumentQueryParams {
 
 final archiveDocumentQueryProvider =
     NotifierProvider<ArchiveDocumentQueryNotifier, ArchiveDocumentQueryParams>(
-  ArchiveDocumentQueryNotifier.new,
-);
+      ArchiveDocumentQueryNotifier.new,
+    );
 
-class ArchiveDocumentQueryNotifier extends Notifier<ArchiveDocumentQueryParams> {
+class ArchiveDocumentQueryNotifier
+    extends Notifier<ArchiveDocumentQueryParams> {
   @override
   ArchiveDocumentQueryParams build() => const ArchiveDocumentQueryParams();
 
-  void setSearch(String value) => state = state.copyWith(search: value, page: 1);
+  void setSearch(String value) =>
+      state = state.copyWith(search: value, page: 1);
   void setPage(int page) => state = state.copyWith(page: page);
   void setLimit(int limit) => state = state.copyWith(limit: limit, page: 1);
-  void setStatus(String status) => state = state.copyWith(status: status, page: 1);
-  void setDocumentType(String type) => state = state.copyWith(documentType: type, page: 1);
-  void setGradeLevel(String gradeLevel) => state = state.copyWith(gradeLevel: gradeLevel, page: 1);
-  void setSchoolYear(String schoolYear) => state = state.copyWith(schoolYear: schoolYear, page: 1);
+  void setStatus(String status) =>
+      state = state.copyWith(status: status, page: 1);
+  void setDocumentType(String type) =>
+      state = state.copyWith(documentType: type, page: 1);
+  void setGradeLevel(String gradeLevel) =>
+      state = state.copyWith(gradeLevel: gradeLevel, page: 1);
+  void setSchoolYear(String schoolYear) =>
+      state = state.copyWith(schoolYear: schoolYear, page: 1);
   void setStudentId(int? studentId) => state = state.copyWith(
-        studentId: studentId,
-        clearStudentId: studentId == null,
-        page: 1,
-        search: '',
-      );
+    studentId: studentId,
+    clearStudentId: studentId == null,
+    page: 1,
+    search: '',
+  );
   void reset() => state = const ArchiveDocumentQueryParams();
 }
 
 // ============================================================
 // New: Paginated archived documents
 // ============================================================
-final archiveDocumentPageProvider =
-    FutureProvider.autoDispose<DocumentPage>((ref) async {
+final archiveDocumentPageProvider = FutureProvider.autoDispose<DocumentPage>((
+  ref,
+) async {
   final query = ref.watch(archiveDocumentQueryProvider);
   final repo = ref.read(archiveRepositoryProvider);
   return repo.getArchivedDocuments(
@@ -217,10 +235,10 @@ final archiveDocumentPageProvider =
 // ============================================================
 final archiveStudentFoldersProvider =
     FutureProvider.autoDispose<List<FolderModel>>((ref) async {
-  final query = ref.watch(archiveDocumentQueryProvider);
-  final repo = ref.read(archiveRepositoryProvider);
-  return repo.getArchivedStudentFolders(
-    search: query.search,
-    status: query.status,
-  );
-});
+      final query = ref.watch(archiveDocumentQueryProvider);
+      final repo = ref.read(archiveRepositoryProvider);
+      return repo.getArchivedStudentFolders(
+        search: query.search,
+        status: query.status,
+      );
+    });

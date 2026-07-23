@@ -28,25 +28,31 @@ class DashboardRepository {
     String? dateFrom,
     String? dateTo,
     String? action,
-    String? entityTypes, // Comma-separated, e.g. "student,document" for teacher view
+    String?
+    entityTypes, // Comma-separated, e.g. "student,document" for teacher view
   }) async {
     try {
       final options = await _getAuthOptions();
       final response = await _dio.get(
         '/dashboard/recent-activities',
         queryParameters: {
-          'page':  page,
+          'page': page,
           'limit': limit,
           if (dateFrom != null && dateFrom.isNotEmpty) 'date_from': dateFrom,
-          if (dateTo   != null && dateTo.isNotEmpty)   'date_to':   dateTo,
-          if (action   != null && action.isNotEmpty)   'action':    action,
-          if (entityTypes != null && entityTypes.isNotEmpty) 'entity_types': entityTypes,
+          if (dateTo != null && dateTo.isNotEmpty) 'date_to': dateTo,
+          if (action != null && action.isNotEmpty) 'action': action,
+          if (entityTypes != null && entityTypes.isNotEmpty)
+            'entity_types': entityTypes,
         },
         options: options,
       );
-      return PaginatedActivities.fromJson(response.data as Map<String, dynamic>);
+      return PaginatedActivities.fromJson(
+        response.data as Map<String, dynamic>,
+      );
     } on DioException catch (e) {
-      throw Exception(e.response?.data['message'] ?? 'Failed to fetch activities.');
+      throw Exception(
+        e.response?.data['message'] ?? 'Failed to fetch activities.',
+      );
     }
   }
 }

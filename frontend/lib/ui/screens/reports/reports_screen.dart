@@ -40,12 +40,15 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
-      
+
       // Initial fetch
       _refreshData();
 
       // Setup tab listener
-      _tabListener = ref.listenManual<String>(activeTabProvider, (previous, next) {
+      _tabListener = ref.listenManual<String>(activeTabProvider, (
+        previous,
+        next,
+      ) {
         if (!mounted) return;
         if (previous == 'Reports' || next == 'Reports') {
           if (_scrollController.hasClients) {
@@ -53,7 +56,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
           }
         }
       });
-      
+
       // Polling every 5 seconds
       _pollingTimer = Timer.periodic(const Duration(seconds: 5), (_) {
         if (mounted && ref.read(activeTabProvider) == 'Reports') {
@@ -83,15 +86,22 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
     setState(() => _isExporting = true);
     try {
       final yearId = ref.read(selectedAcademicYearIdProvider);
-      final years     = ref.read(academicYearsProvider).asData?.value ?? [];
+      final years = ref.read(academicYearsProvider).asData?.value ?? [];
       final yearLabel = yearId != null
-          ? years.firstWhere((y) => y.id == yearId, orElse: () => AcademicYear(id: 0, yearRange: 'Selected', status: '')).yearRange
+          ? years
+                .firstWhere(
+                  (y) => y.id == yearId,
+                  orElse: () =>
+                      AcademicYear(id: 0, yearRange: 'Selected', status: ''),
+                )
+                .yearRange
           : 'All Years';
 
       // Build Excel bytes using the filtered data
-      final bytes           = _buildExcel(data, yearLabel);
-      final defaultFileName = 'TIS_RMS_Report_${yearLabel.replaceAll('-', '_')}_${DateTime.now().millisecondsSinceEpoch}.xlsx';
-      final generatedAt     = DateTime.now().toString().substring(0, 19);
+      final bytes = _buildExcel(data, yearLabel);
+      final defaultFileName =
+          'TIS_RMS_Report_${yearLabel.replaceAll('-', '_')}_${DateTime.now().millisecondsSinceEpoch}.xlsx';
+      final generatedAt = DateTime.now().toString().substring(0, 19);
 
       if (!mounted) return;
       setState(() => _isExporting = false);
@@ -105,7 +115,10 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
           ['Student Status', 'Total Count'],
           ['Active (Enrolled)', data.studentCounts.active.toString()],
           ['Dropouts (Dropped)', data.studentCounts.dropped.toString()],
-          ['Transferees (Transferred)', data.studentCounts.transferee.toString()],
+          [
+            'Transferees (Transferred)',
+            data.studentCounts.transferee.toString(),
+          ],
           ['Graduated', data.studentCounts.graduated.toString()],
           ['', ''],
           ['MISSING DOCUMENTS PER REQUIREMENT TYPE', ''],
@@ -116,7 +129,17 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
 
       final masterlistSheet = SheetPreviewData(
         sheetName: 'Student Compliance List',
-        headers: ['#', 'LRN', 'Name', 'Sex', 'Grade Level', 'Section', 'Status', 'Missing Count', 'Missing Documents'],
+        headers: [
+          '#',
+          'LRN',
+          'Name',
+          'Sex',
+          'Grade Level',
+          'Section',
+          'Status',
+          'Missing Count',
+          'Missing Documents',
+        ],
         maxPreviewRows: 100,
         rows: data.students.asMap().entries.map((e) {
           final i = e.key;
@@ -138,25 +161,27 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
       // Show preview dialog before actual save
       await showFileSavePreviewDialog(
         context,
-        fileName:  defaultFileName,
-        fileType:  SaveFileType.excel,
+        fileName: defaultFileName,
+        fileType: SaveFileType.excel,
         fileBytes: bytes,
         previewRows: [
-          FilePreviewRow('School Year',    yearLabel),
-          FilePreviewRow('Students',       data.students.length.toString()),
-          FilePreviewRow('Sheets',         '2'),
-          FilePreviewRow('Generated',      generatedAt),
+          FilePreviewRow('School Year', yearLabel),
+          FilePreviewRow('Students', data.students.length.toString()),
+          FilePreviewRow('Sheets', '2'),
+          FilePreviewRow('Generated', generatedAt),
         ],
         sheets: [summarySheet, masterlistSheet],
         onSave: (resolvedName) => _saveExcelFile(bytes, resolvedName),
       );
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-        content: Text('Export failed: $e'),
-        backgroundColor: Colors.red,
-        duration: const Duration(seconds: 5),
-      ));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Export failed: $e'),
+          backgroundColor: Colors.red,
+          duration: const Duration(seconds: 5),
+        ),
+      );
       setState(() => _isExporting = false);
     }
   }
@@ -166,12 +191,12 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
 
     if (Platform.isAndroid) {
       var storageStatus = await Permission.storage.status;
-      var manageStatus  = await Permission.manageExternalStorage.status;
+      var manageStatus = await Permission.manageExternalStorage.status;
 
       if (!storageStatus.isGranted && !manageStatus.isGranted) {
         await [Permission.storage, Permission.manageExternalStorage].request();
         storageStatus = await Permission.storage.status;
-        manageStatus  = await Permission.manageExternalStorage.status;
+        manageStatus = await Permission.manageExternalStorage.status;
       }
 
       if (!storageStatus.isGranted && !manageStatus.isGranted) {
@@ -184,11 +209,19 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
             context: context,
             builder: (ctx) => AlertDialog(
               title: const Text('Confirm Permission'),
-              content: const Text('Did you grant the storage permission in settings?'),
+              content: const Text(
+                'Did you grant the storage permission in settings?',
+              ),
               actions: [
-                TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('No')),
+                TextButton(
+                  onPressed: () => Navigator.pop(ctx, false),
+                  child: const Text('No'),
+                ),
                 ElevatedButton(
-                  style: ElevatedButton.styleFrom(backgroundColor: AppColors.primaryGreen, foregroundColor: Colors.white),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.primaryGreen,
+                    foregroundColor: Colors.white,
+                  ),
                   onPressed: () => Navigator.pop(ctx, true),
                   child: const Text('Yes'),
                 ),
@@ -197,7 +230,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
           );
           if (confirmed == true) {
             storageStatus = await Permission.storage.status;
-            manageStatus  = await Permission.manageExternalStorage.status;
+            manageStatus = await Permission.manageExternalStorage.status;
           }
           if (!storageStatus.isGranted && !manageStatus.isGranted) {
             throw Exception('Storage permission denied. Cannot save file.');
@@ -212,16 +245,14 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
       );
       if (selectedDirectory == null) return;
       savePath = '$selectedDirectory/$fileName';
-
     } else if (Platform.isWindows) {
       savePath = await FilePicker.saveFile(
         dialogTitle: 'Save Report As...',
-        fileName:    fileName,
-        type:        FileType.custom,
+        fileName: fileName,
+        type: FileType.custom,
         allowedExtensions: ['xlsx'],
       );
       if (savePath == null) return;
-
     } else {
       final dir = await getApplicationDocumentsDirectory();
       savePath = '${dir.path}/$fileName';
@@ -231,11 +262,13 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
     await file.writeAsBytes(bytes);
 
     if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-      content: Text('✅ Saved: ${file.path}'),
-      backgroundColor: AppColors.success,
-      duration: const Duration(seconds: 5),
-    ));
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('✅ Saved: ${file.path}'),
+        backgroundColor: AppColors.success,
+        duration: const Duration(seconds: 5),
+      ),
+    );
   }
 
   Future<bool?> _showPermissionDeniedDialog() {
@@ -243,14 +276,19 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Permission Denied'),
-        content: const Text('Storage permission is required to save the exported Excel file. Would you like to open app settings to grant the permission?'),
+        content: const Text(
+          'Storage permission is required to save the exported Excel file. Would you like to open app settings to grant the permission?',
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(false),
             child: const Text('Cancel'),
           ),
           ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: AppColors.primaryGreen, foregroundColor: Colors.white),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.primaryGreen,
+              foregroundColor: Colors.white,
+            ),
             onPressed: () => Navigator.of(context).pop(true),
             child: const Text('Open Settings'),
           ),
@@ -266,11 +304,19 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
     final summary = excel['Summary'];
     _excelTitle(summary, 'A1', 'TIAONG INTEGRATED SCHOOL — TIS RMS', 7);
     _excelTitle(summary, 'A2', 'Annual Report Summary: $yearLabel', 7);
-    _excelTitle(summary, 'A3', 'Generated: ${DateTime.now().toString().substring(0, 19)}', 7);
+    _excelTitle(
+      summary,
+      'A3',
+      'Generated: ${DateTime.now().toString().substring(0, 19)}',
+      7,
+    );
 
-    summary.cell(CellIndex.indexByString('A5')).value = TextCellValue('STUDENT STATISTICS');
+    summary.cell(CellIndex.indexByString('A5')).value = TextCellValue(
+      'STUDENT STATISTICS',
+    );
     _boldCell(summary, 'A5');
-    _header(summary, 'A6', 'Student Status'); _header(summary, 'B6', 'Total Count');
+    _header(summary, 'A6', 'Student Status');
+    _header(summary, 'B6', 'Total Count');
     final stats = [
       ['Active (Enrolled)', data.studentCounts.active.toString()],
       ['Dropouts (Dropped)', data.studentCounts.dropped.toString()],
@@ -278,17 +324,28 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
       ['Graduated', data.studentCounts.graduated.toString()],
     ];
     for (int i = 0; i < stats.length; i++) {
-      summary.cell(CellIndex.indexByString('A${7 + i}')).value = TextCellValue(stats[i][0]);
-      summary.cell(CellIndex.indexByString('B${7 + i}')).value = TextCellValue(stats[i][1]);
+      summary.cell(CellIndex.indexByString('A${7 + i}')).value = TextCellValue(
+        stats[i][0],
+      );
+      summary.cell(CellIndex.indexByString('B${7 + i}')).value = TextCellValue(
+        stats[i][1],
+      );
     }
 
-    summary.cell(CellIndex.indexByString('A13')).value = TextCellValue('MISSING DOCUMENTS PER REQUIREMENT TYPE');
+    summary.cell(CellIndex.indexByString('A13')).value = TextCellValue(
+      'MISSING DOCUMENTS PER REQUIREMENT TYPE',
+    );
     _boldCell(summary, 'A13');
-    _header(summary, 'A14', 'Document Type'); _header(summary, 'B14', 'Missing Count');
+    _header(summary, 'A14', 'Document Type');
+    _header(summary, 'B14', 'Missing Count');
     for (int i = 0; i < data.missingDocsBreakdown.length; i++) {
       final row = data.missingDocsBreakdown[i];
-      summary.cell(CellIndex.indexByString('A${15 + i}')).value = TextCellValue(row.name);
-      summary.cell(CellIndex.indexByString('B${15 + i}')).value = IntCellValue(row.count);
+      summary.cell(CellIndex.indexByString('A${15 + i}')).value = TextCellValue(
+        row.name,
+      );
+      summary.cell(CellIndex.indexByString('B${15 + i}')).value = IntCellValue(
+        row.count,
+      );
     }
 
     summary.setColumnWidth(0, 36);
@@ -297,11 +354,27 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
     // ── Sheet 2: Student Compliance List ─────────────────────────────────────
     final students = excel['Student Compliance List'];
     _excelTitle(students, 'A1', 'STUDENT COMPLIANCE REPORT — $yearLabel', 7);
-    final headers = ['#', 'LRN', 'Student Name', 'Sex', 'Grade Level', 'Section', 'Status', 'Missing Count', 'Missing Documents'];
+    final headers = [
+      '#',
+      'LRN',
+      'Student Name',
+      'Sex',
+      'Grade Level',
+      'Section',
+      'Status',
+      'Missing Count',
+      'Missing Documents',
+    ];
     for (int c = 0; c < headers.length; c++) {
-      final cell = students.cell(CellIndex.indexByColumnRow(columnIndex: c, rowIndex: 2));
+      final cell = students.cell(
+        CellIndex.indexByColumnRow(columnIndex: c, rowIndex: 2),
+      );
       cell.value = TextCellValue(headers[c]);
-      cell.cellStyle = CellStyle(bold: true, backgroundColorHex: ExcelColor.fromHexString('#1C8248'), fontColorHex: ExcelColor.fromHexString('#FFFFFF'));
+      cell.cellStyle = CellStyle(
+        bold: true,
+        backgroundColorHex: ExcelColor.fromHexString('#1C8248'),
+        fontColorHex: ExcelColor.fromHexString('#FFFFFF'),
+      );
     }
     for (int r = 0; r < data.students.length; r++) {
       final s = data.students[r];
@@ -317,19 +390,29 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
         s.missingRequirements ?? 'None',
       ];
       for (int c = 0; c < row.length; c++) {
-        final cell = students.cell(CellIndex.indexByColumnRow(columnIndex: c, rowIndex: r + 3));
+        final cell = students.cell(
+          CellIndex.indexByColumnRow(columnIndex: c, rowIndex: r + 3),
+        );
         cell.value = TextCellValue(row[c]);
         if (s.missingCount > 0 && c == 7) {
-          cell.cellStyle = CellStyle(fontColorHex: ExcelColor.fromHexString('#C62828'));
+          cell.cellStyle = CellStyle(
+            fontColorHex: ExcelColor.fromHexString('#C62828'),
+          );
         } else if (s.missingCount == 0 && c == 7) {
-          cell.cellStyle = CellStyle(fontColorHex: ExcelColor.fromHexString('#1C8248'));
+          cell.cellStyle = CellStyle(
+            fontColorHex: ExcelColor.fromHexString('#1C8248'),
+          );
         }
       }
     }
-    students.setColumnWidth(0, 6); students.setColumnWidth(1, 18);
-    students.setColumnWidth(2, 22); students.setColumnWidth(3, 8);
-    students.setColumnWidth(4, 14); students.setColumnWidth(5, 14);
-    students.setColumnWidth(6, 12); students.setColumnWidth(7, 15);
+    students.setColumnWidth(0, 6);
+    students.setColumnWidth(1, 18);
+    students.setColumnWidth(2, 22);
+    students.setColumnWidth(3, 8);
+    students.setColumnWidth(4, 14);
+    students.setColumnWidth(5, 14);
+    students.setColumnWidth(6, 12);
+    students.setColumnWidth(7, 15);
     students.setColumnWidth(8, 45);
 
     // Delete default Sheet1 only after custom sheets have been populated
@@ -341,27 +424,36 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
   void _excelTitle(Sheet sheet, String addr, String text, int span) {
     final cell = sheet.cell(CellIndex.indexByString(addr));
     cell.value = TextCellValue(text);
-    cell.cellStyle = CellStyle(bold: true, fontSize: 14, fontColorHex: ExcelColor.fromHexString('#1C8248'));
+    cell.cellStyle = CellStyle(
+      bold: true,
+      fontSize: 14,
+      fontColorHex: ExcelColor.fromHexString('#1C8248'),
+    );
   }
 
   void _boldCell(Sheet sheet, String addr) {
-    sheet.cell(CellIndex.indexByString(addr)).cellStyle = CellStyle(bold: true, fontSize: 11);
+    sheet.cell(CellIndex.indexByString(addr)).cellStyle = CellStyle(
+      bold: true,
+      fontSize: 11,
+    );
   }
 
   void _header(Sheet sheet, String addr, String text) {
     final cell = sheet.cell(CellIndex.indexByString(addr));
     cell.value = TextCellValue(text);
-    cell.cellStyle = CellStyle(bold: true, backgroundColorHex: ExcelColor.fromHexString('#E8F5E9'));
+    cell.cellStyle = CellStyle(
+      bold: true,
+      backgroundColorHex: ExcelColor.fromHexString('#E8F5E9'),
+    );
   }
 
   // ── Print Compliance Report Dialog ─────────────────────────────────────────
-
 
   @override
   Widget build(BuildContext context) {
     final statsAsync = ref.watch(reportStatsProvider);
     final storageAsync = ref.watch(storageStatsProvider);
-    
+
     return Scaffold(
       backgroundColor: Colors.transparent,
       body: SafeArea(
@@ -381,7 +473,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
               children: [
                 _buildTitleAndExportActions(context),
                 const SizedBox(height: AppSizes.p24),
-                
+
                 statsAsync.when(
                   loading: () => const Center(
                     child: Padding(
@@ -389,7 +481,8 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                       child: CircularProgressIndicator(),
                     ),
                   ),
-                  error: (err, st) => _errorWidget('Error fetching analytics: $err'),
+                  error: (err, st) =>
+                      _errorWidget('Error fetching analytics: $err'),
                   data: (data) => Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -398,7 +491,10 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                       const SizedBox(height: AppSizes.p24),
 
                       // 2. KPI Cards
-                      _buildMetricsGrid(data.studentCounts, storageAsync.asData?.value),
+                      _buildMetricsGrid(
+                        data.studentCounts,
+                        storageAsync.asData?.value,
+                      ),
                       const SizedBox(height: AppSizes.p24),
 
                       // 3. Side-by-Side Charts (Responsive)
@@ -408,9 +504,20 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                             return Row(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Expanded(flex: 5, child: _buildYearlyComparisonChart(isDesktop: true)),
+                                Expanded(
+                                  flex: 5,
+                                  child: _buildYearlyComparisonChart(
+                                    isDesktop: true,
+                                  ),
+                                ),
                                 const SizedBox(width: AppSizes.p24),
-                                Expanded(flex: 5, child: _buildMissingDocsChart(data.missingDocsBreakdown, isDesktop: true)),
+                                Expanded(
+                                  flex: 5,
+                                  child: _buildMissingDocsChart(
+                                    data.missingDocsBreakdown,
+                                    isDesktop: true,
+                                  ),
+                                ),
                               ],
                             );
                           } else {
@@ -418,14 +525,17 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                               children: [
                                 _buildYearlyComparisonChart(isDesktop: false),
                                 const SizedBox(height: AppSizes.p24),
-                                _buildMissingDocsChart(data.missingDocsBreakdown, isDesktop: false),
+                                _buildMissingDocsChart(
+                                  data.missingDocsBreakdown,
+                                  isDesktop: false,
+                                ),
                               ],
                             );
                           }
                         },
                       ),
                       const SizedBox(height: AppSizes.p24),
-                      
+
                       // 4. Interactive Student Compliance Table
                       _buildComplianceTable(data),
                     ],
@@ -455,11 +565,19 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text('System Reports & Analytics',
-                      style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: AppColors.textPrimary)),
+                  const Text(
+                    'System Reports & Analytics',
+                    style: TextStyle(
+                      fontSize: 28,
+                      fontWeight: FontWeight.bold,
+                      color: AppColors.textPrimary,
+                    ),
+                  ),
                   const SizedBox(height: AppSizes.p8),
-                  Text('Document Compliance & Statistics Dashboard • Tiaong Integrated School',
-                      style: TextStyle(fontSize: 15, color: Colors.grey.shade600)),
+                  Text(
+                    'Document Compliance & Statistics Dashboard • Tiaong Integrated School',
+                    style: TextStyle(fontSize: 15, color: Colors.grey.shade600),
+                  ),
                 ],
               ),
             ),
@@ -480,7 +598,6 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
           const SizedBox(height: AppSizes.p16),
           Row(
             children: [
-
               Expanded(
                 child: PrimaryButton(
                   label: 'EXPORT',
@@ -499,7 +616,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
   Widget _buildFilterPanel(BuildContext context) {
     final yearsAsync = ref.watch(academicYearsProvider);
     final selectedYearId = ref.watch(selectedAcademicYearIdProvider);
-    
+
     final selectedGrade = ref.watch(selectedGradeLevelProvider);
     final selectedSection = ref.watch(selectedSectionIdProvider);
     final selectedStatus = ref.watch(selectedStatusFilterProvider);
@@ -511,13 +628,19 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
     final List<String> activeFilters = [];
     if (selectedYearId != null) {
       final years = yearsAsync.asData?.value ?? [];
-      final yr = years.firstWhere((y) => y.id == selectedYearId, orElse: () => AcademicYear(id: 0, yearRange: 'S.Y.', status: ''));
+      final yr = years.firstWhere(
+        (y) => y.id == selectedYearId,
+        orElse: () => AcademicYear(id: 0, yearRange: 'S.Y.', status: ''),
+      );
       activeFilters.add(yr.yearRange);
     }
     if (selectedGrade != null) activeFilters.add('Grade $selectedGrade');
     if (selectedSection != null) {
       if (sections.isNotEmpty) {
-        final sec = sections.firstWhere((s) => (s['id'] as num).toInt() == selectedSection, orElse: () => {});
+        final sec = sections.firstWhere(
+          (s) => (s['id'] as num).toInt() == selectedSection,
+          orElse: () => {},
+        );
         if (sec.isNotEmpty) activeFilters.add(sec['name'] as String);
       }
     }
@@ -529,7 +652,9 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
         color: AppColors.surfaceWhite,
         borderRadius: BorderRadius.circular(AppSizes.radiusLarge),
         border: Border.all(color: Colors.grey.shade200),
-        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.02), blurRadius: 8)],
+        boxShadow: [
+          BoxShadow(color: Colors.black.withValues(alpha: 0.02), blurRadius: 8),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -537,17 +662,32 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
           // ── Collapsible Header ─────────────────────────────────────────────
           InkWell(
             borderRadius: isExpanded
-                ? const BorderRadius.vertical(top: Radius.circular(AppSizes.radiusLarge))
+                ? const BorderRadius.vertical(
+                    top: Radius.circular(AppSizes.radiusLarge),
+                  )
                 : BorderRadius.circular(AppSizes.radiusLarge),
-            onTap: () => ref.read(filterPanelExpandedProvider.notifier).state = !isExpanded,
+            onTap: () => ref.read(filterPanelExpandedProvider.notifier).state =
+                !isExpanded,
             child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: AppSizes.p16, vertical: 14),
+              padding: const EdgeInsets.symmetric(
+                horizontal: AppSizes.p16,
+                vertical: 14,
+              ),
               child: Row(
                 children: [
-                  const Icon(Icons.filter_list, color: AppColors.primaryGreen, size: 18),
+                  const Icon(
+                    Icons.filter_list,
+                    color: AppColors.primaryGreen,
+                    size: 18,
+                  ),
                   const SizedBox(width: 8),
-                  const Text('Filter Status & Statistics',
-                      style: TextStyle(fontWeight: FontWeight.bold, color: AppColors.textPrimary)),
+                  const Text(
+                    'Filter Status & Statistics',
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      color: AppColors.textPrimary,
+                    ),
+                  ),
                   const SizedBox(width: 12),
                   // Active filter chips (shown when collapsed)
                   if (!isExpanded && activeFilters.isNotEmpty) ...[
@@ -555,27 +695,50 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                       child: SingleChildScrollView(
                         scrollDirection: Axis.horizontal,
                         child: Row(
-                          children: activeFilters.map((f) => Padding(
-                            padding: const EdgeInsets.only(right: 6),
-                            child: Chip(
-                              label: Text(f, style: const TextStyle(fontSize: 11)),
-                              backgroundColor: AppColors.primaryGreen.withValues(alpha: 0.1),
-                              labelStyle: const TextStyle(color: AppColors.primaryGreen, fontWeight: FontWeight.w600),
-                              materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                              visualDensity: VisualDensity.compact,
-                              padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 0),
-                            ),
-                          )).toList(),
+                          children: activeFilters
+                              .map(
+                                (f) => Padding(
+                                  padding: const EdgeInsets.only(right: 6),
+                                  child: Chip(
+                                    label: Text(
+                                      f,
+                                      style: const TextStyle(fontSize: 11),
+                                    ),
+                                    backgroundColor: AppColors.primaryGreen
+                                        .withValues(alpha: 0.1),
+                                    labelStyle: const TextStyle(
+                                      color: AppColors.primaryGreen,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                    materialTapTargetSize:
+                                        MaterialTapTargetSize.shrinkWrap,
+                                    visualDensity: VisualDensity.compact,
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 4,
+                                      vertical: 0,
+                                    ),
+                                  ),
+                                ),
+                              )
+                              .toList(),
                         ),
                       ),
                     ),
                   ] else if (!isExpanded && activeFilters.isEmpty) ...[
-                    Text('No active filters', style: TextStyle(fontSize: 12, color: Colors.grey.shade500)),
+                    Text(
+                      'No active filters',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Colors.grey.shade500,
+                      ),
+                    ),
                     const Spacer(),
                   ] else
                     const Spacer(),
                   Icon(
-                    isExpanded ? Icons.keyboard_arrow_up : Icons.keyboard_arrow_down,
+                    isExpanded
+                        ? Icons.keyboard_arrow_up
+                        : Icons.keyboard_arrow_down,
                     color: Colors.grey.shade600,
                     size: 20,
                   ),
@@ -596,106 +759,221 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      LayoutBuilder(builder: (context, constraints) {
-                        final wide = constraints.maxWidth > 800;
-                        const spacing = AppSizes.p12;
+                      LayoutBuilder(
+                        builder: (context, constraints) {
+                          final wide = constraints.maxWidth > 800;
+                          const spacing = AppSizes.p12;
 
-                      final filterWidgets = [
-                        // Dropdown 1: Academic Year
-                        yearsAsync.when(
-                          loading: () => const SizedBox(height: 48, child: Center(child: CircularProgressIndicator())),
-                          error: (e, st) => const SizedBox.shrink(),
-                          data: (yearsList) => DropdownButtonFormField<int?>(
-                            isExpanded: true,
-                            initialValue: selectedYearId,
-                            decoration: _filterDecoration('School Year'),
-                            items: [
-                              const DropdownMenuItem<int?>(value: null, child: Text('All Years')),
-                              ...yearsList.map((y) => DropdownMenuItem<int?>(value: y.id, child: Text(y.yearRange))),
-                            ],
-                            onChanged: (val) {
-                              ref.read(selectedAcademicYearIdProvider.notifier).select(val);
-                              // Reset section
-                              ref.read(selectedSectionIdProvider.notifier).state = null;
-                              setState(() => _currentPage = 0);
-                            },
-                          ),
-                        ),
-                        // Dropdown 2: Grade Level
-                        DropdownButtonFormField<int?>(
-                          isExpanded: true,
-                          initialValue: selectedGrade,
-                          decoration: _filterDecoration('Grade Level'),
-                          items: const [
-                            DropdownMenuItem<int?>(value: null, child: Text('All Grades')),
-                            DropdownMenuItem<int?>(value: 7, child: Text('Grade 7')),
-                            DropdownMenuItem<int?>(value: 8, child: Text('Grade 8')),
-                            DropdownMenuItem<int?>(value: 9, child: Text('Grade 9')),
-                            DropdownMenuItem<int?>(value: 10, child: Text('Grade 10')),
-                            DropdownMenuItem<int?>(value: 11, child: Text('Grade 11')),
-                            DropdownMenuItem<int?>(value: 12, child: Text('Grade 12')),
-                          ],
-                          onChanged: (val) {
-                            ref.read(selectedGradeLevelProvider.notifier).state = val;
-                            // Reset section
-                            ref.read(selectedSectionIdProvider.notifier).state = null;
-                            setState(() => _currentPage = 0);
-                          },
-                        ),
-                        // Dropdown 3: Section (Dependent on selected year and optionally grade)
-                        DropdownButtonFormField<int?>(
-                          isExpanded: true,
-                          initialValue: selectedSection,
-                          decoration: _filterDecoration('Section'),
-                          disabledHint: const Text('Select a Year first'),
-                          items: selectedYearId == null
-                              ? null
-                              : [
-                                  const DropdownMenuItem<int?>(value: null, child: Text('All Sections')),
-                                  ...sections.map((sec) => DropdownMenuItem<int?>(
-                                        value: (sec['id'] as num).toInt(),
-                                        child: Text(sec['name'] as String),
-                                      )),
-                                ],
-                          onChanged: selectedYearId == null ? null : (val) {
-                            ref.read(selectedSectionIdProvider.notifier).state = val;
-                            setState(() => _currentPage = 0);
-                          },
-                        ),
-                        // Dropdown 4: Student Status
-                        DropdownButtonFormField<String?>(
-                          isExpanded: true,
-                          initialValue: selectedStatus,
-                          decoration: _filterDecoration('Status'),
-                          items: const [
-                            DropdownMenuItem<String?>(value: null, child: Text('All Statuses')),
-                            DropdownMenuItem<String?>(value: 'Enrolled', child: Text('Active (Enrolled)')),
-                            DropdownMenuItem<String?>(value: 'Dropped', child: Text('Dropout (Dropped)')),
-                            DropdownMenuItem<String?>(value: 'Transferred', child: Text('Transferee')),
-                            DropdownMenuItem<String?>(value: 'Graduated', child: Text('Graduated')),
-                          ],
-                          onChanged: (val) {
-                            ref.read(selectedStatusFilterProvider.notifier).state = val;
-                            setState(() => _currentPage = 0);
-                          },
-                        ),
-                      ];
+                          final filterWidgets = [
+                            // Dropdown 1: Academic Year
+                            yearsAsync.when(
+                              loading: () => const SizedBox(
+                                height: 48,
+                                child: Center(
+                                  child: CircularProgressIndicator(),
+                                ),
+                              ),
+                              error: (e, st) => const SizedBox.shrink(),
+                              data: (yearsList) =>
+                                  DropdownButtonFormField<int?>(
+                                    isExpanded: true,
+                                    initialValue: selectedYearId,
+                                    decoration: _filterDecoration(
+                                      'School Year',
+                                    ),
+                                    items: [
+                                      const DropdownMenuItem<int?>(
+                                        value: null,
+                                        child: Text('All Years'),
+                                      ),
+                                      ...yearsList.map(
+                                        (y) => DropdownMenuItem<int?>(
+                                          value: y.id,
+                                          child: Text(y.yearRange),
+                                        ),
+                                      ),
+                                    ],
+                                    onChanged: (val) {
+                                      ref
+                                          .read(
+                                            selectedAcademicYearIdProvider
+                                                .notifier,
+                                          )
+                                          .select(val);
+                                      // Reset section
+                                      ref
+                                              .read(
+                                                selectedSectionIdProvider
+                                                    .notifier,
+                                              )
+                                              .state =
+                                          null;
+                                      setState(() => _currentPage = 0);
+                                    },
+                                  ),
+                            ),
+                            // Dropdown 2: Grade Level
+                            DropdownButtonFormField<int?>(
+                              isExpanded: true,
+                              initialValue: selectedGrade,
+                              decoration: _filterDecoration('Grade Level'),
+                              items: const [
+                                DropdownMenuItem<int?>(
+                                  value: null,
+                                  child: Text('All Grades'),
+                                ),
+                                DropdownMenuItem<int?>(
+                                  value: 7,
+                                  child: Text('Grade 7'),
+                                ),
+                                DropdownMenuItem<int?>(
+                                  value: 8,
+                                  child: Text('Grade 8'),
+                                ),
+                                DropdownMenuItem<int?>(
+                                  value: 9,
+                                  child: Text('Grade 9'),
+                                ),
+                                DropdownMenuItem<int?>(
+                                  value: 10,
+                                  child: Text('Grade 10'),
+                                ),
+                                DropdownMenuItem<int?>(
+                                  value: 11,
+                                  child: Text('Grade 11'),
+                                ),
+                                DropdownMenuItem<int?>(
+                                  value: 12,
+                                  child: Text('Grade 12'),
+                                ),
+                              ],
+                              onChanged: (val) {
+                                ref
+                                        .read(
+                                          selectedGradeLevelProvider.notifier,
+                                        )
+                                        .state =
+                                    val;
+                                // Reset section
+                                ref
+                                        .read(
+                                          selectedSectionIdProvider.notifier,
+                                        )
+                                        .state =
+                                    null;
+                                setState(() => _currentPage = 0);
+                              },
+                            ),
+                            // Dropdown 3: Section (Dependent on selected year and optionally grade)
+                            DropdownButtonFormField<int?>(
+                              isExpanded: true,
+                              initialValue: selectedSection,
+                              decoration: _filterDecoration('Section'),
+                              disabledHint: const Text('Select a Year first'),
+                              items: selectedYearId == null
+                                  ? null
+                                  : [
+                                      const DropdownMenuItem<int?>(
+                                        value: null,
+                                        child: Text('All Sections'),
+                                      ),
+                                      ...sections.map(
+                                        (sec) => DropdownMenuItem<int?>(
+                                          value: (sec['id'] as num).toInt(),
+                                          child: Text(sec['name'] as String),
+                                        ),
+                                      ),
+                                    ],
+                              onChanged: selectedYearId == null
+                                  ? null
+                                  : (val) {
+                                      ref
+                                              .read(
+                                                selectedSectionIdProvider
+                                                    .notifier,
+                                              )
+                                              .state =
+                                          val;
+                                      setState(() => _currentPage = 0);
+                                    },
+                            ),
+                            // Dropdown 4: Student Status
+                            DropdownButtonFormField<String?>(
+                              isExpanded: true,
+                              initialValue: selectedStatus,
+                              decoration: _filterDecoration('Status'),
+                              items: const [
+                                DropdownMenuItem<String?>(
+                                  value: null,
+                                  child: Text('All Statuses'),
+                                ),
+                                DropdownMenuItem<String?>(
+                                  value: 'Enrolled',
+                                  child: Text('Active (Enrolled)'),
+                                ),
+                                DropdownMenuItem<String?>(
+                                  value: 'Dropped',
+                                  child: Text('Dropout (Dropped)'),
+                                ),
+                                DropdownMenuItem<String?>(
+                                  value: 'Transferred',
+                                  child: Text('Transferee'),
+                                ),
+                                DropdownMenuItem<String?>(
+                                  value: 'Graduated',
+                                  child: Text('Graduated'),
+                                ),
+                              ],
+                              onChanged: (val) {
+                                ref
+                                        .read(
+                                          selectedStatusFilterProvider.notifier,
+                                        )
+                                        .state =
+                                    val;
+                                setState(() => _currentPage = 0);
+                              },
+                            ),
+                          ];
 
-                      if (wide) {
-                        final items = filterWidgets.map((w) => Expanded(child: w)).toList();
-                        return Row(
-                          children: items.expand((w) => [w, const SizedBox(width: spacing)]).toList()..removeLast(),
-                        );
-                      } else {
-                        final items = filterWidgets.map((w) => SizedBox(width: 170, child: w)).toList();
-                        return SingleChildScrollView(
-                          scrollDirection: Axis.horizontal,
-                          child: Row(
-                            children: items.expand((w) => [w, const SizedBox(width: spacing)]).toList()..removeLast(),
-                          ),
-                        );
-                      }
-                      }),
+                          if (wide) {
+                            final items = filterWidgets
+                                .map((w) => Expanded(child: w))
+                                .toList();
+                            return Row(
+                              children:
+                                  items
+                                      .expand(
+                                        (w) => [
+                                          w,
+                                          const SizedBox(width: spacing),
+                                        ],
+                                      )
+                                      .toList()
+                                    ..removeLast(),
+                            );
+                          } else {
+                            final items = filterWidgets
+                                .map((w) => SizedBox(width: 170, child: w))
+                                .toList();
+                            return SingleChildScrollView(
+                              scrollDirection: Axis.horizontal,
+                              child: Row(
+                                children:
+                                    items
+                                        .expand(
+                                          (w) => [
+                                            w,
+                                            const SizedBox(width: spacing),
+                                          ],
+                                        )
+                                        .toList()
+                                      ..removeLast(),
+                              ),
+                            );
+                          }
+                        },
+                      ),
                       const SizedBox(height: 16),
                       Row(
                         crossAxisAlignment: CrossAxisAlignment.center,
@@ -703,7 +981,12 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                           Switch(
                             value: showOnlyMissingDocs,
                             onChanged: (val) {
-                              ref.read(showOnlyMissingDocsProvider.notifier).state = val;
+                              ref
+                                      .read(
+                                        showOnlyMissingDocsProvider.notifier,
+                                      )
+                                      .state =
+                                  val;
                               setState(() => _currentPage = 0);
                             },
                             activeThumbColor: AppColors.primaryGreen,
@@ -711,8 +994,11 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                           const SizedBox(width: 8),
                           const Expanded(
                             child: Text(
-                              'Show only students with missing documents', 
-                              style: TextStyle(fontWeight: FontWeight.w600, color: AppColors.textPrimary)
+                              'Show only students with missing documents',
+                              style: TextStyle(
+                                fontWeight: FontWeight.w600,
+                                color: AppColors.textPrimary,
+                              ),
                             ),
                           ),
                         ],
@@ -722,7 +1008,9 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                 ),
               ],
             ),
-            crossFadeState: isExpanded ? CrossFadeState.showSecond : CrossFadeState.showFirst,
+            crossFadeState: isExpanded
+                ? CrossFadeState.showSecond
+                : CrossFadeState.showFirst,
             duration: const Duration(milliseconds: 250),
           ),
         ],
@@ -732,33 +1020,53 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
 
   InputDecoration _filterDecoration(String label) => InputDecoration(
     labelText: label,
-    border: UnderlineInputBorder(borderSide: BorderSide(color: Colors.grey.shade300)),
-    enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: Colors.grey.shade300)),
-    focusedBorder: const UnderlineInputBorder(borderSide: BorderSide(color: AppColors.primaryGreen, width: 2)),
+    border: UnderlineInputBorder(
+      borderSide: BorderSide(color: Colors.grey.shade300),
+    ),
+    enabledBorder: UnderlineInputBorder(
+      borderSide: BorderSide(color: Colors.grey.shade300),
+    ),
+    focusedBorder: const UnderlineInputBorder(
+      borderSide: BorderSide(color: AppColors.primaryGreen, width: 2),
+    ),
     contentPadding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
     filled: false,
   );
 
   // ── KPI Cards: Student status grid ────────────────────────────────────────
   Widget _buildMetricsGrid(StudentCounts counts, int? storageBytes) {
-    final total = counts.active + counts.dropped + counts.transferee + counts.graduated;
-    final gradRate = total > 0 ? (counts.graduated / total * 100).toStringAsFixed(1) : '0.0';
-    final dropRate = total > 0 ? (counts.dropped / total * 100).toStringAsFixed(1) : '0.0';
-    final transRate = total > 0 ? (counts.transferee / total * 100).toStringAsFixed(1) : '0.0';
-    final fourPsRate = total > 0 ? (counts.fourPs / total * 100).toStringAsFixed(1) : '0.0';
+    final total =
+        counts.active + counts.dropped + counts.transferee + counts.graduated;
+    final gradRate = total > 0
+        ? (counts.graduated / total * 100).toStringAsFixed(1)
+        : '0.0';
+    final dropRate = total > 0
+        ? (counts.dropped / total * 100).toStringAsFixed(1)
+        : '0.0';
+    final transRate = total > 0
+        ? (counts.transferee / total * 100).toStringAsFixed(1)
+        : '0.0';
+    final fourPsRate = total > 0
+        ? (counts.fourPs / total * 100).toStringAsFixed(1)
+        : '0.0';
 
     String formatBytes(int bytes) {
       if (bytes < 1024) return '$bytes B';
       if (bytes < 1048576) return '${(bytes / 1024).toStringAsFixed(1)} KB';
-      if (bytes < 1073741824) return '${(bytes / 1048576).toStringAsFixed(1)} MB';
+      if (bytes < 1073741824)
+        return '${(bytes / 1048576).toStringAsFixed(1)} MB';
       return '${(bytes / 1073741824).toStringAsFixed(1)} GB';
     }
-    
-    final storageString = storageBytes != null ? formatBytes(storageBytes) : 'Loading...';
+
+    final storageString = storageBytes != null
+        ? formatBytes(storageBytes)
+        : 'Loading...';
 
     return LayoutBuilder(
       builder: (ctx, constraints) {
-        final cols = constraints.maxWidth >= 900 ? 6 : (constraints.maxWidth >= 600 ? 3 : 2);
+        final cols = constraints.maxWidth >= 900
+            ? 6
+            : (constraints.maxWidth >= 600 ? 3 : 2);
         return GridView(
           shrinkWrap: true,
           physics: const NeverScrollableScrollPhysics(),
@@ -769,12 +1077,48 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
             mainAxisExtent: 150,
           ),
           children: [
-            StatCard(title: 'Active Students', value: counts.active.toString(), subtitle: 'Total Population: $total', icon: Icons.check_circle_outline, iconColor: AppColors.primaryGreen),
-            StatCard(title: 'Dropped (Dropouts)', value: counts.dropped.toString(), subtitle: 'Dropout Rate: $dropRate%', icon: Icons.error_outline, iconColor: Colors.red),
-            StatCard(title: 'Transferees', value: counts.transferee.toString(), subtitle: 'Transferee Rate: $transRate%', icon: Icons.swap_horiz_outlined, iconColor: Colors.orange),
-            StatCard(title: 'Graduated Students', value: counts.graduated.toString(), subtitle: 'Graduation Rate: $gradRate%', icon: Icons.school_outlined, iconColor: Colors.blue),
-            StatCard(title: '4Ps Beneficiaries', value: counts.fourPs.toString(), subtitle: '$fourPsRate% of students', icon: Icons.family_restroom, iconColor: Colors.deepPurple),
-            StatCard(title: 'Storage Used', value: storageString, subtitle: 'Database & Uploads', icon: Icons.storage_outlined, iconColor: Colors.blueGrey),
+            StatCard(
+              title: 'Active Students',
+              value: counts.active.toString(),
+              subtitle: 'Total Population: $total',
+              icon: Icons.check_circle_outline,
+              iconColor: AppColors.primaryGreen,
+            ),
+            StatCard(
+              title: 'Dropped (Dropouts)',
+              value: counts.dropped.toString(),
+              subtitle: 'Dropout Rate: $dropRate%',
+              icon: Icons.error_outline,
+              iconColor: Colors.red,
+            ),
+            StatCard(
+              title: 'Transferees',
+              value: counts.transferee.toString(),
+              subtitle: 'Transferee Rate: $transRate%',
+              icon: Icons.swap_horiz_outlined,
+              iconColor: Colors.orange,
+            ),
+            StatCard(
+              title: 'Graduated Students',
+              value: counts.graduated.toString(),
+              subtitle: 'Graduation Rate: $gradRate%',
+              icon: Icons.school_outlined,
+              iconColor: Colors.blue,
+            ),
+            StatCard(
+              title: '4Ps Beneficiaries',
+              value: counts.fourPs.toString(),
+              subtitle: '$fourPsRate% of students',
+              icon: Icons.family_restroom,
+              iconColor: Colors.deepPurple,
+            ),
+            StatCard(
+              title: 'Storage Used',
+              value: storageString,
+              subtitle: 'Database & Uploads',
+              icon: Icons.storage_outlined,
+              iconColor: Colors.blueGrey,
+            ),
           ],
         );
       },
@@ -782,7 +1126,10 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
   }
 
   // ── Missing Documents Breakdown Card ──────────────────────────────────────
-  Widget _buildMissingDocsChart(List<MissingDocBreakdown> breakdown, {required bool isDesktop}) {
+  Widget _buildMissingDocsChart(
+    List<MissingDocBreakdown> breakdown, {
+    required bool isDesktop,
+  }) {
     final isFilterExpanded = ref.watch(missingDocsFilterExpandedProvider);
 
     // Categorize by SHS (grade 11-12) vs JHS (grade 7-10)
@@ -791,16 +1138,31 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
     // common keywords or a "SHS"/"JHS" prefix approach. Fall back to showing both tags.
     Widget levelBadge(String level, Color bg, Color fg) => Container(
       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-      decoration: BoxDecoration(color: bg, borderRadius: BorderRadius.circular(4)),
-      child: Text(level, style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: fg)),
+      decoration: BoxDecoration(
+        color: bg,
+        borderRadius: BorderRadius.circular(4),
+      ),
+      child: Text(
+        level,
+        style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: fg),
+      ),
     );
 
     // Heuristic: if name contains 'Grade 11' or 'Grade 12' or 'SHS' → SHS; 'Grade 7–10' or 'JHS' → JHS; else both
     String detectLevel(String name) {
       final upper = name.toUpperCase();
-      if (upper.contains('SHS') || upper.contains('GRADE 11') || upper.contains('GRADE 12')) { return 'SHS'; }
-      if (upper.contains('JHS') || upper.contains('GRADE 7') || upper.contains('GRADE 8') ||
-          upper.contains('GRADE 9') || upper.contains('GRADE 10')) { return 'JHS'; }
+      if (upper.contains('SHS') ||
+          upper.contains('GRADE 11') ||
+          upper.contains('GRADE 12')) {
+        return 'SHS';
+      }
+      if (upper.contains('JHS') ||
+          upper.contains('GRADE 7') ||
+          upper.contains('GRADE 8') ||
+          upper.contains('GRADE 9') ||
+          upper.contains('GRADE 10')) {
+        return 'JHS';
+      }
       return 'ALL';
     }
 
@@ -819,11 +1181,22 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text('Missing Documents by Requirement Type',
-                        style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppColors.textPrimary)),
+                    const Text(
+                      'Missing Documents by Requirement Type',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: AppColors.textPrimary,
+                      ),
+                    ),
                     const SizedBox(height: 4),
-                    const Text('Count of active student compliance requirements currently unsubmitted/unverified.',
-                        style: TextStyle(color: AppColors.textSecondary, fontSize: 13)),
+                    const Text(
+                      'Count of active student compliance requirements currently unsubmitted/unverified.',
+                      style: TextStyle(
+                        color: AppColors.textSecondary,
+                        fontSize: 13,
+                      ),
+                    ),
                   ],
                 ),
               ),
@@ -831,121 +1204,57 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
               // Show/Hide toggle
               if (!isDesktop)
                 TextButton.icon(
-                  onPressed: () => ref.read(missingDocsFilterExpandedProvider.notifier).state = !isFilterExpanded,
-                  icon: Icon(isFilterExpanded ? Icons.visibility_off_outlined : Icons.visibility_outlined,
-                      size: 16, color: AppColors.primaryGreen),
-                  label: Text(isFilterExpanded ? 'Hide' : 'Show',
-                      style: const TextStyle(color: AppColors.primaryGreen, fontSize: 13)),
+                  onPressed: () =>
+                      ref
+                              .read(missingDocsFilterExpandedProvider.notifier)
+                              .state =
+                          !isFilterExpanded,
+                  icon: Icon(
+                    isFilterExpanded
+                        ? Icons.visibility_off_outlined
+                        : Icons.visibility_outlined,
+                    size: 16,
+                    color: AppColors.primaryGreen,
+                  ),
+                  label: Text(
+                    isFilterExpanded ? 'Hide' : 'Show',
+                    style: const TextStyle(
+                      color: AppColors.primaryGreen,
+                      fontSize: 13,
+                    ),
+                  ),
                   style: TextButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 6,
+                    ),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(8),
-                      side: const BorderSide(color: AppColors.primaryGreen, width: 0.8),
+                      side: const BorderSide(
+                        color: AppColors.primaryGreen,
+                        width: 0.8,
+                      ),
                     ),
                   ),
                 ),
             ],
           ),
-          
-          if (isDesktop)
-            const SizedBox(height: AppSizes.p24),
-            
+
+          if (isDesktop) const SizedBox(height: AppSizes.p24),
+
           // ── Expandable content ──────────────────────────────────────────────
           if (isDesktop)
             Expanded(
               child: breakdown.isEmpty
-                  ? _emptyWidget('No missing document requirements found. Compliance is 100%!')
+                  ? _emptyWidget(
+                      'No missing document requirements found. Compliance is 100%!',
+                    )
                   : ListView.separated(
                       shrinkWrap: false,
                       physics: const AlwaysScrollableScrollPhysics(),
                       itemCount: breakdown.length,
-                    separatorBuilder: (context, index) => const SizedBox(height: 10),
-                    itemBuilder: (context, index) {
-                      final item = breakdown[index];
-                      final maxCount = breakdown.first.count;
-                      final pct = maxCount > 0 ? item.count / maxCount : 0.0;
-                      final level = detectLevel(item.name);
-
-                      return Row(
-                        crossAxisAlignment: CrossAxisAlignment.center,
-                        children: [
-                          // Level badge
-                          SizedBox(
-                            width: 34,
-                            child: level == 'SHS'
-                                ? levelBadge('SHS', Colors.purple.shade50, Colors.purple.shade700)
-                                : level == 'JHS'
-                                    ? levelBadge('JHS', Colors.teal.shade50, Colors.teal.shade700)
-                                    : levelBadge('ALL', Colors.grey.shade100, Colors.grey.shade600),
-                          ),
-                          const SizedBox(width: 8),
-                          // Name
-                          SizedBox(
-                            width: 155,
-                            child: Text(item.name,
-                                style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 12),
-                                overflow: TextOverflow.ellipsis,
-                                maxLines: 1),
-                          ),
-                          const SizedBox(width: 10),
-                          // Progress bar (compact height)
-                          Expanded(
-                            child: Stack(
-                              children: [
-                                Container(
-                                  height: 10,
-                                  decoration: BoxDecoration(
-                                      color: Colors.grey.shade100, borderRadius: BorderRadius.circular(5)),
-                                ),
-                                AnimatedContainer(
-                                  duration: const Duration(milliseconds: 600),
-                                  curve: Curves.easeOut,
-                                  height: 10,
-                                  width: (MediaQuery.of(context).size.width - 300) * 0.45 * pct,
-                                  decoration: BoxDecoration(
-                                    gradient: const LinearGradient(colors: [Colors.orange, Colors.redAccent]),
-                                    borderRadius: BorderRadius.circular(5),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                          const SizedBox(width: 10),
-                          // Count badge
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
-                            decoration: BoxDecoration(
-                              color: Colors.red.shade50,
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            child: Text(
-                              '${item.count}',
-                              style: TextStyle(
-                                  color: Colors.red.shade700,
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 11),
-                            ),
-                          ),
-                        ],
-                      );
-                    },
-                  ),
-            )
-          else
-            AnimatedCrossFade(
-              firstChild: const SizedBox.shrink(),
-              secondChild: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const SizedBox(height: AppSizes.p24),
-                  if (breakdown.isEmpty)
-                    _emptyWidget('No missing document requirements found. Compliance is 100%!')
-                  else
-                    ListView.separated(
-                      shrinkWrap: true,
-                      physics: const NeverScrollableScrollPhysics(),
-                      itemCount: breakdown.length,
-                      separatorBuilder: (context, index) => const SizedBox(height: 10),
+                      separatorBuilder: (context, index) =>
+                          const SizedBox(height: 10),
                       itemBuilder: (context, index) {
                         final item = breakdown[index];
                         final maxCount = breakdown.first.count;
@@ -959,19 +1268,36 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                             SizedBox(
                               width: 34,
                               child: level == 'SHS'
-                                  ? levelBadge('SHS', Colors.purple.shade50, Colors.purple.shade700)
+                                  ? levelBadge(
+                                      'SHS',
+                                      Colors.purple.shade50,
+                                      Colors.purple.shade700,
+                                    )
                                   : level == 'JHS'
-                                      ? levelBadge('JHS', Colors.teal.shade50, Colors.teal.shade700)
-                                      : levelBadge('ALL', Colors.grey.shade100, Colors.grey.shade600),
+                                  ? levelBadge(
+                                      'JHS',
+                                      Colors.teal.shade50,
+                                      Colors.teal.shade700,
+                                    )
+                                  : levelBadge(
+                                      'ALL',
+                                      Colors.grey.shade100,
+                                      Colors.grey.shade600,
+                                    ),
                             ),
                             const SizedBox(width: 8),
                             // Name
                             SizedBox(
                               width: 155,
-                              child: Text(item.name,
-                                  style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 12),
-                                  overflow: TextOverflow.ellipsis,
-                                  maxLines: 1),
+                              child: Text(
+                                item.name,
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.w600,
+                                  fontSize: 12,
+                                ),
+                                overflow: TextOverflow.ellipsis,
+                                maxLines: 1,
+                              ),
                             ),
                             const SizedBox(width: 10),
                             // Progress bar (compact height)
@@ -981,15 +1307,26 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                                   Container(
                                     height: 10,
                                     decoration: BoxDecoration(
-                                        color: Colors.grey.shade100, borderRadius: BorderRadius.circular(5)),
+                                      color: Colors.grey.shade100,
+                                      borderRadius: BorderRadius.circular(5),
+                                    ),
                                   ),
                                   AnimatedContainer(
                                     duration: const Duration(milliseconds: 600),
                                     curve: Curves.easeOut,
                                     height: 10,
-                                    width: (MediaQuery.of(context).size.width - 300) * 0.45 * pct,
+                                    width:
+                                        (MediaQuery.of(context).size.width -
+                                            300) *
+                                        0.45 *
+                                        pct,
                                     decoration: BoxDecoration(
-                                      gradient: const LinearGradient(colors: [Colors.orange, Colors.redAccent]),
+                                      gradient: const LinearGradient(
+                                        colors: [
+                                          Colors.orange,
+                                          Colors.redAccent,
+                                        ],
+                                      ),
                                       borderRadius: BorderRadius.circular(5),
                                     ),
                                   ),
@@ -999,7 +1336,10 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                             const SizedBox(width: 10),
                             // Count badge
                             Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 7,
+                                vertical: 2,
+                              ),
                               decoration: BoxDecoration(
                                 color: Colors.red.shade50,
                                 borderRadius: BorderRadius.circular(8),
@@ -1007,9 +1347,131 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                               child: Text(
                                 '${item.count}',
                                 style: TextStyle(
-                                    color: Colors.red.shade700,
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 11),
+                                  color: Colors.red.shade700,
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 11,
+                                ),
+                              ),
+                            ),
+                          ],
+                        );
+                      },
+                    ),
+            )
+          else
+            AnimatedCrossFade(
+              firstChild: const SizedBox.shrink(),
+              secondChild: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const SizedBox(height: AppSizes.p24),
+                  if (breakdown.isEmpty)
+                    _emptyWidget(
+                      'No missing document requirements found. Compliance is 100%!',
+                    )
+                  else
+                    ListView.separated(
+                      shrinkWrap: true,
+                      physics: const NeverScrollableScrollPhysics(),
+                      itemCount: breakdown.length,
+                      separatorBuilder: (context, index) =>
+                          const SizedBox(height: 10),
+                      itemBuilder: (context, index) {
+                        final item = breakdown[index];
+                        final maxCount = breakdown.first.count;
+                        final pct = maxCount > 0 ? item.count / maxCount : 0.0;
+                        final level = detectLevel(item.name);
+
+                        return Row(
+                          crossAxisAlignment: CrossAxisAlignment.center,
+                          children: [
+                            // Level badge
+                            SizedBox(
+                              width: 34,
+                              child: level == 'SHS'
+                                  ? levelBadge(
+                                      'SHS',
+                                      Colors.purple.shade50,
+                                      Colors.purple.shade700,
+                                    )
+                                  : level == 'JHS'
+                                  ? levelBadge(
+                                      'JHS',
+                                      Colors.teal.shade50,
+                                      Colors.teal.shade700,
+                                    )
+                                  : levelBadge(
+                                      'ALL',
+                                      Colors.grey.shade100,
+                                      Colors.grey.shade600,
+                                    ),
+                            ),
+                            const SizedBox(width: 8),
+                            // Name
+                            SizedBox(
+                              width: 155,
+                              child: Text(
+                                item.name,
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.w600,
+                                  fontSize: 12,
+                                ),
+                                overflow: TextOverflow.ellipsis,
+                                maxLines: 1,
+                              ),
+                            ),
+                            const SizedBox(width: 10),
+                            // Progress bar (compact height)
+                            Expanded(
+                              child: Stack(
+                                children: [
+                                  Container(
+                                    height: 10,
+                                    decoration: BoxDecoration(
+                                      color: Colors.grey.shade100,
+                                      borderRadius: BorderRadius.circular(5),
+                                    ),
+                                  ),
+                                  AnimatedContainer(
+                                    duration: const Duration(milliseconds: 600),
+                                    curve: Curves.easeOut,
+                                    height: 10,
+                                    width:
+                                        (MediaQuery.of(context).size.width -
+                                            300) *
+                                        0.45 *
+                                        pct,
+                                    decoration: BoxDecoration(
+                                      gradient: const LinearGradient(
+                                        colors: [
+                                          Colors.orange,
+                                          Colors.redAccent,
+                                        ],
+                                      ),
+                                      borderRadius: BorderRadius.circular(5),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            const SizedBox(width: 10),
+                            // Count badge
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 7,
+                                vertical: 2,
+                              ),
+                              decoration: BoxDecoration(
+                                color: Colors.red.shade50,
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: Text(
+                                '${item.count}',
+                                style: TextStyle(
+                                  color: Colors.red.shade700,
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 11,
+                                ),
                               ),
                             ),
                           ],
@@ -1018,7 +1480,9 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                     ),
                 ],
               ),
-              crossFadeState: isFilterExpanded ? CrossFadeState.showSecond : CrossFadeState.showFirst,
+              crossFadeState: isFilterExpanded
+                  ? CrossFadeState.showSecond
+                  : CrossFadeState.showFirst,
               duration: const Duration(milliseconds: 250),
             ),
         ],
@@ -1029,8 +1493,8 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
   // ── Interactive Compliance Table ──────────────────────────────────────────
   Widget _buildComplianceTable(ReportStats data) {
     final showOnlyMissing = ref.watch(showOnlyMissingDocsProvider);
-    final filteredStudents = showOnlyMissing 
-        ? data.students.where((s) => s.missingCount > 0).toList() 
+    final filteredStudents = showOnlyMissing
+        ? data.students.where((s) => s.missingCount > 0).toList()
         : data.students;
 
     final totalRows = filteredStudents.length;
@@ -1047,11 +1511,16 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
 
     final totalPages = totalRows > 0 ? (totalRows / _rowsPerPage).ceil() : 1;
     final startIndex = _currentPage * _rowsPerPage;
-    final endIndex = (startIndex + _rowsPerPage > totalRows) ? totalRows : startIndex + _rowsPerPage;
-    
+    final endIndex = (startIndex + _rowsPerPage > totalRows)
+        ? totalRows
+        : startIndex + _rowsPerPage;
+
     final safeStartIndex = startIndex.clamp(0, totalRows);
     final safeEndIndex = endIndex.clamp(0, totalRows);
-    final paginatedStudents = filteredStudents.sublist(safeStartIndex, safeEndIndex);
+    final paginatedStudents = filteredStudents.sublist(
+      safeStartIndex,
+      safeEndIndex,
+    );
 
     return Container(
       width: double.infinity,
@@ -1064,81 +1533,164 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('Student Document Status List', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppColors.textPrimary)),
+                Text(
+                  'Student Document Status List',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.textPrimary,
+                  ),
+                ),
                 SizedBox(height: 4),
-                Text('List of students and their missing documents. Tap on a student row to view details.', style: TextStyle(color: AppColors.textSecondary, fontSize: 13)),
+                Text(
+                  'List of students and their missing documents. Tap on a student row to view details.',
+                  style: TextStyle(
+                    color: AppColors.textSecondary,
+                    fontSize: 13,
+                  ),
+                ),
               ],
             ),
           ),
           const Divider(height: 1),
           ClipRRect(
-            borderRadius: const BorderRadius.vertical(bottom: Radius.circular(AppSizes.radiusLarge)),
+            borderRadius: const BorderRadius.vertical(
+              bottom: Radius.circular(AppSizes.radiusLarge),
+            ),
             child: SingleChildScrollView(
               scrollDirection: Axis.horizontal,
               child: DataTable(
                 showCheckboxColumn: false,
-                headingRowColor: WidgetStateProperty.all(AppColors.primaryGreen.withValues(alpha: 0.04)),
+                headingRowColor: WidgetStateProperty.all(
+                  AppColors.primaryGreen.withValues(alpha: 0.04),
+                ),
                 columnSpacing: 32,
                 columns: const [
-                  DataColumn(label: Text('LRN', style: TextStyle(fontWeight: FontWeight.bold))),
-                  DataColumn(label: Text('Student Name', style: TextStyle(fontWeight: FontWeight.bold))),
-                  DataColumn(label: Text('Status', style: TextStyle(fontWeight: FontWeight.bold))),
-                  DataColumn(label: Text('Grade/Sec', style: TextStyle(fontWeight: FontWeight.bold))),
-                  DataColumn(label: Text('Missing Docs', style: TextStyle(fontWeight: FontWeight.bold))),
-                  DataColumn(label: Text('Missing Requirements list', style: TextStyle(fontWeight: FontWeight.bold))),
+                  DataColumn(
+                    label: Text(
+                      'LRN',
+                      style: TextStyle(fontWeight: FontWeight.bold),
+                    ),
+                  ),
+                  DataColumn(
+                    label: Text(
+                      'Student Name',
+                      style: TextStyle(fontWeight: FontWeight.bold),
+                    ),
+                  ),
+                  DataColumn(
+                    label: Text(
+                      'Status',
+                      style: TextStyle(fontWeight: FontWeight.bold),
+                    ),
+                  ),
+                  DataColumn(
+                    label: Text(
+                      'Grade/Sec',
+                      style: TextStyle(fontWeight: FontWeight.bold),
+                    ),
+                  ),
+                  DataColumn(
+                    label: Text(
+                      'Missing Docs',
+                      style: TextStyle(fontWeight: FontWeight.bold),
+                    ),
+                  ),
+                  DataColumn(
+                    label: Text(
+                      'Missing Requirements list',
+                      style: TextStyle(fontWeight: FontWeight.bold),
+                    ),
+                  ),
                 ],
                 rows: paginatedStudents.isEmpty
                     ? [
-                        const DataRow(cells: [
-                          DataCell(Text('No students match the selected filters.')),
-                          DataCell(Text('')), DataCell(Text('')),
-                          DataCell(Text('')), DataCell(Text('')),
-                          DataCell(Text('')),
-                        ])
+                        const DataRow(
+                          cells: [
+                            DataCell(
+                              Text('No students match the selected filters.'),
+                            ),
+                            DataCell(Text('')),
+                            DataCell(Text('')),
+                            DataCell(Text('')),
+                            DataCell(Text('')),
+                            DataCell(Text('')),
+                          ],
+                        ),
                       ]
                     : paginatedStudents.map((student) {
                         return DataRow(
                           onSelectChanged: (_) {
-                            showStudentProfileModal(context, studentId: student.id, userRole: widget.userRole, hideEnrollmentActions: true);
+                            showStudentProfileModal(
+                              context,
+                              studentId: student.id,
+                              userRole: widget.userRole,
+                              hideEnrollmentActions: true,
+                            );
                           },
                           cells: [
-                            DataCell(Text(student.lrn, style: const TextStyle(fontWeight: FontWeight.w500))),
-                            DataCell(Text(student.fullName)),
-                            DataCell(Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                              decoration: BoxDecoration(
-                                color: student.status == 'Enrolled'
-                                    ? Colors.green.shade50
-                                    : student.status == 'Graduated'
-                                        ? Colors.blue.shade50
-                                        : Colors.orange.shade50,
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                              child: Text(
-                                student.status == 'Enrolled' ? 'Active' : student.status,
-                                style: TextStyle(
-                                  color: student.status == 'Enrolled'
-                                      ? Colors.green.shade700
-                                      : student.status == 'Graduated'
-                                          ? Colors.blue.shade700
-                                          : Colors.orange.shade700,
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 11,
+                            DataCell(
+                              Text(
+                                student.lrn,
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.w500,
                                 ),
                               ),
-                            )),
-                            DataCell(Text('${student.gradeLevel ?? 'N/A'}/${student.sectionName ?? 'N/A'}')),
+                            ),
+                            DataCell(Text(student.fullName)),
                             DataCell(
                               Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 8,
+                                  vertical: 3,
+                                ),
                                 decoration: BoxDecoration(
-                                  color: student.missingCount > 0 ? Colors.red.shade50 : Colors.green.shade50,
+                                  color: student.status == 'Enrolled'
+                                      ? Colors.green.shade50
+                                      : student.status == 'Graduated'
+                                      ? Colors.blue.shade50
+                                      : Colors.orange.shade50,
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                child: Text(
+                                  student.status == 'Enrolled'
+                                      ? 'Active'
+                                      : student.status,
+                                  style: TextStyle(
+                                    color: student.status == 'Enrolled'
+                                        ? Colors.green.shade700
+                                        : student.status == 'Graduated'
+                                        ? Colors.blue.shade700
+                                        : Colors.orange.shade700,
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 11,
+                                  ),
+                                ),
+                              ),
+                            ),
+                            DataCell(
+                              Text(
+                                '${student.gradeLevel ?? 'N/A'}/${student.sectionName ?? 'N/A'}',
+                              ),
+                            ),
+                            DataCell(
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 8,
+                                  vertical: 3,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: student.missingCount > 0
+                                      ? Colors.red.shade50
+                                      : Colors.green.shade50,
                                   borderRadius: BorderRadius.circular(12),
                                 ),
                                 child: Text(
                                   student.missingCount.toString(),
                                   style: TextStyle(
-                                    color: student.missingCount > 0 ? Colors.red.shade700 : Colors.green.shade700,
+                                    color: student.missingCount > 0
+                                        ? Colors.red.shade700
+                                        : Colors.green.shade700,
                                     fontWeight: FontWeight.bold,
                                   ),
                                 ),
@@ -1146,11 +1698,16 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                             ),
                             DataCell(
                               Text(
-                                student.missingRequirements ?? 'None — Complete',
+                                student.missingRequirements ??
+                                    'None — Complete',
                                 style: TextStyle(
-                                  color: student.missingCount > 0 ? Colors.grey.shade700 : Colors.green.shade700,
+                                  color: student.missingCount > 0
+                                      ? Colors.grey.shade700
+                                      : Colors.green.shade700,
                                   fontSize: 12,
-                                  fontStyle: student.missingCount > 0 ? FontStyle.normal : FontStyle.italic,
+                                  fontStyle: student.missingCount > 0
+                                      ? FontStyle.normal
+                                      : FontStyle.italic,
                                 ),
                               ),
                             ),
@@ -1163,19 +1720,30 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
           if (totalPages > 1) ...[
             const Divider(height: 1),
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: AppSizes.p24, vertical: 12),
+              padding: const EdgeInsets.symmetric(
+                horizontal: AppSizes.p24,
+                vertical: 12,
+              ),
               child: Wrap(
                 alignment: WrapAlignment.spaceBetween,
                 crossAxisAlignment: WrapCrossAlignment.center,
                 runSpacing: 8,
                 children: [
-                  Text('Showing ${safeStartIndex + 1} - $safeEndIndex / $totalRows', style: const TextStyle(color: AppColors.textSecondary, fontSize: 11)),
+                  Text(
+                    'Showing ${safeStartIndex + 1} - $safeEndIndex / $totalRows',
+                    style: const TextStyle(
+                      color: AppColors.textSecondary,
+                      fontSize: 11,
+                    ),
+                  ),
                   Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       IconButton(
                         icon: const Icon(Icons.chevron_left, size: 20),
-                        onPressed: _currentPage > 0 ? () => setState(() => _currentPage--) : null,
+                        onPressed: _currentPage > 0
+                            ? () => setState(() => _currentPage--)
+                            : null,
                       ),
                       ...List.generate(
                         totalPages,
@@ -1189,7 +1757,9 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                             height: 32,
                             margin: const EdgeInsets.symmetric(horizontal: 2),
                             decoration: BoxDecoration(
-                              color: isActive ? AppColors.primaryGreen : Colors.transparent,
+                              color: isActive
+                                  ? AppColors.primaryGreen
+                                  : Colors.transparent,
                               borderRadius: BorderRadius.circular(6),
                               border: isActive
                                   ? null
@@ -1201,7 +1771,9 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                                 style: TextStyle(
                                   fontSize: 13,
                                   fontWeight: FontWeight.w600,
-                                  color: isActive ? Colors.white : AppColors.textSecondary,
+                                  color: isActive
+                                      ? Colors.white
+                                      : AppColors.textSecondary,
                                 ),
                               ),
                             ),
@@ -1210,10 +1782,12 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                       }),
                       IconButton(
                         icon: const Icon(Icons.chevron_right, size: 20),
-                        onPressed: _currentPage < totalPages - 1 ? () => setState(() => _currentPage++) : null,
+                        onPressed: _currentPage < totalPages - 1
+                            ? () => setState(() => _currentPage++)
+                            : null,
                       ),
                     ],
-                  )
+                  ),
                 ],
               ),
             ),
@@ -1225,45 +1799,71 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
 
   // ── Helpers ──────────────────────────────────────────────────────────────
   Widget _errorWidget(String msg) => Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(color: Colors.red.shade50, borderRadius: BorderRadius.circular(8)),
-        child: Row(children: [
-          const Icon(Icons.error_outline, color: Colors.red),
-          const SizedBox(width: 8),
-          Expanded(child: Text(msg, style: const TextStyle(color: Colors.red))),
-        ]),
-      );
+    padding: const EdgeInsets.all(16),
+    decoration: BoxDecoration(
+      color: Colors.red.shade50,
+      borderRadius: BorderRadius.circular(8),
+    ),
+    child: Row(
+      children: [
+        const Icon(Icons.error_outline, color: Colors.red),
+        const SizedBox(width: 8),
+        Expanded(
+          child: Text(msg, style: const TextStyle(color: Colors.red)),
+        ),
+      ],
+    ),
+  );
 
   Widget _emptyWidget(String msg) => Center(
-        child: Padding(
-          padding: const EdgeInsets.all(32),
-          child: Column(mainAxisSize: MainAxisSize.min, children: [
-            Icon(Icons.bar_chart, size: 48, color: Colors.grey.shade400),
-            const SizedBox(height: 12),
-            Text(msg, style: TextStyle(color: Colors.grey.shade500)),
-          ]),
-        ),
-      );
+    child: Padding(
+      padding: const EdgeInsets.all(32),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(Icons.bar_chart, size: 48, color: Colors.grey.shade400),
+          const SizedBox(height: 12),
+          Text(msg, style: TextStyle(color: Colors.grey.shade500)),
+        ],
+      ),
+    ),
+  );
 
   BoxDecoration _cardDecoration() => BoxDecoration(
-        color: AppColors.surfaceWhite,
-        borderRadius: BorderRadius.circular(AppSizes.radiusLarge),
-        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.02), blurRadius: 10, offset: const Offset(0, 4))],
-        border: Border.all(color: Colors.grey.shade200),
-      );
+    color: AppColors.surfaceWhite,
+    borderRadius: BorderRadius.circular(AppSizes.radiusLarge),
+    boxShadow: [
+      BoxShadow(
+        color: Colors.black.withValues(alpha: 0.02),
+        blurRadius: 10,
+        offset: const Offset(0, 4),
+      ),
+    ],
+    border: Border.all(color: Colors.grey.shade200),
+  );
 
   // ── Yearly Comparison Chart ───────────────────────────────────────────────
   Widget _buildYearlyComparisonChart({required bool isDesktop}) {
     final yearlyAsync = ref.watch(yearlyComparisonProvider);
     final selectedYears = ref.watch(yearlyComparisonSelectedYearsProvider);
-    final selectedStatuses = ref.watch(yearlyComparisonSelectedStatusesProvider);
+    final selectedStatuses = ref.watch(
+      yearlyComparisonSelectedStatusesProvider,
+    );
 
     // Available status options for yearly comparison
     const allStatusOptions = [
-      _StatusOption(key: 'enrolled',    label: 'Active',      color: AppColors.primaryGreen),
-      _StatusOption(key: 'dropped',     label: 'Dropped',     color: Colors.red),
-      _StatusOption(key: 'graduated',   label: 'Graduated',   color: Colors.blue),
-      _StatusOption(key: 'transferred', label: 'Transferee',  color: Colors.orange),
+      _StatusOption(
+        key: 'enrolled',
+        label: 'Active',
+        color: AppColors.primaryGreen,
+      ),
+      _StatusOption(key: 'dropped', label: 'Dropped', color: Colors.red),
+      _StatusOption(key: 'graduated', label: 'Graduated', color: Colors.blue),
+      _StatusOption(
+        key: 'transferred',
+        label: 'Transferee',
+        color: Colors.orange,
+      ),
     ];
 
     return Container(
@@ -1282,11 +1882,22 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: const [
-                    Text('Yearly Comparison by Status',
-                        style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppColors.textPrimary)),
+                    Text(
+                      'Yearly Comparison by Status',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: AppColors.textPrimary,
+                      ),
+                    ),
                     SizedBox(height: 4),
-                    Text('Trend of student statuses across academic years (ascending).',
-                        style: TextStyle(color: AppColors.textSecondary, fontSize: 13)),
+                    Text(
+                      'Trend of student statuses across academic years (ascending).',
+                      style: TextStyle(
+                        color: AppColors.textSecondary,
+                        fontSize: 13,
+                      ),
+                    ),
                   ],
                 ),
               ),
@@ -1301,7 +1912,8 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
             error: (_, e) => const SizedBox.shrink(),
             data: (allData) {
               // All available year strings from DB, sorted ascending
-              final allYearStrings = allData.map((d) => d.year).toSet().toList()..sort();
+              final allYearStrings = allData.map((d) => d.year).toSet().toList()
+                ..sort();
 
               return Row(
                 children: [
@@ -1310,10 +1922,14 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                     label: selectedYears.isEmpty
                         ? 'Last 4 Years'
                         : selectedYears.length == 1
-                            ? selectedYears.first
-                            : '${selectedYears.length} Years',
+                        ? selectedYears.first
+                        : '${selectedYears.length} Years',
                     icon: Icons.calendar_today_outlined,
-                    onTap: (btnCtx) => _showYearMultiSelectMenu(btnCtx, allYearStrings, selectedYears),
+                    onTap: (btnCtx) => _showYearMultiSelectMenu(
+                      btnCtx,
+                      allYearStrings,
+                      selectedYears,
+                    ),
                   ),
                   const SizedBox(width: 20),
                   // Status multi-select dropdown
@@ -1321,15 +1937,25 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                     label: selectedStatuses.length == allStatusOptions.length
                         ? 'All Statuses'
                         : selectedStatuses.isEmpty
-                            ? 'No Status'
-                            : selectedStatuses.length == 1
-                                ? allStatusOptions
-                                    .firstWhere((o) => o.key == selectedStatuses.first,
-                                        orElse: () => const _StatusOption(key: '', label: '', color: Colors.grey))
-                                    .label
-                                : '${selectedStatuses.length} Statuses',
+                        ? 'No Status'
+                        : selectedStatuses.length == 1
+                        ? allStatusOptions
+                              .firstWhere(
+                                (o) => o.key == selectedStatuses.first,
+                                orElse: () => const _StatusOption(
+                                  key: '',
+                                  label: '',
+                                  color: Colors.grey,
+                                ),
+                              )
+                              .label
+                        : '${selectedStatuses.length} Statuses',
                     icon: Icons.people_alt_outlined,
-                    onTap: (btnCtx) => _showStatusMultiSelectMenu(btnCtx, allStatusOptions, selectedStatuses),
+                    onTap: (btnCtx) => _showStatusMultiSelectMenu(
+                      btnCtx,
+                      allStatusOptions,
+                      selectedStatuses,
+                    ),
                   ),
                 ],
               );
@@ -1340,22 +1966,31 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
 
           // ── Chart ─────────────────────────────────────────────────────────
           yearlyAsync.when(
-            loading: () => const Center(child: Padding(padding: EdgeInsets.all(32), child: CircularProgressIndicator())),
+            loading: () => const Center(
+              child: Padding(
+                padding: EdgeInsets.all(32),
+                child: CircularProgressIndicator(),
+              ),
+            ),
             error: (e, st) => _errorWidget('Error loading yearly data: $e'),
             data: (rawData) {
-              if (rawData.isEmpty) return _emptyWidget('No academic years data found.');
+              if (rawData.isEmpty)
+                return _emptyWidget('No academic years data found.');
 
               // Filter by selected years (ascending sort)
               var data = List<YearlyComparisonData>.from(rawData)
                 ..sort((a, b) => a.year.compareTo(b.year));
               if (selectedYears.isNotEmpty) {
-                data = data.where((d) => selectedYears.contains(d.year)).toList();
+                data = data
+                    .where((d) => selectedYears.contains(d.year))
+                    .toList();
               } else {
                 if (data.length > 4) {
                   data = data.sublist(data.length - 4);
                 }
               }
-              if (data.isEmpty) return _emptyWidget('No data for selected years.');
+              if (data.isEmpty)
+                return _emptyWidget('No data for selected years.');
 
               // Build bar rods only for selected statuses
               final activeOptions = allStatusOptions
@@ -1375,7 +2010,8 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
 
               return LayoutBuilder(
                 builder: (context, constraints) {
-                  final double chartWidth = constraints.maxWidth > (data.length * 150.0)
+                  final double chartWidth =
+                      constraints.maxWidth > (data.length * 150.0)
                       ? constraints.maxWidth
                       : (data.length * 150.0);
                   return SingleChildScrollView(
@@ -1389,23 +2025,39 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                           maxY: maxY,
                           barTouchData: BarTouchData(
                             touchTooltipData: BarTouchTooltipData(
-                              getTooltipColor: (group) => Colors.blueGrey.shade800,
-                              getTooltipItem: (group, groupIndex, rod, rodIndex) {
-                                if (groupIndex >= data.length) return null;
-                                final yearData = data[groupIndex];
-                                final opt = rodIndex < activeOptions.length ? activeOptions[rodIndex] : null;
-                                if (opt == null) return null;
-                                final val = _getStatusValue(yearData, opt.key);
-                                return BarTooltipItem(
-                                  '${opt.label}\n',
-                                  const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14),
-                                  children: [
-                                    TextSpan(
-                                        text: val.toString(),
-                                        style: const TextStyle(color: Colors.white70, fontSize: 13, fontWeight: FontWeight.normal)),
-                                  ],
-                                );
-                              },
+                              getTooltipColor: (group) =>
+                                  Colors.blueGrey.shade800,
+                              getTooltipItem:
+                                  (group, groupIndex, rod, rodIndex) {
+                                    if (groupIndex >= data.length) return null;
+                                    final yearData = data[groupIndex];
+                                    final opt = rodIndex < activeOptions.length
+                                        ? activeOptions[rodIndex]
+                                        : null;
+                                    if (opt == null) return null;
+                                    final val = _getStatusValue(
+                                      yearData,
+                                      opt.key,
+                                    );
+                                    return BarTooltipItem(
+                                      '${opt.label}\n',
+                                      const TextStyle(
+                                        color: Colors.white,
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 14,
+                                      ),
+                                      children: [
+                                        TextSpan(
+                                          text: val.toString(),
+                                          style: const TextStyle(
+                                            color: Colors.white70,
+                                            fontSize: 13,
+                                            fontWeight: FontWeight.normal,
+                                          ),
+                                        ),
+                                      ],
+                                    );
+                                  },
                             ),
                           ),
                           titlesData: FlTitlesData(
@@ -1414,12 +2066,17 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                               sideTitles: SideTitles(
                                 showTitles: true,
                                 getTitlesWidget: (value, meta) {
-                                  if (value.toInt() >= data.length) return const SizedBox.shrink();
+                                  if (value.toInt() >= data.length)
+                                    return const SizedBox.shrink();
                                   return Padding(
                                     padding: const EdgeInsets.only(top: 8.0),
                                     child: Text(
                                       data[value.toInt()].year,
-                                      style: const TextStyle(color: AppColors.textSecondary, fontSize: 12, fontWeight: FontWeight.bold),
+                                      style: const TextStyle(
+                                        color: AppColors.textSecondary,
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.bold,
+                                      ),
                                     ),
                                   );
                                 },
@@ -1431,22 +2088,33 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                                 showTitles: true,
                                 reservedSize: 40,
                                 getTitlesWidget: (value, meta) {
-                                  if (value % (maxY / 5).ceil() != 0) return const SizedBox.shrink();
+                                  if (value % (maxY / 5).ceil() != 0)
+                                    return const SizedBox.shrink();
                                   return Text(
                                     value.toInt().toString(),
-                                    style: const TextStyle(color: AppColors.textSecondary, fontSize: 12),
+                                    style: const TextStyle(
+                                      color: AppColors.textSecondary,
+                                      fontSize: 12,
+                                    ),
                                   );
                                 },
                               ),
                             ),
-                            topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                            rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                            topTitles: const AxisTitles(
+                              sideTitles: SideTitles(showTitles: false),
+                            ),
+                            rightTitles: const AxisTitles(
+                              sideTitles: SideTitles(showTitles: false),
+                            ),
                           ),
                           gridData: FlGridData(
                             show: true,
                             drawVerticalLine: false,
                             horizontalInterval: (maxY / 5) > 0 ? (maxY / 5) : 1,
-                            getDrawingHorizontalLine: (value) => FlLine(color: Colors.grey.shade200, strokeWidth: 1),
+                            getDrawingHorizontalLine: (value) => FlLine(
+                              color: Colors.grey.shade200,
+                              strokeWidth: 1,
+                            ),
                           ),
                           borderData: FlBorderData(show: false),
                           barGroups: data.asMap().entries.map((entry) {
@@ -1455,12 +2123,19 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                             return BarChartGroupData(
                               x: i,
                               barsSpace: 4,
-                              barRods: activeOptions.map((opt) => BarChartRodData(
-                                toY: _getStatusValue(d, opt.key).toDouble(),
-                                color: opt.color,
-                                width: activeOptions.length > 2 ? 12 : 16,
-                                borderRadius: BorderRadius.circular(4),
-                              )).toList(),
+                              barRods: activeOptions
+                                  .map(
+                                    (opt) => BarChartRodData(
+                                      toY: _getStatusValue(
+                                        d,
+                                        opt.key,
+                                      ).toDouble(),
+                                      color: opt.color,
+                                      width: activeOptions.length > 2 ? 12 : 16,
+                                      borderRadius: BorderRadius.circular(4),
+                                    ),
+                                  )
+                                  .toList(),
                             );
                           }).toList(),
                         ),
@@ -1475,18 +2150,40 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
           // ── Legend (dynamic based on selected statuses) ───────────────────
           Consumer(
             builder: (context, ref, _) {
-              final statuses = ref.watch(yearlyComparisonSelectedStatusesProvider);
+              final statuses = ref.watch(
+                yearlyComparisonSelectedStatusesProvider,
+              );
               const allStatusOptions = [
-                _StatusOption(key: 'enrolled',    label: 'Active',      color: AppColors.primaryGreen),
-                _StatusOption(key: 'dropped',     label: 'Dropped',     color: Colors.red),
-                _StatusOption(key: 'graduated',   label: 'Graduated',   color: Colors.blue),
-                _StatusOption(key: 'transferred', label: 'Transferee',  color: Colors.orange),
+                _StatusOption(
+                  key: 'enrolled',
+                  label: 'Active',
+                  color: AppColors.primaryGreen,
+                ),
+                _StatusOption(
+                  key: 'dropped',
+                  label: 'Dropped',
+                  color: Colors.red,
+                ),
+                _StatusOption(
+                  key: 'graduated',
+                  label: 'Graduated',
+                  color: Colors.blue,
+                ),
+                _StatusOption(
+                  key: 'transferred',
+                  label: 'Transferee',
+                  color: Colors.orange,
+                ),
               ];
-              final active = allStatusOptions.where((o) => statuses.contains(o.key)).toList();
+              final active = allStatusOptions
+                  .where((o) => statuses.contains(o.key))
+                  .toList();
               return Wrap(
                 spacing: 16,
                 runSpacing: 8,
-                children: active.map((o) => _buildLegendItem(o.color, o.label)).toList(),
+                children: active
+                    .map((o) => _buildLegendItem(o.color, o.label))
+                    .toList(),
               );
             },
           ),
@@ -1497,11 +2194,16 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
 
   int _getStatusValue(YearlyComparisonData data, String key) {
     switch (key) {
-      case 'enrolled': return data.enrolled;
-      case 'dropped': return data.dropped;
-      case 'graduated': return data.graduated;
-      case 'transferred': return data.transferred;
-      default: return 0;
+      case 'enrolled':
+        return data.enrolled;
+      case 'dropped':
+        return data.dropped;
+      case 'graduated':
+        return data.graduated;
+      case 'transferred':
+        return data.transferred;
+      default:
+        return 0;
     }
   }
 
@@ -1515,38 +2217,55 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
       builder: (btnCtx) => InkWell(
         onTap: () => onTap(btnCtx),
         borderRadius: BorderRadius.circular(4),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 6),
-        decoration: const BoxDecoration(
-          border: Border(bottom: BorderSide(color: AppColors.primaryGreen, width: 2)),
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(icon, size: 14, color: AppColors.primaryGreen),
-            const SizedBox(width: 6),
-            Text(label,
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 6),
+          decoration: const BoxDecoration(
+            border: Border(
+              bottom: BorderSide(color: AppColors.primaryGreen, width: 2),
+            ),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(icon, size: 14, color: AppColors.primaryGreen),
+              const SizedBox(width: 6),
+              Text(
+                label,
                 style: const TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w600,
-                    color: AppColors.primaryGreen)),
-            const SizedBox(width: 4),
-            const Icon(Icons.arrow_drop_down, size: 16, color: AppColors.primaryGreen),
-          ],
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.primaryGreen,
+                ),
+              ),
+              const SizedBox(width: 4),
+              const Icon(
+                Icons.arrow_drop_down,
+                size: 16,
+                color: AppColors.primaryGreen,
+              ),
+            ],
+          ),
         ),
       ),
-      )
     );
   }
 
   /// Shows a popup multi-select menu for years
-  void _showYearMultiSelectMenu(BuildContext context, List<String> allYears, Set<String> selected) {
+  void _showYearMultiSelectMenu(
+    BuildContext context,
+    List<String> allYears,
+    Set<String> selected,
+  ) {
     final RenderBox button = context.findRenderObject() as RenderBox;
-    final RenderBox overlay = Overlay.of(context).context.findRenderObject() as RenderBox;
+    final RenderBox overlay =
+        Overlay.of(context).context.findRenderObject() as RenderBox;
     final RelativeRect position = RelativeRect.fromRect(
       Rect.fromPoints(
         button.localToGlobal(Offset.zero, ancestor: overlay),
-        button.localToGlobal(button.size.bottomRight(Offset.zero), ancestor: overlay),
+        button.localToGlobal(
+          button.size.bottomRight(Offset.zero),
+          ancestor: overlay,
+        ),
       ),
       Offset.zero & overlay.size,
     );
@@ -1561,7 +2280,9 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
           padding: EdgeInsets.zero,
           child: Consumer(
             builder: (ctx, ref, _) {
-              final currentSelected = ref.watch(yearlyComparisonSelectedYearsProvider);
+              final currentSelected = ref.watch(
+                yearlyComparisonSelectedYearsProvider,
+              );
               return Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 mainAxisSize: MainAxisSize.min,
@@ -1570,13 +2291,27 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                     padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
                     child: Row(
                       children: [
-                        const Text('Select School Years', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                        const Text(
+                          'Select School Years',
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 13,
+                          ),
+                        ),
                         const Spacer(),
                         TextButton(
                           onPressed: () {
-                            ref.read(yearlyComparisonSelectedYearsProvider.notifier).clear();
+                            ref
+                                .read(
+                                  yearlyComparisonSelectedYearsProvider
+                                      .notifier,
+                                )
+                                .clear();
                           },
-                          child: const Text('Clear All', style: TextStyle(fontSize: 12)),
+                          child: const Text(
+                            'Clear All',
+                            style: TextStyle(fontSize: 12),
+                          ),
                         ),
                       ],
                     ),
@@ -1591,7 +2326,11 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                       activeColor: AppColors.primaryGreen,
                       controlAffinity: ListTileControlAffinity.leading,
                       onChanged: (val) {
-                        ref.read(yearlyComparisonSelectedYearsProvider.notifier).toggle(year);
+                        ref
+                            .read(
+                              yearlyComparisonSelectedYearsProvider.notifier,
+                            )
+                            .toggle(year);
                       },
                     );
                   }),
@@ -1606,13 +2345,20 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
 
   /// Shows a popup multi-select menu for statuses
   void _showStatusMultiSelectMenu(
-      BuildContext context, List<_StatusOption> options, Set<String> selected) {
+    BuildContext context,
+    List<_StatusOption> options,
+    Set<String> selected,
+  ) {
     final RenderBox button = context.findRenderObject() as RenderBox;
-    final RenderBox overlay = Overlay.of(context).context.findRenderObject() as RenderBox;
+    final RenderBox overlay =
+        Overlay.of(context).context.findRenderObject() as RenderBox;
     final RelativeRect position = RelativeRect.fromRect(
       Rect.fromPoints(
         button.localToGlobal(Offset.zero, ancestor: overlay),
-        button.localToGlobal(button.size.bottomRight(Offset.zero), ancestor: overlay),
+        button.localToGlobal(
+          button.size.bottomRight(Offset.zero),
+          ancestor: overlay,
+        ),
       ),
       Offset.zero & overlay.size,
     );
@@ -1627,7 +2373,9 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
           padding: EdgeInsets.zero,
           child: Consumer(
             builder: (ctx, ref, _) {
-              final currentSelected = ref.watch(yearlyComparisonSelectedStatusesProvider);
+              final currentSelected = ref.watch(
+                yearlyComparisonSelectedStatusesProvider,
+              );
               return Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 mainAxisSize: MainAxisSize.min,
@@ -1636,13 +2384,27 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                     padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
                     child: Row(
                       children: [
-                        const Text('Select Statuses', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                        const Text(
+                          'Select Statuses',
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 13,
+                          ),
+                        ),
                         const Spacer(),
                         TextButton(
                           onPressed: () {
-                            ref.read(yearlyComparisonSelectedStatusesProvider.notifier).selectAll();
+                            ref
+                                .read(
+                                  yearlyComparisonSelectedStatusesProvider
+                                      .notifier,
+                                )
+                                .selectAll();
                           },
-                          child: const Text('All', style: TextStyle(fontSize: 12)),
+                          child: const Text(
+                            'All',
+                            style: TextStyle(fontSize: 12),
+                          ),
                         ),
                       ],
                     ),
@@ -1655,7 +2417,14 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                       value: isChecked,
                       title: Row(
                         children: [
-                          Container(width: 10, height: 10, decoration: BoxDecoration(color: opt.color, borderRadius: BorderRadius.circular(2))),
+                          Container(
+                            width: 10,
+                            height: 10,
+                            decoration: BoxDecoration(
+                              color: opt.color,
+                              borderRadius: BorderRadius.circular(2),
+                            ),
+                          ),
                           const SizedBox(width: 8),
                           Text(opt.label, style: const TextStyle(fontSize: 13)),
                         ],
@@ -1663,7 +2432,11 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                       activeColor: AppColors.primaryGreen,
                       controlAffinity: ListTileControlAffinity.leading,
                       onChanged: (val) {
-                        ref.read(yearlyComparisonSelectedStatusesProvider.notifier).toggle(opt.key);
+                        ref
+                            .read(
+                              yearlyComparisonSelectedStatusesProvider.notifier,
+                            )
+                            .toggle(opt.key);
                       },
                     );
                   }),
@@ -1680,9 +2453,23 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Container(width: 12, height: 12, decoration: BoxDecoration(color: color, borderRadius: BorderRadius.circular(3))),
+        Container(
+          width: 12,
+          height: 12,
+          decoration: BoxDecoration(
+            color: color,
+            borderRadius: BorderRadius.circular(3),
+          ),
+        ),
         const SizedBox(width: 6),
-        Text(text, style: const TextStyle(fontSize: 12, color: AppColors.textSecondary, fontWeight: FontWeight.w500)),
+        Text(
+          text,
+          style: const TextStyle(
+            fontSize: 12,
+            color: AppColors.textSecondary,
+            fontWeight: FontWeight.w500,
+          ),
+        ),
       ],
     );
   }
@@ -1693,5 +2480,9 @@ class _StatusOption {
   final String key;
   final String label;
   final Color color;
-  const _StatusOption({required this.key, required this.label, required this.color});
+  const _StatusOption({
+    required this.key,
+    required this.label,
+    required this.color,
+  });
 }

@@ -7,17 +7,19 @@ class AppColors {
   // Primary Brand Colors
   static const Color primaryGreen = Color(0xFF1C8248);
   static const Color darkGreen = Color(0xFF085F32);
-  
+
   // Backgrounds
-  static const Color pageBackground = Color(0xFFF3F4F6); // Light gray background
+  static const Color pageBackground = Color(
+    0xFFF3F4F6,
+  ); // Light gray background
   static const Color surfaceWhite = Colors.white; // Cards, Dialogs
   static const Color inputBackground = Color(0xFFE5E5E5);
-  
+
   // Text Colors
   static const Color textPrimary = Color(0xFF1A1A1A);
   static const Color textSecondary = Color(0xFF666666);
   static const Color textMuted = Color(0xFF999999);
-  
+
   // Status Colors
   static const Color error = Colors.redAccent;
   static const Color warning = Colors.orange;

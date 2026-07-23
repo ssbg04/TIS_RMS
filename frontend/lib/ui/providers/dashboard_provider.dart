@@ -14,7 +14,11 @@ class DashboardData {
   final PaginatedActivities recentActivities;
   final PaginatedUserHistory? userHistory;
 
-  DashboardData({required this.stats, required this.recentActivities, this.userHistory});
+  DashboardData({
+    required this.stats,
+    required this.recentActivities,
+    this.userHistory,
+  });
 }
 
 final dashboardDataProvider = FutureProvider<DashboardData>((ref) async {
@@ -35,7 +39,11 @@ final dashboardDataProvider = FutureProvider<DashboardData>((ref) async {
     userHistory = await activityRepo.getUserHistory(page: 1, limit: 5);
   }
 
-  return DashboardData(stats: stats, recentActivities: activities, userHistory: userHistory);
+  return DashboardData(
+    stats: stats,
+    recentActivities: activities,
+    userHistory: userHistory,
+  );
 });
 
 // ── Full paginated activities (used by RecentActivitiesScreen) ─────────────
@@ -88,7 +96,8 @@ class ActivityQueryNotifier extends Notifier<ActivityQueryParams> {
   void setDateFrom(String v) => state = state.copyWith(dateFrom: v, page: 1);
   void setDateTo(String v) => state = state.copyWith(dateTo: v, page: 1);
   void setAction(String v) => state = state.copyWith(action: v, page: 1);
-  void setEntityTypes(String v) => state = state.copyWith(entityTypes: v, page: 1);
+  void setEntityTypes(String v) =>
+      state = state.copyWith(entityTypes: v, page: 1);
   void reset() => state = const ActivityQueryParams();
 }
 
@@ -106,6 +115,8 @@ final recentActivitiesPageProvider =
         dateTo: query.dateTo.isEmpty ? null : query.dateTo,
         action: query.action.isEmpty ? null : query.action,
         // Teachers only see student and document activities
-        entityTypes: isTeacher ? 'student,document' : (query.entityTypes.isEmpty ? null : query.entityTypes),
+        entityTypes: isTeacher
+            ? 'student,document'
+            : (query.entityTypes.isEmpty ? null : query.entityTypes),
       );
     });

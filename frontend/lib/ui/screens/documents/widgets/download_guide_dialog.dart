@@ -32,7 +32,11 @@ class DownloadGuideDialog extends StatelessWidget {
                       color: Colors.blue.withOpacity(0.1),
                       borderRadius: BorderRadius.circular(8),
                     ),
-                    child: const Icon(Icons.info_outline, color: Colors.blue, size: 24),
+                    child: const Icon(
+                      Icons.info_outline,
+                      color: Colors.blue,
+                      size: 24,
+                    ),
                   ),
                   const SizedBox(width: AppSizes.p16),
                   const Text(
@@ -73,7 +77,10 @@ class DownloadGuideDialog extends StatelessWidget {
                 const SizedBox(height: 12),
                 const Text(
                   'You can quickly find them by opening File Explorer and going to your standard Downloads folder.',
-                  style: TextStyle(color: AppColors.textSecondary, fontSize: 13),
+                  style: TextStyle(
+                    color: AppColors.textSecondary,
+                    fontSize: 13,
+                  ),
                 ),
               ] else if (isAndroid) ...[
                 const Text(
@@ -97,7 +104,10 @@ class DownloadGuideDialog extends StatelessWidget {
                 const SizedBox(height: 12),
                 const Text(
                   'You can access them using your device\'s "Files" or "My Files" app.',
-                  style: TextStyle(color: AppColors.textSecondary, fontSize: 13),
+                  style: TextStyle(
+                    color: AppColors.textSecondary,
+                    fontSize: 13,
+                  ),
                 ),
               ] else ...[
                 const Text(

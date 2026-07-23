@@ -18,36 +18,56 @@ class SetupRepository {
   Future<List<AcademicYearModel>> getAcademicYears() async {
     try {
       final options = await _getAuthOptions();
-      final response = await _dio.get('/setup/academic-years', options: options);
+      final response = await _dio.get(
+        '/setup/academic-years',
+        options: options,
+      );
       return (response.data as List)
-          .map((item) => AcademicYearModel.fromJson(item as Map<String, dynamic>))
+          .map(
+            (item) => AcademicYearModel.fromJson(item as Map<String, dynamic>),
+          )
           .toList();
     } on DioException catch (e) {
-      throw Exception(e.response?.data?['message'] ?? 'Failed to fetch academic years.');
+      throw Exception(
+        e.response?.data?['message'] ?? 'Failed to fetch academic years.',
+      );
     }
   }
 
-  Future<void> createAcademicYear({required String yearRange, required String status}) async {
+  Future<void> createAcademicYear({
+    required String yearRange,
+    required String status,
+  }) async {
     try {
       final options = await _getAuthOptions();
-      await _dio.post('/setup/academic-years', options: options, data: {
-        'yearRange': yearRange,
-        'status': status,
-      });
+      await _dio.post(
+        '/setup/academic-years',
+        options: options,
+        data: {'yearRange': yearRange, 'status': status},
+      );
     } on DioException catch (e) {
-      throw Exception(e.response?.data?['message'] ?? 'Failed to create academic year.');
+      throw Exception(
+        e.response?.data?['message'] ?? 'Failed to create academic year.',
+      );
     }
   }
 
-  Future<void> updateAcademicYear({required int id, required String yearRange, required String status}) async {
+  Future<void> updateAcademicYear({
+    required int id,
+    required String yearRange,
+    required String status,
+  }) async {
     try {
       final options = await _getAuthOptions();
-      await _dio.put('/setup/academic-years/$id', options: options, data: {
-        'yearRange': yearRange,
-        'status': status,
-      });
+      await _dio.put(
+        '/setup/academic-years/$id',
+        options: options,
+        data: {'yearRange': yearRange, 'status': status},
+      );
     } on DioException catch (e) {
-      throw Exception(e.response?.data?['message'] ?? 'Failed to update academic year.');
+      throw Exception(
+        e.response?.data?['message'] ?? 'Failed to update academic year.',
+      );
     }
   }
 
@@ -56,7 +76,9 @@ class SetupRepository {
       final options = await _getAuthOptions();
       await _dio.delete('/setup/academic-years/$id', options: options);
     } on DioException catch (e) {
-      throw Exception(e.response?.data?['message'] ?? 'Failed to delete academic year.');
+      throw Exception(
+        e.response?.data?['message'] ?? 'Failed to delete academic year.',
+      );
     }
   }
 
@@ -71,45 +93,74 @@ class SetupRepository {
           .map((item) => SectionModel.fromJson(item as Map<String, dynamic>))
           .toList();
     } on DioException catch (e) {
-      throw Exception(e.response?.data?['message'] ?? 'Failed to fetch sections.');
+      throw Exception(
+        e.response?.data?['message'] ?? 'Failed to fetch sections.',
+      );
     }
   }
 
   Future<List<SectionModel>> getSectionsByYear(int yearId) async {
     try {
       final options = await _getAuthOptions();
-      final response = await _dio.get('/setup/academic-years/$yearId/sections', options: options);
+      final response = await _dio.get(
+        '/setup/academic-years/$yearId/sections',
+        options: options,
+      );
       return (response.data as List)
           .map((item) => SectionModel.fromJson(item as Map<String, dynamic>))
           .toList();
     } on DioException catch (e) {
-      throw Exception(e.response?.data?['message'] ?? 'Failed to fetch sections for academic year.');
+      throw Exception(
+        e.response?.data?['message'] ??
+            'Failed to fetch sections for academic year.',
+      );
     }
   }
 
-  Future<void> createSection({required String name, required int gradeLevel, required int academicYearId}) async {
+  Future<void> createSection({
+    required String name,
+    required int gradeLevel,
+    required int academicYearId,
+  }) async {
     try {
       final options = await _getAuthOptions();
-      await _dio.post('/setup/sections', options: options, data: {
-        'name': name,
-        'gradeLevel': gradeLevel,
-        'academicYearId': academicYearId,
-      });
+      await _dio.post(
+        '/setup/sections',
+        options: options,
+        data: {
+          'name': name,
+          'gradeLevel': gradeLevel,
+          'academicYearId': academicYearId,
+        },
+      );
     } on DioException catch (e) {
-      throw Exception(e.response?.data?['message'] ?? 'Failed to create section.');
+      throw Exception(
+        e.response?.data?['message'] ?? 'Failed to create section.',
+      );
     }
   }
 
-  Future<void> updateSection({required int id, required String name, required int gradeLevel, required int academicYearId}) async {
+  Future<void> updateSection({
+    required int id,
+    required String name,
+    required int gradeLevel,
+    required int academicYearId,
+  }) async {
     try {
       final options = await _getAuthOptions();
-      await _dio.put('/setup/sections/$id', options: options, data: {
-        'name': name,
-        'gradeLevel': gradeLevel,
-        'academicYearId': academicYearId,
-      });
+      await _dio.put(
+        '/setup/sections/$id',
+        options: options,
+        data: {
+          'name': name,
+          'gradeLevel': gradeLevel,
+          'academicYearId': academicYearId,
+        },
+      );
     } on DioException catch (e) {
-      throw Exception(e.response?.data?['message'] ?? 'Failed to update section.');
+      throw Exception(
+        e.response?.data?['message'] ?? 'Failed to update section.',
+      );
     }
   }
 
@@ -118,7 +169,9 @@ class SetupRepository {
       final options = await _getAuthOptions();
       await _dio.delete('/setup/sections/$id', options: options);
     } on DioException catch (e) {
-      throw Exception(e.response?.data?['message'] ?? 'Failed to delete section.');
+      throw Exception(
+        e.response?.data?['message'] ?? 'Failed to delete section.',
+      );
     }
   }
 
@@ -133,31 +186,46 @@ class SetupRepository {
           .map((item) => GradeLevelModel.fromJson(item as Map<String, dynamic>))
           .toList();
     } on DioException catch (e) {
-      throw Exception(e.response?.data?['message'] ?? 'Failed to fetch grade levels.');
+      throw Exception(
+        e.response?.data?['message'] ?? 'Failed to fetch grade levels.',
+      );
     }
   }
 
-  Future<void> createGradeLevel({required int level, required String name}) async {
+  Future<void> createGradeLevel({
+    required int level,
+    required String name,
+  }) async {
     try {
       final options = await _getAuthOptions();
-      await _dio.post('/setup/grade-levels', options: options, data: {
-        'level': level,
-        'name': name,
-      });
+      await _dio.post(
+        '/setup/grade-levels',
+        options: options,
+        data: {'level': level, 'name': name},
+      );
     } on DioException catch (e) {
-      throw Exception(e.response?.data?['message'] ?? 'Failed to create grade level.');
+      throw Exception(
+        e.response?.data?['message'] ?? 'Failed to create grade level.',
+      );
     }
   }
 
-  Future<void> updateGradeLevel({required int id, required int level, required String name}) async {
+  Future<void> updateGradeLevel({
+    required int id,
+    required int level,
+    required String name,
+  }) async {
     try {
       final options = await _getAuthOptions();
-      await _dio.put('/setup/grade-levels/$id', options: options, data: {
-        'level': level,
-        'name': name,
-      });
+      await _dio.put(
+        '/setup/grade-levels/$id',
+        options: options,
+        data: {'level': level, 'name': name},
+      );
     } on DioException catch (e) {
-      throw Exception(e.response?.data?['message'] ?? 'Failed to update grade level.');
+      throw Exception(
+        e.response?.data?['message'] ?? 'Failed to update grade level.',
+      );
     }
   }
 
@@ -166,7 +234,9 @@ class SetupRepository {
       final options = await _getAuthOptions();
       await _dio.delete('/setup/grade-levels/$id', options: options);
     } on DioException catch (e) {
-      throw Exception(e.response?.data?['message'] ?? 'Failed to delete grade level.');
+      throw Exception(
+        e.response?.data?['message'] ?? 'Failed to delete grade level.',
+      );
     }
   }
 
@@ -176,23 +246,35 @@ class SetupRepository {
   Future<List<SectionModel>> getTeacherSections(int teacherId) async {
     try {
       final options = await _getAuthOptions();
-      final response = await _dio.get('/users/$teacherId/sections', options: options);
+      final response = await _dio.get(
+        '/users/$teacherId/sections',
+        options: options,
+      );
       return (response.data as List)
           .map((item) => SectionModel.fromJson(item as Map<String, dynamic>))
           .toList();
     } on DioException catch (e) {
-      throw Exception(e.response?.data?['message'] ?? 'Failed to fetch teacher sections.');
+      throw Exception(
+        e.response?.data?['message'] ?? 'Failed to fetch teacher sections.',
+      );
     }
   }
 
-  Future<void> updateTeacherSections({required int teacherId, required List<int> sectionIds}) async {
+  Future<void> updateTeacherSections({
+    required int teacherId,
+    required List<int> sectionIds,
+  }) async {
     try {
       final options = await _getAuthOptions();
-      await _dio.post('/users/$teacherId/sections', options: options, data: {
-        'sectionIds': sectionIds,
-      });
+      await _dio.post(
+        '/users/$teacherId/sections',
+        options: options,
+        data: {'sectionIds': sectionIds},
+      );
     } on DioException catch (e) {
-      throw Exception(e.response?.data?['message'] ?? 'Failed to update teacher sections.');
+      throw Exception(
+        e.response?.data?['message'] ?? 'Failed to update teacher sections.',
+      );
     }
   }
 }

@@ -28,7 +28,9 @@ class SystemUser {
   });
 
   String get fullName {
-    final mid = middleName != null && middleName!.isNotEmpty ? '${middleName![0]}. ' : '';
+    final mid = middleName != null && middleName!.isNotEmpty
+        ? '${middleName![0]}. '
+        : '';
     final ext = extension != null && extension!.isNotEmpty ? ' $extension' : '';
     return '$firstName $mid$lastName$ext'.trim();
   }

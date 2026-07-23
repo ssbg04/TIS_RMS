@@ -26,18 +26,22 @@ class ActivityRepository {
       final response = await _dio.get(
         '/users/history',
         queryParameters: {
-          'page':  page,
+          'page': page,
           'limit': limit,
           if (dateFrom != null && dateFrom.isNotEmpty) 'date_from': dateFrom,
-          if (dateTo   != null && dateTo.isNotEmpty)   'date_to':   dateTo,
-          if (action   != null && action.isNotEmpty)   'action':    action,
-          if (role     != null && role.isNotEmpty)     'role':      role,
+          if (dateTo != null && dateTo.isNotEmpty) 'date_to': dateTo,
+          if (action != null && action.isNotEmpty) 'action': action,
+          if (role != null && role.isNotEmpty) 'role': role,
         },
         options: options,
       );
-      return PaginatedUserHistory.fromJson(response.data as Map<String, dynamic>);
+      return PaginatedUserHistory.fromJson(
+        response.data as Map<String, dynamic>,
+      );
     } on DioException catch (e) {
-      throw Exception(e.response?.data['message'] ?? 'Failed to fetch user history.');
+      throw Exception(
+        e.response?.data['message'] ?? 'Failed to fetch user history.',
+      );
     }
   }
 }

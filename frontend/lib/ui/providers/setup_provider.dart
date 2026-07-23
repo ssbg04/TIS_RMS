@@ -8,7 +8,9 @@ final setupRepositoryProvider = Provider<SetupRepository>((ref) {
   return SetupRepository();
 });
 
-final academicYearsListProvider = FutureProvider<List<AcademicYearModel>>((ref) async {
+final academicYearsListProvider = FutureProvider<List<AcademicYearModel>>((
+  ref,
+) async {
   final repo = ref.read(setupRepositoryProvider);
   return repo.getAcademicYears();
 });
@@ -16,35 +18,44 @@ final academicYearsListProvider = FutureProvider<List<AcademicYearModel>>((ref) 
 final sectionsListProvider = FutureProvider<List<SectionModel>>((ref) async {
   final repo = ref.read(setupRepositoryProvider);
   final user = ref.watch(authProvider).value;
-  
+
   if (user?.role == 'teacher') {
     return repo.getTeacherSections(user!.id);
   }
-  
+
   return repo.getAllSections();
 });
 
-final gradeLevelsListProvider = FutureProvider<List<GradeLevelModel>>((ref) async {
+final gradeLevelsListProvider = FutureProvider<List<GradeLevelModel>>((
+  ref,
+) async {
   final repo = ref.read(setupRepositoryProvider);
   return repo.getGradeLevels();
 });
 
-final teacherSectionsProvider = FutureProvider.family<List<SectionModel>, int>((ref, teacherId) async {
+final teacherSectionsProvider = FutureProvider.family<List<SectionModel>, int>((
+  ref,
+  teacherId,
+) async {
   final repo = ref.read(setupRepositoryProvider);
   return repo.getTeacherSections(teacherId);
 });
 
 // Setup mutation notifier for CRUD setup actions
-final setupMutationProvider = AsyncNotifierProvider<SetupMutationNotifier, void>(
-  SetupMutationNotifier.new,
-);
+final setupMutationProvider =
+    AsyncNotifierProvider<SetupMutationNotifier, void>(
+      SetupMutationNotifier.new,
+    );
 
 class SetupMutationNotifier extends AsyncNotifier<void> {
   @override
   FutureOr<void> build() {}
 
   // Academic Years
-  Future<void> createAcademicYear({required String yearRange, required String status}) async {
+  Future<void> createAcademicYear({
+    required String yearRange,
+    required String status,
+  }) async {
     state = const AsyncLoading();
     try {
       final repo = ref.read(setupRepositoryProvider);
@@ -57,11 +68,19 @@ class SetupMutationNotifier extends AsyncNotifier<void> {
     }
   }
 
-  Future<void> updateAcademicYear({required int id, required String yearRange, required String status}) async {
+  Future<void> updateAcademicYear({
+    required int id,
+    required String yearRange,
+    required String status,
+  }) async {
     state = const AsyncLoading();
     try {
       final repo = ref.read(setupRepositoryProvider);
-      await repo.updateAcademicYear(id: id, yearRange: yearRange, status: status);
+      await repo.updateAcademicYear(
+        id: id,
+        yearRange: yearRange,
+        status: status,
+      );
       state = const AsyncData(null);
       ref.invalidate(academicYearsListProvider);
     } catch (e, st) {
@@ -86,11 +105,19 @@ class SetupMutationNotifier extends AsyncNotifier<void> {
   }
 
   // Sections
-  Future<void> createSection({required String name, required int gradeLevel, required int academicYearId}) async {
+  Future<void> createSection({
+    required String name,
+    required int gradeLevel,
+    required int academicYearId,
+  }) async {
     state = const AsyncLoading();
     try {
       final repo = ref.read(setupRepositoryProvider);
-      await repo.createSection(name: name, gradeLevel: gradeLevel, academicYearId: academicYearId);
+      await repo.createSection(
+        name: name,
+        gradeLevel: gradeLevel,
+        academicYearId: academicYearId,
+      );
       state = const AsyncData(null);
       ref.invalidate(sectionsListProvider);
     } catch (e, st) {
@@ -99,11 +126,21 @@ class SetupMutationNotifier extends AsyncNotifier<void> {
     }
   }
 
-  Future<void> updateSection({required int id, required String name, required int gradeLevel, required int academicYearId}) async {
+  Future<void> updateSection({
+    required int id,
+    required String name,
+    required int gradeLevel,
+    required int academicYearId,
+  }) async {
     state = const AsyncLoading();
     try {
       final repo = ref.read(setupRepositoryProvider);
-      await repo.updateSection(id: id, name: name, gradeLevel: gradeLevel, academicYearId: academicYearId);
+      await repo.updateSection(
+        id: id,
+        name: name,
+        gradeLevel: gradeLevel,
+        academicYearId: academicYearId,
+      );
       state = const AsyncData(null);
       ref.invalidate(sectionsListProvider);
     } catch (e, st) {
@@ -126,7 +163,10 @@ class SetupMutationNotifier extends AsyncNotifier<void> {
   }
 
   // Grade Levels
-  Future<void> createGradeLevel({required int level, required String name}) async {
+  Future<void> createGradeLevel({
+    required int level,
+    required String name,
+  }) async {
     state = const AsyncLoading();
     try {
       final repo = ref.read(setupRepositoryProvider);
@@ -139,7 +179,11 @@ class SetupMutationNotifier extends AsyncNotifier<void> {
     }
   }
 
-  Future<void> updateGradeLevel({required int id, required int level, required String name}) async {
+  Future<void> updateGradeLevel({
+    required int id,
+    required int level,
+    required String name,
+  }) async {
     state = const AsyncLoading();
     try {
       final repo = ref.read(setupRepositoryProvider);
@@ -166,11 +210,17 @@ class SetupMutationNotifier extends AsyncNotifier<void> {
   }
 
   // Teacher Sections Assignment
-  Future<void> updateTeacherSections({required int teacherId, required List<int> sectionIds}) async {
+  Future<void> updateTeacherSections({
+    required int teacherId,
+    required List<int> sectionIds,
+  }) async {
     state = const AsyncLoading();
     try {
       final repo = ref.read(setupRepositoryProvider);
-      await repo.updateTeacherSections(teacherId: teacherId, sectionIds: sectionIds);
+      await repo.updateTeacherSections(
+        teacherId: teacherId,
+        sectionIds: sectionIds,
+      );
       state = const AsyncData(null);
       ref.invalidate(teacherSectionsProvider(teacherId));
     } catch (e, st) {

@@ -27,11 +27,7 @@ Future<void> showSuccessDialog(
         ),
         title: Row(
           children: [
-            const Icon(
-              Icons.check_circle,
-              color: AppColors.success,
-              size: 28,
-            ),
+            const Icon(Icons.check_circle, color: AppColors.success, size: 28),
             const SizedBox(width: 8),
             Text(title),
           ],

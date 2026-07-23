@@ -4,9 +4,10 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 const _searchHistoryKey = 'app_search_history';
 
-final searchHistoryProvider = NotifierProvider<SearchHistoryNotifier, List<String>>(() {
-  return SearchHistoryNotifier();
-});
+final searchHistoryProvider =
+    NotifierProvider<SearchHistoryNotifier, List<String>>(() {
+      return SearchHistoryNotifier();
+    });
 
 class SearchHistoryNotifier extends Notifier<List<String>> {
   @override
@@ -31,18 +32,18 @@ class SearchHistoryNotifier extends Notifier<List<String>> {
   Future<void> addSearch(String query) async {
     final trimQuery = query.trim();
     if (trimQuery.isEmpty) return;
-    
+
     // Remove if exists to push to top
     final newList = List<String>.from(state)..remove(trimQuery);
-    
+
     // Add to top
     newList.insert(0, trimQuery);
-    
+
     // Keep max 10
     if (newList.length > 10) {
       newList.removeLast();
     }
-    
+
     state = newList;
     await _saveHistory(newList);
   }

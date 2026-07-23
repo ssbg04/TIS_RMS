@@ -40,7 +40,11 @@ class _DocumentPreviewDialog extends StatefulWidget {
   final DocumentModel? document;
   final File? localFile;
   final String? localFileName;
-  const _DocumentPreviewDialog({this.document, this.localFile, this.localFileName});
+  const _DocumentPreviewDialog({
+    this.document,
+    this.localFile,
+    this.localFileName,
+  });
 
   @override
   State<_DocumentPreviewDialog> createState() => _DocumentPreviewDialogState();
@@ -52,7 +56,8 @@ class _DocumentPreviewDialogState extends State<_DocumentPreviewDialog> {
   String? _token;
 
   final PdfViewerController _pdfViewerController = PdfViewerController();
-  final TransformationController _imageTransformationController = TransformationController();
+  final TransformationController _imageTransformationController =
+      TransformationController();
 
   void _zoomImageIn() {
     final matrix = _imageTransformationController.value.clone();
@@ -108,9 +113,8 @@ class _DocumentPreviewDialogState extends State<_DocumentPreviewDialog> {
 
   String get _ext => _fileName.toLowerCase().split('.').last;
 
-  bool get _isImage => const {
-        'jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp'
-      }.contains(_ext);
+  bool get _isImage =>
+      const {'jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp'}.contains(_ext);
 
   bool get _isPdf => _ext == 'pdf';
 
@@ -150,10 +154,13 @@ class _DocumentPreviewDialogState extends State<_DocumentPreviewDialog> {
 
   Future<void> _downloadFile() async {
     try {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Download started...')),
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Download started...')));
+      await DownloadService.downloadFile(
+        url: _downloadUrl,
+        fileName: _fileName,
       );
-      await DownloadService.downloadFile(url: _downloadUrl, fileName: _fileName);
       if (!mounted) return;
       showSuccessDialog(context, message: 'Document downloaded successfully.');
     } catch (e) {
@@ -171,7 +178,11 @@ class _DocumentPreviewDialogState extends State<_DocumentPreviewDialog> {
       await launchUrl(uri, mode: LaunchMode.externalApplication);
     } else {
       if (!mounted) return;
-      showErrorDialog(context, 'Launch Failed', 'Could not open Google Docs viewer.');
+      showErrorDialog(
+        context,
+        'Launch Failed',
+        'Could not open Google Docs viewer.',
+      );
     }
   }
 
@@ -212,7 +223,6 @@ class _DocumentPreviewDialogState extends State<_DocumentPreviewDialog> {
     );
   }
 
-
   Widget _buildContent(bool isMobile) {
     Widget content;
     if (_isImage) {
@@ -246,46 +256,50 @@ class _DocumentPreviewDialogState extends State<_DocumentPreviewDialog> {
                   child: Padding(
                     padding: const EdgeInsets.all(16),
                     child: widget.localFile != null
-                        ? Image.file(
-                            widget.localFile!,
-                            fit: BoxFit.contain,
-                          )
+                        ? Image.file(widget.localFile!, fit: BoxFit.contain)
                         : Image.network(
                             _fileUrl,
-                      fit: BoxFit.contain,
-                      loadingBuilder: (ctx, child, progress) {
-                        if (progress == null) {
-                          WidgetsBinding.instance.addPostFrameCallback((_) {
-                            if (mounted) setState(() => _imageLoaded = true);
-                          });
-                          return child;
-                        }
-                        return Center(
-                          child: Column(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              CircularProgressIndicator(
-                                value: progress.expectedTotalBytes != null
-                                    ? progress.cumulativeBytesLoaded /
-                                        progress.expectedTotalBytes!
-                                    : null,
-                                color: AppColors.primaryGreen,
-                              ),
-                              const SizedBox(height: 12),
-                              const Text('Loading image…',
-                                  style: TextStyle(
-                                      color: AppColors.textSecondary, fontSize: 13)),
-                            ],
+                            fit: BoxFit.contain,
+                            loadingBuilder: (ctx, child, progress) {
+                              if (progress == null) {
+                                WidgetsBinding.instance.addPostFrameCallback((
+                                  _,
+                                ) {
+                                  if (mounted)
+                                    setState(() => _imageLoaded = true);
+                                });
+                                return child;
+                              }
+                              return Center(
+                                child: Column(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    CircularProgressIndicator(
+                                      value: progress.expectedTotalBytes != null
+                                          ? progress.cumulativeBytesLoaded /
+                                                progress.expectedTotalBytes!
+                                          : null,
+                                      color: AppColors.primaryGreen,
+                                    ),
+                                    const SizedBox(height: 12),
+                                    const Text(
+                                      'Loading image…',
+                                      style: TextStyle(
+                                        color: AppColors.textSecondary,
+                                        fontSize: 13,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              );
+                            },
+                            errorBuilder: (_, __, ___) {
+                              WidgetsBinding.instance.addPostFrameCallback((_) {
+                                if (mounted) setState(() => _imageError = true);
+                              });
+                              return _buildImageError();
+                            },
                           ),
-                        );
-                      },
-                      errorBuilder: (_, __, ___) {
-                        WidgetsBinding.instance.addPostFrameCallback((_) {
-                          if (mounted) setState(() => _imageError = true);
-                        });
-                        return _buildImageError();
-                      },
-                    ),
                   ),
                 ),
                 // Pinch-to-zoom hint
@@ -294,14 +308,17 @@ class _DocumentPreviewDialogState extends State<_DocumentPreviewDialog> {
                     bottom: 12,
                     child: Container(
                       padding: const EdgeInsets.symmetric(
-                          horizontal: 12, vertical: 5),
+                        horizontal: 12,
+                        vertical: 5,
+                      ),
                       decoration: BoxDecoration(
                         color: Colors.black.withValues(alpha: 0.6),
                         borderRadius: BorderRadius.circular(20),
                       ),
-                      child: const Text('Pinch or scroll to zoom',
-                          style:
-                              TextStyle(color: Colors.white, fontSize: 11)),
+                      child: const Text(
+                        'Pinch or scroll to zoom',
+                        style: TextStyle(color: Colors.white, fontSize: 11),
+                      ),
                     ),
                   ),
               ],
@@ -314,16 +331,24 @@ class _DocumentPreviewDialogState extends State<_DocumentPreviewDialog> {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          const Icon(Icons.broken_image_rounded, size: 64, color: AppColors.textSecondary),
+          const Icon(
+            Icons.broken_image_rounded,
+            size: 64,
+            color: AppColors.textSecondary,
+          ),
           const SizedBox(height: 12),
-          const Text('Could not load image',
-              style: TextStyle(color: AppColors.textSecondary, fontSize: 14)),
+          const Text(
+            'Could not load image',
+            style: TextStyle(color: AppColors.textSecondary, fontSize: 14),
+          ),
           const SizedBox(height: 8),
           TextButton.icon(
             onPressed: _downloadFile,
             icon: const Icon(Icons.download_rounded, size: 16),
             label: const Text('Download File'),
-            style: TextButton.styleFrom(foregroundColor: AppColors.primaryGreen),
+            style: TextButton.styleFrom(
+              foregroundColor: AppColors.primaryGreen,
+            ),
           ),
         ],
       ),
@@ -427,25 +452,30 @@ class _DocumentPreviewDialogState extends State<_DocumentPreviewDialog> {
               Text(
                 title,
                 style: TextStyle(
-                    color: iconColor,
-                    fontSize: 13,
-                    fontWeight: FontWeight.w700,
-                    letterSpacing: 0.5),
+                  color: iconColor,
+                  fontSize: 13,
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: 0.5,
+                ),
               ),
               const SizedBox(height: 6),
               Text(
                 subtitle,
                 textAlign: TextAlign.center,
                 style: const TextStyle(
-                    color: AppColors.textPrimary,
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold),
+                  color: AppColors.textPrimary,
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
               if (detail.isNotEmpty && detail != 'Size unknown') ...[
                 const SizedBox(height: 6),
                 Text(
                   detail,
-                  style: const TextStyle(color: AppColors.textSecondary, fontSize: 13),
+                  style: const TextStyle(
+                    color: AppColors.textSecondary,
+                    fontSize: 13,
+                  ),
                 ),
               ],
               const SizedBox(height: 32),
@@ -456,19 +486,22 @@ class _DocumentPreviewDialogState extends State<_DocumentPreviewDialog> {
                   color: Colors.blue.withValues(alpha: 0.05),
                   borderRadius: BorderRadius.circular(12),
                   border: Border.all(
-                      color: Colors.blue.withValues(alpha: 0.15)),
+                    color: Colors.blue.withValues(alpha: 0.15),
+                  ),
                 ),
                 child: const Row(
                   children: [
-                    Icon(Icons.info_outline_rounded,
-                        size: 16, color: Colors.blue),
+                    Icon(
+                      Icons.info_outline_rounded,
+                      size: 16,
+                      color: Colors.blue,
+                    ),
                     SizedBox(width: 8),
                     Expanded(
                       child: Text(
                         'This file type cannot be previewed inline. '
                         'Use the buttons below to view or download it.',
-                        style: TextStyle(
-                            color: Colors.blue, fontSize: 13),
+                        style: TextStyle(color: Colors.blue, fontSize: 13),
                       ),
                     ),
                   ],
@@ -505,13 +538,10 @@ class _DocumentPreviewDialogState extends State<_DocumentPreviewDialog> {
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
         padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
         elevation: 0,
-        textStyle:
-            const TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
+        textStyle: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
       ),
     );
   }
-
-
 
   String _formatDate(DateTime? date) {
     if (date == null) return '—';

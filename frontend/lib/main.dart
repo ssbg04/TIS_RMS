@@ -7,7 +7,7 @@ import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:window_manager/window_manager.dart';
 
 // UI Imports
-import 'ui/screens/splash/splash_screen.dart'; 
+import 'ui/screens/splash/splash_screen.dart';
 // Core Imports
 import 'core/theme/app_theme.dart'; // Add this import
 import 'core/constants/app_colors.dart';
@@ -18,10 +18,10 @@ import 'package:workmanager/workmanager.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  
+
   if (!kIsWeb && (Platform.isWindows || Platform.isLinux || Platform.isMacOS)) {
     await windowManager.ensureInitialized();
-    
+
     WindowOptions windowOptions = const WindowOptions(
       size: Size(1280, 720),
       minimumSize: Size(800, 600),
@@ -36,35 +36,32 @@ void main() async {
     });
   }
 
-  SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
-    systemNavigationBarColor: Colors.transparent,
-    statusBarColor: Colors.transparent,
-  ));
+  SystemChrome.setSystemUIOverlayStyle(
+    const SystemUiOverlayStyle(
+      systemNavigationBarColor: Colors.transparent,
+      statusBarColor: Colors.transparent,
+    ),
+  );
   SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
 
   await SystemChrome.setPreferredOrientations([
     DeviceOrientation.portraitUp,
     DeviceOrientation.portraitDown,
   ]);
-  
+
   await NotificationService().initialize();
-  
+
   if (!kIsWeb && (Platform.isAndroid || Platform.isIOS)) {
-    Workmanager().initialize(
-      callbackDispatcher,
-      isInDebugMode: false,
-    );
+    Workmanager().initialize(callbackDispatcher, isInDebugMode: false);
     // Register periodic task
     Workmanager().registerPeriodicTask(
       "1",
       "background_sync_task",
       frequency: const Duration(minutes: 15),
-      constraints: Constraints(
-        networkType: NetworkType.connected,
-      ),
+      constraints: Constraints(networkType: NetworkType.connected),
     );
   }
-  
+
   runApp(const ProviderScope(child: TisRmsApp()));
 }
 
@@ -81,20 +78,18 @@ class TisRmsApp extends StatelessWidget {
         navigatorKey: navigatorKey,
         title: 'TIS RMS',
         debugShowCheckedModeBanner: false,
-        
+
         // Clean, centralized theme reference!
-        theme: AppTheme.lightTheme, 
-        
+        theme: AppTheme.lightTheme,
+
         builder: (context, child) {
           return ColoredBox(
             color: AppColors.primaryGreen,
-            child: SafeArea(
-              child: child!,
-            ),
+            child: SafeArea(child: child!),
           );
         },
-        
-        home: const SplashScreen(), 
+
+        home: const SplashScreen(),
       ),
     );
   }

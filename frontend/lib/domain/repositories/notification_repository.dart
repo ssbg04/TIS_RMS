@@ -15,62 +15,62 @@ class NotificationRepository {
   Future<List<NotificationModel>> getNotifications() async {
     try {
       final options = await _getAuthOptions();
-      final response = await _dio.get(
-        '/notifications',
-        options: options,
-      );
+      final response = await _dio.get('/notifications', options: options);
       final list = response.data as List;
-      return list.map((item) => NotificationModel.fromJson(item as Map<String, dynamic>)).toList();
+      return list
+          .map(
+            (item) => NotificationModel.fromJson(item as Map<String, dynamic>),
+          )
+          .toList();
     } on DioException catch (e) {
-      throw Exception(e.response?.data['message'] ?? 'Failed to fetch notifications.');
+      throw Exception(
+        e.response?.data['message'] ?? 'Failed to fetch notifications.',
+      );
     }
   }
 
   Future<void> markAllAsRead() async {
     try {
       final options = await _getAuthOptions();
-      await _dio.put(
-        '/notifications/mark-all-read',
-        options: options,
-      );
+      await _dio.put('/notifications/mark-all-read', options: options);
     } on DioException catch (e) {
-      throw Exception(e.response?.data['message'] ?? 'Failed to mark all notifications as read.');
+      throw Exception(
+        e.response?.data['message'] ??
+            'Failed to mark all notifications as read.',
+      );
     }
   }
 
   Future<void> markAsRead(int id) async {
     try {
       final options = await _getAuthOptions();
-      await _dio.put(
-        '/notifications/$id/read',
-        options: options,
-      );
+      await _dio.put('/notifications/$id/read', options: options);
     } on DioException catch (e) {
-      throw Exception(e.response?.data['message'] ?? 'Failed to mark notification as read.');
+      throw Exception(
+        e.response?.data['message'] ?? 'Failed to mark notification as read.',
+      );
     }
   }
 
   Future<void> clearNotifications() async {
     try {
       final options = await _getAuthOptions();
-      await _dio.delete(
-        '/notifications/clear',
-        options: options,
-      );
+      await _dio.delete('/notifications/clear', options: options);
     } on DioException catch (e) {
-      throw Exception(e.response?.data['message'] ?? 'Failed to clear notifications.');
+      throw Exception(
+        e.response?.data['message'] ?? 'Failed to clear notifications.',
+      );
     }
   }
 
   Future<void> deleteNotification(int id) async {
     try {
       final options = await _getAuthOptions();
-      await _dio.delete(
-        '/notifications/$id',
-        options: options,
-      );
+      await _dio.delete('/notifications/$id', options: options);
     } on DioException catch (e) {
-      throw Exception(e.response?.data['message'] ?? 'Failed to delete notification.');
+      throw Exception(
+        e.response?.data['message'] ?? 'Failed to delete notification.',
+      );
     }
   }
 }

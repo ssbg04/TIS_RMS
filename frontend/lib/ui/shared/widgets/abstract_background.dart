@@ -6,10 +6,7 @@ import '../../../core/constants/app_colors.dart';
 class AbstractBackground extends StatelessWidget {
   final Widget child;
 
-  const AbstractBackground({
-    super.key,
-    required this.child,
-  });
+  const AbstractBackground({super.key, required this.child});
 
   @override
   Widget build(BuildContext context) {

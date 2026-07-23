@@ -66,9 +66,10 @@ class OpenedFolderData {
   OpenedFolderData({required this.id, required this.name});
 }
 
-final openedFolderProvider = NotifierProvider<OpenedFolderNotifier, OpenedFolderData?>(
-  OpenedFolderNotifier.new,
-);
+final openedFolderProvider =
+    NotifierProvider<OpenedFolderNotifier, OpenedFolderData?>(
+      OpenedFolderNotifier.new,
+    );
 
 class OpenedFolderNotifier extends Notifier<OpenedFolderData?> {
   @override
@@ -78,19 +79,25 @@ class OpenedFolderNotifier extends Notifier<OpenedFolderData?> {
 
 final documentQueryProvider =
     NotifierProvider<DocumentQueryNotifier, DocumentQueryParams>(
-        DocumentQueryNotifier.new);
+      DocumentQueryNotifier.new,
+    );
 
 class DocumentQueryNotifier extends Notifier<DocumentQueryParams> {
   @override
   DocumentQueryParams build() => const DocumentQueryParams();
 
-  void setSearch(String value) => state = state.copyWith(search: value, page: 1);
+  void setSearch(String value) =>
+      state = state.copyWith(search: value, page: 1);
   void setPage(int page) => state = state.copyWith(page: page);
   void setLimit(int limit) => state = state.copyWith(limit: limit, page: 1);
-  void setStatus(String status) => state = state.copyWith(status: status, page: 1);
-  void setDocumentType(String type) => state = state.copyWith(documentType: type, page: 1);
-  void setGradeLevel(String gradeLevel) => state = state.copyWith(gradeLevel: gradeLevel, page: 1);
-  void setSchoolYear(String schoolYear) => state = state.copyWith(schoolYear: schoolYear, page: 1);
+  void setStatus(String status) =>
+      state = state.copyWith(status: status, page: 1);
+  void setDocumentType(String type) =>
+      state = state.copyWith(documentType: type, page: 1);
+  void setGradeLevel(String gradeLevel) =>
+      state = state.copyWith(gradeLevel: gradeLevel, page: 1);
+  void setSchoolYear(String schoolYear) =>
+      state = state.copyWith(schoolYear: schoolYear, page: 1);
 
   /// Navigate to a specific student's documents
   void setStudentId(int? studentId) {
@@ -109,8 +116,9 @@ class DocumentQueryNotifier extends Notifier<DocumentQueryParams> {
 // Document page provider — fetches from /documents with all filters
 // OR from /documents/student/:id when studentId is specified
 // ============================================================
-final documentPageProvider =
-    FutureProvider.autoDispose<DocumentPage>((ref) async {
+final documentPageProvider = FutureProvider.autoDispose<DocumentPage>((
+  ref,
+) async {
   final query = ref.watch(documentQueryProvider);
   final repo = ref.read(documentRepositoryProvider);
 
@@ -126,21 +134,21 @@ final documentPageProvider =
   );
 });
 
-
 // ============================================================
 // Student-specific documents provider
 // ============================================================
-final studentDocumentsProvider =
-    FutureProvider.family.autoDispose<List<dynamic>, int>((ref, studentId) async {
-  final repo = ref.read(documentRepositoryProvider);
-  return repo.getDocumentsByStudent(studentId);
-});
+final studentDocumentsProvider = FutureProvider.family
+    .autoDispose<List<dynamic>, int>((ref, studentId) async {
+      final repo = ref.read(documentRepositoryProvider);
+      return repo.getDocumentsByStudent(studentId);
+    });
 
 // ============================================================
 // Folders for all students — list of student root folders
 // ============================================================
-final studentFoldersProvider =
-    FutureProvider.autoDispose<List<FolderModel>>((ref) async {
+final studentFoldersProvider = FutureProvider.autoDispose<List<FolderModel>>((
+  ref,
+) async {
   final repo = ref.read(documentRepositoryProvider);
   // Fetch top-level folders (no parentId filter = all root folders)
   return repo.getFolders();
@@ -149,8 +157,9 @@ final studentFoldersProvider =
 // ============================================================
 // Document statuses provider — fetches distinct statuses from backend
 // ============================================================
-final documentStatusesProvider =
-    FutureProvider.autoDispose<List<String>>((ref) async {
+final documentStatusesProvider = FutureProvider.autoDispose<List<String>>((
+  ref,
+) async {
   final repo = ref.read(documentRepositoryProvider);
   return repo.getStatuses();
 });
@@ -160,50 +169,53 @@ final documentStatusesProvider =
 // ============================================================
 final documentRequirementsProvider =
     FutureProvider.autoDispose<List<DocumentRequirementModel>>((ref) async {
-  final repo = ref.read(documentRepositoryProvider);
-  // Only show enabled requirements in the upload dropdown
-  return repo.getRequirements(isEnabled: true);
-});
+      final repo = ref.read(documentRepositoryProvider);
+      // Only show enabled requirements in the upload dropdown
+      return repo.getRequirements(isEnabled: true);
+    });
 
 final requirementsSettingsProvider =
     FutureProvider.autoDispose<RequirementsSettings>((ref) async {
-  final repo = ref.read(documentRepositoryProvider);
-  return repo.getRequirementsSettings();
-});
+      final repo = ref.read(documentRepositoryProvider);
+      return repo.getRequirementsSettings();
+    });
 
-final missingRequirementsProvider =
-    FutureProvider.family.autoDispose<MissingRequirements, int>((ref, studentId) async {
-  final repo = ref.read(documentRepositoryProvider);
-  return repo.getMissingRequirements(studentId);
-});
+final missingRequirementsProvider = FutureProvider.family
+    .autoDispose<MissingRequirements, int>((ref, studentId) async {
+      final repo = ref.read(documentRepositoryProvider);
+      return repo.getMissingRequirements(studentId);
+    });
 
 // ============================================================
 // Folder providers
 // ============================================================
-final foldersProvider =
-    FutureProvider.autoDispose<List<FolderModel>>((ref) async {
+final foldersProvider = FutureProvider.autoDispose<List<FolderModel>>((
+  ref,
+) async {
   final repo = ref.read(documentRepositoryProvider);
   return repo.getFolders();
 });
 
-final studentFolderProvider =
-    FutureProvider.family.autoDispose<FolderModel, int>((ref, studentId) async {
-  final repo = ref.read(documentRepositoryProvider);
-  return repo.getStudentFolder(studentId);
-});
+final studentFolderProvider = FutureProvider.family
+    .autoDispose<FolderModel, int>((ref, studentId) async {
+      final repo = ref.read(documentRepositoryProvider);
+      return repo.getStudentFolder(studentId);
+    });
 
 // ============================================================
 // Print Queue providers
 // ============================================================
-final printQueueProvider =
-    FutureProvider.autoDispose<List<PrintQueueItem>>((ref) async {
+final printQueueProvider = FutureProvider.autoDispose<List<PrintQueueItem>>((
+  ref,
+) async {
   final repo = ref.read(documentRepositoryProvider);
   return repo.getPrintQueue();
 });
 
 final printQueueMutationProvider =
     AsyncNotifierProvider<PrintQueueMutationNotifier, void>(
-        PrintQueueMutationNotifier.new);
+      PrintQueueMutationNotifier.new,
+    );
 
 class PrintQueueMutationNotifier extends AsyncNotifier<void> {
   @override
@@ -267,7 +279,8 @@ class PrintQueueMutationNotifier extends AsyncNotifier<void> {
 // ============================================================
 final documentMutationProvider =
     AsyncNotifierProvider<DocumentMutationNotifier, void>(
-        DocumentMutationNotifier.new);
+      DocumentMutationNotifier.new,
+    );
 
 class DocumentMutationNotifier extends AsyncNotifier<void> {
   @override
@@ -381,7 +394,8 @@ class DocumentMutationNotifier extends AsyncNotifier<void> {
 // ============================================================
 final requirementMutationProvider =
     AsyncNotifierProvider<RequirementMutationNotifier, void>(
-        RequirementMutationNotifier.new);
+      RequirementMutationNotifier.new,
+    );
 
 class RequirementMutationNotifier extends AsyncNotifier<void> {
   @override
@@ -430,7 +444,8 @@ class RequirementMutationNotifier extends AsyncNotifier<void> {
   }
 
   Future<void> bulkUpdateRequirements(
-      List<Map<String, dynamic>> requirements) async {
+    List<Map<String, dynamic>> requirements,
+  ) async {
     state = const AsyncLoading();
     try {
       final repo = ref.read(documentRepositoryProvider);
@@ -450,17 +465,19 @@ class RequirementMutationNotifier extends AsyncNotifier<void> {
 // ============================================================
 final folderMutationProvider =
     AsyncNotifierProvider<FolderMutationNotifier, void>(
-        FolderMutationNotifier.new);
+      FolderMutationNotifier.new,
+    );
 
 class FolderMutationNotifier extends AsyncNotifier<void> {
   @override
   FutureOr<void> build() {}
 
-  Future<int> createFolder(
-      {required String name,
-      int? parentId,
-      int? studentId,
-      String? category}) async {
+  Future<int> createFolder({
+    required String name,
+    int? parentId,
+    int? studentId,
+    String? category,
+  }) async {
     state = const AsyncLoading();
     try {
       final repo = ref.read(documentRepositoryProvider);
@@ -535,13 +552,14 @@ class FolderMutationNotifier extends AsyncNotifier<void> {
 // ============================================================
 final trashDocumentsProvider =
     FutureProvider.autoDispose<List<TrashDocumentModel>>((ref) async {
-  final repo = ref.read(documentRepositoryProvider);
-  return repo.getTrashDocuments();
-});
+      final repo = ref.read(documentRepositoryProvider);
+      return repo.getTrashDocuments();
+    });
 
 final trashMutationProvider =
     AsyncNotifierProvider<TrashMutationNotifier, void>(
-        TrashMutationNotifier.new);
+      TrashMutationNotifier.new,
+    );
 
 class TrashMutationNotifier extends AsyncNotifier<void> {
   @override

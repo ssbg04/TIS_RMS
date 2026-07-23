@@ -16,7 +16,9 @@ class UserRepository {
     try {
       final options = await _getAuthOptions();
       final response = await _dio.get('/users', options: options);
-      return (response.data as List).map((u) => SystemUser.fromJson(u)).toList();
+      return (response.data as List)
+          .map((u) => SystemUser.fromJson(u))
+          .toList();
     } on DioException catch (e) {
       throw Exception(e.response?.data['message'] ?? 'Failed to fetch users.');
     }
@@ -36,19 +38,24 @@ class UserRepository {
   }) async {
     try {
       final options = await _getAuthOptions();
-      final response = await _dio.post('/users', options: options, data: {
-        'username': username,
-        if (password != null && password.isNotEmpty) 'password': password,
-        'firstName': firstName,
-        'middleName': middleName,
-        'lastName': lastName,
-        'extension': extension,
-        'role': role,
-        'email': email,
-        'phone': phone,
-      });
+      final response = await _dio.post(
+        '/users',
+        options: options,
+        data: {
+          'username': username,
+          if (password != null && password.isNotEmpty) 'password': password,
+          'firstName': firstName,
+          'middleName': middleName,
+          'lastName': lastName,
+          'extension': extension,
+          'role': role,
+          'email': email,
+          'phone': phone,
+        },
+      );
       final tempPass = response.data['temporaryPassword'];
-      if (tempPass == null) throw Exception('No temporary password in response.');
+      if (tempPass == null)
+        throw Exception('No temporary password in response.');
       return tempPass as String;
     } on DioException catch (e) {
       throw Exception(e.response?.data['message'] ?? 'Failed to create user.');
@@ -67,15 +74,19 @@ class UserRepository {
   }) async {
     try {
       final options = await _getAuthOptions();
-      await _dio.put('/users/$id', options: options, data: {
-        'firstName': firstName,
-        'middleName': middleName,
-        'lastName': lastName,
-        'extension': extension,
-        'role': role,
-        'email': email,
-        'phone': phone,
-      });
+      await _dio.put(
+        '/users/$id',
+        options: options,
+        data: {
+          'firstName': firstName,
+          'middleName': middleName,
+          'lastName': lastName,
+          'extension': extension,
+          'role': role,
+          'email': email,
+          'phone': phone,
+        },
+      );
     } on DioException catch (e) {
       throw Exception(e.response?.data['message'] ?? 'Failed to update user.');
     }
@@ -90,24 +101,26 @@ class UserRepository {
         data: {'adminPassword': adminPassword},
       );
     } on DioException catch (e) {
-      throw Exception(e.response?.data['message'] ?? 'Failed to reset password.');
+      throw Exception(
+        e.response?.data['message'] ?? 'Failed to reset password.',
+      );
     }
   }
 
-  Future<void> deleteUser(int id, {required String reason, required String password}) async {
+  Future<void> deleteUser(
+    int id, {
+    required String reason,
+    required String password,
+  }) async {
     try {
       final options = await _getAuthOptions();
-      
+
       // ✅ Send the reason and password in the request body
       await _dio.delete(
-        '/users/$id', 
+        '/users/$id',
         options: options,
-        data: {
-          'reason': reason,
-          'password': password,
-        },
+        data: {'reason': reason, 'password': password},
       );
-      
     } on DioException catch (e) {
       throw Exception(e.response?.data['message'] ?? 'Failed to delete user.');
     }

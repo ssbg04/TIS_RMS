@@ -16,9 +16,11 @@ class DownloadService {
         path = '${dir.path}\\TIS_RMS';
       }
     }
-    
+
     if (path == null) {
-      throw Exception('Could not determine download directory for this platform.');
+      throw Exception(
+        'Could not determine download directory for this platform.',
+      );
     }
 
     final dir = Directory(path);
@@ -34,9 +36,9 @@ class DownloadService {
       if (!status.isGranted) {
         status = await Permission.storage.request();
       }
-      return true; 
+      return true;
     }
-    return true; 
+    return true;
   }
 
   /// Downloads a file and returns the local save path.
@@ -49,7 +51,7 @@ class DownloadService {
     final dirPath = await getDownloadDirectoryPath();
     final separator = Platform.isWindows ? '\\' : '/';
     String savePath = '$dirPath$separator$fileName';
-    
+
     int counter = 1;
     while (await File(savePath).exists()) {
       final extensionIndex = fileName.lastIndexOf('.');

@@ -33,11 +33,13 @@ class ServerDiscoveryService {
 
   static Future<bool> ping(String baseUrl) async {
     try {
-      final dio = Dio(BaseOptions(
-        baseUrl: baseUrl,
-        connectTimeout: _pingTimeout,
-        receiveTimeout: _pingTimeout,
-      ));
+      final dio = Dio(
+        BaseOptions(
+          baseUrl: baseUrl,
+          connectTimeout: _pingTimeout,
+          receiveTimeout: _pingTimeout,
+        ),
+      );
       final response = await dio.get('/');
       return response.headers.value('x-tis-rms') == 'true';
     } catch (_) {
@@ -87,11 +89,13 @@ class ServerDiscoveryService {
       if (found != null) return;
       final url = 'http://$prefix${i + 1}:$_port';
       try {
-        final dio = Dio(BaseOptions(
-          connectTimeout: _probeTimeout,
-          receiveTimeout: _probeTimeout,
-          sendTimeout: _probeTimeout,
-        ));
+        final dio = Dio(
+          BaseOptions(
+            connectTimeout: _probeTimeout,
+            receiveTimeout: _probeTimeout,
+            sendTimeout: _probeTimeout,
+          ),
+        );
         final response = await dio.get('$url/');
         if (response.headers.value('x-tis-rms') == 'true') {
           found = url;

@@ -3,10 +3,7 @@ import 'package:flutter/material.dart';
 class PasswordStrengthIndicator extends StatelessWidget {
   final String password;
 
-  const PasswordStrengthIndicator({
-    super.key,
-    required this.password,
-  });
+  const PasswordStrengthIndicator({super.key, required this.password});
 
   double _calculateStrength() {
     if (password.isEmpty) return 0.0;
@@ -14,7 +11,9 @@ class PasswordStrengthIndicator extends StatelessWidget {
     if (password.length > 8) strength += 0.25;
     if (RegExp(r'[A-Z]').hasMatch(password)) strength += 0.25;
     if (RegExp(r'[a-z]').hasMatch(password)) strength += 0.25;
-    if (RegExp(r'[0-9]').hasMatch(password) || RegExp(r'[^a-zA-Z0-9]').hasMatch(password)) strength += 0.25;
+    if (RegExp(r'[0-9]').hasMatch(password) ||
+        RegExp(r'[^a-zA-Z0-9]').hasMatch(password))
+      strength += 0.25;
     return strength;
   }
 

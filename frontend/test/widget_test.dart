@@ -5,7 +5,9 @@ import 'package:flutter_test/flutter_test.dart';
 import '../lib/main.dart';
 
 void main() {
-  testWidgets('App boots up and displays the Splash Screen', (WidgetTester tester) async {
+  testWidgets('App boots up and displays the Splash Screen', (
+    WidgetTester tester,
+  ) async {
     // 1. Build our app and trigger a frame.
     await tester.pumpWidget(const TisRmsApp());
 
@@ -15,9 +17,9 @@ void main() {
 
     // 3. Verify that the loading spinner is present
     expect(find.byType(CircularProgressIndicator), findsOneWidget);
-    
-    // Note: We don't pump the timer here because the test environment 
-    // shouldn't wait for the 2.5 second simulated delay. We just want 
+
+    // Note: We don't pump the timer here because the test environment
+    // shouldn't wait for the 2.5 second simulated delay. We just want
     // to ensure the initial widget tree renders without crashing.
   });
 }

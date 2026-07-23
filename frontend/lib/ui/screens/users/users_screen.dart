@@ -1,4 +1,3 @@
-
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -68,11 +67,14 @@ class _UsersScreenState extends ConsumerState<UsersScreen> {
 
     // Then apply search filter
     if (_searchQuery.isNotEmpty) {
-      result = result.where((u) =>
-        isFuzzyMatch(u.username.toLowerCase(), _searchQuery) ||
-        isFuzzyMatch(u.fullName.toLowerCase(), _searchQuery) ||
-        isFuzzyMatch(u.role.toLowerCase(), _searchQuery)
-      ).toList();
+      result = result
+          .where(
+            (u) =>
+                isFuzzyMatch(u.username.toLowerCase(), _searchQuery) ||
+                isFuzzyMatch(u.fullName.toLowerCase(), _searchQuery) ||
+                isFuzzyMatch(u.role.toLowerCase(), _searchQuery),
+          )
+          .toList();
     }
     return result;
   }
@@ -89,18 +91,24 @@ class _UsersScreenState extends ConsumerState<UsersScreen> {
     if (password == null || !mounted) return;
 
     try {
-      await ref.read(usersProvider.notifier).resetPassword(user.id, adminPassword: password);
+      await ref
+          .read(usersProvider.notifier)
+          .resetPassword(user.id, adminPassword: password);
       if (!mounted) return;
-      
+
       showSuccessDialog(
-        context, 
+        context,
         title: 'Password Reset',
-        message: 'Password for "${user.username}" reset to "changeme123".'
+        message: 'Password for "${user.username}" reset to "changeme123".',
       );
     } catch (e) {
       if (!mounted) return;
-      
-      showErrorDialog(context, 'Reset Failed',  e.toString().replaceAll('Exception: ', ''));
+
+      showErrorDialog(
+        context,
+        'Reset Failed',
+        e.toString().replaceAll('Exception: ', ''),
+      );
     }
   }
 
@@ -115,28 +123,30 @@ class _UsersScreenState extends ConsumerState<UsersScreen> {
 
     try {
       // ✅ Note: You will need to update `usersProvider.deleteUser` to accept these new parameters!
-      await ref.read(usersProvider.notifier).deleteUser(
-        user.id,
-        reason: result['reason']!,
-        password: result['password']!,
-      );
-      
+      await ref
+          .read(usersProvider.notifier)
+          .deleteUser(
+            user.id,
+            reason: result['reason']!,
+            password: result['password']!,
+          );
+
       if (!mounted) return;
-      
+
       // ✅ Replaced SnackBar with Success Dialog
       showSuccessDialog(
-        context, 
+        context,
         title: 'User Deleted',
-        message: 'User "${user.username}" was permanently deleted.'
+        message: 'User "${user.username}" was permanently deleted.',
       );
     } catch (e) {
       if (!mounted) return;
-      
+
       // ✅ Replaced SnackBar with Error Dialog
       showErrorDialog(
-        context, 
-         'Deletion Failed', 
-         e.toString().replaceAll('Exception: ', '')
+        context,
+        'Deletion Failed',
+        e.toString().replaceAll('Exception: ', ''),
       );
     }
   }
@@ -145,19 +155,30 @@ class _UsersScreenState extends ConsumerState<UsersScreen> {
     final success = await AddEditUserModal.show(context, user: user);
     if (fromDetails && user != null && mounted) {
       final users = ref.read(usersProvider).value ?? [];
-      final updatedUser = users.firstWhere((u) => u.id == user.id, orElse: () => user);
+      final updatedUser = users.firstWhere(
+        (u) => u.id == user.id,
+        orElse: () => user,
+      );
       _showUserDetailModal(updatedUser);
       if (success == true) {
-        showSuccessDialog(context, title: 'User Updated', message: 'User updated successfully!');
+        showSuccessDialog(
+          context,
+          title: 'User Updated',
+          message: 'User updated successfully!',
+        );
       }
     } else if (success == true && mounted && user != null) {
-      showSuccessDialog(context, title: 'User Updated', message: 'User updated successfully!');
+      showSuccessDialog(
+        context,
+        title: 'User Updated',
+        message: 'User updated successfully!',
+      );
     }
   }
 
   void _showUserDetailModal(SystemUser user) {
     final currentUser = ref.watch(authProvider).value;
-    
+
     CustomModal.show(
       context: context,
       title: 'User Profile Details',
@@ -182,16 +203,38 @@ class _UsersScreenState extends ConsumerState<UsersScreen> {
                     children: [
                       CircleAvatar(
                         radius: 28,
-                        backgroundColor: _roleColor(user.role).withValues(alpha: 0.15),
-                        child: Text(user.initials, style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: _roleColor(user.role))),
+                        backgroundColor: _roleColor(
+                          user.role,
+                        ).withValues(alpha: 0.15),
+                        child: Text(
+                          user.initials,
+                          style: TextStyle(
+                            fontSize: 20,
+                            fontWeight: FontWeight.bold,
+                            color: _roleColor(user.role),
+                          ),
+                        ),
                       ),
                       const SizedBox(width: AppSizes.p16),
                       Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text(user.fullName, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: AppColors.textPrimary)),
-                            Text('@${user.username}', style: const TextStyle(fontSize: 14, color: AppColors.textSecondary)),
+                            Text(
+                              user.fullName,
+                              style: const TextStyle(
+                                fontSize: 20,
+                                fontWeight: FontWeight.bold,
+                                color: AppColors.textPrimary,
+                              ),
+                            ),
+                            Text(
+                              '@${user.username}',
+                              style: const TextStyle(
+                                fontSize: 14,
+                                color: AppColors.textSecondary,
+                              ),
+                            ),
                           ],
                         ),
                       ),
@@ -212,8 +255,13 @@ class _UsersScreenState extends ConsumerState<UsersScreen> {
                         style: OutlinedButton.styleFrom(
                           foregroundColor: AppColors.primaryGreen,
                           side: const BorderSide(color: AppColors.primaryGreen),
-                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 12,
+                          ),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
                         ),
                       ),
                       OutlinedButton.icon(
@@ -226,8 +274,13 @@ class _UsersScreenState extends ConsumerState<UsersScreen> {
                         style: OutlinedButton.styleFrom(
                           foregroundColor: Colors.orange,
                           side: const BorderSide(color: Colors.orange),
-                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 12,
+                          ),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
                         ),
                       ),
                       if (user.id != currentUser?.id)
@@ -241,8 +294,13 @@ class _UsersScreenState extends ConsumerState<UsersScreen> {
                           style: OutlinedButton.styleFrom(
                             foregroundColor: Colors.red,
                             side: const BorderSide(color: Colors.red),
-                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 16,
+                              vertical: 12,
+                            ),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(8),
+                            ),
                           ),
                         ),
                     ],
@@ -256,15 +314,32 @@ class _UsersScreenState extends ConsumerState<UsersScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  _detailRow('Access Role', user.role.toUpperCase().replaceAll('_', ' ')),
+                  _detailRow(
+                    'Access Role',
+                    user.role.toUpperCase().replaceAll('_', ' '),
+                  ),
                   const SizedBox(height: AppSizes.p16),
-                  _detailRow('Date Joined', user.createdAt?.split('T').first ?? '—'),
+                  _detailRow(
+                    'Date Joined',
+                    user.createdAt?.split('T').first ?? '—',
+                  ),
                   const SizedBox(height: AppSizes.p16),
-                  _detailRow('Email', user.email?.isNotEmpty == true ? user.email! : '—'),
+                  _detailRow(
+                    'Email',
+                    user.email?.isNotEmpty == true ? user.email! : '—',
+                  ),
                   const SizedBox(height: AppSizes.p16),
-                  _detailRow('Phone', user.phone?.isNotEmpty == true ? user.phone! : '—'),
+                  _detailRow(
+                    'Phone',
+                    user.phone?.isNotEmpty == true ? user.phone! : '—',
+                  ),
                   const SizedBox(height: AppSizes.p16),
-                  _detailRow('Added By', user.addedByName != null ? '${user.addedByName} (@${user.addedByUsername})' : 'System'),
+                  _detailRow(
+                    'Added By',
+                    user.addedByName != null
+                        ? '${user.addedByName} (@${user.addedByUsername})'
+                        : 'System',
+                  ),
                 ],
               ),
             ),
@@ -278,9 +353,19 @@ class _UsersScreenState extends ConsumerState<UsersScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(label, style: const TextStyle(fontSize: 12, color: AppColors.textSecondary, fontWeight: FontWeight.bold)),
+        Text(
+          label,
+          style: const TextStyle(
+            fontSize: 12,
+            color: AppColors.textSecondary,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
         const SizedBox(height: 2),
-        Text(value, style: const TextStyle(fontSize: 15, color: AppColors.textPrimary)),
+        Text(
+          value,
+          style: const TextStyle(fontSize: 15, color: AppColors.textPrimary),
+        ),
       ],
     );
   }
@@ -305,7 +390,13 @@ class _UsersScreenState extends ConsumerState<UsersScreen> {
             color: isSelected ? AppColors.primaryGreen : Colors.grey.shade300,
           ),
           boxShadow: isSelected
-              ? [BoxShadow(color: AppColors.primaryGreen.withValues(alpha: 0.3), blurRadius: 8, offset: const Offset(0, 4))]
+              ? [
+                  BoxShadow(
+                    color: AppColors.primaryGreen.withValues(alpha: 0.3),
+                    blurRadius: 8,
+                    offset: const Offset(0, 4),
+                  ),
+                ]
               : [],
         ),
         child: Text(
@@ -338,34 +429,36 @@ class _UsersScreenState extends ConsumerState<UsersScreen> {
     return Scaffold(
       backgroundColor: Colors.transparent,
       floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
-      floatingActionButton: MediaQuery.of(context).size.width > 800 ? null : Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16.0),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Badge(
-              isLabelVisible: resetCount > 0,
-              label: Text(resetCount.toString()),
-              child: FloatingActionButton(
-                heroTag: 'reset_requests_fab',
-                onPressed: () => ResetRequestsModal.show(context),
-                backgroundColor: Colors.orange,
-                foregroundColor: Colors.white,
-                shape: const CircleBorder(),
-                child: const Icon(Icons.lock_clock),
+      floatingActionButton: MediaQuery.of(context).size.width > 800
+          ? null
+          : Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16.0),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Badge(
+                    isLabelVisible: resetCount > 0,
+                    label: Text(resetCount.toString()),
+                    child: FloatingActionButton(
+                      heroTag: 'reset_requests_fab',
+                      onPressed: () => ResetRequestsModal.show(context),
+                      backgroundColor: Colors.orange,
+                      foregroundColor: Colors.white,
+                      shape: const CircleBorder(),
+                      child: const Icon(Icons.lock_clock),
+                    ),
+                  ),
+                  FloatingActionButton(
+                    heroTag: 'add_user_fab',
+                    onPressed: () => _openModal(),
+                    backgroundColor: AppColors.primaryGreen,
+                    foregroundColor: Colors.white,
+                    shape: const CircleBorder(),
+                    child: const Icon(Icons.add),
+                  ),
+                ],
               ),
             ),
-            FloatingActionButton(
-              heroTag: 'add_user_fab',
-              onPressed: () => _openModal(),
-              backgroundColor: AppColors.primaryGreen,
-              foregroundColor: Colors.white,
-              shape: const CircleBorder(),
-              child: const Icon(Icons.add),
-            ),
-          ],
-        ),
-      ),
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.all(AppSizes.p24),
@@ -376,12 +469,17 @@ class _UsersScreenState extends ConsumerState<UsersScreen> {
               const SizedBox(height: AppSizes.p24),
               Expanded(
                 child: usersAsync.when(
-                  loading: () => const Center(child: CircularProgressIndicator()),
+                  loading: () =>
+                      const Center(child: CircularProgressIndicator()),
                   error: (err, _) => Center(
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        const Icon(Icons.error_outline, color: Colors.red, size: 48),
+                        const Icon(
+                          Icons.error_outline,
+                          color: Colors.red,
+                          size: 48,
+                        ),
                         const SizedBox(height: 16),
                         Text('$err', style: const TextStyle(color: Colors.red)),
                         const SizedBox(height: 16),
@@ -403,8 +501,16 @@ class _UsersScreenState extends ConsumerState<UsersScreen> {
                           child: Row(
                             children: [
                               _buildAnimatedFilter('All', 'all', users.length),
-                              _buildAnimatedFilter('Admin', 'admin', users.where((u) => u.role == 'admin').length),
-                              _buildAnimatedFilter('Teacher', 'teacher', users.where((u) => u.role == 'teacher').length),
+                              _buildAnimatedFilter(
+                                'Admin',
+                                'admin',
+                                users.where((u) => u.role == 'admin').length,
+                              ),
+                              _buildAnimatedFilter(
+                                'Teacher',
+                                'teacher',
+                                users.where((u) => u.role == 'teacher').length,
+                              ),
                             ],
                           ),
                         ),
@@ -435,8 +541,6 @@ class _UsersScreenState extends ConsumerState<UsersScreen> {
     );
   }
 
-
-
   Widget _buildHeader(BuildContext context, int resetCount) {
     final isDesktop = MediaQuery.of(context).size.width > 800;
     return Column(
@@ -445,8 +549,14 @@ class _UsersScreenState extends ConsumerState<UsersScreen> {
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            const Text('User Management',
-                style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: AppColors.textPrimary)),
+            const Text(
+              'User Management',
+              style: TextStyle(
+                fontSize: 28,
+                fontWeight: FontWeight.bold,
+                color: AppColors.textPrimary,
+              ),
+            ),
             if (isDesktop)
               Row(
                 mainAxisSize: MainAxisSize.min,
@@ -456,12 +566,23 @@ class _UsersScreenState extends ConsumerState<UsersScreen> {
                     label: Text(resetCount.toString()),
                     child: ElevatedButton.icon(
                       icon: const Icon(Icons.lock_clock, size: 18),
-                      label: const Text('Password Requests', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+                      label: const Text(
+                        'Password Requests',
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 14,
+                        ),
+                      ),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.orange,
                         foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 12,
+                        ),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
                         elevation: 0,
                       ),
                       onPressed: () => ResetRequestsModal.show(context),
@@ -470,12 +591,23 @@ class _UsersScreenState extends ConsumerState<UsersScreen> {
                   const SizedBox(width: 12),
                   ElevatedButton.icon(
                     icon: const Icon(Icons.add, size: 18),
-                    label: const Text('Add User', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+                    label: const Text(
+                      'Add User',
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 14,
+                      ),
+                    ),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: AppColors.primaryGreen,
                       foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 20,
+                        vertical: 12,
+                      ),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
                       elevation: 0,
                     ),
                     onPressed: () => _openModal(),
@@ -485,8 +617,10 @@ class _UsersScreenState extends ConsumerState<UsersScreen> {
           ],
         ),
         const SizedBox(height: 4),
-        const Text('Manage system accounts and access roles.',
-            style: TextStyle(fontSize: 14, color: AppColors.textSecondary)),
+        const Text(
+          'Manage system accounts and access roles.',
+          style: TextStyle(fontSize: 14, color: AppColors.textSecondary),
+        ),
         const SizedBox(height: AppSizes.p16),
         IntrinsicHeight(
           child: Row(
@@ -508,8 +642,6 @@ class _UsersScreenState extends ConsumerState<UsersScreen> {
     );
   }
 
-
-
   Widget _buildDesktopTable(List<SystemUser> users) {
     return Container(
       width: double.infinity,
@@ -517,7 +649,11 @@ class _UsersScreenState extends ConsumerState<UsersScreen> {
         color: AppColors.surfaceWhite,
         borderRadius: BorderRadius.circular(AppSizes.radiusLarge),
         boxShadow: [
-          BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 15, offset: const Offset(0, 4))
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.05),
+            blurRadius: 15,
+            offset: const Offset(0, 4),
+          ),
         ],
       ),
       child: ClipRRect(
@@ -525,8 +661,13 @@ class _UsersScreenState extends ConsumerState<UsersScreen> {
         child: SingleChildScrollView(
           child: DataTable(
             showCheckboxColumn: false,
-            headingRowColor: WidgetStateProperty.all(AppColors.primaryGreen.withValues(alpha: 0.05)),
-            headingTextStyle: const TextStyle(fontWeight: FontWeight.bold, color: AppColors.textPrimary),
+            headingRowColor: WidgetStateProperty.all(
+              AppColors.primaryGreen.withValues(alpha: 0.05),
+            ),
+            headingTextStyle: const TextStyle(
+              fontWeight: FontWeight.bold,
+              color: AppColors.textPrimary,
+            ),
             columnSpacing: 24,
             dataRowMaxHeight: 65,
             dataRowMinHeight: 50,
@@ -539,30 +680,81 @@ class _UsersScreenState extends ConsumerState<UsersScreen> {
               DataColumn(label: SizedBox.shrink()), // Trailing icon
             ],
             rows: users.isEmpty
-                ? [const DataRow(cells: [
-                    DataCell(Text('No users found.')), DataCell(Text('')),
-                    DataCell(Text('')), DataCell(Text('')), DataCell(Text('')),
-                  ])]
-                : users.map((user) => DataRow(
-                    onSelectChanged: (_) => _showUserDetailModal(user),
-                    cells: [
-                      DataCell(
-                        Row(children: [
-                          CircleAvatar(
-                            radius: 18,
-                            backgroundColor: _roleColor(user.role).withValues(alpha: 0.15),
-                            child: Text(user.initials, style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: _roleColor(user.role))),
-                          ),
-                          const SizedBox(width: 12),
-                          Text(user.fullName, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
-                        ]),
-                      ),
-                      DataCell(Text('@${user.username}', style: const TextStyle(color: AppColors.textSecondary))),
-                      DataCell(_buildRoleChip(user.role)),
-                      DataCell(Text(user.email ?? user.phone ?? '—', style: const TextStyle(color: AppColors.textSecondary, fontSize: 13))),
-                      const DataCell(Align(alignment: Alignment.centerRight, child: Icon(Icons.chevron_right, color: Colors.grey))),
-                    ],
-                  )).toList(),
+                ? [
+                    const DataRow(
+                      cells: [
+                        DataCell(Text('No users found.')),
+                        DataCell(Text('')),
+                        DataCell(Text('')),
+                        DataCell(Text('')),
+                        DataCell(Text('')),
+                      ],
+                    ),
+                  ]
+                : users
+                      .map(
+                        (user) => DataRow(
+                          onSelectChanged: (_) => _showUserDetailModal(user),
+                          cells: [
+                            DataCell(
+                              Row(
+                                children: [
+                                  CircleAvatar(
+                                    radius: 18,
+                                    backgroundColor: _roleColor(
+                                      user.role,
+                                    ).withValues(alpha: 0.15),
+                                    child: Text(
+                                      user.initials,
+                                      style: TextStyle(
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.bold,
+                                        color: _roleColor(user.role),
+                                      ),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 12),
+                                  Text(
+                                    user.fullName,
+                                    style: const TextStyle(
+                                      fontWeight: FontWeight.w600,
+                                      fontSize: 14,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            DataCell(
+                              Text(
+                                '@${user.username}',
+                                style: const TextStyle(
+                                  color: AppColors.textSecondary,
+                                ),
+                              ),
+                            ),
+                            DataCell(_buildRoleChip(user.role)),
+                            DataCell(
+                              Text(
+                                user.email ?? user.phone ?? '—',
+                                style: const TextStyle(
+                                  color: AppColors.textSecondary,
+                                  fontSize: 13,
+                                ),
+                              ),
+                            ),
+                            const DataCell(
+                              Align(
+                                alignment: Alignment.centerRight,
+                                child: Icon(
+                                  Icons.chevron_right,
+                                  color: Colors.grey,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      )
+                      .toList(),
           ),
         ),
       ),
@@ -571,7 +763,12 @@ class _UsersScreenState extends ConsumerState<UsersScreen> {
 
   Widget _buildMobileList(List<SystemUser> users) {
     if (users.isEmpty) {
-      return const Center(child: Text('No users found.', style: TextStyle(color: AppColors.textSecondary)));
+      return const Center(
+        child: Text(
+          'No users found.',
+          style: TextStyle(color: AppColors.textSecondary),
+        ),
+      );
     }
     return ListView.separated(
       itemCount: users.length,
@@ -586,15 +783,30 @@ class _UsersScreenState extends ConsumerState<UsersScreen> {
             decoration: BoxDecoration(
               color: AppColors.surfaceWhite,
               borderRadius: BorderRadius.circular(AppSizes.radiusLarge),
-              boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 10, offset: const Offset(0, 2))],
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.05),
+                  blurRadius: 10,
+                  offset: const Offset(0, 2),
+                ),
+              ],
               border: Border.all(color: Colors.grey.shade100),
             ),
             child: Row(
               children: [
                 CircleAvatar(
                   radius: 24,
-                  backgroundColor: _roleColor(user.role).withValues(alpha: 0.15),
-                  child: Text(user.initials, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: _roleColor(user.role))),
+                  backgroundColor: _roleColor(
+                    user.role,
+                  ).withValues(alpha: 0.15),
+                  child: Text(
+                    user.initials,
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16,
+                      color: _roleColor(user.role),
+                    ),
+                  ),
                 ),
                 const SizedBox(width: 16),
                 Expanded(
@@ -605,22 +817,39 @@ class _UsersScreenState extends ConsumerState<UsersScreen> {
                         children: [
                           Expanded(
                             child: Text(
-                              user.fullName, 
-                              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-                              maxLines: 1, overflow: TextOverflow.ellipsis,
+                              user.fullName,
+                              style: const TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 16,
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
                             ),
                           ),
                           _buildRoleChip(user.role),
                         ],
                       ),
                       const SizedBox(height: 4),
-                      Text('@${user.username}', style: const TextStyle(color: AppColors.textSecondary, fontSize: 13)),
+                      Text(
+                        '@${user.username}',
+                        style: const TextStyle(
+                          color: AppColors.textSecondary,
+                          fontSize: 13,
+                        ),
+                      ),
                       if (user.email != null || user.phone != null) ...[
                         const SizedBox(height: 4),
                         Text(
-                          [if (user.email != null) user.email!, if (user.phone != null) user.phone!].join(' · '),
-                          style: const TextStyle(fontSize: 12, color: AppColors.textSecondary),
-                          maxLines: 1, overflow: TextOverflow.ellipsis,
+                          [
+                            if (user.email != null) user.email!,
+                            if (user.phone != null) user.phone!,
+                          ].join(' · '),
+                          style: const TextStyle(
+                            fontSize: 12,
+                            color: AppColors.textSecondary,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
                         ),
                       ],
                     ],
@@ -640,9 +869,18 @@ class _UsersScreenState extends ConsumerState<UsersScreen> {
     final color = _roleColor(role);
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-      decoration: BoxDecoration(color: color.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(20)),
-      child: Text(role.toUpperCase().replaceAll('_', ' '),
-          style: TextStyle(color: color, fontWeight: FontWeight.bold, fontSize: 11)),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Text(
+        role.toUpperCase().replaceAll('_', ' '),
+        style: TextStyle(
+          color: color,
+          fontWeight: FontWeight.bold,
+          fontSize: 11,
+        ),
+      ),
     );
   }
 
@@ -650,8 +888,6 @@ class _UsersScreenState extends ConsumerState<UsersScreen> {
     if (role == 'admin') return Colors.blue;
     return AppColors.primaryGreen;
   }
-
-
 }
 
 // ============================================================
@@ -721,7 +957,15 @@ class _AddEditUserModalState extends ConsumerState<AddEditUserModal> {
 
   @override
   void dispose() {
-    for (final c in [_usernameCtrl, _firstNameCtrl, _middleNameCtrl, _lastNameCtrl, _extCtrl, _emailCtrl, _phoneCtrl]) {
+    for (final c in [
+      _usernameCtrl,
+      _firstNameCtrl,
+      _middleNameCtrl,
+      _lastNameCtrl,
+      _extCtrl,
+      _emailCtrl,
+      _phoneCtrl,
+    ]) {
       c.dispose();
     }
     super.dispose();
@@ -763,39 +1007,61 @@ class _AddEditUserModalState extends ConsumerState<AddEditUserModal> {
         );
         if (!mounted) return;
         Navigator.of(context).pop(true);
-        _showCredentialsDialog(context, username: username, tempPassword: tempPassword);
+        _showCredentialsDialog(
+          context,
+          username: username,
+          tempPassword: tempPassword,
+        );
       }
     } catch (e) {
       if (!mounted) return;
-      
+
       // ✅ Replaced SnackBar with Error Dialog
       showErrorDialog(
-        context, 
-         'Error', 
-         e.toString().replaceAll('Exception: ', '')
+        context,
+        'Error',
+        e.toString().replaceAll('Exception: ', ''),
       );
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
   }
 
-  void _showCredentialsDialog(BuildContext ctx, {required String username, required String tempPassword}) {
+  void _showCredentialsDialog(
+    BuildContext ctx, {
+    required String username,
+    required String tempPassword,
+  }) {
     bool copied = false;
     showDialog(
       context: ctx,
-      barrierDismissible: false, 
+      barrierDismissible: false,
       builder: (dialogCtx) => StatefulBuilder(
         builder: (dialogCtx, setDialogState) => AlertDialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppSizes.radiusLarge)),
-          icon: const Icon(Icons.check_circle, color: AppColors.success, size: 48),
-          title: const Text('User Created!', textAlign: TextAlign.center, style: TextStyle(fontWeight: FontWeight.bold)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(AppSizes.radiusLarge),
+          ),
+          icon: const Icon(
+            Icons.check_circle,
+            color: AppColors.success,
+            size: 48,
+          ),
+          title: const Text(
+            'User Created!',
+            textAlign: TextAlign.center,
+            style: TextStyle(fontWeight: FontWeight.bold),
+          ),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               const Text(
                 '⚠️ Copy and share these credentials now. The temporary password will not be shown again.',
-                style: TextStyle(fontSize: 13, color: Colors.orange, fontWeight: FontWeight.w600),
+                style: TextStyle(
+                  fontSize: 13,
+                  color: Colors.orange,
+                  fontWeight: FontWeight.w600,
+                ),
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 20),
@@ -809,13 +1075,22 @@ class _AddEditUserModalState extends ConsumerState<AddEditUserModal> {
                   icon: Icon(copied ? Icons.check : Icons.copy, size: 18),
                   label: Text(copied ? 'Copied!' : 'Copy Credentials'),
                   style: OutlinedButton.styleFrom(
-                    foregroundColor: copied ? AppColors.success : AppColors.primaryGreen,
-                    side: BorderSide(color: copied ? AppColors.success : AppColors.primaryGreen),
+                    foregroundColor: copied
+                        ? AppColors.success
+                        : AppColors.primaryGreen,
+                    side: BorderSide(
+                      color: copied
+                          ? AppColors.success
+                          : AppColors.primaryGreen,
+                    ),
                   ),
                   onPressed: () {
-                    Clipboard.setData(ClipboardData(
-                      text: 'Username: $username\nTemporary Password: $tempPassword',
-                    ));
+                    Clipboard.setData(
+                      ClipboardData(
+                        text:
+                            'Username: $username\nTemporary Password: $tempPassword',
+                      ),
+                    );
                     setDialogState(() => copied = true);
                   },
                 ),
@@ -824,7 +1099,10 @@ class _AddEditUserModalState extends ConsumerState<AddEditUserModal> {
           ),
           actions: [
             ElevatedButton(
-              style: ElevatedButton.styleFrom(backgroundColor: AppColors.primaryGreen, foregroundColor: Colors.white),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.primaryGreen,
+                foregroundColor: Colors.white,
+              ),
               onPressed: () => Navigator.of(dialogCtx).pop(),
               child: const Text('DONE'),
             ),
@@ -838,9 +1116,15 @@ class _AddEditUserModalState extends ConsumerState<AddEditUserModal> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
       decoration: BoxDecoration(
-        color: highlight ? AppColors.primaryGreen.withValues(alpha: 0.07) : Colors.grey.shade50,
+        color: highlight
+            ? AppColors.primaryGreen.withValues(alpha: 0.07)
+            : Colors.grey.shade50,
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: highlight ? AppColors.primaryGreen.withValues(alpha: 0.3) : Colors.grey.shade200),
+        border: Border.all(
+          color: highlight
+              ? AppColors.primaryGreen.withValues(alpha: 0.3)
+              : Colors.grey.shade200,
+        ),
       ),
       child: Row(
         children: [
@@ -848,9 +1132,26 @@ class _AddEditUserModalState extends ConsumerState<AddEditUserModal> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(label, style: const TextStyle(fontSize: 11, color: Colors.grey, fontWeight: FontWeight.w500)),
+                Text(
+                  label,
+                  style: const TextStyle(
+                    fontSize: 11,
+                    color: Colors.grey,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
                 const SizedBox(height: 2),
-                Text(value, style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: highlight ? AppColors.primaryGreen : AppColors.textPrimary, letterSpacing: 0.5)),
+                Text(
+                  value,
+                  style: TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.bold,
+                    color: highlight
+                        ? AppColors.primaryGreen
+                        : AppColors.textPrimary,
+                    letterSpacing: 0.5,
+                  ),
+                ),
               ],
             ),
           ),
@@ -879,8 +1180,11 @@ class _AddEditUserModalState extends ConsumerState<AddEditUserModal> {
                     color: AppColors.primaryGreen.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(8),
                   ),
-                  child: Icon(_isEdit ? Icons.edit : Icons.person_add,
-                      color: AppColors.primaryGreen, size: 22),
+                  child: Icon(
+                    _isEdit ? Icons.edit : Icons.person_add,
+                    color: AppColors.primaryGreen,
+                    size: 22,
+                  ),
                 ),
                 const SizedBox(width: AppSizes.p12),
                 Expanded(
@@ -890,9 +1194,10 @@ class _AddEditUserModalState extends ConsumerState<AddEditUserModal> {
                       Text(
                         _isEdit ? 'Edit System User' : 'Create New User',
                         style: const TextStyle(
-                            fontSize: 20,
-                            fontWeight: FontWeight.bold,
-                            color: AppColors.textPrimary),
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                          color: AppColors.textPrimary,
+                        ),
                       ),
                     ],
                   ),
@@ -904,7 +1209,7 @@ class _AddEditUserModalState extends ConsumerState<AddEditUserModal> {
               ],
             ),
             const Divider(height: AppSizes.p32),
-            
+
             Stepper(
               currentStep: _currentStep,
               type: StepperType.vertical,
@@ -934,7 +1239,9 @@ class _AddEditUserModalState extends ConsumerState<AddEditUserModal> {
                       SizedBox(
                         width: 150,
                         child: PrimaryButton(
-                          label: isLastStep ? (_isEdit ? 'UPDATE' : 'CREATE') : 'CONTINUE',
+                          label: isLastStep
+                              ? (_isEdit ? 'UPDATE' : 'CREATE')
+                              : 'CONTINUE',
                           isLoading: _isLoading && isLastStep,
                           onPressed: details.onStepContinue ?? () {},
                         ),
@@ -950,74 +1257,170 @@ class _AddEditUserModalState extends ConsumerState<AddEditUserModal> {
               },
               steps: [
                 Step(
-                  title: const Text('Personal Information', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: AppColors.textPrimary)),
+                  title: const Text(
+                    'Personal Information',
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16,
+                      color: AppColors.textPrimary,
+                    ),
+                  ),
                   isActive: _currentStep >= 0,
-                  state: _currentStep > 0 ? StepState.complete : StepState.indexed,
+                  state: _currentStep > 0
+                      ? StepState.complete
+                      : StepState.indexed,
                   content: Form(
                     key: _stepKeys[0],
                     child: Padding(
                       padding: const EdgeInsets.only(top: 16),
                       child: LayoutBuilder(
                         builder: (context, constraints) {
-                        final isMobile = constraints.maxWidth < 400;
-                        if (isMobile) {
+                          final isMobile = constraints.maxWidth < 400;
+                          if (isMobile) {
+                            return Column(
+                              children: [
+                                _field(
+                                  'First Name',
+                                  null,
+                                  _firstNameCtrl,
+                                  required: true,
+                                  textCapitalization: TextCapitalization.words,
+                                  inputFormatters: [
+                                    _TitleCaseTextInputFormatter(),
+                                  ],
+                                ),
+                                const SizedBox(height: AppSizes.p12),
+                                _field(
+                                  'Middle Name',
+                                  null,
+                                  _middleNameCtrl,
+                                  textCapitalization: TextCapitalization.words,
+                                  inputFormatters: [
+                                    _TitleCaseTextInputFormatter(),
+                                  ],
+                                ),
+                                const SizedBox(height: AppSizes.p12),
+                                _field(
+                                  'Last Name',
+                                  null,
+                                  _lastNameCtrl,
+                                  required: true,
+                                  textCapitalization: TextCapitalization.words,
+                                  inputFormatters: [
+                                    _TitleCaseTextInputFormatter(),
+                                  ],
+                                ),
+                                const SizedBox(height: AppSizes.p12),
+                                _buildExtensionField(),
+                              ],
+                            );
+                          }
                           return Column(
                             children: [
-                              _field('First Name', null, _firstNameCtrl, required: true, textCapitalization: TextCapitalization.words, inputFormatters: [_TitleCaseTextInputFormatter()]),
+                              Row(
+                                children: [
+                                  Expanded(
+                                    child: _field(
+                                      'First Name',
+                                      null,
+                                      _firstNameCtrl,
+                                      required: true,
+                                      textCapitalization:
+                                          TextCapitalization.words,
+                                      inputFormatters: [
+                                        _TitleCaseTextInputFormatter(),
+                                      ],
+                                    ),
+                                  ),
+                                  const SizedBox(width: AppSizes.p12),
+                                  Expanded(
+                                    child: _field(
+                                      'Middle Name',
+                                      null,
+                                      _middleNameCtrl,
+                                      textCapitalization:
+                                          TextCapitalization.words,
+                                      inputFormatters: [
+                                        _TitleCaseTextInputFormatter(),
+                                      ],
+                                    ),
+                                  ),
+                                ],
+                              ),
                               const SizedBox(height: AppSizes.p12),
-                              _field('Middle Name', null, _middleNameCtrl, textCapitalization: TextCapitalization.words, inputFormatters: [_TitleCaseTextInputFormatter()]),
-                              const SizedBox(height: AppSizes.p12),
-                              _field('Last Name', null, _lastNameCtrl, required: true, textCapitalization: TextCapitalization.words, inputFormatters: [_TitleCaseTextInputFormatter()]),
-                              const SizedBox(height: AppSizes.p12),
-                              _buildExtensionField(),
+                              Row(
+                                children: [
+                                  Expanded(
+                                    flex: 2,
+                                    child: _field(
+                                      'Last Name',
+                                      null,
+                                      _lastNameCtrl,
+                                      required: true,
+                                      textCapitalization:
+                                          TextCapitalization.words,
+                                      inputFormatters: [
+                                        _TitleCaseTextInputFormatter(),
+                                      ],
+                                    ),
+                                  ),
+                                  const SizedBox(width: AppSizes.p12),
+                                  Expanded(
+                                    flex: 1,
+                                    child: _buildExtensionField(),
+                                  ),
+                                ],
+                              ),
                             ],
                           );
-                        }
-                        return Column(
-                          children: [
-                            Row(
-                              children: [
-                                Expanded(child: _field('First Name', null, _firstNameCtrl, required: true, textCapitalization: TextCapitalization.words, inputFormatters: [_TitleCaseTextInputFormatter()])),
-                                const SizedBox(width: AppSizes.p12),
-                                Expanded(child: _field('Middle Name', null, _middleNameCtrl, textCapitalization: TextCapitalization.words, inputFormatters: [_TitleCaseTextInputFormatter()])),
-                              ],
-                            ),
-                            const SizedBox(height: AppSizes.p12),
-                            Row(
-                              children: [
-                                Expanded(flex: 2, child: _field('Last Name', null, _lastNameCtrl, required: true, textCapitalization: TextCapitalization.words, inputFormatters: [_TitleCaseTextInputFormatter()])),
-                                const SizedBox(width: AppSizes.p12),
-                                Expanded(flex: 1, child: _buildExtensionField()),
-                              ],
-                            ),
-                          ],
-                        );
-                      },
-                    ),
+                        },
+                      ),
                     ),
                   ),
                 ),
                 Step(
-                  title: const Text('Account Details', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: AppColors.textPrimary)),
+                  title: const Text(
+                    'Account Details',
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16,
+                      color: AppColors.textPrimary,
+                    ),
+                  ),
                   isActive: _currentStep >= 1,
-                  state: _currentStep > 1 ? StepState.complete : StepState.indexed,
+                  state: _currentStep > 1
+                      ? StepState.complete
+                      : StepState.indexed,
                   content: Form(
                     key: _stepKeys[1],
                     child: Padding(
                       padding: const EdgeInsets.only(top: 16),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        _field('Username', Icons.person, _usernameCtrl, required: !_isEdit, readOnly: _isEdit),
-                        const SizedBox(height: AppSizes.p12),
-                        _buildRoleDropdown(currentUser),
-                      ],
-                    ),
+                        children: [
+                          _field(
+                            'Username',
+                            Icons.person,
+                            _usernameCtrl,
+                            required: !_isEdit,
+                            readOnly: _isEdit,
+                          ),
+                          const SizedBox(height: AppSizes.p12),
+                          _buildRoleDropdown(currentUser),
+                        ],
+                      ),
                     ),
                   ),
                 ),
                 Step(
-                  title: const Text('Contact Information', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: AppColors.textPrimary)),
+                  title: const Text(
+                    'Contact Information',
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16,
+                      color: AppColors.textPrimary,
+                    ),
+                  ),
                   isActive: _currentStep >= 2,
                   content: Form(
                     key: _stepKeys[2],
@@ -1025,52 +1428,72 @@ class _AddEditUserModalState extends ConsumerState<AddEditUserModal> {
                       padding: const EdgeInsets.only(top: 16),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        _buildEmailField(),
-                        const SizedBox(height: AppSizes.p12),
-                        _field(
-                          'Phone Number (Starts with 09)', 
-                          Icons.phone_outlined, 
-                          _phoneCtrl, 
-                          validator: AppValidators.validatePhone,
-                          maxLength: 11,
-                          keyboardType: TextInputType.phone,
-                          inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                        ),
-                        if (!_isEdit) ...[
+                        children: [
+                          _buildEmailField(),
                           const SizedBox(height: AppSizes.p12),
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                            decoration: BoxDecoration(
-                              color: AppColors.primaryGreen.withValues(alpha: 0.07),
-                              borderRadius: BorderRadius.circular(8),
-                              border: Border.all(color: AppColors.primaryGreen.withValues(alpha: 0.3)),
-                            ),
-                            child: const Row(children: [
-                              Icon(Icons.auto_awesome, color: AppColors.primaryGreen, size: 16),
-                              SizedBox(width: 8),
-                              Expanded(
-                                child: Text(
-                                  'A secure temporary password will be auto-generated and shown once after creation.',
-                                  style: TextStyle(fontSize: 12, color: AppColors.primaryGreen, fontWeight: FontWeight.w600),
+                          _field(
+                            'Phone Number (Starts with 09)',
+                            Icons.phone_outlined,
+                            _phoneCtrl,
+                            validator: AppValidators.validatePhone,
+                            maxLength: 11,
+                            keyboardType: TextInputType.phone,
+                            inputFormatters: [
+                              FilteringTextInputFormatter.digitsOnly,
+                            ],
+                          ),
+                          if (!_isEdit) ...[
+                            const SizedBox(height: AppSizes.p12),
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 14,
+                                vertical: 10,
+                              ),
+                              decoration: BoxDecoration(
+                                color: AppColors.primaryGreen.withValues(
+                                  alpha: 0.07,
+                                ),
+                                borderRadius: BorderRadius.circular(8),
+                                border: Border.all(
+                                  color: AppColors.primaryGreen.withValues(
+                                    alpha: 0.3,
+                                  ),
                                 ),
                               ),
-                            ]),
-                          ),
+                              child: const Row(
+                                children: [
+                                  Icon(
+                                    Icons.auto_awesome,
+                                    color: AppColors.primaryGreen,
+                                    size: 16,
+                                  ),
+                                  SizedBox(width: 8),
+                                  Expanded(
+                                    child: Text(
+                                      'A secure temporary password will be auto-generated and shown once after creation.',
+                                      style: TextStyle(
+                                        fontSize: 12,
+                                        color: AppColors.primaryGreen,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
                         ],
-                      ],
+                      ),
                     ),
                   ),
                 ),
-              ),
               ],
             ),
-      ],
-    ),
-  ),
-);
+          ],
+        ),
+      ),
+    );
   }
-
 
   Widget _buildExtensionField() {
     return Autocomplete<String>(
@@ -1079,7 +1502,10 @@ class _AddEditUserModalState extends ConsumerState<AddEditUserModal> {
         if (textEditingValue.text.isEmpty) {
           return commonExts;
         }
-        return commonExts.where((ext) => ext.toLowerCase().contains(textEditingValue.text.toLowerCase()));
+        return commonExts.where(
+          (ext) =>
+              ext.toLowerCase().contains(textEditingValue.text.toLowerCase()),
+        );
       },
       onSelected: (String selection) {
         _extCtrl.text = selection;
@@ -1114,20 +1540,33 @@ class _AddEditUserModalState extends ConsumerState<AddEditUserModal> {
           borderRadius: BorderRadius.circular(AppSizes.radiusMedium),
           border: Border.all(color: Colors.grey.shade300),
         ),
-        child: Row(children: [
-          Icon(Icons.shield, color: _roleColor(widget.user!.role), size: 20),
-          const SizedBox(width: 12),
-          Text(widget.user!.role.toUpperCase(), style: TextStyle(fontWeight: FontWeight.bold, color: _roleColor(widget.user!.role))),
-          const SizedBox(width: 8),
-          const Icon(Icons.lock, color: Colors.grey, size: 14),
-          const SizedBox(width: 4),
-          const Text('(Your own role cannot be changed)', style: TextStyle(fontSize: 12, color: Colors.grey)),
-        ]),
+        child: Row(
+          children: [
+            Icon(Icons.shield, color: _roleColor(widget.user!.role), size: 20),
+            const SizedBox(width: 12),
+            Text(
+              widget.user!.role.toUpperCase(),
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                color: _roleColor(widget.user!.role),
+              ),
+            ),
+            const SizedBox(width: 8),
+            const Icon(Icons.lock, color: Colors.grey, size: 14),
+            const SizedBox(width: 4),
+            const Text(
+              '(Your own role cannot be changed)',
+              style: TextStyle(fontSize: 12, color: Colors.grey),
+            ),
+          ],
+        ),
       );
     }
     return DropdownButtonFormField<String>(
       initialValue: _selectedRole,
-      decoration: const InputDecoration(prefixIcon: Icon(Icons.shield_outlined, color: AppColors.textSecondary)),
+      decoration: const InputDecoration(
+        prefixIcon: Icon(Icons.shield_outlined, color: AppColors.textSecondary),
+      ),
       items: const [
         DropdownMenuItem(value: 'teacher', child: Text('Teacher')),
         DropdownMenuItem(value: 'admin', child: Text('Admin')),
@@ -1146,7 +1585,12 @@ class _AddEditUserModalState extends ConsumerState<AddEditUserModal> {
         final parts = text.split('@');
         final prefix = parts[0];
         final query = parts.length > 1 ? parts[1] : '';
-        const domains = ['gmail.com', 'yahoo.com', 'outlook.com', 'deped.gov.ph'];
+        const domains = [
+          'gmail.com',
+          'yahoo.com',
+          'outlook.com',
+          'deped.gov.ph',
+        ];
         return domains
             .where((domain) => domain.startsWith(query))
             .map((domain) => '$prefix@$domain');
@@ -1154,34 +1598,50 @@ class _AddEditUserModalState extends ConsumerState<AddEditUserModal> {
       onSelected: (String selection) {
         _emailCtrl.text = selection;
       },
-      optionsViewBuilder: (BuildContext context, AutocompleteOnSelected<String> onSelected, Iterable<String> options) {
-        return Align(
-          alignment: Alignment.topLeft,
-          child: Material(
-            elevation: 4.0,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(maxHeight: 200, maxWidth: 300),
-              child: ListView.builder(
-                padding: EdgeInsets.zero,
-                shrinkWrap: true,
-                itemCount: options.length,
-                itemBuilder: (BuildContext context, int index) {
-                  final String option = options.elementAt(index);
-                  final display = '@${option.split('@').last}';
-                  return InkWell(
-                    onTap: () => onSelected(option),
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
-                      child: Text(display, style: const TextStyle(fontWeight: FontWeight.w500)),
-                    ),
-                  );
-                },
+      optionsViewBuilder:
+          (
+            BuildContext context,
+            AutocompleteOnSelected<String> onSelected,
+            Iterable<String> options,
+          ) {
+            return Align(
+              alignment: Alignment.topLeft,
+              child: Material(
+                elevation: 4.0,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(
+                    maxHeight: 200,
+                    maxWidth: 300,
+                  ),
+                  child: ListView.builder(
+                    padding: EdgeInsets.zero,
+                    shrinkWrap: true,
+                    itemCount: options.length,
+                    itemBuilder: (BuildContext context, int index) {
+                      final String option = options.elementAt(index);
+                      final display = '@${option.split('@').last}';
+                      return InkWell(
+                        onTap: () => onSelected(option),
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 16.0,
+                            vertical: 12.0,
+                          ),
+                          child: Text(
+                            display,
+                            style: const TextStyle(fontWeight: FontWeight.w500),
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                ),
               ),
-            ),
-          ),
-        );
-      },
+            );
+          },
       fieldViewBuilder: (context, controller, focusNode, onEditingComplete) {
         controller.addListener(() {
           if (_emailCtrl.text != controller.text) {
@@ -1202,9 +1662,12 @@ class _AddEditUserModalState extends ConsumerState<AddEditUserModal> {
     );
   }
 
-  Widget _field(String hint, IconData? icon, TextEditingController ctrl, {
-    bool required = false, 
-    bool readOnly = false, 
+  Widget _field(
+    String hint,
+    IconData? icon,
+    TextEditingController ctrl, {
+    bool required = false,
+    bool readOnly = false,
     String? Function(String?)? validator,
     TextCapitalization textCapitalization = TextCapitalization.none,
     int? maxLength,
@@ -1216,7 +1679,9 @@ class _AddEditUserModalState extends ConsumerState<AddEditUserModal> {
       prefixIcon: icon,
       controller: ctrl,
       readOnly: readOnly,
-      validator: validator ?? (required ? (v) => AppValidators.validateRequired(v, hint) : null),
+      validator:
+          validator ??
+          (required ? (v) => AppValidators.validateRequired(v, hint) : null),
       textCapitalization: textCapitalization,
       maxLength: maxLength,
       keyboardType: keyboardType,
@@ -1226,14 +1691,15 @@ class _AddEditUserModalState extends ConsumerState<AddEditUserModal> {
 }
 
 // ============================================================
-// NEW: CUSTOM DELETE CONFIRMATION DIALOG 
+// NEW: CUSTOM DELETE CONFIRMATION DIALOG
 // ============================================================
 class _DeleteConfirmationDialog extends StatefulWidget {
   final SystemUser user;
   const _DeleteConfirmationDialog({required this.user});
 
   @override
-  State<_DeleteConfirmationDialog> createState() => _DeleteConfirmationDialogState();
+  State<_DeleteConfirmationDialog> createState() =>
+      _DeleteConfirmationDialogState();
 }
 
 class _DeleteConfirmationDialogState extends State<_DeleteConfirmationDialog> {
@@ -1254,24 +1720,23 @@ class _DeleteConfirmationDialogState extends State<_DeleteConfirmationDialog> {
 
     if (reason.isEmpty || password.isEmpty) {
       showErrorDialog(
-        context, 
-        'Missing Fields', 
-        'You must provide a reason and confirm your password to delete a user.'
+        context,
+        'Missing Fields',
+        'You must provide a reason and confirm your password to delete a user.',
       );
       return;
     }
 
     // Return the collected reason and password back to the _confirmDelete handler
-    Navigator.pop(context, {
-      'reason': reason,
-      'password': password,
-    });
+    Navigator.pop(context, {'reason': reason, 'password': password});
   }
 
   @override
   Widget build(BuildContext context) {
     return Dialog(
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppSizes.radiusLarge)),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(AppSizes.radiusLarge),
+      ),
       child: ConstrainedBox(
         constraints: const BoxConstraints(maxWidth: 420),
         child: Padding(
@@ -1287,10 +1752,17 @@ class _DeleteConfirmationDialogState extends State<_DeleteConfirmationDialog> {
                   Expanded(
                     child: Text(
                       'Delete @${widget.user.username}?',
-                      style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.red),
+                      style: const TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.red,
+                      ),
                     ),
                   ),
-                  IconButton(icon: const Icon(Icons.close), onPressed: () => Navigator.pop(context)),
+                  IconButton(
+                    icon: const Icon(Icons.close),
+                    onPressed: () => Navigator.pop(context),
+                  ),
                 ],
               ),
               const SizedBox(height: 8),
@@ -1299,7 +1771,7 @@ class _DeleteConfirmationDialogState extends State<_DeleteConfirmationDialog> {
                 style: TextStyle(fontSize: 13, color: AppColors.textSecondary),
               ),
               const Divider(height: 28),
-              
+
               // 1. Reason Field
               CustomTextField(
                 hintText: 'Reason for deletion',
@@ -1307,7 +1779,7 @@ class _DeleteConfirmationDialogState extends State<_DeleteConfirmationDialog> {
                 controller: _reasonCtrl,
               ),
               const SizedBox(height: 12),
-              
+
               // 2. Admin Password Field
               CustomTextField(
                 hintText: 'Your Admin Password',
@@ -1315,24 +1787,38 @@ class _DeleteConfirmationDialogState extends State<_DeleteConfirmationDialog> {
                 controller: _passwordCtrl,
                 isPassword: true,
                 obscureText: _obscurePassword,
-                onToggleVisibility: () => setState(() => _obscurePassword = !_obscurePassword),
+                onToggleVisibility: () =>
+                    setState(() => _obscurePassword = !_obscurePassword),
               ),
-              
+
               const SizedBox(height: 24),
               Row(
                 mainAxisAlignment: MainAxisAlignment.end,
                 children: [
-                  TextButton(onPressed: () => Navigator.pop(context), child: const Text('CANCEL')),
+                  TextButton(
+                    onPressed: () => Navigator.pop(context),
+                    child: const Text('CANCEL'),
+                  ),
                   const SizedBox(width: 12),
                   ElevatedButton(
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.red,
                       foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppSizes.radiusMedium)),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 24,
+                        vertical: 12,
+                      ),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(
+                          AppSizes.radiusMedium,
+                        ),
+                      ),
                     ),
                     onPressed: _submit,
-                    child: const Text('DELETE', style: TextStyle(fontWeight: FontWeight.bold)),
+                    child: const Text(
+                      'DELETE',
+                      style: TextStyle(fontWeight: FontWeight.bold),
+                    ),
                   ),
                 ],
               ),
@@ -1352,10 +1838,12 @@ class _ResetPasswordConfirmationDialog extends StatefulWidget {
   const _ResetPasswordConfirmationDialog({required this.user});
 
   @override
-  State<_ResetPasswordConfirmationDialog> createState() => _ResetPasswordConfirmationDialogState();
+  State<_ResetPasswordConfirmationDialog> createState() =>
+      _ResetPasswordConfirmationDialogState();
 }
 
-class _ResetPasswordConfirmationDialogState extends State<_ResetPasswordConfirmationDialog> {
+class _ResetPasswordConfirmationDialogState
+    extends State<_ResetPasswordConfirmationDialog> {
   final _passwordCtrl = TextEditingController();
   bool _obscurePassword = true;
 
@@ -1370,9 +1858,9 @@ class _ResetPasswordConfirmationDialogState extends State<_ResetPasswordConfirma
 
     if (password.isEmpty) {
       showErrorDialog(
-        context, 
-        'Missing Password', 
-        'You must confirm using your admin password to reset a user\'s password.'
+        context,
+        'Missing Password',
+        'You must confirm using your admin password to reset a user\'s password.',
       );
       return;
     }
@@ -1383,7 +1871,9 @@ class _ResetPasswordConfirmationDialogState extends State<_ResetPasswordConfirma
   @override
   Widget build(BuildContext context) {
     return Dialog(
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppSizes.radiusLarge)),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(AppSizes.radiusLarge),
+      ),
       child: ConstrainedBox(
         constraints: const BoxConstraints(maxWidth: 420),
         child: Padding(
@@ -1399,43 +1889,67 @@ class _ResetPasswordConfirmationDialogState extends State<_ResetPasswordConfirma
                   Expanded(
                     child: Text(
                       'Reset Password?',
-                      style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.orange),
+                      style: const TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.orange,
+                      ),
                     ),
                   ),
-                  IconButton(icon: const Icon(Icons.close), onPressed: () => Navigator.pop(context)),
+                  IconButton(
+                    icon: const Icon(Icons.close),
+                    onPressed: () => Navigator.pop(context),
+                  ),
                 ],
               ),
               const SizedBox(height: 8),
               Text(
                 'Reset the password for "${widget.user.username}"?\nTheir new password will be: changeme123\n\nPlease confirm using your admin password.',
-                style: const TextStyle(fontSize: 13, color: AppColors.textSecondary),
+                style: const TextStyle(
+                  fontSize: 13,
+                  color: AppColors.textSecondary,
+                ),
               ),
               const Divider(height: 28),
-              
+
               CustomTextField(
                 hintText: 'Your Admin Password',
                 prefixIcon: Icons.lock_outline,
                 controller: _passwordCtrl,
                 isPassword: true,
                 obscureText: _obscurePassword,
-                onToggleVisibility: () => setState(() => _obscurePassword = !_obscurePassword),
+                onToggleVisibility: () =>
+                    setState(() => _obscurePassword = !_obscurePassword),
               ),
-              
+
               const SizedBox(height: 24),
               Row(
                 mainAxisAlignment: MainAxisAlignment.end,
                 children: [
-                  TextButton(onPressed: () => Navigator.pop(context), child: const Text('CANCEL')),
+                  TextButton(
+                    onPressed: () => Navigator.pop(context),
+                    child: const Text('CANCEL'),
+                  ),
                   const SizedBox(width: 12),
                   ElevatedButton(
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.orange,
                       foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppSizes.radiusMedium)),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 24,
+                        vertical: 12,
+                      ),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(
+                          AppSizes.radiusMedium,
+                        ),
+                      ),
                     ),
                     onPressed: _submit,
-                    child: const Text('RESET', style: TextStyle(fontWeight: FontWeight.bold)),
+                    child: const Text(
+                      'RESET',
+                      style: TextStyle(fontWeight: FontWeight.bold),
+                    ),
                   ),
                 ],
               ),
@@ -1452,11 +1966,14 @@ class _ResetPasswordConfirmationDialogState extends State<_ResetPasswordConfirma
 // ============================================================
 class _TitleCaseTextInputFormatter extends TextInputFormatter {
   @override
-  TextEditingValue formatEditUpdate(TextEditingValue oldValue, TextEditingValue newValue) {
+  TextEditingValue formatEditUpdate(
+    TextEditingValue oldValue,
+    TextEditingValue newValue,
+  ) {
     if (newValue.text.isEmpty) {
       return newValue;
     }
-    
+
     final text = newValue.text;
     final buffer = StringBuffer();
     bool capitalizeNext = true;
@@ -1475,7 +1992,7 @@ class _TitleCaseTextInputFormatter extends TextInputFormatter {
         }
       }
     }
-    
+
     return TextEditingValue(
       text: buffer.toString(),
       selection: newValue.selection,

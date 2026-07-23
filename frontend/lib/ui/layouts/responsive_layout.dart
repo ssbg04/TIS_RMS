@@ -14,7 +14,7 @@ class ResponsiveLayout extends StatelessWidget {
         // Breakpoint: If width is less than 800px, serve Mobile/Android UI
         if (constraints.maxWidth < 800) {
           return AndroidBottomNavLayout(userRole: userRole);
-        } 
+        }
         // Breakpoint: If width is 800px or larger, serve Desktop/Windows UI
         else {
           return WindowsSidebarLayout(userRole: userRole);

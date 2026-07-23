@@ -7,7 +7,7 @@ class DocumentModel {
   final String? documentType;
   final String status; // 'Completed', 'Archived'
   final DateTime createdAt;
-  
+
   // Extra fields for UI display
   final String? studentLrn;
   final String? studentName;
@@ -36,7 +36,11 @@ class DocumentModel {
       filePath: json['filePath'] ?? json['file_path'] ?? '',
       documentType: json['documentType'] ?? json['document_type'],
       status: json['status'] as String? ?? 'Completed',
-      createdAt: json['createdAt'] != null ? DateTime.parse(json['createdAt']) : (json['created_at'] != null ? DateTime.parse(json['created_at']) : DateTime.now()),
+      createdAt: json['createdAt'] != null
+          ? DateTime.parse(json['createdAt'])
+          : (json['created_at'] != null
+                ? DateTime.parse(json['created_at'])
+                : DateTime.now()),
       studentLrn: json['studentLrn'] ?? json['student_lrn'],
       studentName: json['studentName'] ?? json['student_name'],
       size: json['size'],

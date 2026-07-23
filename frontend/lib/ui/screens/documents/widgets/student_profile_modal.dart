@@ -38,17 +38,21 @@ void showStudentProfileModal(
             children: [
               // ── Modal header ──
               Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 20,
+                  vertical: 10,
+                ),
                 decoration: const BoxDecoration(
                   color: AppColors.primaryGreen,
-                  borderRadius:
-                      BorderRadius.vertical(top: Radius.circular(12)),
+                  borderRadius: BorderRadius.vertical(top: Radius.circular(12)),
                 ),
                 child: Row(
                   children: [
-                    const Icon(Icons.person_rounded,
-                        color: Colors.white, size: 22),
+                    const Icon(
+                      Icons.person_rounded,
+                      color: Colors.white,
+                      size: 22,
+                    ),
                     const SizedBox(width: 10),
                     const Expanded(
                       child: Text(
@@ -62,7 +66,11 @@ void showStudentProfileModal(
                     ),
                     if (onEdit != null && userRole != 'teacher')
                       IconButton(
-                        icon: const Icon(Icons.edit, color: Colors.white, size: 20),
+                        icon: const Icon(
+                          Icons.edit,
+                          color: Colors.white,
+                          size: 20,
+                        ),
                         tooltip: 'Edit Student',
                         padding: EdgeInsets.zero,
                         constraints: const BoxConstraints(),
@@ -72,7 +80,11 @@ void showStudentProfileModal(
                       const SizedBox(width: 12),
                     if (onDelete != null && userRole != 'teacher')
                       IconButton(
-                        icon: const Icon(Icons.delete, color: Colors.white, size: 20),
+                        icon: const Icon(
+                          Icons.delete,
+                          color: Colors.white,
+                          size: 20,
+                        ),
                         tooltip: 'Delete Student',
                         padding: EdgeInsets.zero,
                         constraints: const BoxConstraints(),
@@ -81,8 +93,11 @@ void showStudentProfileModal(
                     if (onDelete != null && userRole != 'teacher')
                       const SizedBox(width: 12),
                     IconButton(
-                      icon: const Icon(Icons.close,
-                          color: Colors.white, size: 20),
+                      icon: const Icon(
+                        Icons.close,
+                        color: Colors.white,
+                        size: 20,
+                      ),
                       padding: EdgeInsets.zero,
                       constraints: const BoxConstraints(),
                       onPressed: () => Navigator.of(ctx).pop(),
@@ -124,14 +139,14 @@ class StudentProfileModalBody extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final studentAsync = ref.watch(studentDetailProvider(studentId));
-    final missingReqsAsync =
-        ref.watch(missingRequirementsProvider(studentId));
+    final missingReqsAsync = ref.watch(missingRequirementsProvider(studentId));
 
     return studentAsync.when(
       loading: () => const SizedBox(
         height: 200,
         child: Center(
-            child: CircularProgressIndicator(color: AppColors.primaryGreen)),
+          child: CircularProgressIndicator(color: AppColors.primaryGreen),
+        ),
       ),
       error: (e, _) => Padding(
         padding: const EdgeInsets.all(24),
@@ -140,8 +155,7 @@ class StudentProfileModalBody extends ConsumerWidget {
           children: [
             const Icon(Icons.error_outline, size: 48, color: AppColors.error),
             const SizedBox(height: 12),
-            Text('Error: $e',
-                style: const TextStyle(color: AppColors.error)),
+            Text('Error: $e', style: const TextStyle(color: AppColors.error)),
           ],
         ),
       ),
@@ -157,9 +171,12 @@ class StudentProfileModalBody extends ConsumerWidget {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                const Text('Enrollments',
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-                if (!hideEnrollmentActions && (userRole == 'admin' || userRole == 'super_admin'))
+                const Text(
+                  'Enrollments',
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                ),
+                if (!hideEnrollmentActions &&
+                    (userRole == 'admin' || userRole == 'super_admin'))
                   TextButton.icon(
                     onPressed: () {
                       showDialog(
@@ -174,7 +191,10 @@ class StudentProfileModalBody extends ConsumerWidget {
                     icon: const Icon(Icons.add, size: 16),
                     label: const Text('Add Enrollment'),
                     style: TextButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 4,
+                      ),
                       minimumSize: Size.zero,
                       tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                     ),
@@ -182,14 +202,15 @@ class StudentProfileModalBody extends ConsumerWidget {
               ],
             ),
             const SizedBox(height: 10),
-            
-            if (student.enrollments != null && student.enrollments!.isNotEmpty) ...[
 
+            if (student.enrollments != null &&
+                student.enrollments!.isNotEmpty) ...[
               ...(() {
                 final sorted = List.from(student.enrollments!);
-                sorted.sort((a, b) =>
-                    (b.gradeLevel ?? 0).compareTo(a.gradeLevel ?? 0));
-                
+                sorted.sort(
+                  (a, b) => (b.gradeLevel ?? 0).compareTo(a.gradeLevel ?? 0),
+                );
+
                 final seen = <String>{};
                 final uniqueEnrollments = [];
                 for (final e in sorted) {
@@ -207,19 +228,24 @@ class StudentProfileModalBody extends ConsumerWidget {
               const SizedBox(height: 20),
             ],
 
-            const Text('Document Requirements',
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+            const Text(
+              'Document Requirements',
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+            ),
             const SizedBox(height: 10),
             missingReqsAsync.when(
               loading: () => const Center(
                 child: Padding(
                   padding: EdgeInsets.all(16),
                   child: CircularProgressIndicator(
-                      color: AppColors.primaryGreen),
+                    color: AppColors.primaryGreen,
+                  ),
                 ),
               ),
-              error: (e, _) => Text('Error: $e',
-                  style: const TextStyle(color: AppColors.error)),
+              error: (e, _) => Text(
+                'Error: $e',
+                style: const TextStyle(color: AppColors.error),
+              ),
               data: (missing) => _buildRequirementsStatus(missing),
             ),
             const SizedBox(height: 8),
@@ -238,9 +264,10 @@ class StudentProfileModalBody extends ConsumerWidget {
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-              color: Colors.black.withValues(alpha: 0.05),
-              blurRadius: 8,
-              offset: const Offset(0, 3)),
+            color: Colors.black.withValues(alpha: 0.05),
+            blurRadius: 8,
+            offset: const Offset(0, 3),
+          ),
         ],
       ),
       child: Column(
@@ -254,9 +281,10 @@ class StudentProfileModalBody extends ConsumerWidget {
                 child: Text(
                   '${student.firstName?[0] ?? ''}${student.lastName?[0] ?? ''}',
                   style: const TextStyle(
-                      fontSize: 20,
-                      color: Colors.white,
-                      fontWeight: FontWeight.bold),
+                    fontSize: 20,
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
               ),
               const SizedBox(width: 14),
@@ -267,12 +295,16 @@ class StudentProfileModalBody extends ConsumerWidget {
                     Text(
                       student.profileDisplayName,
                       style: const TextStyle(
-                          fontSize: 17, fontWeight: FontWeight.bold),
+                        fontSize: 17,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                     Text(
                       'LRN: ${student.lrn}',
                       style: const TextStyle(
-                          color: AppColors.textSecondary, fontSize: 13),
+                        color: AppColors.textSecondary,
+                        fontSize: 13,
+                      ),
                     ),
                   ],
                 ),
@@ -320,9 +352,14 @@ class StudentProfileModalBody extends ConsumerWidget {
         borderRadius: BorderRadius.circular(20),
         border: Border.all(color: color.withValues(alpha: 0.3)),
       ),
-      child: Text(status ?? 'Unknown',
-          style: TextStyle(
-              color: color, fontWeight: FontWeight.w600, fontSize: 12)),
+      child: Text(
+        status ?? 'Unknown',
+        style: TextStyle(
+          color: color,
+          fontWeight: FontWeight.w600,
+          fontSize: 12,
+        ),
+      ),
     );
   }
 
@@ -330,12 +367,14 @@ class StudentProfileModalBody extends ConsumerWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(label,
-            style: const TextStyle(
-                color: AppColors.textSecondary, fontSize: 11)),
-        Text(value,
-            style: const TextStyle(
-                fontWeight: FontWeight.w600, fontSize: 13)),
+        Text(
+          label,
+          style: const TextStyle(color: AppColors.textSecondary, fontSize: 11),
+        ),
+        Text(
+          value,
+          style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
+        ),
       ],
     );
   }
@@ -344,8 +383,10 @@ class StudentProfileModalBody extends ConsumerWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text('4Ps Beneficiary',
-            style: TextStyle(color: AppColors.textSecondary, fontSize: 11)),
+        const Text(
+          '4Ps Beneficiary',
+          style: TextStyle(color: AppColors.textSecondary, fontSize: 11),
+        ),
         const SizedBox(height: 2),
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
@@ -385,7 +426,11 @@ class StudentProfileModalBody extends ConsumerWidget {
   }
 
   // ── Enrollment card ──────────────────────────────────────
-  Widget _buildEnrollmentCard(BuildContext context, WidgetRef ref, dynamic enrollment) {
+  Widget _buildEnrollmentCard(
+    BuildContext context,
+    WidgetRef ref,
+    dynamic enrollment,
+  ) {
     return Container(
       margin: const EdgeInsets.only(bottom: 8),
       padding: const EdgeInsets.all(12),
@@ -410,21 +455,30 @@ class StudentProfileModalBody extends ConsumerWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('Grade ${enrollment.gradeLevel}',
-                    style: const TextStyle(fontWeight: FontWeight.w600)),
+                Text(
+                  'Grade ${enrollment.gradeLevel}',
+                  style: const TextStyle(fontWeight: FontWeight.w600),
+                ),
                 Text(
                   '${enrollment.sectionName ?? 'N/A'} · ${enrollment.yearRange ?? 'N/A'}',
                   style: const TextStyle(
-                      color: AppColors.textSecondary, fontSize: 12),
+                    color: AppColors.textSecondary,
+                    fontSize: 12,
+                  ),
                 ),
                 if (enrollment.trackStrand != null)
-                  Text('Track: ${enrollment.trackStrand}',
-                      style: const TextStyle(
-                          color: AppColors.textSecondary, fontSize: 11)),
+                  Text(
+                    'Track: ${enrollment.trackStrand}',
+                    style: const TextStyle(
+                      color: AppColors.textSecondary,
+                      fontSize: 11,
+                    ),
+                  ),
               ],
             ),
           ),
-          if (!hideEnrollmentActions && (userRole == 'admin' || userRole == 'super_admin')) ...[
+          if (!hideEnrollmentActions &&
+              (userRole == 'admin' || userRole == 'super_admin')) ...[
             IconButton(
               icon: const Icon(Icons.edit, size: 18, color: Colors.blue),
               tooltip: 'Edit Enrollment',
@@ -440,7 +494,11 @@ class StudentProfileModalBody extends ConsumerWidget {
               },
             ),
             IconButton(
-              icon: const Icon(Icons.delete_outline, size: 18, color: AppColors.error),
+              icon: const Icon(
+                Icons.delete_outline,
+                size: 18,
+                color: AppColors.error,
+              ),
               tooltip: 'Delete Enrollment',
               onPressed: () {
                 showDialog(
@@ -448,7 +506,8 @@ class StudentProfileModalBody extends ConsumerWidget {
                   builder: (ctx) => AlertDialog(
                     title: const Text('Delete Enrollment'),
                     content: const Text(
-                        'Are you sure you want to delete this enrollment? This action cannot be undone.'),
+                      'Are you sure you want to delete this enrollment? This action cannot be undone.',
+                    ),
                     actions: [
                       TextButton(
                         onPressed: () => Navigator.of(ctx).pop(),
@@ -457,12 +516,16 @@ class StudentProfileModalBody extends ConsumerWidget {
                       TextButton(
                         onPressed: () {
                           Navigator.of(ctx).pop();
-                          ref.read(studentMutationProvider.notifier).deleteEnrollment(
+                          ref
+                              .read(studentMutationProvider.notifier)
+                              .deleteEnrollment(
                                 studentId: studentId,
                                 enrollmentId: enrollment.id,
                               );
                         },
-                        style: TextButton.styleFrom(foregroundColor: AppColors.error),
+                        style: TextButton.styleFrom(
+                          foregroundColor: AppColors.error,
+                        ),
                         child: const Text('DELETE'),
                       ),
                     ],
@@ -478,14 +541,14 @@ class StudentProfileModalBody extends ConsumerWidget {
 
   // ── Requirements status ──────────────────────────────────
   Widget _buildRequirementsStatus(MissingRequirements data) {
-    final jhsMissing =
-        data.missing.where((r) => r.category == 'JHS').toList();
-    final shsMissing =
-        data.missing.where((r) => r.category == 'SHS').toList();
-    final jhsVerified =
-        data.verified.where((r) => r.category == 'JHS').toList();
-    final shsVerified =
-        data.verified.where((r) => r.category == 'SHS').toList();
+    final jhsMissing = data.missing.where((r) => r.category == 'JHS').toList();
+    final shsMissing = data.missing.where((r) => r.category == 'SHS').toList();
+    final jhsVerified = data.verified
+        .where((r) => r.category == 'JHS')
+        .toList();
+    final shsVerified = data.verified
+        .where((r) => r.category == 'SHS')
+        .toList();
     final jhsTotal = jhsMissing.length + jhsVerified.length;
     final shsTotal = shsMissing.length + shsVerified.length;
     final hasJhs = jhsTotal > 0;
@@ -500,8 +563,10 @@ class StudentProfileModalBody extends ConsumerWidget {
           border: Border.all(color: Colors.grey.shade200),
         ),
         child: const Center(
-          child: Text('No document requirements for this student.',
-              style: TextStyle(color: AppColors.textSecondary)),
+          child: Text(
+            'No document requirements for this student.',
+            style: TextStyle(color: AppColors.textSecondary),
+          ),
         ),
       );
     }
@@ -534,57 +599,80 @@ class StudentProfileModalBody extends ConsumerWidget {
               padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
               decoration: BoxDecoration(
                 color: color.withValues(alpha: 0.06),
-                borderRadius:
-                    const BorderRadius.vertical(top: Radius.circular(12)),
+                borderRadius: const BorderRadius.vertical(
+                  top: Radius.circular(12),
+                ),
               ),
               child: Row(
                 children: [
                   Container(
                     padding: const EdgeInsets.symmetric(
-                        horizontal: 8, vertical: 3),
+                      horizontal: 8,
+                      vertical: 3,
+                    ),
                     decoration: BoxDecoration(
                       color: Colors.grey.shade100,
                       borderRadius: BorderRadius.circular(20),
                     ),
-                    child: Text(label,
-                        style: const TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 12,
-                            color: AppColors.textPrimary)),
+                    child: Text(
+                      label,
+                      style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 12,
+                        color: AppColors.textPrimary,
+                      ),
+                    ),
                   ),
                   if (isCurrent) ...[
                     const SizedBox(width: 6),
                     Container(
                       padding: const EdgeInsets.symmetric(
-                          horizontal: 7, vertical: 2),
+                        horizontal: 7,
+                        vertical: 2,
+                      ),
                       decoration: BoxDecoration(
                         color: AppColors.primaryGreen.withValues(alpha: 0.12),
                         borderRadius: BorderRadius.circular(20),
                       ),
-                      child: const Text('Current',
-                          style: TextStyle(
-                              fontSize: 10,
-                              color: AppColors.primaryGreen,
-                              fontWeight: FontWeight.w600)),
+                      child: const Text(
+                        'Current',
+                        style: TextStyle(
+                          fontSize: 10,
+                          color: AppColors.primaryGreen,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
                     ),
                   ],
                   const Spacer(),
                   isDone
-                      ? Row(mainAxisSize: MainAxisSize.min, children: [
-                          const Icon(Icons.check_circle,
-                              size: 13, color: AppColors.success),
-                          const SizedBox(width: 3),
-                          const Text('Complete',
+                      ? Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Icon(
+                              Icons.check_circle,
+                              size: 13,
+                              color: AppColors.success,
+                            ),
+                            const SizedBox(width: 3),
+                            const Text(
+                              'Complete',
                               style: TextStyle(
-                                  fontSize: 11,
-                                  color: AppColors.success,
-                                  fontWeight: FontWeight.bold)),
-                        ])
-                      : Text('$completed/$total done',
+                                fontSize: 11,
+                                color: AppColors.success,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ],
+                        )
+                      : Text(
+                          '$completed/$total done',
                           style: const TextStyle(
-                              fontSize: 11,
-                              color: AppColors.textSecondary,
-                              fontWeight: FontWeight.w600)),
+                            fontSize: 11,
+                            color: AppColors.textSecondary,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
                 ],
               ),
             ),
@@ -598,32 +686,70 @@ class StudentProfileModalBody extends ConsumerWidget {
                     runSpacing: 6,
                     crossAxisAlignment: WrapCrossAlignment.center,
                     children: [
-                      Text('Total: $total', style: const TextStyle(fontSize: 13, color: AppColors.textSecondary)),
-                      Text('Done: $completed', style: const TextStyle(fontSize: 13, color: AppColors.success, fontWeight: FontWeight.w600)),
-                      Text('Missing: $missingCount', style: TextStyle(fontSize: 13, color: missingCount > 0 ? AppColors.error : AppColors.textSecondary, fontWeight: FontWeight.w600)),
+                      Text(
+                        'Total: $total',
+                        style: const TextStyle(
+                          fontSize: 13,
+                          color: AppColors.textSecondary,
+                        ),
+                      ),
+                      Text(
+                        'Done: $completed',
+                        style: const TextStyle(
+                          fontSize: 13,
+                          color: AppColors.success,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      Text(
+                        'Missing: $missingCount',
+                        style: TextStyle(
+                          fontSize: 13,
+                          color: missingCount > 0
+                              ? AppColors.error
+                              : AppColors.textSecondary,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
                     ],
                   ),
                   if (missing.isNotEmpty) ...[
                     const SizedBox(height: 10),
-                    Text('Not Yet Submitted',
-                        style: TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.w600,
-                            color: Colors.orange.shade700)),
+                    Text(
+                      'Not Yet Submitted',
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.orange.shade700,
+                      ),
+                    ),
                     const SizedBox(height: 6),
-                    ...missing.map((r) =>
-                        _reqItem(r.name, AppColors.error, Icons.pending_actions)),
+                    ...missing.map(
+                      (r) => _reqItem(
+                        r.name,
+                        AppColors.error,
+                        Icons.pending_actions,
+                      ),
+                    ),
                   ],
                   if (verified.isNotEmpty) ...[
                     const SizedBox(height: 10),
-                    const Text('Completed',
-                        style: TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.w600,
-                            color: AppColors.success)),
+                    const Text(
+                      'Completed',
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.success,
+                      ),
+                    ),
                     const SizedBox(height: 6),
-                    ...verified.map((r) =>
-                        _reqItem(r.name, AppColors.success, Icons.check_circle)),
+                    ...verified.map(
+                      (r) => _reqItem(
+                        r.name,
+                        AppColors.success,
+                        Icons.check_circle,
+                      ),
+                    ),
                   ],
                 ],
               ),
@@ -659,24 +785,27 @@ class StudentProfileModalBody extends ConsumerWidget {
   }
 
   Widget _chip(String text, Color color) => Container(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-        decoration: BoxDecoration(
-          color: color.withValues(alpha: 0.1),
-          borderRadius: BorderRadius.circular(20),
-        ),
-        child: Text(text,
-            style: TextStyle(
-                fontSize: 11, color: color, fontWeight: FontWeight.w600)),
-      );
+    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+    decoration: BoxDecoration(
+      color: color.withValues(alpha: 0.1),
+      borderRadius: BorderRadius.circular(20),
+    ),
+    child: Text(
+      text,
+      style: TextStyle(fontSize: 11, color: color, fontWeight: FontWeight.w600),
+    ),
+  );
 
   Widget _reqItem(String name, Color color, IconData icon) => Padding(
-        padding: const EdgeInsets.only(bottom: 5),
-        child: Row(children: [
-          Icon(icon, size: 14, color: color),
-          const SizedBox(width: 7),
-          Expanded(child: Text(name, style: const TextStyle(fontSize: 12))),
-        ]),
-      );
+    padding: const EdgeInsets.only(bottom: 5),
+    child: Row(
+      children: [
+        Icon(icon, size: 14, color: color),
+        const SizedBox(width: 7),
+        Expanded(child: Text(name, style: const TextStyle(fontSize: 12))),
+      ],
+    ),
+  );
 
   String _formatDate(dynamic date) {
     if (date == null) return 'N/A';

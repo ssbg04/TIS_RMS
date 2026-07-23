@@ -108,8 +108,10 @@ class ArchiveRepository {
         '/archives/documents',
         queryParameters: {
           if (search.trim().isNotEmpty) 'search': search.trim(),
-          if (status.trim().isNotEmpty && status != 'All Statuses') 'status': status.trim(),
-          if (documentType.trim().isNotEmpty && documentType != 'All Types') 'documentType': documentType.trim(),
+          if (status.trim().isNotEmpty && status != 'All Statuses')
+            'status': status.trim(),
+          if (documentType.trim().isNotEmpty && documentType != 'All Types')
+            'documentType': documentType.trim(),
           if (gradeLevel.trim().isNotEmpty) 'gradeLevel': gradeLevel.trim(),
           if (schoolYear.trim().isNotEmpty) 'schoolYear': schoolYear.trim(),
           'studentId': ?studentId,
@@ -120,7 +122,8 @@ class ArchiveRepository {
       );
       return DocumentPage.fromJson(response.data as Map<String, dynamic>);
     } on DioException catch (e) {
-      final msg = e.response?.data?['message'] ?? 'Failed to fetch archived documents.';
+      final msg =
+          e.response?.data?['message'] ?? 'Failed to fetch archived documents.';
       throw Exception(msg);
     }
   }
@@ -135,7 +138,8 @@ class ArchiveRepository {
         '/archives/student-folders',
         queryParameters: {
           if (search.trim().isNotEmpty) 'search': search.trim(),
-          if (status.trim().isNotEmpty && status != 'All Statuses') 'status': status.trim(),
+          if (status.trim().isNotEmpty && status != 'All Statuses')
+            'status': status.trim(),
         },
         options: options,
       );
@@ -143,7 +147,9 @@ class ArchiveRepository {
           .map((f) => FolderModel.fromJson(f as Map<String, dynamic>))
           .toList();
     } on DioException catch (e) {
-      final msg = e.response?.data?['message'] ?? 'Failed to fetch archived student folders.';
+      final msg =
+          e.response?.data?['message'] ??
+          'Failed to fetch archived student folders.';
       throw Exception(msg);
     }
   }

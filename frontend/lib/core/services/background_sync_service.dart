@@ -19,12 +19,14 @@ void callbackDispatcher() {
       if (token == null) return true; // Not logged in
 
       // 2. Fetch recent notifications from server
-      final dio = Dio(BaseOptions(
-        baseUrl: baseUrl,
-        connectTimeout: const Duration(seconds: 5),
-        receiveTimeout: const Duration(seconds: 5),
-        headers: {'Authorization': 'Bearer $token'},
-      ));
+      final dio = Dio(
+        BaseOptions(
+          baseUrl: baseUrl,
+          connectTimeout: const Duration(seconds: 5),
+          receiveTimeout: const Duration(seconds: 5),
+          headers: {'Authorization': 'Bearer $token'},
+        ),
+      );
 
       final response = await dio.get('/notifications/recent');
       final list = (response.data as List).cast<Map<String, dynamic>>();
@@ -32,13 +34,16 @@ void callbackDispatcher() {
       if (list.isNotEmpty) {
         // 3. Find the last seen notification ID
         final highestOldId = prefs.getInt('last_seen_notification_id') ?? 0;
-        
+
         // Find new ones
-        final newNotes = list.where((e) => (e['id'] as int) > highestOldId).toList();
-        
+        final newNotes = list
+            .where((e) => (e['id'] as int) > highestOldId)
+            .toList();
+
         if (newNotes.isNotEmpty) {
           final notificationService = NotificationService();
-          await notificationService.initialize(); // Ensure it's ready in this isolate
+          await notificationService
+              .initialize(); // Ensure it's ready in this isolate
 
           // 4. Show local notification for each new one
           for (var note in newNotes) {
@@ -50,7 +55,10 @@ void callbackDispatcher() {
 
           // 5. Update highest seen ID in prefs
           final newHighestId = list.map((e) => e['id'] as int).reduce(math.max);
-          await prefs.setInt('last_seen_notification_id', math.max(highestOldId, newHighestId));
+          await prefs.setInt(
+            'last_seen_notification_id',
+            math.max(highestOldId, newHighestId),
+          );
         }
       }
 

@@ -6,7 +6,6 @@ import '../../core/network/api_constants.dart';
 import '../../domain/repositories/student_repository.dart';
 import '../../domain/entities/student_model.dart';
 
-
 // ============================================================
 // Academic Years Model
 // ============================================================
@@ -15,7 +14,11 @@ class AcademicYear {
   final String yearRange;
   final String status;
 
-  AcademicYear({required this.id, required this.yearRange, required this.status});
+  AcademicYear({
+    required this.id,
+    required this.yearRange,
+    required this.status,
+  });
 
   factory AcademicYear.fromJson(Map<String, dynamic> json) {
     return AcademicYear(
@@ -36,7 +39,9 @@ final studentRepositoryProvider = Provider<StudentRepository>((ref) {
 // ============================================================
 // Academic Years Provider
 // ============================================================
-final academicYearsProvider = FutureProvider.autoDispose<List<AcademicYear>>((ref) async {
+final academicYearsProvider = FutureProvider.autoDispose<List<AcademicYear>>((
+  ref,
+) async {
   final storage = const FlutterSecureStorage();
   final token = await storage.read(key: 'jwt_token');
   final dio = Dio(BaseOptions(baseUrl: ApiConstants.baseUrl));
@@ -57,39 +62,40 @@ final academicYearsProvider = FutureProvider.autoDispose<List<AcademicYear>>((re
 // ============================================================
 // Student Detail Provider
 // ============================================================
-final studentDetailProvider = FutureProvider.family.autoDispose<StudentModel, int>((ref, studentId) async {
-  final repo = ref.read(studentRepositoryProvider);
-  return repo.getStudentById(studentId);
-});
+final studentDetailProvider = FutureProvider.family
+    .autoDispose<StudentModel, int>((ref, studentId) async {
+      final repo = ref.read(studentRepositoryProvider);
+      return repo.getStudentById(studentId);
+    });
 
 // ============================================================
 // Query params state — drives what the list shows
 // ============================================================
 class StudentQueryParams {
   final String search;
-  final int    page;
-  final int    limit;
+  final int page;
+  final int limit;
   final String gradeLevel; // '' = All
-  final String status;     // '' = All
-  final String section;    // '' = All
+  final String status; // '' = All
+  final String section; // '' = All
   final String schoolYear; // '' = All
-  final String is4Ps;      // '' = All, 'true' = Yes, 'false' = No
+  final String is4Ps; // '' = All, 'true' = Yes, 'false' = No
 
   const StudentQueryParams({
-    this.search     = '',
-    this.page       = 1,
-    this.limit      = 15,
+    this.search = '',
+    this.page = 1,
+    this.limit = 15,
     this.gradeLevel = '',
-    this.status     = '',
-    this.section    = '',
+    this.status = '',
+    this.section = '',
     this.schoolYear = '',
-    this.is4Ps      = '',
+    this.is4Ps = '',
   });
 
   StudentQueryParams copyWith({
     String? search,
-    int?    page,
-    int?    limit,
+    int? page,
+    int? limit,
     String? gradeLevel,
     String? status,
     String? section,
@@ -97,14 +103,14 @@ class StudentQueryParams {
     String? is4Ps,
   }) {
     return StudentQueryParams(
-      search:     search     ?? this.search,
-      page:       page       ?? this.page,
-      limit:      limit      ?? this.limit,
+      search: search ?? this.search,
+      page: page ?? this.page,
+      limit: limit ?? this.limit,
       gradeLevel: gradeLevel ?? this.gradeLevel,
-      status:     status     ?? this.status,
-      section:    section    ?? this.section,
+      status: status ?? this.status,
+      section: section ?? this.section,
       schoolYear: schoolYear ?? this.schoolYear,
-      is4Ps:      is4Ps      ?? this.is4Ps,
+      is4Ps: is4Ps ?? this.is4Ps,
     );
   }
 }
@@ -114,8 +120,8 @@ class StudentQueryParams {
 // ============================================================
 final studentQueryProvider =
     NotifierProvider<StudentQueryNotifier, StudentQueryParams>(
-  StudentQueryNotifier.new,
-);
+      StudentQueryNotifier.new,
+    );
 
 class StudentQueryNotifier extends Notifier<StudentQueryParams> {
   @override
@@ -139,11 +145,14 @@ class StudentQueryNotifier extends Notifier<StudentQueryParams> {
   void setSection(String section) =>
       state = state.copyWith(section: section, page: 1);
 
-  void setSchoolYear(String schoolYear) =>
-      state = state.copyWith(schoolYear: schoolYear, gradeLevel: '', section: '', page: 1);
+  void setSchoolYear(String schoolYear) => state = state.copyWith(
+    schoolYear: schoolYear,
+    gradeLevel: '',
+    section: '',
+    page: 1,
+  );
 
-  void setIs4Ps(String is4Ps) =>
-      state = state.copyWith(is4Ps: is4Ps, page: 1);
+  void setIs4Ps(String is4Ps) => state = state.copyWith(is4Ps: is4Ps, page: 1);
 
   void reset() => state = const StudentQueryParams();
 }
@@ -151,9 +160,11 @@ class StudentQueryNotifier extends Notifier<StudentQueryParams> {
 // ============================================================
 // Async data provider — re-fetches when query changes
 // ============================================================
-final studentPageProvider = FutureProvider.autoDispose<StudentPage>((ref) async {
+final studentPageProvider = FutureProvider.autoDispose<StudentPage>((
+  ref,
+) async {
   final query = ref.watch(studentQueryProvider);
-  final repo  = ref.read(studentRepositoryProvider);
+  final repo = ref.read(studentRepositoryProvider);
 
   final sub = repo.onStudentChanged.listen((_) {
     ref.invalidateSelf();
@@ -162,14 +173,14 @@ final studentPageProvider = FutureProvider.autoDispose<StudentPage>((ref) async 
   ref.onDispose(() => sub.cancel());
 
   return repo.getStudents(
-    search:     query.search,
-    page:       query.page,
-    limit:      query.limit,
+    search: query.search,
+    page: query.page,
+    limit: query.limit,
     gradeLevel: query.gradeLevel,
-    status:     query.status,
-    section:    query.section,
+    status: query.status,
+    section: query.section,
     schoolYear: query.schoolYear,
-    is4ps:      query.is4Ps,
+    is4ps: query.is4Ps,
   );
 });
 
@@ -178,43 +189,43 @@ final studentPageProvider = FutureProvider.autoDispose<StudentPage>((ref) async 
 // ============================================================
 final studentMutationProvider =
     AsyncNotifierProvider<StudentMutationNotifier, void>(
-  StudentMutationNotifier.new,
-);
+      StudentMutationNotifier.new,
+    );
 
 class StudentMutationNotifier extends AsyncNotifier<void> {
   @override
   FutureOr<void> build() {}
 
   Future<void> createStudent({
-    required String   lrn,
-    required String   firstName,
-    String?           middleName,
-    required String   lastName,
-    String?           extension,
-    required String   sex,
+    required String lrn,
+    required String firstName,
+    String? middleName,
+    required String lastName,
+    String? extension,
+    required String sex,
     required DateTime birthDate,
-    required int      academicYearId,
-    required int      gradeLevel,
-    required int      sectionId,
-    String?           trackStrand,
-    bool              is4ps = false,
+    required int academicYearId,
+    required int gradeLevel,
+    required int sectionId,
+    String? trackStrand,
+    bool is4ps = false,
   }) async {
     state = const AsyncLoading();
     try {
       final repo = ref.read(studentRepositoryProvider);
       await repo.createStudent(
-        lrn:            lrn,
-        firstName:      firstName,
-        middleName:     middleName,
-        lastName:       lastName,
-        extension:      extension,
-        sex:            sex,
-        birthDate:      birthDate,
+        lrn: lrn,
+        firstName: firstName,
+        middleName: middleName,
+        lastName: lastName,
+        extension: extension,
+        sex: sex,
+        birthDate: birthDate,
         academicYearId: academicYearId,
-        gradeLevel:     gradeLevel,
-        sectionId:      sectionId,
-        trackStrand:    trackStrand,
-        is4ps:          is4ps,
+        gradeLevel: gradeLevel,
+        sectionId: sectionId,
+        trackStrand: trackStrand,
+        is4ps: is4ps,
       );
       state = const AsyncData(null);
       // Invalidate to refresh the list
@@ -224,40 +235,41 @@ class StudentMutationNotifier extends AsyncNotifier<void> {
       rethrow;
     }
   }
+
   Future<void> updateStudent({
-    required int      id,
-    required String   lrn,
-    required String   firstName,
-    String?           middleName,
-    required String   lastName,
-    String?           extension,
-    required String   sex,
+    required int id,
+    required String lrn,
+    required String firstName,
+    String? middleName,
+    required String lastName,
+    String? extension,
+    required String sex,
     required DateTime birthDate,
-    required int      academicYearId,
-    required int      gradeLevel,
-    required int      sectionId,
-    String?           trackStrand,
-    String            status = 'Enrolled',
-    bool              is4ps = false,
+    required int academicYearId,
+    required int gradeLevel,
+    required int sectionId,
+    String? trackStrand,
+    String status = 'Enrolled',
+    bool is4ps = false,
   }) async {
     state = const AsyncLoading();
     try {
       final repo = ref.read(studentRepositoryProvider);
       await repo.updateStudent(
-        id:             id,
-        lrn:            lrn,
-        firstName:      firstName,
-        middleName:     middleName,
-        lastName:       lastName,
-        extension:      extension,
-        sex:            sex,
-        birthDate:      birthDate,
-        status:         status,
+        id: id,
+        lrn: lrn,
+        firstName: firstName,
+        middleName: middleName,
+        lastName: lastName,
+        extension: extension,
+        sex: sex,
+        birthDate: birthDate,
+        status: status,
         academicYearId: academicYearId,
-        gradeLevel:     gradeLevel,
-        sectionId:      sectionId,
-        trackStrand:    trackStrand,
-        is4ps:          is4ps,
+        gradeLevel: gradeLevel,
+        sectionId: sectionId,
+        trackStrand: trackStrand,
+        is4ps: is4ps,
       );
       state = const AsyncData(null);
       ref.invalidate(studentPageProvider);
@@ -284,20 +296,20 @@ class StudentMutationNotifier extends AsyncNotifier<void> {
 
   Future<void> bulkEnroll({
     required List<int> studentIds,
-    required int       academicYearId,
-    required int       gradeLevel,
-    required int       sectionId,
-    String?            trackStrand,
+    required int academicYearId,
+    required int gradeLevel,
+    required int sectionId,
+    String? trackStrand,
   }) async {
     state = const AsyncLoading();
     try {
       final repo = ref.read(studentRepositoryProvider);
       await repo.bulkEnroll(
-        studentIds:     studentIds,
+        studentIds: studentIds,
         academicYearId: academicYearId,
-        gradeLevel:     gradeLevel,
-        sectionId:      sectionId,
-        trackStrand:    trackStrand,
+        gradeLevel: gradeLevel,
+        sectionId: sectionId,
+        trackStrand: trackStrand,
       );
       state = const AsyncData(null);
       ref.invalidate(studentPageProvider);
@@ -326,7 +338,10 @@ class StudentMutationNotifier extends AsyncNotifier<void> {
     }
   }
 
-  Future<void> bulkChangeStatus(List<StudentModel> students, String newStatus) async {
+  Future<void> bulkChangeStatus(
+    List<StudentModel> students,
+    String newStatus,
+  ) async {
     state = const AsyncLoading();
     try {
       final repo = ref.read(studentRepositoryProvider);
@@ -341,6 +356,7 @@ class StudentMutationNotifier extends AsyncNotifier<void> {
       rethrow;
     }
   }
+
   Future<void> updateEnrollment({
     required int studentId,
     required int enrollmentId,
@@ -353,11 +369,11 @@ class StudentMutationNotifier extends AsyncNotifier<void> {
     try {
       final repo = ref.read(studentRepositoryProvider);
       await repo.updateEnrollment(
-        enrollmentId:   enrollmentId,
+        enrollmentId: enrollmentId,
         academicYearId: academicYearId,
-        gradeLevel:     gradeLevel,
-        sectionId:      sectionId,
-        trackStrand:    trackStrand,
+        gradeLevel: gradeLevel,
+        sectionId: sectionId,
+        trackStrand: trackStrand,
       );
       state = const AsyncData(null);
       ref.invalidate(studentDetailProvider(studentId));
@@ -382,6 +398,7 @@ class StudentMutationNotifier extends AsyncNotifier<void> {
       rethrow;
     }
   }
+
   Future<void> addEnrollment({
     required int studentId,
     required int academicYearId,
@@ -393,11 +410,11 @@ class StudentMutationNotifier extends AsyncNotifier<void> {
     try {
       final repo = ref.read(studentRepositoryProvider);
       await repo.addEnrollment(
-        studentId:      studentId,
+        studentId: studentId,
         academicYearId: academicYearId,
-        gradeLevel:     gradeLevel,
-        sectionId:      sectionId,
-        trackStrand:    trackStrand,
+        gradeLevel: gradeLevel,
+        sectionId: sectionId,
+        trackStrand: trackStrand,
       );
       state = const AsyncData(null);
       ref.invalidate(studentDetailProvider(studentId));

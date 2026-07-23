@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../providers/auth_provider.dart';
-import '../../screens/login/login_screen.dart'; 
+import '../../screens/login/login_screen.dart';
 
 /// A reusable function to show the logout confirmation and handle the logout process.
 Future<void> showLogoutConfirmationDialog(BuildContext context) async {
@@ -11,7 +11,9 @@ Future<void> showLogoutConfirmationDialog(BuildContext context) async {
     builder: (ctx) => Consumer(
       builder: (context, ref, child) {
         return AlertDialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
           title: const Row(
             children: [
               Icon(Icons.warning_amber_rounded, color: Colors.redAccent),
@@ -19,7 +21,9 @@ Future<void> showLogoutConfirmationDialog(BuildContext context) async {
               Text('Confirm Logout'),
             ],
           ),
-          content: const Text('Are you sure you want to log out of your account?'),
+          content: const Text(
+            'Are you sure you want to log out of your account?',
+          ),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(ctx), // Close dialog
@@ -53,18 +57,24 @@ Future<void> showLogoutConfirmationDialog(BuildContext context) async {
 
                 // 5. Wait for the route transition animation to finish.
                 //    This guarantees the old screens are fully unmounted before their
-                //    providers are invalidated, preventing "used after unmount" or 
+                //    providers are invalidated, preventing "used after unmount" or
                 //    "multiple tickers" exceptions during the transition.
                 await Future.delayed(const Duration(milliseconds: 500));
 
                 // 6. Invalidate all persistent providers safely in the background.
                 await authNotifier.logout();
               },
-              child: const Text('LOGOUT', style: TextStyle(color: Colors.redAccent, fontWeight: FontWeight.bold)),
+              child: const Text(
+                'LOGOUT',
+                style: TextStyle(
+                  color: Colors.redAccent,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
             ),
           ],
         );
       },
     ),
   );
-}
+}

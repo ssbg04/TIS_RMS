@@ -70,9 +70,14 @@ class ViewActivityModal extends StatelessWidget {
               if (action != null) ...[
                 const SizedBox(height: 6),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 4,
+                  ),
                   decoration: BoxDecoration(
-                    color: (actionColor ?? AppColors.primaryGreen).withValues(alpha: 0.15),
+                    color: (actionColor ?? AppColors.primaryGreen).withValues(
+                      alpha: 0.15,
+                    ),
                     borderRadius: BorderRadius.circular(20),
                   ),
                   child: Text(
@@ -114,7 +119,11 @@ class ViewActivityModal extends StatelessWidget {
             ),
             child: Text(
               description,
-              style: const TextStyle(fontSize: 15, height: 1.6, color: Colors.black87),
+              style: const TextStyle(
+                fontSize: 15,
+                height: 1.6,
+                color: Colors.black87,
+              ),
             ),
           ),
           const SizedBox(height: 24),
@@ -127,16 +136,34 @@ class ViewActivityModal extends StatelessWidget {
                   color: Colors.blue.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(8),
                 ),
-                child: const Icon(Icons.access_time_rounded, size: 18, color: Colors.blue),
+                child: const Icon(
+                  Icons.access_time_rounded,
+                  size: 18,
+                  color: Colors.blue,
+                ),
               ),
               const SizedBox(width: 12),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text('Date & Time', style: TextStyle(fontSize: 12, color: Colors.grey, fontWeight: FontWeight.w500)),
+                    const Text(
+                      'Date & Time',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Colors.grey,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
                     const SizedBox(height: 2),
-                    Text(date, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Colors.black87)),
+                    Text(
+                      date,
+                      style: const TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.black87,
+                      ),
+                    ),
                   ],
                 ),
               ),
@@ -152,16 +179,34 @@ class ViewActivityModal extends StatelessWidget {
                     color: Colors.purple.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(8),
                   ),
-                  child: const Icon(Icons.person_rounded, size: 18, color: Colors.purple),
+                  child: const Icon(
+                    Icons.person_rounded,
+                    size: 18,
+                    color: Colors.purple,
+                  ),
                 ),
                 const SizedBox(width: 12),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text('Performed By', style: TextStyle(fontSize: 12, color: Colors.grey, fontWeight: FontWeight.w500)),
+                      const Text(
+                        'Performed By',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Colors.grey,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
                       const SizedBox(height: 2),
-                      Text(performedBy!, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Colors.black87)),
+                      Text(
+                        performedBy!,
+                        style: const TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.black87,
+                        ),
+                      ),
                     ],
                   ),
                 ),

@@ -28,7 +28,9 @@ class _DocumentSourcePickerState extends State<DocumentSourcePicker> {
 
   Future<void> _pickFile() async {
     try {
-      final allowed = widget.allowedExtensions ?? ['pdf', 'jpg', 'png', 'jpeg', 'doc', 'docx', 'xls', 'xlsx'];
+      final allowed =
+          widget.allowedExtensions ??
+          ['pdf', 'jpg', 'png', 'jpeg', 'doc', 'docx', 'xls', 'xlsx'];
       FilePickerResult? result = await FilePicker.pickFiles(
         type: FileType.custom,
         allowedExtensions: allowed,
@@ -51,7 +53,8 @@ class _DocumentSourcePickerState extends State<DocumentSourcePicker> {
         options: DocumentScannerOptions(
           documentFormats: const {DocumentFormat.jpeg},
           mode: ScannerMode.full, // Allows edge detection, cropping, filters
-          isGalleryImport: false, // Prevents importing from gallery since we have a separate button for that
+          isGalleryImport:
+              false, // Prevents importing from gallery since we have a separate button for that
           pageLimit: 1, // Only one document per upload field
         ),
       );
@@ -64,8 +67,9 @@ class _DocumentSourcePickerState extends State<DocumentSourcePicker> {
         if (images != null && images.isNotEmpty) {
           final file = File(images.first);
           final size = (file.lengthSync() / (1024 * 1024)).toStringAsFixed(2);
-          final name = 'Scanned_Doc_${DateTime.now().millisecondsSinceEpoch}.jpg';
-          
+          final name =
+              'Scanned_Doc_${DateTime.now().millisecondsSinceEpoch}.jpg';
+
           widget.onFileSelected(file, name, '$size MB');
         }
       }
@@ -87,7 +91,10 @@ class _DocumentSourcePickerState extends State<DocumentSourcePicker> {
           width: double.infinity,
           decoration: BoxDecoration(
             color: AppColors.primaryGreen.withOpacity(0.05),
-            border: Border.all(color: AppColors.primaryGreen.withOpacity(0.3), width: 2),
+            border: Border.all(
+              color: AppColors.primaryGreen.withOpacity(0.3),
+              width: 2,
+            ),
             borderRadius: BorderRadius.circular(AppSizes.radiusLarge),
           ),
           padding: EdgeInsets.symmetric(
@@ -114,13 +121,20 @@ class _DocumentSourcePickerState extends State<DocumentSourcePicker> {
               const Text(
                 'Select Document Source',
                 textAlign: TextAlign.center,
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppColors.textPrimary),
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                  color: AppColors.textPrimary,
+                ),
               ),
               const SizedBox(height: AppSizes.p4),
               Text(
                 'Supports ${(widget.allowedExtensions ?? ['pdf', 'jpg', 'png', 'jpeg', 'doc', 'docx', 'xls', 'xlsx']).map((e) => e.toUpperCase()).join(', ')} (Max 10MB)',
                 textAlign: TextAlign.center,
-                style: const TextStyle(color: AppColors.textSecondary, fontSize: 12),
+                style: const TextStyle(
+                  color: AppColors.textSecondary,
+                  fontSize: 12,
+                ),
               ),
               const SizedBox(height: AppSizes.p16),
 
@@ -138,7 +152,10 @@ class _DocumentSourcePickerState extends State<DocumentSourcePicker> {
                       style: ElevatedButton.styleFrom(
                         backgroundColor: AppColors.primaryGreen,
                         foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 12,
+                        ),
                         elevation: 0,
                       ),
                     ),
@@ -148,10 +165,19 @@ class _DocumentSourcePickerState extends State<DocumentSourcePicker> {
                     icon: const Icon(Icons.folder_open),
                     label: const Text('Browse Files'),
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: isMobile ? Colors.white : AppColors.primaryGreen,
-                      foregroundColor: isMobile ? AppColors.primaryGreen : Colors.white,
-                      side: isMobile ? const BorderSide(color: AppColors.primaryGreen) : BorderSide.none,
-                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                      backgroundColor: isMobile
+                          ? Colors.white
+                          : AppColors.primaryGreen,
+                      foregroundColor: isMobile
+                          ? AppColors.primaryGreen
+                          : Colors.white,
+                      side: isMobile
+                          ? const BorderSide(color: AppColors.primaryGreen)
+                          : BorderSide.none,
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 12,
+                      ),
                       elevation: 0,
                     ),
                   ),

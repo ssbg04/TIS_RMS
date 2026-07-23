@@ -76,11 +76,12 @@ class _RecycleBinModalState extends ConsumerState<RecycleBinModal> {
                       tooltip: 'Filter by Document Type',
                       onPressed: () {
                         final items = trashAsync.value ?? [];
-                        final docTypes = items
-                            .map((e) => e.documentType ?? 'Unknown')
-                            .toSet()
-                            .toList()
-                            ..sort();
+                        final docTypes =
+                            items
+                                .map((e) => e.documentType ?? 'Unknown')
+                                .toSet()
+                                .toList()
+                              ..sort();
                         _showFilterDialog(docTypes);
                       },
                     ),
@@ -94,13 +95,19 @@ class _RecycleBinModalState extends ConsumerState<RecycleBinModal> {
             Expanded(
               child: trashAsync.when(
                 loading: () => const Center(
-                  child: CircularProgressIndicator(color: AppColors.primaryGreen),
+                  child: CircularProgressIndicator(
+                    color: AppColors.primaryGreen,
+                  ),
                 ),
                 error: (err, _) => Center(
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      const Icon(Icons.error_outline, size: 48, color: AppColors.error),
+                      const Icon(
+                        Icons.error_outline,
+                        size: 48,
+                        color: AppColors.error,
+                      ),
                       const SizedBox(height: 12),
                       Text('Failed to load Recycle Bin: $err'),
                       TextButton(
@@ -112,10 +119,14 @@ class _RecycleBinModalState extends ConsumerState<RecycleBinModal> {
                 ),
                 data: (items) {
                   var filteredItems = items;
-                  
+
                   if (_selectedDocumentType != 'All Types') {
                     filteredItems = filteredItems
-                        .where((i) => (i.documentType ?? 'Unknown') == _selectedDocumentType)
+                        .where(
+                          (i) =>
+                              (i.documentType ?? 'Unknown') ==
+                              _selectedDocumentType,
+                        )
                         .toList();
                   }
 
@@ -152,7 +163,10 @@ class _RecycleBinModalState extends ConsumerState<RecycleBinModal> {
                           const SizedBox(height: 8),
                           const Text(
                             'Soft-deleted documents will appear here.',
-                            style: TextStyle(color: AppColors.textMuted, fontSize: 13),
+                            style: TextStyle(
+                              color: AppColors.textMuted,
+                              fontSize: 13,
+                            ),
                           ),
                         ],
                       ),
@@ -162,7 +176,8 @@ class _RecycleBinModalState extends ConsumerState<RecycleBinModal> {
                   return ListView.separated(
                     padding: const EdgeInsets.all(16),
                     itemCount: filteredItems.length,
-                    separatorBuilder: (context, index) => const Divider(height: 1),
+                    separatorBuilder: (context, index) =>
+                        const Divider(height: 1),
                     itemBuilder: (ctx, idx) {
                       final item = filteredItems[idx];
                       final isSelected = _selectedTrashIds.contains(item.id);
@@ -223,7 +238,9 @@ class _RecycleBinModalState extends ConsumerState<RecycleBinModal> {
                                       color: Colors.red.withValues(alpha: 0.1),
                                       borderRadius: BorderRadius.circular(12),
                                       border: Border.all(
-                                        color: Colors.red.withValues(alpha: 0.3),
+                                        color: Colors.red.withValues(
+                                          alpha: 0.3,
+                                        ),
                                       ),
                                     ),
                                     child: Text(
@@ -253,16 +270,25 @@ class _RecycleBinModalState extends ConsumerState<RecycleBinModal> {
                                 icon: const Icon(Icons.more_vert),
                                 onSelected: (val) {
                                   if (val == 'restore') _handleRestore(item.id);
-                                  if (val == 'delete') _handlePermanentDelete(item.id);
+                                  if (val == 'delete')
+                                    _handlePermanentDelete(item.id);
                                 },
                                 itemBuilder: (ctx) => [
                                   const PopupMenuItem(
                                     value: 'restore',
-                                    child: Text('Restore', style: TextStyle(color: AppColors.primaryGreen)),
+                                    child: Text(
+                                      'Restore',
+                                      style: TextStyle(
+                                        color: AppColors.primaryGreen,
+                                      ),
+                                    ),
                                   ),
                                   const PopupMenuItem(
                                     value: 'delete',
-                                    child: Text('DELETE', style: TextStyle(color: AppColors.error)),
+                                    child: Text(
+                                      'DELETE',
+                                      style: TextStyle(color: AppColors.error),
+                                    ),
                                   ),
                                 ],
                               )
@@ -283,7 +309,8 @@ class _RecycleBinModalState extends ConsumerState<RecycleBinModal> {
                                       color: AppColors.error,
                                     ),
                                     tooltip: 'Delete permanently',
-                                    onPressed: () => _handlePermanentDelete(item.id),
+                                    onPressed: () =>
+                                        _handlePermanentDelete(item.id),
                                   ),
                                 ],
                               ),
@@ -293,12 +320,15 @@ class _RecycleBinModalState extends ConsumerState<RecycleBinModal> {
                 },
               ),
             ),
-            
+
             // Batch Actions Bar (if any selected)
             if (_isMultiSelectMode && _selectedTrashIds.isNotEmpty) ...[
               const Divider(height: 1),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 20,
+                  vertical: 12,
+                ),
                 color: Colors.grey.shade50,
                 child: Row(
                   children: [
@@ -308,14 +338,19 @@ class _RecycleBinModalState extends ConsumerState<RecycleBinModal> {
                     ),
                     const Spacer(),
                     TextButton.icon(
-                      onPressed: () => _handleBulkRestore(_selectedTrashIds.toList()),
+                      onPressed: () =>
+                          _handleBulkRestore(_selectedTrashIds.toList()),
                       icon: const Icon(Icons.restore),
                       label: const Text('Restore All'),
-                      style: TextButton.styleFrom(foregroundColor: AppColors.primaryGreen),
+                      style: TextButton.styleFrom(
+                        foregroundColor: AppColors.primaryGreen,
+                      ),
                     ),
                     const SizedBox(width: 8),
                     ElevatedButton.icon(
-                      onPressed: () => _handleBulkPermanentDelete(_selectedTrashIds.toList()),
+                      onPressed: () => _handleBulkPermanentDelete(
+                        _selectedTrashIds.toList(),
+                      ),
                       icon: const Icon(Icons.delete_forever),
                       label: const Text('Delete All'),
                       style: ElevatedButton.styleFrom(
@@ -326,7 +361,7 @@ class _RecycleBinModalState extends ConsumerState<RecycleBinModal> {
                   ],
                 ),
               ),
-            ]
+            ],
           ],
         ),
       ),
@@ -336,7 +371,9 @@ class _RecycleBinModalState extends ConsumerState<RecycleBinModal> {
   Widget _buildMultiSelectToggle(bool isIconOnly) {
     final active = _isMultiSelectMode;
     final color = active ? AppColors.primaryGreen : AppColors.textSecondary;
-    final bgColor = active ? AppColors.primaryGreen.withValues(alpha: 0.1) : AppColors.surfaceWhite;
+    final bgColor = active
+        ? AppColors.primaryGreen.withValues(alpha: 0.1)
+        : AppColors.surfaceWhite;
     final borderColor = active ? AppColors.primaryGreen : Colors.grey.shade300;
 
     final child = Container(
@@ -386,7 +423,8 @@ class _RecycleBinModalState extends ConsumerState<RecycleBinModal> {
   Future<void> _handleRestore(int id) async {
     try {
       await ref.read(trashMutationProvider.notifier).restoreDocument(id);
-      if (mounted) showSuccessDialog(context, message: 'Document has been restored.');
+      if (mounted)
+        showSuccessDialog(context, message: 'Document has been restored.');
     } catch (e) {
       if (mounted) {
         showErrorDialog(
@@ -447,7 +485,8 @@ class _RecycleBinModalState extends ConsumerState<RecycleBinModal> {
 
     try {
       await ref.read(trashMutationProvider.notifier).permanentDelete(id);
-      if (mounted) showSuccessDialog(context, message: 'Document permanently deleted.');
+      if (mounted)
+        showSuccessDialog(context, message: 'Document permanently deleted.');
     } catch (e) {
       if (mounted) {
         showErrorDialog(
@@ -524,13 +563,18 @@ class _RecycleBinModalState extends ConsumerState<RecycleBinModal> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text('Document Type', style: TextStyle(fontWeight: FontWeight.bold)),
+              const Text(
+                'Document Type',
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
               const SizedBox(height: 8),
               DropdownButtonFormField<String>(
                 value: tempType,
                 isExpanded: true,
                 decoration: const InputDecoration(border: OutlineInputBorder()),
-                items: options.map((e) => DropdownMenuItem(value: e, child: Text(e))).toList(),
+                items: options
+                    .map((e) => DropdownMenuItem(value: e, child: Text(e)))
+                    .toList(),
                 onChanged: (v) => setDialogState(() => tempType = v!),
               ),
             ],
@@ -545,14 +589,19 @@ class _RecycleBinModalState extends ConsumerState<RecycleBinModal> {
                 setState(() => _selectedDocumentType = 'All Types');
                 Navigator.of(ctx).pop();
               },
-              child: const Text('RESET', style: TextStyle(color: AppColors.error)),
+              child: const Text(
+                'RESET',
+                style: TextStyle(color: AppColors.error),
+              ),
             ),
             FilledButton(
               onPressed: () {
                 setState(() => _selectedDocumentType = tempType);
                 Navigator.of(ctx).pop();
               },
-              style: FilledButton.styleFrom(backgroundColor: AppColors.primaryGreen),
+              style: FilledButton.styleFrom(
+                backgroundColor: AppColors.primaryGreen,
+              ),
               child: const Text('APPLY'),
             ),
           ],

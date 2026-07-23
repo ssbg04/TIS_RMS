@@ -10,17 +10,24 @@ class AuthRepository {
   static const _tokenKey = 'jwt_token';
   static const _rememberMeKey = 'remember_me';
 
-  Future<UserModel> login(String username, String password, {bool rememberMe = false}) async {
+  Future<UserModel> login(
+    String username,
+    String password, {
+    bool rememberMe = false,
+  }) async {
     try {
-      final response = await _dio.post('/auth/login', data: {
-        'username': username,
-        'password': password,
-      });
+      final response = await _dio.post(
+        '/auth/login',
+        data: {'username': username, 'password': password},
+      );
 
       final token = response.data['token'] as String;
       // Write to FlutterSecureStorage — consistent with all other repositories
       await _storage.write(key: _tokenKey, value: token);
-      await _storage.write(key: _rememberMeKey, value: rememberMe ? 'true' : 'false');
+      await _storage.write(
+        key: _rememberMeKey,
+        value: rememberMe ? 'true' : 'false',
+      );
 
       final userData = response.data['user'];
       return UserModel(
@@ -31,7 +38,8 @@ class AuthRepository {
         role: userData['role'],
       );
     } on DioException catch (e) {
-      final errorMessage = e.response?.data['message'] ?? 'Failed to connect to the server.';
+      final errorMessage =
+          e.response?.data['message'] ?? 'Failed to connect to the server.';
       throw Exception(errorMessage);
     }
   }
@@ -78,7 +86,8 @@ class AuthRepository {
       final response = await _dio.get('/auth/profile', options: options);
       return UserModel.fromJson(response.data);
     } on DioException catch (e) {
-      final errorMessage = e.response?.data['message'] ?? 'Failed to fetch profile.';
+      final errorMessage =
+          e.response?.data['message'] ?? 'Failed to fetch profile.';
       throw Exception(errorMessage);
     }
   }
@@ -94,17 +103,22 @@ class AuthRepository {
   }) async {
     try {
       final options = await _getAuthOptions();
-      await _dio.put('/auth/profile', options: options, data: {
-        'firstName': firstName,
-        'middleName': middleName,
-        'lastName': lastName,
-        'extension': extension,
-        'phone': phone,
-        'email': email,
-        'currentPassword': currentPassword,
-      });
+      await _dio.put(
+        '/auth/profile',
+        options: options,
+        data: {
+          'firstName': firstName,
+          'middleName': middleName,
+          'lastName': lastName,
+          'extension': extension,
+          'phone': phone,
+          'email': email,
+          'currentPassword': currentPassword,
+        },
+      );
     } on DioException catch (e) {
-      final errorMessage = e.response?.data['message'] ?? 'Failed to update profile.';
+      final errorMessage =
+          e.response?.data['message'] ?? 'Failed to update profile.';
       throw Exception(errorMessage);
     }
   }
@@ -116,13 +130,18 @@ class AuthRepository {
   }) async {
     try {
       final options = await _getAuthOptions();
-      await _dio.put('/auth/change-password', options: options, data: {
-        'currentPassword': currentPassword,
-        'newPassword': newPassword,
-        'confirmPassword': confirmPassword,
-      });
+      await _dio.put(
+        '/auth/change-password',
+        options: options,
+        data: {
+          'currentPassword': currentPassword,
+          'newPassword': newPassword,
+          'confirmPassword': confirmPassword,
+        },
+      );
     } on DioException catch (e) {
-      final errorMessage = e.response?.data['message'] ?? 'Failed to change password.';
+      final errorMessage =
+          e.response?.data['message'] ?? 'Failed to change password.';
       throw Exception(errorMessage);
     }
   }
@@ -134,13 +153,17 @@ class AuthRepository {
     required String confirmPassword,
   }) async {
     try {
-      await _dio.post('/auth/forgot-password', data: {
-        'username': username,
-        'newPassword': newPassword,
-        'confirmPassword': confirmPassword,
-      });
+      await _dio.post(
+        '/auth/forgot-password',
+        data: {
+          'username': username,
+          'newPassword': newPassword,
+          'confirmPassword': confirmPassword,
+        },
+      );
     } on DioException catch (e) {
-      final errorMessage = e.response?.data['message'] ?? 'Failed to submit request.';
+      final errorMessage =
+          e.response?.data['message'] ?? 'Failed to submit request.';
       throw Exception(errorMessage);
     }
   }
@@ -152,7 +175,8 @@ class AuthRepository {
       final response = await _dio.get('/auth/reset-requests', options: options);
       return List<Map<String, dynamic>>.from(response.data);
     } on DioException catch (e) {
-      final errorMessage = e.response?.data['message'] ?? 'Failed to fetch requests.';
+      final errorMessage =
+          e.response?.data['message'] ?? 'Failed to fetch requests.';
       throw Exception(errorMessage);
     }
   }
@@ -161,7 +185,10 @@ class AuthRepository {
   Future<void> approveResetRequest(int requestId) async {
     try {
       final options = await _getAuthOptions();
-      await _dio.put('/auth/reset-requests/$requestId/approve', options: options);
+      await _dio.put(
+        '/auth/reset-requests/$requestId/approve',
+        options: options,
+      );
     } on DioException catch (e) {
       final errorMessage = e.response?.data['message'] ?? 'Failed to approve.';
       throw Exception(errorMessage);
@@ -172,7 +199,10 @@ class AuthRepository {
   Future<void> rejectResetRequest(int requestId) async {
     try {
       final options = await _getAuthOptions();
-      await _dio.put('/auth/reset-requests/$requestId/reject', options: options);
+      await _dio.put(
+        '/auth/reset-requests/$requestId/reject',
+        options: options,
+      );
     } on DioException catch (e) {
       final errorMessage = e.response?.data['message'] ?? 'Failed to reject.';
       throw Exception(errorMessage);
@@ -183,9 +213,11 @@ class AuthRepository {
   Future<bool> verifyPassword(String password) async {
     try {
       final options = await _getAuthOptions();
-      await _dio.post('/auth/verify-password', options: options, data: {
-        'password': password,
-      });
+      await _dio.post(
+        '/auth/verify-password',
+        options: options,
+        data: {'password': password},
+      );
       return true;
     } catch (e) {
       return false;

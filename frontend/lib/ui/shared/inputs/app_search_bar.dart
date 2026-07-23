@@ -1,4 +1,3 @@
-
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/constants/app_colors.dart';
@@ -79,7 +78,7 @@ class _AppSearchBarState extends ConsumerState<AppSearchBar> {
         if (hasText) _isExpanded = true;
       });
     }
-    
+
     // Update overlay if history is visible
     if (_overlayEntry != null && widget.enableHistory) {
       _overlayEntry?.markNeedsBuild();
@@ -89,12 +88,14 @@ class _AppSearchBarState extends ConsumerState<AppSearchBar> {
   void _onFocusChanged() {
     if (mounted) {
       setState(() {
-        if (!_focusNode.hasFocus && widget.collapsible && _controller.text.trim().isEmpty) {
+        if (!_focusNode.hasFocus &&
+            widget.collapsible &&
+            _controller.text.trim().isEmpty) {
           _isExpanded = false;
         }
       });
     }
-    
+
     if (_focusNode.hasFocus && widget.enableHistory) {
       _showOverlay();
     } else {
@@ -102,7 +103,7 @@ class _AppSearchBarState extends ConsumerState<AppSearchBar> {
       Future.delayed(const Duration(milliseconds: 150), () {
         if (mounted && !_focusNode.hasFocus) {
           _removeOverlay();
-          
+
           // Auto collapse if empty and collapsible
           if (widget.collapsible && _controller.text.trim().isEmpty) {
             setState(() => _isExpanded = false);
@@ -119,15 +120,23 @@ class _AppSearchBarState extends ConsumerState<AppSearchBar> {
       if (!mounted || _overlayEntry != null || !_focusNode.hasFocus) return;
 
       _overlayEntry = OverlayEntry(
-        builder: (context) => Positioned(
-          width: widget.maxWidth,
-          child: CompositedTransformFollower(
-            link: _layerLink,
-            showWhenUnlinked: false,
-            offset: const Offset(0, 48),
-            child: _buildHistoryOverlay(),
-          ),
-        ),
+        builder: (ctx) {
+          final renderBox = context.findRenderObject() as RenderBox?;
+          final actualWidth = renderBox?.size.width;
+          final safeWidth =
+              actualWidth ??
+              (widget.maxWidth == double.infinity ? 400.0 : widget.maxWidth);
+
+          return Positioned(
+            width: safeWidth,
+            child: CompositedTransformFollower(
+              link: _layerLink,
+              showWhenUnlinked: false,
+              offset: const Offset(0, 48),
+              child: _buildHistoryOverlay(),
+            ),
+          );
+        },
       );
 
       Overlay.of(context).insert(_overlayEntry!);
@@ -149,60 +158,76 @@ class _AppSearchBarState extends ConsumerState<AppSearchBar> {
           groupId: _focusNode,
           child: Material(
             elevation: 4,
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(12),
-          child: Container(
-            constraints: const BoxConstraints(maxHeight: 200),
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: Colors.grey.shade200),
-            ),
-            child: ListView.builder(
-              padding: const EdgeInsets.symmetric(vertical: 8),
-              shrinkWrap: true,
-              itemCount: history.length,
-              itemBuilder: (context, index) {
-                final term = history[index];
-                return InkWell(
-                  onTap: () {
-                    _controller.text = term;
-                    if (widget.onSubmitted != null) {
-                      widget.onSubmitted!(term);
-                    }
-                    ref.read(searchHistoryProvider.notifier).addSearch(term);
-                    Future.delayed(const Duration(milliseconds: 50), () {
-                      if (mounted) _focusNode.unfocus();
-                    });
-                  },
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                    child: Row(
-                      children: [
-                        Icon(Icons.history, size: 18, color: Colors.grey.shade400),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: Text(
-                            term,
-                            style: const TextStyle(fontSize: 14, color: Colors.black87),
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(12),
+            child: Container(
+              constraints: const BoxConstraints(maxHeight: 200),
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: Colors.grey.shade200),
+              ),
+              child: ListView.builder(
+                padding: const EdgeInsets.symmetric(vertical: 8),
+                shrinkWrap: true,
+                itemCount: history.length,
+                itemBuilder: (context, index) {
+                  final term = history[index];
+                  return InkWell(
+                    onTap: () {
+                      _controller.text = term;
+                      if (widget.onSubmitted != null) {
+                        widget.onSubmitted!(term);
+                      }
+                      ref.read(searchHistoryProvider.notifier).addSearch(term);
+                      Future.delayed(const Duration(milliseconds: 50), () {
+                        if (mounted) _focusNode.unfocus();
+                      });
+                    },
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 10,
+                      ),
+                      child: Row(
+                        children: [
+                          Icon(
+                            Icons.history,
+                            size: 18,
+                            color: Colors.grey.shade400,
                           ),
-                        ),
-                        IconButton(
-                          icon: Icon(Icons.close, size: 16, color: Colors.grey.shade400),
-                          padding: EdgeInsets.zero,
-                          constraints: const BoxConstraints(),
-                          onPressed: () {
-                            ref.read(searchHistoryProvider.notifier).removeSearch(term);
-                          },
-                        ),
-                      ],
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Text(
+                              term,
+                              style: const TextStyle(
+                                fontSize: 14,
+                                color: Colors.black87,
+                              ),
+                            ),
+                          ),
+                          IconButton(
+                            icon: Icon(
+                              Icons.close,
+                              size: 16,
+                              color: Colors.grey.shade400,
+                            ),
+                            padding: EdgeInsets.zero,
+                            constraints: const BoxConstraints(),
+                            onPressed: () {
+                              ref
+                                  .read(searchHistoryProvider.notifier)
+                                  .removeSearch(term);
+                            },
+                          ),
+                        ],
+                      ),
                     ),
-                  ),
-                );
-              },
+                  );
+                },
+              ),
             ),
           ),
-        ),
-      );
+        );
       },
     );
   }
@@ -246,62 +271,71 @@ class _AppSearchBarState extends ConsumerState<AppSearchBar> {
       child: CompositedTransformTarget(
         link: _layerLink,
         child: Container(
-        width: widget.maxWidth,
-        height: 42.0,
-        decoration: BoxDecoration(
-          color: Colors.transparent,
-          borderRadius: BorderRadius.circular(12),
-        ),
-        child: TextField(
-          controller: _controller,
-          focusNode: _focusNode,
-          textInputAction: TextInputAction.search,
-          onSubmitted: _handleSubmit,
-          onChanged: widget.onChanged,
-          style: const TextStyle(fontSize: 14),
-          decoration: InputDecoration(
-            hintText: widget.hint,
-            hintStyle: TextStyle(fontSize: 13, color: Colors.grey.shade500),
-            prefixIcon: widget.hideIconWhenExpanded
-                ? null
-                : const Icon(Icons.search_rounded, size: 20, color: AppColors.primaryGreen),
-            prefixIconConstraints: widget.hideIconWhenExpanded
-                ? const BoxConstraints(minWidth: 16, minHeight: 0)
-                : const BoxConstraints(minWidth: 42, minHeight: 42),
-            suffixIcon: widget.showClear && (_hasText || _controller.text.isNotEmpty || (widget.collapsible && _isExpanded))
-                ? IconButton(
-                    icon: Icon(Icons.close_rounded, size: 18, color: Colors.grey.shade500),
-                    splashRadius: 16,
-                    onPressed: () {
-                      _focusNode.unfocus();
-                      _controller.clear();
-                      widget.onChanged?.call('');
-                      widget.onSubmitted?.call('');
-                      setState(() {
-                        _hasText = false;
-                        if (widget.collapsible) {
-                          _isExpanded = false;
-                        }
-                      });
-                    },
-                  )
-                : null,
-            filled: false,
-            isDense: true,
-            contentPadding: const EdgeInsets.only(top: 11, bottom: 11, right: 12),
-            border: const UnderlineInputBorder(
-              borderSide: BorderSide(color: Colors.black26),
-            ),
-            enabledBorder: const UnderlineInputBorder(
-              borderSide: BorderSide(color: Colors.black26),
-            ),
-            focusedBorder: const UnderlineInputBorder(
-              borderSide: BorderSide(color: AppColors.primaryGreen, width: 1.5),
+          width: widget.maxWidth,
+          height: 42.0,
+          decoration: BoxDecoration(
+            color: _focusNode.hasFocus
+                ? AppColors.primaryGreen.withValues(alpha: 0.05)
+                : Colors.transparent,
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: TextField(
+            controller: _controller,
+            focusNode: _focusNode,
+            textInputAction: TextInputAction.search,
+            onSubmitted: _handleSubmit,
+            onChanged: widget.onChanged,
+            style: const TextStyle(fontSize: 14),
+            decoration: InputDecoration(
+              hintText: widget.hint,
+              hintStyle: TextStyle(fontSize: 13, color: Colors.grey.shade500),
+              prefixIcon: widget.hideIconWhenExpanded
+                  ? null
+                  : const Icon(
+                      Icons.search_rounded,
+                      size: 20,
+                      color: AppColors.primaryGreen,
+                    ),
+              prefixIconConstraints: widget.hideIconWhenExpanded
+                  ? const BoxConstraints(minWidth: 16, minHeight: 0)
+                  : const BoxConstraints(minWidth: 42, minHeight: 42),
+              suffixIcon:
+                  widget.showClear &&
+                      (_hasText ||
+                          _controller.text.isNotEmpty ||
+                          (widget.collapsible && _isExpanded))
+                  ? IconButton(
+                      icon: Icon(
+                        Icons.close_rounded,
+                        size: 18,
+                        color: Colors.grey.shade500,
+                      ),
+                      splashRadius: 16,
+                      onPressed: () {
+                        _controller.clear();
+                        widget.onChanged?.call('');
+                        widget.onSubmitted?.call('');
+                        setState(() {
+                          _hasText = false;
+                        });
+                        _focusNode.requestFocus();
+                      },
+                    )
+                  : null,
+              filled: false,
+              isDense: true,
+              contentPadding: const EdgeInsets.only(
+                top: 11,
+                bottom: 11,
+                right: 12,
+              ),
+              border: InputBorder.none,
+              enabledBorder: InputBorder.none,
+              focusedBorder: InputBorder.none,
             ),
           ),
         ),
       ),
-    ),
     );
   }
 }
