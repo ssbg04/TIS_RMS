@@ -6,7 +6,7 @@ class StudentModel {
   final String lastName;
   final String? extension;
   final String sex;
-  final DateTime birthDate;
+  final DateTime? birthDate;
   final String status; // 'Enrolled', 'Graduated', 'Transferred', 'Dropped'
   final bool is4ps; // 4Ps beneficiary
   final int missingDocumentsCount;
@@ -24,7 +24,7 @@ class StudentModel {
     required this.lastName,
     this.extension,
     required this.sex,
-    required this.birthDate,
+    this.birthDate,
     this.status = 'Enrolled',
     this.is4ps = false,
     this.missingDocumentsCount = 0,
@@ -142,7 +142,7 @@ class StudentModel {
       lastName: json['last_name'] as String,
       extension: json['extension'] as String?,
       sex: json['sex'] as String,
-      birthDate: DateTime.parse(json['birth_date'] as String),
+      birthDate: json['birth_date'] != null ? DateTime.parse(json['birth_date'] as String) : null,
       status: json['status'] as String? ?? 'Enrolled',
       is4ps: (json['is_4ps'] as num?)?.toInt() == 1,
       missingDocumentsCount:
@@ -172,7 +172,7 @@ class StudentModel {
       'last_name': lastName,
       'extension': extension,
       'sex': sex,
-      'birth_date': birthDate.toIso8601String().split('T').first,
+      'birth_date': birthDate?.toIso8601String().split('T').first,
       'status': status,
       'is_4ps': is4ps ? 1 : 0,
     };
@@ -187,7 +187,7 @@ class StudentModel {
       'lastName': lastName,
       'extension': extension,
       'sex': sex,
-      'birthDate': birthDate.toIso8601String().split('T').first,
+      'birthDate': birthDate?.toIso8601String().split('T').first,
       'status': status,
       'is4ps': is4ps,
     };
@@ -201,6 +201,8 @@ class StudentModel {
     String? lastName,
     String? extension,
     String? sex,
+    // For nullable properties, use a specific check if we want to overwrite with null
+    // But copyWith usually doesn't clear nulls unless wrapped. For simplicity:
     DateTime? birthDate,
     String? status,
     bool? is4ps,

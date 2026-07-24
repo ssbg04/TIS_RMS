@@ -365,7 +365,7 @@ const initSchema = () => {
                 last_name TEXT NOT NULL,
                 extension TEXT,
                 sex TEXT CHECK(sex IN ('Male', 'Female')) NOT NULL,
-                birth_date DATE NOT NULL,
+                birth_date DATE,
                 status TEXT DEFAULT 'Enrolled', -- Enrolled, Graduated, Transferred, Dropped
                 is_4ps INTEGER DEFAULT 0, -- 1 = 4Ps beneficiary, 0 = not
                 created_at DATETIME DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ', 'now'))
@@ -377,6 +377,38 @@ const initSchema = () => {
         if (!studentCols.some(c => c.name === 'is_4ps')) {
             db.prepare("ALTER TABLE students ADD COLUMN is_4ps INTEGER DEFAULT 0").run();
             console.log('Migration: added is_4ps column to students table');
+        }
+
+        // Migration: make birth_date optional in students table
+        const birthDateCol = studentCols.find(c => c.name === 'birth_date');
+        if (birthDateCol && birthDateCol.notnull === 1) {
+            console.log('Migration: making birth_date optional in students table');
+            db.pragma('foreign_keys = OFF');
+            db.transaction(() => {
+                db.prepare(`
+                    CREATE TABLE students_new (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        lrn TEXT UNIQUE NOT NULL,
+                        first_name TEXT NOT NULL,
+                        middle_name TEXT,
+                        last_name TEXT NOT NULL,
+                        extension TEXT,
+                        sex TEXT CHECK(sex IN ('Male', 'Female')) NOT NULL,
+                        birth_date DATE,
+                        status TEXT DEFAULT 'Enrolled',
+                        is_4ps INTEGER DEFAULT 0,
+                        created_at DATETIME DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ', 'now'))
+                    )
+                `).run();
+                db.prepare(`
+                    INSERT INTO students_new (id, lrn, first_name, middle_name, last_name, extension, sex, birth_date, status, is_4ps, created_at)
+                    SELECT id, lrn, first_name, middle_name, last_name, extension, sex, birth_date, status, is_4ps, created_at FROM students
+                `).run();
+                db.prepare('DROP TABLE students').run();
+                db.prepare('ALTER TABLE students_new RENAME TO students').run();
+            })();
+            db.pragma('foreign_keys = ON');
+            console.log('Migration: birth_date is now optional');
         }
 
         // 4. Enrollments Table

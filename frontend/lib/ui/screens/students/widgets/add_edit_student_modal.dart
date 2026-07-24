@@ -135,8 +135,7 @@ class _AddEditStudentModalState extends ConsumerState<AddEditStudentModal> {
       _lrnController.text.isNotEmpty ||
       _firstNameController.text.isNotEmpty ||
       _middleNameController.text.isNotEmpty ||
-      _lastNameController.text.isNotEmpty ||
-      _selectedDob != null;
+      _lastNameController.text.isNotEmpty;
 
   Future<void> _confirmClose() async {
     // If editing, or nothing entered yet — close immediately
@@ -403,20 +402,6 @@ class _AddEditStudentModalState extends ConsumerState<AddEditStudentModal> {
     return null;
   }
 
-  Future<void> _selectDate() async {
-    final picked = await DatePicker.showSimpleDatePicker(
-      context,
-      initialDate: _selectedDob ?? DateTime(2010),
-      firstDate: DateTime(1980),
-      lastDate: DateTime.now(),
-      dateFormat: "dd-MMMM-yyyy",
-      locale: DateTimePickerLocale.en_us,
-      looping: true,
-      textColor: AppColors.textPrimary,
-    );
-    if (picked != null) setState(() => _selectedDob = picked);
-  }
-
   // ----------------------------------------------------------------
   // VALIDATION DIALOG
   // ----------------------------------------------------------------
@@ -474,8 +459,7 @@ class _AddEditStudentModalState extends ConsumerState<AddEditStudentModal> {
 
     if (lrnErr != null ||
         fnErr != null ||
-        lnErr != null ||
-        _selectedDob == null) {
+        lnErr != null) {
       setState(() => _currentStep = widget.student != null ? 0 : 1);
       _studentFormKey.currentState?.validate();
       // Build a descriptive message listing all missing fields
@@ -483,7 +467,6 @@ class _AddEditStudentModalState extends ConsumerState<AddEditStudentModal> {
       if (lrnErr != null) missing.add('LRN ($lrnErr)');
       if (fnErr != null) missing.add('First Name');
       if (lnErr != null) missing.add('Last Name');
-      if (_selectedDob == null) missing.add('Date of Birth');
       _showValidationDialog(
         'Please fill in all required fields:\n\n${missing.map((e) => '• $e').join('\n')}',
       );
@@ -560,7 +543,7 @@ class _AddEditStudentModalState extends ConsumerState<AddEditStudentModal> {
               ? null
               : _extController.text.trim(),
           sex: _selectedSex,
-          birthDate: _selectedDob!,
+          birthDate: _selectedDob,
           academicYearId: _selectedAcademicYearId!,
           gradeLevel: _selectedGradeLevel!,
           sectionId: _selectedSectionId!,
@@ -580,7 +563,7 @@ class _AddEditStudentModalState extends ConsumerState<AddEditStudentModal> {
               ? null
               : _extController.text.trim(),
           sex: _selectedSex,
-          birthDate: _selectedDob!,
+          birthDate: _selectedDob,
           status: _selectedStatus,
           academicYearId: _selectedAcademicYearId!,
           gradeLevel: _selectedGradeLevel!,
@@ -1026,7 +1009,7 @@ class _AddEditStudentModalState extends ConsumerState<AddEditStudentModal> {
                                       _UpperCaseWordsFormatter(),
                                     ],
                                     decoration: const InputDecoration(
-                                      labelText: 'MIDDLE NAME (optional)',
+                                      labelText: 'MIDDLE NAME (Optional)',
                                       prefixIcon: Icon(Icons.badge_outlined),
                                     ),
                                   ),
@@ -1072,7 +1055,7 @@ class _AddEditStudentModalState extends ConsumerState<AddEditStudentModal> {
                               textCapitalization: TextCapitalization.characters,
                               inputFormatters: [_UpperCaseWordsFormatter()],
                               decoration: const InputDecoration(
-                                labelText: 'MIDDLE NAME',
+                                labelText: 'MIDDLE NAME (Optional)',
                               ),
                             ),
                             const SizedBox(height: AppSizes.p12),
@@ -1115,31 +1098,13 @@ class _AddEditStudentModalState extends ConsumerState<AddEditStudentModal> {
                   const SizedBox(height: AppSizes.p12),
 
                   // DOB
-                  GestureDetector(
-                    onTap: _selectDate,
-                    child: InputDecorator(
-                      decoration: InputDecoration(
-                        labelText: 'DATE OF BIRTH',
-                        prefixIcon: const Icon(
-                          Icons.calendar_today,
-                          color: AppColors.textSecondary,
-                        ),
-                        errorText: null,
-                      ),
-                      child: Text(
-                        _selectedDob == null
-                            ? 'Select date…'
-                            : '${_selectedDob!.year}-'
-                                  '${_selectedDob!.month.toString().padLeft(2, '0')}-'
-                                  '${_selectedDob!.day.toString().padLeft(2, '0')}',
-                        style: TextStyle(
-                          color: _selectedDob == null
-                              ? AppColors.textMuted
-                              : AppColors.textPrimary,
-                          fontSize: 16,
-                        ),
-                      ),
-                    ),
+                  _DobPicker(
+                    initialDate: _selectedDob,
+                    onChanged: (val) {
+                      setState(() {
+                        _selectedDob = val;
+                      });
+                    },
                   ),
                   const SizedBox(height: AppSizes.p16),
 
@@ -1694,7 +1659,6 @@ class _ExtensionNameField extends StatelessWidget {
           decoration: const InputDecoration(
             labelText: 'SUFFIX (Optional)',
             hintText: 'Jr. / III',
-            prefixIcon: Icon(Icons.text_format),
           ),
           onFieldSubmitted: (_) => onSubmit(),
         );
@@ -1747,6 +1711,150 @@ class _ExtensionNameField extends StatelessWidget {
           ),
         );
       },
+    );
+  }
+}
+class _DobPicker extends StatefulWidget {
+  final DateTime? initialDate;
+  final ValueChanged<DateTime?> onChanged;
+
+  const _DobPicker({Key? key, this.initialDate, required this.onChanged})
+      : super(key: key);
+
+  @override
+  State<_DobPicker> createState() => _DobPickerState();
+}
+
+class _DobPickerState extends State<_DobPicker> {
+  int? _month;
+  int? _day;
+  late final TextEditingController _yearController;
+
+  static const List<String> _months = [
+    'January', 'February', 'March', 'April', 'May', 'June',
+    'July', 'August', 'September', 'October', 'November', 'December'
+  ];
+
+  @override
+  void initState() {
+    super.initState();
+    _yearController = TextEditingController();
+    if (widget.initialDate != null) {
+      _month = widget.initialDate!.month;
+      _day = widget.initialDate!.day;
+      _yearController.text = widget.initialDate!.year.toString();
+    }
+  }
+
+  @override
+  void dispose() {
+    _yearController.dispose();
+    super.dispose();
+  }
+
+  int _getDaysInMonth(int? month, int? year) {
+    if (month == null) return 31;
+    if (month == 2) {
+      if (year != null && (year % 4 == 0 && (year % 100 != 0 || year % 400 == 0))) {
+        return 29;
+      }
+      return 28;
+    }
+    if ([4, 6, 9, 11].contains(month)) return 30;
+    return 31;
+  }
+
+  void _update() {
+    int? year = int.tryParse(_yearController.text);
+    int maxDays = _getDaysInMonth(_month, year);
+    if (_day != null && _day! > maxDays) {
+      _day = maxDays;
+    }
+    
+    if (_month != null && _day != null && year != null && _yearController.text.length == 4) {
+      widget.onChanged(DateTime(year, _month!, _day!));
+    } else {
+      widget.onChanged(null);
+    }
+    setState(() {});
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    int? year = int.tryParse(_yearController.text);
+    int maxDays = _getDaysInMonth(_month, year);
+    
+    return InputDecorator(
+      decoration: const InputDecoration(
+        labelText: 'DATE OF BIRTH (Optional)',
+        prefixIcon: Icon(Icons.calendar_today, color: AppColors.textSecondary),
+        contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            flex: 4,
+            child: DropdownButtonHideUnderline(
+              child: DropdownButton<int>(
+                isExpanded: true,
+                hint: const Text('Month', style: TextStyle(fontSize: 14)),
+                value: _month,
+                items: List.generate(12, (index) {
+                  return DropdownMenuItem(
+                    value: index + 1,
+                    child: Text(_months[index], style: const TextStyle(fontSize: 14)),
+                  );
+                }),
+                onChanged: (val) {
+                  _month = val;
+                  _update();
+                },
+              ),
+            ),
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            flex: 2,
+            child: DropdownButtonHideUnderline(
+              child: DropdownButton<int>(
+                isExpanded: true,
+                hint: const Text('Day', style: TextStyle(fontSize: 14)),
+                value: _day,
+                items: List.generate(maxDays, (index) {
+                  return DropdownMenuItem(
+                    value: index + 1,
+                    child: Text('\', style: const TextStyle(fontSize: 14)),
+                  );
+                }),
+                onChanged: (val) {
+                  _day = val;
+                  _update();
+                },
+              ),
+            ),
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            flex: 3,
+            child: TextField(
+              controller: _yearController,
+              keyboardType: TextInputType.number,
+              maxLength: 4,
+              style: const TextStyle(fontSize: 14),
+              decoration: const InputDecoration(
+                hintText: 'Year',
+                counterText: '',
+                border: InputBorder.none,
+                enabledBorder: InputBorder.none,
+                focusedBorder: InputBorder.none,
+                isDense: true,
+                contentPadding: EdgeInsets.zero,
+              ),
+              onChanged: (_) => _update(),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

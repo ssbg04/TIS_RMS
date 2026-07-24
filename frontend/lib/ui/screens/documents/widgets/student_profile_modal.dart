@@ -318,7 +318,7 @@ class StudentProfileModalBody extends ConsumerWidget {
             runSpacing: 8,
             children: [
               _buildInfoItem('Sex', student.sex ?? 'N/A'),
-              _buildInfoItem('Birth Date', _formatDate(student.birthDate)),
+              _buildInfoItem('Birth Date', student.birthDate != null ? _formatDate(student.birthDate!) : 'N/A'),
               _build4psItem(student.is4ps),
             ],
           ),

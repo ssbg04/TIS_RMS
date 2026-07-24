@@ -271,8 +271,7 @@ exports.createStudent = (req, res) => {
     if (!firstName || !firstName.trim())     errors.push('First name is required.');
     if (!lastName  || !lastName.trim())      errors.push('Last name is required.');
     if (!sex       || !['Male', 'Female'].includes(sex)) errors.push('Sex must be Male or Female.');
-    if (!birthDate)                          errors.push('Date of birth is required.');
-    else {
+    if (birthDate) {
         const dob = new Date(birthDate);
         if (isNaN(dob.getTime()))            errors.push('Invalid date of birth format.');
         else if (dob > new Date())           errors.push('Date of birth cannot be in the future.');
@@ -300,7 +299,7 @@ exports.createStudent = (req, res) => {
                 lastName.trim(),
                 extension?.trim()  || null,
                 sex,
-                birthDate,
+                birthDate || null,
                 is4ps ? 1 : 0
             );
 
@@ -430,7 +429,11 @@ exports.updateStudent = (req, res) => {
     if (!firstName || !firstName.trim())     errors.push('First name is required.');
     if (!lastName  || !lastName.trim())      errors.push('Last name is required.');
     if (!sex       || !['Male', 'Female'].includes(sex)) errors.push('Sex must be Male or Female.');
-    if (!birthDate)                          errors.push('Date of birth is required.');
+    if (birthDate) {
+        const dob = new Date(birthDate);
+        if (isNaN(dob.getTime()))            errors.push('Invalid date of birth format.');
+        else if (dob > new Date())           errors.push('Date of birth cannot be in the future.');
+    }
     if (status && !['Enrolled', 'Graduated', 'Transferred', 'Dropped', 'Inactive'].includes(status)) {
         errors.push('Invalid status value.');
     }
@@ -467,7 +470,7 @@ exports.updateStudent = (req, res) => {
                 lastName.trim(),
                 extension?.trim()  || null,
                 sex,
-                birthDate,
+                birthDate || null,
                 status || 'Enrolled',
                 is4ps ? 1 : 0,
                 id
