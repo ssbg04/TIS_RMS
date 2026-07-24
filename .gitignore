@@ -32,4 +32,7 @@ backend/test_*.js
 frontend/.dart_tool/
 frontend/build/
 frontend/.flutter-plugins
-frontend/.flutter-plugins-dependencies
+frontend/.flutter-plugins-dependencies
+# Backup logs
+backend/data/backup_info.json
+backend/data/backup_logs.txt
