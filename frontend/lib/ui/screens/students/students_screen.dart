@@ -1898,6 +1898,7 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
   // PAGINATION CONTROLS
   // ================================================================
   Widget _buildPagination(StudentQueryParams query, dynamic page) {
+    if (_searchFocusNode.hasFocus) return const SizedBox.shrink();
     return AppPagination(
       currentPage: query.page,
       totalPages: page.totalPages as int,

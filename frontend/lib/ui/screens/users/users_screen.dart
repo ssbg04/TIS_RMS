@@ -438,7 +438,7 @@ class _UsersScreenState extends ConsumerState<UsersScreen> {
     return Scaffold(
       backgroundColor: Colors.transparent,
       floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
-      floatingActionButton: MediaQuery.of(context).size.width > 800
+      floatingActionButton: MediaQuery.of(context).size.width > 800 || _searchFocusNode.hasFocus
           ? null
           : Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16.0),
