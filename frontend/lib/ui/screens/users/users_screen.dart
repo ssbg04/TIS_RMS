@@ -8,6 +8,7 @@ import '../../../domain/entities/system_user.dart';
 import '../../shared/inputs/custom_text_field.dart';
 import '../../shared/inputs/app_search_bar.dart';
 import '../../shared/buttons/primary_button.dart';
+import '../../shared/widgets/app_pagination.dart';
 import '../../providers/users_provider.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/navigation_provider.dart';
@@ -28,14 +29,20 @@ class UsersScreen extends ConsumerStatefulWidget {
 
 class _UsersScreenState extends ConsumerState<UsersScreen> {
   final TextEditingController _searchController = TextEditingController();
+  final FocusNode _searchFocusNode = FocusNode();
   String _searchQuery = '';
   String _roleFilter = 'all'; // 'all', 'admin', 'teacher'
+  int _currentPage = 1;
+  final int _itemsPerPage = 10;
 
   @override
   void initState() {
     super.initState();
     _searchController.addListener(() {
-      setState(() => _searchQuery = _searchController.text.toLowerCase());
+      setState(() {
+        _searchQuery = _searchController.text.toLowerCase();
+        _currentPage = 1;
+      });
     });
     WidgetsBinding.instance.addPostFrameCallback((_) {
       ref.invalidate(resetRequestsProvider);
@@ -45,6 +52,7 @@ class _UsersScreenState extends ConsumerState<UsersScreen> {
   @override
   void dispose() {
     _searchController.dispose();
+    _searchFocusNode.dispose();
     super.dispose();
   }
 
@@ -376,6 +384,7 @@ class _UsersScreenState extends ConsumerState<UsersScreen> {
       onTap: () {
         setState(() {
           _roleFilter = value;
+          _currentPage = 1;
         });
       },
       child: AnimatedContainer(
@@ -493,26 +502,43 @@ class _UsersScreenState extends ConsumerState<UsersScreen> {
                   ),
                   data: (users) {
                     final filtered = _filter(users);
+                    final int totalPages = (filtered.length / _itemsPerPage).ceil();
+                    final int startIndex = (_currentPage - 1) * _itemsPerPage;
+                    final int endIndex = (startIndex + _itemsPerPage).clamp(0, filtered.length);
+                    final paginated = filtered.isEmpty ? <SystemUser>[] : filtered.sublist(startIndex, endIndex);
+
                     return Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        SingleChildScrollView(
-                          scrollDirection: Axis.horizontal,
-                          child: Row(
-                            children: [
-                              _buildAnimatedFilter('All', 'all', users.length),
-                              _buildAnimatedFilter(
-                                'Admin',
-                                'admin',
-                                users.where((u) => u.role == 'admin').length,
+                        Row(
+                          children: [
+                            Expanded(
+                              child: SingleChildScrollView(
+                                scrollDirection: Axis.horizontal,
+                                child: Row(
+                                  children: [
+                                    _buildAnimatedFilter('All', 'all', users.length),
+                                    _buildAnimatedFilter(
+                                      'Admin',
+                                      'admin',
+                                      users.where((u) => u.role == 'admin').length,
+                                    ),
+                                    _buildAnimatedFilter(
+                                      'Teacher',
+                                      'teacher',
+                                      users.where((u) => u.role == 'teacher').length,
+                                    ),
+                                  ],
+                                ),
                               ),
-                              _buildAnimatedFilter(
-                                'Teacher',
-                                'teacher',
-                                users.where((u) => u.role == 'teacher').length,
+                            ),
+                            if (!_searchFocusNode.hasFocus)
+                              IconButton(
+                                icon: const Icon(Icons.search, size: 28, color: Colors.black87),
+                                tooltip: 'Search Users',
+                                onPressed: () => _showSearchDialog(context),
                               ),
-                            ],
-                          ),
+                          ],
                         ),
                         const SizedBox(height: AppSizes.p16),
                         Expanded(
@@ -521,14 +547,23 @@ class _UsersScreenState extends ConsumerState<UsersScreen> {
                             child: LayoutBuilder(
                               builder: (context, constraints) {
                                 if (constraints.maxWidth > 800) {
-                                  return _buildDesktopTable(filtered);
+                                  return _buildDesktopTable(paginated);
                                 } else {
-                                  return _buildMobileList(filtered);
+                                  return _buildMobileList(paginated);
                                 }
                               },
                             ),
                           ),
                         ),
+                        if (!_searchFocusNode.hasFocus && totalPages > 1)
+                          SafeArea(
+                            top: false,
+                            child: AppPagination(
+                              currentPage: _currentPage,
+                              totalPages: totalPages,
+                              onPageChanged: (p) => setState(() => _currentPage = p),
+                            ),
+                          ),
                       ],
                     );
                   },
@@ -621,25 +656,41 @@ class _UsersScreenState extends ConsumerState<UsersScreen> {
           'Manage system accounts and access roles.',
           style: TextStyle(fontSize: 14, color: AppColors.textSecondary),
         ),
-        const SizedBox(height: AppSizes.p16),
-        IntrinsicHeight(
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Expanded(
-                flex: 2,
-                child: AppSearchBar(
-                  hint: 'Search by username, name or role...',
-                  controller: _searchController,
-                  maxWidth: double.infinity,
-                ),
-              ),
-              // Reset button removed based on updated requirements
-            ],
-          ),
-        ),
       ],
     );
+  }
+
+  void _showSearchDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      barrierColor: Colors.black54,
+      builder: (context) {
+        return Align(
+          alignment: Alignment.topCenter,
+          child: Padding(
+            padding: const EdgeInsets.only(top: kToolbarHeight + 24),
+            child: Material(
+              color: Colors.white,
+              elevation: 4,
+              borderRadius: BorderRadius.circular(12),
+              child: AppSearchBar(
+                hint: 'Search by username, name or role...',
+                controller: _searchController,
+                focusNode: _searchFocusNode,
+                collapsible: false,
+                maxWidth: 600,
+              ),
+            ),
+          ),
+        );
+      },
+    );
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        _searchFocusNode.requestFocus();
+      }
+    });
   }
 
   Widget _buildDesktopTable(List<SystemUser> users) {

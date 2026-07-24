@@ -30,6 +30,7 @@ class ArchivesScreen extends ConsumerStatefulWidget {
 class _ArchivesScreenState extends ConsumerState<ArchivesScreen>
     with SingleTickerProviderStateMixin {
   final TextEditingController _searchController = TextEditingController();
+  final FocusNode _searchFocusNode = FocusNode();
   Timer? _debounce;
   Timer? _pollingTimer;
   late final TabController _tabController;
@@ -131,12 +132,14 @@ class _ArchivesScreenState extends ConsumerState<ArchivesScreen>
             setState(() {
               _openedFolderStudentId = current.id;
               _openedFolderName = current.name;
+              if (_searchController.text.isNotEmpty) _searchController.clear();
             });
             if (mounted && _tabController.index != 0) {
               _tabController.index = 0;
             }
             WidgetsBinding.instance.addPostFrameCallback((_) {
               if (!mounted) return;
+              ref.read(archiveDocumentQueryProvider.notifier).setSearch('');
               // Trigger refresh/fetch if needed, or query updates
               ref
                   .read(archiveDocumentQueryProvider.notifier)
@@ -176,6 +179,7 @@ class _ArchivesScreenState extends ConsumerState<ArchivesScreen>
     _pollingTimer?.cancel();
     _tabController.dispose();
     _searchController.dispose();
+    _searchFocusNode.dispose();
     _debounce?.cancel();
     super.dispose();
   }
@@ -515,6 +519,44 @@ class _ArchivesScreenState extends ConsumerState<ArchivesScreen>
     );
   }
 
+  void _showSearchDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      barrierColor: Colors.black54,
+      builder: (context) {
+        return Align(
+          alignment: Alignment.topCenter,
+          child: Padding(
+            padding: const EdgeInsets.only(top: kToolbarHeight + 24),
+            child: Material(
+              color: Colors.white,
+              elevation: 4,
+              borderRadius: BorderRadius.circular(12),
+              child: AppSearchBar(
+                hint: 'Search by name, LRN, file…',
+                controller: _searchController,
+                focusNode: _searchFocusNode,
+                collapsible: false,
+                maxWidth: 600,
+                onChanged: _onSearchChanged,
+                onSubmitted: (value) {
+                  Navigator.of(context).pop();
+                  _onSearchSubmitted(value);
+                },
+              ),
+            ),
+          ),
+        );
+      },
+    );
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        _searchFocusNode.requestFocus();
+      }
+    });
+  }
+
   // ════════════════════════════════════════════════════════════════
   // TOP HEADER
   // ════════════════════════════════════════════════════════════════
@@ -527,154 +569,133 @@ class _ArchivesScreenState extends ConsumerState<ArchivesScreen>
     return Container(
       color: AppColors.surfaceWhite,
       padding: EdgeInsets.symmetric(horizontal: hPad, vertical: 12),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              // Back / archive icon
-              IconButton(
-                icon: Icon(
-                  isFolderOpened
-                      ? Icons.arrow_back_ios_new_rounded
-                      : Icons.archive_rounded,
-                  size: 20,
-                ),
-                color: AppColors.primaryGreen,
-                tooltip: isFolderOpened ? 'Back to Folders' : null,
-                onPressed: isFolderOpened
-                    ? () {
-                        setState(() {
-                          _openedFolderStudentId = null;
-                          _openedFolderName = null;
-                          _isMultiSelectMode = false;
-                          _selectedDocumentIds.clear();
-                        });
-                        ref
-                            .read(archiveDocumentQueryProvider.notifier)
-                            .setStudentId(null);
-                      }
-                    : null,
-              ),
-              const SizedBox(width: 6),
-
-              // Screen title
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      _openedFolderName ?? 'System Archive',
-                      style: TextStyle(
-                        fontSize: isMobile ? 17 : 21,
-                        fontWeight: FontWeight.bold,
-                        color: AppColors.textPrimary,
-                      ),
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    if (!isFolderOpened)
-                      const Text(
-                        'Graduated · Transferred · Dropped · Enrolled Archived Docs',
-                        style: TextStyle(
-                          fontSize: 11,
-                          color: AppColors.textMuted,
-                        ),
-                      ),
-                  ],
-                ),
-              ),
-            ],
+          // Back / archive icon
+          IconButton(
+            icon: Icon(
+              isFolderOpened
+                  ? Icons.arrow_back_ios_new_rounded
+                  : Icons.archive_rounded,
+              size: 20,
+            ),
+            color: AppColors.primaryGreen,
+            tooltip: isFolderOpened ? 'Back to Folders' : null,
+            onPressed: isFolderOpened
+                ? () {
+                    setState(() {
+                      _openedFolderStudentId = null;
+                      _openedFolderName = null;
+                      _isMultiSelectMode = false;
+                      _selectedDocumentIds.clear();
+                    });
+                    ref
+                        .read(archiveDocumentQueryProvider.notifier)
+                        .setStudentId(null);
+                  }
+                : null,
           ),
+          const SizedBox(width: 6),
 
-          const SizedBox(height: 10),
-
-          // ── Search + Icon-controls row ──
-          Row(
-            children: [
-              Expanded(
-                child: LayoutBuilder(
-                  builder: (context, constraints) => Align(
-                    alignment: Alignment.centerLeft,
-                    child: AppSearchBar(
-                      hint: 'Search by name, LRN, file…',
-                      controller: _searchController,
-                      collapsible: true,
-                      hideIconWhenExpanded: true,
-                      onChanged: _onSearchChanged,
-                      onSubmitted: _onSearchSubmitted,
-                      maxWidth: constraints.maxWidth,
+          // Screen title
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  _openedFolderName ?? 'System Archive',
+                  style: TextStyle(
+                    fontSize: isMobile ? 17 : 21,
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.textPrimary,
+                  ),
+                  overflow: TextOverflow.ellipsis,
+                ),
+                if (!isFolderOpened)
+                  const Text(
+                    'Graduated · Transferred · Dropped · Enrolled Archived Docs',
+                    style: TextStyle(
+                      fontSize: 11,
+                      color: AppColors.textMuted,
                     ),
                   ),
-                ),
-              ),
-              const SizedBox(width: 8),
-
-              if (_tabController.index == 1 || isFolderOpened) ...[
-                // Filter button
-                SizedBox(
-                  height: 42,
-                  child: Tooltip(
-                    message: 'Filter Documents',
-                    child: InkWell(
-                      onTap: _openFilterDialog,
-                      borderRadius: BorderRadius.circular(8),
-                      child: Container(
-                        padding: EdgeInsets.symmetric(
-                          horizontal: isMobile ? 12 : 14,
-                          vertical: 8,
-                        ),
-                        decoration: BoxDecoration(
-                          color: AppColors.surfaceWhite,
-                          border: Border.all(
-                            color: Colors.grey.shade300,
-                            width: 1.2,
-                          ),
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Badge(
-                              isLabelVisible: _getActiveFilterCount() > 0,
-                              label: Text(_getActiveFilterCount().toString()),
-                              child: const Icon(
-                                Icons.tune_rounded,
-                                size: 18,
-                                color: AppColors.primaryGreen,
-                              ),
-                            ),
-                            if (!isMobile) ...[
-                              const SizedBox(width: 6),
-                              const Text(
-                                'Filter',
-                                style: TextStyle(
-                                  fontSize: 13,
-                                  fontWeight: FontWeight.w600,
-                                  color: AppColors.primaryGreen,
-                                ),
-                              ),
-                            ],
-                          ],
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 8),
-                const SizedBox(width: 8),
               ],
+            ),
+          ),
+          
+          if (!isFolderOpened) ...[
+            IconButton(
+              icon: const Icon(Icons.search, size: 28, color: Colors.black87),
+              tooltip: 'Search Archives',
+              onPressed: () => _showSearchDialog(context),
+            ),
+            const SizedBox(width: 8),
+          ],
 
-              // View toggle
-              _buildIconToggle(
-                icon: _isGridView
-                    ? Icons.view_list_rounded
-                    : Icons.grid_view_rounded,
-                isActive: false,
-                tooltip: _isGridView ? 'Switch to List' : 'Switch to Grid',
-                onTap: () => setState(() => _isGridView = !_isGridView),
+          if (_tabController.index == 1 || isFolderOpened) ...[
+            // Filter button
+            SizedBox(
+              height: 42,
+              child: Tooltip(
+                message: 'Filter Documents',
+                child: InkWell(
+                  onTap: _openFilterDialog,
+                  borderRadius: BorderRadius.circular(8),
+                  child: Container(
+                    padding: EdgeInsets.symmetric(
+                      horizontal: isMobile ? 12 : 14,
+                      vertical: 8,
+                    ),
+                    decoration: BoxDecoration(
+                      color: AppColors.surfaceWhite,
+                      border: Border.all(
+                        color: Colors.grey.shade300,
+                        width: 1.2,
+                      ),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Badge(
+                          isLabelVisible: _getActiveFilterCount() > 0,
+                          label: Text(_getActiveFilterCount().toString()),
+                          child: const Icon(
+                            Icons.tune_rounded,
+                            size: 18,
+                            color: AppColors.primaryGreen,
+                          ),
+                        ),
+                        if (!isMobile) ...[
+                          const SizedBox(width: 6),
+                          const Text(
+                            'Filter',
+                            style: TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w600,
+                              color: AppColors.primaryGreen,
+                            ),
+                          ),
+                        ],
+                      ],
+                    ),
+                  ),
+                ),
               ),
-            ],
+            ),
+            const SizedBox(width: 8),
+          ],
+
+          // View toggle
+          _buildIconToggle(
+            icon: _isGridView
+                ? Icons.view_list_rounded
+                : Icons.grid_view_rounded,
+            isActive: false,
+            tooltip: _isGridView ? 'Switch to List' : 'Switch to Grid',
+            onTap: () => setState(() => _isGridView = !_isGridView),
           ),
         ],
       ),
@@ -1397,6 +1418,7 @@ class _ArchivesScreenState extends ConsumerState<ArchivesScreen>
   }
 
   Widget _buildFoldersPagination(int totalPages, int currentPage) {
+    if (_searchFocusNode.hasFocus) return const SizedBox.shrink();
     return SafeArea(
       top: false,
       child: AppPagination(
@@ -2054,6 +2076,7 @@ class _ArchivesScreenState extends ConsumerState<ArchivesScreen>
   // PAGINATION
   // ════════════════════════════════════════════════════════════════
   Widget _buildPagination(int totalPages, int currentPage) {
+    if (_searchFocusNode.hasFocus) return const SizedBox.shrink();
     return SafeArea(
       top: false,
       child: AppPagination(
