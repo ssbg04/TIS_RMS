@@ -590,7 +590,8 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
   void _openDocumentsFolder(StudentModel student) {
     if (student.status == 'Graduated' ||
         student.status == 'Transferred' ||
-        student.status == 'Dropped') {
+        student.status == 'Dropped' ||
+        student.status == 'Inactive') {
       ref.read(activeTabProvider.notifier).setTab('Archives');
       Future.microtask(() {
         if (mounted) {
