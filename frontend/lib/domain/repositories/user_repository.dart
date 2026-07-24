@@ -125,4 +125,16 @@ class UserRepository {
       throw Exception(e.response?.data['message'] ?? 'Failed to delete user.');
     }
   }
+
+  Future<bool> toggleStatus(int id) async {
+    try {
+      final options = await _getAuthOptions();
+      final response = await _dio.put('/users/$id/status', options: options);
+      return (response.data['is_active'] as int) == 1;
+    } on DioException catch (e) {
+      throw Exception(
+        e.response?.data['message'] ?? 'Failed to update user status.',
+      );
+    }
+  }
 }

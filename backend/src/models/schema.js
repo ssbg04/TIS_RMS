@@ -299,10 +299,18 @@ const initSchema = () => {
                 role TEXT CHECK(role IN ('admin', 'teacher')) NOT NULL,
                 email TEXT,
                 phone TEXT,
+                is_active INTEGER DEFAULT 1,
                 created_at DATETIME DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ', 'now')),
                 updated_at DATETIME DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ', 'now'))
             )
         `).run();
+
+        // Migration: add is_active column to users if missing
+        const userCols = db.prepare("PRAGMA table_info(users)").all();
+        if (!userCols.some(c => c.name === 'is_active')) {
+            db.prepare("ALTER TABLE users ADD COLUMN is_active INTEGER DEFAULT 1").run();
+            console.log('Migration: added is_active column to users table');
+        }
 
         // 2. AcademicYears Table
         db.prepare(`

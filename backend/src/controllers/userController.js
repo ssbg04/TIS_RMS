@@ -22,7 +22,7 @@ const logUserHistory = (performedBy, targetUserId, action, username, fullName, r
 exports.getUsers = (req, res) => {
     try {
         const users = db.prepare(`
-            SELECT u.id, u.username, u.first_name, u.middle_name, u.last_name, u.extension, u.role, u.email, u.phone, u.created_at,
+            SELECT u.id, u.username, u.first_name, u.middle_name, u.last_name, u.extension, u.role, u.email, u.phone, u.is_active, u.created_at,
                    COALESCE(creator.username, creator_del.username, 'System') as added_by_username,
                    COALESCE(creator.first_name || ' ' || creator.last_name, creator_del.full_name, 'System') as added_by_name
             FROM users u
@@ -52,17 +52,8 @@ exports.createUser = (req, res) => {
         return res.status(400).json({ message: 'Invalid role. Must be admin or teacher.' });
     }
 
-    // Auto-generate a secure temporary password if none was provided
-    const generatePassword = () => {
-        const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789!@#';
-        let pwd = '';
-        for (let i = 0; i < 10; i++) pwd += chars[Math.floor(Math.random() * chars.length)];
-        return pwd;
-    };
-
-    const temporaryPassword = (providedPassword && providedPassword.trim().length >= 6)
-        ? providedPassword.trim()
-        : generatePassword();
+    // Temporary password = username + 123 (e.g. ccharles123)
+    const temporaryPassword = `${username}123`;
 
     try {
         const existing = db.prepare('SELECT id FROM users WHERE username = ?').get(username);
@@ -216,7 +207,32 @@ exports.deleteUser = (req, res) => {
     }
 };
 
-// GET /api/users/:teacherId/sections
+// PUT /api/users/:id/status - Toggle user active/inactive
+exports.toggleUserStatus = (req, res) => {
+    const { id } = req.params;
+    const adminId = req.user.id;
+
+    if (parseInt(id) === adminId) {
+        return res.status(403).json({ message: 'You cannot deactivate your own account.' });
+    }
+
+    try {
+        const user = db.prepare('SELECT id, username, is_active FROM users WHERE id = ?').get(id);
+        if (!user) return res.status(404).json({ message: 'User not found.' });
+
+        const newStatus = user.is_active === 1 ? 0 : 1;
+        db.prepare("UPDATE users SET is_active = ?, updated_at = (strftime('%Y-%m-%dT%H:%M:%SZ', 'now')) WHERE id = ?")
+            .run(newStatus, id);
+
+        const statusLabel = newStatus === 1 ? 'activated' : 'deactivated';
+        logActivity(adminId, 'UPDATE', 'user', id, `${statusLabel.charAt(0).toUpperCase() + statusLabel.slice(1)} user "${user.username}"`);
+
+        res.json({ message: `User "${user.username}" has been ${statusLabel}.`, is_active: newStatus });
+    } catch (error) {
+        res.status(500).json({ message: 'Failed to update user status', error: error.message });
+    }
+};
+
 exports.getTeacherSections = (req, res) => {
     const { teacherId } = req.params;
     const isTeacher = req.user?.role?.toLowerCase() === 'teacher';

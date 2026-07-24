@@ -2,20 +2,51 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:dio/dio.dart';
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_sizes.dart';
 import '../../../../core/network/api_constants.dart';
-import '../../../shared/inputs/custom_text_field.dart';
-import '../../../shared/buttons/primary_button.dart';
-import '../../../shared/inputs/document_source_picker.dart';
 import '../../../providers/document_provider.dart';
 import '../../../providers/student_provider.dart';
-import '../../../shared/dialogs/success_dialog.dart';
+import '../../../shared/inputs/custom_text_field.dart';
+import '../../../shared/buttons/primary_button.dart';
 import '../../../shared/dialogs/error_dialog.dart';
 import '../../../../domain/entities/student_model.dart';
 import 'package:wolt_modal_sheet/wolt_modal_sheet.dart';
 
+// ────────────────────────────────────────────────────────────
+// Upload status enum
+// ────────────────────────────────────────────────────────────
+enum UploadStatus { pending, uploading, done, error }
+
+// ────────────────────────────────────────────────────────────
+// Per-file upload entry model
+// ────────────────────────────────────────────────────────────
+class _UploadEntry {
+  final File file;
+  final String fileName;
+  final String fileSize;
+  int? selectedRequirementId;
+  String? selectedDocumentType;
+  double progress; // 0.0 – 1.0
+  UploadStatus status;
+  String? errorMessage;
+
+  _UploadEntry({
+    required this.file,
+    required this.fileName,
+    required this.fileSize,
+    this.selectedRequirementId,
+    this.selectedDocumentType,
+    this.progress = 0.0,
+    this.status = UploadStatus.pending,
+  });
+}
+
+// ────────────────────────────────────────────────────────────
+// Widget
+// ────────────────────────────────────────────────────────────
 class UploadOcrModal extends ConsumerStatefulWidget {
   /// If provided, the modal will automatically fetch and fill this student's LRN
   final int? prefilledStudentId;
@@ -44,21 +75,16 @@ class UploadOcrModal extends ConsumerStatefulWidget {
 }
 
 class _UploadOcrModalState extends ConsumerState<UploadOcrModal> {
+  // Step: 0 = pick files, 1 = review & upload
   int _currentStep = 0;
 
-  File? _selectedFile;
-  String? _fileName;
-  String? _fileSize;
-
   final TextEditingController _lrnController = TextEditingController();
-
-  String? _selectedDocumentType;
-  int? _selectedRequirementId;
-  int? _matchedStudentId;
-
-  bool _isSubmitting = false;
-  bool _isSearchingStudent = false;
   StudentModel? _matchedStudent;
+  int? _matchedStudentId;
+  bool _isSearchingStudent = false;
+
+  List<_UploadEntry> _entries = [];
+  bool _isUploading = false;
 
   @override
   void initState() {
@@ -77,6 +103,7 @@ class _UploadOcrModalState extends ConsumerState<UploadOcrModal> {
     super.dispose();
   }
 
+  // ── Student search ──────────────────────────────────────────
   void _onLrnChanged() {
     final text = _lrnController.text.trim();
     if (text.length == 12) {
@@ -88,8 +115,6 @@ class _UploadOcrModalState extends ConsumerState<UploadOcrModal> {
         setState(() {
           _matchedStudent = null;
           _matchedStudentId = null;
-          _selectedRequirementId = null;
-          _selectedDocumentType = null;
         });
       }
     }
@@ -108,7 +133,7 @@ class _UploadOcrModalState extends ConsumerState<UploadOcrModal> {
           _isSearchingStudent = false;
         });
       }
-    } catch (e) {
+    } catch (_) {
       if (mounted) setState(() => _isSearchingStudent = false);
     }
   }
@@ -118,199 +143,228 @@ class _UploadOcrModalState extends ConsumerState<UploadOcrModal> {
     try {
       final storage = const FlutterSecureStorage();
       final token = await storage.read(key: 'jwt_token');
-      final dio = Dio(
-        BaseOptions(
-          baseUrl: ApiConstants.baseUrl,
-          headers: {'Authorization': 'Bearer $token'},
-        ),
-      );
+      final dio = Dio(BaseOptions(
+        baseUrl: ApiConstants.baseUrl,
+        headers: {'Authorization': 'Bearer $token'},
+      ));
 
-      final studentsRes = await dio.get(
-        '/students',
-        queryParameters: {'search': lrn},
-      );
-      final studentsList = studentsRes.data['students'] as List;
+      final res = await dio.get('/students', queryParameters: {'search': lrn});
+      final list = res.data['students'] as List;
 
-      if (studentsList.isNotEmpty) {
-        final studentId = studentsList[0]['id'] as int;
-        final student = await ref.read(studentDetailProvider(studentId).future);
+      if (list.isNotEmpty && mounted && _lrnController.text.trim() == lrn) {
+        final sid = list[0]['id'] as int;
+        final student = await ref.read(studentDetailProvider(sid).future);
         if (mounted && _lrnController.text.trim() == lrn) {
           setState(() {
             _matchedStudent = student;
-            _matchedStudentId = studentId;
+            _matchedStudentId = sid;
             _isSearchingStudent = false;
+            // Re-run auto-detect whenever student changes
+            _autoDetectAll();
           });
         }
-      } else {
-        if (mounted) {
-          setState(() {
-            _matchedStudent = null;
-            _matchedStudentId = null;
-            _isSearchingStudent = false;
-          });
-        }
+      } else if (mounted) {
+        setState(() {
+          _matchedStudent = null;
+          _matchedStudentId = null;
+          _isSearchingStudent = false;
+        });
       }
-    } catch (e) {
+    } catch (_) {
       if (mounted) setState(() => _isSearchingStudent = false);
     }
   }
 
-  void _handleFileSelected(File file, String fileName, String fileSize) {
-    setState(() {
-      _selectedFile = file;
-      _fileName = fileName;
-      _fileSize = fileSize;
+  // ── File picking ─────────────────────────────────────────────
+  Future<void> _pickFiles() async {
+    final result = await FilePicker.platform.pickFiles(
+      allowMultiple: true,
+      type: FileType.custom,
+      allowedExtensions: ['pdf', 'jpg', 'jpeg', 'png'],
+    );
 
-      // Skip the OCR scanning entirely and go straight to the form
-      _currentStep = 1;
+    if (result == null || result.files.isEmpty) return;
+
+    final requirements = ref.read(documentRequirementsProvider).value ?? [];
+
+    final newEntries = result.files
+        .where((f) => f.path != null)
+        .map((f) {
+          final file = File(f.path!);
+          final sizeKb = (f.size / 1024).toStringAsFixed(1);
+          final sizeLabel = f.size > 1048576
+              ? '${(f.size / 1048576).toStringAsFixed(1)} MB'
+              : '$sizeKb KB';
+          final entry = _UploadEntry(
+            file: file,
+            fileName: f.name,
+            fileSize: sizeLabel,
+          );
+          _applyAutoDetect(entry, requirements);
+          return entry;
+        })
+        .toList();
+
+    setState(() {
+      _entries.addAll(newEntries);
+      if (_entries.isNotEmpty) _currentStep = 1;
     });
   }
 
-  Future<void> _validateAndUpload() async {
-    final lrn = _lrnController.text.trim();
-    if (lrn.isEmpty || lrn.length != 12) {
-      showErrorDialog(
-        context,
-        'Invalid LRN',
-        'A valid 12-digit LRN is required.',
-      );
-      return;
+  // ── Auto-detect document type from filename ──────────────────
+  void _autoDetectAll() {
+    final requirements = ref.read(documentRequirementsProvider).value ?? [];
+    for (final e in _entries) {
+      if (e.status == UploadStatus.pending) {
+        _applyAutoDetect(e, requirements);
+      }
     }
-    if (_selectedRequirementId == null) {
-      showErrorDialog(
-        context,
-        'Missing Document Type',
-        'Please select a Document Type before uploading.',
-      );
-      return;
-    }
-    if (_selectedFile == null) {
-      showErrorDialog(
-        context,
-        'No File Selected',
-        'Please select a file to upload.',
-      );
-      return;
-    }
+  }
 
-    final ext =
-        _fileName?.split('.').last.toLowerCase() ??
-        _selectedFile!.path.split('.').last.toLowerCase();
-    final requirementsAsync = ref.read(documentRequirementsProvider);
-    final reqs = requirementsAsync.value;
-    if (reqs != null) {
-      final req = reqs.firstWhere((r) => r.id == _selectedRequirementId);
-      final allowedExts = req.acceptedFileTypes
-          .split(',')
-          .map((e) => e.trim().toLowerCase())
-          .toList();
+  void _applyAutoDetect(_UploadEntry entry, List<dynamic> requirements) {
+    final normalized = entry.fileName
+        .toLowerCase()
+        .replaceAll(RegExp(r'\.[^.]+$'), '')   // remove extension
+        .replaceAll(RegExp(r'[_\-]'), ' ')      // underscores → spaces
+        .trim();
 
-      if (!allowedExts.contains(ext)) {
-        showErrorDialog(
-          context,
-          'Invalid File Type',
-          'This requirement only accepts: ${req.acceptedFileTypes}. Your file is a $ext.',
-        );
-        return;
+    dynamic best;
+    int bestScore = 0;
+
+    for (final req in requirements) {
+      final reqNorm = (req.name as String).toLowerCase().trim();
+      // Score = number of consecutive words from reqNorm present in filename
+      final words = reqNorm.split(' ').where((w) => w.length > 2).toList();
+      final matches = words.where((w) => normalized.contains(w)).length;
+      if (matches > bestScore) {
+        bestScore = matches;
+        best = req;
       }
     }
 
-    setState(() => _isSubmitting = true);
+    if (bestScore > 0 && best != null) {
+      entry.selectedRequirementId = best.id as int;
+      entry.selectedDocumentType = best.name as String;
+    }
+  }
+
+  // ── Sequential upload ─────────────────────────────────────────
+  Future<void> _startUpload() async {
+    final lrn = _lrnController.text.trim();
+    if (lrn.isEmpty || lrn.length != 12) {
+      showErrorDialog(context, 'Invalid LRN', 'A valid 12-digit LRN is required.');
+      return;
+    }
+
+    final pending = _entries.where((e) => e.status == UploadStatus.pending).toList();
+    if (pending.isEmpty) return;
+
+    final unassigned = pending.where((e) => e.selectedRequirementId == null).toList();
+    if (unassigned.isNotEmpty) {
+      showErrorDialog(
+        context,
+        'Missing Document Type',
+        '${unassigned.length} file(s) have no document type selected.\nPlease assign a type to each file.',
+      );
+      return;
+    }
+
+    setState(() => _isUploading = true);
 
     try {
       final storage = const FlutterSecureStorage();
       final token = await storage.read(key: 'jwt_token');
-      final dio = Dio(
-        BaseOptions(
-          baseUrl: ApiConstants.baseUrl,
-          headers: {'Authorization': 'Bearer $token'},
-        ),
-      );
+      final dio = Dio(BaseOptions(
+        baseUrl: ApiConstants.baseUrl,
+        headers: {'Authorization': 'Bearer $token'},
+      ));
 
+      // Resolve student ID
       int finalStudentId;
-
-      // 1. Determine Student ID (Use pre-matched if available, otherwise search API by LRN)
       if (_matchedStudentId != null) {
         finalStudentId = _matchedStudentId!;
       } else {
-        final studentsRes = await dio.get(
-          '/students',
-          queryParameters: {'search': lrn},
-        );
-        final students = studentsRes.data['students'] as List;
+        final res = await dio.get('/students', queryParameters: {'search': lrn});
+        final students = res.data['students'] as List;
         if (students.isEmpty) {
-          setState(() => _isSubmitting = false);
+          setState(() => _isUploading = false);
           if (!mounted) return;
-          showErrorDialog(
-            context,
-            'Student Not Found',
-            'No student found with LRN $lrn. Please check the LRN and try again.',
-          );
+          showErrorDialog(context, 'Student Not Found',
+              'No student found with LRN $lrn. Please check and try again.');
           return;
         }
-        finalStudentId = students[0]['id'];
+        finalStudentId = students[0]['id'] as int;
       }
 
-      // 2. Upload Document
-      final ext =
-          _fileName?.split('.').last ?? _selectedFile!.path.split('.').last;
-      // Filename = document type name (backend groups these under JHS Documents / SHS Documents)
-      final newFileName = '$_selectedDocumentType.$ext';
+      // Upload sequentially
+      for (final entry in pending) {
+        if (!mounted) break;
 
-      final formData = FormData.fromMap({
-        'studentId': finalStudentId,
-        'documentType': _selectedDocumentType,
-        'requirementId': _selectedRequirementId,
-        'document': await MultipartFile.fromFile(
-          _selectedFile!.path,
-          filename: newFileName,
-        ),
-      });
+        setState(() => entry.status = UploadStatus.uploading);
 
-      await dio.post('/documents/upload', data: formData);
+        try {
+          final ext = entry.fileName.split('.').last;
+          final newFileName = '${entry.selectedDocumentType}.$ext';
 
-      if (!mounted) return;
-      ref.invalidate(documentPageProvider); // Refresh the documents list
-      ref.invalidate(foldersProvider);
-      ref.invalidate(studentFoldersProvider);
+          final formData = FormData.fromMap({
+            'studentId': finalStudentId,
+            'documentType': entry.selectedDocumentType,
+            'requirementId': entry.selectedRequirementId,
+            'document': await MultipartFile.fromFile(
+              entry.file.path,
+              filename: newFileName,
+            ),
+          });
 
-      // Show Success Dialog
-      _showSuccessDialog();
-    } on DioException catch (e) {
-      setState(() => _isSubmitting = false);
-      if (!mounted) return;
-      showErrorDialog(
-        context,
-        'Upload Failed',
-        e.response?.data?['message'] ?? 'Failed to upload document.',
-      );
+          await dio.post(
+            '/documents/upload',
+            data: formData,
+            onSendProgress: (sent, total) {
+              if (total > 0 && mounted) {
+                setState(() => entry.progress = sent / total);
+              }
+            },
+          );
+
+          if (mounted) setState(() => entry.status = UploadStatus.done);
+        } on DioException catch (e) {
+          if (mounted) {
+            setState(() {
+              entry.status = UploadStatus.error;
+              entry.errorMessage =
+                  e.response?.data?['message'] ?? 'Upload failed';
+            });
+          }
+        } catch (_) {
+          if (mounted) {
+            setState(() {
+              entry.status = UploadStatus.error;
+              entry.errorMessage = 'Unexpected error';
+            });
+          }
+        }
+      }
+
+      if (mounted) {
+        ref.invalidate(documentPageProvider);
+        ref.invalidate(foldersProvider);
+        ref.invalidate(studentFoldersProvider);
+
+        setState(() => _isUploading = false);
+      }
     } catch (e) {
-      setState(() => _isSubmitting = false);
-      if (!mounted) return;
-      showErrorDialog(
-        context,
-        'Unexpected Error',
-        'An unexpected error occurred. Please try again.',
-      );
+      if (mounted) setState(() => _isUploading = false);
     }
   }
 
-  // ----------------------------------------------------------------
-  // SHOW SUCCESS DIALOG (uses shared dialog)
-  // ----------------------------------------------------------------
-  void _showSuccessDialog() {
-    showSuccessDialog(
-      context,
-      title: 'Upload Successful!',
-      message: '$_fileName has been securely saved to the student\'s records.',
-      buttonLabel: 'DONE',
-      onDismissed: () => Navigator.of(context).pop(), // Close the upload modal
-    );
-  }
+  bool get _allDone =>
+      _entries.isNotEmpty &&
+      _entries.every((e) => e.status == UploadStatus.done);
 
-  // ----------------------------------------------------------------
-  // BUILD
-  // ----------------------------------------------------------------
+  bool get _hasError =>
+      _entries.any((e) => e.status == UploadStatus.error);
+
+  // ── BUILD ─────────────────────────────────────────────────────
   @override
   Widget build(BuildContext context) {
     final screenSize = MediaQuery.of(context).size;
@@ -340,7 +394,7 @@ class _UploadOcrModalState extends ConsumerState<UploadOcrModal> {
               const SizedBox(width: 12),
               const Expanded(
                 child: Text(
-                  'Upload Document',
+                  'Upload Documents',
                   style: TextStyle(
                     fontSize: 20,
                     fontWeight: FontWeight.bold,
@@ -350,51 +404,44 @@ class _UploadOcrModalState extends ConsumerState<UploadOcrModal> {
               ),
               if (Platform.isWindows)
                 IconButton(
-                  icon: const Icon(
-                    Icons.close_rounded,
-                    color: AppColors.textSecondary,
-                  ),
+                  icon: const Icon(Icons.close_rounded,
+                      color: AppColors.textSecondary),
                   onPressed: () => Navigator.of(context).pop(),
                   tooltip: 'Close',
                 ),
             ],
           ),
           const SizedBox(height: 4),
-          // Step indicator
+
+          // Step chips
           Row(
             children: [
-              _buildStepChip(1, 'Select File', _currentStep >= 0),
+              _buildStepChip(1, 'Select Files', _currentStep >= 0),
               _buildStepConnector(_currentStep >= 1),
-              _buildStepChip(2, 'Document Info', _currentStep >= 1),
+              _buildStepChip(2, 'Review & Upload', _currentStep >= 1),
             ],
           ),
           const Divider(height: 20),
 
+          // No-student notice
           if (widget.prefilledStudentId == null) ...[
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
                 color: AppColors.warning.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(8),
-                border: Border.all(
-                  color: AppColors.warning.withValues(alpha: 0.3),
-                ),
+                border:
+                    Border.all(color: AppColors.warning.withValues(alpha: 0.3)),
               ),
-              child: Row(
+              child: const Row(
                 children: [
-                  const Icon(
-                    Icons.info_outline,
-                    color: AppColors.warning,
-                    size: 20,
-                  ),
-                  const SizedBox(width: 8),
-                  const Expanded(
+                  Icon(Icons.info_outline, color: AppColors.warning, size: 20),
+                  SizedBox(width: 8),
+                  Expanded(
                     child: Text(
-                      'Notice: You are not inside a specific student directory. Please ensure you provide the correct LRN to link this document.',
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: AppColors.textPrimary,
-                      ),
+                      'You are not inside a student folder. Make sure you provide the correct LRN.',
+                      style:
+                          TextStyle(fontSize: 12, color: AppColors.textPrimary),
                     ),
                   ),
                 ],
@@ -403,14 +450,543 @@ class _UploadOcrModalState extends ConsumerState<UploadOcrModal> {
             const SizedBox(height: 16),
           ],
 
-          // ── Content (scrollable) ──
+          // ── Content ──
           AnimatedSwitcher(
             duration: const Duration(milliseconds: 300),
-            child: _buildCurrentStep(),
+            child: _currentStep == 0 ? _buildStep0() : _buildStep1(),
           ),
         ],
       ),
     );
+  }
+
+  // ── Step 0: Pick files ────────────────────────────────────────
+  Widget _buildStep0() {
+    return GestureDetector(
+      key: const ValueKey('step0'),
+      onTap: _pickFiles,
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.symmetric(vertical: 48, horizontal: 24),
+        decoration: BoxDecoration(
+          color: AppColors.primaryGreen.withValues(alpha: 0.04),
+          borderRadius: BorderRadius.circular(AppSizes.radiusMedium),
+          border: Border.all(
+            color: AppColors.primaryGreen.withValues(alpha: 0.3),
+            style: BorderStyle.solid,
+          ),
+        ),
+        child: Column(
+          children: [
+            Icon(Icons.upload_file_rounded,
+                size: 56,
+                color: AppColors.primaryGreen.withValues(alpha: 0.6)),
+            const SizedBox(height: 16),
+            const Text(
+              'Tap to select files',
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: AppColors.primaryGreen,
+              ),
+            ),
+            const SizedBox(height: 6),
+            Text(
+              'Supports PDF, JPG, JPEG, PNG\nYou can select multiple files at once',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                  fontSize: 13, color: AppColors.textSecondary.withValues(alpha: 0.8)),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // ── Step 1: Review & Upload ───────────────────────────────────
+  Widget _buildStep1() {
+    final requirementsAsync = ref.watch(documentRequirementsProvider);
+
+    return SingleChildScrollView(
+      key: const ValueKey('step1'),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // LRN field
+          Row(
+            children: [
+              Expanded(
+                child: CustomTextField(
+                  hintText: 'Student LRN (12 Digits)',
+                  prefixIcon: Icons.pin_outlined,
+                  controller: _lrnController,
+                ),
+              ),
+              if (_isSearchingStudent)
+                const Padding(
+                  padding: EdgeInsets.only(left: 12),
+                  child: SizedBox(
+                    width: 22,
+                    height: 22,
+                    child: CircularProgressIndicator(
+                        strokeWidth: 2, color: AppColors.primaryGreen),
+                  ),
+                ),
+              if (_matchedStudent != null && !_isSearchingStudent)
+                const Padding(
+                  padding: EdgeInsets.only(left: 12),
+                  child: Icon(Icons.check_circle,
+                      color: AppColors.primaryGreen, size: 22),
+                ),
+            ],
+          ),
+          if (_matchedStudent != null) ...[
+            const SizedBox(height: 6),
+            Text(
+              '✓ ${_matchedStudent!.fullName}',
+              style: const TextStyle(
+                  fontSize: 12,
+                  color: AppColors.primaryGreen,
+                  fontWeight: FontWeight.w600),
+            ),
+          ],
+          const SizedBox(height: 16),
+
+          // File list
+          requirementsAsync.when(
+            loading: () => const Center(
+                child: CircularProgressIndicator(color: AppColors.primaryGreen)),
+            error: (e, _) => Text('Failed to load types: $e',
+                style: const TextStyle(color: AppColors.error)),
+            data: (requirements) {
+              return Column(
+                children: [
+                  ..._entries.asMap().entries.map((entry) {
+                    final idx = entry.key;
+                    final item = entry.value;
+                    return _buildFileCard(idx, item, requirements);
+                  }),
+                  const SizedBox(height: 12),
+                  // Add more files
+                  if (!_isUploading && !_allDone)
+                    OutlinedButton.icon(
+                      icon: const Icon(Icons.add, size: 18),
+                      label: const Text('Add More Files'),
+                      onPressed: _pickFiles,
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: AppColors.primaryGreen,
+                        side: const BorderSide(color: AppColors.primaryGreen),
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8)),
+                      ),
+                    ),
+                ],
+              );
+            },
+          ),
+          const SizedBox(height: 24),
+
+          // Summary / action row
+          if (_allDone)
+            _buildDoneBanner()
+          else
+            _buildActionRow(),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildFileCard(int idx, _UploadEntry item, List<dynamic> requirements) {
+    final isDone = item.status == UploadStatus.done;
+    final isError = item.status == UploadStatus.error;
+    final isUploading = item.status == UploadStatus.uploading;
+
+    Color borderColor = Colors.grey.shade200;
+    if (isDone) borderColor = Colors.green.shade300;
+    if (isError) borderColor = Colors.red.shade300;
+    if (isUploading) borderColor = AppColors.primaryGreen;
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: isDone
+            ? Colors.green.withValues(alpha: 0.04)
+            : isError
+                ? Colors.red.withValues(alpha: 0.04)
+                : AppColors.surfaceWhite,
+        borderRadius: BorderRadius.circular(AppSizes.radiusMedium),
+        border: Border.all(color: borderColor),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.04),
+            blurRadius: 6,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              // File icon
+              Icon(
+                _fileIcon(item.fileName),
+                color: isDone
+                    ? Colors.green
+                    : isError
+                        ? Colors.red
+                        : AppColors.primaryGreen,
+                size: 22,
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      item.fileName,
+                      style: const TextStyle(
+                          fontWeight: FontWeight.w600, fontSize: 13),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    const SizedBox(height: 2),
+                    Row(
+                      children: [
+                        Text(
+                          item.fileSize,
+                          style: const TextStyle(
+                              fontSize: 11, color: AppColors.textSecondary),
+                        ),
+                        if (item.selectedRequirementId != null &&
+                            !isDone &&
+                            !isError) ...[
+                          const Text(' · ',
+                              style: TextStyle(color: AppColors.textSecondary)),
+                          const Icon(Icons.check_circle_outline,
+                              size: 12, color: AppColors.primaryGreen),
+                          const SizedBox(width: 3),
+                          Flexible(
+                            child: Text(
+                              'Auto-detected',
+                              style: const TextStyle(
+                                  fontSize: 11, color: AppColors.primaryGreen),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                        ],
+                        if (item.selectedRequirementId == null) ...[
+                          const Text(' · ',
+                              style: TextStyle(color: AppColors.textSecondary)),
+                          const Icon(Icons.warning_amber_rounded,
+                              size: 12, color: Colors.orange),
+                          const SizedBox(width: 3),
+                          const Text(
+                            'Not detected — select manually',
+                            style:
+                                TextStyle(fontSize: 11, color: Colors.orange),
+                          ),
+                        ],
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+              // Status icon / remove button
+              if (isDone)
+                const Icon(Icons.check_circle,
+                    color: Colors.green, size: 22)
+              else if (isError)
+                const Icon(Icons.error_outline, color: Colors.red, size: 22)
+              else if (!_isUploading)
+                IconButton(
+                  icon: const Icon(Icons.close,
+                      color: AppColors.textSecondary, size: 20),
+                  onPressed: () => setState(() => _entries.removeAt(idx)),
+                  tooltip: 'Remove',
+                  constraints: const BoxConstraints(),
+                  padding: const EdgeInsets.all(4),
+                ),
+            ],
+          ),
+
+          // Progress bar (uploading)
+          if (isUploading || isDone) ...[
+            const SizedBox(height: 8),
+            ClipRRect(
+              borderRadius: BorderRadius.circular(4),
+              child: LinearProgressIndicator(
+                value: item.status == UploadStatus.done ? 1.0 : item.progress,
+                backgroundColor: Colors.grey.shade200,
+                color: isDone ? Colors.green : AppColors.primaryGreen,
+                minHeight: 5,
+              ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              isDone
+                  ? 'Upload complete'
+                  : '${(item.progress * 100).toStringAsFixed(0)}%',
+              style: TextStyle(
+                fontSize: 11,
+                color: isDone ? Colors.green : AppColors.primaryGreen,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ],
+
+          // Error message
+          if (isError && item.errorMessage != null) ...[
+            const SizedBox(height: 6),
+            Text(
+              item.errorMessage!,
+              style:
+                  const TextStyle(fontSize: 12, color: Colors.red),
+            ),
+          ],
+
+          // Document type dropdown (pending state only)
+          if (!isDone && !isError && !isUploading) ...[
+            const SizedBox(height: 10),
+            _buildRequirementDropdown(idx, item, requirements),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildRequirementDropdown(
+      int idx, _UploadEntry item, List<dynamic> requirements) {
+    // Filter requirements based on student grade
+    List<dynamic> applicable = requirements;
+    if (_matchedStudent != null) {
+      bool hasJHS = false, hasSHS = false;
+      if (_matchedStudent!.enrollments != null &&
+          _matchedStudent!.enrollments!.isNotEmpty) {
+        for (final e in _matchedStudent!.enrollments!) {
+          if (e.gradeLevel <= 10) hasJHS = true;
+          if (e.gradeLevel >= 11) hasSHS = true;
+        }
+      } else {
+        hasJHS = hasSHS = true;
+      }
+      applicable = requirements.where((r) {
+        if (!hasJHS && r.category == 'JHS') return false;
+        if (!hasSHS && r.category == 'SHS') return false;
+        return true;
+      }).toList();
+    }
+
+    final entries = <DropdownMenuEntry<int>>[];
+    final jhs = applicable.where((r) => r.category == 'JHS').toList()
+      ..sort((a, b) => a.name.compareTo(b.name));
+    final shs = applicable.where((r) => r.category == 'SHS').toList()
+      ..sort((a, b) => a.name.compareTo(b.name));
+
+    if (jhs.isNotEmpty) {
+      entries.add(const DropdownMenuEntry<int>(
+        value: -1,
+        label: 'Junior High School',
+        enabled: false,
+        style: ButtonStyle(
+          foregroundColor: WidgetStatePropertyAll(Colors.teal),
+          textStyle: WidgetStatePropertyAll(
+              TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
+        ),
+      ));
+      for (final r in jhs) {
+        entries.add(DropdownMenuEntry<int>(
+          value: r.id as int,
+          label: '${r.name}${r.isMandatory ? " *" : ""}',
+        ));
+      }
+    }
+    if (shs.isNotEmpty) {
+      entries.add(const DropdownMenuEntry<int>(
+        value: -2,
+        label: 'Senior High School',
+        enabled: false,
+        style: ButtonStyle(
+          foregroundColor: WidgetStatePropertyAll(Colors.purple),
+          textStyle: WidgetStatePropertyAll(
+              TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
+        ),
+      ));
+      for (final r in shs) {
+        entries.add(DropdownMenuEntry<int>(
+          value: r.id as int,
+          label: '${r.name}${r.isMandatory ? " *" : ""}',
+        ));
+      }
+    }
+
+    return DropdownMenu<int>(
+      key: ValueKey('dd_${idx}_${item.selectedRequirementId}'),
+      initialSelection: item.selectedRequirementId,
+      hintText: 'Select Document Type',
+      expandedInsets: EdgeInsets.zero,
+      menuHeight: 280,
+      inputDecorationTheme: InputDecorationTheme(
+        filled: true,
+        fillColor: AppColors.surfaceWhite,
+        contentPadding:
+            const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(AppSizes.radiusMedium),
+          borderSide: BorderSide(color: Colors.grey.shade300),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(AppSizes.radiusMedium),
+          borderSide: BorderSide(color: Colors.grey.shade300),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(AppSizes.radiusMedium),
+          borderSide:
+              const BorderSide(color: AppColors.primaryGreen, width: 2),
+        ),
+      ),
+      dropdownMenuEntries: entries,
+      onSelected: (val) {
+        if (val == null || val < 0) return;
+        final req = requirements.firstWhere((r) => r.id == val);
+        setState(() {
+          item.selectedRequirementId = val;
+          item.selectedDocumentType = req.name as String;
+        });
+      },
+    );
+  }
+
+  Widget _buildActionRow() {
+    final doneCnt = _entries.where((e) => e.status == UploadStatus.done).length;
+    final totalCnt = _entries.length;
+    final pendingCnt =
+        _entries.where((e) => e.status == UploadStatus.pending).length;
+
+    return Builder(builder: (ctx) {
+      final isSmall = MediaQuery.sizeOf(ctx).width < 600;
+      return Column(
+        children: [
+          if (doneCnt > 0 && totalCnt > doneCnt)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 12),
+              child: Text(
+                '$doneCnt / $totalCnt uploaded',
+                style: const TextStyle(
+                    fontSize: 13,
+                    color: AppColors.primaryGreen,
+                    fontWeight: FontWeight.w600),
+              ),
+            ),
+          SizedBox(
+            width: double.infinity,
+            child: Wrap(
+              alignment: isSmall ? WrapAlignment.center : WrapAlignment.end,
+              spacing: AppSizes.p16,
+              runSpacing: AppSizes.p16,
+              children: [
+                TextButton(
+                  onPressed: _isUploading
+                      ? null
+                      : () => setState(() {
+                            _entries = [];
+                            _currentStep = 0;
+                          }),
+                  style: TextButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(
+                          vertical: 16, horizontal: 24)),
+                  child: const Text('START OVER',
+                      style: TextStyle(
+                          color: AppColors.textSecondary,
+                          fontWeight: FontWeight.bold)),
+                ),
+                SizedBox(
+                  width: isSmall ? double.infinity : 200,
+                  child: PrimaryButton(
+                    label: pendingCnt > 1
+                        ? 'UPLOAD $pendingCnt FILES'
+                        : 'UPLOAD',
+                    isLoading: _isUploading,
+                    onPressed:
+                        _entries.isEmpty || _isUploading ? null : _startUpload,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      );
+    });
+  }
+
+  Widget _buildDoneBanner() {
+    final errorCnt = _entries.where((e) => e.status == UploadStatus.error).length;
+    return Column(
+      children: [
+        Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: errorCnt > 0
+                ? Colors.orange.withValues(alpha: 0.08)
+                : Colors.green.withValues(alpha: 0.08),
+            borderRadius: BorderRadius.circular(AppSizes.radiusMedium),
+            border: Border.all(
+              color: errorCnt > 0
+                  ? Colors.orange.shade300
+                  : Colors.green.shade300,
+            ),
+          ),
+          child: Row(
+            children: [
+              Icon(
+                errorCnt > 0
+                    ? Icons.warning_amber_rounded
+                    : Icons.check_circle,
+                color: errorCnt > 0 ? Colors.orange : Colors.green,
+                size: 24,
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  errorCnt > 0
+                      ? '${_entries.length - errorCnt} uploaded, $errorCnt failed.'
+                      : 'All ${_entries.length} file(s) uploaded successfully!',
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                    color: errorCnt > 0 ? Colors.orange.shade800 : Colors.green.shade800,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 16),
+        SizedBox(
+          width: double.infinity,
+          child: ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.primaryGreen,
+              foregroundColor: Colors.white,
+              padding: const EdgeInsets.symmetric(vertical: 16),
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(AppSizes.radiusMedium)),
+            ),
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('DONE', style: TextStyle(fontWeight: FontWeight.bold)),
+          ),
+        ),
+      ],
+    );
+  }
+
+  // ── Helpers ──────────────────────────────────────────────────
+  IconData _fileIcon(String fileName) {
+    final ext = fileName.split('.').last.toLowerCase();
+    if (ext == 'pdf') return Icons.picture_as_pdf_rounded;
+    if (['jpg', 'jpeg', 'png'].contains(ext)) return Icons.image_rounded;
+    return Icons.insert_drive_file_rounded;
   }
 
   Widget _buildStepChip(int step, String label, bool active) {
@@ -457,366 +1033,6 @@ class _UploadOcrModalState extends ConsumerState<UploadOcrModal> {
         width: 28,
         height: 2,
         color: active ? AppColors.primaryGreen : Colors.grey.shade300,
-      ),
-    );
-  }
-
-  Widget _buildCurrentStep() {
-    switch (_currentStep) {
-      case 0:
-        return DocumentSourcePicker(
-          allowedExtensions: const ['pdf', 'jpg', 'png', 'jpeg'],
-          onFileSelected: _handleFileSelected,
-        );
-      case 1:
-        return _buildStep1Form();
-      default:
-        return const SizedBox.shrink();
-    }
-  }
-
-  Widget _buildStep1Form() {
-    final requirementsAsync = ref.watch(documentRequirementsProvider);
-
-    return SingleChildScrollView(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            padding: const EdgeInsets.all(AppSizes.p12),
-            decoration: BoxDecoration(
-              color: Colors.blue.withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(AppSizes.radiusMedium),
-              border: Border.all(color: Colors.blue.shade200),
-            ),
-            child: Row(
-              children: [
-                const Icon(Icons.info_outline, color: Colors.blue),
-                const SizedBox(width: AppSizes.p12),
-                Expanded(
-                  child: Text(
-                    'File: $_fileName ($_fileSize). Please select the document type.',
-                    style: const TextStyle(
-                      color: Color(0xFF0D47A1),
-                      fontSize: 13,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: AppSizes.p24),
-
-          // LRN FIELD (Auto-filled if opened from a specific student's folder!)
-          CustomTextField(
-            hintText: 'Student LRN (12 Digits)',
-            prefixIcon: Icons.pin_outlined,
-            controller: _lrnController,
-          ),
-          const SizedBox(height: AppSizes.p16),
-
-          // DOCUMENT TYPE DROPDOWN (Grouped by JHS / SHS)
-          if (_isSearchingStudent)
-            const Padding(
-              padding: EdgeInsets.symmetric(vertical: 24),
-              child: Center(
-                child: CircularProgressIndicator(color: AppColors.primaryGreen),
-              ),
-            )
-          else if (_matchedStudent == null)
-            Container(
-              padding: const EdgeInsets.all(AppSizes.p16),
-              decoration: BoxDecoration(
-                color: Colors.grey.shade50,
-                borderRadius: BorderRadius.circular(AppSizes.radiusMedium),
-                border: Border.all(color: Colors.grey.shade300),
-              ),
-              child: const Row(
-                children: [
-                  Icon(Icons.search, color: AppColors.textSecondary),
-                  SizedBox(width: AppSizes.p12),
-                  Expanded(
-                    child: Text(
-                      'Enter a valid 12-digit LRN to load applicable document types.',
-                      style: TextStyle(color: AppColors.textSecondary),
-                    ),
-                  ),
-                ],
-              ),
-            )
-          else
-            requirementsAsync.when(
-              data: (requirements) {
-                bool hasJHS = false;
-                bool hasSHS = false;
-
-                if (_matchedStudent!.enrollments != null &&
-                    _matchedStudent!.enrollments!.isNotEmpty) {
-                  for (final env in _matchedStudent!.enrollments!) {
-                    if (env.gradeLevel <= 10) hasJHS = true;
-                    if (env.gradeLevel >= 11) hasSHS = true;
-                  }
-                } else {
-                  // Fallback if no enrollments
-                  hasJHS = true;
-                  hasSHS = true;
-                }
-
-                List<dynamic> jhsReqs = [];
-                List<dynamic> shsReqs = [];
-
-                if (hasJHS) {
-                  jhsReqs = requirements
-                      .where((r) => r.category == 'JHS')
-                      .toList();
-                  jhsReqs.sort((a, b) {
-                    if (a.isMandatory && !b.isMandatory) return -1;
-                    if (!a.isMandatory && b.isMandatory) return 1;
-                    return a.name.compareTo(b.name);
-                  });
-                }
-
-                if (hasSHS) {
-                  shsReqs = requirements
-                      .where((r) => r.category == 'SHS')
-                      .toList();
-                  shsReqs.sort((a, b) {
-                    if (a.isMandatory && !b.isMandatory) return -1;
-                    if (!a.isMandatory && b.isMandatory) return 1;
-                    return a.name.compareTo(b.name);
-                  });
-                }
-
-                final entries = <DropdownMenuEntry<int>>[];
-
-                if (jhsReqs.isNotEmpty) {
-                  entries.add(
-                    const DropdownMenuEntry<int>(
-                      value: -1,
-                      label: 'Junior High School',
-                      enabled: false,
-                      style: ButtonStyle(
-                        foregroundColor: WidgetStatePropertyAll(Colors.teal),
-                        textStyle: WidgetStatePropertyAll(
-                          TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
-                        ),
-                      ),
-                    ),
-                  );
-                  for (final req in jhsReqs) {
-                    entries.add(
-                      DropdownMenuEntry<int>(
-                        value: req.id,
-                        label: '${req.name}${req.isMandatory ? " *" : ""}',
-                        trailingIcon: Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 8,
-                            vertical: 2,
-                          ),
-                          decoration: BoxDecoration(
-                            color: req.isMandatory
-                                ? Colors.red.shade50
-                                : Colors.grey.shade100,
-                            borderRadius: BorderRadius.circular(12),
-                            border: Border.all(
-                              color: req.isMandatory
-                                  ? Colors.red.shade200
-                                  : Colors.grey.shade300,
-                            ),
-                          ),
-                          child: Text(
-                            req.isMandatory ? 'Mandatory' : 'Optional',
-                            style: TextStyle(
-                              fontSize: 10,
-                              fontWeight: FontWeight.bold,
-                              color: req.isMandatory
-                                  ? Colors.red.shade700
-                                  : Colors.grey.shade600,
-                            ),
-                          ),
-                        ),
-                        style: const ButtonStyle(
-                          padding: WidgetStatePropertyAll(
-                            EdgeInsets.only(left: 32, right: 16),
-                          ),
-                          textStyle: WidgetStatePropertyAll(
-                            TextStyle(fontSize: 14),
-                          ),
-                        ),
-                      ),
-                    );
-                  }
-                }
-
-                if (shsReqs.isNotEmpty) {
-                  entries.add(
-                    const DropdownMenuEntry<int>(
-                      value: -2,
-                      label: 'Senior High School',
-                      enabled: false,
-                      style: ButtonStyle(
-                        foregroundColor: WidgetStatePropertyAll(Colors.purple),
-                        textStyle: WidgetStatePropertyAll(
-                          TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
-                        ),
-                      ),
-                    ),
-                  );
-                  for (final req in shsReqs) {
-                    entries.add(
-                      DropdownMenuEntry<int>(
-                        value: req.id,
-                        label: '${req.name}${req.isMandatory ? " *" : ""}',
-                        trailingIcon: Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 8,
-                            vertical: 2,
-                          ),
-                          decoration: BoxDecoration(
-                            color: req.isMandatory
-                                ? Colors.red.shade50
-                                : Colors.grey.shade100,
-                            borderRadius: BorderRadius.circular(12),
-                            border: Border.all(
-                              color: req.isMandatory
-                                  ? Colors.red.shade200
-                                  : Colors.grey.shade300,
-                            ),
-                          ),
-                          child: Text(
-                            req.isMandatory ? 'Mandatory' : 'Optional',
-                            style: TextStyle(
-                              fontSize: 10,
-                              fontWeight: FontWeight.bold,
-                              color: req.isMandatory
-                                  ? Colors.red.shade700
-                                  : Colors.grey.shade600,
-                            ),
-                          ),
-                        ),
-                        style: const ButtonStyle(
-                          padding: WidgetStatePropertyAll(
-                            EdgeInsets.only(left: 32, right: 16),
-                          ),
-                          textStyle: WidgetStatePropertyAll(
-                            TextStyle(fontSize: 14),
-                          ),
-                        ),
-                      ),
-                    );
-                  }
-                }
-
-                if (entries.isEmpty) {
-                  return const Text(
-                    'No document types found for this student.',
-                    style: TextStyle(color: AppColors.error),
-                  );
-                }
-
-                return DropdownMenu<int>(
-                  initialSelection: _selectedRequirementId,
-                  hintText: 'Select Document Type',
-                  expandedInsets: EdgeInsets.zero,
-                  menuHeight: 300,
-                  inputDecorationTheme: InputDecorationTheme(
-                    filled: true,
-                    fillColor: AppColors.surfaceWhite,
-                    contentPadding: const EdgeInsets.symmetric(
-                      horizontal: 16,
-                      vertical: 14,
-                    ),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(
-                        AppSizes.radiusMedium,
-                      ),
-                      borderSide: BorderSide(color: Colors.grey.shade300),
-                    ),
-                    enabledBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(
-                        AppSizes.radiusMedium,
-                      ),
-                      borderSide: BorderSide(color: Colors.grey.shade300),
-                    ),
-                    focusedBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(
-                        AppSizes.radiusMedium,
-                      ),
-                      borderSide: const BorderSide(
-                        color: AppColors.primaryGreen,
-                        width: 2,
-                      ),
-                    ),
-                  ),
-                  dropdownMenuEntries: entries,
-                  onSelected: (val) {
-                    if (val == null || val < 0) return;
-                    setState(() {
-                      _selectedRequirementId = val;
-                      final reqMatch = requirements.firstWhere(
-                        (r) => r.id == val,
-                      );
-                      _selectedDocumentType = reqMatch.name;
-                    });
-                  },
-                );
-              },
-              loading: () => const Center(
-                child: CircularProgressIndicator(color: AppColors.primaryGreen),
-              ),
-              error: (e, st) => Text(
-                'Failed to load types: $e',
-                style: const TextStyle(color: AppColors.error),
-              ),
-            ),
-
-          const SizedBox(height: AppSizes.p32),
-
-          Builder(
-            builder: (ctx) {
-              final isSmall = MediaQuery.sizeOf(ctx).width < 600;
-              return SizedBox(
-                width: double.infinity,
-                child: Wrap(
-                  alignment: isSmall ? WrapAlignment.center : WrapAlignment.end,
-                  spacing: AppSizes.p16,
-                  runSpacing: AppSizes.p16,
-                  children: [
-                    TextButton(
-                      onPressed: () {
-                        setState(() {
-                          _currentStep = 0;
-                          _selectedFile = null;
-                        });
-                      },
-                      style: TextButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(
-                          vertical: 16,
-                          horizontal: 24,
-                        ),
-                      ),
-                      child: const Text(
-                        'RE-UPLOAD',
-                        style: TextStyle(
-                          color: AppColors.textSecondary,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ),
-                    SizedBox(
-                      width: isSmall ? double.infinity : 200,
-                      child: PrimaryButton(
-                        label: 'UPLOAD',
-                        isLoading: _isSubmitting,
-                        onPressed: _validateAndUpload,
-                      ),
-                    ),
-                  ],
-                ),
-              );
-            },
-          ),
-        ],
       ),
     );
   }

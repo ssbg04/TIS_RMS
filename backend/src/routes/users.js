@@ -8,6 +8,7 @@ router.get('/',                  authenticateToken, authorizeRoles('admin'), use
 router.post('/',                 authenticateToken, authorizeRoles('admin'), userController.createUser);
 router.put('/:id',               authenticateToken, authorizeRoles('admin'), userController.updateUser);
 router.put('/:id/reset-password',authenticateToken, authorizeRoles('admin'), userController.resetPassword);
+router.put('/:id/status',        authenticateToken, authorizeRoles('admin'), userController.toggleUserStatus);
 router.delete('/:id',            authenticateToken, authorizeRoles('admin'), userController.deleteUser);
 
 // Teacher Sections

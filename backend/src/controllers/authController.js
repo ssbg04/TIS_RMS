@@ -15,6 +15,11 @@ exports.login = (req, res) => {
             return res.status(401).json({ message: 'Invalid username or password' });
         }
 
+        // Block inactive accounts before issuing a token
+        if (user.is_active === 0) {
+            return res.status(403).json({ message: 'Your account has been deactivated. Please contact an administrator.' });
+        }
+
         const token = jwt.sign(
             { id: user.id, username: user.username, role: user.role },
             process.env.JWT_SECRET,

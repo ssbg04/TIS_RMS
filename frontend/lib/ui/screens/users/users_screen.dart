@@ -120,40 +120,24 @@ class _UsersScreenState extends ConsumerState<UsersScreen> {
     }
   }
 
-  Future<void> _confirmDelete(SystemUser user) async {
-    // Show our new custom delete dialog that collects Reason and Password
-    final result = await showDialog<Map<String, String>>(
-      context: context,
-      builder: (ctx) => _DeleteConfirmationDialog(user: user),
-    );
-
-    if (result == null || !mounted) return;
-
+  Future<void> _toggleStatus(SystemUser user) async {
     try {
-      // ✅ Note: You will need to update `usersProvider.deleteUser` to accept these new parameters!
-      await ref
+      final newActive = await ref
           .read(usersProvider.notifier)
-          .deleteUser(
-            user.id,
-            reason: result['reason']!,
-            password: result['password']!,
-          );
-
+          .toggleStatus(user.id);
       if (!mounted) return;
-
-      // ✅ Replaced SnackBar with Success Dialog
       showSuccessDialog(
         context,
-        title: 'User Deleted',
-        message: 'User "${user.username}" was permanently deleted.',
+        title: newActive ? 'User Activated' : 'User Deactivated',
+        message: newActive
+            ? '"${user.username}" can now log in to the system.'
+            : '"${user.username}" has been deactivated and cannot log in.',
       );
     } catch (e) {
       if (!mounted) return;
-
-      // ✅ Replaced SnackBar with Error Dialog
       showErrorDialog(
         context,
-        'Deletion Failed',
+        'Status Change Failed',
         e.toString().replaceAll('Exception: ', ''),
       );
     }
@@ -293,15 +277,18 @@ class _UsersScreenState extends ConsumerState<UsersScreen> {
                       ),
                       if (user.id != currentUser?.id)
                         OutlinedButton.icon(
-                          icon: const Icon(Icons.delete_outline, size: 16),
-                          label: const Text('Delete'),
+                          icon: Icon(
+                            user.isActive ? Icons.block : Icons.check_circle_outline,
+                            size: 16,
+                          ),
+                          label: Text(user.isActive ? 'Deactivate' : 'Activate'),
                           onPressed: () {
                             Navigator.of(context, rootNavigator: true).pop();
-                            _confirmDelete(user);
+                            _toggleStatus(user);
                           },
                           style: OutlinedButton.styleFrom(
-                            foregroundColor: Colors.red,
-                            side: const BorderSide(color: Colors.red),
+                            foregroundColor: user.isActive ? Colors.red : AppColors.primaryGreen,
+                            side: BorderSide(color: user.isActive ? Colors.red : AppColors.primaryGreen),
                             padding: const EdgeInsets.symmetric(
                               horizontal: 16,
                               vertical: 12,
@@ -340,6 +327,12 @@ class _UsersScreenState extends ConsumerState<UsersScreen> {
                   _detailRow(
                     'Phone',
                     user.phone?.isNotEmpty == true ? user.phone! : '—',
+                  ),
+                  // Status row
+                  const SizedBox(height: AppSizes.p16),
+                  _detailRow(
+                    'Account Status',
+                    user.isActive ? 'Active' : 'Inactive',
                   ),
                   const SizedBox(height: AppSizes.p16),
                   _detailRow(
@@ -727,6 +720,7 @@ class _UsersScreenState extends ConsumerState<UsersScreen> {
               DataColumn(label: Text('User')),
               DataColumn(label: Text('Username')),
               DataColumn(label: Text('Access Role')),
+              DataColumn(label: Text('Status')),
               DataColumn(label: Text('Contact')),
               DataColumn(label: SizedBox.shrink()), // Trailing icon
             ],
@@ -735,6 +729,7 @@ class _UsersScreenState extends ConsumerState<UsersScreen> {
                     const DataRow(
                       cells: [
                         DataCell(Text('No users found.')),
+                        DataCell(Text('')),
                         DataCell(Text('')),
                         DataCell(Text('')),
                         DataCell(Text('')),
@@ -784,6 +779,7 @@ class _UsersScreenState extends ConsumerState<UsersScreen> {
                               ),
                             ),
                             DataCell(_buildRoleChip(user.role)),
+                            DataCell(_buildStatusChip(user.isActive)),
                             DataCell(
                               Text(
                                 user.email ?? user.phone ?? '—',
@@ -928,6 +924,26 @@ class _UsersScreenState extends ConsumerState<UsersScreen> {
         role.toUpperCase().replaceAll('_', ' '),
         style: TextStyle(
           color: color,
+          fontWeight: FontWeight.bold,
+          fontSize: 11,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildStatusChip(bool isActive) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      decoration: BoxDecoration(
+        color: isActive
+            ? Colors.green.withValues(alpha: 0.1)
+            : Colors.grey.withValues(alpha: 0.15),
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Text(
+        isActive ? 'Active' : 'Inactive',
+        style: TextStyle(
+          color: isActive ? Colors.green.shade700 : Colors.grey.shade600,
           fontWeight: FontWeight.bold,
           fontSize: 11,
         ),
@@ -1107,11 +1123,20 @@ class _AddEditUserModalState extends ConsumerState<AddEditUserModal> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               const Text(
-                '⚠️ Copy and share these credentials now. The temporary password will not be shown again.',
+                '⚠️ Save these credentials now. The temporary password will not be shown again.',
                 style: TextStyle(
                   fontSize: 13,
                   color: Colors.orange,
                   fontWeight: FontWeight.w600,
+                ),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 8),
+              const Text(
+                '🔒 For best protection, remind the user to change their password after first login.',
+                style: TextStyle(
+                  fontSize: 12,
+                  color: AppColors.textSecondary,
                 ),
                 textAlign: TextAlign.center,
               ),
@@ -1511,21 +1536,38 @@ class _AddEditUserModalState extends ConsumerState<AddEditUserModal> {
                                   ),
                                 ),
                               ),
-                              child: const Row(
+                              child: Row(
+                                crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  Icon(
-                                    Icons.auto_awesome,
+                                  const Icon(
+                                    Icons.info_outline,
                                     color: AppColors.primaryGreen,
                                     size: 16,
                                   ),
-                                  SizedBox(width: 8),
+                                  const SizedBox(width: 8),
                                   Expanded(
-                                    child: Text(
-                                      'A secure temporary password will be auto-generated and shown once after creation.',
-                                      style: TextStyle(
-                                        fontSize: 12,
-                                        color: AppColors.primaryGreen,
-                                        fontWeight: FontWeight.w600,
+                                    child: RichText(
+                                      text: TextSpan(
+                                        style: const TextStyle(
+                                          fontSize: 12,
+                                          color: AppColors.primaryGreen,
+                                          fontWeight: FontWeight.w600,
+                                        ),
+                                        children: [
+                                          const TextSpan(
+                                            text: 'Temporary password will be ',
+                                          ),
+                                          TextSpan(
+                                            text: '${_usernameCtrl.text.trim().isEmpty ? '<username>' : _usernameCtrl.text.trim()}123',
+                                            style: const TextStyle(
+                                              fontWeight: FontWeight.bold,
+                                              fontFamily: 'monospace',
+                                            ),
+                                          ),
+                                          const TextSpan(
+                                            text: '. Remind the user to change it after first login.',
+                                          ),
+                                        ],
                                       ),
                                     ),
                                   ),
@@ -1737,146 +1779,6 @@ class _AddEditUserModalState extends ConsumerState<AddEditUserModal> {
       maxLength: maxLength,
       keyboardType: keyboardType,
       inputFormatters: inputFormatters,
-    );
-  }
-}
-
-// ============================================================
-// NEW: CUSTOM DELETE CONFIRMATION DIALOG
-// ============================================================
-class _DeleteConfirmationDialog extends StatefulWidget {
-  final SystemUser user;
-  const _DeleteConfirmationDialog({required this.user});
-
-  @override
-  State<_DeleteConfirmationDialog> createState() =>
-      _DeleteConfirmationDialogState();
-}
-
-class _DeleteConfirmationDialogState extends State<_DeleteConfirmationDialog> {
-  final _reasonCtrl = TextEditingController();
-  final _passwordCtrl = TextEditingController();
-  bool _obscurePassword = true;
-
-  @override
-  void dispose() {
-    _reasonCtrl.dispose();
-    _passwordCtrl.dispose();
-    super.dispose();
-  }
-
-  void _submit() {
-    final reason = _reasonCtrl.text.trim();
-    final password = _passwordCtrl.text;
-
-    if (reason.isEmpty || password.isEmpty) {
-      showErrorDialog(
-        context,
-        'Missing Fields',
-        'You must provide a reason and confirm your password to delete a user.',
-      );
-      return;
-    }
-
-    // Return the collected reason and password back to the _confirmDelete handler
-    Navigator.pop(context, {'reason': reason, 'password': password});
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Dialog(
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(AppSizes.radiusLarge),
-      ),
-      child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 420),
-        child: Padding(
-          padding: const EdgeInsets.all(AppSizes.p24),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  const Icon(Icons.delete_forever, color: Colors.red),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      'Delete @${widget.user.username}?',
-                      style: const TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.red,
-                      ),
-                    ),
-                  ),
-                  IconButton(
-                    icon: const Icon(Icons.close),
-                    onPressed: () => Navigator.pop(context),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 8),
-              const Text(
-                'This action is irreversible. For security auditing, please provide a reason and confirm using your admin password.',
-                style: TextStyle(fontSize: 13, color: AppColors.textSecondary),
-              ),
-              const Divider(height: 28),
-
-              // 1. Reason Field
-              CustomTextField(
-                hintText: 'Reason for deletion',
-                prefixIcon: Icons.warning_amber_rounded,
-                controller: _reasonCtrl,
-              ),
-              const SizedBox(height: 12),
-
-              // 2. Admin Password Field
-              CustomTextField(
-                hintText: 'Your Admin Password',
-                prefixIcon: Icons.lock_outline,
-                controller: _passwordCtrl,
-                isPassword: true,
-                obscureText: _obscurePassword,
-                onToggleVisibility: () =>
-                    setState(() => _obscurePassword = !_obscurePassword),
-              ),
-
-              const SizedBox(height: 24),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.end,
-                children: [
-                  TextButton(
-                    onPressed: () => Navigator.pop(context),
-                    child: const Text('CANCEL'),
-                  ),
-                  const SizedBox(width: 12),
-                  ElevatedButton(
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.red,
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 24,
-                        vertical: 12,
-                      ),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(
-                          AppSizes.radiusMedium,
-                        ),
-                      ),
-                    ),
-                    onPressed: _submit,
-                    child: const Text(
-                      'DELETE',
-                      style: TextStyle(fontWeight: FontWeight.bold),
-                    ),
-                  ),
-                ],
-              ),
-            ],
-          ),
-        ),
-      ),
     );
   }
 }

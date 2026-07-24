@@ -8,6 +8,7 @@ class SystemUser {
   final String role;
   final String? email;
   final String? phone;
+  final bool isActive;
   final String? createdAt;
   final String? addedByUsername;
   final String? addedByName;
@@ -22,6 +23,7 @@ class SystemUser {
     required this.role,
     this.email,
     this.phone,
+    this.isActive = true,
     this.createdAt,
     this.addedByUsername,
     this.addedByName,
@@ -52,6 +54,7 @@ class SystemUser {
       role: json['role'] as String,
       email: json['email'] as String?,
       phone: json['phone'] as String?,
+      isActive: (json['is_active'] as int? ?? 1) == 1,
       createdAt: json['created_at'] as String?,
       addedByUsername: json['added_by_username'] as String?,
       addedByName: json['added_by_name'] as String?,

@@ -116,4 +116,16 @@ class UsersNotifier extends AsyncNotifier<List<SystemUser>> {
       rethrow;
     }
   }
+
+  /// Toggles is_active for a user. Returns the new active state.
+  Future<bool> toggleStatus(int id) async {
+    try {
+      final newActive =
+          await ref.read(userRepositoryProvider).toggleStatus(id);
+      await refresh();
+      return newActive;
+    } catch (e) {
+      rethrow;
+    }
+  }
 }
