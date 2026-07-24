@@ -1823,7 +1823,7 @@ class _DobPickerState extends State<_DobPicker> {
                 items: List.generate(maxDays, (index) {
                   return DropdownMenuItem(
                     value: index + 1,
-                    child: Text('\', style: const TextStyle(fontSize: 14)),
+                    child: Text('${index + 1}', style: const TextStyle(fontSize: 14)),
                   );
                 }),
                 onChanged: (val) {
