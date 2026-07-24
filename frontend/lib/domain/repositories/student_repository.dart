@@ -148,7 +148,7 @@ class StudentRepository {
     required String lastName,
     String? extension,
     required String sex,
-    required DateTime birthDate,
+    required DateTime? birthDate,
     required int academicYearId,
     required int gradeLevel,
     required int sectionId,
@@ -166,8 +166,8 @@ class StudentRepository {
           'lastName': lastName.trim(),
           'extension': extension?.trim(),
           'sex': sex,
-          'birthDate':
-              '${birthDate.year}-${birthDate.month.toString().padLeft(2, '0')}-${birthDate.day.toString().padLeft(2, '0')}',
+          'birthDate': birthDate != null ?
+              '${birthDate.year}-${birthDate.month.toString().padLeft(2, '0')}-${birthDate.day.toString().padLeft(2, '0')}' : null,
           'academicYearId': academicYearId,
           'gradeLevel': gradeLevel,
           'sectionId': sectionId,
@@ -194,7 +194,7 @@ class StudentRepository {
     required String lastName,
     String? extension,
     required String sex,
-    required DateTime birthDate,
+    required DateTime? birthDate,
     required int academicYearId,
     required int gradeLevel,
     required int sectionId,
@@ -213,8 +213,8 @@ class StudentRepository {
           'lastName': lastName.trim(),
           'extension': extension?.trim(),
           'sex': sex,
-          'birthDate':
-              '${birthDate.year}-${birthDate.month.toString().padLeft(2, '0')}-${birthDate.day.toString().padLeft(2, '0')}',
+          'birthDate': birthDate != null ?
+              '${birthDate.year}-${birthDate.month.toString().padLeft(2, '0')}-${birthDate.day.toString().padLeft(2, '0')}' : null,
           'status': status,
           'academicYearId': academicYearId,
           'gradeLevel': gradeLevel,
@@ -245,7 +245,7 @@ class StudentRepository {
           'lastName': student.lastName,
           'extension': student.extension,
           'sex': student.sex,
-          'birthDate': student.birthDate.toIso8601String().split('T').first,
+          'birthDate': student.birthDate?.toIso8601String().split('T').first,
           'status':
               'Inactive', // Changed status to Inactive instead of deleting
           'academicYearId': student.latestEnrollment?.academicYearId ?? 0,
