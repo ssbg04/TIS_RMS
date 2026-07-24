@@ -73,7 +73,7 @@ class _AddEditStudentModalState extends ConsumerState<AddEditStudentModal> {
   // Cache of all enrollments loaded for the student being edited
   List<dynamic>? _loadedEnrollments;
 
-  static const _statuses = ['Enrolled', 'Graduated', 'Transferred', 'Dropped'];
+  static const _statuses = ['Enrolled', 'Graduated', 'Transferred', 'Dropped', 'Inactive'];
   static const _extSuggestions = [
     'N/A',
     'JR.',
