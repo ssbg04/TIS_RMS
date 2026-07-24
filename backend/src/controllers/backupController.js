@@ -36,20 +36,23 @@ exports.downloadBackup = async (req, res) => {
         const zip = new AdmZip();
 
         const dataDir = path.resolve('./data');
-        const uploadsDir = path.resolve('./uploads');
 
-        // Add database file using proper SQLite backup API to ensure consistency
+        // Checkpoint WAL to ensure database file is completely up-to-date and WAL is mostly empty
+        db.pragma('wal_checkpoint(TRUNCATE)');
+
+        // Add database files directly
         const dbFile = path.join(dataDir, 'tis_rms.db');
-        if (fs.existsSync(dbFile)) {
-            const tempDbFile = path.join(dataDir, `temp_backup_${Date.now()}.db`);
-            await db.backup(tempDbFile);
-            zip.addLocalFile(tempDbFile, 'data', 'tis_rms.db');
-            fs.unlinkSync(tempDbFile);
-        }
+        const walFile = path.join(dataDir, 'tis_rms.db-wal');
+        const shmFile = path.join(dataDir, 'tis_rms.db-shm');
 
-        // Add uploads folder if it exists
-        if (fs.existsSync(uploadsDir)) {
-            zip.addLocalFolder(uploadsDir, 'uploads');
+        if (fs.existsSync(dbFile)) zip.addLocalFile(dbFile, 'data');
+        if (fs.existsSync(walFile)) zip.addLocalFile(walFile, 'data');
+        if (fs.existsSync(shmFile)) zip.addLocalFile(shmFile, 'data');
+
+        // Add students folder where documents are saved
+        const studentsDir = path.join(dataDir, 'students');
+        if (fs.existsSync(studentsDir)) {
+            zip.addLocalFolder(studentsDir, 'data/students');
         }
 
         const zipBuffer = zip.toBuffer();
@@ -101,7 +104,9 @@ exports.restoreBackup = async (req, res) => {
         zip.extractAllTo(tempExtractDir, true);
 
         const extractedDbPath = path.join(tempExtractDir, 'data', 'tis_rms.db');
-        const extractedUploadsDir = path.join(tempExtractDir, 'uploads');
+        const extractedWalPath = path.join(tempExtractDir, 'data', 'tis_rms.db-wal');
+        const extractedShmPath = path.join(tempExtractDir, 'data', 'tis_rms.db-shm');
+        const extractedStudentsDir = path.join(tempExtractDir, 'data', 'students');
 
         if (!fs.existsSync(extractedDbPath)) {
             fs.rmSync(tempExtractDir, { recursive: true, force: true });
@@ -117,22 +122,31 @@ exports.restoreBackup = async (req, res) => {
         const currentDbPath = path.join(currentDataDir, 'tis_rms.db');
         const currentDbWalPath = path.join(currentDataDir, 'tis_rms.db-wal');
         const currentDbShmPath = path.join(currentDataDir, 'tis_rms.db-shm');
-        const currentUploadsDir = path.resolve('./uploads');
+        const currentStudentsDir = path.join(currentDataDir, 'students');
 
         console.log('[Backup] Overwriting database...');
         fs.copyFileSync(extractedDbPath, currentDbPath);
 
-        console.log('[Backup] Cleaning up WAL and SHM files...');
-        if (fs.existsSync(currentDbWalPath)) fs.unlinkSync(currentDbWalPath);
-        if (fs.existsSync(currentDbShmPath)) fs.unlinkSync(currentDbShmPath);
+        console.log('[Backup] Replacing WAL and SHM files...');
+        if (fs.existsSync(extractedWalPath)) {
+            fs.copyFileSync(extractedWalPath, currentDbWalPath);
+        } else if (fs.existsSync(currentDbWalPath)) {
+            fs.unlinkSync(currentDbWalPath);
+        }
 
-        console.log('[Backup] Replacing uploads directory...');
-        if (fs.existsSync(extractedUploadsDir)) {
-            // Safe copy of uploads
-            if (fs.existsSync(currentUploadsDir)) {
-                fs.rmSync(currentUploadsDir, { recursive: true, force: true });
+        if (fs.existsSync(extractedShmPath)) {
+            fs.copyFileSync(extractedShmPath, currentDbShmPath);
+        } else if (fs.existsSync(currentDbShmPath)) {
+            fs.unlinkSync(currentDbShmPath);
+        }
+
+        console.log('[Backup] Replacing students directory...');
+        if (fs.existsSync(extractedStudentsDir)) {
+            // Safe copy of students documents
+            if (fs.existsSync(currentStudentsDir)) {
+                fs.rmSync(currentStudentsDir, { recursive: true, force: true });
             }
-            fs.cpSync(extractedUploadsDir, currentUploadsDir, { recursive: true });
+            fs.cpSync(extractedStudentsDir, currentStudentsDir, { recursive: true });
         }
 
         // Cleanup temp directories and uploaded zip file
