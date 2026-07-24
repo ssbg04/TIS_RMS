@@ -254,7 +254,8 @@ class _UploadOcrModalState extends ConsumerState<UploadOcrModal> {
       // 2. Upload Document
       final ext =
           _fileName?.split('.').last ?? _selectedFile!.path.split('.').last;
-      final newFileName = '${lrn}_$_selectedDocumentType.$ext';
+      // Filename = document type name (backend groups these under JHS Documents / SHS Documents)
+      final newFileName = '$_selectedDocumentType.$ext';
 
       final formData = FormData.fromMap({
         'studentId': finalStudentId,

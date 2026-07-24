@@ -26,8 +26,8 @@ const sanitizeFolderName = (str) =>
 // Configure Multer
 const storage = multer.diskStorage({
     destination: (req, file, cb) => {
-        // We expect studentId in req.body
-        const { studentId, documentType } = req.body;
+        // We expect studentId, documentType, and requirementId in req.body
+        const { studentId, documentType, requirementId } = req.body;
 
         let uploadPath = process.env.UPLOAD_PATH ? path.resolve(process.env.UPLOAD_PATH) : path.resolve(__dirname, '../../../data/uploads');
 
@@ -38,9 +38,18 @@ const storage = multer.diskStorage({
                     const folderName = `${sanitizeFolderName(student.last_name)}_${sanitizeFolderName(student.first_name)}_${student.lrn}`;
                     uploadPath = path.join(STUDENT_DIR_ROOT, folderName);
 
-                    if (documentType) {
-                        uploadPath = path.join(uploadPath, sanitizeFolderName(documentType));
+                    // Determine subfolder: 'JHS Documents', 'SHS Documents', or fallback to documentType
+                    let subFolder = documentType ? sanitizeFolderName(documentType) : 'Documents';
+                    if (requirementId && requirementId !== 'null') {
+                        try {
+                            const reqRow = db.prepare('SELECT category FROM document_requirements WHERE id = ?').get(requirementId);
+                            if (reqRow?.category === 'JHS') subFolder = 'JHS Documents';
+                            else if (reqRow?.category === 'SHS') subFolder = 'SHS Documents';
+                        } catch (reqErr) {
+                            console.error('Error fetching requirement category:', reqErr);
+                        }
                     }
+                    uploadPath = path.join(uploadPath, subFolder);
                 }
             } catch (err) {
                 console.error('Error fetching student for upload path:', err);
@@ -50,10 +59,24 @@ const storage = multer.diskStorage({
         if (!fs.existsSync(uploadPath)) {
             fs.mkdirSync(uploadPath, { recursive: true });
         }
+        // Store for use by filename callback (collision detection)
+        req._uploadPath = uploadPath;
         cb(null, uploadPath);
     },
     filename: (req, file, cb) => {
-        cb(null, `${Date.now()}-${file.originalname.replace(/[^a-zA-Z0-9.-]/g, '_')}`);
+        // Use the document type name as the filename (originalname is set to the doc type by the frontend).
+        // Add a timestamp prefix only if a file with the same name already exists (collision guard).
+        const ext = path.extname(file.originalname);
+        const base = sanitizeFolderName(path.basename(file.originalname, ext));
+        const desiredName = `${base}${ext}`;
+
+        const destDir = req._uploadPath;
+        if (destDir && fs.existsSync(path.join(destDir, desiredName))) {
+            // File already exists — add timestamp to avoid silent overwrite
+            cb(null, `${Date.now()}-${desiredName}`);
+        } else {
+            cb(null, desiredName);
+        }
     }
 });
 
