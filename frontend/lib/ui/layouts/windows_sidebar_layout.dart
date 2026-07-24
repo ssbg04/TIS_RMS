@@ -25,7 +25,7 @@ import '../providers/navigation_provider.dart';
 import 'dart:io' show Platform;
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:window_manager/window_manager.dart';
-import '../shared/modals/capstone_members_modal.dart';
+import '../screens/capstone_members/capstone_members_screen.dart';
 
 // Dummy screen for placeholders
 class PlaceholderScreen extends StatelessWidget {
@@ -88,7 +88,10 @@ class _WindowsSidebarLayoutState extends ConsumerState<WindowsSidebarLayout> {
   }
 
   void _showCapstoneMembers(BuildContext context) {
-    CapstoneMembersModal.show(context);
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => const CapstoneMembersScreen()),
+    );
   }
 
   Widget _buildNavItem(

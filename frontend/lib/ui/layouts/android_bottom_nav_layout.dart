@@ -22,7 +22,7 @@ import '../providers/auth_provider.dart';
 import '../shared/dialogs/logout_dialog.dart';
 import '../shared/widgets/abstract_background.dart';
 import '../providers/navigation_provider.dart';
-import '../shared/modals/capstone_members_modal.dart';
+import '../screens/capstone_members/capstone_members_screen.dart';
 
 // Dummy screen for placeholders
 class PlaceholderScreen extends StatelessWidget {
@@ -191,7 +191,10 @@ class _AndroidBottomNavLayoutState extends ConsumerState<AndroidBottomNavLayout>
   }
 
   void _showCapstoneMembers(BuildContext context) {
-    CapstoneMembersModal.show(context);
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => const CapstoneMembersScreen()),
+    );
   }
 
   @override
