@@ -1004,15 +1004,7 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
                         ],
                       ),
                     ),
-                    if (_searchFocusNode.hasFocus)
-                      Positioned.fill(
-                        child: IgnorePointer(
-                          ignoring: true,
-                          child: Container(
-                            color: Colors.black.withValues(alpha: 0.25),
-                          ),
-                        ),
-                      ),
+
                   ],
                 ),
               ),
@@ -1021,6 +1013,45 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
         ),
       ),
     );
+  }
+
+  void _showSearchDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      barrierColor: Colors.black54,
+      builder: (context) {
+        return Align(
+          alignment: Alignment.topCenter,
+          child: Padding(
+            padding: const EdgeInsets.only(top: kToolbarHeight + 24),
+            child: Material(
+              color: Colors.white,
+              elevation: 4,
+              borderRadius: BorderRadius.circular(12),
+              child: AppSearchBar(
+                key: _searchBarKey,
+                hint: 'Search by name, LRN, file…',
+                controller: _searchController,
+                focusNode: _searchFocusNode,
+                collapsible: false,
+                maxWidth: 600,
+                onChanged: _onSearchChanged,
+                onSubmitted: (value) {
+                  Navigator.of(context).pop();
+                  _onSearchSubmitted(value);
+                },
+              ),
+            ),
+          ),
+        );
+      },
+    );
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        _searchFocusNode.requestFocus();
+      }
+    });
   }
 
   // ══════════════════════════════════════════════════════════════
@@ -1036,9 +1067,6 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
     AsyncValue<List<String>> statusesAsync,
   ) {
     final hPad = isMobile ? 12.0 : 20.0;
-    final bool isSearchActive =
-        !isFolderOpened &&
-        (_searchFocusNode.hasFocus || _searchController.text.isNotEmpty);
 
     return Container(
       color: AppColors.surfaceWhite,
@@ -1046,213 +1074,193 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          if (!isSearchActive) ...[
-            // Back / folder icon
-            IconButton(
-              icon: Icon(
-                isFolderOpened
-                    ? Icons.arrow_back_ios_new_rounded
-                    : Icons.folder_open_rounded,
-                size: 20,
-              ),
-              color: AppColors.primaryGreen,
-              tooltip: isFolderOpened ? 'Back to Folders' : null,
-              onPressed: isFolderOpened
-                  ? () {
-                      setState(() {
-                        _openedFolderStudentId = null;
-                        _openedFolderName = null;
-                      });
-                      ref.read(openedFolderProvider.notifier).setFolder(null);
-                      ref
-                          .read(documentQueryProvider.notifier)
-                          .setStudentId(null);
-                    }
-                  : null,
+          // Back / folder icon
+          IconButton(
+            icon: Icon(
+              isFolderOpened
+                  ? Icons.arrow_back_ios_new_rounded
+                  : Icons.folder_open_rounded,
+              size: 20,
             ),
-            const SizedBox(width: 6),
+            color: AppColors.primaryGreen,
+            tooltip: isFolderOpened ? 'Back to Folders' : null,
+            onPressed: isFolderOpened
+                ? () {
+                    setState(() {
+                      _openedFolderStudentId = null;
+                      _openedFolderName = null;
+                    });
+                    ref.read(openedFolderProvider.notifier).setFolder(null);
+                    ref.read(documentQueryProvider.notifier).setStudentId(null);
+                  }
+                : null,
+          ),
+          const SizedBox(width: 6),
 
-            // Screen title
-            if (!isSearchActive || isFolderOpened)
-              Expanded(
-                child: _openedFolderName != null
-                  ? Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        if (!isMobile) ...[
-                          InkWell(
-                            onTap: () {
-                              setState(() {
-                                _openedFolderStudentId = null;
-                                _openedFolderName = null;
-                              });
-                              ref
-                                  .read(openedFolderProvider.notifier)
-                                  .setFolder(null);
-                              ref
-                                  .read(documentQueryProvider.notifier)
-                                  .setStudentId(null);
-                            },
-                            child: const Text(
-                              'Student Folders',
-                              style: TextStyle(
-                                fontSize: 21,
-                                fontWeight: FontWeight.w500,
-                                color: AppColors.textSecondary,
-                              ),
-                            ),
-                          ),
-                          const Text(
-                            ' / ',
+          // Screen title
+          Expanded(
+            child: _openedFolderName != null
+                ? Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      if (!isMobile) ...[
+                        InkWell(
+                          onTap: () {
+                            setState(() {
+                              _openedFolderStudentId = null;
+                              _openedFolderName = null;
+                            });
+                            ref
+                                .read(openedFolderProvider.notifier)
+                                .setFolder(null);
+                            ref
+                                .read(documentQueryProvider.notifier)
+                                .setStudentId(null);
+                          },
+                          child: const Text(
+                            'Student Folders',
                             style: TextStyle(
                               fontSize: 21,
                               fontWeight: FontWeight.w500,
                               color: AppColors.textSecondary,
                             ),
                           ),
-                        ],
-                        Expanded(
-                          child: Text(
-                            _openedFolderName!,
-                            style: TextStyle(
-                              fontSize: isMobile ? 17 : 21,
-                              fontWeight: FontWeight.bold,
-                              color: AppColors.textPrimary,
-                            ),
+                        ),
+                        const Text(
+                          ' / ',
+                          style: TextStyle(
+                            fontSize: 21,
+                            fontWeight: FontWeight.w500,
+                            color: AppColors.textSecondary,
                           ),
                         ),
                       ],
-                    )
-                  : Text(
-                      _tabController.index == 0
-                          ? 'Student Folders'
-                          : _tabController.index == 1
-                          ? (isStudentFiltered
-                                ? 'Student Documents'
-                                : 'All Documents')
-                          : 'Recycle Bin',
-                      style: TextStyle(
-                        fontSize: isMobile ? 17 : 21,
-                        fontWeight: FontWeight.bold,
-                        color: AppColors.textPrimary,
+                      Expanded(
+                        child: Text(
+                          _openedFolderName!,
+                          style: TextStyle(
+                            fontSize: isMobile ? 17 : 21,
+                            fontWeight: FontWeight.bold,
+                            color: AppColors.textPrimary,
+                          ),
+                        ),
                       ),
+                    ],
+                  )
+                : Text(
+                    _tabController.index == 0
+                        ? 'Student Folders'
+                        : _tabController.index == 1
+                        ? (isStudentFiltered
+                              ? 'Student Documents'
+                              : 'All Documents')
+                        : 'Recycle Bin',
+                    style: TextStyle(
+                      fontSize: isMobile ? 17 : 21,
+                      fontWeight: FontWeight.bold,
+                      color: AppColors.textPrimary,
                     ),
-            ),
-            
-            const SizedBox(width: 16),
-            
-            // Clear student filter chip (compact)
-            if (isStudentFiltered && !isFolderOpened) ...[
-              const SizedBox(width: 12),
-              Flexible(
-                child: TextButton.icon(
-                  onPressed: () => ref
-                      .read(documentQueryProvider.notifier)
-                      .setStudentId(null),
-                  icon: const Icon(Icons.close, size: 14),
-                  label: const Text(
-                    'All Students',
-                    style: TextStyle(fontSize: 12),
                   ),
-                  style: TextButton.styleFrom(
-                    foregroundColor: AppColors.primaryGreen,
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 8,
-                      vertical: 4,
-                    ),
-                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+          ),
+          
+          const SizedBox(width: 16),
+          
+          // Clear student filter chip (compact)
+          if (isStudentFiltered && !isFolderOpened) ...[
+            const SizedBox(width: 12),
+            Flexible(
+              child: TextButton.icon(
+                onPressed: () => ref
+                    .read(documentQueryProvider.notifier)
+                    .setStudentId(null),
+                icon: const Icon(Icons.close, size: 14),
+                label: const Text(
+                  'All Students',
+                  style: TextStyle(fontSize: 12),
+                ),
+                style: TextButton.styleFrom(
+                  foregroundColor: AppColors.primaryGreen,
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 4,
                   ),
+                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                 ),
               ),
-            ],
+            ),
           ],
 
           if (!isFolderOpened) ...[
-            if (!isSearchActive && isMobile) const SizedBox(width: 8),
-
-            Flexible(
-              key: const ValueKey('documents_search_bar_flex'),
-              flex: isSearchActive ? 1 : 0,
-              fit: isSearchActive ? FlexFit.tight : FlexFit.loose,
-              child: AppSearchBar(
-                key: _searchBarKey,
-                hint: 'Search by name, LRN, file…',
-                controller: _searchController,
-                focusNode: _searchFocusNode,
-                collapsible: true,
-                hideIconWhenExpanded: true,
-                onChanged: _onSearchChanged,
-                onSubmitted: _onSearchSubmitted,
-                maxWidth: double.infinity,
-              ),
-            ),
-          ],
-
-          if (!isSearchActive) ...[
-            const SizedBox(width: 8),
-
-            // Filter button (Icon only, no background, no border)
-            if (_tabController.index == 1 || isFolderOpened) ...[
-              Tooltip(
-                message: 'Filter Documents',
-                child: IconButton(
-                  onPressed: () => _openFilterDialog(
-                    requirementsAsync,
-                    academicYearsAsync,
-                    statusesAsync,
-                  ),
-                  icon: Badge(
-                    isLabelVisible: _getActiveFilterCount() > 0,
-                    label: Text(_getActiveFilterCount().toString()),
-                    child: const Icon(
-                      Icons.tune_rounded,
-                      size: 20,
-                      color: AppColors.primaryGreen,
-                    ),
-                  ),
-                ),
-              ),
-              const SizedBox(width: 4),
-            ],
-
-            // Desktop action buttons (Upload available to all roles)
-            if (!isMobile && _tabController.index != 2) ...[
-              SizedBox(
-                height: 38,
-                width: 100, // Slightly smaller UPLOAD button
-                child: PrimaryButton(
-                  label: 'UPLOAD',
-                  onPressed: () => UploadOcrModal.show(
-                    context,
-                    prefilledStudentId:
-                        _openedFolderStudentId ?? widget.initialStudentId,
-                  ),
-                ),
-              ),
-              const SizedBox(width: 8),
-            ],
-
-            // Dropdown Menu
-            SizedBox(height: 38, child: _buildMoreOptionsDropdown(isMobile)),
-
-            const SizedBox(width: 4),
-
-            // Info Button for Download Guide (Moved to right end)
             IconButton(
-              icon: const Icon(
-                Icons.info_outline,
-                color: AppColors.primaryGreen,
-                size: 20,
-              ),
-              tooltip: 'Download Guide',
-              onPressed: () {
-                showDialog(
-                  context: context,
-                  builder: (_) => const DownloadGuideDialog(),
-                );
-              },
+              icon: const Icon(Icons.search, size: 28, color: Colors.black87),
+              tooltip: 'Search Documents',
+              onPressed: () => _showSearchDialog(context),
             ),
           ],
+
+          const SizedBox(width: 8),
+
+          // Filter button (Icon only, no background, no border)
+          if (_tabController.index == 1 || isFolderOpened) ...[
+            Tooltip(
+              message: 'Filter Documents',
+              child: IconButton(
+                onPressed: () => _openFilterDialog(
+                  requirementsAsync,
+                  academicYearsAsync,
+                  statusesAsync,
+                ),
+                icon: Badge(
+                  isLabelVisible: _getActiveFilterCount() > 0,
+                  label: Text(_getActiveFilterCount().toString()),
+                  child: const Icon(
+                    Icons.tune_rounded,
+                    size: 20,
+                    color: AppColors.primaryGreen,
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(width: 4),
+          ],
+
+          // Desktop action buttons (Upload available to all roles)
+          if (!isMobile && _tabController.index != 2) ...[
+            SizedBox(
+              height: 38,
+              width: 100, // Slightly smaller UPLOAD button
+              child: PrimaryButton(
+                label: 'UPLOAD',
+                onPressed: () => UploadOcrModal.show(
+                  context,
+                  prefilledStudentId:
+                      _openedFolderStudentId ?? widget.initialStudentId,
+                ),
+              ),
+            ),
+            const SizedBox(width: 8),
+          ],
+
+          // Dropdown Menu
+          SizedBox(height: 38, child: _buildMoreOptionsDropdown(isMobile)),
+
+          const SizedBox(width: 4),
+
+          // Info Button for Download Guide (Moved to right end)
+          IconButton(
+            icon: const Icon(
+              Icons.info_outline,
+              color: AppColors.primaryGreen,
+              size: 20,
+            ),
+            tooltip: 'Download Guide',
+            onPressed: () {
+              showDialog(
+                context: context,
+                builder: (_) => const DownloadGuideDialog(),
+              );
+            },
+          ),
         ],
       ),
     );
