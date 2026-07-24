@@ -704,42 +704,6 @@ class _ForgotPasswordDialogState extends ConsumerState<_ForgotPasswordDialog> {
                           ),
                         ),
                       ),
-                      if (!isMobile)
-                        TextButton.icon(
-                          onPressed: () => setState(
-                            () => _obscurePasswords = !_obscurePasswords,
-                          ),
-                          icon: Icon(
-                            _obscurePasswords
-                                ? Icons.visibility_off
-                                : Icons.visibility,
-                            size: 18,
-                          ),
-                          label: Text(
-                            _obscurePasswords
-                                ? 'Show Passwords'
-                                : 'Hide Passwords',
-                          ),
-                          style: TextButton.styleFrom(
-                            foregroundColor: AppColors.textSecondary,
-                          ),
-                        ),
-                      if (isMobile)
-                        IconButton(
-                          onPressed: () => setState(
-                            () => _obscurePasswords = !_obscurePasswords,
-                          ),
-                          icon: Icon(
-                            _obscurePasswords
-                                ? Icons.visibility_off
-                                : Icons.visibility,
-                            size: 20,
-                          ),
-                          color: AppColors.textSecondary,
-                          tooltip: _obscurePasswords
-                              ? 'Show Passwords'
-                              : 'Hide Passwords',
-                        ),
                       IconButton(
                         icon: Icon(Icons.close, size: isMobile ? 20 : 24),
                         onPressed: () => Navigator.pop(context),
@@ -763,26 +727,38 @@ class _ForgotPasswordDialogState extends ConsumerState<_ForgotPasswordDialog> {
                     validator: (v) =>
                         AppValidators.validateRequired(v, 'Username'),
                   ),
-                  const SizedBox(height: AppSizes.p12),
+                  const SizedBox(height: AppSizes.p16),
+                  Divider(height: isMobile ? 20 : 28),
+                  const SizedBox(height: AppSizes.p8),
                   CustomTextField(
                     hintText: 'New Password',
                     prefixIcon: Icons.lock_outline,
                     controller: _newPassCtrl,
                     isPassword: true,
                     obscureText: _obscurePasswords,
+                    onToggleVisibility: () => setState(() => _obscurePasswords = !_obscurePasswords),
                     validator: AppValidators.validatePasswordComplexity,
+                    autovalidateMode: AutovalidateMode.onUserInteraction,
                     onChanged: (v) => setState(() {}),
                   ),
-                  PasswordStrengthIndicator(password: _newPassCtrl.text),
-                  const SizedBox(height: AppSizes.p12),
+                  if (_newPassCtrl.text.isNotEmpty) ...[
+                    PasswordStrengthIndicator(password: _newPassCtrl.text),
+                  ],
+                  const SizedBox(height: AppSizes.p24),
                   CustomTextField(
                     hintText: 'Confirm New Password',
                     prefixIcon: Icons.lock_outline,
                     controller: _confirmPassCtrl,
                     isPassword: true,
                     obscureText: _obscurePasswords,
-                    validator: (v) =>
-                        AppValidators.validateRequired(v, 'Confirm Password'),
+                    onToggleVisibility: () => setState(() => _obscurePasswords = !_obscurePasswords),
+                    autovalidateMode: AutovalidateMode.onUserInteraction,
+                    onChanged: (v) => setState(() {}),
+                    validator: (v) {
+                      if (v == null || v.isEmpty) return 'Confirm Password is required';
+                      if (v != _newPassCtrl.text) return 'Passwords do not match';
+                      return null;
+                    },
                   ),
 
                   SizedBox(height: isMobile ? 16 : 24),

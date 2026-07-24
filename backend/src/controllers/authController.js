@@ -122,12 +122,15 @@ exports.requestPasswordReset = (req, res) => {
     }
 
     try {
-        const user = db.prepare('SELECT id, role FROM users WHERE username = ?').get(username);
+        const user = db.prepare('SELECT id, role, password FROM users WHERE username = ?').get(username);
         if (!user) {
             return res.status(404).json({ message: 'Username not found.' });
         }
         if (user.role === 'admin') {
             return res.status(403).json({ message: 'Admin cannot submit password reset requests.' });
+        }
+        if (bcrypt.compareSync(newPassword, user.password)) {
+            return res.status(400).json({ message: 'New password cannot be the same as the current password.' });
         }
 
         // Cancel any existing pending request for this user
