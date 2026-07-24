@@ -48,18 +48,9 @@ exports.getProfile = (req, res) => {
 
 // PUT /api/auth/profile
 exports.updateProfile = (req, res) => {
-    const { firstName, middleName, lastName, extension, phone, email, currentPassword } = req.body;
+    const { firstName, middleName, lastName, extension, phone, email } = req.body;
     
-    if (!currentPassword) {
-        return res.status(400).json({ message: 'Current password is required to save changes.' });
-    }
-
     try {
-        const user = db.prepare('SELECT password FROM users WHERE id = ?').get(req.user.id);
-        
-        if (!user || !bcrypt.compareSync(currentPassword, user.password)) {
-            return res.status(401).json({ message: 'Incorrect current password.' });
-        }
 
         db.prepare(`
             UPDATE users 

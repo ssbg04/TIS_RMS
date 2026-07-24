@@ -19,6 +19,46 @@ import '../../shared/dialogs/info_dialog.dart';
 import 'teacher_management_screen.dart';
 import '../../../core/utils/date_utils.dart' as pht;
 import '../../providers/reports_provider.dart';
+class TitleCaseTextInputFormatter extends TextInputFormatter {
+  @override
+  TextEditingValue formatEditUpdate(TextEditingValue oldValue, TextEditingValue newValue) {
+    if (newValue.text.isEmpty) {
+      return newValue.copyWith(text: '');
+    }
+
+    String newText = '';
+    bool capitalizeNext = true;
+
+    for (int i = 0; i < newValue.text.length; i++) {
+      String char = newValue.text[i];
+      if (capitalizeNext && char.trim().isNotEmpty) {
+        newText += char.toUpperCase();
+        capitalizeNext = false;
+      } else {
+        newText += char;
+      }
+      
+      if (char == ' ' || char == '-') {
+        capitalizeNext = true;
+      }
+    }
+
+    return TextEditingValue(
+      text: newText,
+      selection: newValue.selection,
+    );
+  }
+}
+
+class UpperCaseTextFormatter extends TextInputFormatter {
+  @override
+  TextEditingValue formatEditUpdate(TextEditingValue oldValue, TextEditingValue newValue) {
+    return TextEditingValue(
+      text: newValue.text.toUpperCase(),
+      selection: newValue.selection,
+    );
+  }
+}
 
 class SettingsScreen extends ConsumerStatefulWidget {
   final String? userRole;
@@ -123,6 +163,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           setState(() {
             _isPassVisible = false;
           });
+          _passwordFormKey.currentState?.reset();
+          _profileFormKey.currentState?.reset();
           ref.invalidate(profileProvider);
           _lastUserId = null;
         }
@@ -144,77 +186,99 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     super.dispose();
   }
 
-  Future<void> _handleUpdateProfile() async {
-    if (!_profileFormKey.currentState!.validate()) return;
+  bool _hasProfileChanges() {
+    final user = ref.read(profileProvider).asData?.value;
+    if (user == null) return false;
+    
+    return _firstNameCtrl.text.trim() != user.firstName ||
+           _middleNameCtrl.text.trim() != (user.middleName ?? '') ||
+           _lastNameCtrl.text.trim() != user.lastName ||
+           _extCtrl.text.trim() != (user.extension ?? '') ||
+           _phoneCtrl.text.trim() != (user.phone ?? '') ||
+           _emailCtrl.text.trim() != (user.email ?? '');
+  }
 
-    final password = await showDialog<String>(
+  void _revertProfileChanges() {
+    final user = ref.read(profileProvider).asData?.value;
+    if (user != null) {
+      _firstNameCtrl.text = user.firstName;
+      _middleNameCtrl.text = user.middleName ?? '';
+      _lastNameCtrl.text = user.lastName;
+      _extCtrl.text = user.extension ?? '';
+      _phoneCtrl.text = user.phone ?? '';
+      _emailCtrl.text = user.email ?? '';
+    }
+  }
+
+  Future<bool> _promptToConfirmSave() async {
+    final ctrl = TextEditingController();
+    final dialogFormKey = GlobalKey<FormState>();
+
+    final result = await showDialog<bool>(
       context: context,
+      barrierDismissible: false,
       builder: (ctx) {
-        final ctrl = TextEditingController();
-        final dialogFormKey = GlobalKey<FormState>();
-        bool obscure = true;
-        return StatefulBuilder(
-          builder: (context, setState) {
-            return AlertDialog(
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
-              title: const Text('Confirm Changes'),
-              content: Form(
-                key: dialogFormKey,
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text(
-                      'Please enter your current password to save profile changes.',
-                      style: TextStyle(fontSize: 14),
-                    ),
-                    const SizedBox(height: 16),
-                    CustomTextField(
-                      hintText: 'Current Password',
-                      prefixIcon: Icons.lock_outline,
-                      controller: ctrl,
-                      isPassword: true,
-                      obscureText: obscure,
-                      onToggleVisibility: () =>
-                          setState(() => obscure = !obscure),
-                      validator: (v) =>
-                          AppValidators.validateRequired(v, 'Password'),
-                    ),
-                  ],
-                ),
-              ),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.pop(ctx, null),
-                  child: const Text(
-                    'CANCEL',
-                    style: TextStyle(color: Colors.grey),
-                  ),
-                ),
-                TextButton(
-                  onPressed: () {
-                    if (dialogFormKey.currentState!.validate()) {
-                      Navigator.pop(ctx, ctrl.text);
+        return AlertDialog(
+          title: const Text('Confirm Changes'),
+          content: Form(
+            key: dialogFormKey,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text('Type "CONFIRM" to save your profile changes.'),
+                const SizedBox(height: 16),
+                CustomTextField(
+                  hintText: 'CONFIRM',
+                  controller: ctrl,
+                  validator: (v) {
+                    if (v == null || v.trim().toUpperCase() != 'CONFIRM') {
+                      return 'Please type CONFIRM';
                     }
+                    return null;
                   },
-                  child: const Text(
-                    'CONFIRM',
-                    style: TextStyle(
-                      color: AppColors.primaryGreen,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
                 ),
               ],
-            );
-          },
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: const Text('CANCEL', style: TextStyle(color: Colors.grey)),
+            ),
+            TextButton(
+              onPressed: () {
+                if (dialogFormKey.currentState!.validate()) {
+                  Navigator.pop(ctx, true);
+                }
+              },
+              child: const Text(
+                'SAVE',
+                style: TextStyle(
+                  color: AppColors.primaryGreen,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+          ],
         );
       },
     );
 
-    if (password == null || password.isEmpty) return;
+    return result ?? false;
+  }
+
+  Future<void> _handleUpdateProfile() async {
+    if (!_profileFormKey.currentState!.validate()) {
+      _revertProfileChanges();
+      return;
+    }
+
+    final isConfirmed = await _promptToConfirmSave();
+    if (!isConfirmed) {
+      _revertProfileChanges();
+      return;
+    }
 
     setState(() => _isProfileLoading = true);
     try {
@@ -226,7 +290,6 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         extension: _extCtrl.text.trim(),
         phone: _phoneCtrl.text.trim(),
         email: _emailCtrl.text.trim(),
-        currentPassword: password,
       );
       ref.invalidate(profileProvider);
       if (!mounted) return;
@@ -238,6 +301,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         'Update Failed',
         e.toString().replaceAll('Exception: ', ''),
       );
+      _revertProfileChanges();
     } finally {
       if (mounted) setState(() => _isProfileLoading = false);
     }
@@ -248,28 +312,28 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
 
     final newPass = _newPassCtrl.text;
     final confirm = _confirmPassCtrl.text;
+    if (newPass != confirm) {
+      showErrorDialog(context, 'Validation Error', 'Passwords do not match.');
+      return;
+    }
 
-    final current = await showDialog<String>(
+    final currentPassword = await showDialog<String>(
       context: context,
       builder: (ctx) {
         final ctrl = TextEditingController();
-        final dialogFormKey = GlobalKey<FormState>();
         bool obscure = true;
+        final dialogFormKey = GlobalKey<FormState>();
         return StatefulBuilder(
-          builder: (context, setState) {
+          builder: (ctx, setState) {
             return AlertDialog(
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
-              title: const Text('Confirm Changes'),
+              title: const Text('Enter Current Password'),
               content: Form(
                 key: dialogFormKey,
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     const Text(
-                      'Please enter your current password to save password changes.',
+                      'Please verify your current password to proceed.',
                       style: TextStyle(fontSize: 14),
                     ),
                     const SizedBox(height: 16),
@@ -316,25 +380,25 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       },
     );
 
-    if (current == null || current.isEmpty) return;
+    if (currentPassword == null || currentPassword.isEmpty) return;
 
     setState(() => _isPasswordLoading = true);
     try {
       final repo = ref.read(authRepositoryProvider);
       await repo.changePassword(
-        currentPassword: current,
+        currentPassword: currentPassword,
         newPassword: newPass,
         confirmPassword: confirm,
       );
-      _newPassCtrl.clear();
-      _confirmPassCtrl.clear();
       if (!mounted) return;
       showSuccessDialog(context, message: 'Password changed successfully!');
+      _newPassCtrl.clear();
+      _confirmPassCtrl.clear();
     } catch (e) {
       if (!mounted) return;
       showErrorDialog(
         context,
-        'Change Password',
+        'Update Failed',
         e.toString().replaceAll('Exception: ', ''),
       );
     } finally {
@@ -486,12 +550,18 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       children: [
         Text(
           label,
-          style: const TextStyle(fontSize: 12, color: AppColors.textSecondary),
+          style: const TextStyle(
+            fontSize: 12,
+            color: AppColors.textSecondary,
+          ),
         ),
         const SizedBox(height: 4),
         Text(
           value,
-          style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w500),
+          style: const TextStyle(
+            fontSize: 14,
+            fontWeight: FontWeight.w500,
+          ),
         ),
       ],
     );
@@ -619,9 +689,16 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   Widget build(BuildContext context) {
     final profileAsync = ref.watch(profileProvider);
 
-    return Scaffold(
-      backgroundColor: Colors.transparent,
-      body: SafeArea(
+    return GestureDetector(
+      onTap: () {
+        FocusManager.instance.primaryFocus?.unfocus();
+        if (_hasProfileChanges()) {
+          _handleUpdateProfile();
+        }
+      },
+      child: Scaffold(
+        backgroundColor: Colors.transparent,
+        body: SafeArea(
         child: profileAsync.when(
           loading: () => const Center(child: CircularProgressIndicator()),
           error: (err, _) => Center(child: Text('Error: $err')),
@@ -669,112 +746,172 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
 
                       // ── Profile Card ──────────────────────────────────────
                       _buildCard(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Row(
-                              children: [
-                                const CircleAvatar(
-                                  radius: 30,
-                                  backgroundColor: AppColors.primaryGreen,
-                                  child: Icon(
-                                    Icons.person,
-                                    size: 30,
-                                    color: Colors.white,
+                        child: Form(
+                          key: _profileFormKey,
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                children: [
+                                  const CircleAvatar(
+                                    radius: 30,
+                                    backgroundColor: AppColors.primaryGreen,
+                                    child: Icon(
+                                      Icons.person,
+                                      size: 30,
+                                      color: Colors.white,
+                                    ),
                                   ),
-                                ),
-                                const SizedBox(width: AppSizes.p16),
-                                Expanded(
-                                  child: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      const Text(
-                                        'Profile Details',
-                                        style: TextStyle(
-                                          fontSize: 18,
-                                          fontWeight: FontWeight.bold,
+                                  const SizedBox(width: AppSizes.p16),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        const Text(
+                                          'Profile Details',
+                                          style: TextStyle(
+                                            fontSize: 18,
+                                            fontWeight: FontWeight.bold,
+                                          ),
                                         ),
-                                      ),
-                                      Text(
-                                        'Role: ${user.role.toUpperCase().replaceAll('_', ' ')}',
-                                        style: const TextStyle(
-                                          color: AppColors.primaryGreen,
-                                          fontWeight: FontWeight.w600,
+                                        Text(
+                                          'Role: ${user.role.toUpperCase().replaceAll('_', ' ')}',
+                                          style: const TextStyle(
+                                            color: AppColors.primaryGreen,
+                                            fontWeight: FontWeight.w600,
+                                          ),
                                         ),
-                                      ),
-                                    ],
+                                      ],
+                                    ),
                                   ),
-                                ),
-                                TextButton.icon(
-                                  onPressed: () =>
-                                      _showEditProfileModal(context),
-                                  icon: const Icon(Icons.edit, size: 18),
-                                  label: const Text('Edit'),
-                                ),
-                              ],
-                            ),
-                            const Padding(
-                              padding: EdgeInsets.symmetric(
-                                vertical: AppSizes.p24,
+                                  if (_isProfileLoading)
+                                    const SizedBox(
+                                      width: 24,
+                                      height: 24,
+                                      child: CircularProgressIndicator(strokeWidth: 2),
+                                    )
+                                ],
                               ),
-                              child: Divider(),
-                            ),
+                              const Padding(
+                                padding: EdgeInsets.symmetric(
+                                  vertical: AppSizes.p24,
+                                ),
+                                child: Divider(),
+                              ),
+                              CustomTextField(
+                                hintText: 'First Name',
+                                prefixIcon: Icons.badge_outlined,
+                                controller: _firstNameCtrl,
+                                textCapitalization: TextCapitalization.words,
+                                inputFormatters: [TitleCaseTextInputFormatter()],
+                                validator: (v) =>
+                                    AppValidators.validateRequired(v, 'First Name'),
+                              ),
+                              const SizedBox(height: AppSizes.p16),
+                              CustomTextField(
+                                hintText: 'Middle Name (Optional)',
+                                prefixIcon: Icons.badge_outlined,
+                                controller: _middleNameCtrl,
+                                textCapitalization: TextCapitalization.words,
+                                inputFormatters: [TitleCaseTextInputFormatter()],
+                              ),
+                              const SizedBox(height: AppSizes.p16),
+                              CustomTextField(
+                                hintText: 'Last Name',
+                                prefixIcon: Icons.badge_outlined,
+                                controller: _lastNameCtrl,
+                                textCapitalization: TextCapitalization.words,
+                                inputFormatters: [TitleCaseTextInputFormatter()],
+                                validator: (v) =>
+                                    AppValidators.validateRequired(v, 'Last Name'),
+                              ),
+                              const SizedBox(height: AppSizes.p16),
+                              CustomTextField(
+                                hintText: 'Suffix (Optional)',
+                                prefixIcon: Icons.text_format,
+                                controller: _extCtrl,
+                                textCapitalization: TextCapitalization.characters,
+                                inputFormatters: [UpperCaseTextFormatter()],
+                              ),
+                              ValueListenableBuilder<TextEditingValue>(
+                                valueListenable: _extCtrl,
+                                builder: (context, value, child) {
+                                  final text = value.text.toLowerCase();
+                                  final suggestions = ['Jr.', 'Sr.', 'II', 'III', 'IV'];
+                                  final filtered = suggestions.where((s) => s.toLowerCase().startsWith(text) && s.toLowerCase() != text).toList();
+                                  
+                                  if (filtered.isEmpty) return const SizedBox.shrink();
 
-                            Row(
-                              children: [
-                                Expanded(
-                                  child: _buildInfoItem(
-                                    'First Name',
-                                    user.firstName,
-                                  ),
-                                ),
-                                Expanded(
-                                  child: _buildInfoItem(
-                                    'Middle Name',
-                                    user.middleName?.isNotEmpty == true
-                                        ? user.middleName!
-                                        : '-',
-                                  ),
-                                ),
-                                Expanded(
-                                  child: _buildInfoItem(
-                                    'Last Name',
-                                    user.lastName,
-                                  ),
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: AppSizes.p16),
-                            Row(
-                              children: [
-                                Expanded(
-                                  child: _buildInfoItem(
-                                    'Ext. (Jr)',
-                                    user.extension?.isNotEmpty == true
-                                        ? user.extension!
-                                        : '-',
-                                  ),
-                                ),
-                                Expanded(
-                                  child: _buildInfoItem(
-                                    'Phone Number',
-                                    user.phone?.isNotEmpty == true
-                                        ? user.phone!
-                                        : '-',
-                                  ),
-                                ),
-                                Expanded(
-                                  child: _buildInfoItem(
-                                    'Email Address',
-                                    user.email?.isNotEmpty == true
-                                        ? user.email!
-                                        : '-',
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ],
+                                  return Padding(
+                                    padding: const EdgeInsets.only(top: 8.0),
+                                    child: Wrap(
+                                      spacing: 8.0,
+                                      children: filtered.map((suffix) => ActionChip(
+                                        visualDensity: VisualDensity.compact,
+                                        label: Text(suffix, style: const TextStyle(fontSize: 12)),
+                                        onPressed: () {
+                                          _extCtrl.text = suffix;
+                                          _extCtrl.selection = TextSelection.collapsed(offset: suffix.length);
+                                        },
+                                      )).toList(),
+                                    ),
+                                  );
+                                }
+                              ),
+                              const SizedBox(height: AppSizes.p16),
+                              CustomTextField(
+                                hintText: 'Phone Number (Starts with 09)',
+                                prefixIcon: Icons.phone_outlined,
+                                controller: _phoneCtrl,
+                                inputFormatters: [
+                                  FilteringTextInputFormatter.digitsOnly,
+                                  LengthLimitingTextInputFormatter(11),
+                                ],
+                                keyboardType: TextInputType.phone,
+                                validator: AppValidators.validatePhone,
+                              ),
+                              const SizedBox(height: AppSizes.p16),
+                              CustomTextField(
+                                hintText: 'Email Address',
+                                prefixIcon: Icons.email_outlined,
+                                controller: _emailCtrl,
+                                keyboardType: TextInputType.emailAddress,
+                                validator: AppValidators.validateEmail,
+                              ),
+                              ValueListenableBuilder<TextEditingValue>(
+                                valueListenable: _emailCtrl,
+                                builder: (context, value, child) {
+                                  final text = value.text;
+                                  if (!text.contains('@')) return const SizedBox.shrink();
+                                  
+                                  final parts = text.split('@');
+                                  final domainPart = parts.length > 1 ? parts[1].toLowerCase() : '';
+                                  
+                                  final commonDomains = ['gmail.com', 'yahoo.com', 'outlook.com', 'hotmail.com'];
+                                  final suggestions = commonDomains.where((d) => d.startsWith(domainPart) && d != domainPart).toList();
+                                  
+                                  if (suggestions.isEmpty) return const SizedBox.shrink();
+
+                                  return Padding(
+                                    padding: const EdgeInsets.only(top: 8.0),
+                                    child: Wrap(
+                                      spacing: 8.0,
+                                      children: suggestions.map((domain) => ActionChip(
+                                        visualDensity: VisualDensity.compact,
+                                        label: Text(domain, style: const TextStyle(fontSize: 12)),
+                                        onPressed: () {
+                                          final newText = '${parts[0]}@$domain';
+                                          _emailCtrl.text = newText;
+                                          _emailCtrl.selection = TextSelection.collapsed(offset: newText.length);
+                                        },
+                                      )).toList(),
+                                    ),
+                                  );
+                                }
+                              ),
+                            ],
+                          ),
                         ),
                       ),
 
@@ -1223,8 +1360,9 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           },
         ),
       ),
-    );
-  }
+    ),
+  );
+}
 
   Widget _buildCard({required Widget child}) {
     return Container(

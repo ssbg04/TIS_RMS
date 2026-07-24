@@ -99,7 +99,6 @@ class AuthRepository {
     String? extension,
     String? phone,
     String? email,
-    required String currentPassword,
   }) async {
     try {
       final options = await _getAuthOptions();
@@ -113,7 +112,6 @@ class AuthRepository {
           'extension': extension,
           'phone': phone,
           'email': email,
-          'currentPassword': currentPassword,
         },
       );
     } on DioException catch (e) {
