@@ -65,15 +65,18 @@ const storage = multer.diskStorage({
     },
     filename: (req, file, cb) => {
         // Use the document type name as the filename (originalname is set to the doc type by the frontend).
-        // Add a timestamp prefix only if a file with the same name already exists (collision guard).
+        // Add a human-readable timestamp prefix only if a file with the same name already exists (collision guard).
         const ext = path.extname(file.originalname);
         const base = sanitizeFolderName(path.basename(file.originalname, ext));
         const desiredName = `${base}${ext}`;
 
         const destDir = req._uploadPath;
         if (destDir && fs.existsSync(path.join(destDir, desiredName))) {
-            // File already exists — add timestamp to avoid silent overwrite
-            cb(null, `${Date.now()}-${desiredName}`);
+            // File already exists — prefix with readable timestamp e.g. "2026-07-25_00-45-23"
+            const now = new Date();
+            const pad = (n) => String(n).padStart(2, '0');
+            const ts = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}_${pad(now.getHours())}-${pad(now.getMinutes())}-${pad(now.getSeconds())}`;
+            cb(null, `${ts}-${desiredName}`);
         } else {
             cb(null, desiredName);
         }
