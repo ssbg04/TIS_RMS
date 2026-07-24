@@ -23,7 +23,7 @@ exports.getArchivedStudents = (req, res) => {
 
         // Base condition: only archived statuses
         if (status === 'All Statuses' || !status) {
-            conditions.push(`s.status IN ('Graduated', 'Transferred', 'Dropped')`);
+            conditions.push(`s.status IN ('Graduated', 'Transferred', 'Dropped', 'Inactive')`);
         } else {
             conditions.push(`s.status = ?`);
             params.push(status);
@@ -156,7 +156,7 @@ exports.purgeArchive = (req, res) => {
 // ============================================================
 // GET /api/archives/documents — paginated archived docs
 // Includes:
-//   • All documents (deleted_at IS NULL) from Graduated/Transferred/Dropped students
+//   • All documents (deleted_at IS NULL) from Graduated/Transferred/Dropped/Inactive students
 //   • All documents with status = 'Archived' from Enrolled students
 // ============================================================
 exports.getArchivedDocuments = (req, res) => {
@@ -191,7 +191,7 @@ exports.getArchivedDocuments = (req, res) => {
         } else {
             // Default: non-enrolled docs OR explicitly Archived docs
             conditions.push(`(
-                (s.status IN ('Graduated','Transferred','Dropped') AND d.deleted_at IS NULL)
+                (s.status IN ('Graduated','Transferred','Dropped','Inactive') AND d.deleted_at IS NULL)
                 OR
                 (s.status = 'Enrolled' AND d.status = 'Archived' AND d.deleted_at IS NULL)
             )`);
@@ -321,7 +321,7 @@ exports.getArchivedStudentFolders = (req, res) => {
             conditions.push(`s.status = ?`);
             params.push(status);
         } else {
-            conditions.push(`s.status IN ('Graduated','Transferred','Dropped')`);
+            conditions.push(`s.status IN ('Graduated','Transferred','Dropped','Inactive')`);
         }
 
         if (search.trim()) {

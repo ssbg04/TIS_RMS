@@ -615,7 +615,7 @@ class _ArchivesScreenState extends ConsumerState<ArchivesScreen>
                 ),
                 if (!isFolderOpened)
                   const Text(
-                    'Graduated · Transferred · Dropped · Enrolled Archived Docs',
+                    'Graduated · Transferred · Dropped · Inactive · Enrolled Archived Docs',
                     style: TextStyle(
                       fontSize: 11,
                       color: AppColors.textMuted,
@@ -838,6 +838,7 @@ class _ArchivesScreenState extends ConsumerState<ArchivesScreen>
                 'Graduated',
                 'Transferred',
                 'Dropped',
+                'Inactive',
               ],
               onChanged: (v) => setDialogState(() => _pendingStatus = v!),
             ),
@@ -1125,7 +1126,7 @@ class _ArchivesScreenState extends ConsumerState<ArchivesScreen>
       data: (folders) {
         if (folders.isEmpty) {
           return _buildEmptyState(
-            'No archived student folders found.\nStudents that have Graduated, Transferred, or Dropped will appear here.',
+            'No archived student folders found.\nStudents that have Graduated, Transferred, Dropped, or Inactive will appear here.',
           );
         }
 
@@ -2199,6 +2200,7 @@ class _ArchivesScreenState extends ConsumerState<ArchivesScreen>
       'Graduated': Colors.blue.shade700,
       'Transferred': Colors.purple.shade600,
       'Dropped': Colors.red.shade600,
+      'Inactive': Colors.orange.shade600,
       'Enrolled': AppColors.primaryGreen,
     };
     final color = colorMap[status] ?? Colors.grey.shade700;

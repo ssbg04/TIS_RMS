@@ -502,11 +502,17 @@ exports.updateStudent = (req, res) => {
 
             // Auto-archive documents if status is non-enrolled
             const newStatus = status || 'Enrolled';
-            if (['Graduated', 'Transferred', 'Dropped'].includes(newStatus)) {
+            if (['Graduated', 'Transferred', 'Dropped', 'Inactive'].includes(newStatus)) {
                 db.prepare(`
                     UPDATE documents
                     SET status = 'Archived'
                     WHERE student_id = ? AND deleted_at IS NULL
+                `).run(id);
+            } else if (newStatus === 'Enrolled') {
+                db.prepare(`
+                    UPDATE documents
+                    SET status = 'Completed'
+                    WHERE student_id = ? AND deleted_at IS NULL AND status = 'Archived'
                 `).run(id);
             }
         })();
@@ -608,8 +614,10 @@ exports.bulkStatusStudents = (req, res) => {
                 updateStudentStatus.run(status, studentId);
                 
                 // Auto-archive documents if status is non-enrolled
-                if (['Graduated', 'Transferred', 'Dropped'].includes(status)) {
+                if (['Graduated', 'Transferred', 'Dropped', 'Inactive'].includes(status)) {
                     archiveDocuments.run('Archived', studentId);
+                } else if (status === 'Enrolled') {
+                    archiveDocuments.run('Completed', studentId); // We use archiveDocuments query which updates documents based on student_id
                 }
                 
                 const student = getStudent.get(studentId);
