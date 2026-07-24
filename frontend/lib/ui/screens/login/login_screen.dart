@@ -29,15 +29,34 @@ class LoginScreen extends ConsumerStatefulWidget {
   ConsumerState<LoginScreen> createState() => _LoginScreenState();
 }
 
-class _LoginScreenState extends ConsumerState<LoginScreen> {
+class _LoginScreenState extends ConsumerState<LoginScreen> with SingleTickerProviderStateMixin {
   final TextEditingController _usernameController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
   bool _obscurePassword = true;
   bool _rememberMe = false;
 
+  final FocusNode _usernameFocus = FocusNode();
+  final FocusNode _passwordFocus = FocusNode();
+
+  late AnimationController _animController;
+  late Animation<double> _revealAnimation;
+
   @override
   void initState() {
     super.initState();
+    _animController = AnimationController(
+      vsync: this,
+      value: 1.0,
+      duration: const Duration(milliseconds: 400),
+    );
+    _revealAnimation = CurvedAnimation(
+      parent: _animController,
+      curve: Curves.easeInOutCubic,
+    );
+    
+    _usernameFocus.addListener(_onFocusChange);
+    _passwordFocus.addListener(_onFocusChange);
+
     _loadRememberMe(); // Load saved credentials on startup
     if (widget.sessionExpired) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -67,6 +86,15 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     }
   }
 
+  void _onFocusChange() {
+    if (!mounted) return;
+    if (_usernameFocus.hasFocus || _passwordFocus.hasFocus) {
+      _animController.reverse();
+    } else {
+      _animController.forward();
+    }
+  }
+
   // --- Added: Load saved credentials for Remember Me ---
   Future<void> _loadRememberMe() async {
     final prefs = await SharedPreferences.getInstance();
@@ -84,6 +112,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
   @override
   void dispose() {
+    _usernameFocus.dispose();
+    _passwordFocus.dispose();
+    _animController.dispose();
     _usernameController.dispose();
     _passwordController.dispose();
     super.dispose();
@@ -170,8 +201,12 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppColors.pageBackground,
+    return GestureDetector(
+      onTap: () {
+        FocusScope.of(context).unfocus();
+      },
+      child: Scaffold(
+        backgroundColor: AppColors.pageBackground,
       body: Column(
         children: [
           if (!kIsWeb &&
@@ -183,7 +218,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 brightness: Brightness.dark,
                 backgroundColor: AppColors.primaryGreen,
                 title: Text(
-                  'TIS RMS',
+                  'Talisay Integrated School',
                   style: TextStyle(
                     color: Colors.white,
                     fontSize: 13,
@@ -198,164 +233,83 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 builder: (context, constraints) {
                   if (constraints.maxWidth >= 800) {
                     // Desktop: Split Layout
-                    return Container(
-                      color: AppColors.primaryGreen,
-                      child: Row(
-                        children: [
-                          Expanded(
-                            flex: 5,
-                            child: Container(
-                              padding: const EdgeInsets.all(AppSizes.p48),
-                              child: Center(
-                                child: Column(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: [
-                                    Image.asset(
-                                      'assets/images/logo.png',
-                                      width: 220,
-                                      height: 220,
-                                    ),
-                                    const SizedBox(height: AppSizes.p24),
-                                    const Text(
-                                      'TIS RMS',
-                                      style: TextStyle(
-                                        fontSize: 42,
-                                        fontWeight: FontWeight.bold,
-                                        color: Colors.white,
-                                        letterSpacing: 2.0,
+                    return AnimatedBuilder(
+                      animation: _revealAnimation,
+                      builder: (context, child) {
+                        return Container(
+                          color: AppColors.primaryGreen,
+                          child: Row(
+                            children: [
+                              if (_revealAnimation.value > 0)
+                                Flexible(
+                                  flex: (5000 * _revealAnimation.value).toInt(),
+                                  child: Opacity(
+                                    opacity: _revealAnimation.value,
+                                    child: Container(
+                                      padding: const EdgeInsets.all(AppSizes.p48),
+                                      child: Center(
+                                        child: Column(
+                                          mainAxisAlignment: MainAxisAlignment.center,
+                                          children: [
+                                            Image.asset(
+                                              'assets/images/logo.png',
+                                              width: 220,
+                                              height: 220,
+                                            ),
+                                            const SizedBox(height: AppSizes.p24),
+                                            const Text(
+                                              'Talisay Integrated School',
+                                              style: TextStyle(
+                                                fontSize: 42,
+                                                fontWeight: FontWeight.bold,
+                                                color: Colors.white,
+                                                letterSpacing: 2.0,
+                                              ),
+                                              textAlign: TextAlign.center,
+                                            ),
+                                            const Text(
+                                              'Tiaong, Quezon',
+                                              style: TextStyle(
+                                                fontSize: 18,
+                                                color: Colors.white70,
+                                                letterSpacing: 1.0,
+                                              ),
+                                            ),
+                                            const SizedBox(height: AppSizes.p32),
+                                            const Text(
+                                              'Record Management System',
+                                              style: TextStyle(
+                                                fontSize: 20,
+                                                color: Colors.white,
+                                                fontWeight: FontWeight.w600,
+                                              ),
+                                            ),
+                                            const SizedBox(height: AppSizes.p8),
+                                            const Text(
+                                              'Secure Academic Records Database System',
+                                              textAlign: TextAlign.center,
+                                              style: TextStyle(
+                                                fontSize: 15,
+                                                color: Colors.white70,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
                                       ),
                                     ),
-                                    const Text(
-                                      'Tiaong, Quezon',
-                                      style: TextStyle(
-                                        fontSize: 18,
-                                        color: Colors.white70,
-                                        letterSpacing: 1.0,
-                                      ),
-                                    ),
-                                    const SizedBox(height: AppSizes.p32),
-                                    const Text(
-                                      'Record Management System',
-                                      style: TextStyle(
-                                        fontSize: 20,
-                                        color: Colors.white,
-                                        fontWeight: FontWeight.w600,
-                                      ),
-                                    ),
-                                    const SizedBox(height: AppSizes.p8),
-                                    const Text(
-                                      'Secure Academic Records Database System',
-                                      textAlign: TextAlign.center,
-                                      style: TextStyle(
-                                        fontSize: 15,
-                                        color: Colors.white70,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ),
-                          ),
-                          Expanded(
-                            flex: 4,
-                            child: Container(
-                              decoration: const BoxDecoration(
-                                color: AppColors.pageBackground,
-                                borderRadius: BorderRadius.only(
-                                  topLeft: Radius.circular(24.0),
-                                  bottomLeft: Radius.circular(24.0),
-                                ),
-                              ),
-                              child: Center(
-                                child: ConstrainedBox(
-                                  constraints: const BoxConstraints(
-                                    maxWidth: 400,
-                                  ),
-                                  child: _buildLoginForm(),
-                                ),
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    );
-                  } else {
-                    // Mobile: Stacked Layout
-                    return Container(
-                      color: AppColors.primaryGreen,
-                      child: Column(
-                        children: [
-                          Container(
-                            width: double.infinity,
-                            padding: const EdgeInsets.symmetric(
-                              vertical: AppSizes.p48,
-                              horizontal: AppSizes.p24,
-                            ),
-                            child: SafeArea(
-                              bottom: false,
-                              child: Column(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  Image.asset(
-                                    'assets/images/logo.png',
-                                    width: 100,
-                                    height: 100,
-                                  ),
-                                  const SizedBox(height: AppSizes.p16),
-                                  const Text(
-                                    'TIS RMS',
-                                    style: TextStyle(
-                                      fontSize: 28,
-                                      fontWeight: FontWeight.bold,
-                                      color: Colors.white,
-                                      letterSpacing: 1.5,
-                                    ),
-                                  ),
-                                  const Text(
-                                    'Tiaong, Quezon',
-                                    style: TextStyle(
-                                      fontSize: 14,
-                                      color: Colors.white70,
-                                      letterSpacing: 1.0,
-                                    ),
-                                  ),
-                                  const SizedBox(height: AppSizes.p16),
-                                  const Text(
-                                    'Record Management System',
-                                    style: TextStyle(
-                                      fontSize: 16,
-                                      color: Colors.white,
-                                      fontWeight: FontWeight.w600,
-                                    ),
-                                  ),
-                                  const SizedBox(height: AppSizes.p4),
-                                  const Text(
-                                    'Secure Academic Records Database System',
-                                    textAlign: TextAlign.center,
-                                    style: TextStyle(
-                                      fontSize: 12,
-                                      color: Colors.white70,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-                          Expanded(
-                            child: SafeArea(
-                              top: false,
-                              bottom: true,
-                              child: Container(
-                                decoration: const BoxDecoration(
-                                  color: AppColors.pageBackground,
-                                  borderRadius: BorderRadius.only(
-                                    topLeft: Radius.circular(24.0),
-                                    topRight: Radius.circular(24.0),
                                   ),
                                 ),
-                                child: Center(
-                                  child: SingleChildScrollView(
-                                    padding: const EdgeInsets.all(AppSizes.p24),
+                              Expanded(
+                                flex: 4000,
+                                child: Container(
+                                  decoration: BoxDecoration(
+                                    color: AppColors.pageBackground,
+                                    borderRadius: BorderRadius.only(
+                                      topLeft: Radius.circular(24.0 * _revealAnimation.value),
+                                      bottomLeft: Radius.circular(24.0 * _revealAnimation.value),
+                                    ),
+                                  ),
+                                  child: Center(
                                     child: ConstrainedBox(
                                       constraints: const BoxConstraints(
                                         maxWidth: 400,
@@ -365,10 +319,117 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                   ),
                                 ),
                               ),
-                            ),
+                            ],
                           ),
-                        ],
-                      ),
+                        );
+                      }
+                    );
+                  } else {
+                    // Mobile: Stacked Layout
+                    return AnimatedBuilder(
+                      animation: _revealAnimation,
+                      builder: (context, child) {
+                        return Container(
+                          color: AppColors.primaryGreen,
+                          child: Column(
+                            children: [
+                              if (_revealAnimation.value > 0)
+                                ClipRect(
+                                  child: Align(
+                                    alignment: Alignment.bottomCenter,
+                                    heightFactor: _revealAnimation.value,
+                                    child: Opacity(
+                                      opacity: _revealAnimation.value,
+                                      child: Container(
+                                        width: double.infinity,
+                                        padding: const EdgeInsets.symmetric(
+                                          vertical: AppSizes.p48,
+                                          horizontal: AppSizes.p24,
+                                        ),
+                                        child: SafeArea(
+                                          bottom: false,
+                                          child: Column(
+                                            mainAxisAlignment: MainAxisAlignment.center,
+                                            children: [
+                                              Image.asset(
+                                                'assets/images/logo.png',
+                                                width: 100,
+                                                height: 100,
+                                              ),
+                                              const SizedBox(height: AppSizes.p16),
+                                              const Text(
+                                                'Talisay Integrated School',
+                                                style: TextStyle(
+                                                  fontSize: 28,
+                                                  fontWeight: FontWeight.bold,
+                                                  color: Colors.white,
+                                                  letterSpacing: 1.5,
+                                                ),
+                                                textAlign: TextAlign.center,
+                                              ),
+                                              const Text(
+                                                'Tiaong, Quezon',
+                                                style: TextStyle(
+                                                  fontSize: 14,
+                                                  color: Colors.white70,
+                                                  letterSpacing: 1.0,
+                                                ),
+                                              ),
+                                              const SizedBox(height: AppSizes.p16),
+                                              const Text(
+                                                'Record Management System',
+                                                style: TextStyle(
+                                                  fontSize: 16,
+                                                  color: Colors.white,
+                                                  fontWeight: FontWeight.w600,
+                                                ),
+                                              ),
+                                              const SizedBox(height: AppSizes.p4),
+                                              const Text(
+                                                'Secure Academic Records Database System',
+                                                textAlign: TextAlign.center,
+                                                style: TextStyle(
+                                                  fontSize: 12,
+                                                  color: Colors.white70,
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              Expanded(
+                                child: SafeArea(
+                                  top: false,
+                                  bottom: true,
+                                  child: Container(
+                                    decoration: BoxDecoration(
+                                      color: AppColors.pageBackground,
+                                      borderRadius: BorderRadius.only(
+                                        topLeft: Radius.circular(24.0 * _revealAnimation.value),
+                                        topRight: Radius.circular(24.0 * _revealAnimation.value),
+                                      ),
+                                    ),
+                                    child: Center(
+                                      child: SingleChildScrollView(
+                                        padding: const EdgeInsets.all(AppSizes.p24),
+                                        child: ConstrainedBox(
+                                          constraints: const BoxConstraints(
+                                            maxWidth: 400,
+                                          ),
+                                          child: _buildLoginForm(),
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        );
+                      }
                     );
                   }
                 },
@@ -377,7 +438,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
           ),
         ],
       ),
-    );
+    ));
   }
 
   Future<void> _showServerConfigDialog() async {
@@ -443,18 +504,32 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         mainAxisSize: MainAxisSize.min,
         children: [
+          Text(
+            _revealAnimation.value < 0.5 
+                ? 'Login to TIS Record Management System' 
+                : 'Login',
+            style: const TextStyle(
+              fontSize: 22,
+              fontWeight: FontWeight.bold,
+              color: Colors.black,
+            ),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: AppSizes.p32),
           CustomTextField(
             hintText: 'Username',
             prefixIcon: Icons.person_outline,
             controller: _usernameController,
+            focusNode: _usernameFocus,
             textInputAction: TextInputAction.next,
-            onSubmitted: (_) => FocusScope.of(context).nextFocus(),
+            onSubmitted: (_) => FocusScope.of(context).requestFocus(_passwordFocus),
           ),
           const SizedBox(height: AppSizes.p16),
           CustomTextField(
             hintText: 'Password',
             prefixIcon: Icons.lock_outline,
             controller: _passwordController,
+            focusNode: _passwordFocus,
             isPassword: true,
             obscureText: _obscurePassword,
             onToggleVisibility: () =>
