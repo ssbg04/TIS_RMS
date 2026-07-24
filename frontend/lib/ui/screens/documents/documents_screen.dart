@@ -1171,6 +1171,7 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
             if (!isSearchActive && isMobile) const SizedBox(width: 8),
 
             Flexible(
+              key: const ValueKey('documents_search_bar_flex'),
               flex: isSearchActive ? 1 : 0,
               fit: isSearchActive ? FlexFit.tight : FlexFit.loose,
               child: AppSearchBar(

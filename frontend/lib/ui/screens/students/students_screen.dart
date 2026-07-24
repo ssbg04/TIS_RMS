@@ -718,16 +718,7 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
                                 ),
                               ),
                             ),
-                            // ── Search Focus Backdrop ──
-                            if (_searchFocusNode.hasFocus)
-                              Positioned.fill(
-                                child: GestureDetector(
-                                  onTap: () => _searchFocusNode.unfocus(),
-                                  child: Container(
-                                    color: Colors.black.withValues(alpha: 0.5),
-                                  ),
-                                ),
-                              ),
+
                           ],
                         ),
                       ),
@@ -736,11 +727,10 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
                 ),
 
                 // ── Pagination ──
-                if (!_searchFocusNode.hasFocus)
-                  pageAsync.maybeWhen(
-                    data: (page) => _buildPagination(query, page),
-                    orElse: () => const SizedBox.shrink(),
-                  ),
+                pageAsync.maybeWhen(
+                  data: (page) => _buildPagination(query, page),
+                  orElse: () => const SizedBox.shrink(),
+                ),
               ],
             ),
           ),
@@ -761,6 +751,43 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
     );
   }
 
+  void _showSearchDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      barrierColor: Colors.black54,
+      builder: (context) {
+        return Align(
+          alignment: Alignment.topCenter,
+          child: Padding(
+            padding: const EdgeInsets.only(top: kToolbarHeight + 24),
+            child: Material(
+              color: Colors.white,
+              elevation: 4,
+              borderRadius: BorderRadius.circular(12),
+              child: AppSearchBar(
+                controller: _searchController,
+                focusNode: _searchFocusNode,
+                collapsible: false,
+                hint: 'Search by LRN or name...',
+                maxWidth: 600,
+                onSubmitted: (value) {
+                  Navigator.of(context).pop(); // Close dialog
+                  _onSearchSubmitted(value);
+                },
+              ),
+            ),
+          ),
+        );
+      },
+    );
+    
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        _searchFocusNode.requestFocus();
+      }
+    });
+  }
+
   // ================================================================
   // HEADER + CONTROLS
   // ================================================================
@@ -779,34 +806,23 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
         return Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            if (!isSearchActive)
-              Expanded(
-                child: Text(
-                  'Students Directory',
-                  style: TextStyle(
-                    fontSize: isDesktop ? 28 : 22,
-                    fontWeight: FontWeight.bold,
-                    color: AppColors.textPrimary,
-                  ),
-                  overflow: TextOverflow.ellipsis,
+            Expanded(
+              child: Text(
+                'Students Directory',
+                style: TextStyle(
+                  fontSize: isDesktop ? 28 : 22,
+                  fontWeight: FontWeight.bold,
+                  color: AppColors.textPrimary,
                 ),
-              ),
-            Flexible(
-              key: const ValueKey('student_search_bar_flex'),
-              flex: isSearchActive ? 1 : 0,
-              child: AppSearchBar(
-                controller: _searchController,
-                focusNode: _searchFocusNode,
-                collapsible: true,
-                hideIconWhenExpanded: true,
-                onSubmitted: _onSearchSubmitted,
-                hint: 'Search by LRN or name...',
-                maxWidth: isSearchActive
-                    ? c.maxWidth
-                    : (isDesktop ? 300 : c.maxWidth * 0.4),
+                overflow: TextOverflow.ellipsis,
               ),
             ),
-            if (!isSearchActive) ...[
+            IconButton(
+              icon: const Icon(Icons.search, size: 28, color: Colors.black87),
+              tooltip: 'Search Students',
+              onPressed: () => _showSearchDialog(context),
+            ),
+            ...[
               if (widget.userRole != 'teacher' &&
                   defaultTargetPlatform != TargetPlatform.android) ...[
                 const SizedBox(width: 8),

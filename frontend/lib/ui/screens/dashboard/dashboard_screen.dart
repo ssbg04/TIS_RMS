@@ -354,15 +354,6 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                         ),
                       ),
                     ),
-                    if (_searchFocusNode.hasFocus)
-                      Positioned.fill(
-                        child: GestureDetector(
-                          onTap: () => _searchFocusNode.unfocus(),
-                          child: Container(
-                            color: Colors.black.withValues(alpha: 0.5),
-                          ),
-                        ),
-                      ),
                   ],
                 ),
               ),
@@ -656,6 +647,46 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     );
   }
 
+  void _showSearchDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      barrierColor: Colors.black54,
+      builder: (context) {
+        return Align(
+          alignment: Alignment.topCenter,
+          child: Padding(
+            padding: const EdgeInsets.only(top: kToolbarHeight + 24),
+            child: Material(
+              color: Colors.white,
+              elevation: 4,
+              borderRadius: BorderRadius.circular(12),
+              child: AppSearchBar(
+                controller: _searchController,
+                focusNode: _searchFocusNode,
+                collapsible: false,
+                hint: 'Search students by LRN or Name...',
+                maxWidth: 600,
+                onSubmitted: (value) {
+                  Navigator.of(context).pop(); // Close dialog
+                  ref.read(studentQueryProvider.notifier).setSearch(value);
+                  ref.invalidate(studentPageProvider);
+                  ref.read(activeTabProvider.notifier).setTab('Students');
+                  _searchController.clear();
+                },
+              ),
+            ),
+          ),
+        );
+      },
+    );
+    
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        _searchFocusNode.requestFocus();
+      }
+    });
+  }
+
   // ── TOP BAR ──────────────────────────────────────────────────────────────
   Widget _buildTopBar(BuildContext context, UserModel? user) {
     final notificationsAsync = ref.watch(notificationsProvider);
@@ -673,76 +704,49 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           // Dashboard Overview text moved to body
-          Expanded(
-            key: const ValueKey('dashboard_search_expanded'),
-            child: LayoutBuilder(
-              builder: (context, constraints) {
-                final isSearching =
-                    _searchFocusNode.hasFocus ||
-                    _searchController.text.isNotEmpty;
-                return Align(
-                  alignment: Alignment.centerRight,
-                  child: AppSearchBar(
-                    controller: _searchController,
-                    focusNode: _searchFocusNode,
-                    collapsible: true,
-                    hideIconWhenExpanded: true,
-                    hint: 'Search students by LRN or Name...',
-                    maxWidth: isSearching
-                        ? constraints.maxWidth
-                        : (constraints.maxWidth > 420
-                              ? 420
-                              : constraints.maxWidth),
-                    onSubmitted: (value) {
-                      ref.read(studentQueryProvider.notifier).setSearch(value);
-                      ref.invalidate(studentPageProvider);
-                      ref.read(activeTabProvider.notifier).setTab('Students');
-                      _searchController.clear();
-                    },
-                  ),
-                );
-              },
-            ),
-          ),
-          if (!_searchFocusNode.hasFocus && _searchController.text.isEmpty) ...[
-            const SizedBox(width: 4),
-            Row(
-              children: [
-                Builder(
-                  builder: (ctx) => Stack(
-                    children: [
-                      IconButton(
-                        icon: const Icon(Icons.notifications, size: 32),
-                        onPressed: () => _showNotifications(ctx),
-                      ),
-                      if (unreadCount > 0)
-                        Positioned(
-                          right: 8,
-                          top: 8,
-                          child: Container(
-                            padding: const EdgeInsets.all(4),
-                            decoration: const BoxDecoration(
-                              color: Colors.redAccent,
-                              shape: BoxShape.circle,
-                            ),
-                            child: Text(
-                              unreadCount.toString(),
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 10,
-                                fontWeight: FontWeight.bold,
-                              ),
+          const Spacer(),
+          Row(
+            children: [
+              IconButton(
+                icon: const Icon(Icons.search, size: 32),
+                tooltip: 'Search Students',
+                onPressed: () => _showSearchDialog(context),
+              ),
+              const SizedBox(width: 8),
+              Builder(
+                builder: (ctx) => Stack(
+                  children: [
+                    IconButton(
+                      icon: const Icon(Icons.notifications, size: 32),
+                      onPressed: () => _showNotifications(ctx),
+                    ),
+                    if (unreadCount > 0)
+                      Positioned(
+                        right: 8,
+                        top: 8,
+                        child: Container(
+                          padding: const EdgeInsets.all(4),
+                          decoration: const BoxDecoration(
+                            color: Colors.redAccent,
+                            shape: BoxShape.circle,
+                          ),
+                          child: Text(
+                            unreadCount.toString(),
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 10,
+                              fontWeight: FontWeight.bold,
                             ),
                           ),
                         ),
-                    ],
-                  ),
+                      ),
+                  ],
                 ),
-                const SizedBox(width: 16),
-                ProfileDropdownMenu(user: user, onRefresh: _handleRefresh),
-              ],
-            ),
-          ],
+              ),
+              const SizedBox(width: 16),
+              ProfileDropdownMenu(user: user, onRefresh: _handleRefresh),
+            ],
+          ),
         ],
       ),
     );

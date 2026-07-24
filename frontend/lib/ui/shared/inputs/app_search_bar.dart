@@ -258,7 +258,11 @@ class _AppSearchBarState extends ConsumerState<AppSearchBar> {
       return IconButton(
         onPressed: () {
           setState(() => _isExpanded = true);
-          _focusNode.requestFocus();
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (mounted) {
+              _focusNode.requestFocus();
+            }
+          });
         },
         icon: const Icon(Icons.search, size: 32),
         tooltip: 'Search',
