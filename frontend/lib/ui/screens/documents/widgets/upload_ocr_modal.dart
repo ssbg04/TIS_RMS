@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:dio/dio.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:google_mlkit_document_scanner/google_mlkit_document_scanner.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_sizes.dart';
 import '../../../../core/network/api_constants.dart';
@@ -89,6 +90,9 @@ class _UploadOcrModalState extends ConsumerState<UploadOcrModal> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      ref.invalidate(documentRequirementsProvider);
+    });
     if (widget.prefilledStudentId != null) {
       _matchedStudentId = widget.prefilledStudentId;
       _fetchPrefilledStudentLrn();
@@ -177,7 +181,7 @@ class _UploadOcrModalState extends ConsumerState<UploadOcrModal> {
 
   // ── File picking ─────────────────────────────────────────────
   Future<void> _pickFiles() async {
-    final result = await FilePicker.platform.pickFiles(
+    final result = await FilePicker.pickFiles(
       allowMultiple: true,
       type: FileType.custom,
       allowedExtensions: ['pdf', 'jpg', 'jpeg', 'png'],
@@ -211,6 +215,48 @@ class _UploadOcrModalState extends ConsumerState<UploadOcrModal> {
     });
   }
 
+  Future<void> _scanDocument() async {
+    try {
+      final scanner = DocumentScanner(
+        options: DocumentScannerOptions(
+          documentFormats: const {DocumentFormat.pdf},
+          mode: ScannerMode.full,
+          isGalleryImport: false,
+          pageLimit: 20,
+        ),
+      );
+
+      final result = await scanner.scanDocument();
+      scanner.close();
+
+      if (result != null && result.pdf != null) {
+        final file = File(result.pdf!.uri);
+        final sizeKb = (file.lengthSync() / 1024).toStringAsFixed(1);
+        final sizeLabel = file.lengthSync() > 1048576
+            ? '${(file.lengthSync() / 1048576).toStringAsFixed(1)} MB'
+            : '$sizeKb KB';
+        final name = 'Scanned_Doc_${DateTime.now().millisecondsSinceEpoch}.pdf';
+
+        final requirements = ref.read(documentRequirementsProvider).value ?? [];
+        final entry = _UploadEntry(
+          file: file,
+          fileName: name,
+          fileSize: sizeLabel,
+        );
+        _applyAutoDetect(entry, requirements);
+
+        setState(() {
+          _entries.add(entry);
+          if (_entries.isNotEmpty) _currentStep = 1;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        showErrorDialog(context, 'Scanner Error', 'Failed to scan document: $e');
+      }
+    }
+  }
+
   // ── Auto-detect document type from filename ──────────────────
   void _autoDetectAll() {
     final requirements = ref.read(documentRequirementsProvider).value ?? [];
@@ -222,20 +268,34 @@ class _UploadOcrModalState extends ConsumerState<UploadOcrModal> {
   }
 
   void _applyAutoDetect(_UploadEntry entry, List<dynamic> requirements) {
-    final normalized = entry.fileName
-        .toLowerCase()
-        .replaceAll(RegExp(r'\.[^.]+$'), '')   // remove extension
-        .replaceAll(RegExp(r'[_\-]'), ' ')      // underscores → spaces
-        .trim();
+    final fileNameLower = entry.fileName.toLowerCase();
+    
+    // Extract alphanumeric words from filename
+    final fileWords = RegExp(r'[a-zA-Z0-9]+')
+        .allMatches(fileNameLower)
+        .map((m) => m.group(0)!)
+        .toSet();
 
     dynamic best;
     int bestScore = 0;
 
     for (final req in requirements) {
-      final reqNorm = (req.name as String).toLowerCase().trim();
-      // Score = number of consecutive words from reqNorm present in filename
-      final words = reqNorm.split(' ').where((w) => w.length > 2).toList();
-      final matches = words.where((w) => normalized.contains(w)).length;
+      final reqWords = RegExp(r'[a-zA-Z0-9]+')
+          .allMatches((req.name as String).toLowerCase())
+          .map((m) => m.group(0)!)
+          .toList();
+
+      int matches = 0;
+      for (final rw in reqWords) {
+        if (rw.length < 2) continue; // Ignore single characters
+        
+        if (fileWords.contains(rw)) {
+          matches += 2; // Exact word match is stronger
+        } else if (rw.length >= 3 && fileNameLower.contains(rw)) {
+          matches += 1; // Substring match is weaker but helpful for concat strings like "108297100170SF9"
+        }
+      }
+
       if (matches > bestScore) {
         bestScore = matches;
         best = req;
@@ -462,43 +522,73 @@ class _UploadOcrModalState extends ConsumerState<UploadOcrModal> {
 
   // ── Step 0: Pick files ────────────────────────────────────────
   Widget _buildStep0() {
-    return GestureDetector(
+    final isMobile = Platform.isAndroid || Platform.isIOS;
+    return Container(
       key: const ValueKey('step0'),
-      onTap: _pickFiles,
-      child: Container(
-        width: double.infinity,
-        padding: const EdgeInsets.symmetric(vertical: 48, horizontal: 24),
-        decoration: BoxDecoration(
-          color: AppColors.primaryGreen.withValues(alpha: 0.04),
-          borderRadius: BorderRadius.circular(AppSizes.radiusMedium),
-          border: Border.all(
-            color: AppColors.primaryGreen.withValues(alpha: 0.3),
-            style: BorderStyle.solid,
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(vertical: 48, horizontal: 24),
+      decoration: BoxDecoration(
+        color: AppColors.primaryGreen.withValues(alpha: 0.04),
+        borderRadius: BorderRadius.circular(AppSizes.radiusMedium),
+        border: Border.all(
+          color: AppColors.primaryGreen.withValues(alpha: 0.3),
+          style: BorderStyle.solid,
+        ),
+      ),
+      child: Column(
+        children: [
+          Icon(Icons.upload_file_rounded,
+              size: 56,
+              color: AppColors.primaryGreen.withValues(alpha: 0.6)),
+          const SizedBox(height: 16),
+          const Text(
+            'Select Document Source',
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: AppColors.primaryGreen,
+            ),
           ),
-        ),
-        child: Column(
-          children: [
-            Icon(Icons.upload_file_rounded,
-                size: 56,
-                color: AppColors.primaryGreen.withValues(alpha: 0.6)),
-            const SizedBox(height: 16),
-            const Text(
-              'Tap to select files',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-                color: AppColors.primaryGreen,
+          const SizedBox(height: 6),
+          Text(
+            'Supports PDF, JPG, JPEG, PNG\nYou can select multiple files at once',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+                fontSize: 13, color: AppColors.textSecondary.withValues(alpha: 0.8)),
+          ),
+          const SizedBox(height: 24),
+          Wrap(
+            alignment: WrapAlignment.center,
+            spacing: AppSizes.p12,
+            runSpacing: AppSizes.p12,
+            children: [
+              if (isMobile)
+                ElevatedButton.icon(
+                  onPressed: _scanDocument,
+                  icon: const Icon(Icons.document_scanner_outlined),
+                  label: const Text('Scan Document'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.primaryGreen,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                    elevation: 0,
+                  ),
+                ),
+              ElevatedButton.icon(
+                onPressed: _pickFiles,
+                icon: const Icon(Icons.folder_open),
+                label: const Text('Browse Files'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: isMobile ? Colors.white : AppColors.primaryGreen,
+                  foregroundColor: isMobile ? AppColors.primaryGreen : Colors.white,
+                  side: isMobile ? const BorderSide(color: AppColors.primaryGreen) : BorderSide.none,
+                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                  elevation: 0,
+                ),
               ),
-            ),
-            const SizedBox(height: 6),
-            Text(
-              'Supports PDF, JPG, JPEG, PNG\nYou can select multiple files at once',
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                  fontSize: 13, color: AppColors.textSecondary.withValues(alpha: 0.8)),
-            ),
-          ],
-        ),
+            ],
+          ),
+        ],
       ),
     );
   }
@@ -569,16 +659,35 @@ class _UploadOcrModalState extends ConsumerState<UploadOcrModal> {
                   const SizedBox(height: 12),
                   // Add more files
                   if (!_isUploading && !_allDone)
-                    OutlinedButton.icon(
-                      icon: const Icon(Icons.add, size: 18),
-                      label: const Text('Add More Files'),
-                      onPressed: _pickFiles,
-                      style: OutlinedButton.styleFrom(
-                        foregroundColor: AppColors.primaryGreen,
-                        side: const BorderSide(color: AppColors.primaryGreen),
-                        shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(8)),
-                      ),
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      alignment: WrapAlignment.center,
+                      children: [
+                        if (Platform.isAndroid || Platform.isIOS)
+                          OutlinedButton.icon(
+                            icon: const Icon(Icons.document_scanner_outlined, size: 18),
+                            label: const Text('Scan More'),
+                            onPressed: _scanDocument,
+                            style: OutlinedButton.styleFrom(
+                              foregroundColor: AppColors.primaryGreen,
+                              side: const BorderSide(color: AppColors.primaryGreen),
+                              shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(8)),
+                            ),
+                          ),
+                        OutlinedButton.icon(
+                          icon: const Icon(Icons.folder_open, size: 18),
+                          label: const Text('Add Files'),
+                          onPressed: _pickFiles,
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: AppColors.primaryGreen,
+                            side: const BorderSide(color: AppColors.primaryGreen),
+                            shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(8)),
+                          ),
+                        ),
+                      ],
                     ),
                 ],
               );
@@ -909,7 +1018,7 @@ class _UploadOcrModalState extends ConsumerState<UploadOcrModal> {
                         : 'UPLOAD',
                     isLoading: _isUploading,
                     onPressed:
-                        _entries.isEmpty || _isUploading ? null : _startUpload,
+                        _entries.isEmpty || _isUploading ? null : () => _startUpload(),
                   ),
                 ),
               ],
