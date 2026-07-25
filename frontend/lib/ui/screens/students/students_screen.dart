@@ -1589,6 +1589,11 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
                               checked: query.status == 'Dropped',
                               child: const Text('Dropped'),
                             ),
+                            CheckedPopupMenuItem(
+                              value: 'Inactive',
+                              checked: query.status == 'Inactive',
+                              child: const Text('Inactive'),
+                            ),
                           ],
                         ),
                       ],
