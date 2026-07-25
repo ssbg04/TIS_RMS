@@ -834,6 +834,7 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
       behavior: HitTestBehavior.translucent,
       child: _buildDragDropWrapper(
         context,
+        showHint: _tabController.index == 1 || isFolderOpened,
         child: Scaffold(
         backgroundColor: Colors.transparent,
         floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
@@ -1022,7 +1023,10 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
   }
 
   // ── DRAG AND DROP WRAPPER (Windows only) ──────────────────────────────────
-  Widget _buildDragDropWrapper(BuildContext context, {required Widget child}) {
+  Widget _buildDragDropWrapper(BuildContext context, {
+    required Widget child,
+    bool showHint = false,
+  }) {
     final isWindows = defaultTargetPlatform == TargetPlatform.windows;
     if (!isWindows) return child;
 
@@ -1031,6 +1035,8 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
       onDragExited: (details) => setState(() => _isDragOver = false),
       onDragDone: (details) {
         setState(() => _isDragOver = false);
+        // Only process drop when on a valid tab (All Files or inside a student folder)
+        if (!showHint) return;
         final validFiles = details.files.where((xfile) {
           final ext = xfile.path.toLowerCase();
           return ext.endsWith('.pdf') ||
@@ -1051,57 +1057,58 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
       child: Stack(
         children: [
           child,
-          // ── Idle hint: subtle bottom bar visible on Windows when not dragging ──
-          Positioned(
-            left: 0,
-            right: 0,
-            bottom: 0,
-            child: AnimatedSlide(
-              offset: _isDragOver ? const Offset(0, 1) : Offset.zero,
-              duration: const Duration(milliseconds: 200),
-              curve: Curves.easeOut,
-              child: AnimatedOpacity(
-                opacity: _isDragOver ? 0.0 : 1.0,
+          // ── Idle hint: only shown on All Files tab or inside a student folder ──
+          if (showHint)
+            Positioned(
+              left: 0,
+              right: 0,
+              bottom: 0,
+              child: AnimatedSlide(
+                offset: _isDragOver ? const Offset(0, 1) : Offset.zero,
                 duration: const Duration(milliseconds: 200),
-                child: IgnorePointer(
-                  child: Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 16),
-                    decoration: BoxDecoration(
-                      color: AppColors.primaryGreen.withValues(alpha: 0.06),
-                      border: Border(
-                        top: BorderSide(
-                          color: AppColors.primaryGreen.withValues(alpha: 0.2),
-                          width: 1,
-                        ),
-                      ),
-                    ),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(
-                          Icons.file_upload_outlined,
-                          size: 14,
-                          color: AppColors.primaryGreen.withValues(alpha: 0.6),
-                        ),
-                        const SizedBox(width: 6),
-                        Text(
-                          'Drag & drop PDF, JPG or PNG files anywhere to upload',
-                          style: TextStyle(
-                            fontSize: 11.5,
-                            color: AppColors.primaryGreen.withValues(alpha: 0.7),
-                            fontWeight: FontWeight.w500,
+                curve: Curves.easeOut,
+                child: AnimatedOpacity(
+                  opacity: _isDragOver ? 0.0 : 1.0,
+                  duration: const Duration(milliseconds: 200),
+                  child: IgnorePointer(
+                    child: Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 16),
+                      decoration: BoxDecoration(
+                        color: AppColors.primaryGreen.withValues(alpha: 0.06),
+                        border: Border(
+                          top: BorderSide(
+                            color: AppColors.primaryGreen.withValues(alpha: 0.2),
+                            width: 1,
                           ),
                         ),
-                      ],
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(
+                            Icons.file_upload_outlined,
+                            size: 14,
+                            color: AppColors.primaryGreen.withValues(alpha: 0.6),
+                          ),
+                          const SizedBox(width: 6),
+                          Text(
+                            'Drag & drop PDF, JPG or PNG files anywhere to upload',
+                            style: TextStyle(
+                              fontSize: 11.5,
+                              color: AppColors.primaryGreen.withValues(alpha: 0.7),
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
                   ),
                 ),
               ),
             ),
-          ),
-          // ── Active drop overlay ──
-          if (_isDragOver)
+          // ── Active drop overlay (only when on a valid tab) ──
+          if (_isDragOver && showHint)
               Positioned.fill(
                 child: IgnorePointer(
                   child: AnimatedContainer(
