@@ -70,8 +70,8 @@ class UploadOcrModal extends ConsumerStatefulWidget {
           WoltModalSheetPage(
             backgroundColor: AppColors.surfaceWhite,
             hasSabGradient: false,
-            hasTopBarLayer: false,
-            isTopBarLayerAlwaysVisible: false,
+            hasTopBarLayer: true,
+            isTopBarLayerAlwaysVisible: true,
             child: UploadOcrModal(
               prefilledStudentId: prefilledStudentId,
               preloadedFiles: preloadedFiles,

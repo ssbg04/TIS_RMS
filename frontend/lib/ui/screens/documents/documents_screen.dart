@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:flutter/foundation.dart'
     show defaultTargetPlatform, TargetPlatform;
 import 'package:flutter/material.dart';
+import 'package:desktop_drop/desktop_drop.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../domain/entities/folder_model.dart';
@@ -1025,34 +1026,32 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
     final isWindows = defaultTargetPlatform == TargetPlatform.windows;
     if (!isWindows) return child;
 
-    return DragTarget<String>(
-      onWillAcceptWithDetails: (details) {
-        setState(() => _isDragOver = true);
-        return true;
-      },
-      onLeave: (_) => setState(() => _isDragOver = false),
-      onAcceptWithDetails: (details) {
+    return DropTarget(
+      onDragEntered: (details) => setState(() => _isDragOver = true),
+      onDragExited: (details) => setState(() => _isDragOver = false),
+      onDragDone: (details) {
         setState(() => _isDragOver = false);
-        final path = details.data;
-        final file = File(path);
-        final ext = path.toLowerCase();
-        if (ext.endsWith('.pdf') ||
-            ext.endsWith('.jpg') ||
-            ext.endsWith('.jpeg') ||
-            ext.endsWith('.png')) {
+        final validFiles = details.files.where((xfile) {
+          final ext = xfile.path.toLowerCase();
+          return ext.endsWith('.pdf') ||
+              ext.endsWith('.jpg') ||
+              ext.endsWith('.jpeg') ||
+              ext.endsWith('.png');
+        }).map((x) => File(x.path)).toList();
+
+        if (validFiles.isNotEmpty) {
           UploadOcrModal.show(
             context,
             prefilledStudentId:
                 _openedFolderStudentId ?? widget.initialStudentId,
-            preloadedFiles: [file],
+            preloadedFiles: validFiles,
           );
         }
       },
-      builder: (context, candidateData, rejectedData) {
-        return Stack(
-          children: [
-            child,
-            if (_isDragOver)
+      child: Stack(
+        children: [
+          child,
+          if (_isDragOver)
               Positioned.fill(
                 child: IgnorePointer(
                   child: AnimatedContainer(
@@ -1100,8 +1099,7 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
                 ),
               ),
           ],
-        );
-      },
+        ),
     );
   }
 

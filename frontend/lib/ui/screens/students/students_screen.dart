@@ -56,6 +56,7 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
     'Graduated',
     'Transferred',
     'Dropped',
+    'Inactive',
   ];
   static const _4psItems = ['All', 'Yes', 'No'];
   static const _pageSizes = [10, 20, 50];
@@ -284,6 +285,19 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
                 shape: const StadiumBorder(),
               ),
             ),
+            const SizedBox(width: 8),
+            ElevatedButton.icon(
+              onPressed: count == 0
+                  ? null
+                  : () => _showBulkChangeStatusConfirm('Inactive', allStudents),
+              icon: const Icon(Icons.do_not_disturb_on_total_silence, size: 18),
+              label: const Text('Inactive'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.blueGrey,
+                foregroundColor: Colors.white,
+                shape: const StadiumBorder(),
+              ),
+            ),
           ] else ...[
             IconButton(
               onPressed: count == 0 ? null : _showBulkEnrollModal,
@@ -323,6 +337,16 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
                 color: count == 0 ? Colors.grey : Colors.red,
               ),
               tooltip: 'Drop',
+            ),
+            IconButton(
+              onPressed: count == 0
+                  ? null
+                  : () => _showBulkChangeStatusConfirm('Inactive', allStudents),
+              icon: Icon(
+                Icons.do_not_disturb_on_total_silence,
+                color: count == 0 ? Colors.grey : Colors.blueGrey,
+              ),
+              tooltip: 'Inactive',
             ),
           ],
           const SizedBox(width: 4),
