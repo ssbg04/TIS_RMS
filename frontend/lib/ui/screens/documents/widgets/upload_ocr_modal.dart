@@ -54,14 +54,17 @@ class UploadOcrModal extends ConsumerStatefulWidget {
 
   /// Files pre-populated from drag-and-drop (Windows)
   final List<File>? preloadedFiles;
+  final ValueNotifier<int>? stepNotifier;
 
-  const UploadOcrModal({super.key, this.prefilledStudentId, this.preloadedFiles});
+  const UploadOcrModal({super.key, this.prefilledStudentId, this.preloadedFiles, this.stepNotifier});
 
   static void show(
     BuildContext context, {
     int? prefilledStudentId,
     List<File>? preloadedFiles,
   }) {
+    final stepNotifier = ValueNotifier<int>(preloadedFiles != null && preloadedFiles.isNotEmpty ? 1 : 0);
+    
     WoltModalSheet.show<void>(
       context: context,
       useSafeArea: false,
@@ -72,9 +75,15 @@ class UploadOcrModal extends ConsumerStatefulWidget {
             hasSabGradient: false,
             hasTopBarLayer: true,
             isTopBarLayerAlwaysVisible: true,
+            navBarHeight: 120, // Enough height for header and stepper
+            topBarTitle: ValueListenableBuilder<int>(
+              valueListenable: stepNotifier,
+              builder: (ctx, step, _) => _UploadModalHeaderWidget(step: step),
+            ),
             child: UploadOcrModal(
               prefilledStudentId: prefilledStudentId,
               preloadedFiles: preloadedFiles,
+              stepNotifier: stepNotifier,
             ),
           ),
         ];
@@ -124,6 +133,7 @@ class _UploadOcrModalState extends ConsumerState<UploadOcrModal> {
         );
       }).toList();
       _currentStep = 1; // Jump to review step
+      widget.stepNotifier?.value = 1;
     }
     _lrnController.addListener(_onLrnChanged);
   }
@@ -1142,9 +1152,14 @@ class _UploadOcrModalState extends ConsumerState<UploadOcrModal> {
     if (ext == 'pdf') return Icons.picture_as_pdf_rounded;
     if (['jpg', 'jpeg', 'png'].contains(ext)) return Icons.image_rounded;
     return Icons.insert_drive_file_rounded;
-  }
+}
 
-  Widget _buildStepChip(int step, String label, bool active) {
+class _UploadModalHeaderWidget extends StatelessWidget {
+  final int step;
+  
+  const _UploadModalHeaderWidget({required this.step});
+
+  Widget _buildStepChip(int stepNum, String label, bool active) {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
@@ -1158,7 +1173,7 @@ class _UploadOcrModalState extends ConsumerState<UploadOcrModal> {
           ),
           child: Center(
             child: Text(
-              '$step',
+              '',
               style: TextStyle(
                 fontSize: 11,
                 fontWeight: FontWeight.bold,
@@ -1189,6 +1204,58 @@ class _UploadOcrModalState extends ConsumerState<UploadOcrModal> {
         height: 2,
         color: active ? AppColors.primaryGreen : Colors.grey.shade300,
       ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: AppColors.primaryGreen.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: const Icon(
+                Icons.cloud_upload_rounded,
+                color: AppColors.primaryGreen,
+                size: 22,
+              ),
+            ),
+            const SizedBox(width: 12),
+            const Expanded(
+              child: Text(
+                'Upload Documents',
+                style: TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                  color: AppColors.textPrimary,
+                ),
+              ),
+            ),
+            if (Platform.isWindows)
+              IconButton(
+                icon: const Icon(Icons.close_rounded, color: AppColors.textSecondary),
+                onPressed: () => Navigator.of(context).pop(),
+                tooltip: 'Close',
+              ),
+          ],
+        ),
+        const SizedBox(height: 4),
+        Row(
+          children: [
+            _buildStepChip(1, 'Select Files', step >= 0),
+            _buildStepConnector(step >= 1),
+            _buildStepChip(2, 'Review & Upload', step >= 1),
+          ],
+        ),
+        const SizedBox(height: 8),
+      ],
     );
   }
 }
