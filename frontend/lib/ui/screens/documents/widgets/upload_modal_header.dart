@@ -1,108 +1,134 @@
 import 'package:flutter/material.dart';
 import '../../../../core/constants/app_colors.dart';
-import 'dart:io';
 
 class UploadModalHeaderWidget extends StatelessWidget {
   final int step;
-  
+
   const UploadModalHeaderWidget({super.key, required this.step});
 
-  Widget _buildStepChip(int stepNum, String label, bool active) {
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        AnimatedContainer(
-          duration: const Duration(milliseconds: 250),
-          width: 22,
-          height: 22,
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            color: active ? AppColors.primaryGreen : Colors.grey.shade300,
-          ),
-          child: Center(
-            child: Text(
-              '$stepNum',
-              style: TextStyle(
-                fontSize: 11,
-                fontWeight: FontWeight.bold,
-                color: active ? Colors.white : Colors.grey.shade600,
-              ),
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 4),
+      child: Row(
+        children: [
+          // Icon
+          Container(
+            width: 36,
+            height: 36,
+            decoration: BoxDecoration(
+              color: AppColors.primaryGreen.withValues(alpha: 0.12),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: const Icon(
+              Icons.cloud_upload_rounded,
+              color: AppColors.primaryGreen,
+              size: 20,
             ),
           ),
-        ),
-        const SizedBox(width: 5),
-        Text(
-          label,
-          style: TextStyle(
-            fontSize: 12,
-            fontWeight: active ? FontWeight.w600 : FontWeight.normal,
-            color: active ? AppColors.primaryGreen : AppColors.textSecondary,
+          const SizedBox(width: 10),
+          // Title
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Text(
+                  'Upload Documents',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.textPrimary,
+                    height: 1.2,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                // Stepper
+                _buildStepper(),
+              ],
+            ),
           ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildStepConnector(bool active) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 8),
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 250),
-        width: 28,
-        height: 2,
-        color: active ? AppColors.primaryGreen : Colors.grey.shade300,
+          // Close button
+          IconButton(
+            icon: const Icon(Icons.close_rounded, size: 20),
+            color: AppColors.textSecondary,
+            onPressed: () => Navigator.of(context).pop(),
+            tooltip: 'Close',
+            padding: EdgeInsets.zero,
+            visualDensity: VisualDensity.compact,
+          ),
+        ],
       ),
     );
   }
 
-  @override
-  Widget build(BuildContext context) {
-    return Column(
+  Widget _buildStepper() {
+    return Row(
       mainAxisSize: MainAxisSize.min,
-      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Row(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: AppColors.primaryGreen.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(10),
-              ),
-              child: const Icon(
-                Icons.cloud_upload_rounded,
-                color: AppColors.primaryGreen,
-                size: 22,
-              ),
+        _buildStep(1, 'Select Files', isActive: step >= 0, isDone: step >= 1),
+        _buildConnector(active: step >= 1),
+        _buildStep(2, 'Review & Upload', isActive: step >= 1, isDone: false),
+      ],
+    );
+  }
+
+  Widget _buildStep(int num, String label,
+      {required bool isActive, required bool isDone}) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        AnimatedContainer(
+          duration: const Duration(milliseconds: 300),
+          curve: Curves.easeOut,
+          width: 18,
+          height: 18,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            color: isActive ? AppColors.primaryGreen : Colors.grey.shade200,
+            border: Border.all(
+              color: isActive
+                  ? AppColors.primaryGreen
+                  : Colors.grey.shade300,
+              width: 1.5,
             ),
-            const SizedBox(width: 12),
-            const Expanded(
-              child: Text(
-                'Upload Documents',
-                style: TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
-                  color: AppColors.textPrimary,
-                ),
-              ),
-            ),
-            if (Platform.isWindows)
-              IconButton(
-                icon: const Icon(Icons.close_rounded, color: AppColors.textSecondary),
-                onPressed: () => Navigator.of(context).pop(),
-                tooltip: 'Close',
-              ),
-          ],
+          ),
+          child: Center(
+            child: isDone
+                ? const Icon(Icons.check, size: 10, color: Colors.white)
+                : Text(
+                    '$num',
+                    style: TextStyle(
+                      fontSize: 9,
+                      fontWeight: FontWeight.bold,
+                      color: isActive ? Colors.white : Colors.grey.shade500,
+                    ),
+                  ),
+          ),
         ),
-        const SizedBox(height: 4),
-        Row(
-          children: [
-            _buildStepChip(1, 'Select Files', step >= 0),
-            _buildStepConnector(step >= 1),
-            _buildStepChip(2, 'Review & Upload', step >= 1),
-          ],
+        const SizedBox(width: 4),
+        AnimatedDefaultTextStyle(
+          duration: const Duration(milliseconds: 300),
+          style: TextStyle(
+            fontSize: 11,
+            fontWeight: isActive ? FontWeight.w600 : FontWeight.normal,
+            color: isActive ? AppColors.primaryGreen : AppColors.textSecondary,
+          ),
+          child: Text(label),
         ),
       ],
+    );
+  }
+
+  Widget _buildConnector({required bool active}) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 6),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 300),
+        width: 20,
+        height: 1.5,
+        color: active ? AppColors.primaryGreen : Colors.grey.shade300,
+      ),
     );
   }
 }

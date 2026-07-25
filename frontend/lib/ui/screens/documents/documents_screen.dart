@@ -1051,6 +1051,56 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
       child: Stack(
         children: [
           child,
+          // ── Idle hint: subtle bottom bar visible on Windows when not dragging ──
+          Positioned(
+            left: 0,
+            right: 0,
+            bottom: 0,
+            child: AnimatedSlide(
+              offset: _isDragOver ? const Offset(0, 1) : Offset.zero,
+              duration: const Duration(milliseconds: 200),
+              curve: Curves.easeOut,
+              child: AnimatedOpacity(
+                opacity: _isDragOver ? 0.0 : 1.0,
+                duration: const Duration(milliseconds: 200),
+                child: IgnorePointer(
+                  child: Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 16),
+                    decoration: BoxDecoration(
+                      color: AppColors.primaryGreen.withValues(alpha: 0.06),
+                      border: Border(
+                        top: BorderSide(
+                          color: AppColors.primaryGreen.withValues(alpha: 0.2),
+                          width: 1,
+                        ),
+                      ),
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          Icons.file_upload_outlined,
+                          size: 14,
+                          color: AppColors.primaryGreen.withValues(alpha: 0.6),
+                        ),
+                        const SizedBox(width: 6),
+                        Text(
+                          'Drag & drop PDF, JPG or PNG files anywhere to upload',
+                          style: TextStyle(
+                            fontSize: 11.5,
+                            color: AppColors.primaryGreen.withValues(alpha: 0.7),
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+          // ── Active drop overlay ──
           if (_isDragOver)
               Positioned.fill(
                 child: IgnorePointer(
