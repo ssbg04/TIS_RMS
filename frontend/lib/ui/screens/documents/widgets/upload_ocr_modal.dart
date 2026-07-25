@@ -98,7 +98,6 @@ class UploadOcrModal extends ConsumerStatefulWidget {
 class _UploadOcrModalState extends ConsumerState<UploadOcrModal> {
   // Step: 0 = pick files, 1 = review & upload
   int _currentStep = 0;
-        widget.stepNotifier?.value = _currentStep;
 
   final TextEditingController _lrnController = TextEditingController();
   StudentModel? _matchedStudent;
@@ -134,7 +133,7 @@ class _UploadOcrModalState extends ConsumerState<UploadOcrModal> {
         );
       }).toList();
       _currentStep = 1;
-        widget.stepNotifier?.value = _currentStep; // Jump to review step
+      widget.stepNotifier?.value = _currentStep; // Jump to review step
     }
     _lrnController.addListener(_onLrnChanged);
   }
@@ -250,8 +249,10 @@ class _UploadOcrModalState extends ConsumerState<UploadOcrModal> {
 
     setState(() {
       _entries.addAll(newEntries);
-      if (_entries.isNotEmpty) _currentStep = 1;
+      if (_entries.isNotEmpty) {
+        _currentStep = 1;
         widget.stepNotifier?.value = _currentStep;
+      }
     });
   }
 
@@ -287,8 +288,10 @@ class _UploadOcrModalState extends ConsumerState<UploadOcrModal> {
 
         setState(() {
           _entries.add(entry);
-          if (_entries.isNotEmpty) _currentStep = 1;
-        widget.stepNotifier?.value = _currentStep;
+          if (_entries.isNotEmpty) {
+            _currentStep = 1;
+            widget.stepNotifier?.value = _currentStep;
+          }
         });
       }
     } catch (e) {
@@ -1013,7 +1016,7 @@ class _UploadOcrModalState extends ConsumerState<UploadOcrModal> {
                       : () => setState(() {
                             _entries = [];
                             _currentStep = 0;
-        widget.stepNotifier?.value = _currentStep;
+                            widget.stepNotifier?.value = _currentStep;
                           }),
                   style: TextButton.styleFrom(
                       padding: const EdgeInsets.symmetric(
@@ -1111,51 +1114,4 @@ class _UploadOcrModalState extends ConsumerState<UploadOcrModal> {
     return Icons.insert_drive_file_rounded;
   }
 
-  Widget _buildStepChip(int step, String label, bool active) {
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        AnimatedContainer(
-          duration: const Duration(milliseconds: 250),
-          width: 22,
-          height: 22,
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            color: active ? AppColors.primaryGreen : Colors.grey.shade300,
-          ),
-          child: Center(
-            child: Text(
-              '$step',
-              style: TextStyle(
-                fontSize: 11,
-                fontWeight: FontWeight.bold,
-                color: active ? Colors.white : Colors.grey.shade600,
-              ),
-            ),
-          ),
-        ),
-        const SizedBox(width: 5),
-        Text(
-          label,
-          style: TextStyle(
-            fontSize: 12,
-            fontWeight: active ? FontWeight.w600 : FontWeight.normal,
-            color: active ? AppColors.primaryGreen : AppColors.textSecondary,
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildStepConnector(bool active) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 8),
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 250),
-        width: 28,
-        height: 2,
-        color: active ? AppColors.primaryGreen : Colors.grey.shade300,
-      ),
-    );
-  }
 }

@@ -5,7 +5,7 @@ import 'dart:io';
 class UploadModalHeaderWidget extends StatelessWidget {
   final int step;
   
-  const UploadModalHeaderWidget({Key? key, required this.step}) : super(key: key);
+  const UploadModalHeaderWidget({super.key, required this.step});
 
   Widget _buildStepChip(int stepNum, String label, bool active) {
     return Row(
@@ -21,7 +21,7 @@ class UploadModalHeaderWidget extends StatelessWidget {
           ),
           child: Center(
             child: Text(
-              $stepNum,
+              '$stepNum',
               style: TextStyle(
                 fontSize: 11,
                 fontWeight: FontWeight.bold,
