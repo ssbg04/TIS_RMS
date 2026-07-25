@@ -52,11 +52,19 @@ class UploadOcrModal extends ConsumerStatefulWidget {
   /// If provided, the modal will automatically fetch and fill this student's LRN
   final int? prefilledStudentId;
 
-  const UploadOcrModal({super.key, this.prefilledStudentId});
+  /// Files pre-populated from drag-and-drop (Windows)
+  final List<File>? preloadedFiles;
 
-  static void show(BuildContext context, {int? prefilledStudentId}) {
+  const UploadOcrModal({super.key, this.prefilledStudentId, this.preloadedFiles});
+
+  static void show(
+    BuildContext context, {
+    int? prefilledStudentId,
+    List<File>? preloadedFiles,
+  }) {
     WoltModalSheet.show<void>(
       context: context,
+      useSafeArea: false,
       pageListBuilder: (modalSheetContext) {
         return [
           WoltModalSheetPage(
@@ -64,7 +72,10 @@ class UploadOcrModal extends ConsumerStatefulWidget {
             hasSabGradient: false,
             hasTopBarLayer: false,
             isTopBarLayerAlwaysVisible: false,
-            child: UploadOcrModal(prefilledStudentId: prefilledStudentId),
+            child: UploadOcrModal(
+              prefilledStudentId: prefilledStudentId,
+              preloadedFiles: preloadedFiles,
+            ),
           ),
         ];
       },
@@ -92,10 +103,27 @@ class _UploadOcrModalState extends ConsumerState<UploadOcrModal> {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       ref.invalidate(documentRequirementsProvider);
+      ref.read(documentRequirementsProvider.future);
     });
     if (widget.prefilledStudentId != null) {
       _matchedStudentId = widget.prefilledStudentId;
       _fetchPrefilledStudentLrn();
+    }
+    // Pre-populate entries from drag-and-drop files
+    if (widget.preloadedFiles != null && widget.preloadedFiles!.isNotEmpty) {
+      _entries = widget.preloadedFiles!.map((f) {
+        final bytes = f.lengthSync();
+        final kb = bytes / 1024;
+        final size = kb >= 1024
+            ? '${(kb / 1024).toStringAsFixed(1)} MB'
+            : '${kb.toStringAsFixed(0)} KB';
+        return _UploadEntry(
+          file: f,
+          fileName: f.path.split(Platform.pathSeparator).last,
+          fileSize: size,
+        );
+      }).toList();
+      _currentStep = 1; // Jump to review step
     }
     _lrnController.addListener(_onLrnChanged);
   }
@@ -221,7 +249,7 @@ class _UploadOcrModalState extends ConsumerState<UploadOcrModal> {
         options: DocumentScannerOptions(
           documentFormats: const {DocumentFormat.pdf},
           mode: ScannerMode.full,
-          isGalleryImport: false,
+          isGalleryImport: true,
           pageLimit: 20,
         ),
       );
@@ -269,6 +297,7 @@ class _UploadOcrModalState extends ConsumerState<UploadOcrModal> {
 
   void _applyAutoDetect(_UploadEntry entry, List<dynamic> requirements) {
     final fileNameLower = entry.fileName.toLowerCase();
+    final cleanFileName = fileNameLower.replaceAll(RegExp(r'[^a-z0-9]'), '');
     
     // Extract alphanumeric words from filename
     final fileWords = RegExp(r'[a-zA-Z0-9]+')
@@ -280,12 +309,29 @@ class _UploadOcrModalState extends ConsumerState<UploadOcrModal> {
     int bestScore = 0;
 
     for (final req in requirements) {
+      final reqNameLower = (req.name as String).toLowerCase();
+      final cleanReqName = reqNameLower.replaceAll(RegExp(r'[^a-z0-9]'), '');
+
+      int matches = 0;
+      
+      // If the clean filename contains the clean requirement name, it's a very strong match
+      if (cleanReqName.isNotEmpty && cleanFileName.contains(cleanReqName)) {
+        matches += 100;
+      }
+      
+      // Special logic for SF forms
+      if (reqNameLower.contains('sf9') && cleanFileName.contains('sf9')) {
+         matches += 50;
+      }
+      if (reqNameLower.contains('sf10') && cleanFileName.contains('sf10')) {
+         matches += 50;
+      }
+
       final reqWords = RegExp(r'[a-zA-Z0-9]+')
-          .allMatches((req.name as String).toLowerCase())
+          .allMatches(reqNameLower)
           .map((m) => m.group(0)!)
           .toList();
 
-      int matches = 0;
       for (final rw in reqWords) {
         if (rw.length < 2) continue; // Ignore single characters
         
@@ -302,7 +348,7 @@ class _UploadOcrModalState extends ConsumerState<UploadOcrModal> {
       }
     }
 
-    if (bestScore > 0 && best != null) {
+    if (best != null && bestScore > 0) {
       entry.selectedRequirementId = best.id as int;
       entry.selectedDocumentType = best.name as String;
     }

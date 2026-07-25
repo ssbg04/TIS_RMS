@@ -1,4 +1,7 @@
 const db = require('../config/db');
+const fs = require('fs');
+const path = require('path');
+
 
 // GET /api/dashboard/stats
 exports.getStats = (req, res) => {
@@ -239,5 +242,199 @@ exports.getRecentActivities = (req, res) => {
         });
     } catch (error) {
         res.status(500).json({ message: 'Failed to fetch recent activities', error: error.message });
+    }
+};
+
+// ============================================================
+// GET /api/dashboard/kpis
+// Returns all chart-ready KPI datasets in one call
+// ============================================================
+exports.getKpis = (req, res) => {
+    try {
+        const isTeacher = req.user?.role?.toLowerCase() === 'teacher';
+        const userId = req.user.id;
+
+        // ── 1. Digitalization — JHS/SHS donut ───────────────────────────
+        // Total docs uploaded per category vs. students with at least one doc
+        const jhsTotal = db.prepare(`
+            SELECT COUNT(DISTINCT s.id) as count
+            FROM students s
+            JOIN enrollments e ON s.id = e.student_id
+            WHERE e.grade_level <= 10
+        `).get().count;
+
+        const shsTotal = db.prepare(`
+            SELECT COUNT(DISTINCT s.id) as count
+            FROM students s
+            JOIN enrollments e ON s.id = e.student_id
+            WHERE e.grade_level > 10
+        `).get().count;
+
+        const jhsDigitized = db.prepare(`
+            SELECT COUNT(DISTINCT s.id) as count
+            FROM students s
+            JOIN documents d ON d.student_id = s.id
+            JOIN enrollments e ON s.id = e.student_id
+            WHERE e.grade_level <= 10 AND d.deleted_at IS NULL
+        `).get().count;
+
+        const shsDigitized = db.prepare(`
+            SELECT COUNT(DISTINCT s.id) as count
+            FROM students s
+            JOIN documents d ON d.student_id = s.id
+            JOIN enrollments e ON s.id = e.student_id
+            WHERE e.grade_level > 10 AND d.deleted_at IS NULL
+        `).get().count;
+
+        const digitalization = {
+            jhs: { total: jhsTotal, digitized: jhsDigitized },
+            shs: { total: shsTotal, digitized: shsDigitized },
+            overall: {
+                total: jhsTotal + shsTotal,
+                digitized: jhsDigitized + shsDigitized,
+            },
+        };
+
+        // ── 2. Activity by day — last 7 days bar chart ──────────────────
+        const activityByDay = db.prepare(`
+            SELECT
+                DATE(created_at) as day,
+                action,
+                entity_type,
+                COUNT(*) as count
+            FROM activity_log
+            WHERE DATE(created_at) >= DATE('now', '-6 days')
+            GROUP BY day, action, entity_type
+            ORDER BY day ASC
+        `).all();
+
+        // ── 3. Document status distribution ─────────────────────────────
+        const statusRows = db.prepare(`
+            SELECT status, COUNT(*) as count
+            FROM documents
+            WHERE deleted_at IS NULL
+            GROUP BY status
+        `).all();
+        const statusDistribution = statusRows.map(r => ({ status: r.status, count: r.count }));
+
+        // ── 4. Top & bottom students by document count ──────────────────
+        const studentDocCounts = db.prepare(`
+            SELECT
+                s.id,
+                s.first_name || ' ' || s.last_name as name,
+                COUNT(d.id) as doc_count
+            FROM students s
+            LEFT JOIN documents d ON d.student_id = s.id AND d.deleted_at IS NULL
+            GROUP BY s.id
+            ORDER BY doc_count DESC
+        `).all();
+
+        const topStudents = studentDocCounts.slice(0, 5);
+        const bottomStudents = [...studentDocCounts].sort((a, b) => a.doc_count - b.doc_count).slice(0, 5);
+
+        // ── 5. Document type breakdown pie ──────────────────────────────
+        const typeRows = db.prepare(`
+            SELECT
+                COALESCE(dr.name, d.document_type, 'Uncategorized') as type_name,
+                COUNT(*) as count
+            FROM documents d
+            LEFT JOIN document_requirements dr ON d.requirement_id = dr.id
+            WHERE d.deleted_at IS NULL
+            GROUP BY type_name
+            ORDER BY count DESC
+            LIMIT 10
+        `).all();
+        const docTypeBreakdown = typeRows.map(r => ({ name: r.type_name, count: r.count }));
+
+        // ── 6. Upload trend — last 30 days line chart ───────────────────
+        const uploadTrend = db.prepare(`
+            SELECT
+                DATE(created_at) as day,
+                COUNT(*) as count
+            FROM documents
+            WHERE DATE(created_at) >= DATE('now', '-29 days')
+              AND deleted_at IS NULL
+            GROUP BY day
+            ORDER BY day ASC
+        `).all();
+
+        // ── 7. Storage analytics — compute sizes from disk ──────────────
+        const fileRows = db.prepare(`
+            SELECT file_path, document_type,
+                   COALESCE(dr.name, document_type, 'Uncategorized') as type_name
+            FROM documents d
+            LEFT JOIN document_requirements dr ON d.requirement_id = dr.id
+            WHERE deleted_at IS NULL
+        `).all();
+
+        let totalBytes = 0;
+        const byType = {};
+        let filesWithSize = 0;
+
+        for (const row of fileRows) {
+            try {
+                if (row.file_path && fs.existsSync(row.file_path)) {
+                    const size = fs.statSync(row.file_path).size;
+                    totalBytes += size;
+                    filesWithSize++;
+                    const key = row.type_name || 'Uncategorized';
+                    byType[key] = (byType[key] || 0) + size;
+                }
+            } catch (_) { /* skip inaccessible files */ }
+        }
+
+        // Growth rate: bytes added in last 30 days vs prior 30 days
+        const recentRows = db.prepare(`
+            SELECT file_path FROM documents
+            WHERE deleted_at IS NULL
+              AND created_at >= datetime('now', '-30 days')
+        `).all();
+        const olderRows = db.prepare(`
+            SELECT file_path FROM documents
+            WHERE deleted_at IS NULL
+              AND created_at >= datetime('now', '-60 days')
+              AND created_at < datetime('now', '-30 days')
+        `).all();
+
+        const sumSize = (rows) => rows.reduce((acc, r) => {
+            try {
+                if (r.file_path && fs.existsSync(r.file_path)) {
+                    return acc + fs.statSync(r.file_path).size;
+                }
+            } catch (_) {}
+            return acc;
+        }, 0);
+
+        const recentBytes = sumSize(recentRows);
+        const olderBytes = sumSize(olderRows);
+        const growthRate = olderBytes > 0
+            ? Math.round(((recentBytes - olderBytes) / olderBytes) * 100)
+            : (recentBytes > 0 ? 100 : 0);
+
+        const storageAnalytics = {
+            totalBytes,
+            totalFiles: fileRows.length,
+            filesWithSize,
+            byType: Object.entries(byType)
+                .sort((a, b) => b[1] - a[1])
+                .slice(0, 8)
+                .map(([name, bytes]) => ({ name, bytes })),
+            growthRate,
+            recentBytes,
+        };
+
+        res.json({
+            digitalization,
+            activityByDay,
+            statusDistribution,
+            topStudents,
+            bottomStudents,
+            docTypeBreakdown,
+            uploadTrend,
+            storageAnalytics,
+        });
+    } catch (error) {
+        console.error('getKpis error:', error);
+        res.status(500).json({ message: 'Failed to fetch KPIs', error: error.message });
     }
 };

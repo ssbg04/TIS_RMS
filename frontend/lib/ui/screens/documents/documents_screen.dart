@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io';
 import 'package:flutter/foundation.dart'
     show defaultTargetPlatform, TargetPlatform;
 import 'package:flutter/material.dart';
@@ -52,6 +53,7 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
   Timer? _debounce;
   bool _isGridView = false;
   late final TabController _tabController;
+  bool _isDragOver = false;
 
   // --- Windows Explorer State Variables ---
   int? _openedFolderStudentId;
@@ -829,7 +831,9 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
     return GestureDetector(
       onTap: () => FocusScope.of(context).unfocus(),
       behavior: HitTestBehavior.translucent,
-      child: Scaffold(
+      child: _buildDragDropWrapper(
+        context,
+        child: Scaffold(
         backgroundColor: Colors.transparent,
         floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
         floatingActionButton:
@@ -1012,6 +1016,92 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
           ),
         ),
       ),
+      ),
+    );
+  }
+
+  // ── DRAG AND DROP WRAPPER (Windows only) ──────────────────────────────────
+  Widget _buildDragDropWrapper(BuildContext context, {required Widget child}) {
+    final isWindows = defaultTargetPlatform == TargetPlatform.windows;
+    if (!isWindows) return child;
+
+    return DragTarget<String>(
+      onWillAcceptWithDetails: (details) {
+        setState(() => _isDragOver = true);
+        return true;
+      },
+      onLeave: (_) => setState(() => _isDragOver = false),
+      onAcceptWithDetails: (details) {
+        setState(() => _isDragOver = false);
+        final path = details.data;
+        final file = File(path);
+        final ext = path.toLowerCase();
+        if (ext.endsWith('.pdf') ||
+            ext.endsWith('.jpg') ||
+            ext.endsWith('.jpeg') ||
+            ext.endsWith('.png')) {
+          UploadOcrModal.show(
+            context,
+            prefilledStudentId:
+                _openedFolderStudentId ?? widget.initialStudentId,
+            preloadedFiles: [file],
+          );
+        }
+      },
+      builder: (context, candidateData, rejectedData) {
+        return Stack(
+          children: [
+            child,
+            if (_isDragOver)
+              Positioned.fill(
+                child: IgnorePointer(
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 200),
+                    decoration: BoxDecoration(
+                      color: AppColors.primaryGreen.withValues(alpha: 0.08),
+                      border: Border.all(
+                        color: AppColors.primaryGreen,
+                        width: 2.5,
+                        strokeAlign: BorderSide.strokeAlignInside,
+                      ),
+                    ),
+                    child: Center(
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            Icons.cloud_upload_outlined,
+                            size: 64,
+                            color: AppColors.primaryGreen.withValues(alpha: 0.8),
+                          ),
+                          const SizedBox(height: 12),
+                          Text(
+                            'Drop files to upload',
+                            style: TextStyle(
+                              fontSize: 20,
+                              fontWeight: FontWeight.bold,
+                              color:
+                                  AppColors.primaryGreen.withValues(alpha: 0.9),
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            'PDF, JPG, PNG supported',
+                            style: TextStyle(
+                              fontSize: 13,
+                              color:
+                                  AppColors.primaryGreen.withValues(alpha: 0.6),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+          ],
+        );
+      },
     );
   }
 

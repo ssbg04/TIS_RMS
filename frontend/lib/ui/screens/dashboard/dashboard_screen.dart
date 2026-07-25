@@ -25,6 +25,7 @@ import '../settings/teacher_management_screen.dart';
 import 'widgets/notification_dropdown.dart';
 import '../../shared/modals/view_activity_modal.dart';
 import '../../shared/modals/reset_requests_modal.dart';
+import 'widgets/dashboard_kpis.dart';
 
 class DashboardScreen extends ConsumerStatefulWidget {
   const DashboardScreen({super.key});
@@ -100,6 +101,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     _pollingTimer = Timer.periodic(const Duration(seconds: 5), (_) {
       if (mounted && ref.read(activeTabProvider) == 'Dashboard') {
         ref.invalidate(dashboardDataProvider);
+        ref.invalidate(dashboardKpisProvider);
         ref.read(notificationsProvider.notifier).refreshNotifications();
       }
     });
@@ -112,6 +114,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
   Future<void> _handleRefresh() async {
     if (!mounted) return;
     ref.invalidate(dashboardDataProvider);
+    ref.invalidate(dashboardKpisProvider);
     if (!mounted) return;
     ref.read(notificationsProvider.notifier).refreshNotifications();
     if (!mounted) return;
@@ -346,6 +349,8 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                               ),
                               const SizedBox(height: 24),
                               _buildStatGrid(data.stats, user),
+                              const SizedBox(height: 32),
+                              const DashboardKpisSection(),
                               const SizedBox(height: 32),
                               _buildHistorySections(data, user),
                               const SizedBox(height: 48),

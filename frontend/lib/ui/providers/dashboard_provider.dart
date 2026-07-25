@@ -46,6 +46,12 @@ final dashboardDataProvider = FutureProvider<DashboardData>((ref) async {
   );
 });
 
+// ── KPI chart data (all 7 chart datasets) ──────────────────────────────────
+final dashboardKpisProvider = FutureProvider<DashboardKpis>((ref) async {
+  final repository = ref.read(dashboardRepositoryProvider);
+  return repository.getKpis();
+});
+
 // ── Full paginated activities (used by RecentActivitiesScreen) ─────────────
 class ActivityQueryParams {
   final int page;

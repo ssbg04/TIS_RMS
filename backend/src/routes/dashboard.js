@@ -5,5 +5,6 @@ const { authenticateToken } = require('../middleware/auth');
 
 router.get('/stats',              authenticateToken, dashboardController.getStats);
 router.get('/recent-activities',  authenticateToken, dashboardController.getRecentActivities);
+router.get('/kpis',               authenticateToken, dashboardController.getKpis);
 
 module.exports = router;

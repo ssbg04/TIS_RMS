@@ -163,3 +163,184 @@ class PaginatedUserHistory {
     );
   }
 }
+
+// ══════════════════════════════════════════════════════════════════════════════
+// Dashboard KPI models — used by the chart section on the dashboard
+// ══════════════════════════════════════════════════════════════════════════════
+
+class DigitalizationCategory {
+  final int total;
+  final int digitized;
+  const DigitalizationCategory({required this.total, required this.digitized});
+  double get percent => total == 0 ? 0 : digitized / total;
+  factory DigitalizationCategory.fromJson(Map<String, dynamic> j) =>
+      DigitalizationCategory(
+        total: (j['total'] as num?)?.toInt() ?? 0,
+        digitized: (j['digitized'] as num?)?.toInt() ?? 0,
+      );
+}
+
+class DigitalizationData {
+  final DigitalizationCategory jhs;
+  final DigitalizationCategory shs;
+  final DigitalizationCategory overall;
+  const DigitalizationData({required this.jhs, required this.shs, required this.overall});
+  factory DigitalizationData.fromJson(Map<String, dynamic> j) =>
+      DigitalizationData(
+        jhs: DigitalizationCategory.fromJson(j['jhs'] as Map<String, dynamic>? ?? {}),
+        shs: DigitalizationCategory.fromJson(j['shs'] as Map<String, dynamic>? ?? {}),
+        overall: DigitalizationCategory.fromJson(j['overall'] as Map<String, dynamic>? ?? {}),
+      );
+}
+
+class ActivityByDayEntry {
+  final String day;
+  final String action;
+  final String entityType;
+  final int count;
+  const ActivityByDayEntry({
+    required this.day,
+    required this.action,
+    required this.entityType,
+    required this.count,
+  });
+  factory ActivityByDayEntry.fromJson(Map<String, dynamic> j) =>
+      ActivityByDayEntry(
+        day: j['day'] as String? ?? '',
+        action: j['action'] as String? ?? '',
+        entityType: j['entity_type'] as String? ?? '',
+        count: (j['count'] as num?)?.toInt() ?? 0,
+      );
+}
+
+class StatusDistributionEntry {
+  final String status;
+  final int count;
+  const StatusDistributionEntry({required this.status, required this.count});
+  factory StatusDistributionEntry.fromJson(Map<String, dynamic> j) =>
+      StatusDistributionEntry(
+        status: j['status'] as String? ?? '',
+        count: (j['count'] as num?)?.toInt() ?? 0,
+      );
+}
+
+class StudentDocCount {
+  final int id;
+  final String name;
+  final int docCount;
+  const StudentDocCount({required this.id, required this.name, required this.docCount});
+  factory StudentDocCount.fromJson(Map<String, dynamic> j) =>
+      StudentDocCount(
+        id: (j['id'] as num?)?.toInt() ?? 0,
+        name: j['name'] as String? ?? '',
+        docCount: (j['doc_count'] as num?)?.toInt() ?? 0,
+      );
+}
+
+class DocTypeEntry {
+  final String name;
+  final int count;
+  const DocTypeEntry({required this.name, required this.count});
+  factory DocTypeEntry.fromJson(Map<String, dynamic> j) =>
+      DocTypeEntry(
+        name: j['name'] as String? ?? '',
+        count: (j['count'] as num?)?.toInt() ?? 0,
+      );
+}
+
+class UploadTrendEntry {
+  final String day;
+  final int count;
+  const UploadTrendEntry({required this.day, required this.count});
+  factory UploadTrendEntry.fromJson(Map<String, dynamic> j) =>
+      UploadTrendEntry(
+        day: j['day'] as String? ?? '',
+        count: (j['count'] as num?)?.toInt() ?? 0,
+      );
+}
+
+class StorageTypeEntry {
+  final String name;
+  final int bytes;
+  const StorageTypeEntry({required this.name, required this.bytes});
+  factory StorageTypeEntry.fromJson(Map<String, dynamic> j) =>
+      StorageTypeEntry(
+        name: j['name'] as String? ?? '',
+        bytes: (j['bytes'] as num?)?.toInt() ?? 0,
+      );
+}
+
+class StorageAnalytics {
+  final int totalBytes;
+  final int totalFiles;
+  final int filesWithSize;
+  final List<StorageTypeEntry> byType;
+  final int growthRate;
+  final int recentBytes;
+  const StorageAnalytics({
+    required this.totalBytes,
+    required this.totalFiles,
+    required this.filesWithSize,
+    required this.byType,
+    required this.growthRate,
+    required this.recentBytes,
+  });
+  factory StorageAnalytics.fromJson(Map<String, dynamic> j) =>
+      StorageAnalytics(
+        totalBytes: (j['totalBytes'] as num?)?.toInt() ?? 0,
+        totalFiles: (j['totalFiles'] as num?)?.toInt() ?? 0,
+        filesWithSize: (j['filesWithSize'] as num?)?.toInt() ?? 0,
+        byType: (j['byType'] as List<dynamic>? ?? [])
+            .map((e) => StorageTypeEntry.fromJson(e as Map<String, dynamic>))
+            .toList(),
+        growthRate: (j['growthRate'] as num?)?.toInt() ?? 0,
+        recentBytes: (j['recentBytes'] as num?)?.toInt() ?? 0,
+      );
+}
+
+class DashboardKpis {
+  final DigitalizationData digitalization;
+  final List<ActivityByDayEntry> activityByDay;
+  final List<StatusDistributionEntry> statusDistribution;
+  final List<StudentDocCount> topStudents;
+  final List<StudentDocCount> bottomStudents;
+  final List<DocTypeEntry> docTypeBreakdown;
+  final List<UploadTrendEntry> uploadTrend;
+  final StorageAnalytics storageAnalytics;
+
+  const DashboardKpis({
+    required this.digitalization,
+    required this.activityByDay,
+    required this.statusDistribution,
+    required this.topStudents,
+    required this.bottomStudents,
+    required this.docTypeBreakdown,
+    required this.uploadTrend,
+    required this.storageAnalytics,
+  });
+
+  factory DashboardKpis.fromJson(Map<String, dynamic> j) => DashboardKpis(
+    digitalization: DigitalizationData.fromJson(
+        j['digitalization'] as Map<String, dynamic>? ?? {}),
+    activityByDay: (j['activityByDay'] as List<dynamic>? ?? [])
+        .map((e) => ActivityByDayEntry.fromJson(e as Map<String, dynamic>))
+        .toList(),
+    statusDistribution: (j['statusDistribution'] as List<dynamic>? ?? [])
+        .map((e) => StatusDistributionEntry.fromJson(e as Map<String, dynamic>))
+        .toList(),
+    topStudents: (j['topStudents'] as List<dynamic>? ?? [])
+        .map((e) => StudentDocCount.fromJson(e as Map<String, dynamic>))
+        .toList(),
+    bottomStudents: (j['bottomStudents'] as List<dynamic>? ?? [])
+        .map((e) => StudentDocCount.fromJson(e as Map<String, dynamic>))
+        .toList(),
+    docTypeBreakdown: (j['docTypeBreakdown'] as List<dynamic>? ?? [])
+        .map((e) => DocTypeEntry.fromJson(e as Map<String, dynamic>))
+        .toList(),
+    uploadTrend: (j['uploadTrend'] as List<dynamic>? ?? [])
+        .map((e) => UploadTrendEntry.fromJson(e as Map<String, dynamic>))
+        .toList(),
+    storageAnalytics: StorageAnalytics.fromJson(
+        j['storageAnalytics'] as Map<String, dynamic>? ?? {}),
+  );
+}

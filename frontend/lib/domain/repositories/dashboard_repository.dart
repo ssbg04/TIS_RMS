@@ -55,4 +55,14 @@ class DashboardRepository {
       );
     }
   }
+
+  Future<DashboardKpis> getKpis() async {
+    try {
+      final options = await _getAuthOptions();
+      final response = await _dio.get('/dashboard/kpis', options: options);
+      return DashboardKpis.fromJson(response.data as Map<String, dynamic>);
+    } on DioException catch (e) {
+      throw Exception(e.response?.data['message'] ?? 'Failed to fetch KPIs.');
+    }
+  }
 }

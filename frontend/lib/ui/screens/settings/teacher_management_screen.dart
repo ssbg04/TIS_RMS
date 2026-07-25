@@ -99,7 +99,7 @@ class _TeacherManagementModalState extends ConsumerState<TeacherManagementModal>
 
     if (isAndroid) {
       return Scaffold(
-        backgroundColor: Colors.transparent,
+        backgroundColor: AppColors.surfaceWhite,
         appBar: AppBar(
           backgroundColor: AppColors.primaryGreen,
           foregroundColor: Colors.white,
