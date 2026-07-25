@@ -1,10 +1,9 @@
 import 'dart:async';
-import 'dart:async';
 import 'dart:io';
 import 'package:flutter/foundation.dart'
     show defaultTargetPlatform, TargetPlatform;
 import 'package:flutter/material.dart';
-import 'package:super_drag_and_drop/super_drag_and_drop.dart';
+import 'package:desktop_drop/desktop_drop.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../domain/entities/folder_model.dart';
@@ -1027,46 +1026,18 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
     final isWindows = defaultTargetPlatform == TargetPlatform.windows;
     if (!isWindows) return child;
 
-    return DropRegion(
-      formats: Formats.standardFormats,
-      hitTestBehavior: HitTestBehavior.opaque,
-      onDropEnter: (_) => setState(() => _isDragOver = true),
-      onDropLeave: (_) => setState(() => _isDragOver = false),
-      onDropOver: (_) {
-        if (!_isDragOver) setState(() => _isDragOver = true);
-        return DropOperation.copy;
-      },
-      onPerformDrop: (event) async {
+    return DropTarget(
+      onDragEntered: (details) => setState(() => _isDragOver = true),
+      onDragExited: (details) => setState(() => _isDragOver = false),
+      onDragDone: (details) {
         setState(() => _isDragOver = false);
-        final validFiles = <File>[];
-
-        final futures = <Future<File?>>[];
-        for (final item in event.session.items) {
-          final reader = item.dataReader;
-          if (reader != null && reader.hasValue(Formats.fileUri)) {
-            final completer = Completer<File?>();
-            reader.getValue<Uri>(Formats.fileUri, (value) {
-              if (value.value != null) {
-                final path = value.value!.toFilePath();
-                final ext = path.toLowerCase();
-                if (ext.endsWith('.pdf') ||
-                    ext.endsWith('.jpg') ||
-                    ext.endsWith('.jpeg') ||
-                    ext.endsWith('.png')) {
-                  completer.complete(File(path));
-                } else {
-                  completer.complete(null);
-                }
-              } else {
-                completer.complete(null);
-              }
-            });
-            futures.add(completer.future);
-          }
-        }
-
-        final results = await Future.wait(futures);
-        validFiles.addAll(results.whereType<File>());
+        final validFiles = details.files.where((xfile) {
+          final ext = xfile.path.toLowerCase();
+          return ext.endsWith('.pdf') ||
+              ext.endsWith('.jpg') ||
+              ext.endsWith('.jpeg') ||
+              ext.endsWith('.png');
+        }).map((x) => File(x.path)).toList();
 
         if (validFiles.isNotEmpty) {
           UploadOcrModal.show(
