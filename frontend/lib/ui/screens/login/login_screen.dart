@@ -510,68 +510,6 @@ class _LoginScreenState extends ConsumerState<LoginScreen> with SingleTickerProv
       ),
     );
   }
-}
-
-class _NetworkScanDialog extends StatefulWidget {
-  const _NetworkScanDialog();
-
-  @override
-  State<_NetworkScanDialog> createState() => _NetworkScanDialogState();
-}
-
-class _NetworkScanDialogState extends State<_NetworkScanDialog> {
-  String _status = 'Scanning local network…';
-
-  @override
-  void initState() {
-    super.initState();
-    _scan();
-  }
-
-  Future<void> _scan() async {
-    final prefixes = await ServerDiscoveryService.getSubnetPrefixes();
-    final found = await ServerDiscoveryService.discover(
-      prefixes,
-      onProgress: (subnet, scanned, total) {
-        if (mounted) {
-          setState(() => _status = 'Scanning ${subnet}x … ($scanned/$total)');
-        }
-      },
-    );
-    if (!mounted) return;
-    Navigator.pop(context);
-    if (found != null) {
-      ApiConstants.setBaseUrl(found);
-      await ServerDiscoveryService.save(ApiConstants.baseUrl);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('✅ Connected to local server: $found'),
-          backgroundColor: AppColors.success,
-        ),
-      );
-    } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('No TIS RMS server found on local network.'),
-          backgroundColor: AppColors.error,
-        ),
-      );
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return AlertDialog(
-      title: const Text('Local Network Scan'),
-      content: Row(
-        children: [
-          const CircularProgressIndicator(),
-          const SizedBox(width: 20),
-          Expanded(child: Text(_status)),
-        ],
-      ),
-    );
-  }
 
   Widget _buildLoginForm() {
     final authState = ref.watch(authProvider);
@@ -867,6 +805,66 @@ class _ForgotPasswordDialogState extends ConsumerState<_ForgotPasswordDialog> {
             ),
           ),
         ),
+      ),
+    );
+  }
+}
+
+class _NetworkScanDialog extends StatefulWidget {
+  const _NetworkScanDialog();
+
+  @override
+  State<_NetworkScanDialog> createState() => _NetworkScanDialogState();
+}
+
+class _NetworkScanDialogState extends State<_NetworkScanDialog> {
+  String _status = 'Scanning local network…';
+
+  @override
+  void initState() {
+    super.initState();
+    _scan();
+  }
+
+  Future<void> _scan() async {
+    final found = await ServerDiscoveryService.discover(
+      onProgress: (subnet, scanned, total) {
+        if (mounted) {
+          setState(() => _status = 'Scanning ${subnet}x … ($scanned/$total)');
+        }
+      },
+    );
+    if (!mounted) return;
+    Navigator.pop(context);
+    if (found != null) {
+      ApiConstants.setBaseUrl(found);
+      await ServerDiscoveryService.save(ApiConstants.baseUrl);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('✅ Connected to local server: $found'),
+          backgroundColor: AppColors.success,
+        ),
+      );
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('No TIS RMS server found on local network.'),
+          backgroundColor: AppColors.error,
+        ),
+      );
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: const Text('Local Network Scan'),
+      content: Row(
+        children: [
+          const CircularProgressIndicator(),
+          const SizedBox(width: 20),
+          Expanded(child: Text(_status)),
+        ],
       ),
     );
   }
