@@ -83,13 +83,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
   // ── Server resolution logic ────────────────────────────────────────────────
 
   Future<void> _resolveServer() async {
-    // Windows: always local, no need to scan
-    if (!kIsWeb && Platform.isWindows) {
-      ApiConstants.setBaseUrl('http://127.0.0.1:${ApiConstants.port}');
-      return;
-    }
-
-    // Android / other: check saved URL first
+    // 1. Check saved URL first (all platforms including Windows)
     final saved = await ServerDiscoveryService.getSaved();
     if (saved != null) {
       setState(() => _statusText = 'Connecting to saved server…');
@@ -98,11 +92,35 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
         ApiConstants.setBaseUrl(saved);
         return;
       }
-      // Saved server is gone — clear it and scan
+      // Saved server is unreachable — clear it and continue discovery
       await ServerDiscoveryService.clear();
     }
 
-    // Run subnet scan
+    // 2. Check default configured internet/remote server in ApiConstants
+    final defaultRoot =
+        ApiConstants.baseUrl.replaceAll(RegExp(r'/api/?$'), '');
+    setState(() => _statusText = 'Connecting to remote server…');
+    final defaultAlive = await ServerDiscoveryService.ping(defaultRoot);
+    if (defaultAlive) {
+      await ServerDiscoveryService.save(defaultRoot);
+      ApiConstants.setBaseUrl(defaultRoot);
+      return;
+    }
+
+    // 3. On desktop platforms, check localhost as a fallback (if running local backend)
+    if (!kIsWeb &&
+        (Platform.isWindows || Platform.isLinux || Platform.isMacOS)) {
+      const localUrl = 'http://127.0.0.1:${ApiConstants.port}';
+      setState(() => _statusText = 'Checking local server…');
+      final localAlive = await ServerDiscoveryService.ping(localUrl);
+      if (localAlive) {
+        await ServerDiscoveryService.save(localUrl);
+        ApiConstants.setBaseUrl(localUrl);
+        return;
+      }
+    }
+
+    // 4. Run subnet scan (or prompt for manual entry if nothing found)
     await _runScan();
   }
 
@@ -193,8 +211,8 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
               controller: controller,
               keyboardType: TextInputType.url,
               decoration: InputDecoration(
-                labelText: 'Server IP Address',
-                hintText: '192.168.1.x',
+                labelText: 'Server IP / Domain',
+                hintText: '198.252.107.197 or domain.com',
                 prefixIcon: const Icon(Icons.dns_outlined),
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(10),
@@ -227,7 +245,9 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
               if (ip.isNotEmpty) {
                 final url = ip.startsWith('http')
                     ? ip
-                    : 'http://$ip:${ApiConstants.port}';
+                    : ip.contains(':')
+                        ? 'http://$ip'
+                        : 'http://$ip:${ApiConstants.port}';
                 ServerDiscoveryService.save(url);
                 ApiConstants.setBaseUrl(url);
               }

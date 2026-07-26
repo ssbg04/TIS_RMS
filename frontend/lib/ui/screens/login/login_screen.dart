@@ -458,7 +458,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> with SingleTickerProv
               controller: controller,
               decoration: InputDecoration(
                 labelText: 'Server URL',
-                hintText: 'http://192.168.1.x:18484/api',
+                hintText: 'http://198.252.107.197:18484/api',
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(10),
                 ),
@@ -467,6 +467,16 @@ class _LoginScreenState extends ConsumerState<LoginScreen> with SingleTickerProv
           ],
         ),
         actions: [
+          TextButton(
+            onPressed: () async {
+              const defaultUrl = 'http://198.252.107.197:18484/api';
+              ApiConstants.setBaseUrl(defaultUrl);
+              await ServerDiscoveryService.save(ApiConstants.baseUrl);
+              if (mounted) setState(() {});
+              Navigator.pop(ctx);
+            },
+            child: const Text('Reset to Default'),
+          ),
           TextButton(
             onPressed: () => Navigator.pop(ctx),
             child: const Text('Cancel'),

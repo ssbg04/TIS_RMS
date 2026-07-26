@@ -33,9 +33,12 @@ class ServerDiscoveryService {
 
   static Future<bool> ping(String baseUrl) async {
     try {
+      final rootUrl = baseUrl
+          .replaceAll(RegExp(r'/+$'), '')
+          .replaceAll(RegExp(r'/api$'), '');
       final dio = Dio(
         BaseOptions(
-          baseUrl: baseUrl,
+          baseUrl: rootUrl,
           connectTimeout: _pingTimeout,
           receiveTimeout: _pingTimeout,
         ),

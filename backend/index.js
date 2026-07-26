@@ -54,11 +54,11 @@ app.use('/api/ocr', ocrRoutes);
 app.use('/api/notifications', notificationRoutes);
 app.use('/api/backup', backupRoutes);
 
-app.get('/', (req, res) => {
+app.get(['/', '/api'], (req, res) => {
     res.set('X-TIS-RMS', 'true');
     res.json({ message: 'TIS RMS API is running' });
 });
 
-app.listen(PORT, () => {
-    console.log(`Server running on port ${PORT}`);
+app.listen(PORT, '0.0.0.0', () => {
+    console.log(`Server running on port ${PORT} (0.0.0.0)`);
 });
