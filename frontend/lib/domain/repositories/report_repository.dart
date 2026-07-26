@@ -4,7 +4,7 @@ import '../../core/network/api_constants.dart';
 import '../entities/report_models.dart';
 
 class ReportRepository {
-  final Dio _dio = Dio(BaseOptions(baseUrl: ApiConstants.baseUrl));
+  final Dio _dio = ApiConstants.createDio();
   final FlutterSecureStorage _storage = const FlutterSecureStorage();
 
   Future<Options> _authOptions() async {

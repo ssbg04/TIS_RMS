@@ -44,7 +44,7 @@ final academicYearsProvider = FutureProvider.autoDispose<List<AcademicYear>>((
 ) async {
   final storage = const FlutterSecureStorage();
   final token = await storage.read(key: 'jwt_token');
-  final dio = Dio(BaseOptions(baseUrl: ApiConstants.baseUrl));
+  final dio = ApiConstants.createDio();
 
   try {
     final response = await dio.get(

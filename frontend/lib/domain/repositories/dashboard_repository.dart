@@ -4,7 +4,7 @@ import '../../core/network/api_constants.dart';
 import '../entities/dashboard_models.dart';
 
 class DashboardRepository {
-  final Dio _dio = Dio(BaseOptions(baseUrl: ApiConstants.baseUrl));
+  final Dio _dio = ApiConstants.createDio();
   final FlutterSecureStorage _storage = const FlutterSecureStorage();
 
   Future<Options> _getAuthOptions() async {

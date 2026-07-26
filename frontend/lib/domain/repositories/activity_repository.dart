@@ -5,7 +5,7 @@ import '../entities/dashboard_models.dart';
 
 /// Repository for paginated user history (admin-only).
 class ActivityRepository {
-  final Dio _dio = Dio(BaseOptions(baseUrl: ApiConstants.baseUrl));
+  final Dio _dio = ApiConstants.createDio();
   final FlutterSecureStorage _storage = const FlutterSecureStorage();
 
   Future<Options> _getAuthOptions() async {

@@ -1,3 +1,6 @@
+import 'package:dio/dio.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+
 class ApiConstants {
   static const int port = 18484;
   static const String vpsUrl = 'http://198.252.107.197:$port/api';
@@ -12,6 +15,26 @@ class ApiConstants {
   static void setBaseUrl(String url) {
     // Strip trailing slash then append /api
     final clean = url.replaceAll(RegExp(r'/+$'), '');
-    _baseUrl = clean.endsWith('/api') ? clean : '$clean/api';
+    final newUrl = clean.endsWith('/api') ? clean : '$clean/api';
+    if (_baseUrl != newUrl) {
+      _baseUrl = newUrl;
+      // Clear stored JWT token whenever server URL changes to prevent "token expired" on different server
+      const FlutterSecureStorage().delete(key: 'jwt_token');
+      const FlutterSecureStorage().delete(key: 'remember_me');
+    }
+  }
+
+  /// Creates a Dio client that dynamically uses the active [baseUrl] on every request.
+  static Dio createDio([BaseOptions? options]) {
+    final dio = Dio(options ?? BaseOptions(baseUrl: _baseUrl));
+    dio.interceptors.add(
+      InterceptorsWrapper(
+        onRequest: (options, handler) {
+          options.baseUrl = _baseUrl;
+          return handler.next(options);
+        },
+      ),
+    );
+    return dio;
   }
 }

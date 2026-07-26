@@ -4,7 +4,7 @@ import '../../domain/entities/user_model.dart';
 import '../../core/network/api_constants.dart';
 
 class AuthRepository {
-  final Dio _dio = Dio(BaseOptions(baseUrl: ApiConstants.baseUrl));
+  final Dio _dio = ApiConstants.createDio();
   final FlutterSecureStorage _storage = const FlutterSecureStorage();
 
   static const _tokenKey = 'jwt_token';

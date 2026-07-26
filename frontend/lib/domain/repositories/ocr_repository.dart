@@ -5,9 +5,8 @@ import '../../core/network/api_constants.dart';
 import '../entities/ocr_result_model.dart';
 
 class OcrRepository {
-  final Dio _dio = Dio(
+  final Dio _dio = ApiConstants.createDio(
     BaseOptions(
-      baseUrl: ApiConstants.baseUrl,
       connectTimeout: const Duration(seconds: 60), // OCR takes time
       receiveTimeout: const Duration(seconds: 60),
     ),

@@ -4,7 +4,7 @@ import '../../core/network/api_constants.dart';
 import '../entities/setup_models.dart';
 
 class SetupRepository {
-  final Dio _dio = Dio(BaseOptions(baseUrl: ApiConstants.baseUrl));
+  final Dio _dio = ApiConstants.createDio();
   final FlutterSecureStorage _storage = const FlutterSecureStorage();
 
   Future<Options> _getAuthOptions() async {

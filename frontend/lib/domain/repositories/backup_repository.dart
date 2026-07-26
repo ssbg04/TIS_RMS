@@ -4,9 +4,8 @@ import '../../core/network/api_constants.dart';
 import 'dart:io';
 
 class BackupRepository {
-  final Dio _dio = Dio(
+  final Dio _dio = ApiConstants.createDio(
     BaseOptions(
-      baseUrl: ApiConstants.baseUrl,
       connectTimeout: const Duration(seconds: 120),
       receiveTimeout: const Duration(seconds: 120), // Zipping might take time
     ),

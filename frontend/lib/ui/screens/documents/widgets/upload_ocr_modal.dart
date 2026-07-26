@@ -185,8 +185,7 @@ class _UploadOcrModalState extends ConsumerState<UploadOcrModal> {
     try {
       final storage = const FlutterSecureStorage();
       final token = await storage.read(key: 'jwt_token');
-      final dio = Dio(BaseOptions(
-        baseUrl: ApiConstants.baseUrl,
+      final dio = ApiConstants.createDio(BaseOptions(
         headers: {'Authorization': 'Bearer $token'},
       ));
 
@@ -396,8 +395,7 @@ class _UploadOcrModalState extends ConsumerState<UploadOcrModal> {
     try {
       final storage = const FlutterSecureStorage();
       final token = await storage.read(key: 'jwt_token');
-      final dio = Dio(BaseOptions(
-        baseUrl: ApiConstants.baseUrl,
+      final dio = ApiConstants.createDio(BaseOptions(
         headers: {'Authorization': 'Bearer $token'},
       ));
 

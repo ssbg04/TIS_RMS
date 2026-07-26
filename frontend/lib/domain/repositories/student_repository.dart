@@ -36,7 +36,7 @@ class StudentPage {
 }
 
 class StudentRepository {
-  final Dio _dio = Dio(BaseOptions(baseUrl: ApiConstants.baseUrl));
+  final Dio _dio = ApiConstants.createDio();
   final FlutterSecureStorage _storage = const FlutterSecureStorage();
 
   IO.Socket? _socket;
