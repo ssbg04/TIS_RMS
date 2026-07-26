@@ -1673,7 +1673,11 @@ class _TransferProgressDialogState extends State<_TransferProgressDialog> {
   void initState() {
     super.initState();
     _statusText = widget.initialStatus;
-    _startAction();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        _startAction();
+      }
+    });
   }
 
   void _onProgress(int count, int total) {
