@@ -1,6 +1,7 @@
 const fs = require('fs');
 const path = require('path');
 const AdmZip = require('adm-zip');
+const archiver = require('archiver');
 const db = require('../config/db'); // Needed to close the database on restore
 
 const INFO_FILE = path.resolve('./data/backup_info.json');
@@ -53,8 +54,6 @@ exports.getBackupInfo = (req, res) => {
 
 exports.downloadBackup = async (req, res) => {
     try {
-        const zip = new AdmZip();
-
         const dataDir = path.resolve('./data');
 
         // Checkpoint WAL to ensure database file is completely up-to-date and WAL is mostly empty
@@ -64,40 +63,55 @@ exports.downloadBackup = async (req, res) => {
             console.warn('[Backup] wal_checkpoint warning:', e.message);
         }
 
-        // Add database files directly
-        const dbFile = path.join(dataDir, 'tis_rms.db');
-        const walFile = path.join(dataDir, 'tis_rms.db-wal');
-        const shmFile = path.join(dataDir, 'tis_rms.db-shm');
-
-        if (fs.existsSync(dbFile)) zip.addLocalFile(dbFile, 'data');
-        if (fs.existsSync(walFile)) zip.addLocalFile(walFile, 'data');
-        if (fs.existsSync(shmFile)) zip.addLocalFile(shmFile, 'data');
-
-        // Add students folder where documents are saved
-        const studentsDir = path.join(dataDir, 'students');
-        if (fs.existsSync(studentsDir)) {
-            zip.addLocalFolder(studentsDir, 'data/students');
-        }
-
-        const zipBuffer = zip.toBuffer();
-
         const dateStr = new Date().toISOString().split('T')[0];
         const filename = `tis_rms_backup_${dateStr}.zip`;
 
         res.set({
             'Content-Disposition': `attachment; filename="${filename}"`,
-            'Content-Type': 'application/zip',
-            'Content-Length': zipBuffer.length
+            'Content-Type': 'application/zip'
         });
+
+        // Use archiver with maximum DEFLATE compression (level 9)
+        const archive = archiver('zip', {
+            zlib: { level: 9 } // level 9 gives maximum compression ratio
+        });
+
+        archive.on('error', (err) => {
+            console.error('[Backup] Archiver error:', err);
+            if (!res.headersSent) {
+                res.status(500).json({ message: 'Failed to generate backup', error: err.message });
+            }
+        });
+
+        // Pipe compressed zip directly to HTTP response stream
+        archive.pipe(res);
+
+        // Add database files directly
+        const dbFile = path.join(dataDir, 'tis_rms.db');
+        const walFile = path.join(dataDir, 'tis_rms.db-wal');
+        const shmFile = path.join(dataDir, 'tis_rms.db-shm');
+
+        if (fs.existsSync(dbFile)) archive.file(dbFile, { name: 'data/tis_rms.db' });
+        if (fs.existsSync(walFile)) archive.file(walFile, { name: 'data/tis_rms.db-wal' });
+        if (fs.existsSync(shmFile)) archive.file(shmFile, { name: 'data/tis_rms.db-shm' });
+
+        // Add students folder where documents are saved
+        const studentsDir = path.join(dataDir, 'students');
+        if (fs.existsSync(studentsDir)) {
+            archive.directory(studentsDir, 'data/students');
+        }
+
+        // Finalize archive to complete streaming
+        await archive.finalize();
 
         // Log the backup activity
         logActivity('backup');
 
-        return res.send(zipBuffer);
-
     } catch (error) {
         console.error('[Backup] Download error:', error);
-        res.status(500).json({ message: 'Failed to generate backup', error: error.message });
+        if (!res.headersSent) {
+            res.status(500).json({ message: 'Failed to generate backup', error: error.message });
+        }
     }
 };
 
