@@ -20,16 +20,30 @@ class BackupRepository {
   }
 
   /// Downloads the backup ZIP and saves it to the specified path
-  Future<void> downloadBackup(String savePath) async {
+  Future<void> downloadBackup(
+    String savePath, {
+    void Function(int, int)? onReceiveProgress,
+    CancelToken? cancelToken,
+  }) async {
     try {
       final options = await _getAuthOptions();
-      options.responseType = ResponseType.bytes;
-
-      final response = await _dio.get('/backup/download', options: options);
-
-      final file = File(savePath);
-      await file.writeAsBytes(response.data as List<int>);
+      await _dio.download(
+        '/backup/download',
+        savePath,
+        options: options,
+        onReceiveProgress: onReceiveProgress,
+        cancelToken: cancelToken,
+      );
     } on DioException catch (e) {
+      if (e.type == DioExceptionType.cancel) {
+        final partialFile = File(savePath);
+        if (await partialFile.exists()) {
+          try {
+            await partialFile.delete();
+          } catch (_) {}
+        }
+        throw Exception('Backup download cancelled.');
+      }
       final data = e.response?.data;
       final msg = (data is Map && data['message'] != null)
           ? data['message']
@@ -41,7 +55,11 @@ class BackupRepository {
   }
 
   /// Uploads a ZIP file to restore the database and uploads directory
-  Future<void> restoreBackup(File file) async {
+  Future<void> restoreBackup(
+    File file, {
+    void Function(int, int)? onSendProgress,
+    CancelToken? cancelToken,
+  }) async {
     try {
       final options = await _getAuthOptions();
 
@@ -52,8 +70,17 @@ class BackupRepository {
         ),
       });
 
-      await _dio.post('/backup/restore', data: formData, options: options);
+      await _dio.post(
+        '/backup/restore',
+        data: formData,
+        options: options,
+        onSendProgress: onSendProgress,
+        cancelToken: cancelToken,
+      );
     } on DioException catch (e) {
+      if (e.type == DioExceptionType.cancel) {
+        throw Exception('Restore upload cancelled.');
+      }
       if (e.type == DioExceptionType.connectionTimeout ||
           e.type == DioExceptionType.sendTimeout ||
           e.type == DioExceptionType.receiveTimeout) {

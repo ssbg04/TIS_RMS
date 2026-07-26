@@ -14,6 +14,7 @@ import '../../../core/utils/validators.dart';
 import 'requirements_settings_screen.dart';
 import 'package:file_picker/file_picker.dart';
 import 'dart:io';
+import 'package:dio/dio.dart';
 import '../../providers/backup_provider.dart';
 import '../../shared/dialogs/info_dialog.dart';
 import 'teacher_management_screen.dart';
@@ -435,6 +436,100 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     }
   }
 
+  Future<int?> _getFreeDiskSpaceBytes(String filePath) async {
+    try {
+      if (Platform.isWindows) {
+        final drive = filePath.substring(0, 1).toUpperCase();
+        final result = await Process.run(
+          'powershell',
+          [
+            '-NoProfile',
+            '-Command',
+            '(Get-PSDrive -Name "$drive").Free',
+          ],
+        );
+        if (result.exitCode == 0) {
+          return int.tryParse(result.stdout.toString().trim());
+        }
+      }
+    } catch (_) {}
+    return null;
+  }
+
+  void _showManualRestoreGuideDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Row(
+          children: [
+            Icon(Icons.menu_book_rounded, color: AppColors.primaryGreen),
+            SizedBox(width: 10),
+            Expanded(child: Text('Manual Restore Guide')),
+          ],
+        ),
+        content: const SizedBox(
+          width: 480,
+          child: SingleChildScrollView(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'If your backup ZIP file is too large to upload over HTTP or you want to restore directly on the server host machine, follow these simple steps:',
+                  style: TextStyle(fontSize: 14, color: AppColors.textPrimary),
+                ),
+                SizedBox(height: 16),
+                Text(
+                  'Step 1: Stop the TIS RMS Server',
+                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                ),
+                Text(
+                  'Close the terminal/command prompt window or service running the TIS RMS backend server.',
+                  style: TextStyle(fontSize: 13, color: Colors.grey),
+                ),
+                SizedBox(height: 12),
+                Text(
+                  'Step 2: Locate the Server Data Directory',
+                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                ),
+                Text(
+                  'Open File Explorer and navigate to your server directory (e.g., C:\\SumbrerongBato\\tis_rms_server\\backend\\data).',
+                  style: TextStyle(fontSize: 13, color: Colors.grey),
+                ),
+                SizedBox(height: 12),
+                Text(
+                  'Step 3: Extract & Overwrite Files',
+                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                ),
+                Text(
+                  'Open your backup .zip file. Copy the database files (tis_rms.db, tis_rms.db-wal, tis_rms.db-shm) and the "students" folder into the backend\\data folder, replacing any existing files.',
+                  style: TextStyle(fontSize: 13, color: Colors.grey),
+                ),
+                SizedBox(height: 12),
+                Text(
+                  'Step 4: Restart the Server',
+                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                ),
+                Text(
+                  'Start the backend server again. All restored data and uploaded student documents will be immediately available.',
+                  style: TextStyle(fontSize: 13, color: Colors.grey),
+                ),
+              ],
+            ),
+          ),
+        ),
+        actions: [
+          FilledButton(
+            onPressed: () => Navigator.pop(ctx),
+            style: FilledButton.styleFrom(
+              backgroundColor: AppColors.primaryGreen,
+            ),
+            child: const Text('GOT IT'),
+          ),
+        ],
+      ),
+    );
+  }
+
   Future<void> _handleBackup() async {
     if (!await _isServerMachine()) {
       if (!mounted) return;
@@ -450,16 +545,17 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
 
     // Estimate size
     String estimatedSizeStr = 'Unknown';
+    int estimatedBytes = 0;
     try {
-      final bytes = await ref.read(reportRepositoryProvider).getStorageUsed();
-      if (bytes < 1024)
-        estimatedSizeStr = '$bytes B';
-      else if (bytes < 1048576)
-        estimatedSizeStr = '${(bytes / 1024).toStringAsFixed(1)} KB';
-      else if (bytes < 1073741824)
-        estimatedSizeStr = '${(bytes / 1048576).toStringAsFixed(1)} MB';
+      estimatedBytes = await ref.read(reportRepositoryProvider).getStorageUsed();
+      if (estimatedBytes < 1024)
+        estimatedSizeStr = '$estimatedBytes B';
+      else if (estimatedBytes < 1048576)
+        estimatedSizeStr = '${(estimatedBytes / 1024).toStringAsFixed(1)} KB';
+      else if (estimatedBytes < 1073741824)
+        estimatedSizeStr = '${(estimatedBytes / 1048576).toStringAsFixed(1)} MB';
       else
-        estimatedSizeStr = '${(bytes / 1073741824).toStringAsFixed(1)} GB';
+        estimatedSizeStr = '${(estimatedBytes / 1073741824).toStringAsFixed(1)} GB';
     } catch (_) {}
 
     setState(() => _isBackupLoading = false);
@@ -507,10 +603,39 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
 
     if (saveResult == null) return;
 
-    setState(() => _isBackupLoading = true);
-    try {
-      await ref.read(backupProvider.notifier).downloadBackup(saveResult);
+    // Check disk space before saving
+    final freeBytes = await _getFreeDiskSpaceBytes(saveResult);
+    if (freeBytes != null && estimatedBytes > 0 && freeBytes < (estimatedBytes * 1.1)) {
       if (!mounted) return;
+      final freeMb = (freeBytes / (1024 * 1024)).toStringAsFixed(1);
+      final reqMb = (estimatedBytes / (1024 * 1024)).toStringAsFixed(1);
+      showErrorDialog(
+        context,
+        'Insufficient Disk Space',
+        'You only have $freeMb MB of free space remaining on the destination drive, but the backup is estimated to require ~$reqMb MB.\n\nPlease free up disk space or save to another drive.',
+      );
+      return;
+    }
+
+    if (!mounted) return;
+    final result = await showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => _TransferProgressDialog(
+        title: 'Backing Up System Data',
+        initialStatus: 'Connecting to server...',
+        action: (onProgress, cancelToken) async {
+          await ref.read(backupProvider.notifier).downloadBackup(
+                saveResult!,
+                onReceiveProgress: onProgress,
+                cancelToken: cancelToken,
+              );
+        },
+      ),
+    );
+
+    if (!mounted) return;
+    if (result == true) {
       ref.invalidate(backupInfoProvider);
       showInfoDialog(
         context,
@@ -519,15 +644,19 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         icon: Icons.check_circle_outline,
         iconColor: AppColors.primaryGreen,
       );
-    } catch (e) {
-      if (!mounted) return;
+    } else if (result == 'cancelled') {
+      showInfoDialog(
+        context,
+        title: 'Backup Cancelled',
+        message: 'The backup download was cancelled. No partial files were saved.',
+        icon: Icons.info_outline,
+      );
+    } else if (result != null) {
       showErrorDialog(
         context,
         'Backup Failed',
-        e.toString().replaceAll('Exception: ', ''),
+        result.toString().replaceAll('Exception: ', ''),
       );
-    } finally {
-      if (mounted) setState(() => _isBackupLoading = false);
     }
   }
 
@@ -586,11 +715,27 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       return;
     }
 
-    setState(() => _isRestoreLoading = true);
-    try {
-      final file = File(fileResult.files.single.path!);
-      await ref.read(backupProvider.notifier).restoreBackup(file);
-      if (!mounted) return;
+    final file = File(fileResult.files.single.path!);
+
+    if (!mounted) return;
+    final transferResult = await showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => _TransferProgressDialog(
+        title: 'Restoring System Data',
+        initialStatus: 'Uploading backup archive...',
+        action: (onProgress, cancelToken) async {
+          await ref.read(backupProvider.notifier).restoreBackup(
+                file,
+                onSendProgress: onProgress,
+                cancelToken: cancelToken,
+              );
+        },
+      ),
+    );
+
+    if (!mounted) return;
+    if (transferResult == true) {
       ref.invalidate(backupInfoProvider);
       showInfoDialog(
         context,
@@ -600,15 +745,45 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         icon: Icons.power_settings_new,
         iconColor: AppColors.warning,
       );
-    } catch (e) {
-      if (!mounted) return;
-      showErrorDialog(
+    } else if (transferResult == 'cancelled') {
+      showInfoDialog(
         context,
-        'Restore Failed',
-        e.toString().replaceAll('Exception: ', ''),
+        title: 'Restore Cancelled',
+        message: 'The restore upload was cancelled. Your existing system data remains untouched.',
+        icon: Icons.info_outline,
       );
-    } finally {
-      if (mounted) setState(() => _isRestoreLoading = false);
+    } else if (transferResult != null) {
+      final errStr = transferResult.toString().replaceAll('Exception: ', '');
+      showDialog(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          title: const Row(
+            children: [
+              Icon(Icons.error_outline, color: AppColors.error),
+              SizedBox(width: 10),
+              Text('Restore Failed'),
+            ],
+          ),
+          content: Text(
+            '$errStr\n\nIf the backup file is too large to upload over HTTP, you can perform a manual restore directly on the server computer.',
+          ),
+          actions: [
+            OutlinedButton.icon(
+              onPressed: () {
+                Navigator.pop(ctx);
+                _showManualRestoreGuideDialog(context);
+              },
+              icon: const Icon(Icons.help_outline, size: 18),
+              label: const Text('MANUAL RESTORE GUIDE'),
+            ),
+            FilledButton(
+              style: FilledButton.styleFrom(backgroundColor: AppColors.error),
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text('CLOSE'),
+            ),
+          ],
+        ),
+      );
     }
   }
 
@@ -1284,6 +1459,20 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                                   ),
                                 ],
                               ),
+                              const SizedBox(height: 12),
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.end,
+                                children: [
+                                  TextButton.icon(
+                                    onPressed: () => _showManualRestoreGuideDialog(context),
+                                    icon: const Icon(Icons.help_outline, size: 16),
+                                    label: const Text(
+                                      'Backup too large? View Manual Restore Guide',
+                                      style: TextStyle(fontSize: 13),
+                                    ),
+                                  ),
+                                ],
+                              ),
                             ],
                           ),
                         ),
@@ -1449,6 +1638,195 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         border: Border.all(color: Colors.grey.shade200),
       ),
       child: child,
+    );
+  }
+}
+
+class _TransferProgressDialog extends StatefulWidget {
+  final String title;
+  final String initialStatus;
+  final Future<void> Function(
+    void Function(int count, int total) onProgress,
+    CancelToken cancelToken,
+  ) action;
+
+  const _TransferProgressDialog({
+    required this.title,
+    required this.initialStatus,
+    required this.action,
+  });
+
+  @override
+  State<_TransferProgressDialog> createState() => _TransferProgressDialogState();
+}
+
+class _TransferProgressDialogState extends State<_TransferProgressDialog> {
+  final CancelToken _cancelToken = CancelToken();
+  double? _progress;
+  String _statusText = '';
+  String _etaText = 'Calculating ETA...';
+  String _rateText = '';
+  DateTime? _startTime;
+  DateTime? _lastTime;
+
+  @override
+  void initState() {
+    super.initState();
+    _statusText = widget.initialStatus;
+    _startAction();
+  }
+
+  void _onProgress(int count, int total) {
+    if (!mounted) return;
+
+    final now = DateTime.now();
+    _startTime ??= now;
+    _lastTime ??= now;
+
+    double? p;
+    String status;
+    String eta = 'Calculating...';
+    String rateStr = '';
+
+    if (total > 0) {
+      p = count / total;
+      final mbCount = (count / (1024 * 1024)).toStringAsFixed(1);
+      final mbTotal = (total / (1024 * 1024)).toStringAsFixed(1);
+      final pct = (p * 100).toStringAsFixed(0);
+      status = '$pct% ($mbCount MB / $mbTotal MB)';
+
+      final elapsedSec = now.difference(_startTime!).inMilliseconds / 1000.0;
+      if (elapsedSec > 0.5 && count > 0) {
+        final rateBytesPerSec = count / elapsedSec;
+        final rateMbPerSec = (rateBytesPerSec / (1024 * 1024)).toStringAsFixed(2);
+        rateStr = '$rateMbPerSec MB/s';
+
+        final remainingBytes = total - count;
+        if (rateBytesPerSec > 0) {
+          final remainingSec = remainingBytes / rateBytesPerSec;
+          final mins = (remainingSec / 60).floor();
+          final secs = (remainingSec % 60).round();
+          if (mins > 0) {
+            eta = '${mins}m ${secs}s remaining';
+          } else {
+            eta = '${secs}s remaining';
+          }
+        }
+      }
+    } else {
+      final mbCount = (count / (1024 * 1024)).toStringAsFixed(1);
+      status = '$mbCount MB transferred';
+    }
+
+    setState(() {
+      _progress = p;
+      _statusText = status;
+      _etaText = eta;
+      _rateText = rateStr;
+    });
+  }
+
+  Future<void> _startAction() async {
+    try {
+      await widget.action(_onProgress, _cancelToken);
+      if (!mounted) return;
+      Navigator.of(context).pop(true);
+    } catch (e) {
+      if (!mounted) return;
+      if (_cancelToken.isCancelled) {
+        Navigator.of(context).pop('cancelled');
+      } else {
+        Navigator.of(context).pop(e);
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return PopScope(
+      canPop: false,
+      child: AlertDialog(
+        title: Row(
+          children: [
+            const Icon(Icons.sync_rounded, color: AppColors.primaryGreen),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                widget.title,
+                style: const TextStyle(fontWeight: FontWeight.bold),
+              ),
+            ),
+          ],
+        ),
+        content: SizedBox(
+          width: 400,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                _statusText,
+                style: const TextStyle(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.textPrimary,
+                ),
+              ),
+              const SizedBox(height: 12),
+              ClipRRect(
+                borderRadius: BorderRadius.circular(8),
+                child: LinearProgressIndicator(
+                  value: _progress,
+                  minHeight: 10,
+                  backgroundColor: AppColors.inputBackground,
+                  color: AppColors.primaryGreen,
+                ),
+              ),
+              const SizedBox(height: 12),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    _rateText.isNotEmpty ? _rateText : 'Starting transfer...',
+                    style: TextStyle(
+                      fontSize: 13,
+                      color: Colors.grey[600],
+                    ),
+                  ),
+                  Text(
+                    _etaText,
+                    style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w500,
+                      color: Colors.grey[700],
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              const Text(
+                'Please do not close the window while the transfer is in progress.',
+                style: TextStyle(fontSize: 12, color: Colors.grey),
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          OutlinedButton.icon(
+            onPressed: () {
+              _cancelToken.cancel('User cancelled transfer');
+            },
+            icon: const Icon(Icons.cancel_outlined, color: AppColors.error),
+            label: const Text(
+              'CANCEL',
+              style: TextStyle(color: AppColors.error),
+            ),
+            style: OutlinedButton.styleFrom(
+              side: const BorderSide(color: AppColors.error),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
