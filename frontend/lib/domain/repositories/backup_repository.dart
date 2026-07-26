@@ -7,8 +7,8 @@ class BackupRepository {
   final Dio _dio = ApiConstants.createDio(
     BaseOptions(
       connectTimeout: const Duration(minutes: 5),
-      sendTimeout: const Duration(minutes: 30), // Long uploads over VPS WAN
-      receiveTimeout: const Duration(minutes: 30), // Zipping & unzipping might take time
+      sendTimeout: const Duration(hours: 2), // Allow up to 2 hours for multi-gigabyte uploads over WAN
+      receiveTimeout: const Duration(hours: 2), // Allow up to 2 hours for extracting large zips
     ),
   );
   final FlutterSecureStorage _storage = const FlutterSecureStorage();

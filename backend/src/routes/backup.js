@@ -11,9 +11,10 @@ if (!fs.existsSync(tempUploadsDir)) {
     fs.mkdirSync(tempUploadsDir, { recursive: true });
 }
 
+const maxBackupSizeMB = parseInt(process.env.MAX_BACKUP_SIZE_MB || '2048', 10);
 const upload = multer({
     dest: tempUploadsDir,
-    limits: { fileSize: 500 * 1024 * 1024 } // allow up to 500 MB backup zip files
+    limits: { fileSize: maxBackupSizeMB * 1024 * 1024 } // allow up to 2 GB (2048 MB) by default
 });
 
 router.get('/info', authenticateToken, authorizeRoles('admin', 'superadmin'), backupController.getBackupInfo);
