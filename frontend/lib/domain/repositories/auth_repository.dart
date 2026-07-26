@@ -1,5 +1,6 @@
 import 'package:dio/dio.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../../domain/entities/user_model.dart';
 import '../../core/network/api_constants.dart';
 
@@ -46,7 +47,13 @@ class AuthRepository {
 
   /// Auto-login: returns user if a valid Remember Me token is stored, otherwise null.
   Future<UserModel?> tryAutoLogin() async {
-    final rememberMe = await _storage.read(key: _rememberMeKey);
+    String? rememberMe = await _storage.read(key: _rememberMeKey);
+    if (rememberMe != 'true') {
+      final prefs = await SharedPreferences.getInstance();
+      if (prefs.getBool('rememberMe') == true) {
+        rememberMe = 'true';
+      }
+    }
     if (rememberMe != 'true') return null;
 
     final token = await _storage.read(key: _tokenKey);

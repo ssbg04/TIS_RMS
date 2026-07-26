@@ -1,6 +1,8 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:desktop_drop/desktop_drop.dart';
 import 'package:dio/dio.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
@@ -106,6 +108,7 @@ class _UploadOcrModalState extends ConsumerState<UploadOcrModal> {
 
   List<_UploadEntry> _entries = [];
   bool _isUploading = false;
+  bool _isDragOver = false;
 
   @override
   void initState() {
@@ -255,6 +258,50 @@ class _UploadOcrModalState extends ConsumerState<UploadOcrModal> {
     });
   }
 
+  void _handleDroppedFiles(List<dynamic> xFiles) {
+    if (xFiles.isEmpty) return;
+    final allowed = [
+      'pdf',
+      'jpg',
+      'jpeg',
+      'png',
+      'xlsx',
+      'xls',
+      'csv',
+    ];
+    final requirements = ref.read(documentRequirementsProvider).value ?? [];
+    final newEntries = <_UploadEntry>[];
+    for (final xf in xFiles) {
+      final path = xf.path as String?;
+      if (path == null) continue;
+      final ext = path.split('.').last.toLowerCase();
+      if (!allowed.contains(ext)) continue;
+      final file = File(path);
+      final len = file.lengthSync();
+      final sizeKb = (len / 1024).toStringAsFixed(1);
+      final sizeLabel = len > 1048576
+          ? '${(len / 1048576).toStringAsFixed(1)} MB'
+          : '$sizeKb KB';
+      final entry = _UploadEntry(
+        file: file,
+        fileName: xf.name as String,
+        fileSize: sizeLabel,
+      );
+      _applyAutoDetect(entry, requirements);
+      newEntries.add(entry);
+    }
+
+    if (newEntries.isNotEmpty) {
+      setState(() {
+        _entries.addAll(newEntries);
+        if (_entries.isNotEmpty) {
+          _currentStep = 1;
+          widget.stepNotifier?.value = _currentStep;
+        }
+      });
+    }
+  }
+
   Future<void> _scanDocument() async {
     try {
       final scanner = DocumentScanner(
@@ -269,7 +316,7 @@ class _UploadOcrModalState extends ConsumerState<UploadOcrModal> {
       final result = await scanner.scanDocument();
       scanner.close();
 
-      if (result != null && result.pdf != null) {
+      if (result.pdf != null) {
         final file = File(result.pdf!.uri);
         final sizeKb = (file.lengthSync() / 1024).toStringAsFixed(1);
         final sizeLabel = file.lengthSync() > 1048576
@@ -481,9 +528,6 @@ class _UploadOcrModalState extends ConsumerState<UploadOcrModal> {
       _entries.isNotEmpty &&
       _entries.every((e) => e.status == UploadStatus.done);
 
-  bool get _hasError =>
-      _entries.any((e) => e.status == UploadStatus.error);
-
   // ── BUILD ─────────────────────────────────────────────────────
   @override
   Widget build(BuildContext context) {
@@ -536,23 +580,31 @@ class _UploadOcrModalState extends ConsumerState<UploadOcrModal> {
   // ── Step 0: Pick files ────────────────────────────────────────
   Widget _buildStep0() {
     final isMobile = Platform.isAndroid || Platform.isIOS;
-    return Container(
+    final isWindows = defaultTargetPlatform == TargetPlatform.windows;
+    Widget content = Container(
       key: const ValueKey('step0'),
       width: double.infinity,
       padding: const EdgeInsets.symmetric(vertical: 48, horizontal: 24),
       decoration: BoxDecoration(
-        color: AppColors.primaryGreen.withValues(alpha: 0.04),
+        color: _isDragOver
+            ? AppColors.primaryGreen.withValues(alpha: 0.15)
+            : AppColors.primaryGreen.withValues(alpha: 0.04),
         borderRadius: BorderRadius.circular(AppSizes.radiusMedium),
         border: Border.all(
-          color: AppColors.primaryGreen.withValues(alpha: 0.3),
+          color: _isDragOver
+              ? AppColors.primaryGreen
+              : AppColors.primaryGreen.withValues(alpha: 0.3),
+          width: _isDragOver ? 3 : 1,
           style: BorderStyle.solid,
         ),
       ),
       child: Column(
         children: [
-          Icon(Icons.upload_file_rounded,
-              size: 56,
-              color: AppColors.primaryGreen.withValues(alpha: 0.6)),
+          Icon(
+            Icons.upload_file_rounded,
+            size: 56,
+            color: AppColors.primaryGreen.withValues(alpha: 0.6),
+          ),
           const SizedBox(height: 16),
           const Text(
             'Select Document Source',
@@ -564,10 +616,14 @@ class _UploadOcrModalState extends ConsumerState<UploadOcrModal> {
           ),
           const SizedBox(height: 6),
           Text(
-            'Supports PDF, JPG, JPEG, PNG\nYou can select multiple files at once',
+            isWindows
+                ? 'Supports PDF, Excel (.xlsx, .xls, .csv), JPG, JPEG, PNG\nDrag & drop files here or click Browse Files'
+                : 'Supports PDF, JPG, JPEG, PNG\nYou can select multiple files at once',
             textAlign: TextAlign.center,
             style: TextStyle(
-                fontSize: 13, color: AppColors.textSecondary.withValues(alpha: 0.8)),
+              fontSize: 13,
+              color: AppColors.textSecondary.withValues(alpha: 0.8),
+            ),
           ),
           const SizedBox(height: 24),
           Wrap(
@@ -583,7 +639,10 @@ class _UploadOcrModalState extends ConsumerState<UploadOcrModal> {
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppColors.primaryGreen,
                     foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 24,
+                      vertical: 12,
+                    ),
                     elevation: 0,
                   ),
                 ),
@@ -592,10 +651,18 @@ class _UploadOcrModalState extends ConsumerState<UploadOcrModal> {
                 icon: const Icon(Icons.folder_open),
                 label: const Text('Browse Files'),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: isMobile ? Colors.white : AppColors.primaryGreen,
-                  foregroundColor: isMobile ? AppColors.primaryGreen : Colors.white,
-                  side: isMobile ? const BorderSide(color: AppColors.primaryGreen) : BorderSide.none,
-                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                  backgroundColor:
+                      isMobile ? Colors.white : AppColors.primaryGreen,
+                  foregroundColor:
+                      isMobile ? AppColors.primaryGreen : Colors.white,
+                  side:
+                      isMobile
+                          ? const BorderSide(color: AppColors.primaryGreen)
+                          : BorderSide.none,
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 24,
+                    vertical: 12,
+                  ),
                   elevation: 0,
                 ),
               ),
@@ -604,6 +671,20 @@ class _UploadOcrModalState extends ConsumerState<UploadOcrModal> {
         ],
       ),
     );
+
+    if (isWindows) {
+      content = DropTarget(
+        onDragEntered: (_) => setState(() => _isDragOver = true),
+        onDragExited: (_) => setState(() => _isDragOver = false),
+        onDragDone: (details) {
+          setState(() => _isDragOver = false);
+          _handleDroppedFiles(details.files);
+        },
+        child: content,
+      );
+    }
+
+    return content;
   }
 
   // ── Step 1: Review & Upload ───────────────────────────────────

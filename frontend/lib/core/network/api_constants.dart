@@ -12,15 +12,17 @@ class ApiConstants {
 
   static String get baseUrl => _baseUrl;
 
-  static void setBaseUrl(String url) {
+  static void setBaseUrl(String url, {bool clearAuth = false}) {
     // Strip trailing slash then append /api
     final clean = url.replaceAll(RegExp(r'/+$'), '');
     final newUrl = clean.endsWith('/api') ? clean : '$clean/api';
     if (_baseUrl != newUrl) {
       _baseUrl = newUrl;
-      // Clear stored JWT token whenever server URL changes to prevent "token expired" on different server
-      const FlutterSecureStorage().delete(key: 'jwt_token');
-      const FlutterSecureStorage().delete(key: 'remember_me');
+      if (clearAuth) {
+        // Clear stored JWT token whenever user explicitly switches to a different server
+        const FlutterSecureStorage().delete(key: 'jwt_token');
+        const FlutterSecureStorage().delete(key: 'remember_me');
+      }
     }
   }
 

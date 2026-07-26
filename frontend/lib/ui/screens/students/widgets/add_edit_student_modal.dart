@@ -355,8 +355,6 @@ class _AddEditStudentModalState extends ConsumerState<AddEditStudentModal> {
           } catch (e) {
             debugPrint('Could not parse DOB: ${ocrResult.dob}');
           }
-        } else {
-          _selectedDob = null;
         }
         _isLoading = false;
         _ocrScannedFile = file;

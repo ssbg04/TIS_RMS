@@ -60,6 +60,8 @@ exports.parseSF9 = (text) => {
     extracted = extractExtension(extracted);
 
     // 4. Extract SF9 Specifics
+    extracted.dob = extractDob(text);
+
     const sexMatch = text.match(/(?:Sex|Gender)[:\s,]*(MALE|FEMALE|M\b|F\b)/i);
     if (sexMatch) extracted.sex = sexMatch[1].toUpperCase().startsWith('M') ? 'Male' : 'Female';
 
@@ -133,13 +135,7 @@ exports.parseSF10 = (text) => {
     extracted = extractExtension(extracted);
 
     // 4. Extract SF10 Specifics
-    const dobMatch = text.match(/\b(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})\b/);
-    if (dobMatch) {
-        const month = dobMatch[1].padStart(2, '0');
-        const day = dobMatch[2].padStart(2, '0');
-        const year = dobMatch[3];
-        extracted.dob = `${year}-${month}-${day}`; 
-    }
+    extracted.dob = extractDob(text);
 
     const sexMatch = text.match(/(?:Sex|Gender)[:\s,]*(MALE|FEMALE|M\b|F\b)/i);
     if (sexMatch) extracted.sex = sexMatch[1].toUpperCase().startsWith('M') ? 'Male' : 'Female';
@@ -176,4 +172,70 @@ function extractExtension(extracted) {
         }
     }
     return extracted;
+}
+
+function extractDob(text) {
+    const months = {
+        jan: '01', january: '01',
+        feb: '02', february: '02',
+        mar: '03', march: '03',
+        apr: '04', april: '04',
+        may: '05',
+        jun: '06', june: '06',
+        jul: '07', july: '07',
+        aug: '08', august: '08',
+        sep: '09', september: '09',
+        oct: '10', october: '10',
+        nov: '11', november: '11',
+        dec: '12', december: '12'
+    };
+
+    // Try finding after explicit DOB keyword first
+    const dobKeywordMatch = text.match(/(?:Date\s*of\s*Birth|Birth\s*Date|Birthdate|DOB|Birth|Born)[:\s,]*([^\n,]{6,35})/i);
+    const searchArea = dobKeywordMatch ? dobKeywordMatch[1] : text;
+
+    // 1. Check for Month Name Day, Year (e.g., "May 14, 2007" or "14 May 2007")
+    const monthNameMatch = searchArea.match(/\b([A-Za-z]{3,9})\s+(\d{1,2}),?\s+(\d{4})\b/) ||
+                           searchArea.match(/\b(\d{1,2})\s+([A-Za-z]{3,9}),?\s+(\d{4})\b/);
+    if (monthNameMatch) {
+        let mStr = monthNameMatch[1].toLowerCase();
+        let dStr = monthNameMatch[2];
+        let yStr = monthNameMatch[3];
+        if (!months[mStr] && months[dStr.toLowerCase()]) {
+            mStr = dStr.toLowerCase();
+            dStr = monthNameMatch[1];
+        }
+        if (months[mStr]) {
+            const m = months[mStr];
+            const d = dStr.padStart(2, '0');
+            return `${yStr}-${m}-${d}`;
+        }
+    }
+
+    // 2. Check for YYYY-MM-DD or YYYY/MM/DD
+    const isoMatch = searchArea.match(/\b(\d{4})[\/\-](\d{1,2})[\/\-](\d{1,2})\b/);
+    if (isoMatch) {
+        const y = isoMatch[1];
+        const m = isoMatch[2].padStart(2, '0');
+        const d = isoMatch[3].padStart(2, '0');
+        return `${y}-${m}-${d}`;
+    }
+
+    // 3. Check for MM/DD/YYYY or DD/MM/YYYY
+    const slashMatch = searchArea.match(/\b(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})\b/);
+    if (slashMatch) {
+        let p1 = parseInt(slashMatch[1], 10);
+        let p2 = parseInt(slashMatch[2], 10);
+        const y = slashMatch[3];
+        let m = p1;
+        let d = p2;
+        if (p1 > 12 && p2 <= 12) {
+            // Must be DD/MM/YYYY
+            d = p1;
+            m = p2;
+        }
+        return `${y}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+    }
+
+    return null;
 }
