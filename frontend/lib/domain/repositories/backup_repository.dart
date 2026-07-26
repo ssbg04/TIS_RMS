@@ -6,8 +6,9 @@ import 'dart:io';
 class BackupRepository {
   final Dio _dio = ApiConstants.createDio(
     BaseOptions(
-      connectTimeout: const Duration(seconds: 120),
-      receiveTimeout: const Duration(seconds: 120), // Zipping might take time
+      connectTimeout: const Duration(minutes: 5),
+      sendTimeout: const Duration(minutes: 30), // Long uploads over VPS WAN
+      receiveTimeout: const Duration(minutes: 30), // Zipping & unzipping might take time
     ),
   );
   final FlutterSecureStorage _storage = const FlutterSecureStorage();
@@ -29,10 +30,11 @@ class BackupRepository {
       final file = File(savePath);
       await file.writeAsBytes(response.data as List<int>);
     } on DioException catch (e) {
-      final msg = e.response?.data is Map
-          ? e.response?.data['message']
+      final data = e.response?.data;
+      final msg = (data is Map && data['message'] != null)
+          ? data['message']
           : 'Failed to download backup.';
-      throw Exception(msg ?? 'Failed to download backup.');
+      throw Exception(msg);
     } catch (e) {
       throw Exception('An unexpected error occurred: $e');
     }
@@ -46,19 +48,40 @@ class BackupRepository {
       final formData = FormData.fromMap({
         'backup': await MultipartFile.fromFile(
           file.path,
-          filename: file.path.split(Platform.pathSeparator).last,
+          filename: file.path.replaceAll('\\', '/').split('/').last,
         ),
       });
 
       await _dio.post('/backup/restore', data: formData, options: options);
     } on DioException catch (e) {
+      if (e.type == DioExceptionType.connectionTimeout ||
+          e.type == DioExceptionType.sendTimeout ||
+          e.type == DioExceptionType.receiveTimeout) {
+        throw Exception(
+          'Upload timed out (${e.type.name}): The backup file upload took too long over your network/VPS.',
+        );
+      }
+      final statusCode = e.response?.statusCode;
+      if (statusCode == 413) {
+        throw Exception(
+          'Upload failed (HTTP 413): Backup file is too large for your VPS server. Please increase "client_max_body_size" in your Nginx config.',
+        );
+      }
+      if (statusCode == 504 || statusCode == 502 || statusCode == 503) {
+        throw Exception(
+          'Upload failed (HTTP $statusCode): Your VPS reverse proxy timed out or is unavailable.',
+        );
+      }
       final data = e.response?.data;
-      final msg = (data is Map && data['message'] != null)
-          ? data['message']
-          : 'Failed to restore backup.';
-      throw Exception(msg);
+      if (data is Map && data['message'] != null) {
+        throw Exception(data['message']);
+      }
+      final statusText = statusCode != null ? ' (HTTP $statusCode)' : '';
+      throw Exception(
+        'Failed to restore backup$statusText: ${e.message ?? "Unknown error"}',
+      );
     } catch (e) {
-      throw Exception('An unexpected error occurred during restore.');
+      throw Exception('An unexpected error occurred during restore: $e');
     }
   }
 

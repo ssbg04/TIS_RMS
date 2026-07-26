@@ -11,10 +11,16 @@ if (!fs.existsSync(tempUploadsDir)) {
     fs.mkdirSync(tempUploadsDir, { recursive: true });
 }
 
-const upload = multer({ dest: tempUploadsDir });
+const upload = multer({
+    dest: tempUploadsDir,
+    limits: { fileSize: 500 * 1024 * 1024 } // allow up to 500 MB backup zip files
+});
 
 router.get('/info', authenticateToken, authorizeRoles('admin', 'superadmin'), backupController.getBackupInfo);
 router.get('/download', authenticateToken, authorizeRoles('admin', 'superadmin'), backupController.downloadBackup);
-router.post('/restore', authenticateToken, authorizeRoles('admin', 'superadmin'), upload.single('backup'), backupController.restoreBackup);
+router.post('/restore', authenticateToken, authorizeRoles('admin', 'superadmin'), (req, res, next) => {
+    console.log('[Backup] Incoming restore request from client, starting file upload...');
+    next();
+}, upload.single('backup'), backupController.restoreBackup);
 
 module.exports = router;
