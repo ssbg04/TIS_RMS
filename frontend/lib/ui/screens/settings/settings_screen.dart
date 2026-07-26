@@ -19,6 +19,7 @@ import '../../shared/dialogs/info_dialog.dart';
 import 'teacher_management_screen.dart';
 import '../../../core/utils/date_utils.dart' as pht;
 import '../../providers/reports_provider.dart';
+import '../../../core/network/api_constants.dart';
 class TitleCaseTextInputFormatter extends TextInputFormatter {
   @override
   TextEditingValue formatEditUpdate(TextEditingValue oldValue, TextEditingValue newValue) {
@@ -406,7 +407,45 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     }
   }
 
+  Future<bool> _isServerMachine() async {
+    try {
+      final uri = Uri.tryParse(ApiConstants.baseUrl);
+      if (uri == null) return false;
+      final host = uri.host;
+      if (host == 'localhost' ||
+          host == '127.0.0.1' ||
+          host == '::1' ||
+          host == '0.0.0.0') {
+        return true;
+      }
+      final interfaces = await NetworkInterface.list(
+        includeLoopback: true,
+        includeLinkLocal: true,
+      );
+      for (final interface in interfaces) {
+        for (final addr in interface.addresses) {
+          if (addr.address == host) {
+            return true;
+          }
+        }
+      }
+      return false;
+    } catch (e) {
+      return false;
+    }
+  }
+
   Future<void> _handleBackup() async {
+    if (!await _isServerMachine()) {
+      if (!mounted) return;
+      showErrorDialog(
+        context,
+        'Server Host Only',
+        'Backup and Restore operations can only be performed from the server computer itself for data security.\n\nPlease run this action on the computer hosting the TIS RMS Server.',
+      );
+      return;
+    }
+
     setState(() => _isBackupLoading = true);
 
     // Estimate size
@@ -493,6 +532,16 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   }
 
   Future<void> _handleRestore() async {
+    if (!await _isServerMachine()) {
+      if (!mounted) return;
+      showErrorDialog(
+        context,
+        'Server Host Only',
+        'Backup and Restore operations can only be performed from the server computer itself for data security.\n\nPlease run this action on the computer hosting the TIS RMS Server.',
+      );
+      return;
+    }
+
     final confirm = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
