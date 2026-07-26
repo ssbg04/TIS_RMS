@@ -38,7 +38,11 @@ exports.downloadBackup = async (req, res) => {
         const dataDir = path.resolve('./data');
 
         // Checkpoint WAL to ensure database file is completely up-to-date and WAL is mostly empty
-        db.pragma('wal_checkpoint(TRUNCATE)');
+        try {
+            db.pragma('wal_checkpoint(TRUNCATE)');
+        } catch (e) {
+            console.warn('[Backup] wal_checkpoint warning:', e.message);
+        }
 
         // Add database files directly
         const dbFile = path.join(dataDir, 'tis_rms.db');
@@ -90,11 +94,14 @@ exports.restoreBackup = async (req, res) => {
 
         // Verify the contents of the zip first
         const zipEntries = zip.getEntries();
-        const hasDb = zipEntries.some(entry => entry.entryName === 'data/tis_rms.db');
+        const hasDb = zipEntries.some(entry => {
+            const normalized = entry.entryName.replace(/\\/g, '/');
+            return normalized.endsWith('tis_rms.db');
+        });
         
         if (!hasDb) {
             fs.unlinkSync(zipPath); // clean up
-            return res.status(400).json({ message: 'Invalid backup file. Missing data/tis_rms.db.' });
+            return res.status(400).json({ message: 'Invalid backup file. Could not find tis_rms.db in zip.' });
         }
 
         // We will extract to a temporary folder to ensure we don't partially overwrite things if something fails
@@ -103,12 +110,41 @@ exports.restoreBackup = async (req, res) => {
 
         zip.extractAllTo(tempExtractDir, true);
 
-        const extractedDbPath = path.join(tempExtractDir, 'data', 'tis_rms.db');
-        const extractedWalPath = path.join(tempExtractDir, 'data', 'tis_rms.db-wal');
-        const extractedShmPath = path.join(tempExtractDir, 'data', 'tis_rms.db-shm');
-        const extractedStudentsDir = path.join(tempExtractDir, 'data', 'students');
+        function findFileRecursively(dir, filename) {
+            if (!fs.existsSync(dir)) return null;
+            const entries = fs.readdirSync(dir, { withFileTypes: true });
+            for (const entry of entries) {
+                const fullPath = path.join(dir, entry.name);
+                if (entry.isDirectory()) {
+                    const found = findFileRecursively(fullPath, filename);
+                    if (found) return found;
+                } else if (entry.name === filename) {
+                    return fullPath;
+                }
+            }
+            return null;
+        }
 
-        if (!fs.existsSync(extractedDbPath)) {
+        function findDirRecursively(dir, dirname) {
+            if (!fs.existsSync(dir)) return null;
+            const entries = fs.readdirSync(dir, { withFileTypes: true });
+            for (const entry of entries) {
+                const fullPath = path.join(dir, entry.name);
+                if (entry.isDirectory()) {
+                    if (entry.name === dirname) return fullPath;
+                    const found = findDirRecursively(fullPath, dirname);
+                    if (found) return found;
+                }
+            }
+            return null;
+        }
+
+        const extractedDbPath = findFileRecursively(tempExtractDir, 'tis_rms.db');
+        const extractedWalPath = findFileRecursively(tempExtractDir, 'tis_rms.db-wal');
+        const extractedShmPath = findFileRecursively(tempExtractDir, 'tis_rms.db-shm');
+        const extractedStudentsDir = findDirRecursively(tempExtractDir, 'students');
+
+        if (!extractedDbPath || !fs.existsSync(extractedDbPath)) {
             fs.rmSync(tempExtractDir, { recursive: true, force: true });
             fs.unlinkSync(zipPath);
             return res.status(400).json({ message: 'Extraction failed: Database file not found in extracted contents.' });
@@ -116,7 +152,11 @@ exports.restoreBackup = async (req, res) => {
 
         console.log('[Backup] Closing current database connection...');
         // Close DB before overwriting
-        db.close();
+        try {
+            db.close();
+        } catch (e) {
+            console.warn('[Backup] db.close warning:', e.message);
+        }
 
         const currentDataDir = path.resolve('./data');
         const currentDbPath = path.join(currentDataDir, 'tis_rms.db');

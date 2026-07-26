@@ -83,7 +83,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
   // ── Server resolution logic ────────────────────────────────────────────────
 
   Future<void> _resolveServer() async {
-    // 1. Check saved URL first (all platforms including Windows)
+    // 1. Check saved URL first (if user explicitly selected/saved a VPS or LAN IP)
     final saved = await ServerDiscoveryService.getSaved();
     if (saved != null) {
       setState(() => _statusText = 'Connecting to saved server…');
@@ -96,31 +96,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
       await ServerDiscoveryService.clear();
     }
 
-    // 2. Check default configured internet/remote server in ApiConstants
-    final defaultRoot =
-        ApiConstants.baseUrl.replaceAll(RegExp(r'/api/?$'), '');
-    setState(() => _statusText = 'Connecting to remote server…');
-    final defaultAlive = await ServerDiscoveryService.ping(defaultRoot);
-    if (defaultAlive) {
-      await ServerDiscoveryService.save(defaultRoot);
-      ApiConstants.setBaseUrl(defaultRoot);
-      return;
-    }
-
-    // 3. On desktop platforms, check localhost as a fallback (if running local backend)
-    if (!kIsWeb &&
-        (Platform.isWindows || Platform.isLinux || Platform.isMacOS)) {
-      const localUrl = 'http://127.0.0.1:${ApiConstants.port}';
-      setState(() => _statusText = 'Checking local server…');
-      final localAlive = await ServerDiscoveryService.ping(localUrl);
-      if (localAlive) {
-        await ServerDiscoveryService.save(localUrl);
-        ApiConstants.setBaseUrl(localUrl);
-        return;
-      }
-    }
-
-    // 4. Run subnet scan (or prompt for manual entry if nothing found)
+    // 2. Automatically scan local network first by default (LAN Discovery)
     await _runScan();
   }
 
@@ -222,6 +198,24 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
           ],
         ),
         actions: [
+          TextButton(
+            onPressed: () async {
+              ServerDiscoveryService.save(ApiConstants.vpsUrl);
+              ApiConstants.setBaseUrl(ApiConstants.vpsUrl);
+              Navigator.of(ctx).pop();
+            },
+            child: const Text('Use VPS (Testing)'),
+          ),
+          if (!kIsWeb &&
+              (Platform.isWindows || Platform.isLinux || Platform.isMacOS))
+            TextButton(
+              onPressed: () async {
+                ServerDiscoveryService.save(ApiConstants.localhostUrl);
+                ApiConstants.setBaseUrl(ApiConstants.localhostUrl);
+                Navigator.of(ctx).pop();
+              },
+              child: const Text('Use Localhost'),
+            ),
           TextButton(
             onPressed: () async {
               Navigator.of(ctx).pop();

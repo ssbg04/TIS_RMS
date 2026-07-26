@@ -448,13 +448,23 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
 
     if (confirmed != true) return;
 
-    final saveResult = await FilePicker.saveFile(
-      dialogTitle: 'Save Backup',
-      fileName:
-          'tis_rms_backup_${DateTime.now().toIso8601String().split('T').first}.zip',
-      type: FileType.custom,
-      allowedExtensions: ['zip'],
-    );
+    String? saveResult;
+    final fileName = 'tis_rms_backup_${DateTime.now().toIso8601String().split('T').first}.zip';
+
+    if (Platform.isAndroid || Platform.isIOS) {
+      final selectedDirectory = await FilePicker.getDirectoryPath(
+        dialogTitle: 'Select folder to save backup',
+      );
+      if (selectedDirectory == null) return;
+      saveResult = '$selectedDirectory/$fileName';
+    } else {
+      saveResult = await FilePicker.saveFile(
+        dialogTitle: 'Save Backup',
+        fileName: fileName,
+        type: FileType.custom,
+        allowedExtensions: ['zip'],
+      );
+    }
 
     if (saveResult == null) return;
 
@@ -512,11 +522,20 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
 
     final fileResult = await FilePicker.pickFiles(
       dialogTitle: 'Select Backup File',
-      type: FileType.custom,
-      allowedExtensions: ['zip'],
+      type: FileType.any,
     );
 
     if (fileResult == null || fileResult.files.single.path == null) return;
+
+    if (!fileResult.files.single.name.toLowerCase().endsWith('.zip')) {
+      if (!mounted) return;
+      showErrorDialog(
+        context,
+        'Invalid File',
+        'Please select a valid .zip backup file.',
+      );
+      return;
+    }
 
     setState(() => _isRestoreLoading = true);
     try {

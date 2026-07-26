@@ -469,13 +469,23 @@ class _LoginScreenState extends ConsumerState<LoginScreen> with SingleTickerProv
         actions: [
           TextButton(
             onPressed: () async {
-              const defaultUrl = 'http://198.252.107.197:18484/api';
-              ApiConstants.setBaseUrl(defaultUrl);
+              ApiConstants.setBaseUrl(ApiConstants.vpsUrl);
               await ServerDiscoveryService.save(ApiConstants.baseUrl);
               if (mounted) setState(() {});
               Navigator.pop(ctx);
             },
-            child: const Text('Reset to Default'),
+            child: const Text('Use VPS'),
+          ),
+          TextButton(
+            onPressed: () async {
+              Navigator.pop(ctx);
+              showDialog(
+                context: context,
+                barrierDismissible: false,
+                builder: (scanCtx) => const _NetworkScanDialog(),
+              );
+            },
+            child: const Text('Scan LAN'),
           ),
           TextButton(
             onPressed: () => Navigator.pop(ctx),
@@ -496,6 +506,68 @@ class _LoginScreenState extends ConsumerState<LoginScreen> with SingleTickerProv
             },
             child: const Text('Save'),
           ),
+        ],
+      ),
+    );
+  }
+}
+
+class _NetworkScanDialog extends StatefulWidget {
+  const _NetworkScanDialog();
+
+  @override
+  State<_NetworkScanDialog> createState() => _NetworkScanDialogState();
+}
+
+class _NetworkScanDialogState extends State<_NetworkScanDialog> {
+  String _status = 'Scanning local network…';
+
+  @override
+  void initState() {
+    super.initState();
+    _scan();
+  }
+
+  Future<void> _scan() async {
+    final prefixes = await ServerDiscoveryService.getSubnetPrefixes();
+    final found = await ServerDiscoveryService.discover(
+      prefixes,
+      onProgress: (subnet, scanned, total) {
+        if (mounted) {
+          setState(() => _status = 'Scanning ${subnet}x … ($scanned/$total)');
+        }
+      },
+    );
+    if (!mounted) return;
+    Navigator.pop(context);
+    if (found != null) {
+      ApiConstants.setBaseUrl(found);
+      await ServerDiscoveryService.save(ApiConstants.baseUrl);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('✅ Connected to local server: $found'),
+          backgroundColor: AppColors.success,
+        ),
+      );
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('No TIS RMS server found on local network.'),
+          backgroundColor: AppColors.error,
+        ),
+      );
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: const Text('Local Network Scan'),
+      content: Row(
+        children: [
+          const CircularProgressIndicator(),
+          const SizedBox(width: 20),
+          Expanded(child: Text(_status)),
         ],
       ),
     );

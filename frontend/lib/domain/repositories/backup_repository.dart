@@ -14,6 +14,7 @@ class BackupRepository {
   final FlutterSecureStorage _storage = const FlutterSecureStorage();
 
   Future<Options> _getAuthOptions() async {
+    _dio.options.baseUrl = ApiConstants.baseUrl;
     final token = await _storage.read(key: 'jwt_token');
     return Options(headers: {'Authorization': 'Bearer $token'});
   }
