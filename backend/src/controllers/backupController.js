@@ -23,6 +23,26 @@ function logActivity(action) {
     fs.appendFileSync(LOGS_FILE, logLine);
 }
 
+// Safely remove a directory on Windows (retries on EBUSY/EPERM, catches if still locked by Defender/indexing)
+function safeRemoveDirSync(dirPath) {
+    if (!dirPath || !fs.existsSync(dirPath)) return;
+    try {
+        fs.rmSync(dirPath, { recursive: true, force: true, maxRetries: 10, retryDelay: 200 });
+    } catch (e) {
+        console.warn(`[Backup] Notice: Could not remove directory ${dirPath} immediately (${e.code || e.message}). It will be cleaned up later.`);
+    }
+}
+
+// Safely remove a file on Windows (retries or catches if locked)
+function safeRemoveFileSync(filePath) {
+    if (!filePath || !fs.existsSync(filePath)) return;
+    try {
+        fs.unlinkSync(filePath);
+    } catch (e) {
+        console.warn(`[Backup] Notice: Could not remove file ${filePath} immediately (${e.code || e.message}).`);
+    }
+}
+
 exports.getBackupInfo = (req, res) => {
     let info = { lastBackup: null, lastRestore: null };
     if (fs.existsSync(INFO_FILE)) {
@@ -100,8 +120,21 @@ exports.restoreBackup = async (req, res) => {
         });
         
         if (!hasDb) {
-            fs.unlinkSync(zipPath); // clean up
+            safeRemoveFileSync(zipPath); // clean up
             return res.status(400).json({ message: 'Invalid backup file. Could not find tis_rms.db in zip.' });
+        }
+
+        // Clean up any old temporary restore directories from previous runs
+        try {
+            const rootDir = path.resolve('./');
+            const entries = fs.readdirSync(rootDir, { withFileTypes: true });
+            for (const entry of entries) {
+                if (entry.isDirectory() && entry.name.startsWith('temp_restore_')) {
+                    safeRemoveDirSync(path.join(rootDir, entry.name));
+                }
+            }
+        } catch (e) {
+            console.warn('[Backup] Notice checking old temp directories:', e.message);
         }
 
         // We will extract to a temporary folder to ensure we don't partially overwrite things if something fails
@@ -145,8 +178,8 @@ exports.restoreBackup = async (req, res) => {
         const extractedStudentsDir = findDirRecursively(tempExtractDir, 'students');
 
         if (!extractedDbPath || !fs.existsSync(extractedDbPath)) {
-            fs.rmSync(tempExtractDir, { recursive: true, force: true });
-            fs.unlinkSync(zipPath);
+            safeRemoveDirSync(tempExtractDir);
+            safeRemoveFileSync(zipPath);
             return res.status(400).json({ message: 'Extraction failed: Database file not found in extracted contents.' });
         }
 
@@ -171,27 +204,27 @@ exports.restoreBackup = async (req, res) => {
         if (fs.existsSync(extractedWalPath)) {
             fs.copyFileSync(extractedWalPath, currentDbWalPath);
         } else if (fs.existsSync(currentDbWalPath)) {
-            fs.unlinkSync(currentDbWalPath);
+            safeRemoveFileSync(currentDbWalPath);
         }
 
         if (fs.existsSync(extractedShmPath)) {
             fs.copyFileSync(extractedShmPath, currentDbShmPath);
         } else if (fs.existsSync(currentDbShmPath)) {
-            fs.unlinkSync(currentDbShmPath);
+            safeRemoveFileSync(currentDbShmPath);
         }
 
         console.log('[Backup] Replacing students directory...');
         if (fs.existsSync(extractedStudentsDir)) {
             // Safe copy of students documents
             if (fs.existsSync(currentStudentsDir)) {
-                fs.rmSync(currentStudentsDir, { recursive: true, force: true });
+                safeRemoveDirSync(currentStudentsDir);
             }
             fs.cpSync(extractedStudentsDir, currentStudentsDir, { recursive: true });
         }
 
         // Cleanup temp directories and uploaded zip file
-        fs.rmSync(tempExtractDir, { recursive: true, force: true });
-        fs.unlinkSync(zipPath);
+        safeRemoveDirSync(tempExtractDir);
+        safeRemoveFileSync(zipPath);
 
         console.log('[Backup] Restore completed successfully. Shutting down server...');
 
@@ -211,7 +244,7 @@ exports.restoreBackup = async (req, res) => {
     } catch (error) {
         console.error('[Backup] Restore error:', error);
         if (req.file && fs.existsSync(req.file.path)) {
-            fs.unlinkSync(req.file.path);
+            safeRemoveFileSync(req.file.path);
         }
         res.status(500).json({ message: 'Failed to restore backup', error: error.message });
     }
