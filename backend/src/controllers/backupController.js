@@ -72,7 +72,7 @@ exports.downloadBackup = async (req, res) => {
         });
 
         // Use archiver with maximum DEFLATE compression (level 9)
-        const archive = archiver('zip', {
+        const archive = new archiver.ZipArchive({
             zlib: { level: 9 } // level 9 gives maximum compression ratio
         });
 
