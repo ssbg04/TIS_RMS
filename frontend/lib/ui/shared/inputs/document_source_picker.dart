@@ -1,8 +1,10 @@
 import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:google_mlkit_document_scanner/google_mlkit_document_scanner.dart';
+import 'package:desktop_drop/desktop_drop.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_sizes.dart';
 
@@ -25,12 +27,13 @@ class DocumentSourcePicker extends StatefulWidget {
 
 class _DocumentSourcePickerState extends State<DocumentSourcePicker> {
   final ImagePicker _imagePicker = ImagePicker();
+  bool _isDragOver = false;
 
   Future<void> _pickFile() async {
     try {
       final allowed =
           widget.allowedExtensions ??
-          ['pdf', 'jpg', 'png', 'jpeg', 'doc', 'docx', 'xls', 'xlsx'];
+          ['pdf', 'jpg', 'png', 'jpeg', 'doc', 'docx', 'xls', 'xlsx', 'csv'];
       FilePickerResult? result = await FilePicker.pickFiles(
         type: FileType.custom,
         allowedExtensions: allowed,
@@ -81,19 +84,27 @@ class _DocumentSourcePickerState extends State<DocumentSourcePicker> {
   @override
   Widget build(BuildContext context) {
     final isMobile = Platform.isAndroid || Platform.isIOS;
+    final isWindows = defaultTargetPlatform == TargetPlatform.windows;
+    final allowed =
+        widget.allowedExtensions ??
+        ['pdf', 'jpg', 'png', 'jpeg', 'doc', 'docx', 'xls', 'xlsx', 'csv'];
 
     return LayoutBuilder(
       builder: (context, constraints) {
         final narrow = constraints.maxWidth < 300;
         final iconSize = narrow ? 44.0 : 56.0;
 
-        return Container(
+        Widget content = Container(
           width: double.infinity,
           decoration: BoxDecoration(
-            color: AppColors.primaryGreen.withOpacity(0.05),
+            color: _isDragOver
+                ? AppColors.primaryGreen.withValues(alpha: 0.15)
+                : AppColors.primaryGreen.withValues(alpha: 0.05),
             border: Border.all(
-              color: AppColors.primaryGreen.withOpacity(0.3),
-              width: 2,
+              color: _isDragOver
+                  ? AppColors.primaryGreen
+                  : AppColors.primaryGreen.withValues(alpha: 0.3),
+              width: _isDragOver ? 3 : 2,
             ),
             borderRadius: BorderRadius.circular(AppSizes.radiusLarge),
           ),
@@ -108,20 +119,26 @@ class _DocumentSourcePickerState extends State<DocumentSourcePicker> {
               Container(
                 padding: const EdgeInsets.all(AppSizes.p12),
                 decoration: BoxDecoration(
-                  color: AppColors.primaryGreen.withOpacity(0.1),
+                  color: AppColors.primaryGreen.withValues(alpha: 0.1),
                   shape: BoxShape.circle,
                 ),
                 child: Icon(
-                  Icons.document_scanner_outlined,
+                  _isDragOver
+                      ? Icons.file_download_outlined
+                      : Icons.document_scanner_outlined,
                   size: iconSize,
                   color: AppColors.primaryGreen,
                 ),
               ),
               const SizedBox(height: AppSizes.p12),
-              const Text(
-                'Select Document Source',
+              Text(
+                _isDragOver
+                    ? 'Drop File Here'
+                    : (isWindows
+                        ? 'Select Document or Drag & Drop'
+                        : 'Select Document Source'),
                 textAlign: TextAlign.center,
-                style: TextStyle(
+                style: const TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.bold,
                   color: AppColors.textPrimary,
@@ -129,7 +146,7 @@ class _DocumentSourcePickerState extends State<DocumentSourcePicker> {
               ),
               const SizedBox(height: AppSizes.p4),
               Text(
-                'Supports ${(widget.allowedExtensions ?? ['pdf', 'jpg', 'png', 'jpeg', 'doc', 'docx', 'xls', 'xlsx']).map((e) => e.toUpperCase()).join(', ')} (Max 10MB)',
+                'Supports ${allowed.map((e) => e.toUpperCase()).join(', ')} (Max 10MB)',
                 textAlign: TextAlign.center,
                 style: const TextStyle(
                   color: AppColors.textSecondary,
@@ -186,7 +203,34 @@ class _DocumentSourcePickerState extends State<DocumentSourcePicker> {
             ],
           ),
         );
+
+        if (isWindows) {
+          content = DropTarget(
+            onDragEntered: (details) => setState(() => _isDragOver = true),
+            onDragExited: (details) => setState(() => _isDragOver = false),
+            onDragDone: (details) {
+              setState(() => _isDragOver = false);
+              if (details.files.isNotEmpty) {
+                final xfile = details.files.first;
+                final ext = xfile.path.split('.').last.toLowerCase();
+                if (allowed.contains(ext)) {
+                  final file = File(xfile.path);
+                  final size =
+                      (file.lengthSync() / (1024 * 1024)).toStringAsFixed(2);
+                  widget.onFileSelected(file, xfile.name, '$size MB');
+                } else {
+                  widget.onError?.call(
+                      'Unsupported file format: .$ext. Allowed: ${allowed.join(', ')}');
+                }
+              }
+            },
+            child: content,
+          );
+        }
+
+        return content;
       },
     );
   }
 }
+

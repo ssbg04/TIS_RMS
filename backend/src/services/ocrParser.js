@@ -33,8 +33,8 @@ exports.parseSF9 = (text) => {
         extracted.lrn = lrnMatch[1].replace(/[\s\-\.]/g, '');
     }
 
-    // 2. Extract Name (Format: "Name: LASTNAME, FIRSTNAME MIDDLENAME")
-    const sf9NameMatch = text.match(/Name[:\s]+([^,\n]+),\s*([^\n]+)/i);
+    // 2. Extract Name (Format: "Name: LASTNAME, FIRSTNAME MIDDLENAME" or Excel CSV)
+    const sf9NameMatch = text.match(/(?:Name|Learner'?s?\s*Name|Name\s*of\s*Learner|Name\s*of\s*Student)[:\s,]+([^,\n]+),\s*([^\n]+)/i);
     if (sf9NameMatch) {
         extracted.lastName = sf9NameMatch[1].trim(); 
         const firstMiddle = sf9NameMatch[2].trim().split(/\s+/);
@@ -44,25 +44,35 @@ exports.parseSF9 = (text) => {
         } else {
             extracted.firstName = firstMiddle[0];
         }
+    } else {
+        // Try LAST NAME / FIRST NAME / MIDDLE NAME separated headers
+        const lastNameMatch = text.match(/LAST\s*NAME[:\s,]+([A-Za-z\-\s\.]+?)(?=\s*(?:FIRST|MIDDLE|,|\n|$))/i);
+        if (lastNameMatch) extracted.lastName = lastNameMatch[1].trim();
+
+        const firstNameMatch = text.match(/FIRST\s*NAME[:\s,]+([A-Za-z\-\s\.]+?)(?=\s*(?:LAST|MIDDLE|,|\n|$))/i);
+        if (firstNameMatch) extracted.firstName = firstNameMatch[1].trim();
+
+        const middleNameMatch = text.match(/MIDDLE\s*NAME[:\s,]+([A-Za-z\-\s\.]+?)(?=\s*(?:LRN|SEX|DOB|DATE|,|\n|$))/i);
+        if (middleNameMatch) extracted.middleName = middleNameMatch[1].trim();
     }
 
     // 3. Extract Extension Name from First Name or Last Name
     extracted = extractExtension(extracted);
 
     // 4. Extract SF9 Specifics
-    const sexMatch = text.match(/(?:Sex|Gender)[:\s]*(MALE|FEMALE|M\b|F\b)/i);
+    const sexMatch = text.match(/(?:Sex|Gender)[:\s,]*(MALE|FEMALE|M\b|F\b)/i);
     if (sexMatch) extracted.sex = sexMatch[1].toUpperCase().startsWith('M') ? 'Male' : 'Female';
 
-    const gradeMatch = text.match(/Grade[:\s]*(\d+)/i);
+    const gradeMatch = text.match(/(?:Grade|Grade\s*Level)[:\s,]*(\d+)/i);
     if (gradeMatch) extracted.gradeLevel = gradeMatch[1];
 
-    const sectionMatch = text.match(/Section[:\s]*([^\n]+)/i);
+    const sectionMatch = text.match(/Section[:\s,]*([^\n,]+)/i);
     if (sectionMatch) extracted.section = sectionMatch[1].trim();
 
-    const syMatch = text.match(/School Year[:\s]*(\d{4}\s*-\s*\d{4})/i);
+    const syMatch = text.match(/(?:School\s*Year|S\.?Y\.?)[:\s,]*(\d{4}\s*-\s*\d{4})/i);
     if (syMatch) extracted.schoolYear = syMatch[1].replace(/\s/g, '');
 
-    const trackMatch = text.match(/TRACK\/STRAND[:\s]*([^\n]+)/i);
+    const trackMatch = text.match(/TRACK\/STRAND[:\s,]*([^\n,]+)/i);
     if (trackMatch) extracted.trackStrand = trackMatch[1].trim();
 
     return extracted;
@@ -100,18 +110,18 @@ exports.parseSF10 = (text) => {
     }
 
     // 2. Extract Name (Format: "LAST NAME: ... FIRST NAME: ...")
-    const lastNameMatch = text.match(/LAST\s*NAME[:\s]*([A-Za-z\-\s,\.]+?)(?=\s*(FIRST|MIDDLE|\n|$))/i);
+    const lastNameMatch = text.match(/LAST\s*NAME[:\s,]*([A-Za-z\-\s\.]+?)(?=\s*(?:FIRST|MIDDLE|,|\n|$))/i);
     if (lastNameMatch) extracted.lastName = lastNameMatch[1].trim();
 
-    const firstNameMatch = text.match(/FIRST\s*NAME[:\s]*([A-Za-z\-\s,\.]+?)(?=\s*(LAST|MIDDLE|\n|$))/i);
+    const firstNameMatch = text.match(/FIRST\s*NAME[:\s,]*([A-Za-z\-\s\.]+?)(?=\s*(?:LAST|MIDDLE|,|\n|$))/i);
     if (firstNameMatch) extracted.firstName = firstNameMatch[1].trim();
 
-    const middleNameMatch = text.match(/MIDDLE\s*NAME[:\s]*([A-Za-z\-\s,\.]+?)(?=\s*(LRN|SEX|DOB|DATE|\n|$))/i);
+    const middleNameMatch = text.match(/MIDDLE\s*NAME[:\s,]*([A-Za-z\-\s\.]+?)(?=\s*(?:LRN|SEX|DOB|DATE|,|\n|$))/i);
     if (middleNameMatch) extracted.middleName = middleNameMatch[1].trim();
 
     // Fallback if specific labels fail
     if (!extracted.lastName && !extracted.firstName) {
-        const fallbackNameMatch = text.match(/Name[:\s]+([A-Za-z]+),\s+([A-Za-z]+)\s*([A-Za-z]+)?/i);
+        const fallbackNameMatch = text.match(/(?:Name|Learner'?s?\s*Name|Name\s*of\s*Learner|Name\s*of\s*Student)[:\s,]+([A-Za-z\s\-]+?),\s*([A-Za-z\s\-]+?)(?:\s+([A-Za-z\s\-]+))?(?=\s*(?:LRN|SEX|DOB|DATE|Grade|Section|,|\n|$))/i);
         if (fallbackNameMatch) {
             extracted.lastName = fallbackNameMatch[1] || '';
             extracted.firstName = fallbackNameMatch[2] || '';
@@ -131,16 +141,16 @@ exports.parseSF10 = (text) => {
         extracted.dob = `${year}-${month}-${day}`; 
     }
 
-    const sexMatch = text.match(/(?:Sex|Gender)[:\s]*(MALE|FEMALE|M\b|F\b)/i);
+    const sexMatch = text.match(/(?:Sex|Gender)[:\s,]*(MALE|FEMALE|M\b|F\b)/i);
     if (sexMatch) extracted.sex = sexMatch[1].toUpperCase().startsWith('M') ? 'Male' : 'Female';
 
-    const gradeMatch = text.match(/GRADE LEVEL[:\s]*(\d+)/i);
+    const gradeMatch = text.match(/(?:GRADE\s*LEVEL|GRADE)[:\s,]*(\d+)/i);
     if (gradeMatch) extracted.gradeLevel = gradeMatch[1];
 
-    const sectionMatch = text.match(/SECTION[:\s]*([^\n]+)/i);
+    const sectionMatch = text.match(/SECTION[:\s,]*([^\n,]+)/i);
     if (sectionMatch) extracted.section = sectionMatch[1].trim();
 
-    const syMatch = text.match(/S\.?Y\.?[:\s]*(\d{4}\s*-\s*\d{4})/i);
+    const syMatch = text.match(/(?:S\.?Y\.?|School\s*Year)[:\s,]*(\d{4}\s*-\s*\d{4})/i);
     if (syMatch) extracted.schoolYear = syMatch[1].replace(/\s/g, '');
 
     return extracted;

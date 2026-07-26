@@ -1,9 +1,9 @@
 import 'dart:io';
+import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import '../../../../core/constants/app_colors.dart';
-import '../../../../core/constants/app_sizes.dart';
 import '../../../../core/network/api_constants.dart';
 import '../../../../domain/entities/document_model.dart';
 import '../../../shared/dialogs/error_dialog.dart';
@@ -11,6 +11,7 @@ import '../../../shared/dialogs/success_dialog.dart';
 import '../../../shared/modals/custom_modal.dart';
 import 'package:syncfusion_flutter_pdfviewer/pdfviewer.dart';
 import '../../../../core/utils/download_service.dart';
+import 'excel_viewer_widget.dart';
 
 /// Shows a rich preview dialog for any document type:
 /// • Images (jpg/jpeg/png/gif/webp/bmp) → inline network image
@@ -118,13 +119,16 @@ class _DocumentPreviewDialogState extends State<_DocumentPreviewDialog> {
 
   bool get _isPdf => _ext == 'pdf';
 
+  bool get _isExcel =>
+      const {'xls', 'xlsx', 'csv'}.contains(_ext);
+
   bool get _isOffice =>
-      const {'doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx'}.contains(_ext);
+      const {'doc', 'docx', 'ppt', 'pptx'}.contains(_ext);
 
   Color get _typeColor {
     if (_isPdf) return Colors.redAccent;
     if (_isImage) return Colors.blueAccent;
-    if (const {'xls', 'xlsx'}.contains(_ext)) return Colors.green.shade700;
+    if (const {'xls', 'xlsx', 'csv'}.contains(_ext)) return Colors.green.shade700;
     if (const {'doc', 'docx'}.contains(_ext)) return Colors.blue.shade700;
     if (const {'ppt', 'pptx'}.contains(_ext)) return Colors.orange;
     return AppColors.primaryGreen;
@@ -133,7 +137,7 @@ class _DocumentPreviewDialogState extends State<_DocumentPreviewDialog> {
   IconData get _typeIcon {
     if (_isPdf) return Icons.picture_as_pdf_rounded;
     if (_isImage) return Icons.image_rounded;
-    if (const {'xls', 'xlsx'}.contains(_ext)) return Icons.table_chart_rounded;
+    if (const {'xls', 'xlsx', 'csv'}.contains(_ext)) return Icons.table_chart_rounded;
     if (const {'doc', 'docx'}.contains(_ext)) return Icons.description_rounded;
     return Icons.insert_drive_file_rounded;
   }
@@ -141,7 +145,7 @@ class _DocumentPreviewDialogState extends State<_DocumentPreviewDialog> {
   String get _typeLabel {
     if (_isPdf) return 'PDF Document';
     if (_isImage) return 'Image File';
-    if (const {'xls', 'xlsx'}.contains(_ext)) return 'Excel Spreadsheet';
+    if (const {'xls', 'xlsx', 'csv'}.contains(_ext)) return 'Excel Spreadsheet';
     if (const {'doc', 'docx'}.contains(_ext)) return 'Word Document';
     if (const {'ppt', 'pptx'}.contains(_ext)) return 'PowerPoint';
     return 'Document';
@@ -229,6 +233,8 @@ class _DocumentPreviewDialogState extends State<_DocumentPreviewDialog> {
       content = _buildImagePreview();
     } else if (_isPdf) {
       content = _buildPdfInfo(isMobile);
+    } else if (_isExcel) {
+      content = _buildExcelViewer(isMobile);
     } else if (_isOffice) {
       content = _buildOfficeInfo(isMobile);
     } else {
@@ -236,6 +242,25 @@ class _DocumentPreviewDialogState extends State<_DocumentPreviewDialog> {
     }
 
     return content;
+  }
+
+  // ── Excel viewer panel ────────────────────────────────────
+  Widget _buildExcelViewer(bool isMobile) {
+    final screenH = MediaQuery.of(context).size.height;
+    final double viewerHeight =
+        isMobile ? math.min(420.0, screenH * 0.55) : 620.0;
+    return SizedBox(
+      height: viewerHeight,
+      child: Container(
+        color: Colors.grey.shade100,
+        child: ExcelViewerWidget(
+          localFile: widget.localFile,
+          networkUrl: widget.localFile != null ? null : _fileUrl,
+          fileName: _fileName,
+          isMobile: isMobile,
+        ),
+      ),
+    );
   }
 
   // ── Image preview ─────────────────────────────────────────
@@ -541,10 +566,5 @@ class _DocumentPreviewDialogState extends State<_DocumentPreviewDialog> {
         textStyle: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
       ),
     );
-  }
-
-  String _formatDate(DateTime? date) {
-    if (date == null) return '—';
-    return '${date.month}/${date.day}/${date.year}';
   }
 }

@@ -725,7 +725,7 @@ class _AddEditStudentModalState extends ConsumerState<AddEditStudentModal> {
           const SizedBox(height: AppSizes.p16),
 
           DocumentSourcePicker(
-            allowedExtensions: const ['pdf', 'jpg', 'png', 'jpeg'],
+            allowedExtensions: const ['pdf', 'jpg', 'png', 'jpeg', 'xlsx', 'xls', 'csv'],
             onFileSelected: _handleOcrScan,
             onError: (err) => setState(() => _errorMessage = err),
           ),

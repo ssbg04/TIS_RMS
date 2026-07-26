@@ -1042,7 +1042,10 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
           return ext.endsWith('.pdf') ||
               ext.endsWith('.jpg') ||
               ext.endsWith('.jpeg') ||
-              ext.endsWith('.png');
+              ext.endsWith('.png') ||
+              ext.endsWith('.xlsx') ||
+              ext.endsWith('.xls') ||
+              ext.endsWith('.csv');
         }).map((x) => File(x.path)).toList();
 
         if (validFiles.isNotEmpty) {

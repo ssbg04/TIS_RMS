@@ -221,7 +221,7 @@ class _UploadOcrModalState extends ConsumerState<UploadOcrModal> {
     final result = await FilePicker.pickFiles(
       allowMultiple: true,
       type: FileType.custom,
-      allowedExtensions: ['pdf', 'jpg', 'jpeg', 'png'],
+      allowedExtensions: ['pdf', 'jpg', 'jpeg', 'png', 'xlsx', 'xls', 'csv'],
     );
 
     if (result == null || result.files.isEmpty) return;
