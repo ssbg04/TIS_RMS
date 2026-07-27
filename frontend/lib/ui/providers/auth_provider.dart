@@ -12,6 +12,7 @@ import 'dashboard_provider.dart';
 import 'setup_provider.dart';
 import 'reports_provider.dart';
 import 'ocr_provider.dart';
+import 'connected_users_provider.dart';
 
 final authRepositoryProvider = Provider<AuthRepository>(
   (ref) => AuthRepository(),
@@ -41,6 +42,7 @@ class AuthNotifier extends AsyncNotifier<UserModel?> {
         rememberMe: rememberMe,
       );
       state = AsyncData(user);
+      ref.read(heartbeatServiceProvider).start(user);
       return true;
     } catch (e, st) {
       state = AsyncError(e, st);
@@ -55,6 +57,7 @@ class AuthNotifier extends AsyncNotifier<UserModel?> {
       final user = await repository.tryAutoLogin();
       if (user != null) {
         state = AsyncData(user);
+        ref.read(heartbeatServiceProvider).start(user);
       }
       return user;
     } catch (_) {
@@ -63,6 +66,7 @@ class AuthNotifier extends AsyncNotifier<UserModel?> {
   }
 
   Future<void> logout() async {
+    ref.read(heartbeatServiceProvider).stop();
     final repository = ref.read(authRepositoryProvider);
     await repository.logout();
     state = const AsyncData(null);

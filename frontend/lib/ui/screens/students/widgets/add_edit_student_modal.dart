@@ -2,7 +2,6 @@ import 'dart:async';
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:flutter_holo_date_picker/flutter_holo_date_picker.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_sizes.dart';
@@ -1712,6 +1711,37 @@ class _ExtensionNameField extends StatelessWidget {
     );
   }
 }
+// ================================================================
+// DOB MASKED INPUT FORMATTER
+// Accepts digits only. Auto-inserts dashes: MM-DD-YYYY
+// ================================================================
+class _DobInputFormatter extends TextInputFormatter {
+  @override
+  TextEditingValue formatEditUpdate(
+    TextEditingValue oldValue,
+    TextEditingValue newValue,
+  ) {
+    // Strip everything that's not a digit
+    final digits = newValue.text.replaceAll(RegExp(r'[^\d]'), '');
+    // Limit to 8 raw digits (MMDDYYYY)
+    final d = digits.length > 8 ? digits.substring(0, 8) : digits;
+
+    final buf = StringBuffer();
+    for (int i = 0; i < d.length; i++) {
+      buf.write(d[i]);
+      if (i == 1 || i == 3) buf.write('-'); // after MM and DD
+    }
+    final result = buf.toString();
+    return TextEditingValue(
+      text: result,
+      selection: TextSelection.collapsed(offset: result.length),
+    );
+  }
+}
+
+// ================================================================
+// DOB PICKER — single MM-DD-YYYY typed field with suggestion overlay
+// ================================================================
 class _DobPicker extends StatefulWidget {
   final DateTime? initialDate;
   final ValueChanged<DateTime?> onChanged;
@@ -1724,34 +1754,131 @@ class _DobPicker extends StatefulWidget {
 }
 
 class _DobPickerState extends State<_DobPicker> {
-  int? _month;
-  int? _day;
-  late final TextEditingController _yearController;
+  late final TextEditingController _ctrl;
+  late final FocusNode _focusNode;
+  OverlayEntry? _overlayEntry;
+  final LayerLink _layerLink = LayerLink();
 
-  static const List<String> _months = [
+  static const _monthNames = [
     'January', 'February', 'March', 'April', 'May', 'June',
-    'July', 'August', 'September', 'October', 'November', 'December'
+    'July', 'August', 'September', 'October', 'November', 'December',
   ];
+
+  static String _fmt(DateTime d) =>
+      '${d.month.toString().padLeft(2, '0')}-'
+      '${d.day.toString().padLeft(2, '0')}-'
+      '${d.year}';
 
   @override
   void initState() {
     super.initState();
-    _yearController = TextEditingController();
-    if (widget.initialDate != null) {
-      _month = widget.initialDate!.month;
-      _day = widget.initialDate!.day;
-      _yearController.text = widget.initialDate!.year.toString();
+    _ctrl = TextEditingController(
+      text: widget.initialDate != null ? _fmt(widget.initialDate!) : '',
+    );
+    _focusNode = FocusNode();
+    _ctrl.addListener(_onTextChanged);
+    _focusNode.addListener(_onFocusChanged);
+  }
+
+  @override
+  void didUpdateWidget(covariant _DobPicker oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // External update (e.g. OCR fill): sync the text controller
+    if (widget.initialDate != oldWidget.initialDate &&
+        widget.initialDate != null) {
+      final formatted = _fmt(widget.initialDate!);
+      if (_ctrl.text != formatted) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted) _ctrl.text = formatted;
+        });
+      }
+    }
+    if (widget.initialDate == null && oldWidget.initialDate != null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) _ctrl.clear();
+      });
     }
   }
 
   @override
   void dispose() {
-    _yearController.dispose();
+    _removeOverlay();
+    _ctrl.removeListener(_onTextChanged);
+    _focusNode.removeListener(_onFocusChanged);
+    _ctrl.dispose();
+    _focusNode.dispose();
     super.dispose();
   }
 
-  int _getDaysInMonth(int? month, int? year) {
-    if (month == null) return 31;
+  // ── Overlay management ──────────────────────────────────────────
+
+  void _onFocusChanged() {
+    if (_focusNode.hasFocus) {
+      _showOverlay();
+    } else {
+      _removeOverlay();
+    }
+  }
+
+  void _onTextChanged() {
+    _parseAndNotify();
+    if (_focusNode.hasFocus) {
+      _overlayEntry?.markNeedsBuild();
+    }
+  }
+
+  void _showOverlay() {
+    _removeOverlay();
+    _overlayEntry = OverlayEntry(builder: (_) => _buildOverlayWidget());
+    Overlay.of(context).insert(_overlayEntry!);
+  }
+
+  void _removeOverlay() {
+    _overlayEntry?.remove();
+    _overlayEntry = null;
+  }
+
+  // ── Suggestion computation ──────────────────────────────────────
+
+  /// Returns typed digits stripped of dashes.
+  String get _rawDigits => _ctrl.text.replaceAll('-', '');
+
+  List<String> _buildSuggestions() {
+    final raw = _rawDigits;
+    final len = raw.length;
+
+    // Phase 1: typing MM (0–2 digits)
+    if (len <= 2) {
+      return List.generate(12, (i) {
+        final mm = (i + 1).toString().padLeft(2, '0');
+        return '$mm - ${_monthNames[i]}';
+      }).where((s) {
+        if (len == 0) return true;
+        return s.startsWith(raw);
+      }).toList();
+    }
+
+    // Phase 2: typing DD (3–4 digits)
+    if (len <= 4) {
+      final mm = int.tryParse(raw.substring(0, 2));
+      if (mm == null || mm < 1 || mm > 12) return [];
+      final maxDay = _maxDayForMonth(mm, null);
+      final ddTyped = raw.length >= 3 ? raw.substring(2) : '';
+      return List.generate(maxDay, (i) {
+        final dd = (i + 1).toString().padLeft(2, '0');
+        return dd;
+      }).where((dd) => ddTyped.isEmpty || dd.startsWith(ddTyped)).toList();
+    }
+
+    // Phase 3: typing YYYY (5–8 digits)
+    final now = DateTime.now().year;
+    final yyyyTyped = raw.length >= 5 ? raw.substring(4) : '';
+    return List.generate(now - 1985, (i) {
+      return (now - 3 - i).toString();
+    }).where((y) => yyyyTyped.isEmpty || y.startsWith(yyyyTyped)).take(8).toList();
+  }
+
+  int _maxDayForMonth(int month, int? year) {
     if (month == 2) {
       if (year != null && (year % 4 == 0 && (year % 100 != 0 || year % 400 == 0))) {
         return 29;
@@ -1762,97 +1889,173 @@ class _DobPickerState extends State<_DobPicker> {
     return 31;
   }
 
-  void _update() {
-    int? year = int.tryParse(_yearController.text);
-    int maxDays = _getDaysInMonth(_month, year);
-    if (_day != null && _day! > maxDays) {
-      _day = maxDays;
-    }
-    
-    if (_month != null && _day != null && year != null && _yearController.text.length == 4) {
-      widget.onChanged(DateTime(year, _month!, _day!));
+  // ── Suggestion tap handler ──────────────────────────────────────
+
+  void _onSuggestionTap(String suggestion) {
+    final raw = _rawDigits;
+    final len = raw.length;
+    String newRaw;
+
+    if (len <= 2) {
+      // suggestion = "01 - January" → extract "01"
+      newRaw = suggestion.split(' ').first;
+    } else if (len <= 4) {
+      // suggestion is just "DD"
+      final mm = raw.substring(0, 2);
+      newRaw = mm + suggestion;
     } else {
-      widget.onChanged(null);
+      // suggestion is a 4-digit year string
+      final mmdd = raw.substring(0, 4);
+      newRaw = mmdd + suggestion;
     }
-    setState(() {});
+
+    // Rebuild formatted string MM-DD-YYYY from newRaw
+    final buf = StringBuffer();
+    for (int i = 0; i < newRaw.length && i < 8; i++) {
+      buf.write(newRaw[i]);
+      if (i == 1 || i == 3) buf.write('-');
+    }
+    _ctrl.text = buf.toString();
+    _parseAndNotify();
+    // Move to next phase or close if complete
+    if (newRaw.length >= 8) {
+      _focusNode.unfocus();
+    } else {
+      _overlayEntry?.markNeedsBuild();
+    }
   }
+
+  // ── Parse & notify parent ───────────────────────────────────────
+
+  void _parseAndNotify() {
+    final raw = _rawDigits;
+    if (raw.length == 8) {
+      final mm = int.tryParse(raw.substring(0, 2));
+      final dd = int.tryParse(raw.substring(2, 4));
+      final yyyy = int.tryParse(raw.substring(4, 8));
+      final now = DateTime.now().year;
+      if (mm != null && dd != null && yyyy != null &&
+          mm >= 1 && mm <= 12 &&
+          dd >= 1 && dd <= _maxDayForMonth(mm, yyyy) &&
+          yyyy >= 1900 && yyyy <= now) {
+        widget.onChanged(DateTime(yyyy, mm, dd));
+        return;
+      }
+    }
+    widget.onChanged(null);
+  }
+
+  // ── Overlay widget builder ──────────────────────────────────────
+
+  Widget _buildOverlayWidget() {
+    final suggestions = _buildSuggestions();
+    if (suggestions.isEmpty) return const SizedBox.shrink();
+
+    final raw = _rawDigits;
+    String label;
+    if (raw.length <= 2) {
+      label = 'Select month';
+    } else if (raw.length <= 4) {
+      label = 'Select day';
+    } else {
+      label = 'Select year';
+    }
+
+    return Positioned(
+      width: 260,
+      child: CompositedTransformFollower(
+        link: _layerLink,
+        showWhenUnlinked: false,
+        offset: const Offset(0, 52),
+        child: Material(
+          elevation: 8,
+          borderRadius: BorderRadius.circular(AppSizes.radiusMedium),
+          color: Colors.white,
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxHeight: 220),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(12, 8, 12, 4),
+                  child: Text(
+                    label,
+                    style: const TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w700,
+                      color: AppColors.textSecondary,
+                      letterSpacing: 0.5,
+                    ),
+                  ),
+                ),
+                const Divider(height: 1),
+                Flexible(
+                  child: ListView.builder(
+                    shrinkWrap: true,
+                    padding: const EdgeInsets.symmetric(vertical: 4),
+                    itemCount: suggestions.length,
+                    itemBuilder: (ctx, i) {
+                      final s = suggestions[i];
+                      return InkWell(
+                        onTap: () => _onSuggestionTap(s),
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 9,
+                          ),
+                          child: Text(
+                            s,
+                            style: const TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  // ── Build ───────────────────────────────────────────────────────
 
   @override
   Widget build(BuildContext context) {
-    int? year = int.tryParse(_yearController.text);
-    int maxDays = _getDaysInMonth(_month, year);
-    
-    return InputDecorator(
-      decoration: const InputDecoration(
-        labelText: 'DATE OF BIRTH (Optional)',
-        prefixIcon: Icon(Icons.calendar_today, color: AppColors.textSecondary),
-        contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-      ),
-      child: Row(
-        children: [
-          Expanded(
-            flex: 4,
-            child: DropdownButtonHideUnderline(
-              child: DropdownButton<int>(
-                isExpanded: true,
-                hint: const Text('Month', style: TextStyle(fontSize: 14)),
-                value: _month,
-                items: List.generate(12, (index) {
-                  return DropdownMenuItem(
-                    value: index + 1,
-                    child: Text(_months[index], style: const TextStyle(fontSize: 14)),
-                  );
-                }),
-                onChanged: (val) {
-                  _month = val;
-                  _update();
-                },
-              ),
-            ),
+    return CompositedTransformTarget(
+      link: _layerLink,
+      child: TextFormField(
+        controller: _ctrl,
+        focusNode: _focusNode,
+        keyboardType: TextInputType.number,
+        inputFormatters: [_DobInputFormatter()],
+        style: const TextStyle(fontSize: 14, letterSpacing: 0.5),
+        decoration: InputDecoration(
+          labelText: 'DATE OF BIRTH (Optional)',
+          hintText: 'MM-DD-YYYY',
+          prefixIcon: const Icon(
+            Icons.cake_outlined,
+            color: AppColors.textSecondary,
           ),
-          const SizedBox(width: 8),
-          Expanded(
-            flex: 2,
-            child: DropdownButtonHideUnderline(
-              child: DropdownButton<int>(
-                isExpanded: true,
-                hint: const Text('Day', style: TextStyle(fontSize: 14)),
-                value: _day,
-                items: List.generate(maxDays, (index) {
-                  return DropdownMenuItem(
-                    value: index + 1,
-                    child: Text('${index + 1}', style: const TextStyle(fontSize: 14)),
-                  );
-                }),
-                onChanged: (val) {
-                  _day = val;
-                  _update();
-                },
-              ),
-            ),
-          ),
-          const SizedBox(width: 8),
-          Expanded(
-            flex: 3,
-            child: TextField(
-              controller: _yearController,
-              keyboardType: TextInputType.number,
-              maxLength: 4,
-              style: const TextStyle(fontSize: 14),
-              decoration: const InputDecoration(
-                hintText: 'Year',
-                counterText: '',
-                border: InputBorder.none,
-                enabledBorder: InputBorder.none,
-                focusedBorder: InputBorder.none,
-                isDense: true,
-                contentPadding: EdgeInsets.zero,
-              ),
-              onChanged: (_) => _update(),
-            ),
-          ),
-        ],
+          suffixIcon: _ctrl.text.isNotEmpty
+              ? IconButton(
+                  icon: const Icon(Icons.clear, size: 18),
+                  onPressed: () {
+                    _ctrl.clear();
+                    widget.onChanged(null);
+                    _overlayEntry?.markNeedsBuild();
+                  },
+                )
+              : null,
+        ),
       ),
     );
   }
 }
+
