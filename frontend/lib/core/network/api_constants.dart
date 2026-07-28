@@ -33,6 +33,21 @@ class ApiConstants {
       InterceptorsWrapper(
         onRequest: (options, handler) {
           options.baseUrl = _baseUrl;
+
+          // Prevent unauthenticated or malformed token requests from hitting the server
+          final authHeader = options.headers['Authorization']?.toString() ?? '';
+          if (authHeader == 'Bearer null' ||
+              authHeader == 'Bearer ' ||
+              authHeader == 'Bearer undefined') {
+            return handler.reject(
+              DioException(
+                requestOptions: options,
+                type: DioExceptionType.cancel,
+                error: 'Unauthenticated request cancelled: Invalid Authorization header ($authHeader)',
+              ),
+            );
+          }
+
           return handler.next(options);
         },
       ),

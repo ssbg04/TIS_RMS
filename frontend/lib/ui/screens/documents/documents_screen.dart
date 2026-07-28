@@ -13,6 +13,7 @@ import '../../shared/inputs/app_search_bar.dart';
 import '../../shared/buttons/primary_button.dart';
 import '../../providers/document_provider.dart';
 import '../../providers/student_provider.dart';
+import '../../providers/auth_provider.dart';
 import '../../shared/widgets/app_pagination.dart';
 import '../../providers/navigation_provider.dart';
 
@@ -95,7 +96,9 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
     _searchFocusNode.addListener(_onSearchFocusChanged);
 
     _pollingTimer = Timer.periodic(const Duration(seconds: 15), (_) {
-      if (mounted) {
+      if (mounted &&
+          ref.read(authProvider).value != null &&
+          ref.read(activeTabProvider) == 'Documents') {
         if (_tabController.index == 0) {
           ref.invalidate(foldersProvider);
           ref.invalidate(studentFoldersProvider);

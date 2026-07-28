@@ -77,44 +77,16 @@ class AuthNotifier extends AsyncNotifier<UserModel?> {
   }
 
   void _invalidateAllProviders() {
-    // Documents & folders
+    // Only reset persistent filter and navigation states.
+    // autoDispose FutureProviders clean themselves up automatically when screens unmount;
+    // invalidating them during logout triggers unnecessary unauthenticated API requests.
     ref.invalidate(documentQueryProvider);
-    ref.invalidate(documentPageProvider);
-    ref.invalidate(documentMutationProvider);
-    ref.invalidate(printQueueMutationProvider);
-    ref.invalidate(trashMutationProvider);
-    ref.invalidate(requirementMutationProvider);
-    ref.invalidate(folderMutationProvider);
     ref.invalidate(openedFolderProvider);
-
-    // Archives
     ref.invalidate(archiveQueryProvider);
-    ref.invalidate(archiveDocumentQueryProvider);
-    ref.invalidate(archiveMutationProvider);
-
-    // Students
     ref.invalidate(studentQueryProvider);
-    ref.invalidate(studentMutationProvider);
-
-    // Users & notifications
-    ref.invalidate(usersProvider);
-    ref.invalidate(notificationsProvider);
-
-    // Navigation
     ref.invalidate(activeTabProvider);
 
-    // Dashboard
-    ref.invalidate(dashboardDataProvider);
-
-    // Setup / Settings
-    ref.invalidate(academicYearsListProvider);
-    ref.invalidate(sectionsListProvider);
-    ref.invalidate(gradeLevelsListProvider);
-    ref.invalidate(setupMutationProvider);
-
-    // Reports
     ref.invalidate(selectedAcademicYearIdProvider);
-    ref.invalidate(academicYearsProvider);
     ref.invalidate(selectedGradeLevelProvider);
     ref.invalidate(selectedSectionIdProvider);
     ref.invalidate(selectedStatusFilterProvider);
@@ -123,9 +95,6 @@ class AuthNotifier extends AsyncNotifier<UserModel?> {
     ref.invalidate(missingDocsFilterExpandedProvider);
     ref.invalidate(yearlyComparisonSelectedYearsProvider);
     ref.invalidate(yearlyComparisonSelectedStatusesProvider);
-
-    // OCR
-    ref.invalidate(ocrProvider);
   }
 
   Future<void> refreshUser() async {

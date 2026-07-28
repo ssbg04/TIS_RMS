@@ -7,6 +7,7 @@ import '../../shared/inputs/custom_text_field.dart';
 import '../../shared/buttons/primary_button.dart';
 import '../../providers/users_provider.dart';
 import '../../providers/setup_provider.dart';
+import '../../providers/auth_provider.dart';
 import '../../../domain/entities/setup_models.dart';
 import '../../../domain/entities/system_user.dart';
 import '../../shared/dialogs/error_dialog.dart';
@@ -63,7 +64,9 @@ class _TeacherManagementModalState extends ConsumerState<TeacherManagementModal>
 
     // Polling every 5 seconds
     _pollingTimer = Timer.periodic(const Duration(seconds: 5), (_) {
-      _refreshData();
+      if (mounted && ref.read(authProvider).value != null) {
+        _refreshData();
+      }
     });
   }
 

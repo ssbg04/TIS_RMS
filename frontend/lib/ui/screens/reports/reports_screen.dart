@@ -13,6 +13,7 @@ import '../../shared/buttons/primary_button.dart';
 import '../../shared/cards/stat_card.dart';
 import '../../providers/reports_provider.dart';
 import '../../providers/navigation_provider.dart';
+import '../../providers/auth_provider.dart';
 import '../../shared/dialogs/file_save_preview_dialog.dart';
 import '../documents/widgets/student_profile_modal.dart';
 import 'package:fl_chart/fl_chart.dart';
@@ -59,7 +60,9 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
 
       // Polling every 5 seconds
       _pollingTimer = Timer.periodic(const Duration(seconds: 5), (_) {
-        if (mounted && ref.read(activeTabProvider) == 'Reports') {
+        if (mounted &&
+            ref.read(authProvider).value != null &&
+            ref.read(activeTabProvider) == 'Reports') {
           _refreshData();
         }
       });

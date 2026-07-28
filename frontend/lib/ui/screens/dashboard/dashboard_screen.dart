@@ -99,7 +99,9 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
   void _startPolling() {
     _pollingTimer?.cancel();
     _pollingTimer = Timer.periodic(const Duration(seconds: 5), (_) {
-      if (mounted && ref.read(activeTabProvider) == 'Dashboard') {
+      if (mounted &&
+          ref.read(authProvider).value != null &&
+          ref.read(activeTabProvider) == 'Dashboard') {
         ref.invalidate(dashboardDataProvider);
         ref.invalidate(dashboardKpisProvider);
         ref.read(notificationsProvider.notifier).refreshNotifications();

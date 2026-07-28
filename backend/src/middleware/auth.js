@@ -9,7 +9,9 @@ const authenticateToken = (req, res, next) => {
         token = req.query.token;
     }
 
-    if (!token) return res.status(401).json({ message: 'Authentication token required' });
+    if (!token || token === 'null' || token === 'undefined') {
+        return res.status(401).json({ message: 'Authentication token required' });
+    }
 
     jwt.verify(token, process.env.JWT_SECRET, (err, user) => {
         if (err) return res.status(403).json({ message: 'Invalid or expired token' });

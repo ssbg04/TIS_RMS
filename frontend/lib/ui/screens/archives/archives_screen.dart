@@ -84,9 +84,12 @@ class _ArchivesScreenState extends ConsumerState<ArchivesScreen>
     _tabController = TabController(length: 2, vsync: this);
 
     _pollingTimer = Timer.periodic(const Duration(seconds: 15), (_) {
-      if (!mounted) return;
-      ref.invalidate(archiveStudentFoldersProvider);
-      ref.invalidate(archiveDocumentPageProvider);
+      if (mounted &&
+          ref.read(authProvider).value != null &&
+          ref.read(activeTabProvider) == 'Archives') {
+        ref.invalidate(archiveStudentFoldersProvider);
+        ref.invalidate(archiveDocumentPageProvider);
+      }
     });
 
     _tabController.addListener(() {
