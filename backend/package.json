@@ -6,7 +6,13 @@
   "scripts": {
     "start": "node index.js",
     "test": "echo \"Error: no test specified\" && exit 1",
-    "dev": "nodemon index.js"
+    "dev": "nodemon index.js",
+    "service:install": "scripts\\install_service.bat",
+    "service:uninstall": "scripts\\uninstall_service.bat",
+    "service:manage": "scripts\\manage_service.bat",
+    "service:start": "net start TIS_RMSServer",
+    "service:stop": "net stop TIS_RMSServer",
+    "service:status": "sc query TIS_RMSServer"
   },
   "keywords": [],
   "author": "",
