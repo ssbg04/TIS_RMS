@@ -154,3 +154,240 @@ class YearlyComparisonData {
         transferred: (j['transferred'] as num?)?.toInt() ?? 0,
       );
 }
+
+/// Represents sex breakdown for a specific grade level or stage
+class SexBreakdownCount {
+  final int male;
+  final int female;
+  final int total;
+
+  const SexBreakdownCount({
+    required this.male,
+    required this.female,
+    required this.total,
+  });
+
+  factory SexBreakdownCount.fromJson(Map<String, dynamic> j) =>
+      SexBreakdownCount(
+        male: (j['male'] as num?)?.toInt() ?? 0,
+        female: (j['female'] as num?)?.toInt() ?? 0,
+        total: (j['total'] as num?)?.toInt() ?? 0,
+      );
+}
+
+/// Enrollment count for a specific grade level with sex breakdown
+class GradeEnrollmentBreakdown {
+  final int gradeLevel;
+  final int male;
+  final int female;
+  final int total;
+
+  const GradeEnrollmentBreakdown({
+    required this.gradeLevel,
+    required this.male,
+    required this.female,
+    required this.total,
+  });
+
+  factory GradeEnrollmentBreakdown.fromJson(Map<String, dynamic> j) =>
+      GradeEnrollmentBreakdown(
+        gradeLevel: (j['gradeLevel'] as num?)?.toInt() ?? 0,
+        male: (j['male'] as num?)?.toInt() ?? 0,
+        female: (j['female'] as num?)?.toInt() ?? 0,
+        total: (j['total'] as num?)?.toInt() ?? 0,
+      );
+}
+
+/// Enrollment data for one academic year
+class YearlyEnrollmentSummary {
+  final List<GradeEnrollmentBreakdown> grades;
+  final SexBreakdownCount jhsTotal;
+  final SexBreakdownCount shsTotal;
+  final SexBreakdownCount overallTotal;
+
+  const YearlyEnrollmentSummary({
+    required this.grades,
+    required this.jhsTotal,
+    required this.shsTotal,
+    required this.overallTotal,
+  });
+
+  factory YearlyEnrollmentSummary.fromJson(Map<String, dynamic> j) =>
+      YearlyEnrollmentSummary(
+        grades: (j['grades'] as List? ?? [])
+            .map((e) => GradeEnrollmentBreakdown.fromJson(e as Map<String, dynamic>))
+            .toList(),
+        jhsTotal: SexBreakdownCount.fromJson(
+            j['jhsTotal'] as Map<String, dynamic>? ?? {}),
+        shsTotal: SexBreakdownCount.fromJson(
+            j['shsTotal'] as Map<String, dynamic>? ?? {}),
+        overallTotal: SexBreakdownCount.fromJson(
+            j['overallTotal'] as Map<String, dynamic>? ?? {}),
+      );
+}
+
+/// Dropout count for one grade level
+class GradeDropoutCount {
+  final int gradeLevel;
+  final int droppedCount;
+
+  const GradeDropoutCount({
+    required this.gradeLevel,
+    required this.droppedCount,
+  });
+
+  factory GradeDropoutCount.fromJson(Map<String, dynamic> j) =>
+      GradeDropoutCount(
+        gradeLevel: (j['gradeLevel'] as num?)?.toInt() ?? 0,
+        droppedCount: (j['droppedCount'] as num?)?.toInt() ?? 0,
+      );
+}
+
+class YearlyDropoutSummary {
+  final List<GradeDropoutCount> grades;
+  final int totalDropped;
+
+  const YearlyDropoutSummary({
+    required this.grades,
+    required this.totalDropped,
+  });
+
+  factory YearlyDropoutSummary.fromJson(Map<String, dynamic> j) =>
+      YearlyDropoutSummary(
+        grades: (j['grades'] as List? ?? [])
+            .map((e) => GradeDropoutCount.fromJson(e as Map<String, dynamic>))
+            .toList(),
+        totalDropped: (j['totalDropped'] as num?)?.toInt() ?? 0,
+      );
+}
+
+/// Transferee count for one grade level
+class GradeTransfereeCount {
+  final int gradeLevel;
+  final int transferredCount;
+
+  const GradeTransfereeCount({
+    required this.gradeLevel,
+    required this.transferredCount,
+  });
+
+  factory GradeTransfereeCount.fromJson(Map<String, dynamic> j) =>
+      GradeTransfereeCount(
+        gradeLevel: (j['gradeLevel'] as num?)?.toInt() ?? 0,
+        transferredCount: (j['transferredCount'] as num?)?.toInt() ?? 0,
+      );
+}
+
+class YearlyTransfereeSummary {
+  final List<GradeTransfereeCount> grades;
+  final int totalTransferred;
+
+  const YearlyTransfereeSummary({
+    required this.grades,
+    required this.totalTransferred,
+  });
+
+  factory YearlyTransfereeSummary.fromJson(Map<String, dynamic> j) =>
+      YearlyTransfereeSummary(
+        grades: (j['grades'] as List? ?? [])
+            .map((e) => GradeTransfereeCount.fromJson(e as Map<String, dynamic>))
+            .toList(),
+        totalTransferred: (j['totalTransferred'] as num?)?.toInt() ?? 0,
+      );
+}
+
+/// Complete yearly Transparency Board item
+class YearlyTransparencyItem {
+  final String yearRange;
+  final YearlyEnrollmentSummary enrollment;
+  final YearlyDropoutSummary dropouts;
+  final YearlyTransfereeSummary transferees;
+
+  const YearlyTransparencyItem({
+    required this.yearRange,
+    required this.enrollment,
+    required this.dropouts,
+    required this.transferees,
+  });
+
+  factory YearlyTransparencyItem.fromJson(Map<String, dynamic> j) =>
+      YearlyTransparencyItem(
+        yearRange: j['yearRange'] as String? ?? '',
+        enrollment: YearlyEnrollmentSummary.fromJson(
+            j['enrollment'] as Map<String, dynamic>? ?? {}),
+        dropouts: YearlyDropoutSummary.fromJson(
+            j['dropouts'] as Map<String, dynamic>? ?? {}),
+        transferees: YearlyTransfereeSummary.fromJson(
+            j['transferees'] as Map<String, dynamic>? ?? {}),
+      );
+}
+
+/// 4Ps equity item per grade
+class Grade4PsCount {
+  final int gradeLevel;
+  final int fourPsCount;
+  final int totalStudents;
+  final double percentage;
+
+  const Grade4PsCount({
+    required this.gradeLevel,
+    required this.fourPsCount,
+    required this.totalStudents,
+    required this.percentage,
+  });
+
+  factory Grade4PsCount.fromJson(Map<String, dynamic> j) => Grade4PsCount(
+        gradeLevel: (j['gradeLevel'] as num?)?.toInt() ?? 0,
+        fourPsCount: (j['fourPsCount'] as num?)?.toInt() ?? 0,
+        totalStudents: (j['totalStudents'] as num?)?.toInt() ?? 0,
+        percentage: (j['percentage'] as num?)?.toDouble() ?? 0.0,
+      );
+}
+
+/// 4Ps overall equity summary
+class Equity4PsSummary {
+  final List<Grade4PsCount> grades;
+  final int total4Ps;
+  final int totalStudents;
+  final double overallPercentage;
+
+  const Equity4PsSummary({
+    required this.grades,
+    required this.total4Ps,
+    required this.totalStudents,
+    required this.overallPercentage,
+  });
+
+  factory Equity4PsSummary.fromJson(Map<String, dynamic> j) =>
+      Equity4PsSummary(
+        grades: (j['grades'] as List? ?? [])
+            .map((e) => Grade4PsCount.fromJson(e as Map<String, dynamic>))
+            .toList(),
+        total4Ps: (j['total4Ps'] as num?)?.toInt() ?? 0,
+        totalStudents: (j['totalStudents'] as num?)?.toInt() ?? 0,
+        overallPercentage:
+            (j['overallPercentage'] as num?)?.toDouble() ?? 0.0,
+      );
+}
+
+/// Top level response for Transparency Board
+class TransparencyBoardData {
+  final List<YearlyTransparencyItem> years;
+  final Equity4PsSummary equity4Ps;
+
+  const TransparencyBoardData({
+    required this.years,
+    required this.equity4Ps,
+  });
+
+  factory TransparencyBoardData.fromJson(Map<String, dynamic> j) =>
+      TransparencyBoardData(
+        years: (j['years'] as List? ?? [])
+            .map((e) =>
+                YearlyTransparencyItem.fromJson(e as Map<String, dynamic>))
+            .toList(),
+        equity4Ps: Equity4PsSummary.fromJson(
+            j['equity4Ps'] as Map<String, dynamic>? ?? {}),
+      );
+}
+

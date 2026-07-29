@@ -187,6 +187,15 @@ final storageStatsProvider = FutureProvider.autoDispose<int>((ref) async {
   return await ref.read(reportRepositoryProvider).getStorageUsed();
 });
 
+// DepEd Transparency Board Data provider
+final transparencyBoardProvider =
+    FutureProvider.autoDispose<TransparencyBoardData>((ref) async {
+      return await ref
+          .read(reportRepositoryProvider)
+          .getTransparencyBoardData();
+    });
+
+
 // ── Internal helper Notifier for simple bool toggles ─────────────────────────
 class _BoolNotifier extends Notifier<bool> {
   final bool initial;

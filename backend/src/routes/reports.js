@@ -10,5 +10,6 @@ router.get('/document-status', authenticateToken, reportsController.getDocumentS
 router.get('/export-data', authenticateToken, reportsController.getExportData);
 router.get('/yearly-comparison', authenticateToken, reportsController.getYearlyComparison);
 router.get('/storage', authenticateToken, reportsController.getStorageUsed);
+router.get('/transparency-board', authenticateToken, reportsController.getTransparencyBoardData);
 
 module.exports = router;

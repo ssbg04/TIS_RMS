@@ -17,6 +17,7 @@ import '../../providers/auth_provider.dart';
 import '../../shared/dialogs/file_save_preview_dialog.dart';
 import '../documents/widgets/student_profile_modal.dart';
 import 'package:fl_chart/fl_chart.dart';
+import 'widgets/transparency_board_section.dart';
 
 class ReportsScreen extends ConsumerStatefulWidget {
   final String userRole;
@@ -35,6 +36,8 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
   int _currentPage = 0;
   final int _rowsPerPage = 10;
   int _lastTotalRows = -1;
+  int _selectedViewMode = 0; // 0: DepEd Transparency Board, 1: Compliance & Analytics, 2: Combined
+
 
   @override
   void initState() {
@@ -74,6 +77,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
     ref.invalidate(academicYearsProvider);
     ref.invalidate(yearlyComparisonProvider);
     ref.invalidate(storageStatsProvider);
+    ref.invalidate(transparencyBoardProvider);
   }
 
   @override
@@ -466,6 +470,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
             ref.invalidate(academicYearsProvider);
             ref.invalidate(yearlyComparisonProvider);
             ref.invalidate(storageStatsProvider);
+            ref.invalidate(transparencyBoardProvider);
           },
           child: SingleChildScrollView(
             controller: _scrollController,
@@ -476,74 +481,83 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
               children: [
                 _buildTitleAndExportActions(context),
                 const SizedBox(height: AppSizes.p24),
+                _buildViewModeToggle(),
+                const SizedBox(height: AppSizes.p24),
 
-                statsAsync.when(
-                  loading: () => const Center(
-                    child: Padding(
-                      padding: EdgeInsets.all(100),
-                      child: CircularProgressIndicator(),
+                if (_selectedViewMode == 0 || _selectedViewMode == 2) ...[
+                  const TransparencyBoardSection(),
+                  const SizedBox(height: AppSizes.p32),
+                ],
+
+                if (_selectedViewMode == 1 || _selectedViewMode == 2) ...[
+                  statsAsync.when(
+                    loading: () => const Center(
+                      child: Padding(
+                        padding: EdgeInsets.all(100),
+                        child: CircularProgressIndicator(),
+                      ),
+                    ),
+                    error: (err, st) =>
+                        _errorWidget('Error fetching analytics: $err'),
+                    data: (data) => Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // 1. Filter Panel (collapsible)
+                        _buildFilterPanel(context),
+                        const SizedBox(height: AppSizes.p24),
+
+                        // 2. KPI Cards
+                        _buildMetricsGrid(
+                          data.studentCounts,
+                          storageAsync.asData?.value,
+                        ),
+                        const SizedBox(height: AppSizes.p24),
+
+                        // 3. Side-by-Side Charts (Responsive)
+                        LayoutBuilder(
+                          builder: (context, constraints) {
+                            if (constraints.maxWidth > 1200) {
+                              return Row(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Expanded(
+                                    flex: 5,
+                                    child: _buildYearlyComparisonChart(
+                                      isDesktop: true,
+                                    ),
+                                  ),
+                                  const SizedBox(width: AppSizes.p24),
+                                  Expanded(
+                                    flex: 5,
+                                    child: _buildMissingDocsChart(
+                                      data.missingDocsBreakdown,
+                                      isDesktop: true,
+                                    ),
+                                  ),
+                                ],
+                              );
+                            } else {
+                              return Column(
+                                children: [
+                                  _buildYearlyComparisonChart(isDesktop: false),
+                                  const SizedBox(height: AppSizes.p24),
+                                  _buildMissingDocsChart(
+                                    data.missingDocsBreakdown,
+                                    isDesktop: false,
+                                  ),
+                                ],
+                              );
+                            }
+                          },
+                        ),
+                        const SizedBox(height: AppSizes.p24),
+
+                        // 4. Interactive Student Compliance Table
+                        _buildComplianceTable(data),
+                      ],
                     ),
                   ),
-                  error: (err, st) =>
-                      _errorWidget('Error fetching analytics: $err'),
-                  data: (data) => Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      // 1. Filter Panel (collapsible)
-                      _buildFilterPanel(context),
-                      const SizedBox(height: AppSizes.p24),
-
-                      // 2. KPI Cards
-                      _buildMetricsGrid(
-                        data.studentCounts,
-                        storageAsync.asData?.value,
-                      ),
-                      const SizedBox(height: AppSizes.p24),
-
-                      // 3. Side-by-Side Charts (Responsive)
-                      LayoutBuilder(
-                        builder: (context, constraints) {
-                          if (constraints.maxWidth > 1200) {
-                            return Row(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Expanded(
-                                  flex: 5,
-                                  child: _buildYearlyComparisonChart(
-                                    isDesktop: true,
-                                  ),
-                                ),
-                                const SizedBox(width: AppSizes.p24),
-                                Expanded(
-                                  flex: 5,
-                                  child: _buildMissingDocsChart(
-                                    data.missingDocsBreakdown,
-                                    isDesktop: true,
-                                  ),
-                                ),
-                              ],
-                            );
-                          } else {
-                            return Column(
-                              children: [
-                                _buildYearlyComparisonChart(isDesktop: false),
-                                const SizedBox(height: AppSizes.p24),
-                                _buildMissingDocsChart(
-                                  data.missingDocsBreakdown,
-                                  isDesktop: false,
-                                ),
-                              ],
-                            );
-                          }
-                        },
-                      ),
-                      const SizedBox(height: AppSizes.p24),
-
-                      // 4. Interactive Student Compliance Table
-                      _buildComplianceTable(data),
-                    ],
-                  ),
-                ),
+                ],
                 const SizedBox(height: AppSizes.p48),
               ],
             ),
@@ -552,6 +566,129 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
       ),
     );
   }
+
+  Widget _buildViewModeToggle() {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final isNarrow = constraints.maxWidth < 800;
+        final children = [
+          _buildToggleItem(
+            index: 0,
+            icon: Icons.dashboard_outlined,
+            title: 'DepEd Transparency Board',
+            subtitle: 'Recommended DepEd metrics & equity',
+          ),
+          SizedBox(width: isNarrow ? 0 : 8, height: isNarrow ? 8 : 0),
+          _buildToggleItem(
+            index: 1,
+            icon: Icons.analytics_outlined,
+            title: 'Compliance & Analytics',
+            subtitle: 'Student masterlist & documents',
+          ),
+          SizedBox(width: isNarrow ? 0 : 8, height: isNarrow ? 8 : 0),
+          _buildToggleItem(
+            index: 2,
+            icon: Icons.view_agenda_outlined,
+            title: 'Unified Combined View',
+            subtitle: 'Display all reporting modules',
+          ),
+        ];
+
+        return Container(
+          padding: const EdgeInsets.all(6),
+          decoration: BoxDecoration(
+            color: AppColors.surfaceWhite,
+            borderRadius: BorderRadius.circular(AppSizes.radiusLarge),
+            border: Border.all(color: Colors.grey.withOpacity(0.2)),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.03),
+                blurRadius: 8,
+                offset: const Offset(0, 2),
+              ),
+            ],
+          ),
+          child: isNarrow
+              ? Column(children: children)
+              : Row(children: children),
+        );
+      },
+    );
+  }
+
+  Widget _buildToggleItem({
+    required int index,
+    required IconData icon,
+    required String title,
+    required String subtitle,
+  }) {
+    final isSelected = _selectedViewMode == index;
+    return Expanded(
+      flex: 1,
+      child: InkWell(
+        onTap: () => setState(() => _selectedViewMode = index),
+        borderRadius: BorderRadius.circular(AppSizes.radiusMedium),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+          decoration: BoxDecoration(
+            color: isSelected
+                ? AppColors.primaryGreen.withOpacity(0.1)
+                : Colors.transparent,
+            borderRadius: BorderRadius.circular(AppSizes.radiusMedium),
+            border: Border.all(
+              color: isSelected
+                  ? AppColors.primaryGreen
+                  : Colors.transparent,
+              width: 1.5,
+            ),
+          ),
+          child: Row(
+            children: [
+              Icon(
+                icon,
+                color: isSelected
+                    ? AppColors.primaryGreen
+                    : AppColors.textSecondary,
+                size: 22,
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 13,
+                        color: isSelected
+                            ? AppColors.primaryGreen
+                            : AppColors.textPrimary,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      subtitle,
+                      style: TextStyle(
+                        fontSize: 11,
+                        color: isSelected
+                            ? AppColors.primaryGreen.withOpacity(0.8)
+                            : AppColors.textSecondary,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
 
   // ── Header + Export Actions ───────────────────────────────────────────────
   Widget _buildTitleAndExportActions(BuildContext context) {

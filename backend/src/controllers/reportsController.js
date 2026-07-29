@@ -341,3 +341,180 @@ exports.getStorageUsed = async (req, res) => {
         res.status(500).json({ message: 'Failed to fetch storage usage', error: error.message });
     }
 };
+
+// GET /api/reports/transparency-board
+exports.getTransparencyBoardData = (req, res) => {
+    try {
+        const academicYears = db.prepare(`
+            SELECT id, year_range 
+            FROM academic_years 
+            WHERE id IN (SELECT DISTINCT academic_year_id FROM enrollments) 
+               OR status = 'active'
+            ORDER BY year_range DESC 
+            LIMIT 3
+        `).all().reverse();
+
+        const yearsData = academicYears.map(ay => {
+            // Enrollment breakdown by sex & grade
+            const enrollRows = db.prepare(`
+                SELECT 
+                    e.grade_level,
+                    SUM(CASE WHEN s.sex = 'Male' THEN 1 ELSE 0 END) as male,
+                    SUM(CASE WHEN s.sex = 'Female' THEN 1 ELSE 0 END) as female,
+                    COUNT(*) as total
+                FROM enrollments e
+                JOIN students s ON e.student_id = s.id
+                WHERE e.academic_year_id = ?
+                GROUP BY e.grade_level
+            `).all(ay.id);
+
+            const gradesEnrollment = [7, 8, 9, 10, 11, 12].map(g => {
+                const row = enrollRows.find(r => Number(r.grade_level) === g) || { male: 0, female: 0, total: 0 };
+                return {
+                    gradeLevel: g,
+                    male: Number(row.male) || 0,
+                    female: Number(row.female) || 0,
+                    total: Number(row.total) || 0
+                };
+            });
+
+            const jhsTotal = gradesEnrollment.filter(g => g.gradeLevel <= 10).reduce((acc, curr) => ({
+                male: acc.male + curr.male,
+                female: acc.female + curr.female,
+                total: acc.total + curr.total
+            }), { male: 0, female: 0, total: 0 });
+
+            const shsTotal = gradesEnrollment.filter(g => g.gradeLevel > 10).reduce((acc, curr) => ({
+                male: acc.male + curr.male,
+                female: acc.female + curr.female,
+                total: acc.total + curr.total
+            }), { male: 0, female: 0, total: 0 });
+
+            const overallTotal = {
+                male: jhsTotal.male + shsTotal.male,
+                female: jhsTotal.female + shsTotal.female,
+                total: jhsTotal.total + shsTotal.total
+            };
+
+            // Dropout breakdown by grade
+            const dropoutRows = db.prepare(`
+                SELECT 
+                    e.grade_level,
+                    COUNT(DISTINCT s.id) as droppedCount
+                FROM enrollments e
+                JOIN students s ON e.student_id = s.id
+                WHERE e.academic_year_id = ?
+                  AND s.status = 'Dropped'
+                  AND e.academic_year_id = (SELECT MAX(e2.academic_year_id) FROM enrollments e2 WHERE e2.student_id = s.id)
+                GROUP BY e.grade_level
+            `).all(ay.id);
+
+            const gradesDropout = [7, 8, 9, 10, 11, 12].map(g => {
+                const row = dropoutRows.find(r => Number(r.grade_level) === g) || { droppedCount: 0 };
+                return {
+                    gradeLevel: g,
+                    droppedCount: Number(row.droppedCount) || 0
+                };
+            });
+
+            const totalDropped = gradesDropout.reduce((sum, g) => sum + g.droppedCount, 0);
+
+            // Transferee breakdown by grade
+            const transfereeRows = db.prepare(`
+                SELECT 
+                    e.grade_level,
+                    COUNT(DISTINCT s.id) as transferredCount
+                FROM enrollments e
+                JOIN students s ON e.student_id = s.id
+                WHERE e.academic_year_id = ?
+                  AND s.status = 'Transferred'
+                  AND e.academic_year_id = (SELECT MAX(e2.academic_year_id) FROM enrollments e2 WHERE e2.student_id = s.id)
+                GROUP BY e.grade_level
+            `).all(ay.id);
+
+            const gradesTransferee = [7, 8, 9, 10, 11, 12].map(g => {
+                const row = transfereeRows.find(r => Number(r.grade_level) === g) || { transferredCount: 0 };
+                return {
+                    gradeLevel: g,
+                    transferredCount: Number(row.transferredCount) || 0
+                };
+            });
+
+            const totalTransferred = gradesTransferee.reduce((sum, g) => sum + g.transferredCount, 0);
+
+            return {
+                yearRange: ay.year_range,
+                enrollment: {
+                    grades: gradesEnrollment,
+                    jhsTotal,
+                    shsTotal,
+                    overallTotal
+                },
+                dropouts: {
+                    grades: gradesDropout,
+                    totalDropped
+                },
+                transferees: {
+                    grades: gradesTransferee,
+                    totalTransferred
+                }
+            };
+        });
+
+        // 4Ps equity breakdown for latest academic year with enrollments
+        let latestAyId = null;
+        for (let i = academicYears.length - 1; i >= 0; i--) {
+            const cnt = db.prepare('SELECT COUNT(*) as count FROM enrollments WHERE academic_year_id = ?').get(academicYears[i].id).count;
+            if (cnt > 0) {
+                latestAyId = academicYears[i].id;
+                break;
+            }
+        }
+        if (!latestAyId && academicYears.length > 0) {
+            latestAyId = academicYears[academicYears.length - 1].id;
+        }
+        let fourPsRows = [];
+        if (latestAyId) {
+            fourPsRows = db.prepare(`
+                SELECT 
+                    e.grade_level,
+                    SUM(CASE WHEN s.is_4ps = 1 THEN 1 ELSE 0 END) as fourPsCount,
+                    COUNT(DISTINCT s.id) as totalStudents
+                FROM enrollments e
+                JOIN students s ON e.student_id = s.id
+                WHERE e.academic_year_id = ?
+                GROUP BY e.grade_level
+            `).all(latestAyId);
+        }
+
+        const grades4Ps = [7, 8, 9, 10, 11, 12].map(g => {
+            const row = fourPsRows.find(r => Number(r.grade_level) === g) || { fourPsCount: 0, totalStudents: 0 };
+            const count = Number(row.fourPsCount) || 0;
+            const total = Number(row.totalStudents) || 0;
+            const percentage = total > 0 ? Number((count / total * 100).toFixed(1)) : 0;
+            return {
+                gradeLevel: g,
+                fourPsCount: count,
+                totalStudents: total,
+                percentage
+            };
+        });
+
+        const total4Ps = grades4Ps.reduce((sum, g) => sum + g.fourPsCount, 0);
+        const totalStudents = grades4Ps.reduce((sum, g) => sum + g.totalStudents, 0);
+        const overallPercentage = totalStudents > 0 ? Number((total4Ps / totalStudents * 100).toFixed(1)) : 0;
+
+        res.json({
+            years: yearsData,
+            equity4Ps: {
+                grades: grades4Ps,
+                total4Ps,
+                totalStudents,
+                overallPercentage
+            }
+        });
+    } catch (error) {
+        res.status(500).json({ message: 'Failed to fetch transparency board data', error: error.message });
+    }
+};
+

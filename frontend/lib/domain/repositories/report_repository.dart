@@ -96,4 +96,20 @@ class ReportRepository {
       );
     }
   }
+
+  Future<TransparencyBoardData> getTransparencyBoardData() async {
+    try {
+      final res = await _dio.get(
+        '/reports/transparency-board',
+        options: await _authOptions(),
+      );
+      return TransparencyBoardData.fromJson(res.data as Map<String, dynamic>);
+    } on DioException catch (e) {
+      throw Exception(
+        e.response?.data['message'] ??
+            'Failed to fetch transparency board data.',
+      );
+    }
+  }
 }
+
