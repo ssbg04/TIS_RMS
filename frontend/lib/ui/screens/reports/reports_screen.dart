@@ -571,21 +571,19 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
     return LayoutBuilder(
       builder: (context, constraints) {
         final isNarrow = constraints.maxWidth < 800;
-        final children = [
+        final items = [
           _buildToggleItem(
             index: 0,
             icon: Icons.dashboard_outlined,
             title: 'DepEd Transparency Board',
             subtitle: 'Recommended DepEd metrics & equity',
           ),
-          SizedBox(width: isNarrow ? 0 : 8, height: isNarrow ? 8 : 0),
           _buildToggleItem(
             index: 1,
             icon: Icons.analytics_outlined,
             title: 'Compliance & Analytics',
             subtitle: 'Student masterlist & documents',
           ),
-          SizedBox(width: isNarrow ? 0 : 8, height: isNarrow ? 8 : 0),
           _buildToggleItem(
             index: 2,
             icon: Icons.view_agenda_outlined,
@@ -609,8 +607,24 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
             ],
           ),
           child: isNarrow
-              ? Column(children: children)
-              : Row(children: children),
+              ? Column(
+                  children: items
+                      .map((item) => Padding(
+                            padding: const EdgeInsets.only(bottom: 6),
+                            child: item,
+                          ))
+                      .toList(),
+                )
+              : Row(
+                  children: items
+                      .map((item) => Expanded(
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(horizontal: 4),
+                              child: item,
+                            ),
+                          ))
+                      .toList(),
+                ),
         );
       },
     );
@@ -623,9 +637,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
     required String subtitle,
   }) {
     final isSelected = _selectedViewMode == index;
-    return Expanded(
-      flex: 1,
-      child: InkWell(
+    return InkWell(
         onTap: () => setState(() => _selectedViewMode = index),
         borderRadius: BorderRadius.circular(AppSizes.radiusMedium),
         child: AnimatedContainer(
@@ -685,8 +697,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
             ],
           ),
         ),
-      ),
-    );
+      );
   }
 
 

@@ -97,39 +97,77 @@ class _TransparencyBoardSectionState
                 topRight: Radius.circular(AppSizes.radiusLarge),
               ),
             ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
+            child: LayoutBuilder(
+              builder: (context, headerConstraints) {
+                final isMobileHeader = headerConstraints.maxWidth < 650;
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Icon(
-                      Icons.dashboard_outlined,
-                      color: Colors.white,
-                      size: 26,
-                    ),
-                    const SizedBox(width: AppSizes.p12),
-                    const Expanded(
-                      child: Text(
-                        'DEPED TRANSPARENCY & SCHOOL PERFORMANCE BOARD',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                          letterSpacing: 0.5,
-                        ),
+                    if (isMobileHeader) ...[
+                      Row(
+                        children: [
+                          const Icon(
+                            Icons.dashboard_outlined,
+                            color: Colors.white,
+                            size: 24,
+                          ),
+                          const SizedBox(width: AppSizes.p12),
+                          const Expanded(
+                            child: Text(
+                              'DEPED TRANSPARENCY BOARD',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                                letterSpacing: 0.5,
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
+                      const SizedBox(height: 8),
+                      Wrap(
+                        spacing: 8,
+                        runSpacing: 4,
+                        children: [
+                          _buildThemeChip('ACCESS', Colors.amber),
+                          _buildThemeChip('EQUITY', Colors.lightBlueAccent),
+                        ],
+                      ),
+                    ] else ...[
+                      Row(
+                        children: [
+                          const Icon(
+                            Icons.dashboard_outlined,
+                            color: Colors.white,
+                            size: 26,
+                          ),
+                          const SizedBox(width: AppSizes.p12),
+                          const Expanded(
+                            child: Text(
+                              'DEPED TRANSPARENCY & SCHOOL PERFORMANCE BOARD',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                                letterSpacing: 0.5,
+                              ),
+                            ),
+                          ),
+                          _buildThemeChip('ACCESS', Colors.amber),
+                          const SizedBox(width: 8),
+                          _buildThemeChip('EQUITY', Colors.lightBlueAccent),
+                        ],
+                      ),
+                    ],
+                    const SizedBox(height: 6),
+                    const Text(
+                      'Comparative student population, mobility, and equity indicators across consecutive academic years.',
+                      style: TextStyle(color: Colors.white70, fontSize: 13),
                     ),
-                    _buildThemeChip('ACCESS', Colors.amber),
-                    const SizedBox(width: 8),
-                    _buildThemeChip('EQUITY', Colors.lightBlueAccent),
                   ],
-                ),
-                const SizedBox(height: 6),
-                const Text(
-                  'Comparative student population, mobility, and equity indicators across consecutive academic years.',
-                  style: TextStyle(color: Colors.white70, fontSize: 13),
-                ),
-              ],
+                );
+              },
             ),
           ),
 
@@ -138,6 +176,8 @@ class _TransparencyBoardSectionState
             color: Colors.grey.withOpacity(0.05),
             child: TabBar(
               controller: _tabController,
+              isScrollable: true,
+              tabAlignment: TabAlignment.start,
               labelColor: AppColors.primaryGreen,
               unselectedLabelColor: AppColors.textSecondary,
               indicatorColor: AppColors.primaryGreen,
@@ -162,7 +202,7 @@ class _TransparencyBoardSectionState
 
           // ── Tab Views ──────────────────────────────────────────────────────
           SizedBox(
-            height: 520,
+            height: 600,
             child: TabBarView(
               controller: _tabController,
               children: [
@@ -227,8 +267,11 @@ class _TransparencyBoardSectionState
           const SizedBox(height: AppSizes.p24),
           const Divider(),
           const SizedBox(height: AppSizes.p16),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          Wrap(
+            alignment: WrapAlignment.spaceBetween,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            spacing: 12,
+            runSpacing: 8,
             children: [
               Text(
                 'Key Stage 3 (JHS) & Key Stage 4 (SHS) Enrollment Breakdown (${latestYear.yearRange})',
@@ -274,34 +317,34 @@ class _TransparencyBoardSectionState
     return Column(
       children: [
         // Legend
-        Row(
-          mainAxisAlignment: MainAxisAlignment.end,
+        Wrap(
+          alignment: WrapAlignment.end,
+          spacing: 16,
+          runSpacing: 6,
           children: years.asMap().entries.map((entry) {
             final idx = entry.key;
             final item = entry.value;
             final color = yearColors[idx % yearColors.length];
-            return Padding(
-              padding: const EdgeInsets.only(left: 16),
-              child: Row(
-                children: [
-                  Container(
-                    width: 12,
-                    height: 12,
-                    decoration: BoxDecoration(
-                      color: color,
-                      borderRadius: BorderRadius.circular(3),
-                    ),
+            return Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  width: 12,
+                  height: 12,
+                  decoration: BoxDecoration(
+                    color: color,
+                    borderRadius: BorderRadius.circular(3),
                   ),
-                  const SizedBox(width: 6),
-                  Text(
-                    item.yearRange,
-                    style: const TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w600,
-                    ),
+                ),
+                const SizedBox(width: 6),
+                Text(
+                  item.yearRange,
+                  style: const TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
                   ),
-                ],
-              ),
+                ),
+              ],
             );
           }).toList(),
         ),
@@ -421,11 +464,15 @@ class _TransparencyBoardSectionState
   }
 
   Widget _buildEnrollmentTable(YearlyEnrollmentSummary summary) {
-    return Container(
-      decoration: BoxDecoration(
-        border: Border.all(color: Colors.grey.withOpacity(0.3)),
-        borderRadius: BorderRadius.circular(AppSizes.radiusMedium),
-      ),
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(minWidth: 550),
+        child: Container(
+          decoration: BoxDecoration(
+            border: Border.all(color: Colors.grey.withOpacity(0.3)),
+            borderRadius: BorderRadius.circular(AppSizes.radiusMedium),
+          ),
       child: Table(
         columnWidths: const {
           0: FlexColumnWidth(2.5),
@@ -647,7 +694,9 @@ class _TransparencyBoardSectionState
           ),
         ],
       ),
-    );
+    ),
+  ),
+);
   }
 
   // ── TAB 2: Dropout & Transferee Mobility ──────────────────────────────────
@@ -750,11 +799,15 @@ class _TransparencyBoardSectionState
     required Color headerColor,
     required Color totalColor,
   }) {
-    return Container(
-      decoration: BoxDecoration(
-        border: Border.all(color: Colors.grey.withOpacity(0.3)),
-        borderRadius: BorderRadius.circular(AppSizes.radiusMedium),
-      ),
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(minWidth: 550),
+        child: Container(
+          decoration: BoxDecoration(
+            border: Border.all(color: Colors.grey.withOpacity(0.3)),
+            borderRadius: BorderRadius.circular(AppSizes.radiusMedium),
+          ),
       child: Table(
         columnWidths: {
           0: const FlexColumnWidth(2),
@@ -838,7 +891,9 @@ class _TransparencyBoardSectionState
           ),
         ],
       ),
-    );
+    ),
+  ),
+);
   }
 
   // ── TAB 3: Equity (4Ps Beneficiaries) ──────────────────────────────────────
@@ -848,10 +903,14 @@ class _TransparencyBoardSectionState
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          Wrap(
+            alignment: WrapAlignment.spaceBetween,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            spacing: 12,
+            runSpacing: 8,
             children: [
               Row(
+                mainAxisSize: MainAxisSize.min,
                 children: [
                   const Icon(
                     Icons.family_restroom,
@@ -862,7 +921,7 @@ class _TransparencyBoardSectionState
                   const Text(
                     'EQUITY - 4Ps BENEFICIARIES DISTRIBUTION',
                     style: TextStyle(
-                      fontSize: 15,
+                      fontSize: 14,
                       fontWeight: FontWeight.bold,
                       color: AppColors.textPrimary,
                     ),
@@ -890,11 +949,15 @@ class _TransparencyBoardSectionState
             ],
           ),
           const SizedBox(height: 16),
-          Container(
-            decoration: BoxDecoration(
-              border: Border.all(color: Colors.grey.withOpacity(0.3)),
-              borderRadius: BorderRadius.circular(AppSizes.radiusMedium),
-            ),
+          SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(minWidth: 550),
+              child: Container(
+                decoration: BoxDecoration(
+                  border: Border.all(color: Colors.grey.withOpacity(0.3)),
+                  borderRadius: BorderRadius.circular(AppSizes.radiusMedium),
+                ),
             child: Table(
               columnWidths: const {
                 0: FlexColumnWidth(2),
@@ -1040,8 +1103,10 @@ class _TransparencyBoardSectionState
               ],
             ),
           ),
-        ],
+        ),
       ),
-    );
+    ],
+  ),
+);
   }
 }
