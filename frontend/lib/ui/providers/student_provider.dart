@@ -80,6 +80,9 @@ class StudentQueryParams {
   final String section; // '' = All
   final String schoolYear; // '' = All
   final String is4Ps; // '' = All, 'true' = Yes, 'false' = No
+  final String lrn; // '' = All
+  final String sortBy; // '' = None, 'lrn', 'name', 'grade_section', 'doc_status'
+  final String sortOrder; // '' = None, 'asc', 'desc'
 
   const StudentQueryParams({
     this.search = '',
@@ -90,6 +93,9 @@ class StudentQueryParams {
     this.section = '',
     this.schoolYear = '',
     this.is4Ps = '',
+    this.lrn = '',
+    this.sortBy = '',
+    this.sortOrder = '',
   });
 
   StudentQueryParams copyWith({
@@ -101,6 +107,9 @@ class StudentQueryParams {
     String? section,
     String? schoolYear,
     String? is4Ps,
+    String? lrn,
+    String? sortBy,
+    String? sortOrder,
   }) {
     return StudentQueryParams(
       search: search ?? this.search,
@@ -111,6 +120,9 @@ class StudentQueryParams {
       section: section ?? this.section,
       schoolYear: schoolYear ?? this.schoolYear,
       is4Ps: is4Ps ?? this.is4Ps,
+      lrn: lrn ?? this.lrn,
+      sortBy: sortBy ?? this.sortBy,
+      sortOrder: sortOrder ?? this.sortOrder,
     );
   }
 }
@@ -154,6 +166,14 @@ class StudentQueryNotifier extends Notifier<StudentQueryParams> {
 
   void setIs4Ps(String is4Ps) => state = state.copyWith(is4Ps: is4Ps, page: 1);
 
+  void setLrn(String lrn) => state = state.copyWith(lrn: lrn, page: 1);
+
+  void setSort(String sortBy, String sortOrder) => state = state.copyWith(
+    sortBy: sortBy,
+    sortOrder: sortOrder,
+    page: 1,
+  );
+
   void reset() => state = const StudentQueryParams();
 }
 
@@ -181,6 +201,9 @@ final studentPageProvider = FutureProvider.autoDispose<StudentPage>((
     section: query.section,
     schoolYear: query.schoolYear,
     is4ps: query.is4Ps,
+    lrn: query.lrn,
+    sortBy: query.sortBy,
+    sortOrder: query.sortOrder,
   );
 });
 

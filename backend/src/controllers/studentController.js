@@ -48,6 +48,9 @@ exports.getAllStudents = (req, res) => {
         section = '',
         schoolYear = '',
         is4ps = '',        // "true" or "false"
+        lrn = '',
+        sortBy = '',       // 'lrn', 'name', 'grade_section'
+        sortOrder = 'asc', // 'asc', 'desc'
     } = req.query;
 
     const pageNum  = Math.max(1, parseInt(page));
@@ -71,6 +74,11 @@ exports.getAllStudents = (req, res) => {
         if (status.trim()) {
             conditions.push(`s.status = ?`);
             params.push(status.trim());
+        }
+
+        if (lrn.trim()) {
+            conditions.push(`s.lrn LIKE ?`);
+            params.push(`%${lrn.trim()}%`);
         }
 
         if (is4ps === 'true') {
@@ -132,6 +140,16 @@ exports.getAllStudents = (req, res) => {
         `;
         const total = db.prepare(countSql).get(params).total;
 
+        const orderDir = (sortOrder || '').toLowerCase() === 'desc' ? 'DESC' : 'ASC';
+        let orderByClause = `ORDER BY s.last_name ASC, s.first_name ASC`;
+        if (sortBy === 'lrn') {
+            orderByClause = `ORDER BY s.lrn ${orderDir}, s.last_name ASC, s.first_name ASC`;
+        } else if (sortBy === 'name') {
+            orderByClause = `ORDER BY s.last_name ${orderDir}, s.first_name ${orderDir}`;
+        } else if (sortBy === 'grade_section') {
+            orderByClause = `ORDER BY latest_grade_level ${orderDir}, latest_section ${orderDir}, s.last_name ASC, s.first_name ASC`;
+        }
+
         // ---- Fetch query ----
         const fetchSql = `
             SELECT DISTINCT
@@ -154,7 +172,7 @@ exports.getAllStudents = (req, res) => {
             ${teacherJoin}
             ${enrollmentJoin}
             ${whereClause}
-            ORDER BY s.last_name ASC, s.first_name ASC
+            ${orderByClause}
             LIMIT ? OFFSET ?
         `;
 

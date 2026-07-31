@@ -40,15 +40,15 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
   bool _showMultiSelect = false;
   bool _isDragSelecting = false;
   ProviderSubscription<String>? _tabListener;
-  String _docStatusSort = '';
-
   // Pending filter state (applied only when user taps "Apply now")
   String _pendingSchoolYear = 'All School Years';
   String _pendingGradeLevel = 'All Grades';
   String _pendingSection = 'All Sections';
   String _pendingStatus = 'All Status';
   String _pending4Ps = 'All'; // 'All', 'Yes', 'No'
+  String _pendingLrn = '';
   int _pendingLimit = 15;
+  final TextEditingController _pendingLrnCtrl = TextEditingController();
 
   static const _gradeLevels = ['All Grades', '7', '8', '9', '10', '11', '12'];
   static const _statusItems = [
@@ -111,6 +111,7 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
     _searchController.dispose();
     _searchFocusNode.dispose();
     _horizontalScrollController.dispose();
+    _pendingLrnCtrl.dispose();
     ref.read(studentQueryProvider.notifier).reset();
     super.dispose();
   }
@@ -669,6 +670,7 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
       query.section.isNotEmpty,
       query.status.isNotEmpty,
       query.is4Ps.isNotEmpty,
+      query.lrn.isNotEmpty,
       query.limit != 15,
     ].where((v) => v).length;
 
@@ -930,6 +932,8 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
       _pending4Ps = query.is4Ps.isEmpty
           ? 'All'
           : (query.is4Ps == 'true' ? 'Yes' : 'No');
+      _pendingLrn = query.lrn;
+      _pendingLrnCtrl.text = query.lrn;
       _pendingLimit = query.limit;
     });
 
@@ -1106,6 +1110,42 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 mainAxisSize: MainAxisSize.min,
                 children: [
+                  // LRN
+                  _buildFilterSection(
+                    label: 'LRN',
+                    onReset: () => setDialogState(() {
+                      _pendingLrn = '';
+                      _pendingLrnCtrl.clear();
+                    }),
+                    child: SizedBox(
+                      height: 38,
+                      child: TextField(
+                        controller: _pendingLrnCtrl,
+                        decoration: InputDecoration(
+                          hintText: 'Filter by LRN...',
+                          hintStyle: const TextStyle(fontSize: 13, color: Colors.grey),
+                          contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(8),
+                            borderSide: BorderSide(color: Colors.grey.shade300),
+                          ),
+                          enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(8),
+                            borderSide: BorderSide(color: Colors.grey.shade300),
+                          ),
+                          focusedBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(8),
+                            borderSide: const BorderSide(color: AppColors.primaryGreen),
+                          ),
+                        ),
+                        keyboardType: TextInputType.number,
+                        onChanged: (v) => setDialogState(() => _pendingLrn = v.trim()),
+                      ),
+                    ),
+                  ),
+
+                  const Divider(height: 1, indent: 20, endIndent: 20),
+
                   // School Year
                   _buildFilterSection(
                     label: 'School Year',
@@ -1245,6 +1285,8 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
                         _pendingSection = 'All Sections';
                         _pendingStatus = 'All Status';
                         _pending4Ps = 'All';
+                        _pendingLrn = '';
+                        _pendingLrnCtrl.clear();
                         _pendingLimit = 15;
                       });
                       final n = ref.read(studentQueryProvider.notifier);
@@ -1253,6 +1295,7 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
                       n.setSection('');
                       n.setStatus('');
                       n.setIs4Ps('');
+                      n.setLrn('');
                       n.setLimit(15);
                     },
                     child: const Text(
@@ -1300,6 +1343,7 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
                       if (_pending4Ps == 'Yes') is4psVal = 'true';
                       if (_pending4Ps == 'No') is4psVal = 'false';
                       n.setIs4Ps(is4psVal);
+                      n.setLrn(_pendingLrn);
                       n.setLimit(_pendingLimit);
 
                       onApply();
@@ -1452,14 +1496,32 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
     if (rawStudents.isEmpty) return _buildEmptyState(noSections: noSections);
 
     List<StudentModel> students = List.from(rawStudents);
-    if (_docStatusSort == 'asc') {
-      students.sort(
-        (a, b) => a.missingDocumentsCount.compareTo(b.missingDocumentsCount),
-      );
-    } else if (_docStatusSort == 'desc') {
-      students.sort(
-        (a, b) => b.missingDocumentsCount.compareTo(a.missingDocumentsCount),
-      );
+    if (query.sortBy == 'lrn') {
+      students.sort((a, b) {
+        final comp = a.lrn.compareTo(b.lrn);
+        return query.sortOrder == 'desc' ? -comp : comp;
+      });
+    } else if (query.sortBy == 'name') {
+      students.sort((a, b) {
+        final compA = '${a.lastName} ${a.firstName}'.toLowerCase();
+        final compB = '${b.lastName} ${b.firstName}'.toLowerCase();
+        final comp = compA.compareTo(compB);
+        return query.sortOrder == 'desc' ? -comp : comp;
+      });
+    } else if (query.sortBy == 'grade_section') {
+      students.sort((a, b) {
+        final gComp = a.gradeLevel.compareTo(b.gradeLevel);
+        if (gComp != 0) {
+          return query.sortOrder == 'desc' ? -gComp : gComp;
+        }
+        final sComp = a.section.toLowerCase().compareTo(b.section.toLowerCase());
+        return query.sortOrder == 'desc' ? -sComp : sComp;
+      });
+    } else if (query.sortBy == 'doc_status') {
+      students.sort((a, b) {
+        final comp = a.missingDocumentsCount.compareTo(b.missingDocumentsCount);
+        return query.sortOrder == 'desc' ? -comp : comp;
+      });
     }
 
     return LayoutBuilder(
@@ -1545,25 +1607,112 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
                               },
                             ),
                     ),
-                  const DataColumn2(
+                  DataColumn2(
                     size: ColumnSize.M,
-                    label: Text(
-                      'LRN',
-                      style: TextStyle(fontWeight: FontWeight.bold),
+                    label: Row(
+                      children: [
+                        const Text(
+                          'LRN',
+                          style: TextStyle(fontWeight: FontWeight.bold),
+                        ),
+                        PopupMenuButton<String>(
+                          icon: const Icon(Icons.arrow_drop_down, size: 18),
+                          onSelected: (val) {
+                            ref
+                                .read(studentQueryProvider.notifier)
+                                .setSort(val.isEmpty ? '' : 'lrn', val);
+                          },
+                          itemBuilder: (ctx) => [
+                            CheckedPopupMenuItem(
+                              value: '',
+                              checked: query.sortBy == 'lrn' && query.sortOrder == '',
+                              child: const Text('None'),
+                            ),
+                            CheckedPopupMenuItem(
+                              value: 'asc',
+                              checked: query.sortBy == 'lrn' && query.sortOrder == 'asc',
+                              child: const Text('asc'),
+                            ),
+                            CheckedPopupMenuItem(
+                              value: 'desc',
+                              checked: query.sortBy == 'lrn' && query.sortOrder == 'desc',
+                              child: const Text('dsc'),
+                            ),
+                          ],
+                        ),
+                      ],
                     ),
                   ),
-                  const DataColumn2(
+                  DataColumn2(
                     size: ColumnSize.L,
-                    label: Text(
-                      'Name',
-                      style: TextStyle(fontWeight: FontWeight.bold),
+                    label: Row(
+                      children: [
+                        const Text(
+                          'Name',
+                          style: TextStyle(fontWeight: FontWeight.bold),
+                        ),
+                        PopupMenuButton<String>(
+                          icon: const Icon(Icons.arrow_drop_down, size: 18),
+                          onSelected: (val) {
+                            ref
+                                .read(studentQueryProvider.notifier)
+                                .setSort(val.isEmpty ? '' : 'name', val);
+                          },
+                          itemBuilder: (ctx) => [
+                            CheckedPopupMenuItem(
+                              value: '',
+                              checked: query.sortBy == 'name' && query.sortOrder == '',
+                              child: const Text('None'),
+                            ),
+                            CheckedPopupMenuItem(
+                              value: 'asc',
+                              checked: query.sortBy == 'name' && query.sortOrder == 'asc',
+                              child: const Text('A-Z'),
+                            ),
+                            CheckedPopupMenuItem(
+                              value: 'desc',
+                              checked: query.sortBy == 'name' && query.sortOrder == 'desc',
+                              child: const Text('Z-A'),
+                            ),
+                          ],
+                        ),
+                      ],
                     ),
                   ),
-                  const DataColumn2(
+                  DataColumn2(
                     size: ColumnSize.M,
-                    label: Text(
-                      'Grade & Sec.',
-                      style: TextStyle(fontWeight: FontWeight.bold),
+                    label: Row(
+                      children: [
+                        const Text(
+                          'Grade & Sec.',
+                          style: TextStyle(fontWeight: FontWeight.bold),
+                        ),
+                        PopupMenuButton<String>(
+                          icon: const Icon(Icons.arrow_drop_down, size: 18),
+                          onSelected: (val) {
+                            ref
+                                .read(studentQueryProvider.notifier)
+                                .setSort(val.isEmpty ? '' : 'grade_section', val);
+                          },
+                          itemBuilder: (ctx) => [
+                            CheckedPopupMenuItem(
+                              value: '',
+                              checked: query.sortBy == 'grade_section' && query.sortOrder == '',
+                              child: const Text('None'),
+                            ),
+                            CheckedPopupMenuItem(
+                              value: 'asc',
+                              checked: query.sortBy == 'grade_section' && query.sortOrder == 'asc',
+                              child: const Text('7-12 & A-Z'),
+                            ),
+                            CheckedPopupMenuItem(
+                              value: 'desc',
+                              checked: query.sortBy == 'grade_section' && query.sortOrder == 'desc',
+                              child: const Text('12-7 & Z-A'),
+                            ),
+                          ],
+                        ),
+                      ],
                     ),
                   ),
                   DataColumn2(
@@ -1664,23 +1813,25 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
                         PopupMenuButton<String>(
                           icon: const Icon(Icons.arrow_drop_down, size: 18),
                           onSelected: (val) {
-                            setState(() => _docStatusSort = val);
+                            ref
+                                .read(studentQueryProvider.notifier)
+                                .setSort(val.isEmpty ? '' : 'doc_status', val);
                           },
                           itemBuilder: (ctx) => [
                             CheckedPopupMenuItem(
                               value: '',
-                              checked: _docStatusSort == '',
+                              checked: query.sortBy == 'doc_status' && query.sortOrder == '',
                               child: const Text('None'),
                             ),
                             CheckedPopupMenuItem(
                               value: 'asc',
-                              checked: _docStatusSort == 'asc',
-                              child: const Text('Least-Greatest'),
+                              checked: query.sortBy == 'doc_status' && query.sortOrder == 'asc',
+                              child: const Text('Low-High Attention'),
                             ),
                             CheckedPopupMenuItem(
                               value: 'desc',
-                              checked: _docStatusSort == 'desc',
-                              child: const Text('Greatest-Least'),
+                              checked: query.sortBy == 'doc_status' && query.sortOrder == 'desc',
+                              child: const Text('High-Low Attention'),
                             ),
                           ],
                         ),

@@ -100,6 +100,9 @@ class StudentRepository {
     String section = '',
     String schoolYear = '',
     String is4ps = '',
+    String lrn = '',
+    String sortBy = '',
+    String sortOrder = '',
   }) async {
     try {
       final options = await _getAuthOptions();
@@ -112,6 +115,9 @@ class StudentRepository {
           if (section.trim().isNotEmpty) 'section': section.trim(),
           if (schoolYear.trim().isNotEmpty) 'schoolYear': schoolYear.trim(),
           if (is4ps.trim().isNotEmpty) 'is4ps': is4ps.trim(),
+          if (lrn.trim().isNotEmpty) 'lrn': lrn.trim(),
+          if (sortBy.trim().isNotEmpty) 'sortBy': sortBy.trim(),
+          if (sortOrder.trim().isNotEmpty) 'sortOrder': sortOrder.trim(),
           'page': page,
           'limit': limit,
         },
