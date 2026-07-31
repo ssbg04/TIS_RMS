@@ -48,6 +48,7 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
   String _pendingSection = 'All Sections';
   String _pendingStatus = 'All Status';
   String _pending4Ps = 'All'; // 'All', 'Yes', 'No'
+  int _pendingLimit = 15;
 
   static const _gradeLevels = ['All Grades', '7', '8', '9', '10', '11', '12'];
   static const _statusItems = [
@@ -59,7 +60,7 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
     'Inactive',
   ];
   static const _4psItems = ['All', 'Yes', 'No'];
-  static const _pageSizes = [10, 20, 50];
+  static const _pageSizes = [10, 15, 20, 50, 100];
 
   @override
   void initState() {
@@ -597,16 +598,28 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
       context,
       studentId: student.id,
       userRole: widget.userRole,
-      onEdit: () async {
+      onEditById: (currentId) async {
         Navigator.pop(context);
-        await _openModal(student: student);
+        final pageState = ref.read(studentPageProvider);
+        final students = pageState.value?.students ?? [];
+        final targetStudent = students.firstWhere(
+          (s) => s.id == currentId,
+          orElse: () => student,
+        );
+        await _openModal(student: targetStudent);
         if (mounted) {
-          _viewProfile(student);
+          _viewProfile(targetStudent);
         }
       },
-      onDelete: () {
+      onDeleteById: (currentId) {
         Navigator.pop(context);
-        _confirmDelete(student);
+        final pageState = ref.read(studentPageProvider);
+        final students = pageState.value?.students ?? [];
+        final targetStudent = students.firstWhere(
+          (s) => s.id == currentId,
+          orElse: () => student,
+        );
+        _confirmDelete(targetStudent);
       },
     );
   }
@@ -655,6 +668,8 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
       query.gradeLevel.isNotEmpty,
       query.section.isNotEmpty,
       query.status.isNotEmpty,
+      query.is4Ps.isNotEmpty,
+      query.limit != 15,
     ].where((v) => v).length;
 
     return Scaffold(
@@ -915,6 +930,7 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
       _pending4Ps = query.is4Ps.isEmpty
           ? 'All'
           : (query.is4Ps == 'true' ? 'Yes' : 'No');
+      _pendingLimit = query.limit;
     });
 
     showDialog(
@@ -924,12 +940,15 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
         builder: (ctx, setDialogState) {
           return Dialog(
             backgroundColor: Colors.transparent,
-            insetPadding: const EdgeInsets.symmetric(
+            insetPadding: EdgeInsets.symmetric(
               horizontal: 20,
-              vertical: 40,
+              vertical: MediaQuery.of(context).size.height < 600 ? 16 : 40,
             ),
             child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 440),
+              constraints: BoxConstraints(
+                maxWidth: 440,
+                maxHeight: MediaQuery.of(context).size.height * 0.85,
+              ),
               child: _buildFilterPanelContent(
                 query,
                 academicYearsAsync,
@@ -1079,97 +1098,129 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
 
           const Divider(height: 20),
 
-          // School Year
-          _buildFilterSection(
-            label: 'School Year',
-            onReset: () => setDialogState(() {
-              _pendingSchoolYear = 'All School Years';
-              _pendingSection = 'All Sections';
-            }),
-            child: _buildFilterDropdown(
-              value: syItems.contains(_pendingSchoolYear)
-                  ? _pendingSchoolYear
-                  : 'All School Years',
-              items: syItems,
-              counts: syGradeCount,
-              onChanged: (v) => setDialogState(() {
-                _pendingSchoolYear = v!;
-                _pendingSection = 'All Sections';
-              }),
+          // Scrollable middle section for filter items
+          Flexible(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.only(bottom: 8),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  // School Year
+                  _buildFilterSection(
+                    label: 'School Year',
+                    onReset: () => setDialogState(() {
+                      _pendingSchoolYear = 'All School Years';
+                      _pendingSection = 'All Sections';
+                    }),
+                    child: _buildFilterDropdown(
+                      value: syItems.contains(_pendingSchoolYear)
+                          ? _pendingSchoolYear
+                          : 'All School Years',
+                      items: syItems,
+                      counts: syGradeCount,
+                      onChanged: (v) => setDialogState(() {
+                        _pendingSchoolYear = v!;
+                        _pendingSection = 'All Sections';
+                      }),
+                    ),
+                  ),
+
+                  const Divider(height: 1, indent: 20, endIndent: 20),
+
+                  // Grade Level
+                  _buildFilterSection(
+                    label: 'Grade Level',
+                    onReset: () => setDialogState(() {
+                      _pendingGradeLevel = 'All Grades';
+                      _pendingSection = 'All Sections';
+                    }),
+                    child: _buildFilterDropdown(
+                      value: _gradeLevels.contains(_pendingGradeLevel)
+                          ? _pendingGradeLevel
+                          : 'All Grades',
+                      items: _gradeLevels.toList(),
+                      counts: gradeSectionCount,
+                      onChanged: (v) => setDialogState(() {
+                        _pendingGradeLevel = v!;
+                        _pendingSection = 'All Sections';
+                      }),
+                    ),
+                  ),
+
+                  const Divider(height: 1, indent: 20, endIndent: 20),
+
+                  // Section
+                  _buildFilterSection(
+                    label: 'Section',
+                    onReset: () =>
+                        setDialogState(() => _pendingSection = 'All Sections'),
+                    child: _buildFilterDropdown(
+                      value: sectionItems.contains(_pendingSection)
+                          ? _pendingSection
+                          : 'All Sections',
+                      items: sectionItems,
+                      hint: _pendingGradeLevel == 'All Grades'
+                          ? 'Select Grade Level first'
+                          : null,
+                      enabled: _pendingGradeLevel != 'All Grades',
+                      onChanged: _pendingGradeLevel == 'All Grades'
+                          ? null
+                          : (v) => setDialogState(() => _pendingSection = v!),
+                    ),
+                  ),
+
+                  const Divider(height: 1, indent: 20, endIndent: 20),
+
+                  // Status
+                  _buildFilterSection(
+                    label: 'Status',
+                    onReset: () => setDialogState(() => _pendingStatus = 'All Status'),
+                    child: _buildFilterDropdown(
+                      value: _statusItems.contains(_pendingStatus)
+                          ? _pendingStatus
+                          : 'All Status',
+                      items: _statusItems.toList(),
+                      onChanged: (v) => setDialogState(() => _pendingStatus = v!),
+                    ),
+                  ),
+
+                  const Divider(height: 1, indent: 20, endIndent: 20),
+
+                  // 4Ps Beneficiary
+                  _buildFilterSection(
+                    label: '4Ps Beneficiary',
+                    onReset: () => setDialogState(() => _pending4Ps = 'All'),
+                    child: _buildFilterDropdown(
+                      value: _4psItems.contains(_pending4Ps) ? _pending4Ps : 'All',
+                      items: _4psItems.toList(),
+                      onChanged: (v) => setDialogState(() => _pending4Ps = v!),
+                    ),
+                  ),
+
+                  const Divider(height: 1, indent: 20, endIndent: 20),
+
+                  // Items per Page
+                  _buildFilterSection(
+                    label: 'Items per Page',
+                    onReset: () => setDialogState(() => _pendingLimit = 15),
+                    child: _buildFilterDropdown(
+                      value: _pageSizes.contains(_pendingLimit)
+                          ? '$_pendingLimit per page'
+                          : '15 per page',
+                      items: _pageSizes.map((s) => '$s per page').toList(),
+                      onChanged: (v) {
+                        final numVal = int.tryParse(v!.split(' ')[0]) ?? 15;
+                        setDialogState(() => _pendingLimit = numVal);
+                      },
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
 
-          const Divider(height: 1, indent: 20, endIndent: 20),
-
-          // Grade Level
-          _buildFilterSection(
-            label: 'Grade Level',
-            onReset: () => setDialogState(() {
-              _pendingGradeLevel = 'All Grades';
-              _pendingSection = 'All Sections';
-            }),
-            child: _buildFilterDropdown(
-              value: _gradeLevels.contains(_pendingGradeLevel)
-                  ? _pendingGradeLevel
-                  : 'All Grades',
-              items: _gradeLevels.toList(),
-              counts: gradeSectionCount,
-              onChanged: (v) => setDialogState(() {
-                _pendingGradeLevel = v!;
-                _pendingSection = 'All Sections';
-              }),
-            ),
-          ),
-
-          const Divider(height: 1, indent: 20, endIndent: 20),
-
-          // Section
-          _buildFilterSection(
-            label: 'Section',
-            onReset: () =>
-                setDialogState(() => _pendingSection = 'All Sections'),
-            child: _buildFilterDropdown(
-              value: sectionItems.contains(_pendingSection)
-                  ? _pendingSection
-                  : 'All Sections',
-              items: sectionItems,
-              hint: _pendingGradeLevel == 'All Grades'
-                  ? 'Select Grade Level first'
-                  : null,
-              enabled: _pendingGradeLevel != 'All Grades',
-              onChanged: _pendingGradeLevel == 'All Grades'
-                  ? null
-                  : (v) => setDialogState(() => _pendingSection = v!),
-            ),
-          ),
-
-          const Divider(height: 1, indent: 20, endIndent: 20),
-
-          // Status
-          _buildFilterSection(
-            label: 'Status',
-            onReset: () => setDialogState(() => _pendingStatus = 'All Status'),
-            child: _buildFilterDropdown(
-              value: _statusItems.contains(_pendingStatus)
-                  ? _pendingStatus
-                  : 'All Status',
-              items: _statusItems.toList(),
-              onChanged: (v) => setDialogState(() => _pendingStatus = v!),
-            ),
-          ),
-
-          const Divider(height: 1, indent: 20, endIndent: 20),
-
-          // 4Ps Beneficiary
-          _buildFilterSection(
-            label: '4Ps Beneficiary',
-            onReset: () => setDialogState(() => _pending4Ps = 'All'),
-            child: _buildFilterDropdown(
-              value: _4psItems.contains(_pending4Ps) ? _pending4Ps : 'All',
-              items: _4psItems.toList(),
-              onChanged: (v) => setDialogState(() => _pending4Ps = v!),
-            ),
-          ),
+          const Divider(height: 1),
 
           // Footer buttons
           Padding(
@@ -1194,6 +1245,7 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
                         _pendingSection = 'All Sections';
                         _pendingStatus = 'All Status';
                         _pending4Ps = 'All';
+                        _pendingLimit = 15;
                       });
                       final n = ref.read(studentQueryProvider.notifier);
                       n.setSchoolYear('');
@@ -1201,6 +1253,7 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
                       n.setSection('');
                       n.setStatus('');
                       n.setIs4Ps('');
+                      n.setLimit(15);
                     },
                     child: const Text(
                       'Reset all',
@@ -1247,6 +1300,7 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
                       if (_pending4Ps == 'Yes') is4psVal = 'true';
                       if (_pending4Ps == 'No') is4psVal = 'false';
                       n.setIs4Ps(is4psVal);
+                      n.setLimit(_pendingLimit);
 
                       onApply();
                     },
