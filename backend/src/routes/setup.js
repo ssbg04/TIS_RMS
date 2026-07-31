@@ -8,6 +8,7 @@ const { authenticateToken, authorizeRoles } = require('../middleware/auth');
 // ==========================================
 router.get('/academic-years', authenticateToken, setupController.getAllAcademicYears);
 router.post('/academic-years', authenticateToken, authorizeRoles('admin'), setupController.createAcademicYear);
+router.post('/academic-years/check-auto-graduation', authenticateToken, authorizeRoles('admin'), setupController.checkAutoGraduation);
 router.put('/academic-years/:id', authenticateToken, authorizeRoles('admin'), setupController.updateAcademicYear);
 router.delete('/academic-years/:id', authenticateToken, authorizeRoles('admin'), setupController.deleteAcademicYear);
 

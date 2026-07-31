@@ -317,9 +317,21 @@ const initSchema = () => {
             CREATE TABLE IF NOT EXISTS academic_years (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 year_range TEXT UNIQUE NOT NULL, -- e.g., "2023-2024"
-                status TEXT CHECK(status IN ('active', 'inactive')) DEFAULT 'active'
+                status TEXT CHECK(status IN ('active', 'inactive')) DEFAULT 'active',
+                start_date TEXT DEFAULT NULL,
+                end_date TEXT DEFAULT NULL
             )
         `).run();
+
+        const ayCols = db.prepare("PRAGMA table_info(academic_years)").all();
+        if (!ayCols.some(c => c.name === 'start_date')) {
+            db.prepare("ALTER TABLE academic_years ADD COLUMN start_date TEXT DEFAULT NULL").run();
+            console.log('Migration: added start_date column to academic_years table');
+        }
+        if (!ayCols.some(c => c.name === 'end_date')) {
+            db.prepare("ALTER TABLE academic_years ADD COLUMN end_date TEXT DEFAULT NULL").run();
+            console.log('Migration: added end_date column to academic_years table');
+        }
 
         // 2b. Sections Table
         db.prepare(`

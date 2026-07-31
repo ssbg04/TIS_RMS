@@ -37,13 +37,20 @@ class SetupRepository {
   Future<void> createAcademicYear({
     required String yearRange,
     required String status,
+    String? startDate,
+    String? endDate,
   }) async {
     try {
       final options = await _getAuthOptions();
       await _dio.post(
         '/setup/academic-years',
         options: options,
-        data: {'yearRange': yearRange, 'status': status},
+        data: {
+          'yearRange': yearRange,
+          'status': status,
+          if (startDate != null) 'startDate': startDate,
+          if (endDate != null) 'endDate': endDate,
+        },
       );
     } on DioException catch (e) {
       throw Exception(
@@ -56,17 +63,39 @@ class SetupRepository {
     required int id,
     required String yearRange,
     required String status,
+    String? startDate,
+    String? endDate,
   }) async {
     try {
       final options = await _getAuthOptions();
       await _dio.put(
         '/setup/academic-years/$id',
         options: options,
-        data: {'yearRange': yearRange, 'status': status},
+        data: {
+          'yearRange': yearRange,
+          'status': status,
+          if (startDate != null) 'startDate': startDate,
+          if (endDate != null) 'endDate': endDate,
+        },
       );
     } on DioException catch (e) {
       throw Exception(
         e.response?.data?['message'] ?? 'Failed to update academic year.',
+      );
+    }
+  }
+
+  Future<Map<String, dynamic>> checkAutoGraduation() async {
+    try {
+      final options = await _getAuthOptions();
+      final res = await _dio.post(
+        '/setup/academic-years/check-auto-graduation',
+        options: options,
+      );
+      return res.data as Map<String, dynamic>;
+    } on DioException catch (e) {
+      throw Exception(
+        e.response?.data?['message'] ?? 'Failed to check auto-graduation.',
       );
     }
   }

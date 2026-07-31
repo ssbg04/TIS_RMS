@@ -55,11 +55,18 @@ class SetupMutationNotifier extends AsyncNotifier<void> {
   Future<void> createAcademicYear({
     required String yearRange,
     required String status,
+    String? startDate,
+    String? endDate,
   }) async {
     state = const AsyncLoading();
     try {
       final repo = ref.read(setupRepositoryProvider);
-      await repo.createAcademicYear(yearRange: yearRange, status: status);
+      await repo.createAcademicYear(
+        yearRange: yearRange,
+        status: status,
+        startDate: startDate,
+        endDate: endDate,
+      );
       state = const AsyncData(null);
       ref.invalidate(academicYearsListProvider);
     } catch (e, st) {
@@ -72,6 +79,8 @@ class SetupMutationNotifier extends AsyncNotifier<void> {
     required int id,
     required String yearRange,
     required String status,
+    String? startDate,
+    String? endDate,
   }) async {
     state = const AsyncLoading();
     try {
@@ -80,9 +89,25 @@ class SetupMutationNotifier extends AsyncNotifier<void> {
         id: id,
         yearRange: yearRange,
         status: status,
+        startDate: startDate,
+        endDate: endDate,
       );
       state = const AsyncData(null);
       ref.invalidate(academicYearsListProvider);
+    } catch (e, st) {
+      state = AsyncError(e, st);
+      rethrow;
+    }
+  }
+
+  Future<Map<String, dynamic>> checkAutoGraduation() async {
+    state = const AsyncLoading();
+    try {
+      final repo = ref.read(setupRepositoryProvider);
+      final res = await repo.checkAutoGraduation();
+      state = const AsyncData(null);
+      ref.invalidate(academicYearsListProvider);
+      return res;
     } catch (e, st) {
       state = AsyncError(e, st);
       rethrow;

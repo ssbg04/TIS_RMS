@@ -1217,6 +1217,8 @@ class _AcademicYearFormModalState extends ConsumerState<AcademicYearFormModal> {
   final _formKey = GlobalKey<FormState>();
   late TextEditingController _yearRangeController;
   late String _status;
+  DateTime? _startDate;
+  DateTime? _endDate;
   bool _isLoading = false;
 
   @override
@@ -1227,6 +1229,13 @@ class _AcademicYearFormModalState extends ConsumerState<AcademicYearFormModal> {
     );
     // Default: editing keeps current status; adding defaults to inactive (old years)
     _status = widget.year?.status ?? 'inactive';
+    _startDate = widget.year?.startDate != null ? DateTime.tryParse(widget.year!.startDate!) : null;
+    _endDate = widget.year?.endDate != null ? DateTime.tryParse(widget.year!.endDate!) : null;
+  }
+
+  String? _formatYmd(DateTime? dt) {
+    if (dt == null) return null;
+    return '${dt.year.toString().padLeft(4, '0')}-${dt.month.toString().padLeft(2, '0')}-${dt.day.toString().padLeft(2, '0')}';
   }
 
   @override
@@ -1293,6 +1302,64 @@ class _AcademicYearFormModalState extends ConsumerState<AcademicYearFormModal> {
               ],
               onChanged: (v) => setState(() => _status = v!),
             ),
+            const SizedBox(height: AppSizes.p16),
+            Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton.icon(
+                    onPressed: () async {
+                      final picked = await showDatePicker(
+                        context: context,
+                        initialDate: _startDate ?? DateTime.now(),
+                        firstDate: DateTime(2000),
+                        lastDate: DateTime(2100),
+                      );
+                      if (picked != null) {
+                        setState(() => _startDate = picked);
+                      }
+                    },
+                    icon: const Icon(Icons.date_range, size: 16),
+                    label: Text(_startDate != null ? 'Start: ${_formatYmd(_startDate)!}' : 'Start Date (Optional)'),
+                  ),
+                ),
+                if (_startDate != null) ...[
+                  const SizedBox(width: 4),
+                  IconButton(
+                    icon: const Icon(Icons.clear, size: 16),
+                    onPressed: () => setState(() => _startDate = null),
+                  ),
+                ],
+              ],
+            ),
+            const SizedBox(height: 8),
+            Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton.icon(
+                    onPressed: () async {
+                      final picked = await showDatePicker(
+                        context: context,
+                        initialDate: _endDate ?? (_startDate ?? DateTime.now()),
+                        firstDate: DateTime(2000),
+                        lastDate: DateTime(2100),
+                      );
+                      if (picked != null) {
+                        setState(() => _endDate = picked);
+                      }
+                    },
+                    icon: const Icon(Icons.event, size: 16),
+                    label: Text(_endDate != null ? 'End: ${_formatYmd(_endDate)!}' : 'End Date (Optional)'),
+                  ),
+                ),
+                if (_endDate != null) ...[
+                  const SizedBox(width: 4),
+                  IconButton(
+                    icon: const Icon(Icons.clear, size: 16),
+                    onPressed: () => setState(() => _endDate = null),
+                  ),
+                ],
+              ],
+            ),
           ],
         ),
       ),
@@ -1314,6 +1381,8 @@ class _AcademicYearFormModalState extends ConsumerState<AcademicYearFormModal> {
     if (!_formKey.currentState!.validate()) return;
     setState(() => _isLoading = true);
     try {
+      final startStr = _formatYmd(_startDate);
+      final endStr = _formatYmd(_endDate);
       if (widget.year != null) {
         await ref
             .read(setupMutationProvider.notifier)
@@ -1321,6 +1390,8 @@ class _AcademicYearFormModalState extends ConsumerState<AcademicYearFormModal> {
               id: widget.year!.id,
               yearRange: _yearRangeController.text.trim(),
               status: _status,
+              startDate: startStr,
+              endDate: endStr,
             );
       } else {
         await ref
@@ -1328,6 +1399,8 @@ class _AcademicYearFormModalState extends ConsumerState<AcademicYearFormModal> {
             .createAcademicYear(
               yearRange: _yearRangeController.text.trim(),
               status: _status,
+              startDate: startStr,
+              endDate: endStr,
             );
       }
       if (!mounted) return;

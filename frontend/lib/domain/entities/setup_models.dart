@@ -2,11 +2,15 @@ class AcademicYearModel {
   final int id;
   final String yearRange;
   final String status;
+  final String? startDate;
+  final String? endDate;
 
   AcademicYearModel({
     required this.id,
     required this.yearRange,
     required this.status,
+    this.startDate,
+    this.endDate,
   });
 
   factory AcademicYearModel.fromJson(Map<String, dynamic> json) {
@@ -14,6 +18,8 @@ class AcademicYearModel {
       id: (json['id'] as num).toInt(),
       yearRange: json['year_range'] as String,
       status: json['status'] as String,
+      startDate: json['start_date'] as String? ?? json['startDate'] as String?,
+      endDate: json['end_date'] as String? ?? json['endDate'] as String?,
     );
   }
 }

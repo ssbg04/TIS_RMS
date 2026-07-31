@@ -65,4 +65,12 @@ app.get(['/', '/api'], (req, res) => {
 
 app.listen(PORT, '0.0.0.0', () => {
     console.log(`Server running on port ${PORT} (0.0.0.0)`);
+    // Run auto-graduation check on startup and daily
+    try {
+        const { checkAndRunAutoGraduation } = require('./src/services/autoGraduationService');
+        checkAndRunAutoGraduation(1);
+        setInterval(() => checkAndRunAutoGraduation(1), 24 * 60 * 60 * 1000);
+    } catch (err) {
+        console.error('Failed to start auto-graduation schedule:', err.message);
+    }
 });

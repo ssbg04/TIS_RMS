@@ -1,4 +1,5 @@
 const db = require('../config/db');
+const autoGraduationService = require('../services/autoGraduationService');
 
 // ============================================================
 // ACADEMIC YEAR AUTOMATION
@@ -58,18 +59,21 @@ exports.getAllAcademicYears = (req, res) => {
 };
 
 exports.createAcademicYear = (req, res) => {
-    const { yearRange, status } = req.body;
+    const { yearRange, status, startDate, endDate, start_date, end_date } = req.body;
+    const sDate = startDate || start_date || null;
+    const eDate = endDate || end_date || null;
     if (!yearRange || !yearRange.trim()) {
         return res.status(400).json({ message: 'yearRange is required' });
     }
     try {
         // Old academic years for manual adds default to inactive
         const finalStatus = status || 'inactive';
-        const result = db.prepare('INSERT INTO academic_years (year_range, status) VALUES (?, ?)')
-            .run(yearRange.trim(), finalStatus);
-        // If the new year is active, deactivate all others
+        const result = db.prepare('INSERT INTO academic_years (year_range, status, start_date, end_date) VALUES (?, ?, ?, ?)')
+            .run(yearRange.trim(), finalStatus, sDate, eDate);
+        // If the new year is active, deactivate all others and check graduation
         if (finalStatus === 'active') {
             deactivateOtherYears(result.lastInsertRowid);
+            autoGraduationService.checkAndRunAutoGraduation(req.user?.id);
         }
         res.status(201).json({ id: result.lastInsertRowid, message: 'Academic year created successfully' });
     } catch (error) {
@@ -82,7 +86,9 @@ exports.createAcademicYear = (req, res) => {
 
 exports.updateAcademicYear = (req, res) => {
     const { id } = req.params;
-    const { yearRange, status } = req.body;
+    const { yearRange, status, startDate, endDate, start_date, end_date } = req.body;
+    const sDate = startDate !== undefined ? (startDate || null) : (start_date !== undefined ? (start_date || null) : undefined);
+    const eDate = endDate !== undefined ? (endDate || null) : (end_date !== undefined ? (end_date || null) : undefined);
     
     if (!yearRange || !yearRange.trim()) {
         return res.status(400).json({ message: 'yearRange is required' });
@@ -92,15 +98,18 @@ exports.updateAcademicYear = (req, res) => {
     }
 
     try {
-        const year = db.prepare('SELECT id FROM academic_years WHERE id = ?').get(id);
+        const year = db.prepare('SELECT * FROM academic_years WHERE id = ?').get(id);
         if (!year) return res.status(404).json({ message: 'Academic year not found' });
 
         const finalStatus = status || 'inactive';
-        db.prepare('UPDATE academic_years SET year_range = ?, status = ? WHERE id = ?')
-            .run(yearRange.trim(), finalStatus, id);
+        const finalStartDate = sDate !== undefined ? sDate : (year.start_date || null);
+        const finalEndDate = eDate !== undefined ? eDate : (year.end_date || null);
+        db.prepare('UPDATE academic_years SET year_range = ?, status = ?, start_date = ?, end_date = ? WHERE id = ?')
+            .run(yearRange.trim(), finalStatus, finalStartDate, finalEndDate, id);
         // If activated, deactivate all other years automatically
         if (finalStatus === 'active') {
             deactivateOtherYears(parseInt(id));
+            autoGraduationService.checkAndRunAutoGraduation(req.user?.id);
         }
         res.json({ message: 'Academic year updated successfully' });
     } catch (error) {
@@ -108,6 +117,15 @@ exports.updateAcademicYear = (req, res) => {
             return res.status(409).json({ message: `Academic year "${yearRange}" already exists.` });
         }
         res.status(500).json({ message: 'Failed to update academic year', error: error.message });
+    }
+};
+
+exports.checkAutoGraduation = (req, res) => {
+    try {
+        const result = autoGraduationService.checkAndRunAutoGraduation(req.user?.id);
+        res.json(result);
+    } catch (error) {
+        res.status(500).json({ message: 'Failed to check auto graduation', error: error.message });
     }
 };
 
