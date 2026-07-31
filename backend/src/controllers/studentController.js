@@ -306,10 +306,11 @@ exports.createStudent = (req, res) => {
             const newId = result.lastInsertRowid;
 
             // Automatically create enrollment record
-            db.prepare(`
+            const enrRes = db.prepare(`
                 INSERT INTO enrollments (student_id, academic_year_id, section_id, grade_level, track_strand)
                 VALUES (?, ?, ?, ?, ?)
             `).run(newId, academicYearId, sectionId, gradeLevel, trackStrand || null);
+            logActivity(req.user?.id, 'CREATE', 'enrollment', enrRes.lastInsertRowid, `CREATE enrollment ${enrRes.lastInsertRowid} student ${lrn.trim()}`);
 
             return result;
         })();
@@ -493,13 +494,15 @@ exports.updateStudent = (req, res) => {
                             SET section_id = ?, track_strand = ?
                             WHERE id = ?
                         `).run(sectionId, trackStrand || null, existingEnrollment.id);
+                        logActivity(req.user?.id, 'UPDATE', 'enrollment', existingEnrollment.id, `UPDATE enrollment ${existingEnrollment.id} student ${lrn.trim()}`);
                     }
                 } else {
                     // No enrollment for this year and grade, create a new one
-                    db.prepare(`
+                    const resEnr = db.prepare(`
                         INSERT INTO enrollments (student_id, academic_year_id, section_id, grade_level, track_strand)
                         VALUES (?, ?, ?, ?, ?)
                     `).run(id, academicYearId, sectionId, gradeLevel, trackStrand || null);
+                    logActivity(req.user?.id, 'CREATE', 'enrollment', resEnr.lastInsertRowid, `CREATE enrollment ${resEnr.lastInsertRowid} student ${lrn.trim()}`);
                 }
             }
 
@@ -573,15 +576,20 @@ exports.bulkEnrollStudents = (req, res) => {
             const insertEnrollment = db.prepare('INSERT INTO enrollments (student_id, academic_year_id, section_id, grade_level, track_strand) VALUES (?, ?, ?, ?, ?)');
             const updateStudentStatus = db.prepare('UPDATE students SET status = ? WHERE id = ?');
             
+            const getLrn = db.prepare('SELECT lrn FROM students WHERE id = ?');
             for (const studentId of studentIds) {
+                const st = getLrn.get(studentId);
+                const lrn = st?.lrn || studentId;
                 const existing = getExistingEnrollment.get(studentId, academicYearId, gradeLevel);
                 if (existing) {
                     if (existing.section_id !== parseInt(sectionId) ||
                         existing.track_strand !== (trackStrand || null)) {
                         updateEnrollment.run(sectionId, trackStrand || null, existing.id);
+                        logActivity(req.user?.id, 'UPDATE', 'enrollment', existing.id, `UPDATE enrollment ${existing.id} student ${lrn}`);
                     }
                 } else {
-                    insertEnrollment.run(studentId, academicYearId, sectionId, gradeLevel, trackStrand || null);
+                    const resIns = insertEnrollment.run(studentId, academicYearId, sectionId, gradeLevel, trackStrand || null);
+                    logActivity(req.user?.id, 'CREATE', 'enrollment', resIns.lastInsertRowid, `CREATE enrollment ${resIns.lastInsertRowid} student ${lrn}`);
                 }
                 updateStudentStatus.run('Enrolled', studentId);
             }
@@ -674,7 +682,9 @@ exports.addEnrollment = (req, res) => {
             VALUES (?, ?, ?, ?, ?)
         `).run(studentId, academicYearId, sectionId, gradeLevel, trackStrand || null);
 
-        logActivity(req.user?.id, 'CREATE', 'enrollment', info.lastInsertRowid, `Added enrollment ${info.lastInsertRowid} for student ${studentId}`);
+        const studentRow = db.prepare('SELECT lrn FROM students WHERE id = ?').get(studentId);
+        const lrn = studentRow?.lrn || studentId;
+        logActivity(req.user?.id, 'CREATE', 'enrollment', info.lastInsertRowid, `CREATE enrollment ${info.lastInsertRowid} student ${lrn}`);
         res.status(201).json({ message: 'Enrollment added successfully', id: info.lastInsertRowid });
     } catch (error) {
         console.error('addEnrollment error:', error);
@@ -717,7 +727,9 @@ exports.updateEnrollment = (req, res) => {
             WHERE id = ?
         `).run(academicYearId, sectionId, gradeLevel, trackStrand || null, enrollmentId);
 
-        logActivity(req.user?.id, 'UPDATE', 'enrollment', enrollmentId, `Updated enrollment ${enrollmentId} for student ${existing.student_id}`);
+        const studentRow = db.prepare('SELECT lrn FROM students WHERE id = ?').get(existing.student_id);
+        const lrn = studentRow?.lrn || existing.student_id;
+        logActivity(req.user?.id, 'UPDATE', 'enrollment', enrollmentId, `UPDATE enrollment ${enrollmentId} student ${lrn}`);
         res.json({ message: 'Enrollment updated successfully' });
     } catch (error) {
         console.error('updateEnrollment error:', error);
@@ -736,7 +748,9 @@ exports.deleteEnrollment = (req, res) => {
 
     try {
         db.prepare('DELETE FROM enrollments WHERE id = ?').run(enrollmentId);
-        logActivity(req.user?.id, 'DELETE', 'enrollment', enrollmentId, `Deleted enrollment ${enrollmentId} for student ${existing.student_id}`);
+        const studentRow = db.prepare('SELECT lrn FROM students WHERE id = ?').get(existing.student_id);
+        const lrn = studentRow?.lrn || existing.student_id;
+        logActivity(req.user?.id, 'DELETE', 'enrollment', enrollmentId, `DELETE enrollment ${enrollmentId} student ${lrn}`);
         res.json({ message: 'Enrollment deleted successfully' });
     } catch (error) {
         console.error('deleteEnrollment error:', error);

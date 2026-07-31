@@ -195,6 +195,9 @@ exports.autoEnrollFromSF = async ({ studentId, file, documentType = '', userId =
 
         const cleanTrackStrand = (rec.trackStrand || trackStrand) ? (rec.trackStrand || trackStrand).trim() : null;
 
+        const studentRow = db.prepare('SELECT lrn FROM students WHERE id = ?').get(studentId);
+        const lrn = studentRow?.lrn || studentId;
+
         if (existingEnrollment) {
             if (existingEnrollment.section_id !== secRow.id ||
                 (cleanTrackStrand && existingEnrollment.track_strand !== cleanTrackStrand)) {
@@ -204,15 +207,17 @@ exports.autoEnrollFromSF = async ({ studentId, file, documentType = '', userId =
                     WHERE id = ?
                 `).run(secRow.id, cleanTrackStrand || existingEnrollment.track_strand || null, existingEnrollment.id);
                 lastAction = 'updated';
+                logActivity(userId, 'UPDATE', 'enrollment', existingEnrollment.id, `UPDATE enrollment ${existingEnrollment.id} student ${lrn}`);
             } else {
                 lastAction = 'already_up_to_date';
             }
         } else {
-            db.prepare(`
+            const resEnr = db.prepare(`
                 INSERT INTO enrollments (student_id, academic_year_id, section_id, grade_level, track_strand)
                 VALUES (?, ?, ?, ?, ?)
             `).run(studentId, ayRow.id, secRow.id, gradeNum, cleanTrackStrand);
             lastAction = 'added';
+            logActivity(userId, 'CREATE', 'enrollment', resEnr.lastInsertRowid, `CREATE enrollment ${resEnr.lastInsertRowid} student ${lrn}`);
         }
 
         processedRecords.push({

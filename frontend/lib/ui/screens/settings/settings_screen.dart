@@ -1486,6 +1486,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                             final settingsMap = sysSettingsAsync.asData?.value ?? {};
                             final isAutoEnrollEnabled =
                                 (settingsMap['auto_update_enrollment_from_sf'] ?? 'true') == 'true';
+                            final frequency = settingsMap['auto_update_enrollment_from_sf_frequency'] ?? 'immediate';
+                            final timeVal = settingsMap['auto_update_enrollment_from_sf_time'] ?? '00:00';
 
                             return _buildCard(
                               child: Column(
@@ -1533,6 +1535,77 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                                       ),
                                     ],
                                   ),
+                                  if (isAutoEnrollEnabled) ...[
+                                    const SizedBox(height: AppSizes.p16),
+                                    const Divider(color: Colors.grey),
+                                    const SizedBox(height: AppSizes.p12),
+                                    const Text(
+                                      'Update Frequency',
+                                      style: TextStyle(
+                                        fontSize: 14,
+                                        fontWeight: FontWeight.w600,
+                                        color: AppColors.textPrimary,
+                                      ),
+                                    ),
+                                    const SizedBox(height: AppSizes.p8),
+                                    Wrap(
+                                      spacing: 8,
+                                      runSpacing: 8,
+                                      children: [
+                                        _buildFrequencyChip(
+                                          ref: ref,
+                                          label: 'Immediate',
+                                          value: 'immediate',
+                                          currentValue: frequency,
+                                        ),
+                                        _buildFrequencyChip(
+                                          ref: ref,
+                                          label: 'Daily',
+                                          value: 'daily',
+                                          currentValue: frequency,
+                                        ),
+                                        _buildFrequencyChip(
+                                          ref: ref,
+                                          label: 'Weekly',
+                                          value: 'weekly',
+                                          currentValue: frequency,
+                                        ),
+                                        _buildFrequencyChip(
+                                          ref: ref,
+                                          label: 'Monthly',
+                                          value: 'monthly',
+                                          currentValue: frequency,
+                                        ),
+                                      ],
+                                    ),
+                                    if (frequency != 'immediate') ...[
+                                      const SizedBox(height: AppSizes.p16),
+                                      Row(
+                                        children: [
+                                          const Icon(Icons.access_time, size: 18, color: AppColors.textSecondary),
+                                          const SizedBox(width: 8),
+                                          const Text(
+                                            'Execution Time:',
+                                            style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
+                                          ),
+                                          const SizedBox(width: 12),
+                                          DropdownButton<String>(
+                                            value: _validTimeValue(timeVal),
+                                            underline: const SizedBox(),
+                                            items: _buildTimeDropdownItems(),
+                                            onChanged: (newTime) {
+                                              if (newTime != null) {
+                                                ref.read(systemSettingsProvider.notifier).updateSetting(
+                                                  'auto_update_enrollment_from_sf_time',
+                                                  newTime,
+                                                );
+                                              }
+                                            },
+                                          ),
+                                        ],
+                                      ),
+                                    ],
+                                  ],
                                 ],
                               ),
                             );
@@ -1701,6 +1774,64 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       ),
       child: child,
     );
+  }
+
+  Widget _buildFrequencyChip({
+    required WidgetRef ref,
+    required String label,
+    required String value,
+    required String currentValue,
+  }) {
+    final isSelected = currentValue == value;
+    return ChoiceChip(
+      label: Text(
+        label,
+        style: TextStyle(
+          color: isSelected ? Colors.white : AppColors.textPrimary,
+          fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+        ),
+      ),
+      selected: isSelected,
+      selectedColor: AppColors.primaryGreen,
+      backgroundColor: AppColors.pageBackground,
+      onSelected: (_) {
+        ref.read(systemSettingsProvider.notifier).updateSetting(
+          'auto_update_enrollment_from_sf_frequency',
+          value,
+        );
+      },
+    );
+  }
+
+  String _validTimeValue(String? val) {
+    const validTimes = [
+      '00:00', '01:00', '02:00', '03:00', '04:00', '05:00',
+      '06:00', '07:00', '08:00', '09:00', '10:00', '11:00',
+      '12:00', '13:00', '14:00', '15:00', '16:00', '17:00',
+      '18:00', '19:00', '20:00', '21:00', '22:00', '23:00',
+    ];
+    if (val != null && validTimes.contains(val)) return val;
+    return '00:00';
+  }
+
+  List<DropdownMenuItem<String>> _buildTimeDropdownItems() {
+    const times = [
+      '00:00', '01:00', '02:00', '03:00', '04:00', '05:00',
+      '06:00', '07:00', '08:00', '09:00', '10:00', '11:00',
+      '12:00', '13:00', '14:00', '15:00', '16:00', '17:00',
+      '18:00', '19:00', '20:00', '21:00', '22:00', '23:00',
+    ];
+    return times.map((t) {
+      final parts = t.split(':');
+      final hour = int.parse(parts[0]);
+      final suffix = hour >= 12 ? 'PM' : 'AM';
+      final displayHour = hour == 0 ? 12 : (hour > 12 ? hour - 12 : hour);
+      final displayTime = '${displayHour.toString().padLeft(2, '0')}:00 $suffix';
+      return DropdownMenuItem<String>(
+        value: t,
+        child: Text(displayTime, style: const TextStyle(fontSize: 14)),
+      );
+    }).toList();
   }
 }
 
@@ -1896,3 +2027,4 @@ class _TransferProgressDialogState extends State<_TransferProgressDialog> {
     );
   }
 }
+
