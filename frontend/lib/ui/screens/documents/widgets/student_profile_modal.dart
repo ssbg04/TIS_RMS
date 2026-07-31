@@ -6,6 +6,11 @@ import '../../../../domain/repositories/document_repository.dart'
 import '../../../providers/student_provider.dart';
 import '../../../providers/document_provider.dart';
 import '../../students/widgets/edit_enrollment_modal.dart';
+import 'package:dio/dio.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import '../../../../core/network/api_constants.dart';
+import '../../../shared/dialogs/success_dialog.dart';
+import '../../../shared/dialogs/error_dialog.dart';
 
 // ─────────────────────────────────────────────────────────────
 // Public helper – call this anywhere to show the modal
@@ -342,27 +347,46 @@ class StudentProfileModalBody extends ConsumerWidget {
                 ),
                 if (!hideEnrollmentActions &&
                     (userRole == 'admin' || userRole == 'super_admin'))
-                  TextButton.icon(
-                    onPressed: () {
-                      showDialog(
-                        context: context,
-                        barrierColor: Colors.black.withValues(alpha: 0.45),
-                        builder: (ctx) => EditEnrollmentModal(
-                          studentId: studentId,
-                          enrollment: null,
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      TextButton.icon(
+                        onPressed: () => _scanSF10SF9(context, ref, studentId),
+                        icon: const Icon(Icons.document_scanner, size: 16),
+                        label: const Text('Scan SF10 / SF9'),
+                        style: TextButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 10,
+                            vertical: 4,
+                          ),
+                          minimumSize: Size.zero,
+                          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                         ),
-                      );
-                    },
-                    icon: const Icon(Icons.add, size: 16),
-                    label: const Text('Add Enrollment'),
-                    style: TextButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 12,
-                        vertical: 4,
                       ),
-                      minimumSize: Size.zero,
-                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                    ),
+                      const SizedBox(width: 8),
+                      TextButton.icon(
+                        onPressed: () {
+                          showDialog(
+                            context: context,
+                            barrierColor: Colors.black.withValues(alpha: 0.45),
+                            builder: (ctx) => EditEnrollmentModal(
+                              studentId: studentId,
+                              enrollment: null,
+                            ),
+                          );
+                        },
+                        icon: const Icon(Icons.add, size: 16),
+                        label: const Text('Add Enrollment'),
+                        style: TextButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 4,
+                          ),
+                          minimumSize: Size.zero,
+                          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                        ),
+                      ),
+                    ],
                   ),
               ],
             ),
@@ -949,18 +973,6 @@ class StudentProfileModalBody extends ConsumerWidget {
     );
   }
 
-  Widget _chip(String text, Color color) => Container(
-    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-    decoration: BoxDecoration(
-      color: color.withValues(alpha: 0.1),
-      borderRadius: BorderRadius.circular(20),
-    ),
-    child: Text(
-      text,
-      style: TextStyle(fontSize: 11, color: color, fontWeight: FontWeight.w600),
-    ),
-  );
-
   Widget _reqItem(String name, Color color, IconData icon) => Padding(
     padding: const EdgeInsets.only(bottom: 5),
     child: Row(
@@ -977,4 +989,82 @@ class StudentProfileModalBody extends ConsumerWidget {
     if (date is DateTime) return '${date.month}/${date.day}/${date.year}';
     return date.toString();
   }
+
+  Future<void> _scanSF10SF9(
+      BuildContext context, WidgetRef ref, int studentId) async {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => const Center(
+        child: Card(
+          child: Padding(
+            padding: EdgeInsets.all(24.0),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                CircularProgressIndicator(color: AppColors.primaryGreen),
+                SizedBox(height: 16),
+                Text('Scanning SF10/SF9 document...'),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+
+    try {
+      final dio = ApiConstants.createDio();
+      const storage = FlutterSecureStorage();
+      final token = await storage.read(key: 'jwt_token');
+      dio.options.baseUrl = ApiConstants.baseUrl;
+      final res = await dio.post(
+        '/students/$studentId/ocr-enrollment',
+        options: Options(headers: {'Authorization': 'Bearer $token'}),
+      );
+      if (context.mounted) Navigator.pop(context);
+
+      final data = res.data?['data'] ?? {};
+      final allRecords = data['allRecords'];
+      String summaryMsg = 'SF10/SF9 Scanned Successfully!';
+      if (allRecords is List && allRecords.isNotEmpty) {
+        summaryMsg += '\n\nProcessed ${allRecords.length} enrollment record(s):';
+        for (final rec in allRecords) {
+          if (rec is Map) {
+            final gr = rec['gradeLevel'] ?? '?';
+            final sy = rec['schoolYear'] ?? '?';
+            final sec = rec['section'] ?? '?';
+            summaryMsg += '\n• Grade $gr ($sy) - Sec: $sec';
+          }
+        }
+      } else {
+        final sy = data['schoolYear'] ?? 'N/A';
+        final gr = data['gradeLevel'] ?? 'N/A';
+        final sec = data['section'] ?? 'N/A';
+        summaryMsg += '\n\nExtracted Academic Year: $sy\nGrade Level: $gr\nSection: $sec';
+      }
+
+      ref.invalidate(studentPageProvider);
+      ref.invalidate(studentDetailProvider(studentId));
+
+      if (context.mounted) {
+        showSuccessDialog(
+          context,
+          message: summaryMsg,
+        );
+      }
+    } catch (e) {
+      if (context.mounted) Navigator.pop(context);
+      String errMsg = 'Failed to scan SF10/SF9.';
+      if (e is DioException && e.response?.data != null) {
+        final resData = e.response?.data;
+        if (resData is Map && resData['message'] != null) {
+          errMsg = resData['message'].toString();
+        }
+      }
+      if (context.mounted) {
+        showErrorDialog(context, 'OCR Scan Failed', errMsg);
+      }
+    }
+  }
 }
+

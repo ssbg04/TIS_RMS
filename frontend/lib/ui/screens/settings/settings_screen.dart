@@ -21,6 +21,7 @@ import 'teacher_management_screen.dart';
 import '../../../core/utils/date_utils.dart' as pht;
 import '../../providers/reports_provider.dart';
 import '../../../core/network/api_constants.dart';
+import '../../providers/system_settings_provider.dart';
 class TitleCaseTextInputFormatter extends TextInputFormatter {
   @override
   TextEditingValue formatEditUpdate(TextEditingValue oldValue, TextEditingValue newValue) {
@@ -1475,6 +1476,67 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                               ),
                             ],
                           ),
+                        ),
+                        const SizedBox(height: AppSizes.p24),
+
+                        // ── Student Enrollment Auto-Update (Admin Only) ──
+                        Consumer(
+                          builder: (context, ref, _) {
+                            final sysSettingsAsync = ref.watch(systemSettingsProvider);
+                            final settingsMap = sysSettingsAsync.asData?.value ?? {};
+                            final isAutoEnrollEnabled =
+                                (settingsMap['auto_update_enrollment_from_sf'] ?? 'true') == 'true';
+
+                            return _buildCard(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Row(
+                                    children: [
+                                      const Icon(
+                                        Icons.auto_awesome_outlined,
+                                        color: AppColors.primaryGreen,
+                                      ),
+                                      const SizedBox(width: AppSizes.p8),
+                                      const Expanded(
+                                        child: Column(
+                                          crossAxisAlignment: CrossAxisAlignment.start,
+                                          children: [
+                                            Text(
+                                              'Student Enrollment Auto-Update',
+                                              style: TextStyle(
+                                                fontSize: 18,
+                                                fontWeight: FontWeight.bold,
+                                              ),
+                                            ),
+                                            Text(
+                                              'Automatically extract Academic Year, Grade Level, and Section from uploaded or scanned SF10/SF9 documents to update student enrollment records.',
+                                              style: TextStyle(
+                                                fontSize: 13,
+                                                color: AppColors.textSecondary,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                      Switch(
+                                        value: isAutoEnrollEnabled,
+                                        activeColor: AppColors.primaryGreen,
+                                        onChanged: (val) {
+                                          ref
+                                              .read(systemSettingsProvider.notifier)
+                                              .updateSetting(
+                                                'auto_update_enrollment_from_sf',
+                                                val ? 'true' : 'false',
+                                              );
+                                        },
+                                      ),
+                                    ],
+                                  ),
+                                ],
+                              ),
+                            );
+                          },
                         ),
                         const SizedBox(height: AppSizes.p24),
                       ],

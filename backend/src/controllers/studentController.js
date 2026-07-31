@@ -743,3 +743,76 @@ exports.deleteEnrollment = (req, res) => {
         res.status(500).json({ message: 'Failed to delete enrollment', error: error.message });
     }
 };
+
+// ============================================================
+// POST /api/students/:id/ocr-enrollment
+// ============================================================
+exports.scanEnrollmentFromSF = async (req, res) => {
+    try {
+        const studentId = req.params.id;
+        const docs = db.prepare(`
+            SELECT * FROM documents
+            WHERE student_id = ? AND deleted_at IS NULL
+              AND (
+                document_type LIKE '%SF10%' OR document_type LIKE '%SF9%'
+                OR document_type LIKE '%Form 10%' OR document_type LIKE '%Form 9%'
+                OR document_type LIKE '%Report Card%' OR document_type LIKE '%Permanent Record%'
+                OR file_name LIKE '%sf10%' OR file_name LIKE '%sf9%'
+              )
+            ORDER BY id DESC
+        `).all(studentId);
+
+        if (!docs || docs.length === 0) {
+            return res.status(404).json({
+                success: false,
+                message: 'No SF10 or SF9 document found for this student. Please upload an SF10 or SF9 document first.'
+            });
+        }
+
+        const sfEnrollmentService = require('../services/sfEnrollmentService');
+        let lastResult = null;
+        let successCount = 0;
+        let results = [];
+        let aggregatedRecords = [];
+
+        for (const doc of docs) {
+            const resData = await sfEnrollmentService.autoEnrollFromSF({
+                studentId,
+                file: { path: doc.file_path, originalname: doc.file_name },
+                documentType: doc.document_type,
+                userId: req.user?.id,
+                manual: true
+            });
+            results.push(resData);
+            if (resData.success) {
+                successCount++;
+                lastResult = resData;
+                if (Array.isArray(resData.allRecords)) {
+                    aggregatedRecords.push(...resData.allRecords);
+                }
+            }
+        }
+
+        if (successCount === 0) {
+            return res.status(400).json({
+                success: false,
+                message: lastResult?.message || 'Failed to extract Academic Year, Grade Level, or Section from the scanned SF10/SF9 documents.',
+                details: results
+            });
+        }
+
+        if (aggregatedRecords.length > 0) {
+            lastResult.allRecords = aggregatedRecords;
+        }
+
+        return res.json({
+            success: true,
+            message: `Successfully scanned SF10/SF9 and processed ${aggregatedRecords.length || 1} enrollment record(s).`,
+            data: lastResult
+        });
+    } catch (error) {
+        console.error('scanEnrollmentFromSF error:', error);
+        res.status(500).json({ success: false, message: 'Failed to scan SF10/SF9 for enrollment', error: error.message });
+    }
+};
+

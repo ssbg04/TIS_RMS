@@ -652,6 +652,19 @@ const initSchema = () => {
             )
         `).run();
 
+        // 11. System Settings Table
+        db.prepare(`
+            CREATE TABLE IF NOT EXISTS system_settings (
+                key TEXT PRIMARY KEY,
+                value TEXT NOT NULL,
+                updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+            )
+        `).run();
+        db.prepare(`
+            INSERT OR IGNORE INTO system_settings (key, value)
+            VALUES ('auto_update_enrollment_from_sf', 'true')
+        `).run();
+
         // Seed Admin if not exists
         const adminUser = db.prepare("SELECT * FROM users WHERE username = 'admin' OR role = 'admin'").get();
         if (!adminUser) {

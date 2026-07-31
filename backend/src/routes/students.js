@@ -16,6 +16,7 @@ router.put('/:id',  authenticateToken, authorizeRoles('admin'), studentControlle
 router.delete('/:id', authenticateToken, authorizeRoles('admin'), studentController.deleteStudent);
 
 router.post('/:id/enrollments', authenticateToken, authorizeRoles('admin'), studentController.addEnrollment);
+router.post('/:id/ocr-enrollment', authenticateToken, authorizeRoles('admin'), studentController.scanEnrollmentFromSF);
 router.put('/enrollments/:enrollmentId', authenticateToken, authorizeRoles('admin'), studentController.updateEnrollment);
 router.delete('/enrollments/:enrollmentId', authenticateToken, authorizeRoles('admin'), studentController.deleteEnrollment);
 

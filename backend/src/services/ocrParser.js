@@ -1,3 +1,10 @@
+const fs = require('fs');
+const path = require('path');
+const xlsx = require('xlsx');
+const { execFile } = require('child_process');
+const util = require('util');
+const execFileAsync = util.promisify(execFile);
+
 // ==========================================
 // SF9 PARSER (Report Card)
 // ==========================================
@@ -74,8 +81,15 @@ exports.parseSF9 = (text) => {
     const syMatch = text.match(/(?:School\s*Year|S\.?Y\.?)[:\s,]*(\d{4}\s*-\s*\d{4})/i);
     if (syMatch) extracted.schoolYear = syMatch[1].replace(/\s/g, '');
 
-    const trackMatch = text.match(/TRACK\/STRAND[:\s,]*([^\n,]+)/i);
-    if (trackMatch) extracted.trackStrand = trackMatch[1].trim();
+    extracted.scholasticRecords = exports.extractAllScholasticRecords(text);
+    if (extracted.scholasticRecords.length > 0) {
+        const latest = extracted.scholasticRecords[extracted.scholasticRecords.length - 1];
+        extracted.gradeLevel = latest.gradeLevel;
+        extracted.section = latest.section;
+        extracted.schoolYear = latest.schoolYear;
+        extracted.adviserName = latest.adviserName || '';
+        extracted.semester = latest.semester || '';
+    }
 
     return extracted;
 };
@@ -140,16 +154,90 @@ exports.parseSF10 = (text) => {
     const sexMatch = text.match(/(?:Sex|Gender)[:\s,]*(MALE|FEMALE|M\b|F\b)/i);
     if (sexMatch) extracted.sex = sexMatch[1].toUpperCase().startsWith('M') ? 'Male' : 'Female';
 
-    const gradeMatch = text.match(/(?:GRADE\s*LEVEL|GRADE)[:\s,]*(\d+)/i);
-    if (gradeMatch) extracted.gradeLevel = gradeMatch[1];
-
-    const sectionMatch = text.match(/SECTION[:\s,]*([^\n,]+)/i);
-    if (sectionMatch) extracted.section = sectionMatch[1].trim();
-
-    const syMatch = text.match(/(?:S\.?Y\.?|School\s*Year)[:\s,]*(\d{4}\s*-\s*\d{4})/i);
-    if (syMatch) extracted.schoolYear = syMatch[1].replace(/\s/g, '');
+    extracted.scholasticRecords = exports.extractAllScholasticRecords(text);
+    if (extracted.scholasticRecords.length > 0) {
+        const latest = extracted.scholasticRecords[extracted.scholasticRecords.length - 1];
+        extracted.gradeLevel = latest.gradeLevel;
+        extracted.section = latest.section;
+        extracted.schoolYear = latest.schoolYear;
+        extracted.adviserName = latest.adviserName || '';
+        extracted.semester = latest.semester || '';
+    }
 
     return extracted;
+};
+
+// ==========================================
+// EXTRACT ALL SCHOLASTIC RECORDS (PDF, Image, Excel)
+// ==========================================
+exports.extractAllScholasticRecords = (text) => {
+    const records = [];
+    if (!text || typeof text !== 'string') return records;
+
+    const gradeRegex = /(?:GRADE\s*LEVEL|Classified\s*as\s*Grade|GRADE\s*:)[\s,:]*([7-9]|1[0-2])\b/gi;
+    let match;
+    while ((match = gradeRegex.exec(text)) !== null) {
+        const gradeLevel = match[1];
+        const gNum = parseInt(gradeLevel, 10);
+        if (isNaN(gNum) || gNum < 7 || gNum > 12) continue;
+        const startIndex = match.index;
+        const block = text.slice(startIndex, startIndex + 600);
+
+        // 1. Section
+        let section = '';
+        const secMatch = block.match(/SECTION[\s,:]*([A-Za-z0-9\-\s]+?)(?=\s*(?:FIRST|SECOND|1ST|2ND|SEM|SCHOOL\s*YEAR|S\.?Y\.?|NAME\s*OF|ADVISER|TEACHER|,|\n|$))/i);
+        if (secMatch) {
+            section = secMatch[1].replace(/[,:]/g, '').trim();
+        }
+
+        // 2. School Year
+        let schoolYear = '';
+        const syMatch = block.match(/(?:SCHOOL\s*YEAR|S\.?Y\.?)[\s,:]*(\d{4}\s*-\s*\d{4})/i);
+        if (syMatch) {
+            schoolYear = syMatch[1].replace(/\s/g, '');
+        }
+
+        // 3. Adviser / Teacher Name
+        let adviserName = '';
+        const advMatch = block.match(/(?:NAME\s*OF\s*ADVISER\/?TEACHER|ADVISER\/?TEACHER|ADVISER|TEACHER)[\s,:]*([A-Za-z\s\-\.]+?)(?=\s*(?:SIGNATURE|DATE|LEARNING|QUARTERLY|,|\n|$))/i);
+        if (advMatch) {
+            adviserName = advMatch[1].replace(/[,:]/g, '').trim();
+            adviserName = adviserName.replace(/\s*(?:Signature|Date).*$/i, '').trim();
+        }
+
+        // 4. Semester
+        let semester = '';
+        const semMatch = block.match(/(?:SEM(?:ESTER)?|SEM)[\s,:]*(FIRST|SECOND|1ST|2ND|1|2)/i) ||
+                         block.match(/\b(FIRST|SECOND|1ST|2ND)\s*SEMESTER\b/i);
+        if (semMatch) {
+            semester = semMatch[1].toUpperCase();
+        }
+
+        if (gradeLevel && section && schoolYear) {
+            records.push({
+                gradeLevel,
+                section,
+                schoolYear,
+                adviserName,
+                semester
+            });
+        }
+    }
+
+    // Deduplicate records: if two semesters or blocks have the same (gradeLevel, schoolYear, section), do not duplicate!
+    const seen = new Set();
+    const deduplicated = [];
+    for (const rec of records) {
+        const key = `${rec.gradeLevel}_${rec.schoolYear}_${rec.section}`.toLowerCase();
+        if (!seen.has(key)) {
+            seen.add(key);
+            deduplicated.push(rec);
+        } else {
+            console.log(`[ocrParser] Deduplicating same semester/grade record -> Grade: ${rec.gradeLevel}, SY: ${rec.schoolYear}, Sec: ${rec.section}`);
+        }
+    }
+
+    return deduplicated;
 };
 
 // ==========================================
@@ -239,3 +327,103 @@ function extractDob(text) {
 
     return null;
 }
+
+// ==========================================
+// EXTRACT TEXT FROM FILE (Excel, PDF, Image)
+// ==========================================
+exports.extractTextFromFile = async (filePath, originalName = '', mimeType = '') => {
+    let text = '';
+    const isExcel = /\.(xlsx|xls|csv)$/i.test(originalName || filePath) ||
+                    (mimeType && (mimeType.includes('spreadsheet') || mimeType.includes('excel') || mimeType.includes('csv')));
+    const isPdf = (mimeType === 'application/pdf') || /\.(pdf)$/i.test(originalName || filePath);
+
+    if (isExcel) {
+        console.log('[ocrParser] Excel/Spreadsheet file detected. Reading tabs via xlsx...');
+        const workbook = xlsx.readFile(filePath);
+        const tabTexts = [];
+        for (const tabName of workbook.SheetNames) {
+            const sheet = workbook.Sheets[tabName];
+            const rows = xlsx.utils.sheet_to_json(sheet, { header: 1, defval: '' });
+            const rowsText = rows
+                .map(row => {
+                    return row
+                        .filter(cell => cell !== null && cell !== undefined && String(cell).trim() !== '')
+                        .map(cell => String(cell).trim())
+                        .join(' ');
+                })
+                .filter(line => line.length > 0)
+                .join('\n');
+            const csvText = xlsx.utils.sheet_to_csv(sheet);
+            tabTexts.push(`--- TAB: ${tabName} ---\n${rowsText}\n\n${csvText}`);
+        }
+        text = tabTexts.join('\n\n');
+        return text;
+    }
+
+    let imagePathToScan = filePath;
+    let tempPngPath = null;
+
+    if (isPdf) {
+        console.log('[ocrParser] PDF detected. Spawning Ghostscript to convert page 1 to PNG...');
+        const saveDirectory = path.resolve('./uploads/temp_ocr/');
+        if (!fs.existsSync(saveDirectory)) {
+            fs.mkdirSync(saveDirectory, { recursive: true });
+        }
+        tempPngPath = path.join(saveDirectory, `temp_ocr_${Date.now()}_${Math.floor(Math.random() * 1000)}.png`);
+        const gsArgs = [
+            '-dQUIET', '-dPARANOIDSAFER', '-dBATCH', '-dNOPAUSE', '-dNOPROMPT',
+            '-sDEVICE=png16m',
+            '-dTextAlphaBits=4', '-dGraphicsAlphaBits=4',
+            '-r300',
+            '-dFirstPage=1', '-dLastPage=1',
+            `-sOutputFile=${tempPngPath}`,
+            filePath
+        ];
+        const isWindows = process.platform === 'win32';
+        try {
+            if (isWindows) {
+                try {
+                    await execFileAsync('gswin64c', gsArgs);
+                } catch (err) {
+                    if (err.code === 'ENOENT') {
+                        try {
+                            await execFileAsync('gs', gsArgs);
+                        } catch (fallbackErr) {
+                            await execFileAsync('gswin32c', gsArgs);
+                        }
+                    } else throw err;
+                }
+            } else {
+                await execFileAsync('gs', gsArgs);
+            }
+            imagePathToScan = tempPngPath;
+        } catch (err) {
+            console.error('[ocrParser] Ghostscript conversion failed:', err.message);
+            throw new Error('Failed to convert PDF to image for OCR: ' + err.message);
+        }
+    }
+
+    try {
+        console.log('[ocrParser] Running Native Tesseract on image:', imagePathToScan);
+        const defaultTessData = path.join(__dirname, '..', '..', 'tesseract', 'tessdata');
+        const tessEnv = {
+            ...process.env,
+            TESSDATA_PREFIX: process.env.TESSDATA_PREFIX || defaultTessData
+        };
+        const result = await execFileAsync('tesseract', [
+            imagePathToScan,
+            'stdout',
+            '-l', 'eng'
+        ], { env: tessEnv, maxBuffer: 1024 * 1024 * 10 });
+        text = result.stdout || '';
+    } catch (err) {
+        console.error('[ocrParser] Tesseract execution failed:', err.message);
+        throw new Error('Tesseract OCR execution failed: ' + err.message);
+    } finally {
+        if (tempPngPath && fs.existsSync(tempPngPath)) {
+            try { fs.unlinkSync(tempPngPath); } catch (_) {}
+        }
+    }
+
+    return text;
+};

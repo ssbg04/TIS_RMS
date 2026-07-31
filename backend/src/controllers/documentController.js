@@ -160,6 +160,20 @@ exports.uploadDocument = (req, res) => {
 
         createNotification(null, 'Document Uploaded', `Document "${file.originalname}" (${documentType}) has been uploaded for ${studentName}.`, 'document', 'document', result.lastInsertRowid);
 
+        // Check auto-enrollment update if document is SF10 or SF9
+        try {
+            const sfEnrollmentService = require('../services/sfEnrollmentService');
+            sfEnrollmentService.autoEnrollFromSF({
+                studentId,
+                file: { path: file.path, originalname: file.originalname, mimetype: file.mimetype },
+                documentType,
+                userId: req.user?.id,
+                manual: false
+            }).catch(e => console.error('[uploadDocument] autoEnrollFromSF async error:', e.message));
+        } catch (sfErr) {
+            console.error('[uploadDocument] autoEnrollFromSF trigger error:', sfErr.message);
+        }
+
         res.status(201).json({ id: result.lastInsertRowid, message: 'Document uploaded successfully' });
     } catch (error) {
         console.error('Upload Error:', error);
