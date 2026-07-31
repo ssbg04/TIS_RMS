@@ -46,9 +46,16 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
   String _pendingSection = 'All Sections';
   String _pendingStatus = 'All Status';
   String _pending4Ps = 'All'; // 'All', 'Yes', 'No'
-  String _pendingLrn = '';
   int _pendingLimit = 15;
-  final TextEditingController _pendingLrnCtrl = TextEditingController();
+  String _pendingSortBy = '';
+  String _pendingSortOrder = '';
+
+  static const _lrnSortItems = ['Default LRN Order', 'ASC', 'DESC'];
+  static const _docStatusSortItems = [
+    'Default Doc Status Order',
+    'Low-High Attention',
+    'High-Low Attention',
+  ];
 
   static const _gradeLevels = ['All Grades', '7', '8', '9', '10', '11', '12'];
   static const _statusItems = [
@@ -111,7 +118,6 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
     _searchController.dispose();
     _searchFocusNode.dispose();
     _horizontalScrollController.dispose();
-    _pendingLrnCtrl.dispose();
     ref.read(studentQueryProvider.notifier).reset();
     super.dispose();
   }
@@ -670,7 +676,7 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
       query.section.isNotEmpty,
       query.status.isNotEmpty,
       query.is4Ps.isNotEmpty,
-      query.lrn.isNotEmpty,
+      query.sortBy.isNotEmpty,
       query.limit != 15,
     ].where((v) => v).length;
 
@@ -932,8 +938,8 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
       _pending4Ps = query.is4Ps.isEmpty
           ? 'All'
           : (query.is4Ps == 'true' ? 'Yes' : 'No');
-      _pendingLrn = query.lrn;
-      _pendingLrnCtrl.text = query.lrn;
+      _pendingSortBy = query.sortBy;
+      _pendingSortOrder = query.sortOrder;
       _pendingLimit = query.limit;
     });
 
@@ -1110,37 +1116,36 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  // LRN
+                  // LRN Sort
                   _buildFilterSection(
                     label: 'LRN',
                     onReset: () => setDialogState(() {
-                      _pendingLrn = '';
-                      _pendingLrnCtrl.clear();
+                      if (_pendingSortBy == 'lrn') {
+                        _pendingSortBy = '';
+                        _pendingSortOrder = '';
+                      }
                     }),
-                    child: SizedBox(
-                      height: 38,
-                      child: TextField(
-                        controller: _pendingLrnCtrl,
-                        decoration: InputDecoration(
-                          hintText: 'Filter by LRN...',
-                          hintStyle: const TextStyle(fontSize: 13, color: Colors.grey),
-                          contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(8),
-                            borderSide: BorderSide(color: Colors.grey.shade300),
-                          ),
-                          enabledBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(8),
-                            borderSide: BorderSide(color: Colors.grey.shade300),
-                          ),
-                          focusedBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(8),
-                            borderSide: const BorderSide(color: AppColors.primaryGreen),
-                          ),
-                        ),
-                        keyboardType: TextInputType.number,
-                        onChanged: (v) => setDialogState(() => _pendingLrn = v.trim()),
-                      ),
+                    child: _buildFilterDropdown(
+                      value: (_pendingSortBy == 'lrn' && _pendingSortOrder == 'asc')
+                          ? 'ASC'
+                          : ((_pendingSortBy == 'lrn' && _pendingSortOrder == 'desc')
+                              ? 'DESC'
+                              : 'Default LRN Order'),
+                      items: _lrnSortItems,
+                      onChanged: (v) => setDialogState(() {
+                        if (v == 'ASC') {
+                          _pendingSortBy = 'lrn';
+                          _pendingSortOrder = 'asc';
+                        } else if (v == 'DESC') {
+                          _pendingSortBy = 'lrn';
+                          _pendingSortOrder = 'desc';
+                        } else {
+                          if (_pendingSortBy == 'lrn') {
+                            _pendingSortBy = '';
+                            _pendingSortOrder = '';
+                          }
+                        }
+                      }),
                     ),
                   ),
 
@@ -1240,6 +1245,41 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
 
                   const Divider(height: 1, indent: 20, endIndent: 20),
 
+                  // Doc Status
+                  _buildFilterSection(
+                    label: 'Doc Status Attention',
+                    onReset: () => setDialogState(() {
+                      if (_pendingSortBy == 'doc_status') {
+                        _pendingSortBy = '';
+                        _pendingSortOrder = '';
+                      }
+                    }),
+                    child: _buildFilterDropdown(
+                      value: (_pendingSortBy == 'doc_status' && _pendingSortOrder == 'asc')
+                          ? 'Low-High Attention'
+                          : ((_pendingSortBy == 'doc_status' && _pendingSortOrder == 'desc')
+                              ? 'High-Low Attention'
+                              : 'Default Doc Status Order'),
+                      items: _docStatusSortItems,
+                      onChanged: (v) => setDialogState(() {
+                        if (v == 'Low-High Attention') {
+                          _pendingSortBy = 'doc_status';
+                          _pendingSortOrder = 'asc';
+                        } else if (v == 'High-Low Attention') {
+                          _pendingSortBy = 'doc_status';
+                          _pendingSortOrder = 'desc';
+                        } else {
+                          if (_pendingSortBy == 'doc_status') {
+                            _pendingSortBy = '';
+                            _pendingSortOrder = '';
+                          }
+                        }
+                      }),
+                    ),
+                  ),
+
+                  const Divider(height: 1, indent: 20, endIndent: 20),
+
                   // Items per Page
                   _buildFilterSection(
                     label: 'Items per Page',
@@ -1285,8 +1325,8 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
                         _pendingSection = 'All Sections';
                         _pendingStatus = 'All Status';
                         _pending4Ps = 'All';
-                        _pendingLrn = '';
-                        _pendingLrnCtrl.clear();
+                        _pendingSortBy = '';
+                        _pendingSortOrder = '';
                         _pendingLimit = 15;
                       });
                       final n = ref.read(studentQueryProvider.notifier);
@@ -1296,6 +1336,7 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
                       n.setStatus('');
                       n.setIs4Ps('');
                       n.setLrn('');
+                      n.setSort('', '');
                       n.setLimit(15);
                     },
                     child: const Text(
@@ -1343,7 +1384,7 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
                       if (_pending4Ps == 'Yes') is4psVal = 'true';
                       if (_pending4Ps == 'No') is4psVal = 'false';
                       n.setIs4Ps(is4psVal);
-                      n.setLrn(_pendingLrn);
+                      n.setSort(_pendingSortBy, _pendingSortOrder);
                       n.setLimit(_pendingLimit);
 
                       onApply();
@@ -1510,11 +1551,11 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
       });
     } else if (query.sortBy == 'grade_section') {
       students.sort((a, b) {
-        final gComp = a.gradeLevel.compareTo(b.gradeLevel);
+        final gComp = (a.latestGradeLevel ?? 0).compareTo(b.latestGradeLevel ?? 0);
         if (gComp != 0) {
           return query.sortOrder == 'desc' ? -gComp : gComp;
         }
-        final sComp = a.section.toLowerCase().compareTo(b.section.toLowerCase());
+        final sComp = (a.latestSection ?? '').toLowerCase().compareTo((b.latestSection ?? '').toLowerCase());
         return query.sortOrder == 'desc' ? -sComp : sComp;
       });
     } else if (query.sortBy == 'doc_status') {
@@ -1631,12 +1672,12 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
                             CheckedPopupMenuItem(
                               value: 'asc',
                               checked: query.sortBy == 'lrn' && query.sortOrder == 'asc',
-                              child: const Text('asc'),
+                              child: const Text('ASC'),
                             ),
                             CheckedPopupMenuItem(
                               value: 'desc',
                               checked: query.sortBy == 'lrn' && query.sortOrder == 'desc',
-                              child: const Text('dsc'),
+                              child: const Text('DESC'),
                             ),
                           ],
                         ),
