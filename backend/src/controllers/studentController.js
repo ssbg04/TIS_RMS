@@ -17,6 +17,37 @@ const logActivity = (userId, action, entityType, entityId, description) => {
     }
 };
 
+function normalizeBirthDate(val) {
+    if (!val) return null;
+    const str = String(val).trim();
+    if (!str) return null;
+    if (/^\d{4,6}$/.test(str)) {
+        const serial = parseInt(str, 10);
+        if (serial > 10000 && serial < 80000) {
+            const date = new Date(Math.round((serial - 25569) * 86400 * 1000));
+            return date.toISOString().split('T')[0];
+        }
+    }
+    const slash = str.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{2,4})$/);
+    if (slash) {
+        let m = parseInt(slash[1], 10);
+        let d = parseInt(slash[2], 10);
+        let y = parseInt(slash[3], 10);
+        if (y < 100) y += (y <= 30 ? 2000 : 1900);
+        if (m > 12 && d <= 12) {
+            const tmp = m;
+            m = d;
+            d = tmp;
+        }
+        return `${y}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+    }
+    const parsed = new Date(str);
+    if (!isNaN(parsed.getTime())) {
+        return parsed.toISOString().split('T')[0];
+    }
+    return str;
+}
+
 // ============================================================
 // CONFIG — student directory root (configurable via .env)
 // ============================================================
@@ -281,7 +312,8 @@ exports.getStudentById = (req, res) => {
 // POST /api/students — create + auto-create directory & enrollment
 // ============================================================
 exports.createStudent = (req, res) => {
-    const { lrn, firstName, middleName, lastName, extension, sex, birthDate, academicYearId, gradeLevel, sectionId, trackStrand, is4ps } = req.body;
+    let { lrn, firstName, middleName, lastName, extension, sex, birthDate, academicYearId, gradeLevel, sectionId, trackStrand, is4ps } = req.body;
+    birthDate = normalizeBirthDate(birthDate);
 
     // ---- Server-side validation ----
     const errors = [];
@@ -440,7 +472,8 @@ exports.bulkGraduate = (req, res) => {
 // ============================================================
 exports.updateStudent = (req, res) => {
     const { id } = req.params;
-    const { lrn, firstName, middleName, lastName, extension, sex, birthDate, status, academicYearId, gradeLevel, sectionId, trackStrand, is4ps } = req.body;
+    let { lrn, firstName, middleName, lastName, extension, sex, birthDate, status, academicYearId, gradeLevel, sectionId, trackStrand, is4ps } = req.body;
+    birthDate = normalizeBirthDate(birthDate);
 
     // ---- Server-side validation ----
     const errors = [];
@@ -871,6 +904,7 @@ exports.bulkCreateStudents = (req, res) => {
         // Validate required fields
         const rowErrors = [];
         const lrn = (s.lrn || '').trim();
+        const normDob = normalizeBirthDate(s.birthDate);
         if (!isValidLRN(lrn))                                        rowErrors.push('LRN must be exactly 12 digits.');
         if (!s.firstName || !s.firstName.trim())                     rowErrors.push('First name is required.');
         if (!s.lastName  || !s.lastName.trim())                      rowErrors.push('Last name is required.');
@@ -878,6 +912,11 @@ exports.bulkCreateStudents = (req, res) => {
         if (!s.academicYearId)                                       rowErrors.push('Academic year is required.');
         if (!s.gradeLevel)                                           rowErrors.push('Grade level is required.');
         if (!s.sectionId)                                            rowErrors.push('Section is required.');
+        if (normDob) {
+            const dob = new Date(normDob);
+            if (isNaN(dob.getTime()))                                rowErrors.push('Invalid date of birth format.');
+            else if (dob > new Date())                               rowErrors.push('Date of birth cannot be in the future.');
+        }
         if (rowErrors.length) return { status: 'failed', reason: rowErrors[0] };
 
         // Duplicate LRN check — skip, don't fail the whole batch
@@ -895,7 +934,7 @@ exports.bulkCreateStudents = (req, res) => {
             s.lastName.trim(),
             s.extension?.trim()  || null,
             s.sex,
-            s.birthDate || null,
+            normDob || null,
             s.is4ps ? 1 : 0
         );
         const newId = result.lastInsertRowid;

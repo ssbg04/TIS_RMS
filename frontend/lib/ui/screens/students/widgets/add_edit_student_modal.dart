@@ -307,6 +307,28 @@ class _AddEditStudentModalState extends ConsumerState<AddEditStudentModal> {
     );
   }
 
+  DateTime? _parseFlexibleDob(String? input) {
+    if (input == null || input.trim().isEmpty) return null;
+    final str = input.trim();
+    try {
+      return DateTime.parse(str);
+    } catch (_) {}
+    final slash = RegExp(r'^(\d{1,2})[\/\-\.](\d{1,2})[\/\-\.](\d{2,4})$').firstMatch(str);
+    if (slash != null) {
+      int m = int.parse(slash.group(1)!);
+      int d = int.parse(slash.group(2)!);
+      int y = int.parse(slash.group(3)!);
+      if (y < 100) y += (y <= 30 ? 2000 : 1900);
+      if (m > 12 && d <= 12) {
+        final tmp = m;
+        m = d;
+        d = tmp;
+      }
+      return DateTime(y, m, d);
+    }
+    return null;
+  }
+
   Future<void> _handleOcrScan(
     File file,
     String fileName,
@@ -354,11 +376,7 @@ class _AddEditStudentModalState extends ConsumerState<AddEditStudentModal> {
           _selectedSex = ocrResult.sex;
         }
         if (ocrResult.dob != null && ocrResult.dob!.isNotEmpty) {
-          try {
-            _selectedDob = DateTime.parse(ocrResult.dob!);
-          } catch (e) {
-            debugPrint('Could not parse DOB: ${ocrResult.dob}');
-          }
+          _selectedDob = _parseFlexibleDob(ocrResult.dob);
         }
         _isLoading = false;
         _ocrScannedFile = file;
@@ -2468,8 +2486,35 @@ class _DobInputFormatter extends TextInputFormatter {
     TextEditingValue oldValue,
     TextEditingValue newValue,
   ) {
+    String text = newValue.text.trim();
+    // Try YYYY-MM-DD or YYYY/MM/DD
+    final isoMatch = RegExp(r'^(\d{4})[\/\-\.](\d{1,2})[\/\-\.](\d{1,2})$').firstMatch(text);
+    if (isoMatch != null) {
+      final yyyy = isoMatch.group(1)!;
+      final mm = isoMatch.group(2)!.padLeft(2, '0');
+      final dd = isoMatch.group(3)!.padLeft(2, '0');
+      text = '$mm$dd$yyyy';
+    } else {
+      // Try M/D/YYYY, MM/DD/YYYY, M-D-YYYY, or M/D/YY
+      final sepMatch = RegExp(r'^(\d{1,2})[\/\-\.](\d{1,2})[\/\-\.](\d{2,4})$').firstMatch(text);
+      if (sepMatch != null) {
+        int m = int.parse(sepMatch.group(1)!);
+        int d = int.parse(sepMatch.group(2)!);
+        int y = int.parse(sepMatch.group(3)!);
+        if (y < 100) y += (y <= 30 ? 2000 : 1900);
+        if (m > 12 && d <= 12) {
+          final tmp = m;
+          m = d;
+          d = tmp;
+        }
+        final mm = m.toString().padLeft(2, '0');
+        final dd = d.toString().padLeft(2, '0');
+        text = '$mm$dd$y';
+      }
+    }
+
     // Strip everything that's not a digit
-    final digits = newValue.text.replaceAll(RegExp(r'[^\d]'), '');
+    final digits = text.replaceAll(RegExp(r'[^\d]'), '');
     // Limit to 8 raw digits (MMDDYYYY)
     final d = digits.length > 8 ? digits.substring(0, 8) : digits;
 

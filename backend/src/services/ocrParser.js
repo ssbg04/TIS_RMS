@@ -279,7 +279,7 @@ function extractDob(text) {
     };
 
     // Try finding after explicit DOB keyword first
-    const dobKeywordMatch = text.match(/(?:Date\s*of\s*Birth|Birth\s*Date|Birthdate|DOB|Birth|Born)[:\s,]*([^\n,]{6,35})/i);
+    const dobKeywordMatch = text.match(/(?:Date\s*of\s*Birth|Birth\s*Date|Birthdate(?:\s*\([^\)]*\))?|DOB|Birth|Born)[:\s,]*([^\n,]{4,35})/i);
     const searchArea = dobKeywordMatch ? dobKeywordMatch[1] : text;
 
     // 1. Check for Month Name Day, Year (e.g., "May 14, 2007" or "14 May 2007")
@@ -309,12 +309,15 @@ function extractDob(text) {
         return `${y}-${m}-${d}`;
     }
 
-    // 3. Check for MM/DD/YYYY or DD/MM/YYYY
-    const slashMatch = searchArea.match(/\b(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})\b/);
+    // 3. Check for MM/DD/YYYY, DD/MM/YYYY, MM/DD/YY, or DD/MM/YY (supports 2-digit and 4-digit years)
+    const slashMatch = searchArea.match(/\b(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{2,4})\b/);
     if (slashMatch) {
         let p1 = parseInt(slashMatch[1], 10);
         let p2 = parseInt(slashMatch[2], 10);
-        const y = slashMatch[3];
+        let y = parseInt(slashMatch[3], 10);
+        if (y < 100) {
+            y += (y <= 30 ? 2000 : 1900);
+        }
         let m = p1;
         let d = p2;
         if (p1 > 12 && p2 <= 12) {
@@ -323,6 +326,16 @@ function extractDob(text) {
             m = p2;
         }
         return `${y}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+    }
+
+    // 4. Check for Excel serial date numbers (e.g., 38445 -> 2005-04-03)
+    const serialMatch = searchArea.match(/\b(1\d{4}|2\d{4}|3\d{4}|4\d{4}|5\d{4}|6\d{4}|7\d{4})\b/);
+    if (serialMatch) {
+        const serial = parseInt(serialMatch[1], 10);
+        if (serial > 10000 && serial < 80000) {
+            const date = new Date(Math.round((serial - 25569) * 86400 * 1000));
+            return date.toISOString().split('T')[0];
+        }
     }
 
     return null;
@@ -339,14 +352,15 @@ exports.extractTextFromFile = async (filePath, originalName = '', mimeType = '')
 
     if (isExcel) {
         console.log('[ocrParser] Excel/Spreadsheet file detected. Reading tabs via xlsx...');
-        const workbook = xlsx.readFile(filePath);
+        const workbook = xlsx.readFile(filePath, { cellDates: true });
         const tabTexts = [];
         for (const tabName of workbook.SheetNames) {
             const sheet = workbook.Sheets[tabName];
-            const rows = xlsx.utils.sheet_to_json(sheet, { header: 1, defval: '' });
+            const rows = xlsx.utils.sheet_to_json(sheet, { header: 1, defval: '', raw: false });
             const rowsText = rows
                 .map(row => {
-                    return row
+                    const r = Array.isArray(row) ? row : [row];
+                    return r
                         .filter(cell => cell !== null && cell !== undefined && String(cell).trim() !== '')
                         .map(cell => String(cell).trim())
                         .join(' ');
