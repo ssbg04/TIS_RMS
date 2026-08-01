@@ -7,10 +7,7 @@ import 'package:desktop_drop/desktop_drop.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../domain/entities/folder_model.dart';
-import '../../shared/menus/profile_dropdown_menu.dart';
-import 'package:flutter_speed_dial/flutter_speed_dial.dart';
 import '../../shared/inputs/app_search_bar.dart';
-import '../../shared/buttons/primary_button.dart';
 import '../../providers/document_provider.dart';
 import '../../providers/student_provider.dart';
 import '../../providers/auth_provider.dart';
@@ -562,96 +559,81 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
     }
   }
 
-  Widget _buildFabBatchActionsMenu() {
+  Widget _buildInlineMultiSelectHeader() {
     final count = _selectedDocumentIds.length;
     final isAdmin = widget.userRole != 'teacher';
 
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      child: Material(
-        elevation: 8,
-        shadowColor: Colors.black38,
-        borderRadius: BorderRadius.circular(30),
-        color: AppColors.surfaceWhite,
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(30),
-            border: Border.all(color: Colors.grey.shade300),
-            color: AppColors.surfaceWhite,
-          ),
-          child: SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: AppColors.primaryGreen.withValues(alpha: 0.12),
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  child: Text(
-                    count == 0 ? 'Tap items' : '$count selected',
-                    style: TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 13,
-                      color: count == 0 ? AppColors.textSecondary : AppColors.primaryGreen,
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 4),
-                IconButton(
-                  icon: const Icon(Icons.close, size: 18),
-                  tooltip: 'Cancel selection',
-                  onPressed: () => setState(() {
-                    _selectedDocumentIds.clear();
-                    _isMultiSelectMode = false;
-                  }),
-                ),
-                const SizedBox(width: 4),
-                Container(width: 1, height: 22, color: Colors.grey.shade300),
-                const SizedBox(width: 4),
-                _batchActionBtn(
-                  icon: Icons.print_rounded,
-                  label: 'Print',
-                  color: AppColors.primaryGreen,
-                  onTap: count == 0 ? () {} : _handleBatchPrint,
-                ),
-                _batchActionBtn(
-                  icon: Icons.copy_rounded,
-                  label: 'Copy',
-                  color: Colors.blue,
-                  onTap: count == 0 ? () {} : _handleBatchCopy,
-                ),
-                _batchActionBtn(
-                  icon: Icons.download_rounded,
-                  label: 'Download',
-                  color: AppColors.primaryGreen,
-                  onTap: count == 0 ? () {} : _handleBatchDownload,
-                ),
-                _batchActionBtn(
-                  icon: Icons.check_circle_outline_rounded,
-                  label: 'Complete',
-                  color: AppColors.success,
-                  onTap: count == 0 ? () {} : () => _handleBatchStatus('Completed'),
-                ),
-                _batchActionBtn(
-                  icon: Icons.archive_outlined,
-                  label: 'Archive',
-                  color: Colors.orange,
-                  onTap: count == 0 ? () {} : () => _handleBatchStatus('Archived'),
-                ),
-                if (isAdmin)
-                  _batchActionBtn(
-                    icon: Icons.delete_outline_rounded,
-                    label: 'Delete',
-                    color: AppColors.error,
-                    onTap: count == 0 ? () {} : _handleBatchDelete,
-                  ),
-              ],
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      decoration: BoxDecoration(
+        color: AppColors.primaryGreen.withValues(alpha: 0.1),
+        border: Border(
+          bottom: BorderSide(color: AppColors.primaryGreen.withValues(alpha: 0.2)),
+        ),
+      ),
+      child: SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        child: Row(
+          children: [
+            IconButton(
+              icon: const Icon(Icons.close, color: AppColors.textPrimary),
+              tooltip: 'Cancel selection',
+              onPressed: () => setState(() {
+                _selectedDocumentIds.clear();
+                _isMultiSelectMode = false;
+              }),
             ),
-          ),
+            const SizedBox(width: 8),
+            Text(
+              count == 0 ? 'Select items' : '$count selected',
+              style: const TextStyle(
+                fontWeight: FontWeight.bold,
+                fontSize: 16,
+                color: AppColors.textPrimary,
+              ),
+            ),
+            const SizedBox(width: 16),
+            Container(width: 1, height: 24, color: Colors.grey.shade400),
+            const SizedBox(width: 12),
+            _batchActionBtn(
+              icon: Icons.print_rounded,
+              label: 'Print',
+              color: AppColors.primaryGreen,
+              onTap: count == 0 ? () {} : _handleBatchPrint,
+            ),
+            _batchActionBtn(
+              icon: Icons.copy_rounded,
+              label: 'Copy',
+              color: Colors.blue,
+              onTap: count == 0 ? () {} : _handleBatchCopy,
+            ),
+            _batchActionBtn(
+              icon: Icons.download_rounded,
+              label: 'Download',
+              color: AppColors.primaryGreen,
+              onTap: count == 0 ? () {} : _handleBatchDownload,
+            ),
+            _batchActionBtn(
+              icon: Icons.check_circle_outline_rounded,
+              label: 'Complete',
+              color: AppColors.success,
+              onTap: count == 0 ? () {} : () => _handleBatchStatus('Completed'),
+            ),
+            _batchActionBtn(
+              icon: Icons.archive_outlined,
+              label: 'Archive',
+              color: Colors.orange,
+              onTap: count == 0 ? () {} : () => _handleBatchStatus('Archived'),
+            ),
+            if (isAdmin)
+              _batchActionBtn(
+                icon: Icons.delete_outline_rounded,
+                label: 'Delete',
+                color: AppColors.error,
+                onTap: count == 0 ? () {} : _handleBatchDelete,
+              ),
+          ],
         ),
       ),
     );
@@ -779,23 +761,24 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
                 ),
               )
             : null,
-        bottomNavigationBar: _isMultiSelectMode
-            ? _buildFabBatchActionsMenu()
-            : null,
+        bottomNavigationBar: null,
         body: SafeArea(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // ── Top Header ──
-              _buildTopHeader(
-                isMobile,
-                isStudentFiltered,
-                query,
-                isFolderOpened,
-                requirementsAsync,
-                academicYearsAsync,
-                statusesAsync,
-              ),
+              // ── Top Header or Inline Multi-Select Header ──
+              if (_isMultiSelectMode)
+                _buildInlineMultiSelectHeader()
+              else
+                _buildTopHeader(
+                  isMobile,
+                  isStudentFiltered,
+                  query,
+                  isFolderOpened,
+                  requirementsAsync,
+                  academicYearsAsync,
+                  statusesAsync,
+                ),
 
               // ── TabBar ──
               Container(
