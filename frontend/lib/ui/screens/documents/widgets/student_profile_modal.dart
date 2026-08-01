@@ -5,13 +5,6 @@ import '../../../../domain/repositories/document_repository.dart'
     show MissingRequirements;
 import '../../../providers/student_provider.dart';
 import '../../../providers/document_provider.dart';
-import '../../students/widgets/edit_enrollment_modal.dart';
-import 'package:dio/dio.dart';
-import 'package:flutter_secure_storage/flutter_secure_storage.dart';
-import '../../../../core/network/api_constants.dart';
-import '../../../shared/dialogs/success_dialog.dart';
-import '../../../shared/dialogs/error_dialog.dart';
-
 // ─────────────────────────────────────────────────────────────
 // Public helper – call this anywhere to show the modal
 // ─────────────────────────────────────────────────────────────
@@ -345,95 +338,12 @@ class StudentProfileModalBody extends ConsumerWidget {
             const SizedBox(height: 20),
 
             const SizedBox(height: 20),
-            Builder(
-              builder: (ctx) {
-                final screenW = MediaQuery.of(ctx).size.width;
-                final isStacked = screenW < 550 ||
-                    Theme.of(ctx).platform == TargetPlatform.android;
-
-                final actions = (!hideEnrollmentActions &&
-                        (userRole == 'admin' || userRole == 'super_admin'))
-                    ? [
-                        OutlinedButton.icon(
-                          onPressed: () => _scanSF10SF9(context, ref, studentId),
-                          icon: const Icon(Icons.document_scanner, size: 18),
-                          label: const Text('Scan SF10 / SF9'),
-                          style: OutlinedButton.styleFrom(
-                            foregroundColor: AppColors.primaryGreen,
-                            side: const BorderSide(
-                              color: AppColors.primaryGreen,
-                            ),
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 14,
-                              vertical: 10,
-                            ),
-                          ),
-                        ),
-                        if (isStacked)
-                          const SizedBox(height: 8)
-                        else
-                          const SizedBox(width: 8),
-                        ElevatedButton.icon(
-                          onPressed: () {
-                            showDialog(
-                              context: context,
-                              barrierColor:
-                                  Colors.black.withValues(alpha: 0.45),
-                              builder: (ctx) => EditEnrollmentModal(
-                                studentId: studentId,
-                                enrollment: null,
-                              ),
-                            );
-                          },
-                          icon: const Icon(Icons.add, size: 18),
-                          label: const Text('Add Enrollment'),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: AppColors.primaryGreen,
-                            foregroundColor: Colors.white,
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 14,
-                              vertical: 10,
-                            ),
-                          ),
-                        ),
-                      ]
-                    : <Widget>[];
-
-                if (isStacked) {
-                  return Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      const Text(
-                        'Enrollments',
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      if (actions.isNotEmpty) ...[
-                        const SizedBox(height: 10),
-                        ...actions,
-                      ],
-                    ],
-                  );
-                }
-
-                return Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    const Text(
-                      'Enrollments',
-                      style:
-                          TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                    ),
-                    if (actions.isNotEmpty)
-                      Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: actions,
-                      ),
-                  ],
-                );
-              },
+            const Text(
+              'Enrollments',
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+              ),
             ),
             const SizedBox(height: 10),
 
@@ -711,63 +621,6 @@ class StudentProfileModalBody extends ConsumerWidget {
               ],
             ),
           ),
-          if (!hideEnrollmentActions &&
-              (userRole == 'admin' || userRole == 'super_admin')) ...[
-            IconButton(
-              icon: const Icon(Icons.edit, size: 18, color: Colors.blue),
-              tooltip: 'Edit Enrollment',
-              onPressed: () {
-                showDialog(
-                  context: context,
-                  barrierColor: Colors.black.withValues(alpha: 0.45),
-                  builder: (ctx) => EditEnrollmentModal(
-                    studentId: studentId,
-                    enrollment: enrollment,
-                  ),
-                );
-              },
-            ),
-            IconButton(
-              icon: const Icon(
-                Icons.delete_outline,
-                size: 18,
-                color: AppColors.error,
-              ),
-              tooltip: 'Delete Enrollment',
-              onPressed: () {
-                showDialog(
-                  context: context,
-                  builder: (ctx) => AlertDialog(
-                    title: const Text('Delete Enrollment'),
-                    content: const Text(
-                      'Are you sure you want to delete this enrollment? This action cannot be undone.',
-                    ),
-                    actions: [
-                      TextButton(
-                        onPressed: () => Navigator.of(ctx).pop(),
-                        child: const Text('CANCEL'),
-                      ),
-                      TextButton(
-                        onPressed: () {
-                          Navigator.of(ctx).pop();
-                          ref
-                              .read(studentMutationProvider.notifier)
-                              .deleteEnrollment(
-                                studentId: studentId,
-                                enrollmentId: enrollment.id,
-                              );
-                        },
-                        style: TextButton.styleFrom(
-                          foregroundColor: AppColors.error,
-                        ),
-                        child: const Text('DELETE'),
-                      ),
-                    ],
-                  ),
-                );
-              },
-            ),
-          ],
         ],
       ),
     );
@@ -1033,83 +886,6 @@ class StudentProfileModalBody extends ConsumerWidget {
     if (date == null) return 'N/A';
     if (date is DateTime) return '${date.month}/${date.day}/${date.year}';
     return date.toString();
-  }
-
-  Future<void> _scanSF10SF9(
-      BuildContext context, WidgetRef ref, int studentId) async {
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (ctx) => const Center(
-        child: Card(
-          child: Padding(
-            padding: EdgeInsets.all(24.0),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                CircularProgressIndicator(color: AppColors.primaryGreen),
-                SizedBox(height: 16),
-                Text('Scanning SF10/SF9 document...'),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-
-    try {
-      final dio = ApiConstants.createDio();
-      const storage = FlutterSecureStorage();
-      final token = await storage.read(key: 'jwt_token');
-      dio.options.baseUrl = ApiConstants.baseUrl;
-      final res = await dio.post(
-        '/students/$studentId/ocr-enrollment',
-        options: Options(headers: {'Authorization': 'Bearer $token'}),
-      );
-      if (context.mounted) Navigator.pop(context);
-
-      final data = res.data?['data'] ?? {};
-      final allRecords = data['allRecords'];
-      String summaryMsg = 'SF10/SF9 Scanned Successfully!';
-      if (allRecords is List && allRecords.isNotEmpty) {
-        summaryMsg += '\n\nProcessed ${allRecords.length} enrollment record(s):';
-        for (final rec in allRecords) {
-          if (rec is Map) {
-            final gr = rec['gradeLevel'] ?? '?';
-            final sy = rec['schoolYear'] ?? '?';
-            final sec = rec['section'] ?? '?';
-            summaryMsg += '\n• Grade $gr ($sy) - Sec: $sec';
-          }
-        }
-      } else {
-        final sy = data['schoolYear'] ?? 'N/A';
-        final gr = data['gradeLevel'] ?? 'N/A';
-        final sec = data['section'] ?? 'N/A';
-        summaryMsg += '\n\nExtracted Academic Year: $sy\nGrade Level: $gr\nSection: $sec';
-      }
-
-      ref.invalidate(studentPageProvider);
-      ref.invalidate(studentDetailProvider(studentId));
-
-      if (context.mounted) {
-        showSuccessDialog(
-          context,
-          message: summaryMsg,
-        );
-      }
-    } catch (e) {
-      if (context.mounted) Navigator.pop(context);
-      String errMsg = 'Failed to scan SF10/SF9.';
-      if (e is DioException && e.response?.data != null) {
-        final resData = e.response?.data;
-        if (resData is Map && resData['message'] != null) {
-          errMsg = resData['message'].toString();
-        }
-      }
-      if (context.mounted) {
-        showErrorDialog(context, 'OCR Scan Failed', errMsg);
-      }
-    }
   }
 }
 

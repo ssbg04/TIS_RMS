@@ -268,9 +268,9 @@ class StudentMutationNotifier extends AsyncNotifier<void> {
     String? extension,
     required String sex,
     required DateTime? birthDate,
-    required int academicYearId,
-    required int gradeLevel,
-    required int sectionId,
+    int academicYearId = 0,
+    int gradeLevel = 0,
+    int sectionId = 0,
     String? trackStrand,
     String status = 'Enrolled',
     bool is4ps = false,
@@ -416,6 +416,7 @@ class StudentMutationNotifier extends AsyncNotifier<void> {
       await repo.deleteEnrollment(enrollmentId);
       state = const AsyncData(null);
       ref.invalidate(studentDetailProvider(studentId));
+      ref.invalidate(studentPageProvider);
     } catch (e, st) {
       state = AsyncError(e, st);
       rethrow;

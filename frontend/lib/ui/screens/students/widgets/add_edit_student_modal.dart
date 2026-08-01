@@ -17,6 +17,11 @@ import '../../../shared/dialogs/success_dialog.dart';
 import '../../../shared/dialogs/info_dialog.dart';
 import '../../documents/widgets/document_preview_modal.dart';
 import '../../../shared/modals/custom_modal.dart';
+import 'edit_enrollment_modal.dart';
+import 'package:dio/dio.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import '../../../../core/network/api_constants.dart';
+import '../../../shared/dialogs/error_dialog.dart';
 
 // ---------------------------------------------------------------
 // Auto-capitalises the first letter of every word (works on paste)
@@ -584,6 +589,746 @@ class _AddEditStudentModalState extends ConsumerState<AddEditStudentModal> {
   }
 
   // ----------------------------------------------------------------
+  // UPDATE DETAILS FOR EDIT TAB MODAL
+  // ----------------------------------------------------------------
+  Future<void> _handleSaveDetails() async {
+    setState(() => _errorMessage = null);
+
+    final lrnErr = _validateLRN(_lrnController.text);
+    final fnErr = _validateRequired(_firstNameController.text, 'First name');
+    final lnErr = _validateRequired(_lastNameController.text, 'Last name');
+
+    if (lrnErr != null || fnErr != null || lnErr != null) {
+      _studentFormKey.currentState?.validate();
+      final missing = <String>[];
+      if (lrnErr != null) missing.add('LRN ($lrnErr)');
+      if (fnErr != null) missing.add('First Name');
+      if (lnErr != null) missing.add('Last Name');
+      _showValidationDialog(
+        'Please fill in all required fields:\n\n${missing.map((e) => '• $e').join('\n')}',
+      );
+      return;
+    }
+
+    if (_selectedStatus == 'Graduated') {
+      int? latestGrade = _selectedGradeLevel;
+      if (_loadedEnrollments != null && _loadedEnrollments!.isNotEmpty) {
+        final latestEnrollment = _loadedEnrollments!.reduce((a, b) {
+          final ya = a.yearRange ?? '';
+          final yb = b.yearRange ?? '';
+          final cmp = ya.compareTo(yb);
+          if (cmp != 0) return cmp > 0 ? a : b;
+          return (a.gradeLevel ?? 0) > (b.gradeLevel ?? 0) ? a : b;
+        });
+        latestGrade = latestEnrollment.gradeLevel;
+      }
+      if (latestGrade != 10 && latestGrade != 12) {
+        _showValidationDialog(
+          'Graduation status is only applicable for Grade 10 and Grade 12 students.',
+        );
+        return;
+      }
+    }
+
+    setState(() => _isLoading = true);
+    try {
+      final notifier = ref.read(studentMutationProvider.notifier);
+      await notifier.updateStudent(
+        id: widget.student!.id,
+        lrn: _lrnController.text.trim(),
+        firstName: _firstNameController.text.trim(),
+        middleName: _middleNameController.text.trim().isEmpty
+            ? null
+            : _middleNameController.text.trim(),
+        lastName: _lastNameController.text.trim(),
+        extension: _extController.text.trim().isEmpty
+            ? null
+            : _extController.text.trim(),
+        sex: _selectedSex,
+        birthDate: _selectedDob,
+        status: _selectedStatus,
+        is4ps: _is4ps,
+      );
+      if (!mounted) return;
+      ref.invalidate(studentPageProvider);
+      ref.invalidate(studentDetailProvider(widget.student!.id));
+      Navigator.of(context).pop(true);
+    } catch (e) {
+      if (!mounted) return;
+      final raw = e.toString();
+      final msg = raw.startsWith('Exception: ') ? raw.substring(11) : raw;
+      setState(() {
+        _isLoading = false;
+        _errorMessage = msg;
+      });
+    }
+  }
+
+  // ----------------------------------------------------------------
+  // OCR SCAN FOR ENROLLMENTS TAB
+  // ----------------------------------------------------------------
+  Future<void> _scanSF10SF9(
+      BuildContext context, WidgetRef ref, int studentId) async {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => const Center(
+        child: Card(
+          child: Padding(
+            padding: EdgeInsets.all(24.0),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                CircularProgressIndicator(color: AppColors.primaryGreen),
+                SizedBox(height: 16),
+                Text('Scanning SF10/SF9 document...'),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+
+    try {
+      final dio = ApiConstants.createDio();
+      const storage = FlutterSecureStorage();
+      final token = await storage.read(key: 'jwt_token');
+      dio.options.baseUrl = ApiConstants.baseUrl;
+      final res = await dio.post(
+        '/students/$studentId/ocr-enrollment',
+        options: Options(headers: {'Authorization': 'Bearer $token'}),
+      );
+      if (context.mounted) Navigator.pop(context);
+
+      final data = res.data?['data'] ?? {};
+      final allRecords = data['allRecords'];
+      String summaryMsg = 'SF10/SF9 Scanned Successfully!';
+      if (allRecords is List && allRecords.isNotEmpty) {
+        summaryMsg += '\n\nProcessed ${allRecords.length} enrollment record(s):';
+        for (final rec in allRecords) {
+          if (rec is Map) {
+            final gr = rec['gradeLevel'] ?? '?';
+            final sy = rec['schoolYear'] ?? '?';
+            final sec = rec['section'] ?? '?';
+            summaryMsg += '\n• Grade $gr ($sy) - Sec: $sec';
+          }
+        }
+      } else {
+        final sy = data['schoolYear'] ?? 'N/A';
+        final gr = data['gradeLevel'] ?? 'N/A';
+        final sec = data['section'] ?? 'N/A';
+        summaryMsg += '\n\nExtracted Academic Year: $sy\nGrade Level: $gr\nSection: $sec';
+      }
+
+      ref.invalidate(studentPageProvider);
+      ref.invalidate(studentDetailProvider(studentId));
+
+      if (context.mounted) {
+        showSuccessDialog(
+          context,
+          message: summaryMsg,
+        );
+      }
+    } catch (e) {
+      if (context.mounted) Navigator.pop(context);
+      String errMsg = 'Failed to scan SF10/SF9.';
+      if (e is DioException && e.response?.data != null) {
+        final resData = e.response?.data;
+        if (resData is Map && resData['message'] != null) {
+          errMsg = resData['message'].toString();
+        }
+      }
+      if (context.mounted) {
+        showErrorDialog(context, 'OCR Scan Failed', errMsg);
+      }
+    }
+  }
+
+  // ----------------------------------------------------------------
+  // BUILD TABBED MODAL FOR UPDATE STUDENT RECORD
+  // ----------------------------------------------------------------
+  Widget _buildEditTabsModal(bool isMobile, double keyboardInset) {
+    final compactTheme = Theme.of(context).copyWith(
+      inputDecorationTheme: Theme.of(context).inputDecorationTheme.copyWith(
+        isDense: true,
+        contentPadding: EdgeInsets.symmetric(
+          horizontal: isMobile ? 10 : 16,
+          vertical: isMobile ? 8 : 16,
+        ),
+        labelStyle: TextStyle(fontSize: isMobile ? 12 : 14),
+        hintStyle: TextStyle(fontSize: isMobile ? 11 : 14),
+      ),
+    );
+
+    return Theme(
+      data: compactTheme,
+      child: DefaultTabController(
+        length: 2,
+        child: Column(
+          children: [
+            Container(
+              decoration: BoxDecoration(
+                color: AppColors.surfaceWhite,
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: Colors.grey.shade300),
+              ),
+              child: TabBar(
+                labelColor: AppColors.primaryGreen,
+                unselectedLabelColor: AppColors.textSecondary,
+                indicatorColor: AppColors.primaryGreen,
+                indicatorWeight: 3,
+                labelStyle: TextStyle(
+                  fontSize: isMobile ? 13 : 14,
+                  fontWeight: FontWeight.bold,
+                ),
+                tabs: const [
+                  Tab(
+                    icon: Icon(Icons.person_outline, size: 20),
+                    text: 'Student Details',
+                  ),
+                  Tab(
+                    icon: Icon(Icons.school_outlined, size: 20),
+                    text: 'Enrollments',
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 12),
+            Expanded(
+              child: TabBarView(
+                children: [
+                  _buildStudentDetailsTabContent(isMobile, keyboardInset),
+                  _buildEnrollmentsTabContent(isMobile),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildStudentDetailsTabContent(
+    bool isMobile,
+    double keyboardInset,
+  ) {
+    return Form(
+      key: _studentFormKey,
+      child: Column(
+        children: [
+          Expanded(
+            child: SingleChildScrollView(
+              padding: EdgeInsets.only(bottom: keyboardInset + 24),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  if (_errorMessage != null)
+                    Container(
+                      margin: const EdgeInsets.only(bottom: AppSizes.p16),
+                      padding: const EdgeInsets.all(AppSizes.p12),
+                      decoration: BoxDecoration(
+                        color: AppColors.error.withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(AppSizes.radiusSmall),
+                        border: Border.all(
+                          color: AppColors.error.withValues(alpha: 0.3),
+                        ),
+                      ),
+                      child: Row(
+                        children: [
+                          const Icon(
+                            Icons.error_outline,
+                            color: AppColors.error,
+                            size: 20,
+                          ),
+                          const SizedBox(width: AppSizes.p8),
+                          Expanded(
+                            child: Text(
+                              _errorMessage!,
+                              style: const TextStyle(
+                                color: AppColors.error,
+                                fontSize: 13,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  _SectionLabel(label: "LEARNER REFERENCE INFORMATION"),
+                  const SizedBox(height: AppSizes.p8),
+                  TextFormField(
+                    controller: _lrnController,
+                    keyboardType: TextInputType.number,
+                    maxLength: 12,
+                    inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                    validator: _validateLRN,
+                    decoration: const InputDecoration(
+                      labelText: 'LRN (Learner Reference Number)',
+                      hintText: '12-digit number',
+                      prefixIcon: Icon(Icons.pin_outlined),
+                      counterText: '',
+                    ),
+                  ),
+                  const SizedBox(height: AppSizes.p16),
+                  _SectionLabel(label: 'NAME'),
+                  const SizedBox(height: AppSizes.p8),
+                  LayoutBuilder(
+                    builder: (ctx, c) {
+                      final wide = c.maxWidth > 480;
+                      if (wide) {
+                        return Column(
+                          children: [
+                            Row(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Expanded(
+                                  flex: 3,
+                                  child: TextFormField(
+                                    controller: _firstNameController,
+                                    textCapitalization:
+                                        TextCapitalization.characters,
+                                    inputFormatters: [
+                                      _UpperCaseWordsFormatter(),
+                                    ],
+                                    validator: (v) =>
+                                        _validateRequired(v, 'First name'),
+                                    decoration: const InputDecoration(
+                                      labelText: 'FIRST NAME',
+                                      prefixIcon: Icon(Icons.badge_outlined),
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(width: AppSizes.p12),
+                                Expanded(
+                                  flex: 2,
+                                  child: _ExtensionNameField(
+                                    controller: _extController,
+                                    suggestions: _extSuggestions,
+                                  ),
+                                ),
+                                const SizedBox(width: AppSizes.p12),
+                                Expanded(
+                                  flex: 3,
+                                  child: TextFormField(
+                                    controller: _middleNameController,
+                                    textCapitalization:
+                                        TextCapitalization.characters,
+                                    inputFormatters: [
+                                      _UpperCaseWordsFormatter(),
+                                    ],
+                                    decoration: const InputDecoration(
+                                      labelText: 'MIDDLE NAME (Optional)',
+                                      prefixIcon: Icon(Icons.badge_outlined),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: AppSizes.p12),
+                            TextFormField(
+                              controller: _lastNameController,
+                              textCapitalization: TextCapitalization.characters,
+                              inputFormatters: [_UpperCaseWordsFormatter()],
+                              validator: (v) =>
+                                  _validateRequired(v, 'Last name'),
+                              decoration: const InputDecoration(
+                                labelText: 'LAST NAME',
+                                prefixIcon: Icon(Icons.badge_outlined),
+                              ),
+                            ),
+                          ],
+                        );
+                      } else {
+                        return Column(
+                          children: [
+                            TextFormField(
+                              controller: _firstNameController,
+                              textCapitalization: TextCapitalization.characters,
+                              inputFormatters: [_UpperCaseWordsFormatter()],
+                              validator: (v) =>
+                                  _validateRequired(v, 'First name'),
+                              decoration: const InputDecoration(
+                                labelText: 'FIRST NAME',
+                              ),
+                            ),
+                            const SizedBox(height: AppSizes.p12),
+                            _ExtensionNameField(
+                              controller: _extController,
+                              suggestions: _extSuggestions,
+                            ),
+                            const SizedBox(height: AppSizes.p12),
+                            TextFormField(
+                              controller: _middleNameController,
+                              textCapitalization: TextCapitalization.characters,
+                              inputFormatters: [_UpperCaseWordsFormatter()],
+                              decoration: const InputDecoration(
+                                labelText: 'MIDDLE NAME (Optional)',
+                              ),
+                            ),
+                            const SizedBox(height: AppSizes.p12),
+                            TextFormField(
+                              controller: _lastNameController,
+                              textCapitalization: TextCapitalization.characters,
+                              inputFormatters: [_UpperCaseWordsFormatter()],
+                              validator: (v) =>
+                                  _validateRequired(v, 'Last name'),
+                              decoration: const InputDecoration(
+                                labelText: 'LAST NAME',
+                              ),
+                            ),
+                          ],
+                        );
+                      }
+                    },
+                  ),
+                  const SizedBox(height: AppSizes.p16),
+                  _SectionLabel(label: 'PERSONAL INFORMATION'),
+                  const SizedBox(height: AppSizes.p8),
+                  DropdownButtonFormField<String>(
+                    key: ValueKey('sex_$_selectedSex'),
+                    initialValue: _selectedSex,
+                    validator: (v) => v == null ? 'Please select sex.' : null,
+                    isExpanded: true,
+                    decoration: const InputDecoration(
+                      labelText: 'SEX',
+                      prefixIcon: Icon(Icons.wc),
+                    ),
+                    items: ['Male', 'Female']
+                        .map((s) => DropdownMenuItem(value: s, child: Text(s)))
+                        .toList(),
+                    onChanged: (v) => setState(() => _selectedSex = v!),
+                  ),
+                  const SizedBox(height: AppSizes.p12),
+                  _DobPicker(
+                    initialDate: _selectedDob,
+                    onChanged: (val) {
+                      setState(() {
+                        _selectedDob = val;
+                      });
+                    },
+                  ),
+                  const SizedBox(height: AppSizes.p16),
+                  _SectionLabel(label: 'STUDENT STATUS'),
+                  const SizedBox(height: AppSizes.p8),
+                  DropdownButtonFormField<String>(
+                    key: ValueKey('status_$_selectedStatus'),
+                    initialValue: _selectedStatus,
+                    validator: (v) => v == null ? 'Please select a status.' : null,
+                    isExpanded: true,
+                    decoration: const InputDecoration(
+                      labelText: 'STATUS',
+                      prefixIcon: Icon(Icons.info_outline),
+                    ),
+                    items: _statuses
+                        .map((s) => DropdownMenuItem(value: s, child: Text(s)))
+                        .toList(),
+                    onChanged: (v) => setState(() => _selectedStatus = v!),
+                  ),
+                  const SizedBox(height: AppSizes.p16),
+                  _SectionLabel(label: 'GOVERNMENT AID STATUS'),
+                  const SizedBox(height: AppSizes.p8),
+                  Container(
+                    decoration: BoxDecoration(
+                      color: _is4ps
+                          ? Colors.deepPurple.withValues(alpha: 0.06)
+                          : Colors.grey.shade50,
+                      borderRadius: BorderRadius.circular(
+                        AppSizes.radiusMedium,
+                      ),
+                      border: Border.all(
+                        color: _is4ps
+                            ? Colors.deepPurple.withValues(alpha: 0.3)
+                            : Colors.grey.shade200,
+                      ),
+                    ),
+                    child: SwitchListTile(
+                      value: _is4ps,
+                      onChanged: (val) => setState(() => _is4ps = val),
+                      activeColor: Colors.deepPurple,
+                      title: const Text(
+                        '4Ps Beneficiary',
+                        style: TextStyle(
+                          fontWeight: FontWeight.w600,
+                          fontSize: 14,
+                        ),
+                      ),
+                      subtitle: Text(
+                        _is4ps
+                            ? 'Student is a 4Ps (Pantawid Pamilyang Pilipino Program) beneficiary'
+                            : 'Student is NOT a 4Ps beneficiary',
+                        style: TextStyle(
+                          fontSize: 11,
+                          color: _is4ps
+                              ? Colors.deepPurple.shade600
+                              : AppColors.textSecondary,
+                        ),
+                      ),
+                      secondary: Icon(
+                        Icons.family_restroom,
+                        color: _is4ps
+                            ? Colors.deepPurple
+                            : Colors.grey.shade400,
+                      ),
+                      dense: true,
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 4,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(height: 12),
+          SizedBox(
+            width: double.infinity,
+            child: PrimaryButton(
+              label: 'UPDATE DETAILS',
+              isLoading: _isLoading,
+              onPressed: _handleSaveDetails,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildEnrollmentsTabContent(bool isMobile) {
+    final studentDetailAsync = ref.watch(studentDetailProvider(widget.student!.id));
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        LayoutBuilder(
+          builder: (ctx, constraints) {
+            final isStacked = constraints.maxWidth < 420 ||
+                Theme.of(ctx).platform == TargetPlatform.android;
+
+            final buttons = [
+              OutlinedButton.icon(
+                onPressed: () => _scanSF10SF9(context, ref, widget.student!.id),
+                icon: const Icon(Icons.document_scanner, size: 18),
+                label: const Text('Scan SF10 / SF9'),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: AppColors.primaryGreen,
+                  side: const BorderSide(color: AppColors.primaryGreen),
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                ),
+              ),
+              if (isStacked)
+                const SizedBox(height: 8)
+              else
+                const SizedBox(width: 8),
+              ElevatedButton.icon(
+                onPressed: () {
+                  showDialog(
+                    context: context,
+                    barrierColor: Colors.black.withValues(alpha: 0.45),
+                    builder: (ctx) => EditEnrollmentModal(
+                      studentId: widget.student!.id,
+                      enrollment: null,
+                    ),
+                  ).then((_) {
+                    if (mounted) {
+                      ref.invalidate(studentDetailProvider(widget.student!.id));
+                      ref.invalidate(studentPageProvider);
+                    }
+                  });
+                },
+                icon: const Icon(Icons.add, size: 18),
+                label: const Text('Add Enrollment'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.primaryGreen,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                ),
+              ),
+            ];
+
+            if (isStacked) {
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: buttons,
+              );
+            }
+
+            return Row(
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: buttons,
+            );
+          },
+        ),
+        const SizedBox(height: 16),
+        Expanded(
+          child: studentDetailAsync.when(
+            loading: () => const Center(
+              child: CircularProgressIndicator(color: AppColors.primaryGreen),
+            ),
+            error: (e, _) => Center(
+              child: Text(
+                'Error loading enrollments: $e',
+                style: const TextStyle(color: AppColors.error),
+              ),
+            ),
+            data: (student) {
+              final enrollments = student.enrollments;
+              if (enrollments == null || enrollments.isEmpty) {
+                return Center(
+                  child: Padding(
+                    padding: const EdgeInsets.all(24.0),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          Icons.school_outlined,
+                          size: 48,
+                          color: Colors.grey.shade400,
+                        ),
+                        const SizedBox(height: 12),
+                        const Text(
+                          'No enrollments found for this student.\nAdd an enrollment or scan an SF10/SF9 document.',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(color: AppColors.textSecondary),
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              }
+
+              final sorted = List.from(enrollments);
+              sorted.sort(
+                (a, b) => (b.gradeLevel ?? 0).compareTo(a.gradeLevel ?? 0),
+              );
+
+              return ListView.separated(
+                itemCount: sorted.length,
+                separatorBuilder: (ctx, i) => const SizedBox(height: 8),
+                itemBuilder: (ctx, i) {
+                  final enrollment = sorted[i];
+                  return Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: AppColors.surfaceWhite,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: Colors.grey.shade200),
+                    ),
+                    child: Row(
+                      children: [
+                        Container(
+                          width: 40,
+                          height: 40,
+                          decoration: BoxDecoration(
+                            color: Colors.blue.withValues(alpha: 0.1),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: const Icon(
+                            Icons.school,
+                            color: Colors.blue,
+                            size: 20,
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Grade ${enrollment.gradeLevel}',
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                              Text(
+                                '${enrollment.sectionName ?? 'N/A'} · ${enrollment.yearRange ?? 'N/A'}',
+                                style: const TextStyle(
+                                  color: AppColors.textSecondary,
+                                  fontSize: 12,
+                                ),
+                              ),
+                              if (enrollment.trackStrand != null)
+                                Text(
+                                  'Track: ${enrollment.trackStrand}',
+                                  style: const TextStyle(
+                                    color: AppColors.textSecondary,
+                                    fontSize: 11,
+                                  ),
+                                ),
+                            ],
+                          ),
+                        ),
+                        IconButton(
+                          icon: const Icon(Icons.edit, size: 18, color: Colors.blue),
+                          tooltip: 'Edit Enrollment',
+                          onPressed: () {
+                            showDialog(
+                              context: context,
+                              barrierColor: Colors.black.withValues(alpha: 0.45),
+                              builder: (ctx) => EditEnrollmentModal(
+                                studentId: widget.student!.id,
+                                enrollment: enrollment,
+                              ),
+                            ).then((_) {
+                              if (mounted) {
+                                ref.invalidate(studentDetailProvider(widget.student!.id));
+                                ref.invalidate(studentPageProvider);
+                              }
+                            });
+                          },
+                        ),
+                        IconButton(
+                          icon: const Icon(
+                            Icons.delete_outline,
+                            size: 18,
+                            color: AppColors.error,
+                          ),
+                          tooltip: 'Delete Enrollment',
+                          onPressed: () {
+                            showDialog(
+                              context: context,
+                              builder: (ctx) => AlertDialog(
+                                title: const Text('Delete Enrollment'),
+                                content: const Text(
+                                  'Are you sure you want to delete this enrollment? This action cannot be undone.',
+                                ),
+                                actions: [
+                                  TextButton(
+                                    onPressed: () => Navigator.of(ctx).pop(),
+                                    child: const Text('CANCEL'),
+                                  ),
+                                  TextButton(
+                                    onPressed: () {
+                                      Navigator.of(ctx).pop();
+                                      ref
+                                          .read(studentMutationProvider.notifier)
+                                          .deleteEnrollment(
+                                            studentId: widget.student!.id,
+                                            enrollmentId: enrollment.id,
+                                          );
+                                    },
+                                    style: TextButton.styleFrom(
+                                      foregroundColor: AppColors.error,
+                                    ),
+                                    child: const Text('DELETE'),
+                                  ),
+                                ],
+                              ),
+                            );
+                          },
+                        ),
+                      ],
+                    ),
+                  );
+                },
+              );
+            },
+          ),
+        ),
+      ],
+    );
+  }
+
+  // ----------------------------------------------------------------
   // BUILD — viewport-aware, keyboard-safe dialog
   // ----------------------------------------------------------------
   @override
@@ -652,14 +1397,16 @@ class _AddEditStudentModalState extends ConsumerState<AddEditStudentModal> {
         constraints: BoxConstraints(maxHeight: dialogHeight),
         child: Padding(
           padding: EdgeInsets.all(isMobile ? 12 : AppSizes.p24),
-          child: _buildManualForm(
-            widget.student != null,
-            yearsAsync,
-            gradeLevelsAsync,
-            sectionsAsync,
-            isMobile,
-            viewInsets.bottom,
-          ),
+          child: widget.student != null
+              ? _buildEditTabsModal(isMobile, viewInsets.bottom)
+              : _buildManualForm(
+                  false,
+                  yearsAsync,
+                  gradeLevelsAsync,
+                  sectionsAsync,
+                  isMobile,
+                  viewInsets.bottom,
+                ),
         ),
       ),
     );
