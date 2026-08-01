@@ -1223,8 +1223,11 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
           ],
 
           if (defaultTargetPlatform != TargetPlatform.android && !isMobile) ...[
-            _buildPrintQueueButton(compact: true),
-            const SizedBox(width: 4),
+            SizedBox(
+              height: 36,
+              child: _buildPrintQueueButton(compact: false),
+            ),
+            const SizedBox(width: 8),
           ],
 
           // Dropdown Menu
@@ -1352,17 +1355,23 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
         icon: Badge(
           isLabelVisible: count > 0,
           label: Text(count.toString()),
-          child: const Icon(Icons.print, size: 18),
+          child: const Icon(Icons.print_outlined, size: 16),
         ),
         label: compact
             ? const SizedBox.shrink()
-            : Text(count > 0 ? 'Print List ($count)' : 'Print List'),
+            : Text(
+                count > 0 ? 'Print List ($count)' : 'Print List',
+                style: const TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
         style: OutlinedButton.styleFrom(
           foregroundColor: AppColors.textPrimary,
           side: BorderSide(color: Colors.grey.shade300),
           padding: compact
               ? const EdgeInsets.all(10)
-              : const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+              : const EdgeInsets.symmetric(horizontal: 14),
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
         ),
       ),
@@ -1427,10 +1436,17 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
     StateSetter setDialogState,
     VoidCallback onApply,
   ) {
+    const defaultStatuses = [
+      'All Statuses',
+      'Pending',
+      'Verified',
+      'Draft',
+      'Archived',
+    ];
     final statusItems = statusesAsync.when(
-      data: (s) => ['All Statuses', ...s],
-      loading: () => const ['All Statuses'],
-      error: (_, st) => const ['All Statuses'],
+      data: (s) => (defaultStatuses.toSet()..addAll(s)).toList(),
+      loading: () => defaultStatuses,
+      error: (_, st) => defaultStatuses,
     );
     final jhsReqs = requirementsAsync.when(
       data: (reqs) => [
@@ -1527,12 +1543,12 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
             label: 'Status',
             onReset: () =>
                 setDialogState(() => _pendingStatus = 'All Statuses'),
-            child: _buildFilterDropdown(
-              value: statusItems.contains(_pendingStatus)
+            child: _buildFilterChipGroup(
+              items: statusItems,
+              selectedValue: statusItems.contains(_pendingStatus)
                   ? _pendingStatus
                   : 'All Statuses',
-              items: statusItems,
-              onChanged: (v) => setDialogState(() => _pendingStatus = v!),
+              onSelected: (v) => setDialogState(() => _pendingStatus = v),
             ),
           ),
 
@@ -1654,6 +1670,49 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildFilterChipGroup({
+    required List<String> items,
+    required String selectedValue,
+    required ValueChanged<String> onSelected,
+  }) {
+    return Wrap(
+      spacing: 8,
+      runSpacing: 8,
+      children: items.map((item) {
+        final isSelected = item == selectedValue;
+        return ChoiceChip(
+          label: Text(
+            item,
+            style: TextStyle(
+              fontSize: 13,
+              fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+              color:
+                  isSelected ? AppColors.primaryGreen : AppColors.textPrimary,
+            ),
+          ),
+          selected: isSelected,
+          onSelected: (selected) {
+            if (selected) {
+              onSelected(item);
+            }
+          },
+          selectedColor: AppColors.primaryGreen.withValues(alpha: 0.12),
+          backgroundColor: Colors.grey.shade100,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+            side: BorderSide(
+              color: isSelected
+                  ? AppColors.primaryGreen
+                  : Colors.grey.shade300,
+              width: 1,
+            ),
+          ),
+          showCheckmark: false,
+        );
+      }).toList(),
     );
   }
 
