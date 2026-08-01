@@ -124,6 +124,7 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
     }
 
     _tabController.addListener(() {
+      setState(() {}); // Ensure header title updates immediately on tab change
       // Refresh and reset states strictly when the tab transition has completed
       if (!_tabController.indexIsChanging) {
         setState(() {
@@ -1114,15 +1115,13 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
                     ],
                   )
                 : Text(
-                    defaultTargetPlatform == TargetPlatform.android || isMobile
-                        ? 'Documents Directory'
-                        : (_tabController.index == 0
-                            ? 'Student Folders'
-                            : _tabController.index == 1
-                            ? (isStudentFiltered
-                                  ? 'Student Documents'
-                                  : 'All Documents')
-                            : 'Recycle Bin'),
+                    _tabController.index == 0
+                        ? 'Student Folders'
+                        : _tabController.index == 1
+                        ? (isStudentFiltered
+                              ? 'Student Documents'
+                              : 'All Documents')
+                        : 'Recycle Bin',
                     style: TextStyle(
                       fontSize: isMobile ? 17 : 21,
                       fontWeight: FontWeight.bold,
