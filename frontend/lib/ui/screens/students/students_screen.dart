@@ -10,6 +10,7 @@ import '../../providers/student_provider.dart';
 import '../documents/documents_screen.dart';
 import '../documents/widgets/student_profile_modal.dart';
 import 'widgets/add_edit_student_modal.dart';
+import 'widgets/bulk_ocr_import_dialog.dart';
 import '../../providers/setup_provider.dart';
 import '../../shared/inputs/app_search_bar.dart';
 import '../../providers/navigation_provider.dart';
@@ -158,6 +159,17 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
       );
     }
     return result;
+  }
+
+  // ----------------------------------------------------------------
+  // SHOW BULK OCR IMPORT DIALOG
+  // ----------------------------------------------------------------
+  Future<void> _openBulkOcrImport() async {
+    await showDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => const BulkOcrImportDialog(),
+    );
   }
 
   void _toggleSelectAll(List<StudentModel> students) {
@@ -881,9 +893,22 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
                 _buildMultiSelectToggle(true),
               ],
               const SizedBox(width: 8),
-              // "Add Student" button for Windows (replaces FAB)
+              // "Add Student" + "Bulk OCR Import" buttons for Windows (replaces FAB)
               if (defaultTargetPlatform == TargetPlatform.windows &&
                   widget.userRole != 'teacher') ...[
+                SizedBox(
+                  height: 42,
+                  child: ElevatedButton.icon(
+                    onPressed: _openBulkOcrImport,
+                    icon: const Icon(Icons.document_scanner_outlined, size: 20),
+                    label: const Text('Bulk OCR Import'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.darkGreen,
+                      foregroundColor: Colors.white,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 8),
                 SizedBox(
                   height: 42,
                   child: ElevatedButton.icon(

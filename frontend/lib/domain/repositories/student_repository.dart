@@ -416,4 +416,25 @@ class StudentRepository {
       throw Exception(msg);
     }
   }
+
+  // ----------------------------------------------------------------
+  // Bulk Create Students from OCR Import
+  // ----------------------------------------------------------------
+  /// Returns { created, skipped, failed, results }
+  Future<Map<String, dynamic>> bulkCreateStudents(
+    List<Map<String, dynamic>> students,
+  ) async {
+    try {
+      final options = await _getAuthOptions();
+      final response = await _dio.post(
+        '/students/bulk-ocr-import',
+        data: {'students': students},
+        options: options,
+      );
+      return response.data as Map<String, dynamic>;
+    } on DioException catch (e) {
+      final msg = e.response?.data?['message'] ?? 'Failed to bulk import students.';
+      throw Exception(msg);
+    }
+  }
 }

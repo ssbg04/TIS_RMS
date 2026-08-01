@@ -848,3 +848,110 @@ exports.scanEnrollmentFromSF = async (req, res) => {
     }
 };
 
+// ============================================================
+// POST /api/students/bulk-ocr-import — bulk create students from OCR
+// Each item: { lrn, firstName, middleName?, lastName, extension?, sex,
+//              birthDate?, academicYearId, gradeLevel, sectionId,
+//              trackStrand?, is4ps? }
+// Returns 207: { created, skipped, failed, results[] }
+// ============================================================
+exports.bulkCreateStudents = (req, res) => {
+    const { students } = req.body;
+
+    if (!Array.isArray(students) || students.length === 0) {
+        return res.status(400).json({ message: 'No student records provided.' });
+    }
+
+    const results = [];
+    let created = 0;
+    let skipped = 0;
+    let failed  = 0;
+
+    const insertOne = db.transaction((s) => {
+        // Validate required fields
+        const rowErrors = [];
+        const lrn = (s.lrn || '').trim();
+        if (!isValidLRN(lrn))                                        rowErrors.push('LRN must be exactly 12 digits.');
+        if (!s.firstName || !s.firstName.trim())                     rowErrors.push('First name is required.');
+        if (!s.lastName  || !s.lastName.trim())                      rowErrors.push('Last name is required.');
+        if (!s.sex       || !['Male','Female'].includes(s.sex))      rowErrors.push('Sex must be Male or Female.');
+        if (!s.academicYearId)                                       rowErrors.push('Academic year is required.');
+        if (!s.gradeLevel)                                           rowErrors.push('Grade level is required.');
+        if (!s.sectionId)                                            rowErrors.push('Section is required.');
+        if (rowErrors.length) return { status: 'failed', reason: rowErrors[0] };
+
+        // Duplicate LRN check — skip, don't fail the whole batch
+        const existing = db.prepare('SELECT id FROM students WHERE lrn = ?').get(lrn);
+        if (existing) return { status: 'skipped', reason: `LRN ${lrn} already exists.` };
+
+        // Insert student
+        const result = db.prepare(`
+            INSERT INTO students (lrn, first_name, middle_name, last_name, extension, sex, birth_date, is_4ps)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        `).run(
+            lrn,
+            s.firstName.trim(),
+            s.middleName?.trim() || null,
+            s.lastName.trim(),
+            s.extension?.trim()  || null,
+            s.sex,
+            s.birthDate || null,
+            s.is4ps ? 1 : 0
+        );
+        const newId = result.lastInsertRowid;
+
+        // Insert enrollment
+        const enrRes = db.prepare(`
+            INSERT INTO enrollments (student_id, academic_year_id, section_id, grade_level, track_strand)
+            VALUES (?, ?, ?, ?, ?)
+        `).run(newId, s.academicYearId, s.sectionId, s.gradeLevel, s.trackStrand || null);
+        logActivity(req.user?.id, 'CREATE', 'enrollment', enrRes.lastInsertRowid,
+            `BULK OCR CREATE enrollment ${enrRes.lastInsertRowid} student ${lrn}`);
+
+        // Auto-create student directory
+        const folderName = `${sanitizeFolderName(s.lastName)}_${sanitizeFolderName(s.firstName)}_${lrn}`;
+        const studentDir = path.join(STUDENT_DIR_ROOT, folderName);
+        if (!fs.existsSync(studentDir)) {
+            fs.mkdirSync(studentDir, { recursive: true });
+        }
+
+        // Auto-create folder record
+        try {
+            db.prepare(`
+                INSERT INTO document_folders (name, student_id, category, created_by)
+                VALUES (?, ?, 'root', ?)
+            `).run(folderName, newId, req.user?.id || null);
+        } catch (_) { /* non-fatal */ }
+
+        logActivity(req.user?.id, 'CREATE', 'student', newId,
+            `BULK OCR CREATE student ${s.firstName} ${s.lastName}`);
+
+        return { status: 'created', id: newId };
+    });
+
+    for (const s of students) {
+        try {
+            const outcome = insertOne(s);
+            results.push({ lrn: (s.lrn || '').trim(), name: `${s.lastName}, ${s.firstName}`, ...outcome });
+            if (outcome.status === 'created')  created++;
+            else if (outcome.status === 'skipped') skipped++;
+            else failed++;
+        } catch (err) {
+            console.error('bulkCreateStudents row error:', err.message);
+            results.push({ lrn: (s.lrn || '').trim(), name: `${s.lastName}, ${s.firstName}`, status: 'failed', reason: err.message });
+            failed++;
+        }
+    }
+
+    if (created > 0) {
+        createNotification(
+            null,
+            'Bulk OCR Import Complete',
+            `${created} student(s) imported via OCR Bulk Import.`,
+            'student'
+        );
+    }
+
+    res.status(207).json({ created, skipped, failed, results });
+};
+

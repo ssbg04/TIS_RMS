@@ -2487,7 +2487,7 @@ class _DobInputFormatter extends TextInputFormatter {
 }
 
 // ================================================================
-// DOB PICKER — single MM-DD-YYYY typed field with suggestion overlay
+// DOB PICKER — MM-DD-YYYY typed field (no suggestion dropdown)
 // ================================================================
 class _DobPicker extends StatefulWidget {
   final DateTime? initialDate;
@@ -2502,14 +2502,6 @@ class _DobPicker extends StatefulWidget {
 
 class _DobPickerState extends State<_DobPicker> {
   late final TextEditingController _ctrl;
-  late final FocusNode _focusNode;
-  OverlayEntry? _overlayEntry;
-  final LayerLink _layerLink = LayerLink();
-
-  static const _monthNames = [
-    'January', 'February', 'March', 'April', 'May', 'June',
-    'July', 'August', 'September', 'October', 'November', 'December',
-  ];
 
   static String _fmt(DateTime d) =>
       '${d.month.toString().padLeft(2, '0')}-'
@@ -2522,9 +2514,7 @@ class _DobPickerState extends State<_DobPicker> {
     _ctrl = TextEditingController(
       text: widget.initialDate != null ? _fmt(widget.initialDate!) : '',
     );
-    _focusNode = FocusNode();
     _ctrl.addListener(_onTextChanged);
-    _focusNode.addListener(_onFocusChanged);
   }
 
   @override
@@ -2549,81 +2539,16 @@ class _DobPickerState extends State<_DobPicker> {
 
   @override
   void dispose() {
-    _removeOverlay();
     _ctrl.removeListener(_onTextChanged);
-    _focusNode.removeListener(_onFocusChanged);
     _ctrl.dispose();
-    _focusNode.dispose();
     super.dispose();
   }
 
-  // ── Overlay management ──────────────────────────────────────────
+  void _onTextChanged() => _parseAndNotify();
 
-  void _onFocusChanged() {
-    if (_focusNode.hasFocus) {
-      _showOverlay();
-    } else {
-      _removeOverlay();
-    }
-  }
+  // ── Parse & notify parent ───────────────────────────────────────
 
-  void _onTextChanged() {
-    _parseAndNotify();
-    if (_focusNode.hasFocus) {
-      _overlayEntry?.markNeedsBuild();
-    }
-  }
-
-  void _showOverlay() {
-    _removeOverlay();
-    _overlayEntry = OverlayEntry(builder: (_) => _buildOverlayWidget());
-    Overlay.of(context).insert(_overlayEntry!);
-  }
-
-  void _removeOverlay() {
-    _overlayEntry?.remove();
-    _overlayEntry = null;
-  }
-
-  // ── Suggestion computation ──────────────────────────────────────
-
-  /// Returns typed digits stripped of dashes.
   String get _rawDigits => _ctrl.text.replaceAll('-', '');
-
-  List<String> _buildSuggestions() {
-    final raw = _rawDigits;
-    final len = raw.length;
-
-    // Phase 1: typing MM (0–2 digits)
-    if (len <= 2) {
-      return List.generate(12, (i) {
-        final mm = (i + 1).toString().padLeft(2, '0');
-        return '$mm - ${_monthNames[i]}';
-      }).where((s) {
-        if (len == 0) return true;
-        return s.startsWith(raw);
-      }).toList();
-    }
-
-    // Phase 2: typing DD (3–4 digits)
-    if (len <= 4) {
-      final mm = int.tryParse(raw.substring(0, 2));
-      if (mm == null || mm < 1 || mm > 12) return [];
-      final maxDay = _maxDayForMonth(mm, null);
-      final ddTyped = raw.length >= 3 ? raw.substring(2) : '';
-      return List.generate(maxDay, (i) {
-        final dd = (i + 1).toString().padLeft(2, '0');
-        return dd;
-      }).where((dd) => ddTyped.isEmpty || dd.startsWith(ddTyped)).toList();
-    }
-
-    // Phase 3: typing YYYY (5–8 digits)
-    final now = DateTime.now().year;
-    final yyyyTyped = raw.length >= 5 ? raw.substring(4) : '';
-    return List.generate(now - 1985, (i) {
-      return (now - 3 - i).toString();
-    }).where((y) => yyyyTyped.isEmpty || y.startsWith(yyyyTyped)).take(8).toList();
-  }
 
   int _maxDayForMonth(int month, int? year) {
     if (month == 2) {
@@ -2636,51 +2561,13 @@ class _DobPickerState extends State<_DobPicker> {
     return 31;
   }
 
-  // ── Suggestion tap handler ──────────────────────────────────────
-
-  void _onSuggestionTap(String suggestion) {
-    final raw = _rawDigits;
-    final len = raw.length;
-    String newRaw;
-
-    if (len <= 2) {
-      // suggestion = "01 - January" → extract "01"
-      newRaw = suggestion.split(' ').first;
-    } else if (len <= 4) {
-      // suggestion is just "DD"
-      final mm = raw.substring(0, 2);
-      newRaw = mm + suggestion;
-    } else {
-      // suggestion is a 4-digit year string
-      final mmdd = raw.substring(0, 4);
-      newRaw = mmdd + suggestion;
-    }
-
-    // Rebuild formatted string MM-DD-YYYY from newRaw
-    final buf = StringBuffer();
-    for (int i = 0; i < newRaw.length && i < 8; i++) {
-      buf.write(newRaw[i]);
-      if (i == 1 || i == 3) buf.write('-');
-    }
-    _ctrl.text = buf.toString();
-    _parseAndNotify();
-    // Move to next phase or close if complete
-    if (newRaw.length >= 8) {
-      _focusNode.unfocus();
-    } else {
-      _overlayEntry?.markNeedsBuild();
-    }
-  }
-
-  // ── Parse & notify parent ───────────────────────────────────────
-
   void _parseAndNotify() {
     final raw = _rawDigits;
     if (raw.length == 8) {
-      final mm = int.tryParse(raw.substring(0, 2));
-      final dd = int.tryParse(raw.substring(2, 4));
+      final mm   = int.tryParse(raw.substring(0, 2));
+      final dd   = int.tryParse(raw.substring(2, 4));
       final yyyy = int.tryParse(raw.substring(4, 8));
-      final now = DateTime.now().year;
+      final now  = DateTime.now().year;
       if (mm != null && dd != null && yyyy != null &&
           mm >= 1 && mm <= 12 &&
           dd >= 1 && dd <= _maxDayForMonth(mm, yyyy) &&
@@ -2692,117 +2579,36 @@ class _DobPickerState extends State<_DobPicker> {
     widget.onChanged(null);
   }
 
-  // ── Overlay widget builder ──────────────────────────────────────
-
-  Widget _buildOverlayWidget() {
-    final suggestions = _buildSuggestions();
-    if (suggestions.isEmpty) return const SizedBox.shrink();
-
-    final raw = _rawDigits;
-    String label;
-    if (raw.length <= 2) {
-      label = 'Select month';
-    } else if (raw.length <= 4) {
-      label = 'Select day';
-    } else {
-      label = 'Select year';
-    }
-
-    return Positioned(
-      width: 260,
-      child: CompositedTransformFollower(
-        link: _layerLink,
-        showWhenUnlinked: false,
-        offset: const Offset(0, 52),
-        child: Material(
-          elevation: 8,
-          borderRadius: BorderRadius.circular(AppSizes.radiusMedium),
-          color: Colors.white,
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxHeight: 220),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(12, 8, 12, 4),
-                  child: Text(
-                    label,
-                    style: const TextStyle(
-                      fontSize: 11,
-                      fontWeight: FontWeight.w700,
-                      color: AppColors.textSecondary,
-                      letterSpacing: 0.5,
-                    ),
-                  ),
-                ),
-                const Divider(height: 1),
-                Flexible(
-                  child: ListView.builder(
-                    shrinkWrap: true,
-                    padding: const EdgeInsets.symmetric(vertical: 4),
-                    itemCount: suggestions.length,
-                    itemBuilder: (ctx, i) {
-                      final s = suggestions[i];
-                      return InkWell(
-                        onTap: () => _onSuggestionTap(s),
-                        child: Padding(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 16,
-                            vertical: 9,
-                          ),
-                          child: Text(
-                            s,
-                            style: const TextStyle(
-                              fontSize: 13,
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
-                        ),
-                      );
-                    },
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
   // ── Build ───────────────────────────────────────────────────────
 
   @override
   Widget build(BuildContext context) {
-    return CompositedTransformTarget(
-      link: _layerLink,
-      child: TextFormField(
-        controller: _ctrl,
-        focusNode: _focusNode,
-        keyboardType: TextInputType.number,
-        inputFormatters: [_DobInputFormatter()],
-        style: const TextStyle(fontSize: 14, letterSpacing: 0.5),
-        decoration: InputDecoration(
-          labelText: 'DATE OF BIRTH (Optional)',
-          hintText: 'MM-DD-YYYY',
-          prefixIcon: const Icon(
-            Icons.cake_outlined,
-            color: AppColors.textSecondary,
-          ),
-          suffixIcon: _ctrl.text.isNotEmpty
-              ? IconButton(
-                  icon: const Icon(Icons.clear, size: 18),
-                  onPressed: () {
-                    _ctrl.clear();
-                    widget.onChanged(null);
-                    _overlayEntry?.markNeedsBuild();
-                  },
-                )
-              : null,
+    return TextFormField(
+      controller: _ctrl,
+      keyboardType: TextInputType.number,
+      inputFormatters: [_DobInputFormatter()],
+      style: const TextStyle(fontSize: 14, letterSpacing: 0.5),
+      decoration: InputDecoration(
+        labelText: 'DATE OF BIRTH (Optional)',
+        hintText: 'MM-DD-YYYY',
+        prefixIcon: const Icon(
+          Icons.cake_outlined,
+          color: AppColors.textSecondary,
         ),
+        suffixIcon: _ctrl.text.isNotEmpty
+            ? IconButton(
+                icon: const Icon(Icons.clear, size: 18),
+                onPressed: () {
+                  _ctrl.clear();
+                  widget.onChanged(null);
+                },
+              )
+            : null,
       ),
     );
   }
 }
+
+
+
 

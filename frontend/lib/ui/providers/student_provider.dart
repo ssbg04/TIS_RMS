@@ -447,4 +447,22 @@ class StudentMutationNotifier extends AsyncNotifier<void> {
       rethrow;
     }
   }
+
+  /// Submits a batch of student records to POST /students/bulk-ocr-import.
+  /// Returns the raw result map: { created, skipped, failed, results }
+  Future<Map<String, dynamic>> bulkCreateStudents(
+    List<Map<String, dynamic>> students,
+  ) async {
+    state = const AsyncLoading();
+    try {
+      final repo = ref.read(studentRepositoryProvider);
+      final result = await repo.bulkCreateStudents(students);
+      state = const AsyncData(null);
+      ref.invalidate(studentPageProvider);
+      return result;
+    } catch (e, st) {
+      state = AsyncError(e, st);
+      rethrow;
+    }
+  }
 }
