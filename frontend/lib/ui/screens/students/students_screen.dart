@@ -750,15 +750,19 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
                                         query.status.isEmpty &&
                                         query.schoolYear.isEmpty &&
                                         page.total == 0;
+                                    final sortedStudents = _sortStudents(
+                                      page.students,
+                                      query,
+                                    );
                                     return LayoutBuilder(
                                       builder: (ctx, c) => c.maxWidth > 800
                                           ? _buildDesktopTable(
-                                              page.students,
+                                              sortedStudents,
                                               query,
                                               noSections: hasNoSections,
                                             )
                                           : _buildMobileCardList(
-                                              page.students,
+                                              sortedStudents,
                                               noSections: hasNoSections,
                                             ),
                                     );
@@ -1125,14 +1129,17 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
                         _pendingSortOrder = '';
                       }
                     }),
-                    child: _buildFilterDropdown(
-                      value: (_pendingSortBy == 'lrn' && _pendingSortOrder == 'asc')
-                          ? 'ASC'
-                          : ((_pendingSortBy == 'lrn' && _pendingSortOrder == 'desc')
-                              ? 'DESC'
-                              : 'Default LRN Order'),
+                    child: _buildFilterChipGroup(
                       items: _lrnSortItems,
-                      onChanged: (v) => setDialogState(() {
+                      selectedValue:
+                          (_pendingSortBy == 'lrn' &&
+                                  _pendingSortOrder == 'asc')
+                              ? 'ASC'
+                              : ((_pendingSortBy == 'lrn' &&
+                                      _pendingSortOrder == 'desc')
+                                  ? 'DESC'
+                                  : 'Default LRN Order'),
+                      onSelected: (v) => setDialogState(() {
                         if (v == 'ASC') {
                           _pendingSortBy = 'lrn';
                           _pendingSortOrder = 'asc';
@@ -1220,13 +1227,14 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
                   // Status
                   _buildFilterSection(
                     label: 'Status',
-                    onReset: () => setDialogState(() => _pendingStatus = 'All Status'),
-                    child: _buildFilterDropdown(
-                      value: _statusItems.contains(_pendingStatus)
+                    onReset: () =>
+                        setDialogState(() => _pendingStatus = 'All Status'),
+                    child: _buildFilterChipGroup(
+                      items: _statusItems.toList(),
+                      selectedValue: _statusItems.contains(_pendingStatus)
                           ? _pendingStatus
                           : 'All Status',
-                      items: _statusItems.toList(),
-                      onChanged: (v) => setDialogState(() => _pendingStatus = v!),
+                      onSelected: (v) => setDialogState(() => _pendingStatus = v),
                     ),
                   ),
 
@@ -1236,10 +1244,12 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
                   _buildFilterSection(
                     label: '4Ps Beneficiary',
                     onReset: () => setDialogState(() => _pending4Ps = 'All'),
-                    child: _buildFilterDropdown(
-                      value: _4psItems.contains(_pending4Ps) ? _pending4Ps : 'All',
+                    child: _buildFilterChipGroup(
                       items: _4psItems.toList(),
-                      onChanged: (v) => setDialogState(() => _pending4Ps = v!),
+                      selectedValue: _4psItems.contains(_pending4Ps)
+                          ? _pending4Ps
+                          : 'All',
+                      onSelected: (v) => setDialogState(() => _pending4Ps = v),
                     ),
                   ),
 
@@ -1254,14 +1264,17 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
                         _pendingSortOrder = '';
                       }
                     }),
-                    child: _buildFilterDropdown(
-                      value: (_pendingSortBy == 'doc_status' && _pendingSortOrder == 'asc')
-                          ? 'Low-High Attention'
-                          : ((_pendingSortBy == 'doc_status' && _pendingSortOrder == 'desc')
-                              ? 'High-Low Attention'
-                              : 'Default Doc Status Order'),
+                    child: _buildFilterChipGroup(
                       items: _docStatusSortItems,
-                      onChanged: (v) => setDialogState(() {
+                      selectedValue:
+                          (_pendingSortBy == 'doc_status' &&
+                                  _pendingSortOrder == 'asc')
+                              ? 'Low-High Attention'
+                              : ((_pendingSortBy == 'doc_status' &&
+                                      _pendingSortOrder == 'desc')
+                                  ? 'High-Low Attention'
+                                  : 'Default Doc Status Order'),
+                      onSelected: (v) => setDialogState(() {
                         if (v == 'Low-High Attention') {
                           _pendingSortBy = 'doc_status';
                           _pendingSortOrder = 'asc';
@@ -1284,13 +1297,13 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
                   _buildFilterSection(
                     label: 'Items per Page',
                     onReset: () => setDialogState(() => _pendingLimit = 15),
-                    child: _buildFilterDropdown(
-                      value: _pageSizes.contains(_pendingLimit)
+                    child: _buildFilterChipGroup(
+                      items: _pageSizes.map((s) => '$s per page').toList(),
+                      selectedValue: _pageSizes.contains(_pendingLimit)
                           ? '$_pendingLimit per page'
                           : '15 per page',
-                      items: _pageSizes.map((s) => '$s per page').toList(),
-                      onChanged: (v) {
-                        final numVal = int.tryParse(v!.split(' ')[0]) ?? 15;
+                      onSelected: (v) {
+                        final numVal = int.tryParse(v.split(' ')[0]) ?? 15;
                         setDialogState(() => _pendingLimit = numVal);
                       },
                     ),
@@ -1526,17 +1539,57 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
     );
   }
 
-  // ================================================================
-  // DESKTOP DATA TABLE
-  // ================================================================
-  Widget _buildDesktopTable(
-    List<StudentModel> rawStudents,
-    StudentQueryParams query, {
-    bool noSections = false,
+  Widget _buildFilterChipGroup({
+    required List<String> items,
+    required String selectedValue,
+    required ValueChanged<String> onSelected,
   }) {
-    if (rawStudents.isEmpty) return _buildEmptyState(noSections: noSections);
+    return Wrap(
+      spacing: 8,
+      runSpacing: 8,
+      children: items.map((item) {
+        final isSelected = item == selectedValue;
+        return ChoiceChip(
+          label: Text(
+            item,
+            style: TextStyle(
+              fontSize: 13,
+              fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+              color:
+                  isSelected ? AppColors.primaryGreen : AppColors.textPrimary,
+            ),
+          ),
+          selected: isSelected,
+          onSelected: (selected) {
+            if (selected) {
+              onSelected(item);
+            }
+          },
+          selectedColor: AppColors.primaryGreen.withValues(alpha: 0.12),
+          backgroundColor: Colors.grey.shade100,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+            side: BorderSide(
+              color: isSelected
+                  ? AppColors.primaryGreen
+                  : Colors.grey.shade300,
+              width: 1,
+            ),
+          ),
+          showCheckmark: false,
+        );
+      }).toList(),
+    );
+  }
 
-    List<StudentModel> students = List.from(rawStudents);
+  List<StudentModel> _sortStudents(
+    List<StudentModel> rawStudents,
+    StudentQueryParams query,
+  ) {
+    if (rawStudents.isEmpty || query.sortBy.isEmpty) {
+      return List<StudentModel>.from(rawStudents);
+    }
+    final students = List<StudentModel>.from(rawStudents);
     if (query.sortBy == 'lrn') {
       students.sort((a, b) {
         final comp = a.lrn.compareTo(b.lrn);
@@ -1551,19 +1604,39 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
       });
     } else if (query.sortBy == 'grade_section') {
       students.sort((a, b) {
-        final gComp = (a.latestGradeLevel ?? 0).compareTo(b.latestGradeLevel ?? 0);
+        final gComp = (a.latestGradeLevel ?? 0).compareTo(
+          b.latestGradeLevel ?? 0,
+        );
         if (gComp != 0) {
           return query.sortOrder == 'desc' ? -gComp : gComp;
         }
-        final sComp = (a.latestSection ?? '').toLowerCase().compareTo((b.latestSection ?? '').toLowerCase());
+        final sComp = (a.latestSection ?? '').toLowerCase().compareTo(
+              (b.latestSection ?? '').toLowerCase(),
+            );
         return query.sortOrder == 'desc' ? -sComp : sComp;
       });
     } else if (query.sortBy == 'doc_status') {
       students.sort((a, b) {
-        final comp = a.missingDocumentsCount.compareTo(b.missingDocumentsCount);
+        final comp = a.missingDocumentsCount.compareTo(
+          b.missingDocumentsCount,
+        );
         return query.sortOrder == 'desc' ? -comp : comp;
       });
     }
+    return students;
+  }
+
+  // ================================================================
+  // DESKTOP DATA TABLE
+  // ================================================================
+  Widget _buildDesktopTable(
+    List<StudentModel> rawStudents,
+    StudentQueryParams query, {
+    bool noSections = false,
+  }) {
+    if (rawStudents.isEmpty) return _buildEmptyState(noSections: noSections);
+
+    List<StudentModel> students = _sortStudents(rawStudents, query);
 
     return LayoutBuilder(
       builder: (context, constraints) {

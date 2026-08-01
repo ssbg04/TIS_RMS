@@ -396,19 +396,91 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     }
   }
 
-  Future<void> _handleRunAutoGraduation(BuildContext context, WidgetRef ref) async {
+  Future<void> _handleRunAutoGraduation(
+    BuildContext context,
+    WidgetRef ref,
+  ) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) {
+        final isNarrow =
+            MediaQuery.of(ctx).size.width < 600 ||
+            Theme.of(ctx).platform == TargetPlatform.android;
+        return AlertDialog(
+          title: const Text('Confirm Auto-Graduation'),
+          content: const Text(
+            'This will check the active academic year schedule and automatically graduate eligible Grade 10 and Grade 12 students if the schedule end date has been reached.\n\nDo you want to proceed?',
+          ),
+          actions: [
+            if (isNarrow)
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.primaryGreen,
+                      foregroundColor: Colors.white,
+                    ),
+                    onPressed: () => Navigator.pop(ctx, true),
+                    child: const Text('PROCEED'),
+                  ),
+                  const SizedBox(height: 8),
+                  OutlinedButton(
+                    onPressed: () => Navigator.pop(ctx, false),
+                    child: const Text('CANCEL'),
+                  ),
+                ],
+              )
+            else
+              Row(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  TextButton(
+                    onPressed: () => Navigator.pop(ctx, false),
+                    child: const Text(
+                      'CANCEL',
+                      style: TextStyle(color: Colors.grey),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.primaryGreen,
+                      foregroundColor: Colors.white,
+                    ),
+                    onPressed: () => Navigator.pop(ctx, true),
+                    child: const Text('PROCEED'),
+                  ),
+                ],
+              ),
+          ],
+        );
+      },
+    );
+
+    if (confirmed != true || !context.mounted) return;
+
     try {
-      final res = await ref.read(setupMutationProvider.notifier).checkAutoGraduation();
+      final res =
+          await ref.read(setupMutationProvider.notifier).checkAutoGraduation();
       if (!context.mounted) return;
       final executed = res['executed'] == true;
       showInfoDialog(
         context,
-        title: executed ? 'Auto-Graduation Completed' : 'Auto-Graduation Skipped',
-        message: res['message']?.toString() ?? res['reason']?.toString() ?? 'Check completed.',
+        title:
+            executed ? 'Auto-Graduation Completed' : 'Auto-Graduation Skipped',
+        message:
+            res['message']?.toString() ??
+            res['reason']?.toString() ??
+            'Check completed.',
       );
     } catch (e) {
       if (!context.mounted) return;
-      showErrorDialog(context, 'Check Failed', 'Failed to run auto-graduation check: $e');
+      showErrorDialog(
+        context,
+        'Check Failed',
+        'Failed to run auto-graduation check: $e',
+      );
     }
   }
 

@@ -1247,132 +1247,182 @@ class _AcademicYearFormModalState extends ConsumerState<AcademicYearFormModal> {
   @override
   Widget build(BuildContext context) {
     final isEditing = widget.year != null;
+    final isNarrow =
+        MediaQuery.of(context).size.width < 600 ||
+        Theme.of(context).platform == TargetPlatform.android;
     return AlertDialog(
       title: Text(isEditing ? 'Edit Academic Year' : 'Add Academic Year'),
-      content: Form(
-        key: _formKey,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            if (!isEditing)
-              Padding(
-                padding: const EdgeInsets.only(bottom: 12),
-                child: Container(
-                  padding: const EdgeInsets.all(10),
-                  decoration: BoxDecoration(
-                    color: Colors.blue.shade50,
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: Colors.blue.shade200),
+      content: SingleChildScrollView(
+        child: SizedBox(
+          width: isNarrow ? double.maxFinite : 450,
+          child: Form(
+            key: _formKey,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (!isEditing)
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 12),
+                    child: Container(
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(
+                        color: Colors.blue.shade50,
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: Colors.blue.shade200),
+                      ),
+                      child: const Row(
+                        children: [
+                          Icon(Icons.info_outline, size: 14, color: Colors.blue),
+                          SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              'New academic years are added as Inactive by default. Set to Active to make it the current year (this will deactivate all others).',
+                              style: TextStyle(fontSize: 11, color: Colors.blue),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
                   ),
-                  child: const Row(
-                    children: [
-                      Icon(Icons.info_outline, size: 14, color: Colors.blue),
-                      SizedBox(width: 8),
-                      Expanded(
-                        child: Text(
-                          'New academic years are added as Inactive by default. Set to Active to make it the current year (this will deactivate all others).',
-                          style: TextStyle(fontSize: 11, color: Colors.blue),
+                CustomTextField(
+                  hintText: 'Year Range (e.g. 2023-2024)',
+                  controller: _yearRangeController,
+                  prefixIcon: Icons.calendar_today,
+                  validator: (v) =>
+                      v?.trim().isEmpty == true ? 'Year range is required' : null,
+                ),
+                const SizedBox(height: AppSizes.p16),
+                DropdownButtonFormField<String>(
+                  initialValue: _status,
+                  decoration: const InputDecoration(
+                    labelText: 'Status',
+                    prefixIcon: Icon(Icons.toggle_on_outlined),
+                    border: OutlineInputBorder(),
+                  ),
+                  items: [
+                    DropdownMenuItem(
+                      value: 'active',
+                      child: Text(
+                        isNarrow
+                            ? 'Active (deactivates others)'
+                            : 'Active (will deactivate others)',
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                    const DropdownMenuItem(
+                      value: 'inactive',
+                      child: Text('Inactive'),
+                    ),
+                  ],
+                  onChanged: (v) => setState(() => _status = v!),
+                ),
+                const SizedBox(height: AppSizes.p16),
+                Row(
+                  children: [
+                    Expanded(
+                      child: OutlinedButton.icon(
+                        onPressed: () async {
+                          final picked = await showDatePicker(
+                            context: context,
+                            initialDate: _startDate ?? DateTime.now(),
+                            firstDate: DateTime(2000),
+                            lastDate: DateTime(2100),
+                          );
+                          if (picked != null) {
+                            setState(() => _startDate = picked);
+                          }
+                        },
+                        icon: const Icon(Icons.date_range, size: 16),
+                        label: Text(
+                          _startDate != null
+                              ? 'Start: ${_formatYmd(_startDate)!}'
+                              : (isNarrow ? 'Start Date' : 'Start Date (Optional)'),
+                          overflow: TextOverflow.ellipsis,
                         ),
                       ),
+                    ),
+                    if (_startDate != null) ...[
+                      const SizedBox(width: 4),
+                      IconButton(
+                        icon: const Icon(Icons.clear, size: 16),
+                        onPressed: () => setState(() => _startDate = null),
+                      ),
                     ],
-                  ),
+                  ],
                 ),
-              ),
-            CustomTextField(
-              hintText: 'Year Range (e.g. 2023-2024)',
-              controller: _yearRangeController,
-              prefixIcon: Icons.calendar_today,
-              validator: (v) =>
-                  v?.trim().isEmpty == true ? 'Year range is required' : null,
-            ),
-            const SizedBox(height: AppSizes.p16),
-            DropdownButtonFormField<String>(
-              initialValue: _status,
-              decoration: const InputDecoration(
-                labelText: 'Status',
-                prefixIcon: Icon(Icons.toggle_on_outlined),
-                border: OutlineInputBorder(),
-              ),
-              items: const [
-                DropdownMenuItem(
-                  value: 'active',
-                  child: Text('Active (will deactivate others)'),
+                const SizedBox(height: 8),
+                Row(
+                  children: [
+                    Expanded(
+                      child: OutlinedButton.icon(
+                        onPressed: () async {
+                          final picked = await showDatePicker(
+                            context: context,
+                            initialDate:
+                                _endDate ?? (_startDate ?? DateTime.now()),
+                            firstDate: DateTime(2000),
+                            lastDate: DateTime(2100),
+                          );
+                          if (picked != null) {
+                            setState(() => _endDate = picked);
+                          }
+                        },
+                        icon: const Icon(Icons.event, size: 16),
+                        label: Text(
+                          _endDate != null
+                              ? 'End: ${_formatYmd(_endDate)!}'
+                              : (isNarrow ? 'End Date' : 'End Date (Optional)'),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    ),
+                    if (_endDate != null) ...[
+                      const SizedBox(width: 4),
+                      IconButton(
+                        icon: const Icon(Icons.clear, size: 16),
+                        onPressed: () => setState(() => _endDate = null),
+                      ),
+                    ],
+                  ],
                 ),
-                DropdownMenuItem(value: 'inactive', child: Text('Inactive')),
-              ],
-              onChanged: (v) => setState(() => _status = v!),
-            ),
-            const SizedBox(height: AppSizes.p16),
-            Row(
-              children: [
-                Expanded(
-                  child: OutlinedButton.icon(
-                    onPressed: () async {
-                      final picked = await showDatePicker(
-                        context: context,
-                        initialDate: _startDate ?? DateTime.now(),
-                        firstDate: DateTime(2000),
-                        lastDate: DateTime(2100),
-                      );
-                      if (picked != null) {
-                        setState(() => _startDate = picked);
-                      }
-                    },
-                    icon: const Icon(Icons.date_range, size: 16),
-                    label: Text(_startDate != null ? 'Start: ${_formatYmd(_startDate)!}' : 'Start Date (Optional)'),
-                  ),
-                ),
-                if (_startDate != null) ...[
-                  const SizedBox(width: 4),
-                  IconButton(
-                    icon: const Icon(Icons.clear, size: 16),
-                    onPressed: () => setState(() => _startDate = null),
-                  ),
-                ],
               ],
             ),
-            const SizedBox(height: 8),
-            Row(
-              children: [
-                Expanded(
-                  child: OutlinedButton.icon(
-                    onPressed: () async {
-                      final picked = await showDatePicker(
-                        context: context,
-                        initialDate: _endDate ?? (_startDate ?? DateTime.now()),
-                        firstDate: DateTime(2000),
-                        lastDate: DateTime(2100),
-                      );
-                      if (picked != null) {
-                        setState(() => _endDate = picked);
-                      }
-                    },
-                    icon: const Icon(Icons.event, size: 16),
-                    label: Text(_endDate != null ? 'End: ${_formatYmd(_endDate)!}' : 'End Date (Optional)'),
-                  ),
-                ),
-                if (_endDate != null) ...[
-                  const SizedBox(width: 4),
-                  IconButton(
-                    icon: const Icon(Icons.clear, size: 16),
-                    onPressed: () => setState(() => _endDate = null),
-                  ),
-                ],
-              ],
-            ),
-          ],
+          ),
         ),
       ),
       actions: [
-        TextButton(
-          onPressed: () => Navigator.pop(context),
-          child: const Text('CANCEL'),
-        ),
-        PrimaryButton(
-          label: isEditing ? 'UPDATE' : 'CREATE',
-          isLoading: _isLoading,
-          onPressed: _handleSubmit,
-        ),
+        if (isNarrow)
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              PrimaryButton(
+                label: isEditing ? 'UPDATE' : 'CREATE',
+                isLoading: _isLoading,
+                onPressed: _handleSubmit,
+              ),
+              const SizedBox(height: 8),
+              OutlinedButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text('CANCEL'),
+              ),
+            ],
+          )
+        else
+          Row(
+            mainAxisAlignment: MainAxisAlignment.end,
+            children: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text('CANCEL'),
+              ),
+              const SizedBox(width: 8),
+              PrimaryButton(
+                label: isEditing ? 'UPDATE' : 'CREATE',
+                isLoading: _isLoading,
+                onPressed: _handleSubmit,
+              ),
+            ],
+          ),
       ],
     );
   }
