@@ -85,6 +85,17 @@ class _StudentProfileDialogShellState
     final students = pageState.value?.students ?? [];
     final currentIndex = students.indexWhere((s) => s.id == _currentStudentId);
 
+    final isMobileOrAndroid = widget.isMobile ||
+        Theme.of(context).platform == TargetPlatform.android;
+    final arrowIconSize = isMobileOrAndroid ? 20.0 : 16.0;
+    final actionIconSize = isMobileOrAndroid ? 20.0 : 18.0;
+    final buttonConstraints = isMobileOrAndroid
+        ? const BoxConstraints(minWidth: 36, minHeight: 36)
+        : const BoxConstraints(minWidth: 28, minHeight: 28);
+    final buttonPadding = isMobileOrAndroid
+        ? const EdgeInsets.all(4)
+        : EdgeInsets.zero;
+
     return Dialog(
       backgroundColor: Colors.transparent,
       insetPadding: widget.isMobile
@@ -124,6 +135,8 @@ class _StudentProfileDialogShellState
                           fontSize: 16,
                           fontWeight: FontWeight.bold,
                         ),
+                        overflow: TextOverflow.ellipsis,
+                        maxLines: 1,
                       ),
                     ),
                     if (students.isNotEmpty && currentIndex != -1) ...[
@@ -135,19 +148,16 @@ class _StudentProfileDialogShellState
                             color: currentIndex > 0
                                 ? Colors.white
                                 : Colors.white24,
-                            size: 16,
+                            size: arrowIconSize,
                           ),
                           visualDensity: VisualDensity.compact,
                           style: IconButton.styleFrom(
                             tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                             minimumSize: Size.zero,
-                            padding: EdgeInsets.zero,
+                            padding: buttonPadding,
                           ),
-                          padding: EdgeInsets.zero,
-                          constraints: const BoxConstraints(
-                            minWidth: 28,
-                            minHeight: 28,
-                          ),
+                          padding: buttonPadding,
+                          constraints: buttonConstraints,
                           onPressed: currentIndex > 0
                               ? () => setState(() {
                                     _currentStudentId =
@@ -160,9 +170,9 @@ class _StudentProfileDialogShellState
                         padding: const EdgeInsets.symmetric(horizontal: 4),
                         child: Text(
                           '${currentIndex + 1}/${students.length}',
-                          style: const TextStyle(
+                          style: TextStyle(
                             color: Colors.white70,
-                            fontSize: 12,
+                            fontSize: isMobileOrAndroid ? 13 : 12,
                             fontWeight: FontWeight.w600,
                           ),
                         ),
@@ -175,19 +185,16 @@ class _StudentProfileDialogShellState
                             color: currentIndex < students.length - 1
                                 ? Colors.white
                                 : Colors.white24,
-                            size: 16,
+                            size: arrowIconSize,
                           ),
                           visualDensity: VisualDensity.compact,
                           style: IconButton.styleFrom(
                             tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                             minimumSize: Size.zero,
-                            padding: EdgeInsets.zero,
+                            padding: buttonPadding,
                           ),
-                          padding: EdgeInsets.zero,
-                          constraints: const BoxConstraints(
-                            minWidth: 28,
-                            minHeight: 28,
-                          ),
+                          padding: buttonPadding,
+                          constraints: buttonConstraints,
                           onPressed: currentIndex < students.length - 1
                               ? () => setState(() {
                                     _currentStudentId =
@@ -196,25 +203,25 @@ class _StudentProfileDialogShellState
                               : null,
                         ),
                       ),
-                      const SizedBox(width: 10),
+                      SizedBox(width: isMobileOrAndroid ? 4 : 10),
                     ],
                     if ((widget.onEdit != null || widget.onEditById != null) &&
                         widget.userRole != 'teacher')
                       IconButton(
-                        icon: const Icon(
+                        icon: Icon(
                           Icons.edit,
                           color: Colors.white,
-                          size: 18,
+                          size: actionIconSize,
                         ),
                         tooltip: 'Edit Student',
                         visualDensity: VisualDensity.compact,
                         style: IconButton.styleFrom(
                           tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                           minimumSize: Size.zero,
-                          padding: EdgeInsets.zero,
+                          padding: buttonPadding,
                         ),
-                        padding: EdgeInsets.zero,
-                        constraints: const BoxConstraints(minWidth: 28, minHeight: 28),
+                        padding: buttonPadding,
+                        constraints: buttonConstraints,
                         onPressed: () {
                           if (widget.onEditById != null) {
                             widget.onEditById!(_currentStudentId);
@@ -225,25 +232,25 @@ class _StudentProfileDialogShellState
                       ),
                     if ((widget.onEdit != null || widget.onEditById != null) &&
                         widget.userRole != 'teacher')
-                      const SizedBox(width: 8),
+                      SizedBox(width: isMobileOrAndroid ? 4 : 8),
                     if ((widget.onDelete != null ||
                             widget.onDeleteById != null) &&
                         widget.userRole != 'teacher')
                       IconButton(
-                        icon: const Icon(
+                        icon: Icon(
                           Icons.delete,
                           color: Colors.white,
-                          size: 18,
+                          size: actionIconSize,
                         ),
                         tooltip: 'Delete Student',
                         visualDensity: VisualDensity.compact,
                         style: IconButton.styleFrom(
                           tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                           minimumSize: Size.zero,
-                          padding: EdgeInsets.zero,
+                          padding: buttonPadding,
                         ),
-                        padding: EdgeInsets.zero,
-                        constraints: const BoxConstraints(minWidth: 28, minHeight: 28),
+                        padding: buttonPadding,
+                        constraints: buttonConstraints,
                         onPressed: () {
                           if (widget.onDeleteById != null) {
                             widget.onDeleteById!(_currentStudentId);
@@ -255,21 +262,21 @@ class _StudentProfileDialogShellState
                     if ((widget.onDelete != null ||
                             widget.onDeleteById != null) &&
                         widget.userRole != 'teacher')
-                      const SizedBox(width: 8),
+                      SizedBox(width: isMobileOrAndroid ? 4 : 8),
                     IconButton(
-                      icon: const Icon(
+                      icon: Icon(
                         Icons.close,
                         color: Colors.white,
-                        size: 18,
+                        size: actionIconSize,
                       ),
                       visualDensity: VisualDensity.compact,
                       style: IconButton.styleFrom(
                         tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                         minimumSize: Size.zero,
-                        padding: EdgeInsets.zero,
+                        padding: buttonPadding,
                       ),
-                      padding: EdgeInsets.zero,
-                      constraints: const BoxConstraints(minWidth: 28, minHeight: 28),
+                      padding: buttonPadding,
+                      constraints: buttonConstraints,
                       onPressed: () => Navigator.of(context).pop(),
                     ),
                   ],
@@ -338,57 +345,95 @@ class StudentProfileModalBody extends ConsumerWidget {
             const SizedBox(height: 20),
 
             const SizedBox(height: 20),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                const Text(
-                  'Enrollments',
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                ),
-                if (!hideEnrollmentActions &&
-                    (userRole == 'admin' || userRole == 'super_admin'))
-                  Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      TextButton.icon(
-                        onPressed: () => _scanSF10SF9(context, ref, studentId),
-                        icon: const Icon(Icons.document_scanner, size: 16),
-                        label: const Text('Scan SF10 / SF9'),
-                        style: TextButton.styleFrom(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 10,
-                            vertical: 4,
-                          ),
-                          minimumSize: Size.zero,
-                          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      TextButton.icon(
-                        onPressed: () {
-                          showDialog(
-                            context: context,
-                            barrierColor: Colors.black.withValues(alpha: 0.45),
-                            builder: (ctx) => EditEnrollmentModal(
-                              studentId: studentId,
-                              enrollment: null,
+            Builder(
+              builder: (ctx) {
+                final screenW = MediaQuery.of(ctx).size.width;
+                final isStacked = screenW < 550 ||
+                    Theme.of(ctx).platform == TargetPlatform.android;
+
+                final actions = (!hideEnrollmentActions &&
+                        (userRole == 'admin' || userRole == 'super_admin'))
+                    ? [
+                        OutlinedButton.icon(
+                          onPressed: () => _scanSF10SF9(context, ref, studentId),
+                          icon: const Icon(Icons.document_scanner, size: 18),
+                          label: const Text('Scan SF10 / SF9'),
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: AppColors.primaryGreen,
+                            side: const BorderSide(
+                              color: AppColors.primaryGreen,
                             ),
-                          );
-                        },
-                        icon: const Icon(Icons.add, size: 16),
-                        label: const Text('Add Enrollment'),
-                        style: TextButton.styleFrom(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 12,
-                            vertical: 4,
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 14,
+                              vertical: 10,
+                            ),
                           ),
-                          minimumSize: Size.zero,
-                          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                        ),
+                        if (isStacked)
+                          const SizedBox(height: 8)
+                        else
+                          const SizedBox(width: 8),
+                        ElevatedButton.icon(
+                          onPressed: () {
+                            showDialog(
+                              context: context,
+                              barrierColor:
+                                  Colors.black.withValues(alpha: 0.45),
+                              builder: (ctx) => EditEnrollmentModal(
+                                studentId: studentId,
+                                enrollment: null,
+                              ),
+                            );
+                          },
+                          icon: const Icon(Icons.add, size: 18),
+                          label: const Text('Add Enrollment'),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: AppColors.primaryGreen,
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 14,
+                              vertical: 10,
+                            ),
+                          ),
+                        ),
+                      ]
+                    : <Widget>[];
+
+                if (isStacked) {
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      const Text(
+                        'Enrollments',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
                         ),
                       ),
+                      if (actions.isNotEmpty) ...[
+                        const SizedBox(height: 10),
+                        ...actions,
+                      ],
                     ],
-                  ),
-              ],
+                  );
+                }
+
+                return Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Text(
+                      'Enrollments',
+                      style:
+                          TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                    ),
+                    if (actions.isNotEmpty)
+                      Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: actions,
+                      ),
+                  ],
+                );
+              },
             ),
             const SizedBox(height: 10),
 

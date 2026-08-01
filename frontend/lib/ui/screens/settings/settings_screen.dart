@@ -839,14 +839,14 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                                           crossAxisAlignment: CrossAxisAlignment.start,
                                           children: [
                                             Text(
-                                              'Active Academic Year Schedule & Auto-Graduation',
+                                              'Academic Year & Auto-Graduation',
                                               style: TextStyle(
                                                 fontSize: 18,
                                                 fontWeight: FontWeight.bold,
                                               ),
                                             ),
                                             Text(
-                                              'Set start day/month and end year/month/day for automatic sequential graduation of Grade 10 & 12 students',
+                                              'Configure schedule dates for automatic sequential graduation of Grade 10 & 12 students',
                                               style: TextStyle(
                                                 fontSize: 13,
                                                 color: AppColors.textSecondary,
@@ -873,7 +873,10 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                                       return Column(
                                         crossAxisAlignment: CrossAxisAlignment.start,
                                         children: [
-                                          Row(
+                                          Wrap(
+                                            spacing: 16,
+                                            runSpacing: 8,
+                                            crossAxisAlignment: WrapCrossAlignment.center,
                                             children: [
                                               Container(
                                                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
@@ -890,12 +893,10 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                                                   ),
                                                 ),
                                               ),
-                                              const SizedBox(width: 16),
                                               Text(
                                                 'Start Date: ${activeYear.startDate ?? "Not set"}',
                                                 style: const TextStyle(fontSize: 13),
                                               ),
-                                              const SizedBox(width: 16),
                                               Text(
                                                 'End Date: ${activeYear.endDate ?? "Not set"}',
                                                 style: const TextStyle(fontSize: 13),
@@ -924,35 +925,129 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                                             ),
                                           ),
                                           const SizedBox(height: 16),
-                                          Row(
-                                            children: [
-                                              Expanded(
-                                                child: OutlinedButton.icon(
-                                                  onPressed: () => showDialog(
-                                                    context: context,
-                                                    builder: (_) => AcademicYearFormModal(year: activeYear),
+                                          Builder(
+                                            builder: (ctx) {
+                                              final isNarrow =
+                                                  MediaQuery.of(ctx).size.width < 650 ||
+                                                      Theme.of(ctx).platform ==
+                                                          TargetPlatform.android;
+                                              if (isNarrow) {
+                                                return Column(
+                                                  crossAxisAlignment:
+                                                      CrossAxisAlignment.stretch,
+                                                  children: [
+                                                    OutlinedButton.icon(
+                                                      onPressed: () => showDialog(
+                                                        context: context,
+                                                        builder: (_) =>
+                                                            AcademicYearFormModal(
+                                                          year: activeYear,
+                                                        ),
+                                                      ),
+                                                      icon: const Icon(
+                                                        Icons.date_range,
+                                                      ),
+                                                      label: const Text(
+                                                        'Edit Schedule Dates',
+                                                      ),
+                                                      style:
+                                                          OutlinedButton.styleFrom(
+                                                        padding:
+                                                            const EdgeInsets.symmetric(
+                                                          vertical: 14,
+                                                        ),
+                                                        side: const BorderSide(
+                                                          color: AppColors
+                                                              .primaryGreen,
+                                                        ),
+                                                      ),
+                                                    ),
+                                                    const SizedBox(height: 12),
+                                                    FilledButton.icon(
+                                                      onPressed: () =>
+                                                          _handleRunAutoGraduation(
+                                                        context,
+                                                        ref,
+                                                      ),
+                                                      icon: const Icon(
+                                                        Icons.school,
+                                                      ),
+                                                      label: const Text(
+                                                        'Check / Run Auto-Graduation Now',
+                                                      ),
+                                                      style:
+                                                          FilledButton.styleFrom(
+                                                        backgroundColor:
+                                                            AppColors
+                                                                .primaryGreen,
+                                                        padding:
+                                                            const EdgeInsets.symmetric(
+                                                          vertical: 14,
+                                                        ),
+                                                      ),
+                                                    ),
+                                                  ],
+                                                );
+                                              }
+                                              return Row(
+                                                children: [
+                                                  Expanded(
+                                                    child: OutlinedButton.icon(
+                                                      onPressed: () => showDialog(
+                                                        context: context,
+                                                        builder: (_) =>
+                                                            AcademicYearFormModal(
+                                                          year: activeYear,
+                                                        ),
+                                                      ),
+                                                      icon: const Icon(
+                                                        Icons.date_range,
+                                                      ),
+                                                      label: const Text(
+                                                        'Edit Schedule Dates',
+                                                      ),
+                                                      style:
+                                                          OutlinedButton.styleFrom(
+                                                        padding:
+                                                            const EdgeInsets.symmetric(
+                                                          vertical: 14,
+                                                        ),
+                                                        side: const BorderSide(
+                                                          color: AppColors
+                                                              .primaryGreen,
+                                                        ),
+                                                      ),
+                                                    ),
                                                   ),
-                                                  icon: const Icon(Icons.date_range),
-                                                  label: const Text('Edit Schedule Dates'),
-                                                  style: OutlinedButton.styleFrom(
-                                                    padding: const EdgeInsets.symmetric(vertical: 14),
-                                                    side: const BorderSide(color: AppColors.primaryGreen),
+                                                  const SizedBox(width: 16),
+                                                  Expanded(
+                                                    child: FilledButton.icon(
+                                                      onPressed: () =>
+                                                          _handleRunAutoGraduation(
+                                                        context,
+                                                        ref,
+                                                      ),
+                                                      icon: const Icon(
+                                                        Icons.school,
+                                                      ),
+                                                      label: const Text(
+                                                        'Check / Run Auto-Graduation Now',
+                                                      ),
+                                                      style:
+                                                          FilledButton.styleFrom(
+                                                        backgroundColor:
+                                                            AppColors
+                                                                .primaryGreen,
+                                                        padding:
+                                                            const EdgeInsets.symmetric(
+                                                          vertical: 14,
+                                                        ),
+                                                      ),
+                                                    ),
                                                   ),
-                                                ),
-                                              ),
-                                              const SizedBox(width: 16),
-                                              Expanded(
-                                                child: FilledButton.icon(
-                                                  onPressed: () => _handleRunAutoGraduation(context, ref),
-                                                  icon: const Icon(Icons.school),
-                                                  label: const Text('Check / Run Auto-Graduation Now'),
-                                                  style: FilledButton.styleFrom(
-                                                    backgroundColor: AppColors.primaryGreen,
-                                                    padding: const EdgeInsets.symmetric(vertical: 14),
-                                                  ),
-                                                ),
-                                              ),
-                                            ],
+                                                ],
+                                              );
+                                            },
                                           ),
                                         ],
                                       );
