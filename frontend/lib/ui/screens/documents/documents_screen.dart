@@ -1223,8 +1223,6 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
             const SizedBox(width: 8),
           ],
 
-          _buildMultiSelectToggle(true),
-          const SizedBox(width: 4),
           if (defaultTargetPlatform != TargetPlatform.android && !isMobile) ...[
             _buildPrintQueueButton(compact: true),
             const SizedBox(width: 4),
@@ -1262,69 +1260,6 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
     if (_selectedGradeLevel != 'All Grades') count++;
     if (_selectedSchoolYear != 'All Years') count++;
     return count;
-  }
-
-  Widget _buildMultiSelectToggle(bool isIconOnly) {
-    return Tooltip(
-      message: 'Toggle Multi-Select',
-      child: GestureDetector(
-        onTap: () {
-          setState(() {
-            _isMultiSelectMode = !_isMultiSelectMode;
-            if (!_isMultiSelectMode) {
-              _selectedDocumentIds.clear();
-            }
-          });
-        },
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 250),
-          padding: EdgeInsets.symmetric(
-            horizontal: isIconOnly ? 12 : 14,
-            vertical: 8,
-          ),
-          height: 42,
-          decoration: BoxDecoration(
-            color: _isMultiSelectMode
-                ? AppColors.primaryGreen.withValues(alpha: 0.08)
-                : AppColors.surfaceWhite,
-            border: Border.all(
-              color: _isMultiSelectMode
-                  ? AppColors.primaryGreen
-                  : Colors.grey.shade300,
-              width: 1.2,
-            ),
-            borderRadius: BorderRadius.circular(8),
-          ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(
-                _isMultiSelectMode
-                    ? Icons.check_box_rounded
-                    : Icons.check_box_outline_blank_rounded,
-                size: 16,
-                color: _isMultiSelectMode
-                    ? AppColors.primaryGreen
-                    : AppColors.textSecondary,
-              ),
-              if (!isIconOnly) ...[
-                const SizedBox(width: 6),
-                Text(
-                  'Select',
-                  style: TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w600,
-                    color: _isMultiSelectMode
-                        ? AppColors.primaryGreen
-                        : AppColors.textSecondary,
-                  ),
-                ),
-              ],
-            ],
-          ),
-        ),
-      ),
-    );
   }
 
   Widget _buildMoreOptionsDropdown(bool isMobile) {
