@@ -503,6 +503,37 @@ exports.getPrintQueue = (req, res) => {
     }
 };
 
+exports.getPrintHistory = (req, res) => {
+    try {
+        const userId = req.user.id;
+        const history = db.prepare(`
+            SELECT ph.id, ph.document_id, ph.document_name, ph.student_name, ph.printed_at,
+                   s.lrn as student_lrn, d.file_name, d.document_type
+            FROM printed_document_history ph
+            LEFT JOIN students s ON ph.student_id = s.id
+            LEFT JOIN documents d ON ph.document_id = d.id
+            WHERE ph.user_id = ?
+            ORDER BY ph.printed_at DESC
+            LIMIT 50
+        `).all(userId);
+        res.json(history);
+    } catch (error) {
+        console.error('getPrintHistory error:', error);
+        res.status(500).json({ message: 'Failed to fetch print history', error: error.message });
+    }
+};
+
+exports.clearPrintHistory = (req, res) => {
+    try {
+        const userId = req.user.id;
+        db.prepare('DELETE FROM printed_document_history WHERE user_id = ?').run(userId);
+        res.json({ message: 'Print history cleared' });
+    } catch (error) {
+        console.error('clearPrintHistory error:', error);
+        res.status(500).json({ message: 'Failed to clear print history', error: error.message });
+    }
+};
+
 // ============================================================
 // POST /api/documents/print-queue — add document to print queue
 // ============================================================

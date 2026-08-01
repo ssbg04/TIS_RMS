@@ -9,6 +9,8 @@ router.get('/statuses', authenticateToken, documentController.getStatuses);
 
 // Print Queue routes — must be BEFORE /:id routes to avoid conflict
 router.get('/print-queue', authenticateToken, documentController.getPrintQueue);
+router.get('/print-history', authenticateToken, documentController.getPrintHistory);
+router.delete('/print-history/clear', authenticateToken, documentController.clearPrintHistory);
 router.post('/print-queue', authenticateToken, documentController.addToPrintQueue);
 router.post('/print-queue/print', authenticateToken, documentController.executePrintQueue);
 router.delete('/print-queue/clear', authenticateToken, documentController.clearPrintQueue);

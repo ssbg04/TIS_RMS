@@ -8,7 +8,7 @@ import 'package:wolt_modal_sheet/wolt_modal_sheet.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_sizes.dart';
 import '../../../../domain/repositories/document_repository.dart'
-    show PrintQueueItem;
+    show PrintQueueItem, PrintHistoryItem;
 import '../../../shared/buttons/primary_button.dart';
 import '../../../shared/dialogs/success_dialog.dart';
 import '../../../shared/dialogs/error_dialog.dart';
@@ -82,9 +82,26 @@ class PrintQueueModal extends ConsumerStatefulWidget {
 
 class _PrintQueueModalState extends ConsumerState<PrintQueueModal> {
   bool _isPrinting = false;
+  int _selectedTab = 0; // 0 = Print List, 1 = History
 
   Future<void> _handlePrintAll(List<PrintQueueItem> items) async {
     if (items.isEmpty) return;
+
+    final hasExcel = items.any((item) {
+      final fname = item.fileName.toLowerCase();
+      return fname.endsWith('.xlsx') ||
+          fname.endsWith('.xls') ||
+          fname.endsWith('.csv');
+    });
+    if (hasExcel) {
+      showErrorDialog(
+        context,
+        'Convert to PDF First',
+        'Cannot print Excel/spreadsheet files directly. Please convert Excel files (.xlsx, .xls, .csv) to PDF first before printing.',
+      );
+      return;
+    }
+
     setState(() => _isPrinting = true);
 
     try {
@@ -216,6 +233,7 @@ class _PrintQueueModalState extends ConsumerState<PrintQueueModal> {
   @override
   Widget build(BuildContext context) {
     final queueAsync = ref.watch(printQueueProvider);
+    final historyAsync = ref.watch(printHistoryProvider);
     final isMobile = MediaQuery.of(context).size.width < 600;
 
     return ConstrainedBox(
@@ -226,33 +244,121 @@ class _PrintQueueModalState extends ConsumerState<PrintQueueModal> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Header is now fixed at the top of the modal via topBarTitle
             const SizedBox(height: 8),
+            _buildTabSelector(),
+            const SizedBox(height: 16),
 
-            // ── Queue Content ──
-            queueAsync.when(
-              loading: () => const Padding(
-                padding: EdgeInsets.symmetric(vertical: 40),
-                child: Center(
-                  child: CircularProgressIndicator(
-                      color: AppColors.primaryGreen),
+            if (_selectedTab == 0) ...[
+              // ── Queue Content ──
+              queueAsync.when(
+                loading: () => const Padding(
+                  padding: EdgeInsets.symmetric(vertical: 40),
+                  child: Center(
+                    child: CircularProgressIndicator(
+                        color: AppColors.primaryGreen),
+                  ),
                 ),
+                error: (e, _) => _buildErrorState(e.toString()),
+                data: (items) => items.isEmpty
+                    ? _buildEmptyState()
+                    : _buildQueueList(items),
               ),
-              error: (e, _) => _buildErrorState(e.toString()),
-              data: (items) => items.isEmpty
-                  ? _buildEmptyState()
-                  : _buildQueueList(items),
-            ),
 
-            // ── Footer ──
-            queueAsync.maybeWhen(
-              data: (items) => items.isNotEmpty
-                  ? _buildFooter(items, isMobile)
-                  : const SizedBox.shrink(),
-              orElse: () => const SizedBox.shrink(),
-            ),
+              // ── Footer ──
+              queueAsync.maybeWhen(
+                data: (items) => items.isNotEmpty
+                    ? _buildFooter(items, isMobile)
+                    : const SizedBox.shrink(),
+                orElse: () => const SizedBox.shrink(),
+              ),
+            ] else ...[
+              // ── History Content ──
+              historyAsync.when(
+                loading: () => const Padding(
+                  padding: EdgeInsets.symmetric(vertical: 40),
+                  child: Center(
+                    child: CircularProgressIndicator(
+                        color: AppColors.primaryGreen),
+                  ),
+                ),
+                error: (e, _) => _buildErrorState(e.toString()),
+                data: (items) => items.isEmpty
+                    ? _buildEmptyHistoryState()
+                    : _buildHistoryList(items),
+              ),
+
+              // ── History Footer ──
+              historyAsync.maybeWhen(
+                data: (items) => items.isNotEmpty
+                    ? _buildHistoryFooter(items)
+                    : const SizedBox.shrink(),
+                orElse: () => const SizedBox.shrink(),
+              ),
+            ],
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildTabSelector() {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.grey.shade100,
+        borderRadius: BorderRadius.circular(8),
+      ),
+      padding: const EdgeInsets.all(4),
+      child: Row(
+        children: [
+          Expanded(
+            child: GestureDetector(
+              onTap: () => setState(() => _selectedTab = 0),
+              child: Container(
+                padding: const EdgeInsets.symmetric(vertical: 8),
+                decoration: BoxDecoration(
+                  color: _selectedTab == 0 ? Colors.white : Colors.transparent,
+                  borderRadius: BorderRadius.circular(6),
+                  boxShadow: _selectedTab == 0
+                      ? [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 4)]
+                      : null,
+                ),
+                alignment: Alignment.center,
+                child: Text(
+                  'Print List',
+                  style: TextStyle(
+                    fontWeight: _selectedTab == 0 ? FontWeight.bold : FontWeight.w500,
+                    color: _selectedTab == 0 ? AppColors.primaryGreen : AppColors.textSecondary,
+                    fontSize: 13,
+                  ),
+                ),
+              ),
+            ),
+          ),
+          Expanded(
+            child: GestureDetector(
+              onTap: () => setState(() => _selectedTab = 1),
+              child: Container(
+                padding: const EdgeInsets.symmetric(vertical: 8),
+                decoration: BoxDecoration(
+                  color: _selectedTab == 1 ? Colors.white : Colors.transparent,
+                  borderRadius: BorderRadius.circular(6),
+                  boxShadow: _selectedTab == 1
+                      ? [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 4)]
+                      : null,
+                ),
+                alignment: Alignment.center,
+                child: Text(
+                  'History',
+                  style: TextStyle(
+                    fontWeight: _selectedTab == 1 ? FontWeight.bold : FontWeight.w500,
+                    color: _selectedTab == 1 ? AppColors.primaryGreen : AppColors.textSecondary,
+                    fontSize: 13,
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -285,7 +391,9 @@ class _PrintQueueModalState extends ConsumerState<PrintQueueModal> {
             ),
           ),
           title: Text(
-            item.fileName,
+            item.documentType != null && item.documentType!.isNotEmpty
+                ? '${item.documentType} • ${item.fileName}'
+                : item.fileName,
             style: const TextStyle(
                 fontWeight: FontWeight.w600, fontSize: 13),
             maxLines: 1,
@@ -295,13 +403,15 @@ class _PrintQueueModalState extends ConsumerState<PrintQueueModal> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               if (item.studentName != null)
-                Text(item.studentName!,
-                    style: const TextStyle(
-                        fontSize: 11, color: AppColors.textSecondary)),
-              if (item.documentType != null)
-                Text(item.documentType!,
-                    style: const TextStyle(
-                        fontSize: 11, color: AppColors.textMuted)),
+                Text(
+                  item.studentLrn != null && item.studentLrn!.isNotEmpty
+                      ? '${item.studentName} (LRN: ${item.studentLrn})'
+                      : item.studentName!,
+                  style: const TextStyle(
+                      fontSize: 11.5,
+                      color: AppColors.textSecondary,
+                      fontWeight: FontWeight.w500),
+                ),
             ],
           ),
           trailing: Row(
@@ -325,6 +435,7 @@ class _PrintQueueModalState extends ConsumerState<PrintQueueModal> {
     Color color;
     switch (status) {
       case 'Completed':
+      case 'Printed':
         color = AppColors.success;
         break;
       case 'Archived':
@@ -409,14 +520,15 @@ class _PrintQueueModalState extends ConsumerState<PrintQueueModal> {
                             fontWeight: FontWeight.bold)),
                   ),
                   const SizedBox(width: AppSizes.p8),
-                  SizedBox(
-                    width: 140,
-                    child: PrimaryButton(
-                      label: _isPrinting ? 'PREPARING...' : 'PRINT',
-                      isLoading: _isPrinting,
-                      onPressed: () => _handlePrintAll(items),
+                  if (!isMobile)
+                    SizedBox(
+                      width: 140,
+                      child: PrimaryButton(
+                        label: _isPrinting ? 'PREPARING...' : 'PRINT',
+                        isLoading: _isPrinting,
+                        onPressed: () => _handlePrintAll(items),
+                      ),
                     ),
-                  ),
                 ],
               ),
             ],
@@ -424,6 +536,121 @@ class _PrintQueueModalState extends ConsumerState<PrintQueueModal> {
         ],
       ],
     );
+  }
+
+  Widget _buildHistoryList(List<PrintHistoryItem> items) {
+    return ListView.separated(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      itemCount: items.length,
+      separatorBuilder: (context, index) =>
+          Divider(height: 1, color: Colors.grey.shade100),
+      itemBuilder: (ctx, i) {
+        final item = items[i];
+        final isPdf = (item.fileName ?? '').toLowerCase().endsWith('.pdf');
+        return ListTile(
+          contentPadding:
+              const EdgeInsets.symmetric(horizontal: 4, vertical: 6),
+          leading: Container(
+            width: 40,
+            height: 40,
+            decoration: BoxDecoration(
+              color: (isPdf ? Colors.red : Colors.blue)
+                  .withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Icon(
+              isPdf ? Icons.picture_as_pdf : Icons.history,
+              color: isPdf ? Colors.redAccent : Colors.blueAccent,
+              size: 20,
+            ),
+          ),
+          title: Text(
+            item.documentType != null && item.documentType!.isNotEmpty
+                ? '${item.documentType} • ${item.fileName ?? item.documentName}'
+                : (item.fileName ?? item.documentName),
+            style: const TextStyle(
+                fontWeight: FontWeight.w600, fontSize: 13),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+          subtitle: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                item.studentLrn != null && item.studentLrn!.isNotEmpty
+                    ? '${item.studentName} (LRN: ${item.studentLrn})'
+                    : item.studentName,
+                style: const TextStyle(
+                    fontSize: 11.5,
+                    color: AppColors.textSecondary,
+                    fontWeight: FontWeight.w500),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                'Printed on ${_formatHistoryDate(item.printedAt)}',
+                style: const TextStyle(
+                    fontSize: 10.5, color: AppColors.textMuted),
+              ),
+            ],
+          ),
+          trailing: _buildStatusChip('Printed'),
+        );
+      },
+    );
+  }
+
+  Widget _buildEmptyHistoryState() {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 32),
+        child: Column(
+          children: [
+            Icon(Icons.history_toggle_off,
+                size: 48, color: Colors.grey.shade400),
+            const SizedBox(height: 12),
+            Text('No print history found',
+                style: TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.grey.shade600)),
+            const SizedBox(height: 4),
+            Text('Documents you print will appear here in your history.',
+                style: TextStyle(
+                    fontSize: 12, color: Colors.grey.shade500),
+                textAlign: TextAlign.center),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildHistoryFooter(List<PrintHistoryItem> items) {
+    return Padding(
+      padding: const EdgeInsets.only(top: 16),
+      child: Align(
+        alignment: Alignment.centerRight,
+        child: TextButton.icon(
+          onPressed: () async {
+            await ref.read(printQueueMutationProvider.notifier).clearHistory();
+          },
+          icon: const Icon(Icons.delete_sweep_outlined, size: 18),
+          label: const Text('Clear History'),
+          style: TextButton.styleFrom(
+            foregroundColor: AppColors.textSecondary,
+          ),
+        ),
+      ),
+    );
+  }
+
+  String _formatHistoryDate(DateTime dt) {
+    final y = dt.year;
+    final m = dt.month.toString().padLeft(2, '0');
+    final d = dt.day.toString().padLeft(2, '0');
+    final hh = dt.hour.toString().padLeft(2, '0');
+    final mm = dt.minute.toString().padLeft(2, '0');
+    return '$y-$m-$d $hh:$mm';
   }
 
   Widget _buildEmptyState() {

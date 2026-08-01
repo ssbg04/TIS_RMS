@@ -893,31 +893,33 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
                 _buildMultiSelectToggle(true),
               ],
               const SizedBox(width: 8),
-              // "Add Student" + "Bulk OCR Import" buttons for Windows (replaces FAB)
+              // "Add" + "Bulk Add" buttons for Windows (replaces FAB)
               if (defaultTargetPlatform == TargetPlatform.windows &&
                   widget.userRole != 'teacher') ...[
                 SizedBox(
-                  height: 42,
+                  height: 36,
                   child: ElevatedButton.icon(
                     onPressed: _openBulkOcrImport,
-                    icon: const Icon(Icons.document_scanner_outlined, size: 20),
-                    label: const Text('Bulk OCR Import'),
+                    icon: const Icon(Icons.document_scanner_outlined, size: 18),
+                    label: const Text('Bulk Add', style: TextStyle(fontSize: 13)),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: AppColors.darkGreen,
                       foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(horizontal: 12),
                     ),
                   ),
                 ),
                 const SizedBox(width: 8),
                 SizedBox(
-                  height: 42,
+                  height: 36,
                   child: ElevatedButton.icon(
                     onPressed: () => _openModal(),
-                    icon: const Icon(Icons.person_add, size: 20),
-                    label: const Text('Add Student'),
+                    icon: const Icon(Icons.person_add, size: 18),
+                    label: const Text('Add', style: TextStyle(fontSize: 13)),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: AppColors.primaryGreen,
                       foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(horizontal: 12),
                     ),
                   ),
                 ),

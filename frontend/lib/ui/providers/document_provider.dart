@@ -212,6 +212,13 @@ final printQueueProvider = FutureProvider.autoDispose<List<PrintQueueItem>>((
   return repo.getPrintQueue();
 });
 
+final printHistoryProvider = FutureProvider.autoDispose<List<PrintHistoryItem>>((
+  ref,
+) async {
+  final repo = ref.read(documentRepositoryProvider);
+  return repo.getPrintHistory();
+});
+
 final printQueueMutationProvider =
     AsyncNotifierProvider<PrintQueueMutationNotifier, void>(
       PrintQueueMutationNotifier.new,
@@ -267,6 +274,20 @@ class PrintQueueMutationNotifier extends AsyncNotifier<void> {
       await repo.executePrintQueue();
       state = const AsyncData(null);
       ref.invalidate(printQueueProvider);
+      ref.invalidate(printHistoryProvider);
+    } catch (e, st) {
+      state = AsyncError(e, st);
+      rethrow;
+    }
+  }
+
+  Future<void> clearHistory() async {
+    state = const AsyncLoading();
+    try {
+      final repo = ref.read(documentRepositoryProvider);
+      await repo.clearPrintHistory();
+      state = const AsyncData(null);
+      ref.invalidate(printHistoryProvider);
     } catch (e, st) {
       state = AsyncError(e, st);
       rethrow;

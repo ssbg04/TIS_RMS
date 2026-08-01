@@ -76,6 +76,43 @@ class PrintQueueItem {
   }
 }
 
+class PrintHistoryItem {
+  final int id;
+  final int documentId;
+  final String documentName;
+  final String studentName;
+  final String? studentLrn;
+  final String? fileName;
+  final String? documentType;
+  final DateTime printedAt;
+
+  const PrintHistoryItem({
+    required this.id,
+    required this.documentId,
+    required this.documentName,
+    required this.studentName,
+    this.studentLrn,
+    this.fileName,
+    this.documentType,
+    required this.printedAt,
+  });
+
+  factory PrintHistoryItem.fromJson(Map<String, dynamic> json) {
+    return PrintHistoryItem(
+      id: json['id'] as int,
+      documentId: json['document_id'] as int,
+      documentName: json['document_name'] as String? ?? 'Document',
+      studentName: json['student_name'] as String? ?? 'Unknown',
+      studentLrn: json['student_lrn'] as String?,
+      fileName: json['file_name'] as String?,
+      documentType: json['document_type'] as String?,
+      printedAt: json['printed_at'] != null
+          ? DateTime.parse(json['printed_at'] as String)
+          : DateTime.now(),
+    );
+  }
+}
+
 class TrashDocumentModel {
   final int id;
   final int? studentId;
@@ -598,6 +635,37 @@ class DocumentRepository {
     } on DioException catch (e) {
       final msg =
           e.response?.data?['message'] ?? 'Failed to fetch print queue.';
+      throw Exception(msg);
+    }
+  }
+
+  Future<List<PrintHistoryItem>> getPrintHistory() async {
+    try {
+      final options = await _getAuthOptions();
+      final response = await _dio.get(
+        '/documents/print-history',
+        options: options,
+      );
+      return (response.data as List)
+          .map((i) => PrintHistoryItem.fromJson(i as Map<String, dynamic>))
+          .toList();
+    } on DioException catch (e) {
+      final msg =
+          e.response?.data?['message'] ?? 'Failed to fetch print history.';
+      throw Exception(msg);
+    }
+  }
+
+  Future<void> clearPrintHistory() async {
+    try {
+      final options = await _getAuthOptions();
+      await _dio.delete(
+        '/documents/print-history/clear',
+        options: options,
+      );
+    } on DioException catch (e) {
+      final msg =
+          e.response?.data?['message'] ?? 'Failed to clear print history.';
       throw Exception(msg);
     }
   }

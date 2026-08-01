@@ -562,219 +562,97 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
     }
   }
 
-  Widget _buildBatchActionsBar() {
+  Widget _buildFabBatchActionsMenu() {
     final count = _selectedDocumentIds.length;
     final isAdmin = widget.userRole != 'teacher';
-    final screenW = MediaQuery.of(context).size.width;
-    final isMobile = screenW < 700;
 
-    // ── Mobile: compact 2-row layout ─────────────────────────────
-    if (isMobile) {
-      return Container(
-        decoration: BoxDecoration(
-          color: AppColors.surfaceWhite,
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.12),
-              blurRadius: 12,
-              offset: const Offset(0, -3),
-            ),
-          ],
-          border: Border(top: BorderSide(color: Colors.grey.shade200)),
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            // Row 1: count + clear
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              child: Row(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 10,
-                      vertical: 4,
-                    ),
-                    decoration: BoxDecoration(
-                      color: AppColors.primaryGreen.withValues(alpha: 0.12),
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                    child: Text(
-                      count == 0 ? 'Tap items to select' : '$count selected',
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 13,
-                        color: count == 0
-                            ? AppColors.textSecondary
-                            : AppColors.primaryGreen,
-                      ),
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      child: Material(
+        elevation: 8,
+        shadowColor: Colors.black38,
+        borderRadius: BorderRadius.circular(30),
+        color: AppColors.surfaceWhite,
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(30),
+            border: Border.all(color: Colors.grey.shade300),
+            color: AppColors.surfaceWhite,
+          ),
+          child: SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: AppColors.primaryGreen.withValues(alpha: 0.12),
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: Text(
+                    count == 0 ? 'Tap items' : '$count selected',
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 13,
+                      color: count == 0 ? AppColors.textSecondary : AppColors.primaryGreen,
                     ),
                   ),
-                  const Spacer(),
-                  TextButton.icon(
-                    onPressed: () => setState(() {
-                      _selectedDocumentIds.clear();
-                      _isMultiSelectMode = false;
-                    }),
-                    icon: const Icon(Icons.close, size: 16),
-                    label: const Text('Cancel'),
-                    style: TextButton.styleFrom(
-                      foregroundColor: AppColors.textSecondary,
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 10,
-                        vertical: 4,
-                      ),
-                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            // Row 2: action buttons
-            Padding(
-              padding: const EdgeInsets.only(left: 8, right: 8, bottom: 4),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                children: [
-                  _batchActionBtn(
-                    icon: Icons.print_rounded,
-                    label: 'Print',
-                    color: AppColors.primaryGreen,
-                    onTap: count == 0 ? () {} : _handleBatchPrint,
-                  ),
-                  _batchActionBtn(
-                    icon: Icons.copy_rounded,
-                    label: 'Copy',
-                    color: Colors.blue,
-                    onTap: count == 0 ? () {} : _handleBatchCopy,
-                  ),
-                  _batchActionBtn(
-                    icon: Icons.download_rounded,
-                    label: 'Download',
-                    color: AppColors.primaryGreen,
-                    onTap: count == 0 ? () {} : _handleBatchDownload,
-                  ),
-                  _batchActionBtn(
-                    icon: Icons.check_circle_outline_rounded,
-                    label: 'Complete',
-                    color: AppColors.success,
-                    onTap: count == 0
-                        ? () {}
-                        : () => _handleBatchStatus('Completed'),
-                  ),
-                  _batchActionBtn(
-                    icon: Icons.archive_outlined,
-                    label: 'Archive',
-                    color: Colors.orange,
-                    onTap: count == 0
-                        ? () {}
-                        : () => _handleBatchStatus('Archived'),
-                  ),
-                  // Delete is always visible in mobile multi-select
+                ),
+                const SizedBox(width: 4),
+                IconButton(
+                  icon: const Icon(Icons.close, size: 18),
+                  tooltip: 'Cancel selection',
+                  onPressed: () => setState(() {
+                    _selectedDocumentIds.clear();
+                    _isMultiSelectMode = false;
+                  }),
+                ),
+                const SizedBox(width: 4),
+                Container(width: 1, height: 22, color: Colors.grey.shade300),
+                const SizedBox(width: 4),
+                _batchActionBtn(
+                  icon: Icons.print_rounded,
+                  label: 'Print',
+                  color: AppColors.primaryGreen,
+                  onTap: count == 0 ? () {} : _handleBatchPrint,
+                ),
+                _batchActionBtn(
+                  icon: Icons.copy_rounded,
+                  label: 'Copy',
+                  color: Colors.blue,
+                  onTap: count == 0 ? () {} : _handleBatchCopy,
+                ),
+                _batchActionBtn(
+                  icon: Icons.download_rounded,
+                  label: 'Download',
+                  color: AppColors.primaryGreen,
+                  onTap: count == 0 ? () {} : _handleBatchDownload,
+                ),
+                _batchActionBtn(
+                  icon: Icons.check_circle_outline_rounded,
+                  label: 'Complete',
+                  color: AppColors.success,
+                  onTap: count == 0 ? () {} : () => _handleBatchStatus('Completed'),
+                ),
+                _batchActionBtn(
+                  icon: Icons.archive_outlined,
+                  label: 'Archive',
+                  color: Colors.orange,
+                  onTap: count == 0 ? () {} : () => _handleBatchStatus('Archived'),
+                ),
+                if (isAdmin)
                   _batchActionBtn(
                     icon: Icons.delete_outline_rounded,
                     label: 'Delete',
                     color: AppColors.error,
                     onTap: count == 0 ? () {} : _handleBatchDelete,
                   ),
-                ],
-              ),
+              ],
             ),
-          ],
+          ),
         ),
-      );
-    }
-
-    // ── Desktop: single-row layout ───────────────────────────────
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      decoration: BoxDecoration(
-        color: AppColors.surfaceWhite,
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.1),
-            blurRadius: 10,
-            offset: const Offset(0, -2),
-          ),
-        ],
-        border: Border(top: BorderSide(color: Colors.grey.shade200)),
-      ),
-      child: Row(
-        children: [
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
-            decoration: BoxDecoration(
-              color: AppColors.primaryGreen.withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(20),
-            ),
-            child: Text(
-              count == 0
-                  ? 'Tap items to select'
-                  : '$count item${count > 1 ? 's' : ''} selected',
-              style: TextStyle(
-                fontWeight: FontWeight.bold,
-                fontSize: 13,
-                color: count == 0
-                    ? AppColors.textSecondary
-                    : AppColors.primaryGreen,
-              ),
-            ),
-          ),
-          const Spacer(),
-          TextButton(
-            onPressed: () => setState(() {
-              _selectedDocumentIds.clear();
-              _isMultiSelectMode = false;
-            }),
-            child: const Text('Cancel'),
-          ),
-          const SizedBox(width: 4),
-          IconButton(
-            icon: const Icon(
-              Icons.print_rounded,
-              color: AppColors.primaryGreen,
-            ),
-            tooltip: 'Add to Print List',
-            onPressed: count == 0 ? null : _handleBatchPrint,
-          ),
-          IconButton(
-            icon: const Icon(
-              Icons.download_rounded,
-              color: AppColors.primaryGreen,
-            ),
-            tooltip: 'Download',
-            onPressed: count == 0 ? null : _handleBatchDownload,
-          ),
-          IconButton(
-            icon: const Icon(Icons.copy_rounded, color: Colors.blue),
-            tooltip: 'Copy',
-            onPressed: count == 0 ? null : _handleBatchCopy,
-          ),
-          IconButton(
-            icon: const Icon(
-              Icons.check_circle_outline_rounded,
-              color: AppColors.success,
-            ),
-            tooltip: 'Mark as Completed',
-            onPressed: count == 0
-                ? null
-                : () => _handleBatchStatus('Completed'),
-          ),
-          IconButton(
-            icon: const Icon(Icons.archive_outlined, color: Colors.orange),
-            tooltip: 'Archive',
-            onPressed: count == 0 ? null : () => _handleBatchStatus('Archived'),
-          ),
-          if (isAdmin)
-            IconButton(
-              icon: const Icon(
-                Icons.delete_outline_rounded,
-                color: AppColors.error,
-              ),
-              tooltip: 'Delete',
-              onPressed: count == 0 ? null : _handleBatchDelete,
-            ),
-        ],
       ),
     );
   }
@@ -850,26 +728,29 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    // Left FAB: Print List
-                    Badge(
-                      label: Text(
-                        '${ref.watch(printQueueProvider).value?.length ?? 0}',
-                      ),
-                      isLabelVisible:
-                          (ref.watch(printQueueProvider).value?.length ?? 0) >
-                          0,
-                      backgroundColor: AppColors.error,
-                      offset: const Offset(4, -4),
-                      child: FloatingActionButton(
-                        heroTag: 'fab-print-list',
-                        backgroundColor: AppColors.primaryGreen,
-                        shape: const CircleBorder(),
-                        onPressed: () {
-                          PrintQueueModal.show(context);
-                        },
-                        child: const Icon(Icons.print, color: Colors.white),
-                      ),
-                    ),
+                    // Left FAB: Print List (Only for Android/mobile app)
+                    if (isMobile)
+                      Badge(
+                        label: Text(
+                          '${ref.watch(printQueueProvider).value?.length ?? 0}',
+                        ),
+                        isLabelVisible:
+                            (ref.watch(printQueueProvider).value?.length ?? 0) >
+                            0,
+                        backgroundColor: AppColors.error,
+                        offset: const Offset(4, -4),
+                        child: FloatingActionButton(
+                          heroTag: 'fab-print-list',
+                          backgroundColor: AppColors.primaryGreen,
+                          shape: const CircleBorder(),
+                          onPressed: () {
+                            PrintQueueModal.show(context);
+                          },
+                          child: const Icon(Icons.print, color: Colors.white),
+                        ),
+                      )
+                    else
+                      const SizedBox.shrink(),
                     // Right FAB: Upload Document
                     if (isMobile)
                       if (_tabController.index == 1 || isFolderOpened)
@@ -899,7 +780,7 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
               )
             : null,
         bottomNavigationBar: _isMultiSelectMode
-            ? _buildBatchActionsBar()
+            ? _buildFabBatchActionsMenu()
             : null,
         body: SafeArea(
           child: Column(
@@ -1063,56 +944,7 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
       child: Stack(
         children: [
           child,
-          // ── Idle hint: only shown on All Files tab or inside a student folder ──
-          if (showHint)
-            Positioned(
-              left: 0,
-              right: 0,
-              bottom: 0,
-              child: AnimatedSlide(
-                offset: _isDragOver ? const Offset(0, 1) : Offset.zero,
-                duration: const Duration(milliseconds: 200),
-                curve: Curves.easeOut,
-                child: AnimatedOpacity(
-                  opacity: _isDragOver ? 0.0 : 1.0,
-                  duration: const Duration(milliseconds: 200),
-                  child: IgnorePointer(
-                    child: Container(
-                      width: double.infinity,
-                      padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 16),
-                      decoration: BoxDecoration(
-                        color: AppColors.primaryGreen.withValues(alpha: 0.06),
-                        border: Border(
-                          top: BorderSide(
-                            color: AppColors.primaryGreen.withValues(alpha: 0.2),
-                            width: 1,
-                          ),
-                        ),
-                      ),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(
-                            Icons.file_upload_outlined,
-                            size: 14,
-                            color: AppColors.primaryGreen.withValues(alpha: 0.6),
-                          ),
-                          const SizedBox(width: 6),
-                          Text(
-                            'Drag & drop PDF, JPG or PNG files anywhere to upload',
-                            style: TextStyle(
-                              fontSize: 11.5,
-                              color: AppColors.primaryGreen.withValues(alpha: 0.7),
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-            ),
+          // ── Idle hint removed from document tabs (only shown in Upload Modal) ──
           // ── Active drop overlay (only when on a valid tab) ──
           if (_isDragOver && showHint)
               Positioned.fill(
@@ -1378,19 +1210,38 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
           // Desktop action buttons (Upload available to all roles)
           if (!isMobile && _tabController.index != 2) ...[
             SizedBox(
-              height: 38,
-              width: 100, // Slightly smaller UPLOAD button
-              child: PrimaryButton(
-                label: 'UPLOAD',
+              height: 36,
+              child: ElevatedButton.icon(
                 onPressed: () => UploadOcrModal.show(
                   context,
                   prefilledStudentId:
                       _openedFolderStudentId ?? widget.initialStudentId,
                 ),
+                icon: const Icon(Icons.cloud_upload_outlined, size: 16),
+                label: const Text(
+                  'Upload',
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.primaryGreen,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(horizontal: 14),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8.0),
+                  ),
+                ),
               ),
             ),
             const SizedBox(width: 8),
           ],
+
+          _buildMultiSelectToggle(true),
+          const SizedBox(width: 4),
+          _buildPrintQueueButton(compact: true),
+          const SizedBox(width: 4),
 
           // Dropdown Menu
           SizedBox(height: 38, child: _buildMoreOptionsDropdown(isMobile)),
