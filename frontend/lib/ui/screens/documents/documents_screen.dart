@@ -697,7 +697,7 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
       behavior: HitTestBehavior.translucent,
       child: _buildDragDropWrapper(
         context,
-        showHint: _tabController.index == 1 || isFolderOpened,
+        showHint: _tabController.index == 1 && !isFolderOpened,
         child: Scaffold(
         backgroundColor: Colors.transparent,
         floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
@@ -1114,13 +1114,15 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
                     ],
                   )
                 : Text(
-                    _tabController.index == 0
-                        ? 'Student Folders'
-                        : _tabController.index == 1
-                        ? (isStudentFiltered
-                              ? 'Student Documents'
-                              : 'All Documents')
-                        : 'Recycle Bin',
+                    defaultTargetPlatform == TargetPlatform.android || isMobile
+                        ? 'Documents Directory'
+                        : (_tabController.index == 0
+                            ? 'Student Folders'
+                            : _tabController.index == 1
+                            ? (isStudentFiltered
+                                  ? 'Student Documents'
+                                  : 'All Documents')
+                            : 'Recycle Bin'),
                     style: TextStyle(
                       fontSize: isMobile ? 17 : 21,
                       fontWeight: FontWeight.bold,
@@ -1223,8 +1225,10 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
 
           _buildMultiSelectToggle(true),
           const SizedBox(width: 4),
-          _buildPrintQueueButton(compact: true),
-          const SizedBox(width: 4),
+          if (defaultTargetPlatform != TargetPlatform.android && !isMobile) ...[
+            _buildPrintQueueButton(compact: true),
+            const SizedBox(width: 4),
+          ],
 
           // Dropdown Menu
           SizedBox(height: 38, child: _buildMoreOptionsDropdown(isMobile)),
