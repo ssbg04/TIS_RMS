@@ -1,7 +1,5 @@
 const fs = require('fs');
 const path = require('path');
-const AdmZip = require('adm-zip');
-const archiver = require('archiver');
 const db = require('../config/db'); // Needed to close the database on restore
 
 const INFO_FILE = path.resolve('./data/backup_info.json');
@@ -113,66 +111,10 @@ exports.restoreBackup = async (req, res) => {
 
         const filePath = req.file.path;
         const originalName = (req.file.originalname || '').toLowerCase();
-        let extractedDbPath = null;
-        let tempExtractDir = null;
 
-        if (isSqliteFile(filePath) || originalName.endsWith('.db') || originalName.endsWith('.sqlite') || originalName.endsWith('.sqlite3')) {
-            extractedDbPath = filePath;
-        } else {
-            const zip = new AdmZip(filePath);
-
-            // Verify the contents of the zip first
-            const zipEntries = zip.getEntries();
-            const hasDb = zipEntries.some(entry => {
-                const normalized = entry.entryName.replace(/\\/g, '/');
-                return normalized.endsWith('tis_rms.db');
-            });
-
-            if (!hasDb) {
-                safeRemoveFileSync(filePath); // clean up
-                return res.status(400).json({ message: 'Invalid backup file. Could not find tis_rms.db in zip.' });
-            }
-
-            // Clean up any old temporary restore directories from previous runs
-            try {
-                const rootDir = path.resolve('./');
-                const entries = fs.readdirSync(rootDir, { withFileTypes: true });
-                for (const entry of entries) {
-                    if (entry.isDirectory() && entry.name.startsWith('temp_restore_')) {
-                        safeRemoveDirSync(path.join(rootDir, entry.name));
-                    }
-                }
-            } catch (e) {
-                console.warn('[Backup] Notice checking old temp directories:', e.message);
-            }
-
-            // Extract to a temporary folder
-            tempExtractDir = path.resolve(`./temp_restore_${Date.now()}`);
-            fs.mkdirSync(tempExtractDir, { recursive: true });
-
-            zip.extractAllTo(tempExtractDir, true);
-
-            function findFileRecursively(dir, filename) {
-                if (!fs.existsSync(dir)) return null;
-                const entries = fs.readdirSync(dir, { withFileTypes: true });
-                for (const entry of entries) {
-                    const fullPath = path.join(dir, entry.name);
-                    if (entry.isDirectory()) {
-                        const found = findFileRecursively(fullPath, filename);
-                        if (found) return found;
-                    } else if (entry.name === filename) {
-                        return fullPath;
-                    }
-                }
-                return null;
-            }
-
-            extractedDbPath = findFileRecursively(tempExtractDir, 'tis_rms.db');
-            if (!extractedDbPath || !fs.existsSync(extractedDbPath)) {
-                if (tempExtractDir) safeRemoveDirSync(tempExtractDir);
-                safeRemoveFileSync(filePath);
-                return res.status(400).json({ message: 'Extraction failed: Database file not found in extracted contents.' });
-            }
+        if (!isSqliteFile(filePath) && !originalName.endsWith('.db') && !originalName.endsWith('.sqlite') && !originalName.endsWith('.sqlite3')) {
+            safeRemoveFileSync(filePath);
+            return res.status(400).json({ message: 'Invalid backup file. Please provide a valid SQLite .db backup file without zipping.' });
         }
 
         console.log('[Backup] Closing current database connection...');
@@ -192,7 +134,7 @@ exports.restoreBackup = async (req, res) => {
         const currentDbShmPath = path.join(currentDataDir, 'tis_rms.db-shm');
 
         console.log('[Backup] Overwriting database...');
-        fs.copyFileSync(extractedDbPath, currentDbPath);
+        fs.copyFileSync(filePath, currentDbPath);
 
         console.log('[Backup] Cleaning up any existing WAL and SHM files...');
         if (fs.existsSync(currentDbWalPath)) {
@@ -202,10 +144,7 @@ exports.restoreBackup = async (req, res) => {
             safeRemoveFileSync(currentDbShmPath);
         }
 
-        // Cleanup temp directories and uploaded file
-        if (tempExtractDir) {
-            safeRemoveDirSync(tempExtractDir);
-        }
+        // Cleanup uploaded file
         if (fs.existsSync(filePath)) {
             safeRemoveFileSync(filePath);
         }
