@@ -15,6 +15,8 @@ import '../../providers/reports_provider.dart';
 import '../../providers/navigation_provider.dart';
 import '../../providers/auth_provider.dart';
 import '../../shared/dialogs/file_save_preview_dialog.dart';
+import '../../shared/dialogs/success_dialog.dart';
+import '../../shared/dialogs/error_dialog.dart';
 import '../documents/widgets/student_profile_modal.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'widgets/transparency_board_section.dart';
@@ -37,6 +39,12 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
   final int _rowsPerPage = 10;
   int _lastTotalRows = -1;
   int _selectedViewMode = 0; // 0: DepEd Transparency Board, 1: Compliance & Analytics, 2: Combined
+
+  // Table search & sort state
+  final TextEditingController _searchController = TextEditingController();
+  String _searchQuery = '';
+  String? _sortColumn;
+  bool _sortAscending = true;
 
 
   @override
@@ -85,6 +93,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
     _pollingTimer?.cancel();
     _tabListener?.close();
     _scrollController.dispose();
+    _searchController.dispose();
     super.dispose();
   }
 
@@ -166,7 +175,8 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
       );
 
       // Show preview dialog before actual save
-      await showFileSavePreviewDialog(
+      String? savedPath;
+      final saved = await showFileSavePreviewDialog(
         context,
         fileName: defaultFileName,
         fileType: SaveFileType.excel,
@@ -178,22 +188,31 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
           FilePreviewRow('Generated', generatedAt),
         ],
         sheets: [summarySheet, masterlistSheet],
-        onSave: (resolvedName) => _saveExcelFile(bytes, resolvedName),
+        onSave: (resolvedName) async {
+          savedPath = await _saveExcelFile(bytes, resolvedName);
+        },
       );
+
+      if (saved == true && savedPath != null && mounted) {
+        showSuccessDialog(
+          context,
+          title: 'Export Successful',
+          message: 'Report has been exported successfully.',
+          filePath: savedPath,
+        );
+      }
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Export failed: $e'),
-          backgroundColor: Colors.red,
-          duration: const Duration(seconds: 5),
-        ),
+      showErrorDialog(
+        context,
+        'Export Failed',
+        e.toString().replaceFirst('Exception: ', ''),
       );
       setState(() => _isExporting = false);
     }
   }
 
-  Future<void> _saveExcelFile(List<int> bytes, String fileName) async {
+  Future<String?> _saveExcelFile(List<int> bytes, String fileName) async {
     String? savePath;
 
     if (Platform.isAndroid) {
@@ -207,11 +226,11 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
       }
 
       if (!storageStatus.isGranted && !manageStatus.isGranted) {
-        if (!mounted) return;
+        if (!mounted) return null;
         final retry = await _showPermissionDeniedDialog();
         if (retry == true) {
           await openAppSettings();
-          if (!mounted) return;
+          if (!mounted) return null;
           final confirmed = await showDialog<bool>(
             context: context,
             builder: (ctx) => AlertDialog(
@@ -223,7 +242,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                 TextButton(
                   onPressed: () => Navigator.pop(ctx, false),
                   child: const Text('No'),
-                ),
+                 ),
                 ElevatedButton(
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppColors.primaryGreen,
@@ -231,7 +250,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                   ),
                   onPressed: () => Navigator.pop(ctx, true),
                   child: const Text('Yes'),
-                ),
+                 ),
               ],
             ),
           );
@@ -243,14 +262,14 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
             throw Exception('Storage permission denied. Cannot save file.');
           }
         } else {
-          return;
+          return null;
         }
       }
 
       final selectedDirectory = await FilePicker.getDirectoryPath(
         dialogTitle: 'Select folder to save report',
       );
-      if (selectedDirectory == null) return;
+      if (selectedDirectory == null) return null;
       savePath = '$selectedDirectory/$fileName';
     } else if (Platform.isWindows) {
       savePath = await FilePicker.saveFile(
@@ -259,7 +278,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
         type: FileType.custom,
         allowedExtensions: ['xlsx'],
       );
-      if (savePath == null) return;
+      if (savePath == null) return null;
     } else {
       final dir = await getApplicationDocumentsDirectory();
       savePath = '${dir.path}/$fileName';
@@ -267,15 +286,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
 
     final file = File(savePath);
     await file.writeAsBytes(bytes);
-
-    if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('✅ Saved: ${file.path}'),
-        backgroundColor: AppColors.success,
-        duration: const Duration(seconds: 5),
-      ),
-    );
+    return file.path;
   }
 
   Future<bool?> _showPermissionDeniedDialog() {
@@ -504,34 +515,34 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                       children: [
                         // 1. Filter Panel (collapsible)
                         _buildFilterPanel(context),
+                        const SizedBox(height: AppSizes.p16),
+
+                        // 2. Summary Banner
+                        _buildSummaryBanner(data),
                         const SizedBox(height: AppSizes.p24),
 
-                        // 2. KPI Cards
-                        _buildMetricsGrid(
-                          data.studentCounts,
-                          storageAsync.asData?.value,
-                        ),
+                        // 3. KPI Cards
+                        _buildMetricsGrid(data, storageAsync.asData?.value),
                         const SizedBox(height: AppSizes.p24),
 
-                        // 3. Side-by-Side Charts (Responsive)
+                        // 4. Charts Row 1: Yearly Comparison + Status Donut
                         LayoutBuilder(
                           builder: (context, constraints) {
-                            if (constraints.maxWidth > 1200) {
+                            if (constraints.maxWidth > 1100) {
                               return Row(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Expanded(
-                                    flex: 5,
+                                    flex: 6,
                                     child: _buildYearlyComparisonChart(
                                       isDesktop: true,
                                     ),
                                   ),
                                   const SizedBox(width: AppSizes.p24),
                                   Expanded(
-                                    flex: 5,
-                                    child: _buildMissingDocsChart(
-                                      data.missingDocsBreakdown,
-                                      isDesktop: true,
+                                    flex: 4,
+                                    child: _buildStatusDonutChart(
+                                      data.studentCounts,
                                     ),
                                   ),
                                 ],
@@ -541,10 +552,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                                 children: [
                                   _buildYearlyComparisonChart(isDesktop: false),
                                   const SizedBox(height: AppSizes.p24),
-                                  _buildMissingDocsChart(
-                                    data.missingDocsBreakdown,
-                                    isDesktop: false,
-                                  ),
+                                  _buildStatusDonutChart(data.studentCounts),
                                 ],
                               );
                             }
@@ -552,7 +560,18 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                         ),
                         const SizedBox(height: AppSizes.p24),
 
-                        // 4. Interactive Student Compliance Table
+                        // 5. Grade Compliance Chart (full width)
+                        _buildGradeComplianceChart(data.students),
+                        const SizedBox(height: AppSizes.p24),
+
+                        // 6. Missing Docs Breakdown (full width)
+                        _buildMissingDocsChart(
+                          data.missingDocsBreakdown,
+                          isDesktop: false,
+                        ),
+                        const SizedBox(height: AppSizes.p24),
+
+                        // 7. Interactive Student Compliance Table
                         _buildComplianceTable(data),
                       ],
                     ),
@@ -597,10 +616,10 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
           decoration: BoxDecoration(
             color: AppColors.surfaceWhite,
             borderRadius: BorderRadius.circular(AppSizes.radiusLarge),
-            border: Border.all(color: Colors.grey.withOpacity(0.2)),
+            border: Border.all(color: Colors.grey.withValues(alpha: 0.2)),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withOpacity(0.03),
+                color: Colors.black.withValues(alpha: 0.03),
                 blurRadius: 8,
                 offset: const Offset(0, 2),
               ),
@@ -645,7 +664,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
           decoration: BoxDecoration(
             color: isSelected
-                ? AppColors.primaryGreen.withOpacity(0.1)
+                ? AppColors.primaryGreen.withValues(alpha: 0.1)
                 : Colors.transparent,
             borderRadius: BorderRadius.circular(AppSizes.radiusMedium),
             border: Border.all(
@@ -685,7 +704,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                       style: TextStyle(
                         fontSize: 11,
                         color: isSelected
-                            ? AppColors.primaryGreen.withOpacity(0.8)
+                            ? AppColors.primaryGreen.withValues(alpha: 0.8)
                             : AppColors.textSecondary,
                       ),
                       maxLines: 1,
@@ -1184,10 +1203,20 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
     filled: false,
   );
 
-  // ── KPI Cards: Student status grid ────────────────────────────────────────
-  Widget _buildMetricsGrid(StudentCounts counts, int? storageBytes) {
+  // ── KPI Cards: Compliance + Student status grid ───────────────────────────
+  Widget _buildMetricsGrid(ReportStats reportData, int? storageBytes) {
+    final counts = reportData.studentCounts;
+    final students = reportData.students;
+    final breakdown = reportData.missingDocsBreakdown;
+
     final total =
         counts.active + counts.dropped + counts.transferee + counts.graduated;
+    final compliantCount = students.where((s) => s.missingCount == 0).length;
+    final withIssuesCount = students.where((s) => s.missingCount > 0).length;
+    final totalMissing = breakdown.fold<int>(0, (a, b) => a + b.count);
+    final complianceRate =
+        students.isNotEmpty ? (compliantCount / students.length * 100) : 0.0;
+
     final gradRate = total > 0
         ? (counts.graduated / total * 100).toStringAsFixed(1)
         : '0.0';
@@ -1204,75 +1233,244 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
     String formatBytes(int bytes) {
       if (bytes < 1024) return '$bytes B';
       if (bytes < 1048576) return '${(bytes / 1024).toStringAsFixed(1)} KB';
-      if (bytes < 1073741824)
+      if (bytes < 1073741824) {
         return '${(bytes / 1048576).toStringAsFixed(1)} MB';
+      }
       return '${(bytes / 1073741824).toStringAsFixed(1)} GB';
     }
 
-    final storageString = storageBytes != null
-        ? formatBytes(storageBytes)
-        : 'Loading...';
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // ── Primary KPI Row (3 cards) ────────────────────────────────────
+        LayoutBuilder(
+          builder: (ctx, constraints) {
+            final cols = constraints.maxWidth >= 700
+                ? 3
+                : (constraints.maxWidth >= 480 ? 2 : 1);
+            return GridView(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: cols,
+                crossAxisSpacing: 16,
+                mainAxisSpacing: 16,
+                mainAxisExtent: 145,
+              ),
+              children: [
+                _buildPrimaryKpiCard(
+                  title: 'Overall Compliance',
+                  value: '${complianceRate.toStringAsFixed(1)}%',
+                  subtitle:
+                      '$compliantCount of ${students.length} students complete',
+                  icon: Icons.verified_outlined,
+                  color: complianceRate >= 80
+                      ? AppColors.primaryGreen
+                      : complianceRate >= 50
+                      ? Colors.orange
+                      : Colors.red,
+                ),
+                _buildPrimaryKpiCard(
+                  title: 'Students with Issues',
+                  value: '$withIssuesCount',
+                  subtitle: 'Missing at least 1 document',
+                  icon: Icons.person_off_outlined,
+                  color: withIssuesCount == 0
+                      ? AppColors.primaryGreen
+                      : Colors.red.shade600,
+                ),
+                _buildPrimaryKpiCard(
+                  title: 'Total Missing Docs',
+                  value: '$totalMissing',
+                  subtitle: 'Across ${breakdown.length} requirement types',
+                  icon: Icons.file_copy_outlined,
+                  color: totalMissing == 0
+                      ? AppColors.primaryGreen
+                      : Colors.orange.shade700,
+                ),
+              ],
+            );
+          },
+        ),
 
-    return LayoutBuilder(
-      builder: (ctx, constraints) {
-        final cols = constraints.maxWidth >= 900
-            ? 6
-            : (constraints.maxWidth >= 600 ? 3 : 2);
-        return GridView(
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: cols,
-            crossAxisSpacing: 16,
-            mainAxisSpacing: 16,
-            mainAxisExtent: 150,
+        const SizedBox(height: 16),
+
+        // ── Secondary Status Row (5 cards) ───────────────────────────────
+        LayoutBuilder(
+          builder: (ctx, constraints) {
+            final cols = constraints.maxWidth >= 900
+                ? 5
+                : (constraints.maxWidth >= 600 ? 3 : 2);
+            return GridView(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: cols,
+                crossAxisSpacing: 16,
+                mainAxisSpacing: 16,
+                mainAxisExtent: 120,
+              ),
+              children: [
+                StatCard(
+                  title: 'Active Students',
+                  value: counts.active.toString(),
+                  subtitle: 'Total: $total',
+                  icon: Icons.check_circle_outline,
+                  iconColor: AppColors.primaryGreen,
+                ),
+                StatCard(
+                  title: 'Dropouts',
+                  value: counts.dropped.toString(),
+                  subtitle: 'Rate: $dropRate%',
+                  icon: Icons.person_remove_outlined,
+                  iconColor: Colors.red,
+                ),
+                StatCard(
+                  title: 'Transferees',
+                  value: counts.transferee.toString(),
+                  subtitle: 'Rate: $transRate%',
+                  icon: Icons.transfer_within_a_station,
+                  iconColor: Colors.orange,
+                ),
+                StatCard(
+                  title: 'Graduated',
+                  value: counts.graduated.toString(),
+                  subtitle: 'Rate: $gradRate%',
+                  icon: Icons.school_outlined,
+                  iconColor: Colors.blue,
+                ),
+                StatCard(
+                  title: '4Ps Beneficiaries',
+                  value: counts.fourPs.toString(),
+                  subtitle: 'Rate: $fourPsRate%',
+                  icon: Icons.card_membership_outlined,
+                  iconColor: Colors.purple,
+                ),
+              ],
+            );
+          },
+        ),
+
+        // ── Storage chip (small, right-aligned) ──────────────────────────
+        if (storageBytes != null) ...[
+          const SizedBox(height: 8),
+          Align(
+            alignment: Alignment.centerRight,
+            child: Container(
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
+              decoration: BoxDecoration(
+                color: Colors.blueGrey.shade50,
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(color: Colors.blueGrey.shade100),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    Icons.storage_outlined,
+                    size: 13,
+                    color: Colors.blueGrey.shade600,
+                  ),
+                  const SizedBox(width: 6),
+                  Text(
+                    'Storage: ${formatBytes(storageBytes)} used',
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: Colors.blueGrey.shade700,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ],
+              ),
+            ),
           ),
-          children: [
-            StatCard(
-              title: 'Active Students',
-              value: counts.active.toString(),
-              subtitle: 'Total Population: $total',
-              icon: Icons.check_circle_outline,
-              iconColor: AppColors.primaryGreen,
-            ),
-            StatCard(
-              title: 'Dropped (Dropouts)',
-              value: counts.dropped.toString(),
-              subtitle: 'Dropout Rate: $dropRate%',
-              icon: Icons.error_outline,
-              iconColor: Colors.red,
-            ),
-            StatCard(
-              title: 'Transferees',
-              value: counts.transferee.toString(),
-              subtitle: 'Transferee Rate: $transRate%',
-              icon: Icons.swap_horiz_outlined,
-              iconColor: Colors.orange,
-            ),
-            StatCard(
-              title: 'Graduated Students',
-              value: counts.graduated.toString(),
-              subtitle: 'Graduation Rate: $gradRate%',
-              icon: Icons.school_outlined,
-              iconColor: Colors.blue,
-            ),
-            StatCard(
-              title: '4Ps Beneficiaries',
-              value: counts.fourPs.toString(),
-              subtitle: '$fourPsRate% of students',
-              icon: Icons.family_restroom,
-              iconColor: Colors.deepPurple,
-            ),
-            StatCard(
-              title: 'Storage Used',
-              value: storageString,
-              subtitle: 'Database & Uploads',
-              icon: Icons.storage_outlined,
-              iconColor: Colors.blueGrey,
-            ),
-          ],
-        );
-      },
+        ],
+      ],
+    );
+  }
+
+  /// Highlighted primary KPI card with colored accent border.
+  Widget _buildPrimaryKpiCard({
+    required String title,
+    required String value,
+    required String subtitle,
+    required IconData icon,
+    required Color color,
+  }) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: color.withValues(alpha: 0.25)),
+        boxShadow: [
+          BoxShadow(
+            color: color.withValues(alpha: 0.07),
+            blurRadius: 10,
+            offset: const Offset(0, 3),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(6),
+                decoration: BoxDecoration(
+                  color: color.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Icon(icon, size: 18, color: color),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  title,
+                  style: const TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.textPrimary,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+            ],
+          ),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              FittedBox(
+                fit: BoxFit.scaleDown,
+                alignment: Alignment.centerLeft,
+                child: Text(
+                  value,
+                  style: TextStyle(
+                    fontSize: 26,
+                    fontWeight: FontWeight.bold,
+                    color: color,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                subtitle,
+                style: const TextStyle(
+                  fontSize: 11,
+                  color: AppColors.textSecondary,
+                ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ],
+          ),
+        ],
+      ),
     );
   }
 
@@ -1574,35 +1772,34 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                             const SizedBox(width: 10),
                             // Progress bar (compact height)
                             Expanded(
-                              child: Stack(
-                                children: [
-                                  Container(
-                                    height: 10,
-                                    decoration: BoxDecoration(
-                                      color: Colors.grey.shade100,
-                                      borderRadius: BorderRadius.circular(5),
-                                    ),
-                                  ),
-                                  AnimatedContainer(
-                                    duration: const Duration(milliseconds: 600),
-                                    curve: Curves.easeOut,
-                                    height: 10,
-                                    width:
-                                        (MediaQuery.of(context).size.width -
-                                            300) *
-                                        0.45 *
-                                        pct,
-                                    decoration: BoxDecoration(
-                                      gradient: const LinearGradient(
-                                        colors: [
-                                          Colors.orange,
-                                          Colors.redAccent,
-                                        ],
+                              child: LayoutBuilder(
+                                builder: (_, bc) => Stack(
+                                  children: [
+                                    Container(
+                                      height: 10,
+                                      decoration: BoxDecoration(
+                                        color: Colors.grey.shade100,
+                                        borderRadius: BorderRadius.circular(5),
                                       ),
-                                      borderRadius: BorderRadius.circular(5),
                                     ),
-                                  ),
-                                ],
+                                    AnimatedContainer(
+                                      duration:
+                                          const Duration(milliseconds: 600),
+                                      curve: Curves.easeOut,
+                                      height: 10,
+                                      width: bc.maxWidth * pct,
+                                      decoration: BoxDecoration(
+                                        gradient: const LinearGradient(
+                                          colors: [
+                                            Colors.orange,
+                                            Colors.redAccent,
+                                          ],
+                                        ),
+                                        borderRadius: BorderRadius.circular(5),
+                                      ),
+                                    ),
+                                  ],
+                                ),
                               ),
                             ),
                             const SizedBox(width: 10),
@@ -1644,9 +1841,52 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
   // ── Interactive Compliance Table ──────────────────────────────────────────
   Widget _buildComplianceTable(ReportStats data) {
     final showOnlyMissing = ref.watch(showOnlyMissingDocsProvider);
-    final filteredStudents = showOnlyMissing
+    final activeYearId = ref.watch(selectedAcademicYearIdProvider);
+    final activeGrade = ref.watch(selectedGradeLevelProvider);
+    final activeSection = ref.watch(selectedSectionIdProvider);
+    final activeStatus = ref.watch(selectedStatusFilterProvider);
+    final hasActiveFilters = activeYearId != null ||
+        activeGrade != null ||
+        activeSection != null ||
+        activeStatus != null ||
+        showOnlyMissing;
+
+    var filteredStudents = showOnlyMissing
         ? data.students.where((s) => s.missingCount > 0).toList()
-        : data.students;
+        : List<ReportStudent>.from(data.students);
+
+    // Apply search
+    if (_searchQuery.isNotEmpty) {
+      final q = _searchQuery.toLowerCase();
+      filteredStudents = filteredStudents
+          .where(
+            (s) =>
+                s.fullName.toLowerCase().contains(q) ||
+                s.lrn.toLowerCase().contains(q),
+          )
+          .toList();
+    }
+
+    // Apply sort
+    if (_sortColumn != null) {
+      filteredStudents.sort((a, b) {
+        int cmp;
+        switch (_sortColumn) {
+          case 'name':
+            cmp = a.fullName.compareTo(b.fullName);
+            break;
+          case 'lrn':
+            cmp = a.lrn.compareTo(b.lrn);
+            break;
+          case 'missing':
+            cmp = a.missingCount.compareTo(b.missingCount);
+            break;
+          default:
+            cmp = 0;
+        }
+        return _sortAscending ? cmp : -cmp;
+      });
+    }
 
     final totalRows = filteredStudents.length;
     if (totalRows != _lastTotalRows) {
@@ -1673,33 +1913,191 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
       safeEndIndex,
     );
 
+    // Sortable column header
+    Widget sortableHeader(String label, String colKey) {
+      final isActive = _sortColumn == colKey;
+      return GestureDetector(
+        onTap: () => setState(() {
+          if (_sortColumn == colKey) {
+            _sortAscending = !_sortAscending;
+          } else {
+            _sortColumn = colKey;
+            _sortAscending = true;
+            _currentPage = 0;
+          }
+        }),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(label, style: const TextStyle(fontWeight: FontWeight.bold)),
+            const SizedBox(width: 3),
+            Icon(
+              isActive
+                  ? (_sortAscending
+                      ? Icons.arrow_upward_rounded
+                      : Icons.arrow_downward_rounded)
+                  : Icons.unfold_more_rounded,
+              size: 13,
+              color: isActive ? AppColors.primaryGreen : Colors.grey.shade400,
+            ),
+          ],
+        ),
+      );
+    }
+
     return Container(
       width: double.infinity,
       decoration: _cardDecoration(),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Padding(
-            padding: EdgeInsets.all(AppSizes.p24),
+          Padding(
+            padding: const EdgeInsets.all(AppSizes.p24),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  'Student Document Status List',
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                    color: AppColors.textPrimary,
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Student Document Status List',
+                            style: TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                              color: AppColors.textPrimary,
+                            ),
+                          ),
+                          SizedBox(height: 4),
+                          Text(
+                            'Tap a student row to view their full profile. Columns LRN, Name, and Missing are sortable.',
+                            style: TextStyle(
+                              color: AppColors.textSecondary,
+                              fontSize: 13,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 4,
+                      ),
+                      decoration: BoxDecoration(
+                        color: AppColors.primaryGreen.withValues(alpha: 0.08),
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      child: Text(
+                        '${data.students.length} students',
+                        style: const TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.primaryGreen,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                // ── Search Field ─────────────────────────────────────────
+                TextField(
+                  controller: _searchController,
+                  onChanged: (val) => setState(() {
+                    _searchQuery = val;
+                    _currentPage = 0;
+                  }),
+                  style: const TextStyle(fontSize: 13),
+                  decoration: InputDecoration(
+                    hintText: 'Search by student name or LRN...',
+                    hintStyle: TextStyle(
+                      fontSize: 13,
+                      color: Colors.grey.shade400,
+                    ),
+                    prefixIcon: Icon(
+                      Icons.search_rounded,
+                      size: 18,
+                      color: Colors.grey.shade400,
+                    ),
+                    suffixIcon: _searchQuery.isNotEmpty
+                        ? IconButton(
+                            icon: Icon(
+                              Icons.close_rounded,
+                              size: 16,
+                              color: Colors.grey.shade500,
+                            ),
+                            onPressed: () => setState(() {
+                              _searchController.clear();
+                              _searchQuery = '';
+                              _currentPage = 0;
+                            }),
+                          )
+                        : null,
+                    filled: true,
+                    fillColor: Colors.grey.shade50,
+                    contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 10,
+                    ),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8),
+                      borderSide: BorderSide(color: Colors.grey.shade200),
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8),
+                      borderSide: BorderSide(color: Colors.grey.shade200),
+                    ),
+                    focusedBorder: const OutlineInputBorder(
+                      borderRadius: BorderRadius.all(Radius.circular(8)),
+                      borderSide: BorderSide(
+                        color: AppColors.primaryGreen,
+                        width: 1.5,
+                      ),
+                    ),
                   ),
                 ),
-                SizedBox(height: 4),
-                Text(
-                  'List of students and their missing documents. Tap on a student row to view details.',
-                  style: TextStyle(
-                    color: AppColors.textSecondary,
-                    fontSize: 13,
+                // ── Clear All Chip ─────────────────────────────────────────
+                if (hasActiveFilters || _searchQuery.isNotEmpty) ...[
+                  const SizedBox(height: 8),
+                  ActionChip(
+                    label: const Text(
+                      'Clear all filters & search',
+                      style: TextStyle(fontSize: 12),
+                    ),
+                    avatar: Icon(
+                      Icons.close_rounded,
+                      size: 14,
+                      color: Colors.grey.shade600,
+                    ),
+                    backgroundColor: Colors.grey.shade100,
+                    side: BorderSide(color: Colors.grey.shade300),
+                    onPressed: () {
+                      _searchController.clear();
+                      setState(() {
+                        _searchQuery = '';
+                        _sortColumn = null;
+                        _currentPage = 0;
+                      });
+                      ref
+                          .read(selectedAcademicYearIdProvider.notifier)
+                          .select(null);
+                      ref.read(selectedGradeLevelProvider.notifier).state =
+                          null;
+                      ref.read(selectedSectionIdProvider.notifier).state =
+                          null;
+                      ref.read(selectedStatusFilterProvider.notifier).state =
+                          null;
+                      ref.read(showOnlyMissingDocsProvider.notifier).state =
+                          false;
+                    },
+                    visualDensity: VisualDensity.compact,
+                    padding: const EdgeInsets.symmetric(horizontal: 4),
                   ),
-                ),
+                ],
               ],
             ),
           ),
@@ -1715,41 +2113,32 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                 headingRowColor: WidgetStateProperty.all(
                   AppColors.primaryGreen.withValues(alpha: 0.04),
                 ),
-                columnSpacing: 32,
-                columns: const [
-                  DataColumn(
+                columnSpacing: 24,
+                columns: [
+                  DataColumn(label: sortableHeader('LRN', 'lrn')),
+                  DataColumn(label: sortableHeader('Student Name', 'name')),
+                  const DataColumn(
                     label: Text(
-                      'LRN',
+                      'Sex',
                       style: TextStyle(fontWeight: FontWeight.bold),
                     ),
                   ),
-                  DataColumn(
-                    label: Text(
-                      'Student Name',
-                      style: TextStyle(fontWeight: FontWeight.bold),
-                    ),
-                  ),
-                  DataColumn(
+                  const DataColumn(
                     label: Text(
                       'Status',
                       style: TextStyle(fontWeight: FontWeight.bold),
                     ),
                   ),
-                  DataColumn(
+                  const DataColumn(
                     label: Text(
                       'Grade/Sec',
                       style: TextStyle(fontWeight: FontWeight.bold),
                     ),
                   ),
-                  DataColumn(
+                  DataColumn(label: sortableHeader('Missing', 'missing')),
+                  const DataColumn(
                     label: Text(
-                      'Missing Docs',
-                      style: TextStyle(fontWeight: FontWeight.bold),
-                    ),
-                  ),
-                  DataColumn(
-                    label: Text(
-                      'Missing Requirements list',
+                      'Missing Requirements',
                       style: TextStyle(fontWeight: FontWeight.bold),
                     ),
                   ),
@@ -1759,8 +2148,11 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                         const DataRow(
                           cells: [
                             DataCell(
-                              Text('No students match the selected filters.'),
+                              Text(
+                                'No students match the selected filters.',
+                              ),
                             ),
+                            DataCell(Text('')),
                             DataCell(Text('')),
                             DataCell(Text('')),
                             DataCell(Text('')),
@@ -1770,7 +2162,16 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                         ),
                       ]
                     : paginatedStudents.map((student) {
+                        Color? rowBg;
+                        if (student.missingCount == 0) {
+                          rowBg = Colors.green.shade50;
+                        } else if (student.missingCount >= 3) {
+                          rowBg = Colors.red.shade50;
+                        }
                         return DataRow(
+                          color: rowBg != null
+                              ? WidgetStateProperty.all(rowBg)
+                              : null,
                           onSelectChanged: (_) {
                             showStudentProfileModal(
                               context,
@@ -1785,10 +2186,22 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                                 student.lrn,
                                 style: const TextStyle(
                                   fontWeight: FontWeight.w500,
+                                  fontSize: 13,
                                 ),
                               ),
                             ),
-                            DataCell(Text(student.fullName)),
+                            DataCell(
+                              Text(
+                                student.fullName,
+                                style: const TextStyle(fontSize: 13),
+                              ),
+                            ),
+                            DataCell(
+                              Text(
+                                student.sex,
+                                style: const TextStyle(fontSize: 13),
+                              ),
+                            ),
                             DataCell(
                               Container(
                                 padding: const EdgeInsets.symmetric(
@@ -1822,6 +2235,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                             DataCell(
                               Text(
                                 '${student.gradeLevel ?? 'N/A'}/${student.sectionName ?? 'N/A'}',
+                                style: const TextStyle(fontSize: 13),
                               ),
                             ),
                             DataCell(
@@ -1843,6 +2257,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                                         ? Colors.red.shade700
                                         : Colors.green.shade700,
                                     fontWeight: FontWeight.bold,
+                                    fontSize: 12,
                                   ),
                                 ),
                               ),
@@ -1906,7 +2321,8 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                           child: Container(
                             width: 32,
                             height: 32,
-                            margin: const EdgeInsets.symmetric(horizontal: 2),
+                            margin:
+                                const EdgeInsets.symmetric(horizontal: 2),
                             decoration: BoxDecoration(
                               color: isActive
                                   ? AppColors.primaryGreen
@@ -1948,7 +2364,421 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
     );
   }
 
+
+  // ── Summary Banner ────────────────────────────────────────────────────────
+  Widget _buildSummaryBanner(ReportStats data) {
+    final total = data.students.length;
+    final compliant = data.students.where((s) => s.missingCount == 0).length;
+    final withIssues = total - compliant;
+    final totalMissing = data.missingDocsBreakdown.fold<int>(
+      0,
+      (a, b) => a + b.count,
+    );
+    final complianceRate = total > 0 ? (compliant / total * 100) : 0.0;
+    final rateColor = complianceRate >= 80
+        ? AppColors.primaryGreen
+        : complianceRate >= 50
+        ? Colors.orange.shade700
+        : Colors.red;
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [
+            AppColors.primaryGreen.withValues(alpha: 0.08),
+            AppColors.primaryGreen.withValues(alpha: 0.02),
+          ],
+        ),
+        borderRadius: BorderRadius.circular(AppSizes.radiusMedium),
+        border: Border.all(
+          color: AppColors.primaryGreen.withValues(alpha: 0.2),
+        ),
+      ),
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final items = [
+            _summaryItem(Icons.people_outline, '$total', 'Students',
+                AppColors.primaryGreen),
+            _summaryItem(Icons.check_circle_outline, '$compliant', 'Complete',
+                AppColors.primaryGreen),
+            _summaryItem(Icons.warning_amber_outlined, '$withIssues',
+                'With Issues', Colors.orange.shade700),
+            _summaryItem(Icons.description_outlined, '$totalMissing',
+                'Missing Docs', Colors.red.shade400),
+            _summaryItem(Icons.analytics_outlined,
+                '${complianceRate.toStringAsFixed(1)}%', 'Compliance',
+                rateColor),
+          ];
+          if (constraints.maxWidth < 600) {
+            return Wrap(spacing: 20, runSpacing: 12, children: items);
+          }
+          final row = <Widget>[];
+          for (int i = 0; i < items.length; i++) {
+            row.add(Expanded(child: items[i]));
+            if (i < items.length - 1) {
+              row.add(Container(
+                width: 1,
+                height: 36,
+                color: AppColors.primaryGreen.withValues(alpha: 0.2),
+              ));
+            }
+          }
+          return Row(children: row);
+        },
+      ),
+    );
+  }
+
+  Widget _summaryItem(
+      IconData icon, String value, String label, Color color) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(icon, size: 15, color: color),
+        const SizedBox(width: 7),
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              value,
+              style: TextStyle(
+                fontSize: 15,
+                fontWeight: FontWeight.bold,
+                color: color,
+              ),
+            ),
+            Text(
+              label,
+              style: const TextStyle(
+                fontSize: 11,
+                color: AppColors.textSecondary,
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  // ── Status Donut Chart ────────────────────────────────────────────────────
+  Widget _buildStatusDonutChart(StudentCounts counts) {
+    final total = counts.active +
+        counts.dropped +
+        counts.transferee +
+        counts.graduated;
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(AppSizes.p24),
+      decoration: _cardDecoration(),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Student Status Distribution',
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: AppColors.textPrimary,
+            ),
+          ),
+          const SizedBox(height: 4),
+          const Text(
+            'Breakdown of all students by enrollment status.',
+            style: TextStyle(color: AppColors.textSecondary, fontSize: 13),
+          ),
+          const SizedBox(height: AppSizes.p24),
+          if (total == 0)
+            _emptyWidget('No student data for current filters.')
+          else ...[
+            SizedBox(
+              height: 220,
+              child: Stack(
+                alignment: Alignment.center,
+                children: [
+                  PieChart(
+                    PieChartData(
+                      sections: [
+                        if (counts.active > 0)
+                          PieChartSectionData(
+                            color: AppColors.primaryGreen,
+                            value: counts.active.toDouble(),
+                            title:
+                                '${(counts.active / total * 100).toStringAsFixed(0)}%',
+                            radius: 55,
+                            titleStyle: const TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.white,
+                            ),
+                          ),
+                        if (counts.dropped > 0)
+                          PieChartSectionData(
+                            color: Colors.red,
+                            value: counts.dropped.toDouble(),
+                            title:
+                                '${(counts.dropped / total * 100).toStringAsFixed(0)}%',
+                            radius: 55,
+                            titleStyle: const TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.white,
+                            ),
+                          ),
+                        if (counts.graduated > 0)
+                          PieChartSectionData(
+                            color: Colors.blue,
+                            value: counts.graduated.toDouble(),
+                            title:
+                                '${(counts.graduated / total * 100).toStringAsFixed(0)}%',
+                            radius: 55,
+                            titleStyle: const TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.white,
+                            ),
+                          ),
+                        if (counts.transferee > 0)
+                          PieChartSectionData(
+                            color: Colors.orange,
+                            value: counts.transferee.toDouble(),
+                            title:
+                                '${(counts.transferee / total * 100).toStringAsFixed(0)}%',
+                            radius: 55,
+                            titleStyle: const TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.white,
+                            ),
+                          ),
+                      ],
+                      centerSpaceRadius: 55,
+                      sectionsSpace: 3,
+                      pieTouchData: PieTouchData(enabled: true),
+                    ),
+                  ),
+                  Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        '$total',
+                        style: const TextStyle(
+                          fontSize: 26,
+                          fontWeight: FontWeight.bold,
+                          color: AppColors.textPrimary,
+                        ),
+                      ),
+                      const Text(
+                        'Students',
+                        style: TextStyle(
+                          fontSize: 11,
+                          color: AppColors.textSecondary,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 16),
+            Wrap(
+              spacing: 16,
+              runSpacing: 8,
+              children: [
+                _buildLegendItem(
+                    AppColors.primaryGreen, 'Active (${counts.active})'),
+                _buildLegendItem(Colors.red, 'Dropped (${counts.dropped})'),
+                _buildLegendItem(
+                    Colors.blue, 'Graduated (${counts.graduated})'),
+                _buildLegendItem(
+                    Colors.orange, 'Transferred (${counts.transferee})'),
+              ],
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  // ── Grade Compliance Chart ────────────────────────────────────────────────
+  Widget _buildGradeComplianceChart(List<ReportStudent> students) {
+    final gradeMap = <int, _GradeCompliance>{};
+    for (final s in students) {
+      if (s.gradeLevel == null) continue;
+      final g = s.gradeLevel!;
+      gradeMap.putIfAbsent(g, () => _GradeCompliance(g));
+      gradeMap[g]!.total++;
+      if (s.missingCount == 0) gradeMap[g]!.compliant++;
+    }
+    final grades = gradeMap.values.toList()
+      ..sort((a, b) => a.grade.compareTo(b.grade));
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(AppSizes.p24),
+      decoration: _cardDecoration(),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Compliance Rate by Grade Level',
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: AppColors.textPrimary,
+            ),
+          ),
+          const SizedBox(height: 4),
+          const Text(
+            'Percentage of students with complete documents per grade.',
+            style: TextStyle(color: AppColors.textSecondary, fontSize: 13),
+          ),
+          const SizedBox(height: AppSizes.p24),
+          if (grades.isEmpty)
+            _emptyWidget('No grade data for current filters.')
+          else
+            SizedBox(
+              height: 220,
+              child: BarChart(
+                BarChartData(
+                  maxY: 100,
+                  barGroups: grades.asMap().entries.map((entry) {
+                    final g = entry.value;
+                    final pct = g.total > 0
+                        ? g.compliant / g.total * 100
+                        : 0.0;
+                    final barColor = pct >= 80
+                        ? AppColors.primaryGreen
+                        : pct >= 50
+                        ? Colors.orange
+                        : Colors.red;
+                    return BarChartGroupData(
+                      x: entry.key,
+                      barRods: [
+                        BarChartRodData(
+                          toY: pct,
+                          color: barColor,
+                          width: grades.length <= 6 ? 36 : 22,
+                          borderRadius: const BorderRadius.vertical(
+                            top: Radius.circular(6),
+                          ),
+                          backDrawRodData: BackgroundBarChartRodData(
+                            show: true,
+                            toY: 100,
+                            color: Colors.grey.shade100,
+                          ),
+                        ),
+                      ],
+                    );
+                  }).toList(),
+                  titlesData: FlTitlesData(
+                    show: true,
+                    bottomTitles: AxisTitles(
+                      sideTitles: SideTitles(
+                        showTitles: true,
+                        reservedSize: 32,
+                        getTitlesWidget: (value, meta) {
+                          final idx = value.toInt();
+                          if (idx >= grades.length) {
+                            return const SizedBox.shrink();
+                          }
+                          return Padding(
+                            padding: const EdgeInsets.only(top: 6),
+                            child: Text(
+                              'G${grades[idx].grade}',
+                              style: const TextStyle(
+                                fontSize: 12,
+                                color: AppColors.textSecondary,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+                    leftTitles: AxisTitles(
+                      sideTitles: SideTitles(
+                        showTitles: true,
+                        reservedSize: 40,
+                        getTitlesWidget: (value, meta) {
+                          if (value % 25 != 0) return const SizedBox.shrink();
+                          return Text(
+                            '${value.toInt()}%',
+                            style: const TextStyle(
+                              fontSize: 11,
+                              color: AppColors.textSecondary,
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+                    topTitles: const AxisTitles(
+                      sideTitles: SideTitles(showTitles: false),
+                    ),
+                    rightTitles: const AxisTitles(
+                      sideTitles: SideTitles(showTitles: false),
+                    ),
+                  ),
+                  gridData: FlGridData(
+                    show: true,
+                    drawVerticalLine: false,
+                    horizontalInterval: 25,
+                    getDrawingHorizontalLine: (value) => FlLine(
+                      color: Colors.grey.shade200,
+                      strokeWidth: 1,
+                    ),
+                  ),
+                  borderData: FlBorderData(show: false),
+                  barTouchData: BarTouchData(
+                    touchTooltipData: BarTouchTooltipData(
+                      getTooltipColor: (group) => Colors.blueGrey.shade800,
+                      getTooltipItem: (group, groupIndex, rod, rodIndex) {
+                        if (groupIndex >= grades.length) return null;
+                        final g = grades[groupIndex];
+                        return BarTooltipItem(
+                          'Grade ${g.grade}\n',
+                          const TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 13,
+                          ),
+                          children: [
+                            TextSpan(
+                              text:
+                                  '${g.compliant}/${g.total} complete (${rod.toY.toStringAsFixed(1)}%)',
+                              style: const TextStyle(
+                                color: Colors.white70,
+                                fontSize: 12,
+                                fontWeight: FontWeight.normal,
+                              ),
+                            ),
+                          ],
+                        );
+                      },
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          const SizedBox(height: 16),
+          Wrap(
+            spacing: 16,
+            runSpacing: 6,
+            children: [
+              _buildLegendItem(AppColors.primaryGreen, '≥ 80% Good'),
+              _buildLegendItem(Colors.orange, '50–79% Moderate'),
+              _buildLegendItem(Colors.red, '< 50% Critical'),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
   // ── Helpers ──────────────────────────────────────────────────────────────
+
   Widget _errorWidget(String msg) => Container(
     padding: const EdgeInsets.all(16),
     decoration: BoxDecoration(
@@ -2125,8 +2955,9 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
             ),
             error: (e, st) => _errorWidget('Error loading yearly data: $e'),
             data: (rawData) {
-              if (rawData.isEmpty)
+              if (rawData.isEmpty) {
                 return _emptyWidget('No academic years data found.');
+              }
 
               // Filter by selected years (ascending sort)
               var data = List<YearlyComparisonData>.from(rawData)
@@ -2140,8 +2971,9 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                   data = data.sublist(data.length - 4);
                 }
               }
-              if (data.isEmpty)
+              if (data.isEmpty) {
                 return _emptyWidget('No data for selected years.');
+              }
 
               // Build bar rods only for selected statuses
               final activeOptions = allStatusOptions
@@ -2217,8 +3049,9 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                               sideTitles: SideTitles(
                                 showTitles: true,
                                 getTitlesWidget: (value, meta) {
-                                  if (value.toInt() >= data.length)
+                                  if (value.toInt() >= data.length) {
                                     return const SizedBox.shrink();
+                                  }
                                   return Padding(
                                     padding: const EdgeInsets.only(top: 8.0),
                                     child: Text(
@@ -2239,8 +3072,9 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                                 showTitles: true,
                                 reservedSize: 40,
                                 getTitlesWidget: (value, meta) {
-                                  if (value % (maxY / 5).ceil() != 0)
+                                  if (value % (maxY / 5).ceil() != 0) {
                                     return const SizedBox.shrink();
+                                  }
                                   return Text(
                                     value.toInt().toString(),
                                     style: const TextStyle(
@@ -2624,6 +3458,14 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
       ],
     );
   }
+}
+
+// ── Helper data class for grade compliance ─────────────────────────────────
+class _GradeCompliance {
+  final int grade;
+  int total = 0;
+  int compliant = 0;
+  _GradeCompliance(this.grade);
 }
 
 // ── Helper data class for status options ─────────────────────────────────────
