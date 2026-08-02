@@ -53,67 +53,55 @@ exports.getBackupInfo = (req, res) => {
 };
 
 exports.downloadBackup = async (req, res) => {
+    let tempDbBackupPath = null;
     try {
         const dataDir = path.resolve('./data');
-
-        // Checkpoint WAL to ensure database file is completely up-to-date and WAL is mostly empty
-        try {
-            db.pragma('wal_checkpoint(TRUNCATE)');
-        } catch (e) {
-            console.warn('[Backup] wal_checkpoint warning:', e.message);
+        if (!fs.existsSync(dataDir)) {
+            fs.mkdirSync(dataDir, { recursive: true });
         }
 
         const dateStr = new Date().toISOString().split('T')[0];
-        const filename = `tis_rms_backup_${dateStr}.zip`;
+        const filename = `tis_rms_${dateStr}.db`;
 
-        res.set({
-            'Content-Disposition': `attachment; filename="${filename}"`,
-            'Content-Type': 'application/zip'
-        });
+        // Create a safe online backup of the SQLite database using better-sqlite3 db.backup()
+        tempDbBackupPath = path.join(dataDir, `temp_backup_${Date.now()}_tis_rms.db`);
+        console.log('[Backup] Running db.backup() online SQLite backup...');
+        await db.backup(tempDbBackupPath);
 
-        // Use archiver with maximum DEFLATE compression (level 9)
-        const archive = new archiver.ZipArchive({
-            zlib: { level: 9 } // level 9 gives maximum compression ratio
-        });
-
-        archive.on('error', (err) => {
-            console.error('[Backup] Archiver error:', err);
-            if (!res.headersSent) {
-                res.status(500).json({ message: 'Failed to generate backup', error: err.message });
+        // Download directly without zipping
+        res.download(tempDbBackupPath, filename, (err) => {
+            safeRemoveFileSync(tempDbBackupPath);
+            if (err && !res.headersSent) {
+                console.error('[Backup] Download send error:', err);
+                res.status(500).json({ message: 'Failed to send backup file', error: err.message });
             }
         });
-
-        // Pipe compressed zip directly to HTTP response stream
-        archive.pipe(res);
-
-        // Add database files directly
-        const dbFile = path.join(dataDir, 'tis_rms.db');
-        const walFile = path.join(dataDir, 'tis_rms.db-wal');
-        const shmFile = path.join(dataDir, 'tis_rms.db-shm');
-
-        if (fs.existsSync(dbFile)) archive.file(dbFile, { name: 'data/tis_rms.db' });
-        if (fs.existsSync(walFile)) archive.file(walFile, { name: 'data/tis_rms.db-wal' });
-        if (fs.existsSync(shmFile)) archive.file(shmFile, { name: 'data/tis_rms.db-shm' });
-
-        // Add students folder where documents are saved
-        const studentsDir = path.join(dataDir, 'students');
-        if (fs.existsSync(studentsDir)) {
-            archive.directory(studentsDir, 'data/students');
-        }
-
-        // Finalize archive to complete streaming
-        await archive.finalize();
 
         // Log the backup activity
         logActivity('backup');
 
     } catch (error) {
+        if (tempDbBackupPath) {
+            safeRemoveFileSync(tempDbBackupPath);
+        }
         console.error('[Backup] Download error:', error);
         if (!res.headersSent) {
             res.status(500).json({ message: 'Failed to generate backup', error: error.message });
         }
     }
 };
+
+function isSqliteFile(filePath) {
+    try {
+        const fd = fs.openSync(filePath, 'r');
+        const buffer = Buffer.alloc(16);
+        fs.readSync(fd, buffer, 0, 16, 0);
+        fs.closeSync(fd);
+        return buffer.toString('utf8', 0, 15) === 'SQLite format 3';
+    } catch (e) {
+        return false;
+    }
+}
 
 exports.restoreBackup = async (req, res) => {
     try {
@@ -123,78 +111,68 @@ exports.restoreBackup = async (req, res) => {
 
         console.log(`[Backup] Received restore file: ${req.file.originalname}`);
 
-        const zipPath = req.file.path;
-        const zip = new AdmZip(zipPath);
+        const filePath = req.file.path;
+        const originalName = (req.file.originalname || '').toLowerCase();
+        let extractedDbPath = null;
+        let tempExtractDir = null;
 
-        // Verify the contents of the zip first
-        const zipEntries = zip.getEntries();
-        const hasDb = zipEntries.some(entry => {
-            const normalized = entry.entryName.replace(/\\/g, '/');
-            return normalized.endsWith('tis_rms.db');
-        });
-        
-        if (!hasDb) {
-            safeRemoveFileSync(zipPath); // clean up
-            return res.status(400).json({ message: 'Invalid backup file. Could not find tis_rms.db in zip.' });
-        }
+        if (isSqliteFile(filePath) || originalName.endsWith('.db') || originalName.endsWith('.sqlite') || originalName.endsWith('.sqlite3')) {
+            extractedDbPath = filePath;
+        } else {
+            const zip = new AdmZip(filePath);
 
-        // Clean up any old temporary restore directories from previous runs
-        try {
-            const rootDir = path.resolve('./');
-            const entries = fs.readdirSync(rootDir, { withFileTypes: true });
-            for (const entry of entries) {
-                if (entry.isDirectory() && entry.name.startsWith('temp_restore_')) {
-                    safeRemoveDirSync(path.join(rootDir, entry.name));
-                }
+            // Verify the contents of the zip first
+            const zipEntries = zip.getEntries();
+            const hasDb = zipEntries.some(entry => {
+                const normalized = entry.entryName.replace(/\\/g, '/');
+                return normalized.endsWith('tis_rms.db');
+            });
+
+            if (!hasDb) {
+                safeRemoveFileSync(filePath); // clean up
+                return res.status(400).json({ message: 'Invalid backup file. Could not find tis_rms.db in zip.' });
             }
-        } catch (e) {
-            console.warn('[Backup] Notice checking old temp directories:', e.message);
-        }
 
-        // We will extract to a temporary folder to ensure we don't partially overwrite things if something fails
-        const tempExtractDir = path.resolve(`./temp_restore_${Date.now()}`);
-        fs.mkdirSync(tempExtractDir, { recursive: true });
-
-        zip.extractAllTo(tempExtractDir, true);
-
-        function findFileRecursively(dir, filename) {
-            if (!fs.existsSync(dir)) return null;
-            const entries = fs.readdirSync(dir, { withFileTypes: true });
-            for (const entry of entries) {
-                const fullPath = path.join(dir, entry.name);
-                if (entry.isDirectory()) {
-                    const found = findFileRecursively(fullPath, filename);
-                    if (found) return found;
-                } else if (entry.name === filename) {
-                    return fullPath;
+            // Clean up any old temporary restore directories from previous runs
+            try {
+                const rootDir = path.resolve('./');
+                const entries = fs.readdirSync(rootDir, { withFileTypes: true });
+                for (const entry of entries) {
+                    if (entry.isDirectory() && entry.name.startsWith('temp_restore_')) {
+                        safeRemoveDirSync(path.join(rootDir, entry.name));
+                    }
                 }
+            } catch (e) {
+                console.warn('[Backup] Notice checking old temp directories:', e.message);
             }
-            return null;
-        }
 
-        function findDirRecursively(dir, dirname) {
-            if (!fs.existsSync(dir)) return null;
-            const entries = fs.readdirSync(dir, { withFileTypes: true });
-            for (const entry of entries) {
-                const fullPath = path.join(dir, entry.name);
-                if (entry.isDirectory()) {
-                    if (entry.name === dirname) return fullPath;
-                    const found = findDirRecursively(fullPath, dirname);
-                    if (found) return found;
+            // Extract to a temporary folder
+            tempExtractDir = path.resolve(`./temp_restore_${Date.now()}`);
+            fs.mkdirSync(tempExtractDir, { recursive: true });
+
+            zip.extractAllTo(tempExtractDir, true);
+
+            function findFileRecursively(dir, filename) {
+                if (!fs.existsSync(dir)) return null;
+                const entries = fs.readdirSync(dir, { withFileTypes: true });
+                for (const entry of entries) {
+                    const fullPath = path.join(dir, entry.name);
+                    if (entry.isDirectory()) {
+                        const found = findFileRecursively(fullPath, filename);
+                        if (found) return found;
+                    } else if (entry.name === filename) {
+                        return fullPath;
+                    }
                 }
+                return null;
             }
-            return null;
-        }
 
-        const extractedDbPath = findFileRecursively(tempExtractDir, 'tis_rms.db');
-        const extractedWalPath = findFileRecursively(tempExtractDir, 'tis_rms.db-wal');
-        const extractedShmPath = findFileRecursively(tempExtractDir, 'tis_rms.db-shm');
-        const extractedStudentsDir = findDirRecursively(tempExtractDir, 'students');
-
-        if (!extractedDbPath || !fs.existsSync(extractedDbPath)) {
-            safeRemoveDirSync(tempExtractDir);
-            safeRemoveFileSync(zipPath);
-            return res.status(400).json({ message: 'Extraction failed: Database file not found in extracted contents.' });
+            extractedDbPath = findFileRecursively(tempExtractDir, 'tis_rms.db');
+            if (!extractedDbPath || !fs.existsSync(extractedDbPath)) {
+                if (tempExtractDir) safeRemoveDirSync(tempExtractDir);
+                safeRemoveFileSync(filePath);
+                return res.status(400).json({ message: 'Extraction failed: Database file not found in extracted contents.' });
+            }
         }
 
         console.log('[Backup] Closing current database connection...');
@@ -206,49 +184,39 @@ exports.restoreBackup = async (req, res) => {
         }
 
         const currentDataDir = path.resolve('./data');
+        if (!fs.existsSync(currentDataDir)) {
+            fs.mkdirSync(currentDataDir, { recursive: true });
+        }
         const currentDbPath = path.join(currentDataDir, 'tis_rms.db');
         const currentDbWalPath = path.join(currentDataDir, 'tis_rms.db-wal');
         const currentDbShmPath = path.join(currentDataDir, 'tis_rms.db-shm');
-        const currentStudentsDir = path.join(currentDataDir, 'students');
 
         console.log('[Backup] Overwriting database...');
         fs.copyFileSync(extractedDbPath, currentDbPath);
 
-        console.log('[Backup] Replacing WAL and SHM files...');
-        if (fs.existsSync(extractedWalPath)) {
-            fs.copyFileSync(extractedWalPath, currentDbWalPath);
-        } else if (fs.existsSync(currentDbWalPath)) {
+        console.log('[Backup] Cleaning up any existing WAL and SHM files...');
+        if (fs.existsSync(currentDbWalPath)) {
             safeRemoveFileSync(currentDbWalPath);
         }
-
-        if (fs.existsSync(extractedShmPath)) {
-            fs.copyFileSync(extractedShmPath, currentDbShmPath);
-        } else if (fs.existsSync(currentDbShmPath)) {
+        if (fs.existsSync(currentDbShmPath)) {
             safeRemoveFileSync(currentDbShmPath);
         }
 
-        console.log('[Backup] Replacing students directory...');
-        if (fs.existsSync(extractedStudentsDir)) {
-            // Safe copy of students documents
-            if (fs.existsSync(currentStudentsDir)) {
-                safeRemoveDirSync(currentStudentsDir);
-            }
-            fs.cpSync(extractedStudentsDir, currentStudentsDir, { recursive: true });
+        // Cleanup temp directories and uploaded file
+        if (tempExtractDir) {
+            safeRemoveDirSync(tempExtractDir);
         }
-
-        // Cleanup temp directories and uploaded zip file
-        safeRemoveDirSync(tempExtractDir);
-        safeRemoveFileSync(zipPath);
+        if (fs.existsSync(filePath)) {
+            safeRemoveFileSync(filePath);
+        }
 
         console.log('[Backup] Restore completed successfully. Shutting down server...');
 
         // Log the restore activity
-        // Note: because we overwrite the data folder, if the info file was in the zip, it got overwritten.
-        // So we log the restore *after* replacing the files so it's persisted correctly.
         logActivity('restore');
 
         // Send response first, then exit after a short delay
-        res.json({ success: true, message: 'Database and files restored successfully. Server will shut down now.' });
+        res.json({ success: true, message: 'Database restored successfully. Server will shut down now.' });
 
         setTimeout(() => {
             console.log('Exiting process for restart...');
