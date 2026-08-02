@@ -67,6 +67,28 @@ const sanitizeFolderName = (str) =>
 const isValidLRN = (lrn) => /^\d{12}$/.test((lrn || '').trim());
 
 // ============================================================
+// HELPER — check for duplicate student by Name (first, middle, last)
+// ============================================================
+const findDuplicateStudentByName = (firstName, middleName, lastName, excludeId = null) => {
+    const fn = (firstName || '').trim();
+    const mn = (middleName || '').trim();
+    const ln = (lastName || '').trim();
+    if (!fn || !ln) return null;
+    let query = `
+        SELECT id, lrn FROM students 
+        WHERE LOWER(TRIM(first_name)) = LOWER(?) 
+          AND LOWER(TRIM(COALESCE(middle_name, ''))) = LOWER(?) 
+          AND LOWER(TRIM(last_name)) = LOWER(?)
+    `;
+    const params = [fn, mn, ln];
+    if (excludeId) {
+        query += ` AND id != ?`;
+        params.push(excludeId);
+    }
+    return db.prepare(query).get(...params);
+};
+
+// ============================================================
 // GET /api/students — paginated, searchable, filterable
 // ============================================================
 exports.getAllStudents = (req, res) => {
@@ -336,6 +358,15 @@ exports.createStudent = (req, res) => {
     const existing = db.prepare('SELECT id FROM students WHERE lrn = ?').get(lrn.trim());
     if (existing) return res.status(409).json({ message: `A student with LRN ${lrn} already exists.` });
 
+    // ---- Duplicate Name check ----
+    const existingByName = findDuplicateStudentByName(firstName, middleName, lastName);
+    if (existingByName) {
+        const fullName = [firstName, middleName, lastName].filter(Boolean).map(s => s.trim()).join(' ');
+        return res.status(409).json({
+            message: `A student named "${fullName}" already exists (LRN: ${existingByName.lrn}).`
+        });
+    }
+
     try {
         // ---- Insert in transaction ----
         const insertResult = db.transaction(() => {
@@ -507,6 +538,15 @@ exports.updateStudent = (req, res) => {
     // ---- Duplicate LRN check (excluding self) ----
     const duplicate = db.prepare('SELECT id FROM students WHERE lrn = ? AND id != ?').get(lrn.trim(), id);
     if (duplicate) return res.status(409).json({ message: `Another student already has LRN ${lrn}.` });
+
+    // ---- Duplicate Name check (excluding self) ----
+    const duplicateName = findDuplicateStudentByName(firstName, middleName, lastName, id);
+    if (duplicateName) {
+        const fullName = [firstName, middleName, lastName].filter(Boolean).map(s => s.trim()).join(' ');
+        return res.status(409).json({
+            message: `Another student named "${fullName}" already exists (LRN: ${duplicateName.lrn}).`
+        });
+    }
 
     try {
         db.transaction(() => {
@@ -923,16 +963,31 @@ exports.bulkCreateStudents = (req, res) => {
         const existing = db.prepare('SELECT id FROM students WHERE lrn = ?').get(lrn);
         if (existing) return { status: 'skipped', reason: `LRN ${lrn} already exists.` };
 
+        // Duplicate Name check (anti duplication from first, middle, and last name)
+        const existingByName = findDuplicateStudentByName(s.firstName, s.middleName, s.lastName);
+        if (existingByName) {
+            const fullName = [s.firstName, s.middleName, s.lastName].filter(Boolean).map(str => str.trim()).join(' ');
+            return {
+                status: 'skipped',
+                reason: `Student name "${fullName}" already exists (LRN: ${existingByName.lrn}).`
+            };
+        }
+
+        const fnUpper = s.firstName.trim().toUpperCase();
+        const mnUpper = s.middleName?.trim() ? s.middleName.trim().toUpperCase() : null;
+        const lnUpper = s.lastName.trim().toUpperCase();
+        const extUpper = s.extension?.trim() ? s.extension.trim().toUpperCase() : null;
+
         // Insert student
         const result = db.prepare(`
             INSERT INTO students (lrn, first_name, middle_name, last_name, extension, sex, birth_date, is_4ps)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?)
         `).run(
             lrn,
-            s.firstName.trim(),
-            s.middleName?.trim() || null,
-            s.lastName.trim(),
-            s.extension?.trim()  || null,
+            fnUpper,
+            mnUpper,
+            lnUpper,
+            extUpper,
             s.sex,
             normDob || null,
             s.is4ps ? 1 : 0
