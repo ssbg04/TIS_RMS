@@ -1397,35 +1397,31 @@ class _AddEditStudentModalState extends ConsumerState<AddEditStudentModal> {
     final isMobile = screenWidth < 600;
 
     double maxDialogHeight = isMobile ? (screenHeight * 0.82) : 550;
-    double dialogHeight = maxDialogHeight.clamp(
-      200.0,
-      screenHeight - viewInsets.bottom - 24.0,
-    );
-
-    double maxDialogWidth = isMobile ? 380 : 620;
-
-    return CustomModal(
-      title: widget.student != null
-          ? 'Update Student Record'
-          : 'Add New Student',
-      icon: widget.student != null ? Icons.edit : Icons.person_add,
-      maxWidth: maxDialogWidth,
-      onClose: _confirmClose,
-      content: ConstrainedBox(
-        constraints: BoxConstraints(maxHeight: dialogHeight),
-        child: Padding(
-          padding: EdgeInsets.all(isMobile ? 12 : AppSizes.p24),
-          child: widget.student != null
-              ? _buildEditTabsModal(isMobile, viewInsets.bottom)
-              : _buildManualForm(
-                  false,
-                  yearsAsync,
-                  gradeLevelsAsync,
-                  sectionsAsync,
-                  isMobile,
-                  viewInsets.bottom,
-                ),
+    return Scaffold(
+      backgroundColor: AppColors.surfaceWhite,
+      appBar: AppBar(
+        backgroundColor: AppColors.primaryGreen,
+        iconTheme: const IconThemeData(color: Colors.white),
+        title: Text(
+          widget.student != null ? 'Update Student Record' : 'Add New Student',
+          style: const TextStyle(
+            color: Colors.white,
+            fontSize: 18,
+            fontWeight: FontWeight.bold,
+          ),
         ),
+      ),
+      body: SafeArea(
+        child: widget.student != null
+            ? _buildEditTabsModal(isMobile, viewInsets.bottom)
+            : _buildManualForm(
+                false,
+                yearsAsync,
+                gradeLevelsAsync,
+                sectionsAsync,
+                isMobile,
+                viewInsets.bottom,
+              ),
       ),
     );
   }
@@ -1522,182 +1518,174 @@ class _AddEditStudentModalState extends ConsumerState<AddEditStudentModal> {
       ),
     );
 
+    Widget stepWidget;
+    if (!isEdit && _currentStep == 0) {
+      stepWidget = _buildOcrStep();
+    } else if ((!isEdit && _currentStep == 1) || (isEdit && _currentStep == 0)) {
+      stepWidget = _buildStudentDetailsStep(isEdit, isMobile);
+    } else {
+      stepWidget = _buildEnrollmentStep(
+        isEdit,
+        isMobile,
+        yearsAsync,
+        gradeLevelsAsync,
+        sectionsAsync,
+      );
+    }
+
     return Theme(
       data: compactTheme,
-      child: Stepper(
-        type: isMobile ? StepperType.vertical : StepperType.horizontal,
-        currentStep: _currentStep,
-        onStepTapped: (step) {
-          final isEdit = widget.student != null;
-          if (step > _currentStep) {
-            final detailsStepIndex = isEdit ? 0 : 1;
-            if (_currentStep == detailsStepIndex) {
-              if (!(_studentFormKey.currentState?.validate() ?? false)) return;
-            }
-          }
-          setState(() {
-            _currentStep = step;
-          });
-        },
-        onStepCancel: () {
-          if (_currentStep > 0) {
-            setState(() {
-              _currentStep -= 1;
-            });
-          } else {
-            _confirmClose();
-          }
-        },
-        onStepContinue: () {
-          final isEdit = widget.student != null;
-          final isLastStep = _currentStep == (isEdit ? 1 : 2);
-          final detailsStepIndex = isEdit ? 0 : 1;
-          if (isLastStep) {
-            _handleSave();
-          } else {
-            if (_currentStep == detailsStepIndex) {
-              if (!(_studentFormKey.currentState?.validate() ?? false)) return;
-            }
-            setState(() {
-              _currentStep += 1;
-            });
-          }
-        },
-        controlsBuilder: (context, details) {
-          final isEdit = widget.student != null;
-          final isLastStep = _currentStep == (isEdit ? 1 : 2);
-          final isOcrStep = !isEdit && _currentStep == 0;
-          return Padding(
-            padding: const EdgeInsets.only(top: 24.0),
-            child: Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              crossAxisAlignment: WrapCrossAlignment.center,
-              children: [
-                if (_currentStep > 0)
-                  OutlinedButton(
-                    onPressed: details.onStepCancel ?? () {},
-                    child: const Text('BACK'),
-                  ),
-                if (isOcrStep && !ocrState.isLoading)
-                  OutlinedButton(
-                    onPressed: details.onStepContinue ?? () {},
-                    child: const Text('Skip OCR & Enter Manually'),
-                  )
-                else if (!isOcrStep)
-                  PrimaryButton(
-                    label: isLastStep ? (isEdit ? 'UPDATE' : 'SAVE') : 'NEXT',
-                    isLoading: _isLoading && isLastStep,
-                    onPressed: details.onStepContinue ?? () {},
-                  ),
-                if (!isEdit && _ocrScannedFile != null && !isOcrStep) ...[
-                  const SizedBox(width: 8),
-                  InkWell(
-                    onTap: () => setState(() {
-                      _lrnController.clear();
-                      _firstNameController.clear();
-                      _middleNameController.clear();
-                      _lastNameController.clear();
-                      _extController.clear();
-                      _currentStep = 0;
-                    }),
-                    child: const Padding(
-                      padding: EdgeInsets.symmetric(horizontal: 4, vertical: 8),
-                      child: Text(
-                        'RE-SCAN',
-                        style: TextStyle(
-                          fontSize: 13,
-                          color: AppColors.primaryGreen,
-                          decoration: TextDecoration.underline,
-                          decorationColor: AppColors.primaryGreen,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 4),
-                  InkWell(
-                    onTap: () {
-                      if (_ocrScannedFile != null) {
-                        showDocumentPreview(
-                          context: context,
-                          localFile: _ocrScannedFile!,
-                          localFileName: _ocrScannedFile!.path.split('/').last,
-                        );
-                      }
-                    },
-                    child: const Padding(
-                      padding: EdgeInsets.symmetric(horizontal: 4, vertical: 8),
-                      child: Text(
-                        'VIEW DOC',
-                        style: TextStyle(
-                          fontSize: 13,
-                          color: AppColors.primaryGreen,
-                          decoration: TextDecoration.underline,
-                          decorationColor: AppColors.primaryGreen,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-              ],
+      child: Column(
+        children: [
+          _buildLineStepper(),
+          Expanded(
+            child: SingleChildScrollView(
+              padding: EdgeInsets.fromLTRB(24, 16, 24, 16 + keyboardInset),
+              child: stepWidget,
+            ),
+          ),
+          _buildStepControls(ocrState),
+        ],
+      ),
+    );
+  }
+
+  // ── UNDER HEADER LINE STEPPER ─────────────────────────────────────────────
+  Widget _buildLineStepper() {
+    final totalSteps = widget.student == null ? 3 : 2;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+      color: const Color(0xFFF8F9FA),
+      child: Row(
+        children: List.generate(totalSteps, (idx) {
+          final activeOrDone = _currentStep >= idx;
+          return Expanded(
+            child: Container(
+              height: 4,
+              margin: EdgeInsets.only(right: idx < totalSteps - 1 ? 6 : 0),
+              decoration: BoxDecoration(
+                color: activeOrDone
+                    ? AppColors.primaryGreen
+                    : Colors.grey.shade300,
+                borderRadius: BorderRadius.circular(2),
+              ),
             ),
           );
-        },
-        steps: [
-          if (widget.student == null)
-            Step(
-              title: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(
-                    Icons.document_scanner_outlined,
-                    size: isMobile ? 14 : 18,
-                    color: AppColors.primaryGreen,
-                  ),
-                  if (!isMobile) const SizedBox(width: 4),
-                  Text(
-                    'OCR',
-                    style: TextStyle(
-                      fontSize: isMobile ? 12 : 14,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ],
-              ),
-              content: _buildOcrStep(),
-              isActive: _currentStep >= 0,
-              state: _currentStep > 0 ? StepState.complete : StepState.indexed,
+        }),
+      ),
+    );
+  }
+
+  // ── STEP CONTROLS ────────────────────────────────────────────────────────
+  Widget _buildStepControls(OcrState ocrState) {
+    final isEdit = widget.student != null;
+    final isLastStep = _currentStep == (isEdit ? 1 : 2);
+    final isOcrStep = !isEdit && _currentStep == 0;
+    final detailsStepIndex = isEdit ? 0 : 1;
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        border: Border(top: BorderSide(color: Colors.grey.shade200)),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.end,
+        children: [
+          if (_currentStep > 0) ...[
+            OutlinedButton(
+              onPressed: () {
+                setState(() => _currentStep -= 1);
+              },
+              child: const Text('BACK'),
             ),
-          Step(
-            title: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(
-                  Icons.person,
-                  size: isMobile ? 14 : 18,
-                  color: AppColors.primaryGreen,
-                ),
-                if (!isMobile) const SizedBox(width: 4),
-                Text(
-                  'Student',
+            const SizedBox(width: 8),
+          ],
+          if (isOcrStep && !ocrState.isLoading)
+            OutlinedButton(
+              onPressed: () {
+                setState(() => _currentStep = 1);
+              },
+              child: const Text('Skip OCR & Enter Manually'),
+            )
+          else if (!isOcrStep)
+            PrimaryButton(
+              label: isLastStep ? (isEdit ? 'UPDATE' : 'SAVE') : 'NEXT',
+              isLoading: _isLoading && isLastStep,
+              onPressed: () {
+                if (isLastStep) {
+                  _handleSave();
+                } else {
+                  if (_currentStep == detailsStepIndex) {
+                    if (!(_studentFormKey.currentState?.validate() ?? false)) {
+                      return;
+                    }
+                  }
+                  setState(() => _currentStep += 1);
+                }
+              },
+            ),
+          if (!isEdit && _ocrScannedFile != null && !isOcrStep) ...[
+            const SizedBox(width: 8),
+            InkWell(
+              onTap: () => setState(() {
+                _lrnController.clear();
+                _firstNameController.clear();
+                _middleNameController.clear();
+                _lastNameController.clear();
+                _extController.clear();
+                _currentStep = 0;
+              }),
+              child: const Padding(
+                padding: EdgeInsets.symmetric(horizontal: 4, vertical: 8),
+                child: Text(
+                  'RE-SCAN',
                   style: TextStyle(
-                    fontSize: isMobile ? 12 : 14,
-                    fontWeight: FontWeight.bold,
+                    fontSize: 13,
+                    color: AppColors.primaryGreen,
+                    decoration: TextDecoration.underline,
+                    decorationColor: AppColors.primaryGreen,
+                    fontWeight: FontWeight.w600,
                   ),
                 ),
-              ],
+              ),
             ),
-            isActive: _currentStep >= (widget.student != null ? 0 : 1),
-            state: _currentStep > (widget.student != null ? 0 : 1)
-                ? StepState.complete
-                : StepState.indexed,
-            content: Form(
-              key: _studentFormKey,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
+            const SizedBox(width: 4),
+            InkWell(
+              onTap: () {
+                if (_ocrScannedFile != null) {
+                  showDocumentPreview(
+                    context: context,
+                    localFile: _ocrScannedFile!,
+                    localFileName: _ocrScannedFile!.path.split('/').last,
+                  );
+                }
+              },
+              child: const Padding(
+                padding: EdgeInsets.symmetric(horizontal: 4, vertical: 8),
+                child: Text(
+                  'VIEW DOC',
+                  style: TextStyle(
+                    fontSize: 13,
+                    color: AppColors.primaryGreen,
+                    decoration: TextDecoration.underline,
+                    decorationColor: AppColors.primaryGreen,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildStudentDetailsStep(bool isEdit, bool isMobile) => Form(
+    key: _studentFormKey,
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
                   // ── Learner Reference Information section label ──
                   _SectionLabel(label: "LEARNER REFERENCE INFORMATION"),
                   const SizedBox(height: AppSizes.p8),
@@ -1924,37 +1912,20 @@ class _AddEditStudentModalState extends ConsumerState<AddEditStudentModal> {
                       ),
                     ),
                   ),
-                ],
-              ),
-            ),
-          ),
-          Step(
-            title: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(
-                  Icons.school,
-                  size: isMobile ? 14 : 18,
-                  color: AppColors.primaryGreen,
-                ),
-                if (!isMobile) const SizedBox(width: 4),
-                Text(
-                  'Enrollment',
-                  style: TextStyle(
-                    fontSize: isMobile ? 12 : 14,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ],
-            ),
-            isActive: _currentStep >= (widget.student != null ? 1 : 2),
-            state: _currentStep > (widget.student != null ? 1 : 2)
-                ? StepState.complete
-                : StepState.indexed,
-            content: Form(
-              key: _enrollmentFormKey,
-              child: Column(
-                children: [
+      ],
+    ),
+  );
+
+  Widget _buildEnrollmentStep(
+    bool isEdit,
+    bool isMobile,
+    AsyncValue<List<AcademicYearModel>> yearsAsync,
+    AsyncValue<List<GradeLevelModel>> gradeLevelsAsync,
+    AsyncValue<List<SectionModel>> sectionsAsync,
+  ) => Form(
+    key: _enrollmentFormKey,
+    child: Column(
+      children: [
                   yearsAsync.when(
                     data: (years) {
                       // Auto-default: pick current/most-recent active academic year for new students
@@ -2175,14 +2146,9 @@ class _AddEditStudentModalState extends ConsumerState<AddEditStudentModal> {
                       },
                     ),
                   ],
-                ],
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
+      ],
+    ),
+  );
 }
 
 // ================================================================

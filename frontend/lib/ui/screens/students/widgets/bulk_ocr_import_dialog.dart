@@ -11,6 +11,21 @@ import '../../../providers/ocr_provider.dart';
 import '../../../providers/student_provider.dart';
 import '../../../providers/setup_provider.dart';
 import '../../../shared/dialogs/error_dialog.dart';
+import 'package:flutter/services.dart';
+
+class _UpperCaseWordsFormatter extends TextInputFormatter {
+  @override
+  TextEditingValue formatEditUpdate(
+    TextEditingValue oldValue,
+    TextEditingValue newValue,
+  ) {
+    return newValue.copyWith(
+      text: newValue.text.toUpperCase(),
+      selection: newValue.selection,
+      composing: TextRange.empty,
+    );
+  }
+}
 
 // ---------------------------------------------------------------------------
 // Data model for a queued file and its OCR result
@@ -241,12 +256,18 @@ class _BulkOcrImportDialogState extends ConsumerState<BulkOcrImportDialog> {
         if (result != null) {
           setState(() {
             if (result.lrn.isNotEmpty) item.lrn = result.lrn;
-            if (result.firstName.isNotEmpty) item.firstName = result.firstName;
-            if (result.lastName.isNotEmpty) item.lastName = result.lastName;
-            if (result.middleName.isNotEmpty) {
-              item.middleName = result.middleName;
+            if (result.firstName.isNotEmpty) {
+              item.firstName = result.firstName.toUpperCase();
             }
-            if (result.extension.isNotEmpty) item.extension = result.extension;
+            if (result.lastName.isNotEmpty) {
+              item.lastName = result.lastName.toUpperCase();
+            }
+            if (result.middleName.isNotEmpty) {
+              item.middleName = result.middleName.toUpperCase();
+            }
+            if (result.extension.isNotEmpty) {
+              item.extension = result.extension.toUpperCase();
+            }
             if (result.sex == 'Male' || result.sex == 'Female') {
               item.sex = result.sex;
             }
@@ -350,129 +371,58 @@ class _BulkOcrImportDialogState extends ConsumerState<BulkOcrImportDialog> {
   }
 
   // ── build ─────────────────────────────────────────────────────────────────
+  // ── build ─────────────────────────────────────────────────────────────────
   @override
   Widget build(BuildContext context) {
-    final size = MediaQuery.of(context).size;
-    final isNarrow = size.width < 700;
-
-    return Dialog(
-      backgroundColor: Colors.transparent,
-      insetPadding: EdgeInsets.symmetric(
-        horizontal: isNarrow ? 8 : 24,
-        vertical: isNarrow ? 8 : 24,
+    return Scaffold(
+      backgroundColor: const Color(0xFFF8F9FA),
+      appBar: AppBar(
+        backgroundColor: AppColors.primaryGreen,
+        iconTheme: const IconThemeData(color: Colors.white),
+        title: const Text(
+          'Bulk OCR Student Import',
+          style: TextStyle(
+              color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
+        ),
       ),
-      child: ConstrainedBox(
-        constraints: BoxConstraints(maxWidth: 900, maxHeight: size.height * 0.92),
-        child: Container(
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(20),
-            boxShadow: [
-              BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.18),
-                  blurRadius: 40,
-                  offset: const Offset(0, 12)),
-            ],
-          ),
-          child: Column(
-            children: [
-              _buildHeader(),
-              _buildStepper(),
-              Expanded(child: _buildBody()),
-              _buildFooter(),
-            ],
-          ),
+      body: SafeArea(
+        child: Column(
+          children: [
+            _buildStepper(),
+            if (_isProcessing || _isImporting)
+              const LinearProgressIndicator(
+                color: AppColors.primaryGreen,
+                backgroundColor: Color(0xFFE0E0E0),
+                minHeight: 3,
+              ),
+            Expanded(child: _buildBody()),
+            _buildFooter(),
+          ],
         ),
       ),
     );
   }
 
-  // ── header ────────────────────────────────────────────────────────────────
-  Widget _buildHeader() => Container(
-        padding: const EdgeInsets.fromLTRB(24, 20, 16, 16),
-        decoration: const BoxDecoration(
-          color: AppColors.primaryGreen,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-        ),
-        child: Row(children: [
-          const Icon(Icons.document_scanner_outlined,
-              color: Colors.white, size: 26),
-          const SizedBox(width: 12),
-          const Expanded(
-            child: Text('Bulk OCR Student Import',
-                style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold)),
-          ),
-          IconButton(
-            onPressed: _isProcessing || _isImporting
-                ? null
-                : () => Navigator.of(context).pop(),
-            icon: const Icon(Icons.close, color: Colors.white70),
-          ),
-        ]),
-      );
-
   // ── stepper ───────────────────────────────────────────────────────────────
   Widget _buildStepper() {
-    const labels = ['Upload Files', 'Review & Edit', 'Summary'];
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
       color: const Color(0xFFF8F9FA),
       child: Row(
-        children: List.generate(labels.length * 2 - 1, (i) {
-          if (i.isOdd) {
-            return Expanded(
-              child: Container(
-                  height: 2,
-                  color: _step > i ~/ 2
-                      ? AppColors.primaryGreen
-                      : Colors.grey.shade300),
-            );
-          }
-          final idx = i ~/ 2;
-          final active = _step == idx;
-          final done = _step > idx;
-          return Column(mainAxisSize: MainAxisSize.min, children: [
-            AnimatedContainer(
-              duration: const Duration(milliseconds: 250),
-              width: 32,
-              height: 32,
+        children: List.generate(3, (idx) {
+          final activeOrDone = _step >= idx;
+          return Expanded(
+            child: Container(
+              height: 4,
+              margin: EdgeInsets.only(right: idx < 2 ? 6 : 0),
               decoration: BoxDecoration(
-                color: done || active
+                color: activeOrDone
                     ? AppColors.primaryGreen
-                    : Colors.grey.shade200,
-                shape: BoxShape.circle,
-                border: Border.all(
-                  color: active || done
-                      ? AppColors.primaryGreen
-                      : Colors.grey.shade300,
-                  width: 2,
-                ),
-              ),
-              child: Center(
-                child: done
-                    ? const Icon(Icons.check, color: Colors.white, size: 16)
-                    : Text('${idx + 1}',
-                        style: TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 13,
-                            color: active
-                                ? Colors.white
-                                : Colors.grey.shade600)),
+                    : Colors.grey.shade300,
+                borderRadius: BorderRadius.circular(2),
               ),
             ),
-            const SizedBox(height: 4),
-            Text(labels[idx],
-                style: TextStyle(
-                    fontSize: 11,
-                    fontWeight:
-                        active ? FontWeight.bold : FontWeight.normal,
-                    color: active || done
-                        ? AppColors.primaryGreen
-                        : AppColors.textSecondary)),
-          ]);
+          );
         }),
       ),
     );
@@ -899,13 +849,13 @@ class _BulkOcrImportDialogState extends ConsumerState<BulkOcrImportDialog> {
           _editField('LRN', item.lrn, (v) => item.lrn = v,
               width: 160, keyboardType: TextInputType.number),
           _editField('Last Name', item.lastName, (v) => item.lastName = v,
-              width: 160),
+              width: 160, toUpperCase: true),
           _editField('First Name', item.firstName,
-              (v) => item.firstName = v, width: 160),
+              (v) => item.firstName = v, width: 160, toUpperCase: true),
           _editField('Middle Name', item.middleName,
-              (v) => item.middleName = v, width: 140),
+              (v) => item.middleName = v, width: 140, toUpperCase: true),
           _editField('Extension', item.extension,
-              (v) => item.extension = v, width: 90),
+              (v) => item.extension = v, width: 90, toUpperCase: true),
           _sexDropdown(item),
           _editField('Date of Birth', item.dob, (v) => item.dob = v,
               width: 130, hint: 'YYYY-MM-DD'),
@@ -920,12 +870,18 @@ class _BulkOcrImportDialogState extends ConsumerState<BulkOcrImportDialog> {
     double width = 150,
     TextInputType keyboardType = TextInputType.text,
     String? hint,
+    bool toUpperCase = false,
   }) =>
       SizedBox(
         width: width,
         child: TextFormField(
           initialValue: value,
           keyboardType: keyboardType,
+          textCapitalization: toUpperCase
+              ? TextCapitalization.characters
+              : TextCapitalization.none,
+          inputFormatters:
+              toUpperCase ? [_UpperCaseWordsFormatter()] : null,
           decoration: InputDecoration(
             labelText: label,
             hintText: hint,
@@ -938,7 +894,7 @@ class _BulkOcrImportDialogState extends ConsumerState<BulkOcrImportDialog> {
             fillColor: const Color(0xFFF8F9FA),
           ),
           style: const TextStyle(fontSize: 13),
-          onChanged: (v) => setState(() => onChanged(v)),
+          onChanged: (v) => setState(() => onChanged(toUpperCase ? v.toUpperCase() : v)),
         ),
       );
 
