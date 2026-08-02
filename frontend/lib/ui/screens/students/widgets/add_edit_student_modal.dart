@@ -16,7 +16,6 @@ import '../../../../domain/entities/setup_models.dart';
 import '../../../shared/dialogs/success_dialog.dart';
 import '../../../shared/dialogs/info_dialog.dart';
 import '../../documents/widgets/document_preview_modal.dart';
-import '../../../shared/modals/custom_modal.dart';
 import 'edit_enrollment_modal.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
@@ -762,70 +761,6 @@ class _AddEditStudentModalState extends ConsumerState<AddEditStudentModal> {
     }
   }
 
-  // ----------------------------------------------------------------
-  // BUILD TABBED MODAL FOR UPDATE STUDENT RECORD
-  // ----------------------------------------------------------------
-  Widget _buildEditTabsModal(bool isMobile, double keyboardInset) {
-    final compactTheme = Theme.of(context).copyWith(
-      inputDecorationTheme: Theme.of(context).inputDecorationTheme.copyWith(
-        isDense: true,
-        contentPadding: EdgeInsets.symmetric(
-          horizontal: isMobile ? 10 : 16,
-          vertical: isMobile ? 8 : 16,
-        ),
-        labelStyle: TextStyle(fontSize: isMobile ? 12 : 14),
-        hintStyle: TextStyle(fontSize: isMobile ? 11 : 14),
-      ),
-    );
-
-    return Theme(
-      data: compactTheme,
-      child: DefaultTabController(
-        length: 2,
-        child: Column(
-          children: [
-            Container(
-              decoration: BoxDecoration(
-                color: AppColors.surfaceWhite,
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: Colors.grey.shade300),
-              ),
-              child: TabBar(
-                labelColor: AppColors.primaryGreen,
-                unselectedLabelColor: AppColors.textSecondary,
-                indicatorColor: AppColors.primaryGreen,
-                indicatorWeight: 3,
-                labelStyle: TextStyle(
-                  fontSize: isMobile ? 13 : 14,
-                  fontWeight: FontWeight.bold,
-                ),
-                tabs: const [
-                  Tab(
-                    icon: Icon(Icons.person_outline, size: 20),
-                    text: 'Student Details',
-                  ),
-                  Tab(
-                    icon: Icon(Icons.school_outlined, size: 20),
-                    text: 'Enrollments',
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 12),
-            Expanded(
-              child: TabBarView(
-                children: [
-                  _buildStudentDetailsTabContent(isMobile, keyboardInset),
-                  _buildEnrollmentsTabContent(isMobile),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
   Widget _buildStudentDetailsTabContent(
     bool isMobile,
     double keyboardInset,
@@ -1346,8 +1281,7 @@ class _AddEditStudentModalState extends ConsumerState<AddEditStudentModal> {
     );
   }
 
-  // ----------------------------------------------------------------
-  // BUILD — viewport-aware, keyboard-safe dialog
+  // -----------------------------------------------------  // BUILD — full-screen Scaffold with under-header line stepper
   // ----------------------------------------------------------------
   @override
   Widget build(BuildContext context) {
@@ -1361,8 +1295,9 @@ class _AddEditStudentModalState extends ConsumerState<AddEditStudentModal> {
         // Cache the enrollment list for use in validation
         if (_loadedEnrollments == null && fullStudent.enrollments != null) {
           Future.microtask(() {
-            if (mounted)
+            if (mounted) {
               setState(() => _loadedEnrollments = fullStudent.enrollments);
+            }
           });
         }
         if (fullStudent.enrollments != null &&
@@ -1391,37 +1326,560 @@ class _AddEditStudentModalState extends ConsumerState<AddEditStudentModal> {
       });
     }
 
-    final viewInsets = MediaQuery.viewInsetsOf(context);
-    final screenHeight = MediaQuery.sizeOf(context).height;
-    final screenWidth = MediaQuery.sizeOf(context).width;
-    final isMobile = screenWidth < 600;
+    final isEdit = widget.student != null;
+    final totalSteps = isEdit ? 2 : 3;
 
-    double maxDialogHeight = isMobile ? (screenHeight * 0.82) : 550;
-    return Scaffold(
-      backgroundColor: AppColors.surfaceWhite,
-      appBar: AppBar(
-        backgroundColor: AppColors.primaryGreen,
-        iconTheme: const IconThemeData(color: Colors.white),
-        title: Text(
-          widget.student != null ? 'Update Student Record' : 'Add New Student',
-          style: const TextStyle(
-            color: Colors.white,
-            fontSize: 18,
-            fontWeight: FontWeight.bold,
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, _) async {
+        if (!didPop) await _confirmClose();
+      },
+      child: Scaffold(
+        backgroundColor: const Color(0xFFF8F9FA),
+        appBar: AppBar(
+          backgroundColor: AppColors.primaryGreen,
+          iconTheme: const IconThemeData(color: Colors.white),
+          leading: IconButton(
+            onPressed: _confirmClose,
+            icon: const Icon(Icons.close),
+            tooltip: 'Close',
+          ),
+          automaticallyImplyLeading: false,
+          title: Text(
+            isEdit ? 'Update Student Record' : 'Add New Student',
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+        ),
+        body: SafeArea(
+          child: Column(
+            children: [
+              _buildLineStepper(totalSteps),
+              if (_isLoading)
+                const LinearProgressIndicator(
+                  color: AppColors.primaryGreen,
+                  backgroundColor: Color(0xFFE0E0E0),
+                  minHeight: 3,
+                ),
+              Expanded(
+                child: isEdit
+                    ? _buildEditTabBody(yearsAsync, gradeLevelsAsync, sectionsAsync)
+                    : _buildAddStepBody(yearsAsync, gradeLevelsAsync, sectionsAsync),
+              ),
+            ],
           ),
         ),
       ),
-      body: SafeArea(
-        child: widget.student != null
-            ? _buildEditTabsModal(isMobile, viewInsets.bottom)
-            : _buildManualForm(
-                false,
-                yearsAsync,
-                gradeLevelsAsync,
-                sectionsAsync,
-                isMobile,
-                viewInsets.bottom,
+    );
+  }
+
+  Widget _buildLineStepper(int totalSteps) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+      color: const Color(0xFFF8F9FA),
+      child: Row(
+        children: List.generate(totalSteps, (idx) {
+          final activeOrDone = _currentStep >= idx;
+          return Expanded(
+            child: Container(
+              height: 4,
+              margin: EdgeInsets.only(right: idx < totalSteps - 1 ? 6 : 0),
+              decoration: BoxDecoration(
+                color: activeOrDone ? AppColors.primaryGreen : Colors.grey.shade300,
+                borderRadius: BorderRadius.circular(2),
               ),
+            ),
+          );
+        }),
+      ),
+    );
+  }
+
+  Widget _buildEditTabBody(
+    AsyncValue<List<AcademicYearModel>> yearsAsync,
+    AsyncValue<List<GradeLevelModel>> gradeLevelsAsync,
+    AsyncValue<List<SectionModel>> sectionsAsync,
+  ) {
+    return DefaultTabController(
+      length: 2,
+      initialIndex: _currentStep,
+      child: Column(
+        children: [
+          Container(
+            color: Colors.white,
+            child: TabBar(
+              onTap: (i) => setState(() => _currentStep = i),
+              labelColor: AppColors.primaryGreen,
+              unselectedLabelColor: AppColors.textSecondary,
+              indicatorColor: AppColors.primaryGreen,
+              indicatorWeight: 3,
+              tabs: const [
+                Tab(icon: Icon(Icons.person_outline, size: 20), text: 'Student Details'),
+                Tab(icon: Icon(Icons.school_outlined, size: 20), text: 'Enrollments'),
+              ],
+            ),
+          ),
+          Expanded(
+            child: TabBarView(
+              children: [
+                _buildStudentDetailsTabContent(false, 0),
+                _buildEnrollmentsTabContent(false),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildAddStepBody(
+    AsyncValue<List<AcademicYearModel>> yearsAsync,
+    AsyncValue<List<GradeLevelModel>> gradeLevelsAsync,
+    AsyncValue<List<SectionModel>> sectionsAsync,
+  ) {
+    final ocrState = ref.watch(ocrProvider);
+    final isLastStep = _currentStep == 2;
+    final isOcrStep = _currentStep == 0;
+
+    Widget stepContent;
+    switch (_currentStep) {
+      case 0:
+        stepContent = _buildOcrStep();
+      case 1:
+        stepContent = _buildAddStudentDetailsStep();
+      case 2:
+        stepContent = _buildAddEnrollmentStep(yearsAsync, gradeLevelsAsync, sectionsAsync);
+      default:
+        stepContent = _buildOcrStep();
+    }
+
+    return Column(
+      children: [
+        Expanded(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(24),
+            child: stepContent,
+          ),
+        ),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.06),
+                blurRadius: 10,
+                offset: const Offset(0, -2),
+              ),
+            ],
+          ),
+          child: Row(
+            children: [
+              if (_currentStep > 0)
+                OutlinedButton(
+                  onPressed: () => setState(() => _currentStep -= 1),
+                  child: const Text('BACK'),
+                ),
+              const Spacer(),
+              if (isOcrStep && !ocrState.isLoading)
+                OutlinedButton(
+                  onPressed: () => setState(() => _currentStep = 1),
+                  child: const Text('Skip OCR & Enter Manually'),
+                ),
+              if (!isOcrStep) ...[
+                if (_ocrScannedFile != null) ...[
+                  TextButton(
+                    onPressed: () => setState(() {
+                      _lrnController.clear();
+                      _firstNameController.clear();
+                      _middleNameController.clear();
+                      _lastNameController.clear();
+                      _extController.clear();
+                      _currentStep = 0;
+                    }),
+                    child: const Text('RE-SCAN',
+                        style: TextStyle(
+                            color: AppColors.primaryGreen,
+                            fontWeight: FontWeight.w600)),
+                  ),
+                  TextButton(
+                    onPressed: () {
+                      if (_ocrScannedFile != null) {
+                        showDocumentPreview(
+                          context: context,
+                          localFile: _ocrScannedFile!,
+                          localFileName: _ocrScannedFile!.path.split('/').last,
+                        );
+                      }
+                    },
+                    child: const Text('VIEW DOC',
+                        style: TextStyle(
+                            color: AppColors.primaryGreen,
+                            fontWeight: FontWeight.w600)),
+                  ),
+                ],
+                const SizedBox(width: 8),
+                PrimaryButton(
+                  label: isLastStep ? 'SAVE' : 'NEXT',
+                  isLoading: _isLoading && isLastStep,
+                  onPressed: () {
+                    if (_currentStep == 1) {
+                      if (!(_studentFormKey.currentState?.validate() ?? false)) {
+                        return;
+                      }
+                    }
+                    if (isLastStep) {
+                      _handleSave();
+                    } else {
+                      setState(() => _currentStep += 1);
+                    }
+                  },
+                ),
+              ],
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildAddStudentDetailsStep() {
+    return Form(
+      key: _studentFormKey,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _SectionLabel(label: 'LEARNER REFERENCE INFORMATION'),
+          const SizedBox(height: AppSizes.p8),
+          TextFormField(
+            controller: _lrnController,
+            keyboardType: TextInputType.number,
+            maxLength: 12,
+            inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+            validator: _validateLRN,
+            decoration: const InputDecoration(
+              labelText: 'LRN (Learner Reference Number)',
+              hintText: '12-digit number',
+              prefixIcon: Icon(Icons.pin_outlined),
+              counterText: '',
+            ),
+          ),
+          const SizedBox(height: AppSizes.p16),
+          _SectionLabel(label: 'NAME'),
+          const SizedBox(height: AppSizes.p8),
+          LayoutBuilder(
+            builder: (ctx, c) {
+              final wide = c.maxWidth > 480;
+              if (wide) {
+                return Column(
+                  children: [
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Expanded(
+                          flex: 3,
+                          child: TextFormField(
+                            controller: _firstNameController,
+                            textCapitalization: TextCapitalization.characters,
+                            inputFormatters: [_UpperCaseWordsFormatter()],
+                            validator: (v) => _validateRequired(v, 'First name'),
+                            decoration: const InputDecoration(
+                              labelText: 'FIRST NAME',
+                              prefixIcon: Icon(Icons.badge_outlined),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: AppSizes.p12),
+                        Expanded(
+                          flex: 2,
+                          child: _ExtensionNameField(
+                            controller: _extController,
+                            suggestions: _extSuggestions,
+                          ),
+                        ),
+                        const SizedBox(width: AppSizes.p12),
+                        Expanded(
+                          flex: 3,
+                          child: TextFormField(
+                            controller: _middleNameController,
+                            textCapitalization: TextCapitalization.characters,
+                            inputFormatters: [_UpperCaseWordsFormatter()],
+                            decoration: const InputDecoration(
+                              labelText: 'MIDDLE NAME (Optional)',
+                              prefixIcon: Icon(Icons.badge_outlined),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: AppSizes.p12),
+                    TextFormField(
+                      controller: _lastNameController,
+                      textCapitalization: TextCapitalization.characters,
+                      inputFormatters: [_UpperCaseWordsFormatter()],
+                      validator: (v) => _validateRequired(v, 'Last name'),
+                      decoration: const InputDecoration(
+                        labelText: 'LAST NAME',
+                        prefixIcon: Icon(Icons.badge_outlined),
+                      ),
+                    ),
+                  ],
+                );
+              } else {
+                return Column(
+                  children: [
+                    TextFormField(
+                      controller: _firstNameController,
+                      textCapitalization: TextCapitalization.characters,
+                      inputFormatters: [_UpperCaseWordsFormatter()],
+                      validator: (v) => _validateRequired(v, 'First name'),
+                      decoration: const InputDecoration(labelText: 'FIRST NAME'),
+                    ),
+                    const SizedBox(height: AppSizes.p12),
+                    _ExtensionNameField(
+                      controller: _extController,
+                      suggestions: _extSuggestions,
+                    ),
+                    const SizedBox(height: AppSizes.p12),
+                    TextFormField(
+                      controller: _middleNameController,
+                      textCapitalization: TextCapitalization.characters,
+                      inputFormatters: [_UpperCaseWordsFormatter()],
+                      decoration: const InputDecoration(labelText: 'MIDDLE NAME (Optional)'),
+                    ),
+                    const SizedBox(height: AppSizes.p12),
+                    TextFormField(
+                      controller: _lastNameController,
+                      textCapitalization: TextCapitalization.characters,
+                      inputFormatters: [_UpperCaseWordsFormatter()],
+                      validator: (v) => _validateRequired(v, 'Last name'),
+                      decoration: const InputDecoration(labelText: 'LAST NAME'),
+                    ),
+                  ],
+                );
+              }
+            },
+          ),
+          const SizedBox(height: AppSizes.p16),
+          _SectionLabel(label: 'PERSONAL INFORMATION'),
+          const SizedBox(height: AppSizes.p8),
+          DropdownButtonFormField<String>(
+            key: ValueKey('sex_$_selectedSex'),
+            initialValue: _selectedSex,
+            validator: (v) => v == null ? 'Please select sex.' : null,
+            isExpanded: true,
+            decoration: const InputDecoration(
+              labelText: 'SEX',
+              prefixIcon: Icon(Icons.wc),
+            ),
+            items: ['Male', 'Female']
+                .map((s) => DropdownMenuItem(value: s, child: Text(s)))
+                .toList(),
+            onChanged: (v) => setState(() => _selectedSex = v!),
+          ),
+          const SizedBox(height: AppSizes.p12),
+          _DobPicker(
+            initialDate: _selectedDob,
+            onChanged: (val) => setState(() => _selectedDob = val),
+          ),
+          const SizedBox(height: AppSizes.p16),
+          _SectionLabel(label: 'GOVERNMENT AID STATUS'),
+          const SizedBox(height: AppSizes.p8),
+          Container(
+            decoration: BoxDecoration(
+              color: _is4ps
+                  ? Colors.deepPurple.withValues(alpha: 0.06)
+                  : Colors.grey.shade50,
+              borderRadius: BorderRadius.circular(AppSizes.radiusMedium),
+              border: Border.all(
+                color: _is4ps
+                    ? Colors.deepPurple.withValues(alpha: 0.3)
+                    : Colors.grey.shade200,
+              ),
+            ),
+            child: SwitchListTile(
+              value: _is4ps,
+              onChanged: (val) => setState(() => _is4ps = val),
+              activeColor: Colors.deepPurple,
+              title: const Text('4Ps Beneficiary',
+                  style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
+              subtitle: Text(
+                _is4ps
+                    ? 'Student is a 4Ps (Pantawid Pamilyang Pilipino Program) beneficiary'
+                    : 'Student is NOT a 4Ps beneficiary',
+                style: TextStyle(
+                  fontSize: 11,
+                  color: _is4ps
+                      ? Colors.deepPurple.shade600
+                      : AppColors.textSecondary,
+                ),
+              ),
+              secondary: Icon(Icons.family_restroom,
+                  color: _is4ps ? Colors.deepPurple : Colors.grey.shade400),
+              dense: true,
+              contentPadding:
+                  const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+            ),
+          ),
+          if (_errorMessage != null) ...[
+            const SizedBox(height: AppSizes.p16),
+            _ErrorBanner(message: _errorMessage!),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildAddEnrollmentStep(
+    AsyncValue<List<AcademicYearModel>> yearsAsync,
+    AsyncValue<List<GradeLevelModel>> gradeLevelsAsync,
+    AsyncValue<List<SectionModel>> sectionsAsync,
+  ) {
+    return Form(
+      key: _enrollmentFormKey,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _SectionLabel(label: 'ENROLLMENT DETAILS'),
+          const SizedBox(height: AppSizes.p16),
+          yearsAsync.when(
+            data: (years) {
+              if (_selectedAcademicYearId == null && years.isNotEmpty) {
+                final active = years
+                    .where((y) => y.status.toLowerCase() == 'active')
+                    .toList();
+                final candidate = active.isNotEmpty ? active.last : years.last;
+                Future.microtask(() {
+                  if (mounted && _selectedAcademicYearId == null) {
+                    setState(() => _selectedAcademicYearId = candidate.id);
+                  }
+                });
+              }
+              return DropdownButtonFormField<int>(
+                key: ValueKey('academic_$_selectedAcademicYearId'),
+                initialValue: _selectedAcademicYearId,
+                decoration: const InputDecoration(
+                  labelText: 'Academic Year',
+                  prefixIcon: Icon(Icons.calendar_today),
+                ),
+                items: years
+                    .map((y) => DropdownMenuItem<int>(
+                        value: y.id, child: Text(y.yearRange)))
+                    .toList(),
+                onChanged: (val) => setState(() {
+                  _selectedAcademicYearId = val;
+                  _selectedSectionId = null;
+                }),
+                validator: (v) => v == null ? 'Academic year is required.' : null,
+              );
+            },
+            loading: () => const Center(child: CircularProgressIndicator()),
+            error: (err, _) =>
+                Text('Error: $err', style: const TextStyle(color: Colors.red)),
+          ),
+          const SizedBox(height: AppSizes.p12),
+          gradeLevelsAsync.when(
+            data: (grades) {
+              return DropdownButtonFormField<int>(
+                key: ValueKey('grade_$_selectedGradeLevel'),
+                initialValue: _selectedGradeLevel,
+                decoration: const InputDecoration(
+                  labelText: 'Grade Level',
+                  prefixIcon: Icon(Icons.grade),
+                ),
+                items: grades
+                    .map((g) => DropdownMenuItem<int>(
+                        value: g.level, child: Text(g.name)))
+                    .toList(),
+                onChanged: (val) => setState(() {
+                  _selectedGradeLevel = val;
+                  _selectedSectionId = null;
+                }),
+                validator: (v) => v == null ? 'Grade level is required.' : null,
+              );
+            },
+            loading: () => const Center(child: CircularProgressIndicator()),
+            error: (err, _) =>
+                Text('Error: $err', style: const TextStyle(color: Colors.red)),
+          ),
+          const SizedBox(height: AppSizes.p12),
+          sectionsAsync.when(
+            data: (sections) {
+              final filtered = sections
+                  .where((sec) =>
+                      sec.academicYearId == _selectedAcademicYearId &&
+                      sec.gradeLevel == _selectedGradeLevel)
+                  .toList();
+              final matches = filtered.where((s) => s.id == _selectedSectionId);
+              final initialSectionName =
+                  matches.isNotEmpty ? matches.first.name : '';
+              return Autocomplete<SectionModel>(
+                key: ValueKey(
+                    'section_${_selectedGradeLevel}_$_selectedAcademicYearId'),
+                initialValue: TextEditingValue(text: initialSectionName),
+                displayStringForOption: (sec) => sec.name,
+                optionsBuilder: (textEditingValue) {
+                  if (textEditingValue.text.isEmpty) return filtered;
+                  return filtered.where(
+                    (sec) => sec.name
+                        .toLowerCase()
+                        .contains(textEditingValue.text.toLowerCase()),
+                  );
+                },
+                onSelected: (sec) => setState(() => _selectedSectionId = sec.id),
+                fieldViewBuilder:
+                    (context, controller, focusNode, onFieldSubmitted) {
+                  return TextFormField(
+                    controller: controller,
+                    focusNode: focusNode,
+                    decoration: const InputDecoration(
+                      labelText: 'Section (Type or Select)',
+                      prefixIcon: Icon(Icons.segment),
+                      suffixIcon: Icon(Icons.arrow_drop_down),
+                    ),
+                    onChanged: (val) {
+                      if (val.isEmpty) {
+                        setState(() => _selectedSectionId = null);
+                      } else {
+                        final exactMatches = filtered.where(
+                          (s) => s.name.toLowerCase() == val.toLowerCase(),
+                        );
+                        setState(() => _selectedSectionId =
+                            exactMatches.isNotEmpty
+                                ? exactMatches.first.id
+                                : null);
+                      }
+                    },
+                    validator: (v) {
+                      if (v == null || v.isEmpty || _selectedSectionId == null) {
+                        return 'Please select a valid section.';
+                      }
+                      return null;
+                    },
+                  );
+                },
+              );
+            },
+            loading: () => const Center(child: CircularProgressIndicator()),
+            error: (err, _) =>
+                Text('Error: $err', style: const TextStyle(color: Colors.red)),
+          ),
+          if (_selectedGradeLevel != null && _selectedGradeLevel! >= 11) ...[
+            const SizedBox(height: AppSizes.p12),
+            TextFormField(
+              initialValue: _trackStrand,
+              decoration: const InputDecoration(
+                labelText: 'Track & Strand (for SHS)',
+                prefixIcon: Icon(Icons.school_outlined),
+              ),
+              onChanged: (val) =>
+                  _trackStrand = val.trim().isEmpty ? null : val.trim(),
+            ),
+          ],
+        ],
       ),
     );
   }
@@ -1495,8 +1953,9 @@ class _AddEditStudentModalState extends ConsumerState<AddEditStudentModal> {
   }
 
   // ================================================================
-  // STEP 2: MANUAL FORM UI
+  // STEP 2: MANUAL FORM UI (legacy - replaced by _buildAddStudentDetailsStep and _buildAddEnrollmentStep)
   // ================================================================
+  // ignore: unused_element
   Widget _buildManualForm(
     bool isEdit,
     AsyncValue<List<AcademicYearModel>> yearsAsync,
@@ -1518,174 +1977,182 @@ class _AddEditStudentModalState extends ConsumerState<AddEditStudentModal> {
       ),
     );
 
-    Widget stepWidget;
-    if (!isEdit && _currentStep == 0) {
-      stepWidget = _buildOcrStep();
-    } else if ((!isEdit && _currentStep == 1) || (isEdit && _currentStep == 0)) {
-      stepWidget = _buildStudentDetailsStep(isEdit, isMobile);
-    } else {
-      stepWidget = _buildEnrollmentStep(
-        isEdit,
-        isMobile,
-        yearsAsync,
-        gradeLevelsAsync,
-        sectionsAsync,
-      );
-    }
-
     return Theme(
       data: compactTheme,
-      child: Column(
-        children: [
-          _buildLineStepper(),
-          Expanded(
-            child: SingleChildScrollView(
-              padding: EdgeInsets.fromLTRB(24, 16, 24, 16 + keyboardInset),
-              child: stepWidget,
-            ),
-          ),
-          _buildStepControls(ocrState),
-        ],
-      ),
-    );
-  }
-
-  // ── UNDER HEADER LINE STEPPER ─────────────────────────────────────────────
-  Widget _buildLineStepper() {
-    final totalSteps = widget.student == null ? 3 : 2;
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
-      color: const Color(0xFFF8F9FA),
-      child: Row(
-        children: List.generate(totalSteps, (idx) {
-          final activeOrDone = _currentStep >= idx;
-          return Expanded(
-            child: Container(
-              height: 4,
-              margin: EdgeInsets.only(right: idx < totalSteps - 1 ? 6 : 0),
-              decoration: BoxDecoration(
-                color: activeOrDone
-                    ? AppColors.primaryGreen
-                    : Colors.grey.shade300,
-                borderRadius: BorderRadius.circular(2),
-              ),
+      child: Stepper(
+        type: isMobile ? StepperType.vertical : StepperType.horizontal,
+        currentStep: _currentStep,
+        onStepTapped: (step) {
+          final isEdit = widget.student != null;
+          if (step > _currentStep) {
+            final detailsStepIndex = isEdit ? 0 : 1;
+            if (_currentStep == detailsStepIndex) {
+              if (!(_studentFormKey.currentState?.validate() ?? false)) return;
+            }
+          }
+          setState(() {
+            _currentStep = step;
+          });
+        },
+        onStepCancel: () {
+          if (_currentStep > 0) {
+            setState(() {
+              _currentStep -= 1;
+            });
+          } else {
+            _confirmClose();
+          }
+        },
+        onStepContinue: () {
+          final isEdit = widget.student != null;
+          final isLastStep = _currentStep == (isEdit ? 1 : 2);
+          final detailsStepIndex = isEdit ? 0 : 1;
+          if (isLastStep) {
+            _handleSave();
+          } else {
+            if (_currentStep == detailsStepIndex) {
+              if (!(_studentFormKey.currentState?.validate() ?? false)) return;
+            }
+            setState(() {
+              _currentStep += 1;
+            });
+          }
+        },
+        controlsBuilder: (context, details) {
+          final isEdit = widget.student != null;
+          final isLastStep = _currentStep == (isEdit ? 1 : 2);
+          final isOcrStep = !isEdit && _currentStep == 0;
+          return Padding(
+            padding: const EdgeInsets.only(top: 24.0),
+            child: Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              crossAxisAlignment: WrapCrossAlignment.center,
+              children: [
+                if (_currentStep > 0)
+                  OutlinedButton(
+                    onPressed: details.onStepCancel ?? () {},
+                    child: const Text('BACK'),
+                  ),
+                if (isOcrStep && !ocrState.isLoading)
+                  OutlinedButton(
+                    onPressed: details.onStepContinue ?? () {},
+                    child: const Text('Skip OCR & Enter Manually'),
+                  )
+                else if (!isOcrStep)
+                  PrimaryButton(
+                    label: isLastStep ? (isEdit ? 'UPDATE' : 'SAVE') : 'NEXT',
+                    isLoading: _isLoading && isLastStep,
+                    onPressed: details.onStepContinue ?? () {},
+                  ),
+                if (!isEdit && _ocrScannedFile != null && !isOcrStep) ...[
+                  const SizedBox(width: 8),
+                  InkWell(
+                    onTap: () => setState(() {
+                      _lrnController.clear();
+                      _firstNameController.clear();
+                      _middleNameController.clear();
+                      _lastNameController.clear();
+                      _extController.clear();
+                      _currentStep = 0;
+                    }),
+                    child: const Padding(
+                      padding: EdgeInsets.symmetric(horizontal: 4, vertical: 8),
+                      child: Text(
+                        'RE-SCAN',
+                        style: TextStyle(
+                          fontSize: 13,
+                          color: AppColors.primaryGreen,
+                          decoration: TextDecoration.underline,
+                          decorationColor: AppColors.primaryGreen,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 4),
+                  InkWell(
+                    onTap: () {
+                      if (_ocrScannedFile != null) {
+                        showDocumentPreview(
+                          context: context,
+                          localFile: _ocrScannedFile!,
+                          localFileName: _ocrScannedFile!.path.split('/').last,
+                        );
+                      }
+                    },
+                    child: const Padding(
+                      padding: EdgeInsets.symmetric(horizontal: 4, vertical: 8),
+                      child: Text(
+                        'VIEW DOC',
+                        style: TextStyle(
+                          fontSize: 13,
+                          color: AppColors.primaryGreen,
+                          decoration: TextDecoration.underline,
+                          decorationColor: AppColors.primaryGreen,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ],
             ),
           );
-        }),
-      ),
-    );
-  }
-
-  // ── STEP CONTROLS ────────────────────────────────────────────────────────
-  Widget _buildStepControls(OcrState ocrState) {
-    final isEdit = widget.student != null;
-    final isLastStep = _currentStep == (isEdit ? 1 : 2);
-    final isOcrStep = !isEdit && _currentStep == 0;
-    final detailsStepIndex = isEdit ? 0 : 1;
-
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        border: Border(top: BorderSide(color: Colors.grey.shade200)),
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.end,
-        children: [
-          if (_currentStep > 0) ...[
-            OutlinedButton(
-              onPressed: () {
-                setState(() => _currentStep -= 1);
-              },
-              child: const Text('BACK'),
-            ),
-            const SizedBox(width: 8),
-          ],
-          if (isOcrStep && !ocrState.isLoading)
-            OutlinedButton(
-              onPressed: () {
-                setState(() => _currentStep = 1);
-              },
-              child: const Text('Skip OCR & Enter Manually'),
-            )
-          else if (!isOcrStep)
-            PrimaryButton(
-              label: isLastStep ? (isEdit ? 'UPDATE' : 'SAVE') : 'NEXT',
-              isLoading: _isLoading && isLastStep,
-              onPressed: () {
-                if (isLastStep) {
-                  _handleSave();
-                } else {
-                  if (_currentStep == detailsStepIndex) {
-                    if (!(_studentFormKey.currentState?.validate() ?? false)) {
-                      return;
-                    }
-                  }
-                  setState(() => _currentStep += 1);
-                }
-              },
-            ),
-          if (!isEdit && _ocrScannedFile != null && !isOcrStep) ...[
-            const SizedBox(width: 8),
-            InkWell(
-              onTap: () => setState(() {
-                _lrnController.clear();
-                _firstNameController.clear();
-                _middleNameController.clear();
-                _lastNameController.clear();
-                _extController.clear();
-                _currentStep = 0;
-              }),
-              child: const Padding(
-                padding: EdgeInsets.symmetric(horizontal: 4, vertical: 8),
-                child: Text(
-                  'RE-SCAN',
-                  style: TextStyle(
-                    fontSize: 13,
+        },
+        steps: [
+          if (widget.student == null)
+            Step(
+              title: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    Icons.document_scanner_outlined,
+                    size: isMobile ? 14 : 18,
                     color: AppColors.primaryGreen,
-                    decoration: TextDecoration.underline,
-                    decorationColor: AppColors.primaryGreen,
-                    fontWeight: FontWeight.w600,
+                  ),
+                  if (!isMobile) const SizedBox(width: 4),
+                  Text(
+                    'OCR',
+                    style: TextStyle(
+                      fontSize: isMobile ? 12 : 14,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ],
+              ),
+              content: _buildOcrStep(),
+              isActive: _currentStep >= 0,
+              state: _currentStep > 0 ? StepState.complete : StepState.indexed,
+            ),
+          Step(
+            title: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  Icons.person,
+                  size: isMobile ? 14 : 18,
+                  color: AppColors.primaryGreen,
+                ),
+                if (!isMobile) const SizedBox(width: 4),
+                Text(
+                  'Student',
+                  style: TextStyle(
+                    fontSize: isMobile ? 12 : 14,
+                    fontWeight: FontWeight.bold,
                   ),
                 ),
-              ),
+              ],
             ),
-            const SizedBox(width: 4),
-            InkWell(
-              onTap: () {
-                if (_ocrScannedFile != null) {
-                  showDocumentPreview(
-                    context: context,
-                    localFile: _ocrScannedFile!,
-                    localFileName: _ocrScannedFile!.path.split('/').last,
-                  );
-                }
-              },
-              child: const Padding(
-                padding: EdgeInsets.symmetric(horizontal: 4, vertical: 8),
-                child: Text(
-                  'VIEW DOC',
-                  style: TextStyle(
-                    fontSize: 13,
-                    color: AppColors.primaryGreen,
-                    decoration: TextDecoration.underline,
-                    decorationColor: AppColors.primaryGreen,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ),
-            ),
-          ],
-        ],
-      ),
-    );
-  }
-
-  Widget _buildStudentDetailsStep(bool isEdit, bool isMobile) => Form(
-    key: _studentFormKey,
-    child: Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
+            isActive: _currentStep >= (widget.student != null ? 0 : 1),
+            state: _currentStep > (widget.student != null ? 0 : 1)
+                ? StepState.complete
+                : StepState.indexed,
+            content: Form(
+              key: _studentFormKey,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
                   // ── Learner Reference Information section label ──
                   _SectionLabel(label: "LEARNER REFERENCE INFORMATION"),
                   const SizedBox(height: AppSizes.p8),
@@ -1912,20 +2379,37 @@ class _AddEditStudentModalState extends ConsumerState<AddEditStudentModal> {
                       ),
                     ),
                   ),
-      ],
-    ),
-  );
-
-  Widget _buildEnrollmentStep(
-    bool isEdit,
-    bool isMobile,
-    AsyncValue<List<AcademicYearModel>> yearsAsync,
-    AsyncValue<List<GradeLevelModel>> gradeLevelsAsync,
-    AsyncValue<List<SectionModel>> sectionsAsync,
-  ) => Form(
-    key: _enrollmentFormKey,
-    child: Column(
-      children: [
+                ],
+              ),
+            ),
+          ),
+          Step(
+            title: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  Icons.school,
+                  size: isMobile ? 14 : 18,
+                  color: AppColors.primaryGreen,
+                ),
+                if (!isMobile) const SizedBox(width: 4),
+                Text(
+                  'Enrollment',
+                  style: TextStyle(
+                    fontSize: isMobile ? 12 : 14,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ],
+            ),
+            isActive: _currentStep >= (widget.student != null ? 1 : 2),
+            state: _currentStep > (widget.student != null ? 1 : 2)
+                ? StepState.complete
+                : StepState.indexed,
+            content: Form(
+              key: _enrollmentFormKey,
+              child: Column(
+                children: [
                   yearsAsync.when(
                     data: (years) {
                       // Auto-default: pick current/most-recent active academic year for new students
@@ -2146,9 +2630,14 @@ class _AddEditStudentModalState extends ConsumerState<AddEditStudentModal> {
                       },
                     ),
                   ],
-      ],
-    ),
-  );
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 }
 
 // ================================================================

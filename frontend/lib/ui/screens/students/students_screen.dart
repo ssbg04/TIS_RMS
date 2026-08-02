@@ -701,16 +701,14 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
               _searchFocusNode.hasFocus ||
               defaultTargetPlatform == TargetPlatform.windows)
           ? null
-          : (defaultTargetPlatform == TargetPlatform.android
-              ? _buildAndroidMenuFab()
-              : FloatingActionButton(
-                  heroTag: 'add_student_fab',
-                  backgroundColor: AppColors.primaryGreen,
-                  foregroundColor: Colors.white,
-                  shape: const CircleBorder(),
-                  onPressed: () => _openModal(),
-                  child: const Icon(Icons.person_add),
-                )),
+          : FloatingActionButton(
+              heroTag: 'add_student_fab',
+              backgroundColor: AppColors.primaryGreen,
+              foregroundColor: Colors.white,
+              shape: const CircleBorder(),
+              onPressed: () => _openModal(),
+              child: const Icon(Icons.person_add),
+            ),
       body: Stack(
         children: [
           SafeArea(
@@ -889,44 +887,42 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
               onPressed: () => _showSearchDialog(context),
             ),
             ...[
-              if (defaultTargetPlatform == TargetPlatform.windows &&
-                  widget.userRole != 'teacher') ...[
-                const SizedBox(width: 8),
-                PopupMenuButton<String>(
-                  tooltip: 'Menu',
-                  icon: const Icon(Icons.more_vert, size: 28, color: Colors.black87),
-                  onSelected: (val) {
-                    if (val == 'add') {
-                      _openModal();
-                    } else if (val == 'bulk_add') {
-                      _openBulkOcrImport();
-                    } else if (val == 'multi_select') {
-                      setState(() {
-                        _showMultiSelect = !_showMultiSelect;
-                        if (!_showMultiSelect) _selectedStudentIds.clear();
-                      });
-                    }
-                  },
-                  itemBuilder: (ctx) => [
-                    const PopupMenuItem<String>(
-                      value: 'add',
-                      child: Text('Add'),
-                    ),
-                    const PopupMenuItem<String>(
-                      value: 'bulk_add',
-                      child: Text('Bulk Add'),
-                    ),
-                    PopupMenuItem<String>(
-                      value: 'multi_select',
-                      child: Text(_showMultiSelect ? 'Cancel Multi Select' : 'Multi Select'),
-                    ),
-                  ],
-                ),
-                const SizedBox(width: 8),
-              ] else if (widget.userRole != 'teacher' &&
+              if (widget.userRole != 'teacher' &&
                   defaultTargetPlatform != TargetPlatform.android) ...[
                 const SizedBox(width: 8),
                 _buildMultiSelectToggle(true),
+              ],
+              const SizedBox(width: 8),
+              // "Add" + "Bulk Add" buttons for Windows (replaces FAB)
+              if (defaultTargetPlatform == TargetPlatform.windows &&
+                  widget.userRole != 'teacher') ...[
+                SizedBox(
+                  height: 36,
+                  child: ElevatedButton.icon(
+                    onPressed: _openBulkOcrImport,
+                    icon: const Icon(Icons.document_scanner_outlined, size: 18),
+                    label: const Text('Bulk Add', style: TextStyle(fontSize: 13)),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.darkGreen,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(horizontal: 12),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                SizedBox(
+                  height: 36,
+                  child: ElevatedButton.icon(
+                    onPressed: () => _openModal(),
+                    icon: const Icon(Icons.person_add, size: 18),
+                    label: const Text('Add', style: TextStyle(fontSize: 13)),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.primaryGreen,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(horizontal: 12),
+                    ),
+                  ),
+                ),
                 const SizedBox(width: 8),
               ],
               // Filter icon (icon only, no background)
@@ -1005,65 +1001,6 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
           );
         },
       ),
-    );
-  }
-
-  // ================================================================
-  // ANDROID ICON MENU FAB
-  // ================================================================
-  Widget _buildAndroidMenuFab() {
-    return Builder(
-      builder: (ctx) {
-        return FloatingActionButton(
-          heroTag: 'menu_student_fab',
-          backgroundColor: AppColors.primaryGreen,
-          foregroundColor: Colors.white,
-          shape: const CircleBorder(),
-          tooltip: 'Menu',
-          onPressed: () async {
-            final RenderBox? button = ctx.findRenderObject() as RenderBox?;
-            final RenderBox? overlay =
-                Overlay.of(ctx).context.findRenderObject() as RenderBox?;
-            if (button == null || overlay == null) return;
-
-            final RelativeRect position = RelativeRect.fromRect(
-              Rect.fromPoints(
-                button.localToGlobal(Offset.zero, ancestor: overlay),
-                button.localToGlobal(button.size.bottomRight(Offset.zero),
-                    ancestor: overlay),
-              ),
-              Offset.zero & overlay.size,
-            );
-
-            final String? selected = await showMenu<String>(
-              context: ctx,
-              position: position,
-              items: [
-                const PopupMenuItem<String>(
-                  value: 'add',
-                  child: Text('Add'),
-                ),
-                PopupMenuItem<String>(
-                  value: 'multi_select',
-                  child: Text(_showMultiSelect
-                      ? 'Cancel Multi Select'
-                      : 'Multi Select'),
-                ),
-              ],
-            );
-
-            if (selected == 'add') {
-              _openModal();
-            } else if (selected == 'multi_select') {
-              setState(() {
-                _showMultiSelect = !_showMultiSelect;
-                if (!_showMultiSelect) _selectedStudentIds.clear();
-              });
-            }
-          },
-          child: const Icon(Icons.more_vert),
-        );
-      },
     );
   }
 

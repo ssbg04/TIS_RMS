@@ -13,7 +13,7 @@ import '../../../providers/setup_provider.dart';
 import '../../../shared/dialogs/error_dialog.dart';
 import 'package:flutter/services.dart';
 
-class _UpperCaseWordsFormatter extends TextInputFormatter {
+class _UpperCaseAllTextFormatter extends TextInputFormatter {
   @override
   TextEditingValue formatEditUpdate(
     TextEditingValue oldValue,
@@ -147,11 +147,21 @@ class _BulkOcrImportDialogState extends ConsumerState<BulkOcrImportDialog> {
   // ── doc-type detection ────────────────────────────────────────────────────
   String? _detectDocType(String name) {
     final l = name.toLowerCase();
-    if (l.contains('sf9') || l.contains('sf-9') || l.contains('sf 9') ||
-        l.contains('report card') || l.contains('reportcard')) return 'SF9';
-    if (l.contains('sf10') || l.contains('sf-10') || l.contains('sf 10') ||
-        l.contains('permanent record') || l.contains('school form 10') ||
-        l.contains('school-form-10')) return 'SF10';
+    if (l.contains('sf9') ||
+        l.contains('sf-9') ||
+        l.contains('sf 9') ||
+        l.contains('report card') ||
+        l.contains('reportcard')) {
+      return 'SF9';
+    }
+    if (l.contains('sf10') ||
+        l.contains('sf-10') ||
+        l.contains('sf 10') ||
+        l.contains('permanent record') ||
+        l.contains('school form 10') ||
+        l.contains('school-form-10')) {
+      return 'SF10';
+    }
     return null;
   }
 
@@ -255,7 +265,9 @@ class _BulkOcrImportDialogState extends ConsumerState<BulkOcrImportDialog> {
             );
         if (result != null) {
           setState(() {
-            if (result.lrn.isNotEmpty) item.lrn = result.lrn;
+            if (result.lrn.isNotEmpty) {
+              item.lrn = result.lrn;
+            }
             if (result.firstName.isNotEmpty) {
               item.firstName = result.firstName.toUpperCase();
             }
@@ -371,7 +383,6 @@ class _BulkOcrImportDialogState extends ConsumerState<BulkOcrImportDialog> {
   }
 
   // ── build ─────────────────────────────────────────────────────────────────
-  // ── build ─────────────────────────────────────────────────────────────────
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -382,7 +393,10 @@ class _BulkOcrImportDialogState extends ConsumerState<BulkOcrImportDialog> {
         title: const Text(
           'Bulk OCR Student Import',
           style: TextStyle(
-              color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
+            color: Colors.white,
+            fontSize: 18,
+            fontWeight: FontWeight.bold,
+          ),
         ),
       ),
       body: SafeArea(
@@ -405,16 +419,17 @@ class _BulkOcrImportDialogState extends ConsumerState<BulkOcrImportDialog> {
 
   // ── stepper ───────────────────────────────────────────────────────────────
   Widget _buildStepper() {
+    const totalSteps = 3;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
       color: const Color(0xFFF8F9FA),
       child: Row(
-        children: List.generate(3, (idx) {
+        children: List.generate(totalSteps, (idx) {
           final activeOrDone = _step >= idx;
           return Expanded(
             child: Container(
               height: 4,
-              margin: EdgeInsets.only(right: idx < 2 ? 6 : 0),
+              margin: EdgeInsets.only(right: idx < totalSteps - 1 ? 6 : 0),
               decoration: BoxDecoration(
                 color: activeOrDone
                     ? AppColors.primaryGreen
@@ -689,7 +704,7 @@ class _BulkOcrImportDialogState extends ConsumerState<BulkOcrImportDialog> {
           SizedBox(
             width: 200,
             child: DropdownButtonFormField<int>(
-              value: _sharedAcademicYearId,
+              initialValue: _sharedAcademicYearId,
               isExpanded: true,
               decoration: _compactDeco('Academic Year'),
               items: academicYears
@@ -709,7 +724,7 @@ class _BulkOcrImportDialogState extends ConsumerState<BulkOcrImportDialog> {
           SizedBox(
             width: 150,
             child: DropdownButtonFormField<int>(
-              value: _sharedGradeLevel,
+              initialValue: _sharedGradeLevel,
               isExpanded: true,
               decoration: _compactDeco('Grade Level'),
               items: [7, 8, 9, 10, 11, 12]
@@ -729,7 +744,7 @@ class _BulkOcrImportDialogState extends ConsumerState<BulkOcrImportDialog> {
           SizedBox(
             width: 180,
             child: DropdownButtonFormField<int>(
-              value: filteredSections.any((s) => s.id == _sharedSectionId)
+              initialValue: filteredSections.any((s) => s.id == _sharedSectionId)
                   ? _sharedSectionId
                   : null,
               isExpanded: true,
@@ -765,7 +780,7 @@ class _BulkOcrImportDialogState extends ConsumerState<BulkOcrImportDialog> {
     return ListView.separated(
       padding: const EdgeInsets.all(16),
       itemCount: items.length,
-      separatorBuilder: (_, _) => const SizedBox(height: 10),
+      separatorBuilder: (_, __) => const SizedBox(height: 10),
       itemBuilder: (_, i) {
         final item = items[i];
         final rowIndex = _items.indexOf(item);
@@ -859,7 +874,7 @@ class _BulkOcrImportDialogState extends ConsumerState<BulkOcrImportDialog> {
           _sexDropdown(item),
           _editField('Date of Birth', item.dob, (v) => item.dob = v,
               width: 130, hint: 'YYYY-MM-DD'),
-          _4psCheckbox(item),
+          _is4psCheckbox(item),
         ],
       );
 
@@ -880,8 +895,11 @@ class _BulkOcrImportDialogState extends ConsumerState<BulkOcrImportDialog> {
           textCapitalization: toUpperCase
               ? TextCapitalization.characters
               : TextCapitalization.none,
-          inputFormatters:
-              toUpperCase ? [_UpperCaseWordsFormatter()] : null,
+          inputFormatters: toUpperCase
+              ? [
+                  _UpperCaseAllTextFormatter(),
+                ]
+              : null,
           decoration: InputDecoration(
             labelText: label,
             hintText: hint,
@@ -894,14 +912,15 @@ class _BulkOcrImportDialogState extends ConsumerState<BulkOcrImportDialog> {
             fillColor: const Color(0xFFF8F9FA),
           ),
           style: const TextStyle(fontSize: 13),
-          onChanged: (v) => setState(() => onChanged(toUpperCase ? v.toUpperCase() : v)),
+          onChanged: (v) =>
+              setState(() => onChanged(toUpperCase ? v.toUpperCase() : v)),
         ),
       );
 
   Widget _sexDropdown(_OcrItem item) => SizedBox(
         width: 110,
         child: DropdownButtonFormField<String>(
-          value: item.sex,
+          initialValue: item.sex,
           isExpanded: true,
           decoration: _compactDeco('Sex'),
           style: const TextStyle(fontSize: 13, color: AppColors.textPrimary),
@@ -912,7 +931,7 @@ class _BulkOcrImportDialogState extends ConsumerState<BulkOcrImportDialog> {
         ),
       );
 
-  Widget _4psCheckbox(_OcrItem item) => SizedBox(
+  Widget _is4psCheckbox(_OcrItem item) => SizedBox(
         width: 100,
         child: CheckboxListTile(
           value: item.is4ps,
