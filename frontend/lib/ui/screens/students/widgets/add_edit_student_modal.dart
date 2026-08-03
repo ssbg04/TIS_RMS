@@ -1388,19 +1388,90 @@ class _AddEditStudentModalState extends ConsumerState<AddEditStudentModal> {
   }
 
   Widget _buildLineStepper(int totalSteps) {
+    final stepTitles = widget.student != null
+        ? ['Student Details', 'Enrollments']
+        : ['Document Scan', 'Student Details', 'Enrollment Details'];
+
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
       color: const Color(0xFFF8F9FA),
       child: Row(
         children: List.generate(totalSteps, (idx) {
           final activeOrDone = _currentStep >= idx;
+          final isCurrent = _currentStep == idx;
           return Expanded(
-            child: Container(
-              height: 4,
-              margin: EdgeInsets.only(right: idx < totalSteps - 1 ? 6 : 0),
-              decoration: BoxDecoration(
-                color: activeOrDone ? AppColors.primaryGreen : Colors.grey.shade300,
-                borderRadius: BorderRadius.circular(2),
+            child: InkWell(
+              onTap: () {
+                if (widget.student != null) {
+                  setState(() => _currentStep = idx);
+                } else if (idx < _currentStep) {
+                  setState(() => _currentStep = idx);
+                }
+              },
+              borderRadius: BorderRadius.circular(4),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(vertical: 2, horizontal: 2),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Container(
+                          width: 18,
+                          height: 18,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: activeOrDone
+                                ? AppColors.primaryGreen
+                                : Colors.grey.shade300,
+                          ),
+                          child: Center(
+                            child: Text(
+                              '${idx + 1}',
+                              style: TextStyle(
+                                fontSize: 10,
+                                fontWeight: FontWeight.bold,
+                                color: activeOrDone
+                                    ? Colors.white
+                                    : AppColors.textSecondary,
+                              ),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 6),
+                        Expanded(
+                          child: Text(
+                            stepTitles[idx],
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: isCurrent
+                                  ? FontWeight.bold
+                                  : FontWeight.w500,
+                              color: isCurrent
+                                  ? AppColors.primaryGreen
+                                  : AppColors.textSecondary,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 6),
+                    Container(
+                      height: 3,
+                      margin: EdgeInsets.only(
+                        right: idx < totalSteps - 1 ? 6 : 0,
+                      ),
+                      decoration: BoxDecoration(
+                        color: activeOrDone
+                            ? AppColors.primaryGreen
+                            : Colors.grey.shade300,
+                        borderRadius: BorderRadius.circular(2),
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
           );
@@ -1472,7 +1543,7 @@ class _AddEditStudentModalState extends ConsumerState<AddEditStudentModal> {
         Expanded(
           child: SingleChildScrollView(
             padding: const EdgeInsets.all(24),
-            child: stepContent,
+            child: RepaintBoundary(child: stepContent),
           ),
         ),
         Container(
@@ -1534,7 +1605,7 @@ class _AddEditStudentModalState extends ConsumerState<AddEditStudentModal> {
                 ],
                 const SizedBox(width: 8),
                 PrimaryButton(
-                  label: isLastStep ? 'SAVE' : 'NEXT',
+                  label: isLastStep ? 'SAVE STUDENT' : (_currentStep == 1 ? 'NEXT: ENROLLMENT' : 'NEXT'),
                   isLoading: _isLoading && isLastStep,
                   onPressed: () {
                     if (_currentStep == 1) {
