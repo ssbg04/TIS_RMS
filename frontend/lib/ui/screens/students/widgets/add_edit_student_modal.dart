@@ -1341,9 +1341,9 @@ class _AddEditStudentModalState extends ConsumerState<AddEditStudentModal> {
     final totalSteps = isEdit ? 2 : 3;
 
     return PopScope(
-      canPop: false,
-      onPopInvokedWithResult: (didPop, _) async {
-        if (!didPop) await _confirmClose();
+      canPop: !(_hasAnyData && widget.student == null),
+      onPopInvokedWithResult: (didPop, _) {
+        if (!didPop) _confirmClose();
       },
       child: Scaffold(
         backgroundColor: const Color(0xFFF8F9FA),
@@ -1543,7 +1543,7 @@ class _AddEditStudentModalState extends ConsumerState<AddEditStudentModal> {
         Expanded(
           child: SingleChildScrollView(
             padding: const EdgeInsets.all(24),
-            child: RepaintBoundary(child: stepContent),
+            child: stepContent,
           ),
         ),
         Container(
@@ -1562,14 +1562,20 @@ class _AddEditStudentModalState extends ConsumerState<AddEditStudentModal> {
             children: [
               if (_currentStep > 0)
                 OutlinedButton.icon(
-                  onPressed: () => setState(() => _currentStep -= 1),
+                  onPressed: () => setState(() {
+                    _errorMessage = null;
+                    _currentStep -= 1;
+                  }),
                   icon: const Icon(Icons.arrow_back, size: 16),
                   label: const Text('BACK'),
                 ),
               const Spacer(),
               if (isOcrStep && !ocrState.isLoading)
                 OutlinedButton(
-                  onPressed: () => setState(() => _currentStep = 1),
+                  onPressed: () => setState(() {
+                    _errorMessage = null;
+                    _currentStep = 1;
+                  }),
                   child: const Text('Skip OCR & Enter Manually'),
                 ),
               if (!isOcrStep) ...[
@@ -1581,6 +1587,7 @@ class _AddEditStudentModalState extends ConsumerState<AddEditStudentModal> {
                       _middleNameController.clear();
                       _lastNameController.clear();
                       _extController.clear();
+                      _errorMessage = null;
                       _currentStep = 0;
                     }),
                     icon: const Icon(Icons.refresh, size: 14),
@@ -1599,21 +1606,28 @@ class _AddEditStudentModalState extends ConsumerState<AddEditStudentModal> {
                     icon: const Icon(Icons.visibility_outlined, size: 14),
                     label: const Text('VIEW DOC', style: TextStyle(fontSize: 12)),
                   ),
+                  const SizedBox(width: 8),
                 ],
-                const SizedBox(width: 8),
                 PrimaryButton(
                   label: isLastStep ? 'SAVE STUDENT' : 'NEXT',
                   isLoading: _isLoading && isLastStep,
                   onPressed: () {
                     if (_currentStep == 1) {
-                      if (!(_studentFormKey.currentState?.validate() ?? false)) {
+                      final isValid = _studentFormKey.currentState?.validate() ?? false;
+                      if (!isValid) {
+                        setState(() {
+                          _errorMessage = 'Please complete all required fields in red before proceeding to Enrollment.';
+                        });
                         return;
                       }
                     }
                     if (isLastStep) {
                       _handleSave();
                     } else {
-                      setState(() => _currentStep += 1);
+                      setState(() {
+                        _errorMessage = null;
+                        _currentStep += 1;
+                      });
                     }
                   },
                 ),
