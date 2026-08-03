@@ -5,7 +5,6 @@ import '../../../../core/constants/app_sizes.dart';
 import '../../../shared/modals/custom_modal.dart';
 import '../../../shared/buttons/primary_button.dart';
 import '../../../providers/student_provider.dart';
-import '../../../../domain/entities/student_model.dart';
 import '../../../providers/setup_provider.dart';
 import '../../../../domain/entities/setup_models.dart';
 
@@ -153,7 +152,7 @@ class _EditEnrollmentModalState extends ConsumerState<EditEnrollmentModal> {
                       yearsAsync.when(
                         data: (years) {
                           return DropdownButtonFormField<int>(
-                            key: ValueKey('academic_$_selectedAcademicYearId'),
+                            key: const ValueKey('edit_enrollment_academic_dropdown'),
                             initialValue: _selectedAcademicYearId,
                             decoration: const InputDecoration(
                               labelText: 'Academic Year',
@@ -190,7 +189,7 @@ class _EditEnrollmentModalState extends ConsumerState<EditEnrollmentModal> {
                       gradeLevelsAsync.when(
                         data: (grades) {
                           return DropdownButtonFormField<int>(
-                            key: ValueKey('grade_$_selectedGradeLevel'),
+                            key: const ValueKey('edit_enrollment_grade_dropdown'),
                             initialValue: _selectedGradeLevel,
                             decoration: const InputDecoration(
                               labelText: 'Grade Level',
@@ -242,8 +241,8 @@ class _EditEnrollmentModalState extends ConsumerState<EditEnrollmentModal> {
                               ? matches.first.name
                               : '';
 
-                          final autocompleteKey = ValueKey(
-                            'section_${_selectedGradeLevel}_${_selectedAcademicYearId}',
+                          const autocompleteKey = ValueKey(
+                            'edit_enrollment_section_autocomplete',
                           );
 
                           return Autocomplete<SectionModel>(

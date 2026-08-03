@@ -940,7 +940,7 @@ class _AddEditStudentModalState extends ConsumerState<AddEditStudentModal> {
                   _SectionLabel(label: 'PERSONAL INFORMATION'),
                   const SizedBox(height: AppSizes.p8),
                   DropdownButtonFormField<String>(
-                    key: ValueKey('sex_$_selectedSex'),
+                    key: const ValueKey('edit_student_sex_dropdown'),
                     initialValue: _selectedSex,
                     validator: (v) => v == null ? 'Please select sex.' : null,
                     isExpanded: true,
@@ -966,7 +966,7 @@ class _AddEditStudentModalState extends ConsumerState<AddEditStudentModal> {
                   _SectionLabel(label: 'STUDENT STATUS'),
                   const SizedBox(height: AppSizes.p8),
                   DropdownButtonFormField<String>(
-                    key: ValueKey('status_$_selectedStatus'),
+                    key: const ValueKey('edit_student_status_dropdown'),
                     initialValue: _selectedStatus,
                     validator: (v) => v == null ? 'Please select a status.' : null,
                     isExpanded: true,
@@ -1398,79 +1398,60 @@ class _AddEditStudentModalState extends ConsumerState<AddEditStudentModal> {
       child: Row(
         children: List.generate(totalSteps, (idx) {
           final activeOrDone = _currentStep >= idx;
-          final isCurrent = _currentStep == idx;
           return Expanded(
-            child: GestureDetector(
-              behavior: HitTestBehavior.opaque,
-              onTap: () {
-                if (widget.student != null) {
-                  setState(() => _currentStep = idx);
-                } else if (idx < _currentStep) {
-                  setState(() => _currentStep = idx);
-                }
-              },
-              child: Padding(
-                padding: const EdgeInsets.symmetric(vertical: 2, horizontal: 2),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Container(
-                          width: 18,
-                          height: 18,
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            color: activeOrDone
-                                ? AppColors.primaryGreen
-                                : Colors.grey.shade300,
-                          ),
-                          child: Center(
-                            child: Text(
-                              '${idx + 1}',
-                              style: TextStyle(
-                                fontSize: 10,
-                                fontWeight: FontWeight.bold,
-                                color: activeOrDone
-                                    ? Colors.white
-                                    : AppColors.textSecondary,
-                              ),
-                            ),
-                          ),
+            child: Tooltip(
+              message: stepTitles[idx],
+              child: GestureDetector(
+                behavior: HitTestBehavior.opaque,
+                onTap: () {
+                  if (widget.student != null) {
+                    setState(() => _currentStep = idx);
+                  } else if (idx < _currentStep) {
+                    setState(() => _currentStep = idx);
+                  }
+                },
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 4),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Container(
+                        width: 22,
+                        height: 22,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: activeOrDone
+                              ? AppColors.primaryGreen
+                              : Colors.grey.shade300,
                         ),
-                        const SizedBox(width: 6),
-                        Expanded(
+                        child: Center(
                           child: Text(
-                            stepTitles[idx],
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
+                            '${idx + 1}',
                             style: TextStyle(
-                              fontSize: 12,
-                              fontWeight: isCurrent
-                                  ? FontWeight.bold
-                                  : FontWeight.w500,
-                              color: isCurrent
-                                  ? AppColors.primaryGreen
+                              fontSize: 11,
+                              fontWeight: FontWeight.bold,
+                              color: activeOrDone
+                                  ? Colors.white
                                   : AppColors.textSecondary,
                             ),
                           ),
                         ),
-                      ],
-                    ),
-                    const SizedBox(height: 6),
-                    Container(
-                      height: 3,
-                      margin: EdgeInsets.only(
-                        right: idx < totalSteps - 1 ? 6 : 0,
                       ),
-                      decoration: BoxDecoration(
-                        color: activeOrDone
-                            ? AppColors.primaryGreen
-                            : Colors.grey.shade300,
-                        borderRadius: BorderRadius.circular(2),
+                      const SizedBox(height: 6),
+                      Container(
+                        height: 3,
+                        margin: EdgeInsets.only(
+                          right: idx < totalSteps - 1 ? 6 : 0,
+                        ),
+                        decoration: BoxDecoration(
+                          color: activeOrDone
+                              ? AppColors.primaryGreen
+                              : Colors.grey.shade300,
+                          borderRadius: BorderRadius.circular(2),
+                        ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               ),
             ),
@@ -1560,15 +1541,35 @@ class _AddEditStudentModalState extends ConsumerState<AddEditStudentModal> {
           ),
           child: Row(
             children: [
-              if (_currentStep > 0)
-                OutlinedButton.icon(
+              if (!isOcrStep && _ocrScannedFile != null) ...[
+                TextButton.icon(
                   onPressed: () => setState(() {
+                    _lrnController.clear();
+                    _firstNameController.clear();
+                    _middleNameController.clear();
+                    _lastNameController.clear();
+                    _extController.clear();
                     _errorMessage = null;
-                    _currentStep -= 1;
+                    _currentStep = 0;
                   }),
-                  icon: const Icon(Icons.arrow_back, size: 16),
-                  label: const Text('BACK'),
+                  icon: const Icon(Icons.refresh, size: 14),
+                  label: const Text('RE-SCAN', style: TextStyle(fontSize: 12)),
                 ),
+                const SizedBox(width: 4),
+                TextButton.icon(
+                  onPressed: () {
+                    if (_ocrScannedFile != null) {
+                      showDocumentPreview(
+                        context: context,
+                        localFile: _ocrScannedFile!,
+                        localFileName: _ocrScannedFile!.path.split('/').last,
+                      );
+                    }
+                  },
+                  icon: const Icon(Icons.visibility_outlined, size: 14),
+                  label: const Text('VIEW DOC', style: TextStyle(fontSize: 12)),
+                ),
+              ],
               const Spacer(),
               if (isOcrStep && !ocrState.isLoading)
                 OutlinedButton(
@@ -1579,34 +1580,29 @@ class _AddEditStudentModalState extends ConsumerState<AddEditStudentModal> {
                   child: const Text('Skip OCR & Enter Manually'),
                 ),
               if (!isOcrStep) ...[
-                if (_ocrScannedFile != null) ...[
-                  TextButton.icon(
+                if (_currentStep > 0) ...[
+                  OutlinedButton.icon(
                     onPressed: () => setState(() {
-                      _lrnController.clear();
-                      _firstNameController.clear();
-                      _middleNameController.clear();
-                      _lastNameController.clear();
-                      _extController.clear();
                       _errorMessage = null;
-                      _currentStep = 0;
+                      _currentStep -= 1;
                     }),
-                    icon: const Icon(Icons.refresh, size: 14),
-                    label: const Text('RE-SCAN', style: TextStyle(fontSize: 12)),
+                    style: OutlinedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                      side: BorderSide(color: Colors.grey.shade400),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(AppSizes.radiusMedium),
+                      ),
+                    ),
+                    icon: const Icon(Icons.arrow_back, size: 16, color: AppColors.textPrimary),
+                    label: const Text(
+                      'BACK',
+                      style: TextStyle(
+                        color: AppColors.textPrimary,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
                   ),
-                  TextButton.icon(
-                    onPressed: () {
-                      if (_ocrScannedFile != null) {
-                        showDocumentPreview(
-                          context: context,
-                          localFile: _ocrScannedFile!,
-                          localFileName: _ocrScannedFile!.path.split('/').last,
-                        );
-                      }
-                    },
-                    icon: const Icon(Icons.visibility_outlined, size: 14),
-                    label: const Text('VIEW DOC', style: TextStyle(fontSize: 12)),
-                  ),
-                  const SizedBox(width: 8),
+                  const SizedBox(width: 12),
                 ],
                 PrimaryButton(
                   label: isLastStep ? 'SAVE STUDENT' : 'NEXT',
@@ -2404,7 +2400,7 @@ class _AddEditStudentModalState extends ConsumerState<AddEditStudentModal> {
 
                   // Sex
                   DropdownButtonFormField<String>(
-                    key: ValueKey('sex_$_selectedSex'),
+                    key: const ValueKey('manual_sex_dropdown'),
                     initialValue: _selectedSex,
                     validator: (v) => v == null ? 'Please select sex.' : null,
                     isExpanded: true,
@@ -2536,7 +2532,7 @@ class _AddEditStudentModalState extends ConsumerState<AddEditStudentModal> {
                         });
                       }
                       return DropdownButtonFormField<int>(
-                        key: ValueKey('academic_$_selectedAcademicYearId'),
+                        key: const ValueKey('manual_academic_dropdown'),
                         initialValue: _selectedAcademicYearId,
                         decoration: const InputDecoration(
                           labelText: 'Academic Year',
@@ -2572,7 +2568,7 @@ class _AddEditStudentModalState extends ConsumerState<AddEditStudentModal> {
                   gradeLevelsAsync.when(
                     data: (grades) {
                       return DropdownButtonFormField<int>(
-                        key: ValueKey('grade_$_selectedGradeLevel'),
+                        key: const ValueKey('manual_grade_dropdown'),
                         initialValue: _selectedGradeLevel,
                         decoration: const InputDecoration(
                           labelText: 'Grade Level',
@@ -2625,8 +2621,8 @@ class _AddEditStudentModalState extends ConsumerState<AddEditStudentModal> {
                       // Key based on grade+year ensures Autocomplete fully rebuilds
                       // when grade level or academic year changes — fixes the bug
                       // where user had to type and erase before dropdown refreshed.
-                      final autocompleteKey = ValueKey(
-                        'section_${_selectedGradeLevel}_${_selectedAcademicYearId}',
+                      const autocompleteKey = ValueKey(
+                        'manual_section_autocomplete',
                       );
 
                       return Autocomplete<SectionModel>(
@@ -2712,7 +2708,7 @@ class _AddEditStudentModalState extends ConsumerState<AddEditStudentModal> {
                   if (isEdit) ...[
                     const SizedBox(height: AppSizes.p12),
                     DropdownButtonFormField<String>(
-                      key: ValueKey('status_$_selectedStatus'),
+                      key: const ValueKey('manual_status_dropdown'),
                       initialValue: _selectedStatus,
                       isExpanded: true,
                       decoration: const InputDecoration(

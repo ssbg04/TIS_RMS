@@ -1025,7 +1025,7 @@ class _UploadOcrModalState extends ConsumerState<UploadOcrModal> {
     }
 
     return DropdownMenu<int>(
-      key: ValueKey('dd_${idx}_${item.selectedRequirementId}'),
+      key: ValueKey('dd_$idx'),
       initialSelection: item.selectedRequirementId,
       hintText: 'Select Document Type',
       expandedInsets: EdgeInsets.zero,
