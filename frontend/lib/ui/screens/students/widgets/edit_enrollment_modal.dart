@@ -376,34 +376,36 @@ class _EditEnrollmentModalState extends ConsumerState<EditEnrollmentModal> {
               ),
             ],
 
-            const SizedBox(height: 16),
-            Wrap(
-              alignment: WrapAlignment.end,
-              crossAxisAlignment: WrapCrossAlignment.center,
-              spacing: AppSizes.p12,
-              runSpacing: AppSizes.p8,
-              children: [
-                TextButton(
-                  onPressed: _isLoading
-                      ? null
-                      : () => Navigator.of(context).pop(),
-                  child: const Text(
-                    'CANCEL',
-                    style: TextStyle(
-                      color: AppColors.textSecondary,
-                      fontWeight: FontWeight.bold,
+            Padding(
+              padding: const EdgeInsets.only(top: 16, bottom: 8),
+              child: Wrap(
+                alignment: WrapAlignment.end,
+                crossAxisAlignment: WrapCrossAlignment.center,
+                spacing: AppSizes.p12,
+                runSpacing: AppSizes.p8,
+                children: [
+                  TextButton(
+                    onPressed: _isLoading
+                        ? null
+                        : () => Navigator.of(context).pop(),
+                    child: const Text(
+                      'CANCEL',
+                      style: TextStyle(
+                        color: AppColors.textSecondary,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                   ),
-                ),
-                SizedBox(
-                  width: 150,
-                  child: PrimaryButton(
-                    label: 'SAVE',
-                    isLoading: _isLoading,
-                    onPressed: _handleSave,
+                  SizedBox(
+                    width: 150,
+                    child: PrimaryButton(
+                      label: 'SAVE',
+                      isLoading: _isLoading,
+                      onPressed: _handleSave,
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           ],
         ),

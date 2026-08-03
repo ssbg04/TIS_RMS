@@ -771,7 +771,10 @@ class _AddEditStudentModalState extends ConsumerState<AddEditStudentModal> {
         children: [
           Expanded(
             child: SingleChildScrollView(
-              padding: EdgeInsets.only(bottom: keyboardInset + 24),
+              padding: EdgeInsets.symmetric(
+                horizontal: isMobile ? 16 : 24,
+                vertical: 16,
+              ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -2765,6 +2768,201 @@ class _OcrProgressLoaderState extends State<_OcrProgressLoader> {
           ),
           const SizedBox(height: AppSizes.p8),
 
+validator: (v) {
+                                  if (v == null ||
+                                      v.isEmpty ||
+                                      _selectedSectionId == null) {
+                                    return 'Please select a valid section.';
+                                  }
+                                  return null;
+                                },
+                              );
+                            },
+                      );
+                    },
+                    loading: () =>
+                        const Center(child: CircularProgressIndicator()),
+                    error: (err, _) => Text(
+                      'Error: $err',
+                      style: const TextStyle(color: Colors.red),
+                    ),
+                  ),
+
+                  if (_selectedGradeLevel != null &&
+                      _selectedGradeLevel! >= 11) ...[
+                    const SizedBox(height: AppSizes.p12),
+                    TextFormField(
+                      initialValue: _trackStrand,
+                      decoration: const InputDecoration(
+                        labelText: 'Track & Strand (for SHS)',
+                        prefixIcon: Icon(Icons.school_outlined),
+                      ),
+                      onChanged: (val) =>
+                          _trackStrand = val.trim().isEmpty ? null : val.trim(),
+                    ),
+                  ],
+
+                  if (isEdit) ...[
+                    const SizedBox(height: AppSizes.p12),
+                    DropdownButtonFormField<String>(
+                      key: ValueKey('status_$_selectedStatus'),
+                      initialValue: _selectedStatus,
+                      isExpanded: true,
+                      decoration: const InputDecoration(
+                        labelText: 'Status',
+                        prefixIcon: Icon(Icons.info_outline),
+                      ),
+                      items: _statuses
+                          .map(
+                            (s) => DropdownMenuItem(value: s, child: Text(s)),
+                          )
+                          .toList(),
+                      onChanged: (v) => setState(() => _selectedStatus = v!),
+                      validator: (v) {
+                        if (v == 'Graduated' &&
+                            _selectedGradeLevel != 10 &&
+                            _selectedGradeLevel != 12) {
+                          return 'Graduation only allowed for Grade 10 and Grade 12.';
+                        }
+                        return null;
+                      },
+                    ),
+                  ],
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ================================================================
+// OCR PROGRESS LOADER — simulated progress bar with estimated time
+// ================================================================
+class _OcrProgressLoader extends StatefulWidget {
+  final String docType;
+  const _OcrProgressLoader({required this.docType});
+
+  @override
+  State<_OcrProgressLoader> createState() => _OcrProgressLoaderState();
+}
+
+class _OcrProgressLoaderState extends State<_OcrProgressLoader> {
+  static const int _maxSeconds = 30;
+
+  double _progress = 0.0;
+  int _elapsed = 0;
+  Timer? _timer;
+
+  @override
+  void initState() {
+    super.initState();
+    _timer = Timer.periodic(const Duration(seconds: 1), (_) {
+      if (!mounted) return;
+      setState(() {
+        _elapsed = (_elapsed + 1).clamp(0, _maxSeconds);
+        _progress = 0.85 * (1 - (1 / (1 + _elapsed / 8)));
+      });
+    });
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    super.dispose();
+  }
+
+  String get _etaLabel {
+    final remaining = (_maxSeconds - _elapsed).clamp(0, _maxSeconds);
+    if (remaining <= 0) return 'Almost done…';
+    return 'Est. ~$remaining s remaining';
+  }
+
+  String get _phaseLabel {
+    if (_progress < 0.25) return 'Uploading document…';
+    if (_progress < 0.55) return 'Running OCR engine…';
+    if (_progress < 0.78) return 'Parsing extracted text…';
+    return 'Finalizing data…';
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final pct = (_progress * 100).toStringAsFixed(0);
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: AppSizes.p24),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            padding: const EdgeInsets.all(AppSizes.p16),
+            decoration: BoxDecoration(
+              color: AppColors.primaryGreen.withValues(alpha: 0.08),
+              shape: BoxShape.circle,
+            ),
+            child: const Icon(
+              Icons.document_scanner_outlined,
+              size: 48,
+              color: AppColors.primaryGreen,
+            ),
+          ),
+          const SizedBox(height: AppSizes.p16),
+
+          Text(
+            'Scanning ${widget.docType}…',
+            style: const TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: AppColors.textPrimary,
+            ),
+          ),
+          const SizedBox(height: AppSizes.p4),
+
+          Text(
+            _phaseLabel,
+            style: const TextStyle(
+              color: AppColors.textSecondary,
+              fontSize: 13,
+            ),
+          ),
+          const SizedBox(height: AppSizes.p24),
+
+          Row(
+            children: [
+              Expanded(
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(AppSizes.radiusCircular),
+                  child: LinearProgressIndicator(
+                    value: _progress,
+                    minHeight: 10,
+                    backgroundColor: AppColors.primaryGreen.withValues(
+                      alpha: 0.12,
+                    ),
+                    valueColor: const AlwaysStoppedAnimation<Color>(
+                      AppColors.primaryGreen,
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(width: AppSizes.p12),
+              SizedBox(
+                width: 38,
+                child: Text(
+                  '$pct%',
+                  textAlign: TextAlign.right,
+                  style: const TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 13,
+                    color: AppColors.primaryGreen,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: AppSizes.p8),
+
           Align(
             alignment: Alignment.centerRight,
             child: Text(
@@ -2839,35 +3037,55 @@ class _SectionLabel extends StatelessWidget {
 // EXTENSION NAME FIELD — text field with autocomplete suggestions
 // Selecting 'N/A' clears the field so the stored value is null.
 // ================================================================
-class _ExtensionNameField extends StatelessWidget {
+class _ExtensionNameField extends StatefulWidget {
   final TextEditingController controller;
   final List<String> suggestions;
 
   const _ExtensionNameField({
+    Key? key,
     required this.controller,
     required this.suggestions,
-  });
+  }) : super(key: key);
+
+  @override
+  State<_ExtensionNameField> createState() => _ExtensionNameFieldState();
+}
+
+class _ExtensionNameFieldState extends State<_ExtensionNameField> {
+  TextEditingController? _fieldController;
+
+  void _onFieldControllerChanged() {
+    if (_fieldController == null) return;
+    final upper = _fieldController!.text.toUpperCase();
+    if (widget.controller.text != upper) {
+      widget.controller.text = upper;
+      widget.controller.selection = TextSelection.fromPosition(
+        TextPosition(offset: upper.length),
+      );
+    }
+  }
+
+  @override
+  void dispose() {
+    _fieldController?.removeListener(_onFieldControllerChanged);
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
     return Autocomplete<String>(
-      initialValue: TextEditingValue(text: controller.text),
+      initialValue: TextEditingValue(text: widget.controller.text),
       optionsBuilder: (textEditingValue) {
         final query = textEditingValue.text.trim().toUpperCase();
-        if (query.isEmpty) return suggestions;
-        return suggestions.where((s) => s.toUpperCase().startsWith(query));
+        if (query.isEmpty) return widget.suggestions;
+        return widget.suggestions.where((s) => s.toUpperCase().startsWith(query));
       },
       fieldViewBuilder: (ctx, fieldController, focusNode, onSubmit) {
-        // Sync the autocomplete field controller back to our controller
-        fieldController.addListener(() {
-          final upper = fieldController.text.toUpperCase();
-          if (controller.text != upper) {
-            controller.text = upper;
-            controller.selection = TextSelection.fromPosition(
-              TextPosition(offset: upper.length),
-            );
-          }
-        });
+        if (_fieldController != fieldController) {
+          _fieldController?.removeListener(_onFieldControllerChanged);
+          _fieldController = fieldController;
+          _fieldController?.addListener(_onFieldControllerChanged);
+        }
         return TextFormField(
           controller: fieldController,
           focusNode: focusNode,
@@ -2881,11 +3099,13 @@ class _ExtensionNameField extends StatelessWidget {
         );
       },
       onSelected: (selection) {
-        // 'N/A' means no extension — clear so stored value is null/empty
         if (selection == 'N/A') {
-          controller.clear();
+          widget.controller.clear();
+          _fieldController?.clear();
         } else {
-          controller.text = selection;
+          final upper = selection.toUpperCase();
+          widget.controller.text = upper;
+          _fieldController?.text = upper;
         }
       },
       optionsViewBuilder: (ctx, onSelected, options) {
@@ -2931,6 +3151,7 @@ class _ExtensionNameField extends StatelessWidget {
     );
   }
 }
+
 // ================================================================
 // DOB MASKED INPUT FORMATTER
 // Accepts digits only. Auto-inserts dashes: MM-DD-YYYY
@@ -3002,6 +3223,7 @@ class _DobPicker extends StatefulWidget {
 
 class _DobPickerState extends State<_DobPicker> {
   late final TextEditingController _ctrl;
+  DateTime? _lastParsedDate;
 
   static String _fmt(DateTime d) =>
       '${d.month.toString().padLeft(2, '0')}-'
@@ -3011,6 +3233,7 @@ class _DobPickerState extends State<_DobPicker> {
   @override
   void initState() {
     super.initState();
+    _lastParsedDate = widget.initialDate;
     _ctrl = TextEditingController(
       text: widget.initialDate != null ? _fmt(widget.initialDate!) : '',
     );
@@ -3020,20 +3243,15 @@ class _DobPickerState extends State<_DobPicker> {
   @override
   void didUpdateWidget(covariant _DobPicker oldWidget) {
     super.didUpdateWidget(oldWidget);
-    // External update (e.g. OCR fill): sync the text controller
-    if (widget.initialDate != oldWidget.initialDate &&
-        widget.initialDate != null) {
-      final formatted = _fmt(widget.initialDate!);
-      if (_ctrl.text != formatted) {
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          if (mounted) _ctrl.text = formatted;
-        });
+    // External update (e.g. OCR fill or modal reset)
+    if (widget.initialDate != _lastParsedDate) {
+      _lastParsedDate = widget.initialDate;
+      final newText = widget.initialDate != null ? _fmt(widget.initialDate!) : '';
+      if (_ctrl.text != newText) {
+        _ctrl.removeListener(_onTextChanged);
+        _ctrl.text = newText;
+        _ctrl.addListener(_onTextChanged);
       }
-    }
-    if (widget.initialDate == null && oldWidget.initialDate != null) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted) _ctrl.clear();
-      });
     }
   }
 
@@ -3063,6 +3281,7 @@ class _DobPickerState extends State<_DobPicker> {
 
   void _parseAndNotify() {
     final raw = _rawDigits;
+    DateTime? parsed;
     if (raw.length == 8) {
       final mm   = int.tryParse(raw.substring(0, 2));
       final dd   = int.tryParse(raw.substring(2, 4));
@@ -3072,11 +3291,11 @@ class _DobPickerState extends State<_DobPicker> {
           mm >= 1 && mm <= 12 &&
           dd >= 1 && dd <= _maxDayForMonth(mm, yyyy) &&
           yyyy >= 1900 && yyyy <= now) {
-        widget.onChanged(DateTime(yyyy, mm, dd));
-        return;
+        parsed = DateTime(yyyy, mm, dd);
       }
     }
-    widget.onChanged(null);
+    _lastParsedDate = parsed;
+    widget.onChanged(parsed);
   }
 
   // ── Build ───────────────────────────────────────────────────────
