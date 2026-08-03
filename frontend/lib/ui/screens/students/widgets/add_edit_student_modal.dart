@@ -1824,6 +1824,18 @@ class _AddEditStudentModalState extends ConsumerState<AddEditStudentModal> {
             const SizedBox(height: AppSizes.p16),
             _ErrorBanner(message: _errorMessage!),
           ],
+          const SizedBox(height: AppSizes.p24),
+          SizedBox(
+            width: double.infinity,
+            child: PrimaryButton(
+              label: 'PROCEED TO ENROLLMENT DETAILS >',
+              onPressed: () {
+                if (_studentFormKey.currentState?.validate() ?? false) {
+                  setState(() => _currentStep = 2);
+                }
+              },
+            ),
+          ),
         ],
       ),
     );
