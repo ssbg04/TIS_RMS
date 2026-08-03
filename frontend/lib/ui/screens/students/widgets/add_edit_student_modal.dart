@@ -1400,7 +1400,8 @@ class _AddEditStudentModalState extends ConsumerState<AddEditStudentModal> {
           final activeOrDone = _currentStep >= idx;
           final isCurrent = _currentStep == idx;
           return Expanded(
-            child: InkWell(
+            child: GestureDetector(
+              behavior: HitTestBehavior.opaque,
               onTap: () {
                 if (widget.student != null) {
                   setState(() => _currentStep = idx);
@@ -1408,7 +1409,6 @@ class _AddEditStudentModalState extends ConsumerState<AddEditStudentModal> {
                   setState(() => _currentStep = idx);
                 }
               },
-              borderRadius: BorderRadius.circular(4),
               child: Padding(
                 padding: const EdgeInsets.symmetric(vertical: 2, horizontal: 2),
                 child: Column(
@@ -1854,20 +1854,15 @@ class _AddEditStudentModalState extends ConsumerState<AddEditStudentModal> {
           const SizedBox(height: AppSizes.p16),
           yearsAsync.when(
             data: (years) {
-              if (_selectedAcademicYearId == null && years.isNotEmpty) {
-                final active = years
-                    .where((y) => y.status.toLowerCase() == 'active')
-                    .toList();
-                final candidate = active.isNotEmpty ? active.last : years.last;
-                Future.microtask(() {
-                  if (mounted && _selectedAcademicYearId == null) {
-                    setState(() => _selectedAcademicYearId = candidate.id);
-                  }
-                });
-              }
+              final active = years
+                  .where((y) => y.status.toLowerCase() == 'active')
+                  .toList();
+              final defaultYearId = (active.isNotEmpty ? active.last : (years.isNotEmpty ? years.last : null))?.id;
+              final currentYearId = _selectedAcademicYearId ?? defaultYearId;
+
               return DropdownButtonFormField<int>(
-                key: ValueKey('academic_$_selectedAcademicYearId'),
-                initialValue: _selectedAcademicYearId,
+                key: const ValueKey('academic_year_dropdown'),
+                initialValue: currentYearId,
                 decoration: const InputDecoration(
                   labelText: 'Academic Year',
                   prefixIcon: Icon(Icons.calendar_today),
@@ -1891,7 +1886,7 @@ class _AddEditStudentModalState extends ConsumerState<AddEditStudentModal> {
           gradeLevelsAsync.when(
             data: (grades) {
               return DropdownButtonFormField<int>(
-                key: ValueKey('grade_$_selectedGradeLevel'),
+                key: const ValueKey('grade_level_dropdown'),
                 initialValue: _selectedGradeLevel,
                 decoration: const InputDecoration(
                   labelText: 'Grade Level',
@@ -1915,17 +1910,20 @@ class _AddEditStudentModalState extends ConsumerState<AddEditStudentModal> {
           const SizedBox(height: AppSizes.p12),
           sectionsAsync.when(
             data: (sections) {
+              final activeYears = yearsAsync.value?.where((y) => y.status.toLowerCase() == 'active').toList();
+              final defaultYearId = (activeYears != null && activeYears.isNotEmpty ? activeYears.last : (yearsAsync.value != null && yearsAsync.value!.isNotEmpty ? yearsAsync.value!.last : null))?.id;
+              final effectiveYearId = _selectedAcademicYearId ?? defaultYearId;
+
               final filtered = sections
                   .where((sec) =>
-                      sec.academicYearId == _selectedAcademicYearId &&
+                      sec.academicYearId == effectiveYearId &&
                       sec.gradeLevel == _selectedGradeLevel)
                   .toList();
               final matches = filtered.where((s) => s.id == _selectedSectionId);
               final initialSectionName =
                   matches.isNotEmpty ? matches.first.name : '';
               return Autocomplete<SectionModel>(
-                key: ValueKey(
-                    'section_${_selectedGradeLevel}_$_selectedAcademicYearId'),
+                key: const ValueKey('section_autocomplete'),
                 initialValue: TextEditingValue(text: initialSectionName),
                 displayStringForOption: (sec) => sec.name,
                 optionsBuilder: (textEditingValue) {
