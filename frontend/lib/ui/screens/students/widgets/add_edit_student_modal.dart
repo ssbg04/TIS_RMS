@@ -1560,72 +1560,49 @@ class _AddEditStudentModalState extends ConsumerState<AddEditStudentModal> {
           ),
           child: Row(
             children: [
-              if (_ocrScannedFile != null && !isOcrStep) ...[
-                TextButton.icon(
-                  onPressed: () {
-                    showDocumentPreview(
-                      context: context,
-                      localFile: _ocrScannedFile!,
-                      localFileName: _ocrScannedFile!.path.split('/').last,
-                    );
-                  },
-                  icon: const Icon(Icons.description_outlined, size: 16),
-                  label: const Text('VIEW DOC'),
-                  style: TextButton.styleFrom(
-                    foregroundColor: AppColors.primaryGreen,
-                  ),
+              if (_currentStep > 0)
+                OutlinedButton.icon(
+                  onPressed: () => setState(() => _currentStep -= 1),
+                  icon: const Icon(Icons.arrow_back, size: 16),
+                  label: const Text('BACK'),
                 ),
-                TextButton.icon(
-                  onPressed: () => setState(() {
-                    _lrnController.clear();
-                    _firstNameController.clear();
-                    _middleNameController.clear();
-                    _lastNameController.clear();
-                    _extController.clear();
-                    _currentStep = 0;
-                  }),
-                  icon: const Icon(Icons.refresh_outlined, size: 16),
-                  label: const Text('RE-SCAN'),
-                  style: TextButton.styleFrom(
-                    foregroundColor: AppColors.primaryGreen,
-                  ),
-                ),
-              ],
               const Spacer(),
               if (isOcrStep && !ocrState.isLoading)
                 OutlinedButton(
                   onPressed: () => setState(() => _currentStep = 1),
-                  style: OutlinedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 16,
-                      vertical: 12,
-                    ),
-                  ),
                   child: const Text('Skip OCR & Enter Manually'),
                 ),
               if (!isOcrStep) ...[
-                if (_currentStep > 0) ...[
-                  OutlinedButton.icon(
+                if (_ocrScannedFile != null) ...[
+                  TextButton.icon(
                     onPressed: () => setState(() {
-                      _currentStep = (_currentStep - 1).clamp(0, 2);
+                      _lrnController.clear();
+                      _firstNameController.clear();
+                      _middleNameController.clear();
+                      _lastNameController.clear();
+                      _extController.clear();
+                      _currentStep = 0;
                     }),
-                    icon: const Icon(Icons.arrow_back, size: 16),
-                    label: const Text('BACK'),
-                    style: OutlinedButton.styleFrom(
-                      side: const BorderSide(color: AppColors.primaryGreen),
-                      foregroundColor: AppColors.primaryGreen,
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 20,
-                        vertical: 14,
-                      ),
-                    ),
+                    icon: const Icon(Icons.refresh, size: 14),
+                    label: const Text('RE-SCAN', style: TextStyle(fontSize: 12)),
                   ),
-                  const SizedBox(width: 12),
+                  TextButton.icon(
+                    onPressed: () {
+                      if (_ocrScannedFile != null) {
+                        showDocumentPreview(
+                          context: context,
+                          localFile: _ocrScannedFile!,
+                          localFileName: _ocrScannedFile!.path.split('/').last,
+                        );
+                      }
+                    },
+                    icon: const Icon(Icons.visibility_outlined, size: 14),
+                    label: const Text('VIEW DOC', style: TextStyle(fontSize: 12)),
+                  ),
                 ],
+                const SizedBox(width: 8),
                 PrimaryButton(
-                  label: isLastStep
-                      ? 'SAVE STUDENT'
-                      : (_currentStep == 1 ? 'NEXT: ENROLLMENT' : 'NEXT'),
+                  label: isLastStep ? 'SAVE STUDENT' : 'NEXT',
                   isLoading: _isLoading && isLastStep,
                   onPressed: () {
                     if (_currentStep == 1) {
@@ -1844,35 +1821,6 @@ class _AddEditStudentModalState extends ConsumerState<AddEditStudentModal> {
             const SizedBox(height: AppSizes.p16),
             _ErrorBanner(message: _errorMessage!),
           ],
-          const SizedBox(height: AppSizes.p24),
-          Row(
-            children: [
-              Expanded(
-                child: OutlinedButton.icon(
-                  onPressed: () => setState(() => _currentStep = 0),
-                  icon: const Icon(Icons.arrow_back, size: 16),
-                  label: const Text('BACK TO OCR'),
-                  style: OutlinedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(vertical: 14),
-                    side: const BorderSide(color: AppColors.primaryGreen),
-                    foregroundColor: AppColors.primaryGreen,
-                  ),
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                flex: 2,
-                child: PrimaryButton(
-                  label: 'PROCEED TO ENROLLMENT >',
-                  onPressed: () {
-                    if (_studentFormKey.currentState?.validate() ?? false) {
-                      setState(() => _currentStep = 2);
-                    }
-                  },
-                ),
-              ),
-            ],
-          ),
         ],
       ),
     );
