@@ -1560,52 +1560,72 @@ class _AddEditStudentModalState extends ConsumerState<AddEditStudentModal> {
           ),
           child: Row(
             children: [
-              if (_currentStep > 0)
-                OutlinedButton(
-                  onPressed: () => setState(() => _currentStep -= 1),
-                  child: const Text('BACK'),
+              if (_ocrScannedFile != null && !isOcrStep) ...[
+                TextButton.icon(
+                  onPressed: () {
+                    showDocumentPreview(
+                      context: context,
+                      localFile: _ocrScannedFile!,
+                      localFileName: _ocrScannedFile!.path.split('/').last,
+                    );
+                  },
+                  icon: const Icon(Icons.description_outlined, size: 16),
+                  label: const Text('VIEW DOC'),
+                  style: TextButton.styleFrom(
+                    foregroundColor: AppColors.primaryGreen,
+                  ),
                 ),
+                TextButton.icon(
+                  onPressed: () => setState(() {
+                    _lrnController.clear();
+                    _firstNameController.clear();
+                    _middleNameController.clear();
+                    _lastNameController.clear();
+                    _extController.clear();
+                    _currentStep = 0;
+                  }),
+                  icon: const Icon(Icons.refresh_outlined, size: 16),
+                  label: const Text('RE-SCAN'),
+                  style: TextButton.styleFrom(
+                    foregroundColor: AppColors.primaryGreen,
+                  ),
+                ),
+              ],
               const Spacer(),
               if (isOcrStep && !ocrState.isLoading)
                 OutlinedButton(
                   onPressed: () => setState(() => _currentStep = 1),
+                  style: OutlinedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 12,
+                    ),
+                  ),
                   child: const Text('Skip OCR & Enter Manually'),
                 ),
               if (!isOcrStep) ...[
-                if (_ocrScannedFile != null) ...[
-                  TextButton(
+                if (_currentStep > 0) ...[
+                  OutlinedButton.icon(
                     onPressed: () => setState(() {
-                      _lrnController.clear();
-                      _firstNameController.clear();
-                      _middleNameController.clear();
-                      _lastNameController.clear();
-                      _extController.clear();
-                      _currentStep = 0;
+                      _currentStep = (_currentStep - 1).clamp(0, 2);
                     }),
-                    child: const Text('RE-SCAN',
-                        style: TextStyle(
-                            color: AppColors.primaryGreen,
-                            fontWeight: FontWeight.w600)),
+                    icon: const Icon(Icons.arrow_back, size: 16),
+                    label: const Text('BACK'),
+                    style: OutlinedButton.styleFrom(
+                      side: const BorderSide(color: AppColors.primaryGreen),
+                      foregroundColor: AppColors.primaryGreen,
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 20,
+                        vertical: 14,
+                      ),
+                    ),
                   ),
-                  TextButton(
-                    onPressed: () {
-                      if (_ocrScannedFile != null) {
-                        showDocumentPreview(
-                          context: context,
-                          localFile: _ocrScannedFile!,
-                          localFileName: _ocrScannedFile!.path.split('/').last,
-                        );
-                      }
-                    },
-                    child: const Text('VIEW DOC',
-                        style: TextStyle(
-                            color: AppColors.primaryGreen,
-                            fontWeight: FontWeight.w600)),
-                  ),
+                  const SizedBox(width: 12),
                 ],
-                const SizedBox(width: 8),
                 PrimaryButton(
-                  label: isLastStep ? 'SAVE STUDENT' : (_currentStep == 1 ? 'NEXT: ENROLLMENT' : 'NEXT'),
+                  label: isLastStep
+                      ? 'SAVE STUDENT'
+                      : (_currentStep == 1 ? 'NEXT: ENROLLMENT' : 'NEXT'),
                   isLoading: _isLoading && isLastStep,
                   onPressed: () {
                     if (_currentStep == 1) {
@@ -1825,16 +1845,33 @@ class _AddEditStudentModalState extends ConsumerState<AddEditStudentModal> {
             _ErrorBanner(message: _errorMessage!),
           ],
           const SizedBox(height: AppSizes.p24),
-          SizedBox(
-            width: double.infinity,
-            child: PrimaryButton(
-              label: 'PROCEED TO ENROLLMENT DETAILS >',
-              onPressed: () {
-                if (_studentFormKey.currentState?.validate() ?? false) {
-                  setState(() => _currentStep = 2);
-                }
-              },
-            ),
+          Row(
+            children: [
+              Expanded(
+                child: OutlinedButton.icon(
+                  onPressed: () => setState(() => _currentStep = 0),
+                  icon: const Icon(Icons.arrow_back, size: 16),
+                  label: const Text('BACK TO OCR'),
+                  style: OutlinedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    side: const BorderSide(color: AppColors.primaryGreen),
+                    foregroundColor: AppColors.primaryGreen,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                flex: 2,
+                child: PrimaryButton(
+                  label: 'PROCEED TO ENROLLMENT >',
+                  onPressed: () {
+                    if (_studentFormKey.currentState?.validate() ?? false) {
+                      setState(() => _currentStep = 2);
+                    }
+                  },
+                ),
+              ),
+            ],
           ),
         ],
       ),
