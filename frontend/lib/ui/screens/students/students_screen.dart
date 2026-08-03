@@ -39,7 +39,6 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
 
   final List<int> _selectedStudentIds = [];
   bool _showMultiSelect = false;
-  bool _isDragSelecting = false;
   ProviderSubscription<String>? _tabListener;
   // Pending filter state (applied only when user taps "Apply now")
   String _pendingSchoolYear = 'All School Years';
@@ -170,6 +169,60 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
         builder: (_) => const BulkOcrImportDialog(),
       ),
     );
+  }
+
+  // ----------------------------------------------------------------
+  // RIGHT-CLICK CONTEXT MENU (Windows)
+  // ----------------------------------------------------------------
+  Future<void> _showStudentContextMenu(
+    BuildContext ctx,
+    Offset globalPosition,
+    StudentModel student,
+  ) async {
+    if (widget.userRole == 'teacher') return;
+    final RenderBox overlay =
+        Overlay.of(ctx).context.findRenderObject()! as RenderBox;
+    final RelativeRect position = RelativeRect.fromRect(
+      Rect.fromLTWH(globalPosition.dx, globalPosition.dy, 0, 0),
+      Offset.zero & overlay.size,
+    );
+    final choice = await showMenu<String>(
+      context: ctx,
+      position: position,
+      items: [
+        PopupMenuItem<String>(
+          value: 'edit',
+          child: Row(
+            children: const [
+              Icon(Icons.edit_outlined, size: 18, color: AppColors.primaryGreen),
+              SizedBox(width: 10),
+              Text('Edit'),
+            ],
+          ),
+        ),
+        PopupMenuItem<String>(
+          value: 'select',
+          child: Row(
+            children: const [
+              Icon(Icons.check_box_outlined, size: 18, color: AppColors.primaryGreen),
+              SizedBox(width: 10),
+              Text('Select'),
+            ],
+          ),
+        ),
+      ],
+    );
+    if (!mounted) return;
+    if (choice == 'edit') {
+      await _openModal(student: student);
+    } else if (choice == 'select') {
+      setState(() {
+        _showMultiSelect = true;
+        if (!_selectedStudentIds.contains(student.id)) {
+          _selectedStudentIds.add(student.id);
+        }
+      });
+    }
   }
 
   void _toggleSelectAll(List<StudentModel> students) {
@@ -1669,33 +1722,28 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
       builder: (context, constraints) {
         DataCell buildHoverCell(Widget child, StudentModel student) {
           return DataCell(
-            MouseRegion(
-              hitTestBehavior: HitTestBehavior.translucent,
-              onEnter: (_) {
-                if (_isDragSelecting &&
-                    defaultTargetPlatform == TargetPlatform.windows &&
-                    widget.userRole != 'teacher') {
-                  setState(() {
-                    if (!_showMultiSelect) _showMultiSelect = true;
-                    if (!_selectedStudentIds.contains(student.id))
-                      _selectedStudentIds.add(student.id);
-                  });
-                }
-              },
-              child: SizedBox(
-                width: double.infinity,
-                height: double.infinity,
-                child: Align(alignment: Alignment.centerLeft, child: child),
+            GestureDetector(
+              onSecondaryTapDown: defaultTargetPlatform == TargetPlatform.windows
+                  ? (details) => _showStudentContextMenu(
+                        context,
+                        details.globalPosition,
+                        student,
+                      )
+                  : null,
+              child: MouseRegion(
+                hitTestBehavior: HitTestBehavior.translucent,
+                child: SizedBox(
+                  width: double.infinity,
+                  height: double.infinity,
+                  child: Align(alignment: Alignment.centerLeft, child: child),
+                ),
               ),
             ),
             onTap: () => _viewProfile(student),
           );
         }
 
-        return Listener(
-          onPointerDown: (_) => setState(() => _isDragSelecting = true),
-          onPointerUp: (_) => setState(() => _isDragSelecting = false),
-          child: Container(
+        return Container(
             width: double.infinity,
             decoration: BoxDecoration(
               color: AppColors.surfaceWhite,
@@ -1990,38 +2038,22 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
                 rows: students.map((student) {
                   final isSelected = _selectedStudentIds.contains(student.id);
                   return DataRow(
-                    mouseCursor: defaultTargetPlatform == TargetPlatform.windows
-                        ? WidgetStateProperty.all(SystemMouseCursors.grab)
-                        : null,
                     selected: isSelected,
                     cells: [
                       if (widget.userRole != 'teacher' && _showMultiSelect)
                         DataCell(
-                          MouseRegion(
-                            hitTestBehavior: HitTestBehavior.translucent,
-                            onEnter: (_) {
-                              if (_isDragSelecting &&
-                                  defaultTargetPlatform ==
-                                      TargetPlatform.windows) {
-                                setState(() {
-                                  if (!_selectedStudentIds.contains(student.id))
-                                    _selectedStudentIds.add(student.id);
-                                });
-                              }
+                          Checkbox(
+                            activeColor: AppColors.primaryGreen,
+                            value: isSelected,
+                            onChanged: (val) {
+                              setState(() {
+                                if (val == true) {
+                                  _selectedStudentIds.add(student.id);
+                                } else {
+                                  _selectedStudentIds.remove(student.id);
+                                }
+                              });
                             },
-                            child: Checkbox(
-                              activeColor: AppColors.primaryGreen,
-                              value: isSelected,
-                              onChanged: (val) {
-                                setState(() {
-                                  if (val == true) {
-                                    _selectedStudentIds.add(student.id);
-                                  } else {
-                                    _selectedStudentIds.remove(student.id);
-                                  }
-                                });
-                              },
-                            ),
                           ),
                         ),
                       buildHoverCell(
@@ -2098,32 +2130,41 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
         itemBuilder: (_, i) {
           final s = students[i];
 
-          return InkWell(
-            onTap: () {
-              if (_showMultiSelect) {
-                setState(() {
-                  if (_selectedStudentIds.contains(s.id)) {
-                    _selectedStudentIds.remove(s.id);
-                  } else {
-                    _selectedStudentIds.add(s.id);
-                  }
-                });
-              } else {
-                _viewProfile(s);
-              }
-            },
-            onLongPress: widget.userRole != 'teacher'
-                ? () {
-                    setState(() {
-                      _showMultiSelect = true;
-                      if (!_selectedStudentIds.contains(s.id)) {
-                        _selectedStudentIds.add(s.id);
-                      }
-                    });
-                  }
+          return GestureDetector(
+            onSecondaryTapDown: defaultTargetPlatform == TargetPlatform.windows
+                ? (details) => _showStudentContextMenu(
+                      context,
+                      details.globalPosition,
+                      s,
+                    )
                 : null,
-            borderRadius: BorderRadius.circular(AppSizes.radiusLarge),
-            child: Container(
+            child: InkWell(
+              onTap: () {
+                if (_showMultiSelect) {
+                  setState(() {
+                    if (_selectedStudentIds.contains(s.id)) {
+                      _selectedStudentIds.remove(s.id);
+                    } else {
+                      _selectedStudentIds.add(s.id);
+                    }
+                  });
+                } else {
+                  _viewProfile(s);
+                }
+              },
+              onLongPress: defaultTargetPlatform != TargetPlatform.windows &&
+                      widget.userRole != 'teacher'
+                  ? () {
+                      setState(() {
+                        _showMultiSelect = true;
+                        if (!_selectedStudentIds.contains(s.id)) {
+                          _selectedStudentIds.add(s.id);
+                        }
+                      });
+                    }
+                  : null,
+              borderRadius: BorderRadius.circular(AppSizes.radiusLarge),
+              child: Container(
               padding: const EdgeInsets.all(AppSizes.p16),
               decoration: BoxDecoration(
                 color: AppColors.surfaceWhite,
