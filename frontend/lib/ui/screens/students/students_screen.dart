@@ -8,7 +8,8 @@ import '../../../domain/entities/student_model.dart';
 import '../../shared/buttons/primary_button.dart';
 import '../../providers/student_provider.dart';
 import '../documents/widgets/student_profile_modal.dart';
-import 'widgets/add_edit_student_modal.dart';
+import 'widgets/add_student_modal.dart';
+import 'widgets/edit_student_modal.dart';
 import 'widgets/bulk_ocr_import_dialog.dart';
 import '../../providers/setup_provider.dart';
 import '../../shared/inputs/app_search_bar.dart';
@@ -142,7 +143,9 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
   Future<bool?> _openModal({StudentModel? student}) async {
     final result = await Navigator.of(context).push<bool>(
       MaterialPageRoute(
-        builder: (_) => AddEditStudentModal(student: student),
+        builder: (_) => student == null
+            ? const AddStudentModal()
+            : EditStudentModal(student: student),
       ),
     );
     // result == true means success — list already refreshed by provider
