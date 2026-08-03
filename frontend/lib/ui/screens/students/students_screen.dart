@@ -7,7 +7,6 @@ import '../../../core/constants/app_sizes.dart';
 import '../../../domain/entities/student_model.dart';
 import '../../shared/buttons/primary_button.dart';
 import '../../providers/student_provider.dart';
-import '../documents/documents_screen.dart';
 import '../documents/widgets/student_profile_modal.dart';
 import 'widgets/add_edit_student_modal.dart';
 import 'widgets/bulk_ocr_import_dialog.dart';
@@ -16,7 +15,6 @@ import '../../shared/inputs/app_search_bar.dart';
 import '../../providers/navigation_provider.dart';
 import '../../providers/document_provider.dart';
 import '../../providers/archives_provider.dart';
-import '../../providers/auth_provider.dart';
 
 import '../../shared/dialogs/error_dialog.dart';
 import '../../shared/dialogs/success_dialog.dart';
@@ -917,8 +915,6 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
     return LayoutBuilder(
       builder: (_, c) {
         final isDesktop = c.maxWidth > 800;
-        final bool isSearchActive =
-            _searchFocusNode.hasFocus || _searchController.text.isNotEmpty;
 
         return Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -2101,7 +2097,6 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
                 }).toList(),
               ),
             ),
-          ),
         );
       },
     );
@@ -2305,8 +2300,9 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
                 ],
               ),
             ),
-          );
-        },
+          ),
+        );
+      },
       ),
     );
   }
