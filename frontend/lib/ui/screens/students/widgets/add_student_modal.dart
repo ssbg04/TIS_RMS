@@ -4,20 +4,16 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_sizes.dart';
-import '../../../../domain/entities/academic_year_model.dart';
-import '../../../../domain/entities/grade_level_model.dart';
-import '../../../../domain/entities/section_model.dart';
+import '../../../../domain/entities/setup_models.dart';
 import '../../../shared/buttons/primary_button.dart';
 import '../../../shared/dialogs/error_dialog.dart';
 import '../../../shared/dialogs/success_dialog.dart';
-import '../../../providers/academic_year_provider.dart';
+import '../../../providers/setup_provider.dart';
 import '../../../providers/document_provider.dart';
-import '../../../providers/grade_level_provider.dart';
 import '../../../providers/ocr_provider.dart';
-import '../../../providers/section_provider.dart';
 import '../../../providers/student_provider.dart';
 import '../../documents/widgets/document_preview_modal.dart';
-import 'document_source_picker.dart';
+import '../../../shared/inputs/document_source_picker.dart';
 import 'student_form_helpers.dart';
 
 class AddStudentModal extends ConsumerStatefulWidget {
@@ -841,9 +837,9 @@ class _AddStudentModalState extends ConsumerState<AddStudentModal> {
   @override
   Widget build(BuildContext context) {
     final ocrState = ref.watch(ocrProvider);
-    final yearsAsync = ref.watch(academicYearListProvider);
-    final gradeLevelsAsync = ref.watch(gradeLevelListProvider);
-    final sectionsAsync = ref.watch(sectionListProvider);
+    final yearsAsync = ref.watch(academicYearsListProvider);
+    final gradeLevelsAsync = ref.watch(gradeLevelsListProvider);
+    final sectionsAsync = ref.watch(sectionsListProvider);
 
     final isLastStep = _currentStep == 2;
     final isOcrStep = _currentStep == 0;
@@ -924,132 +920,148 @@ class _AddStudentModalState extends ConsumerState<AddStudentModal> {
                     ),
                   ],
                 ),
-                child: Row(
+                child: Wrap(
+                  alignment: WrapAlignment.spaceBetween,
+                  crossAxisAlignment: WrapCrossAlignment.center,
+                  spacing: 12,
+                  runSpacing: 12,
                   children: [
-                    if (!isOcrStep && _ocrScannedFile != null) ...[
-                      TextButton.icon(
-                        onPressed: () => setState(() {
-                          _lrnController.clear();
-                          _firstNameController.clear();
-                          _middleNameController.clear();
-                          _lastNameController.clear();
-                          _extController.clear();
-                          _currentStep = 0;
-                        }),
-                        icon: const Icon(
-                          Icons.refresh,
-                          size: 16,
-                          color: AppColors.primaryGreen,
-                        ),
-                        label: const Text(
-                          'Scan Another',
-                          style: TextStyle(
-                            color: AppColors.primaryGreen,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      OutlinedButton.icon(
-                        onPressed: () {
-                          if (_ocrScannedFile != null) {
-                            showDocumentPreview(
-                              context: context,
-                              localFile: _ocrScannedFile!,
-                              localFileName: _ocrScannedFile!.path.split('/').last,
-                            );
-                          }
-                        },
-                        icon: const Icon(
-                          Icons.visibility_outlined,
-                          size: 16,
-                          color: AppColors.textPrimary,
-                        ),
-                        label: const Text(
-                          'Preview Document',
-                          style: TextStyle(
-                            color: AppColors.textPrimary,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      ),
-                    ],
-                    const Spacer(),
-                    if (isOcrStep && !ocrState.isLoading) ...[
-                      OutlinedButton(
-                        onPressed: () => setState(() {
-                          _errorMessage = null;
-                          _currentStep = 1;
-                        }),
-                        child: const Text('Skip OCR & Enter Manually'),
-                      ),
-                      const SizedBox(width: 12),
-                      PrimaryButton(
-                        label: 'PROCEED TO FORM',
-                        onPressed: () => setState(() {
-                          _errorMessage = null;
-                          _currentStep = 1;
-                        }),
-                      ),
-                    ] else if (!isOcrStep) ...[
-                      if (_currentStep > 0) ...[
-                        OutlinedButton.icon(
-                          onPressed: () => setState(() {
-                            _errorMessage = null;
-                            _currentStep -= 1;
-                          }),
-                          style: OutlinedButton.styleFrom(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 16,
-                              vertical: 12,
+                    // Left side items
+                    if (!isOcrStep && _ocrScannedFile != null)
+                      Wrap(
+                        spacing: 12,
+                        runSpacing: 12,
+                        children: [
+                          TextButton.icon(
+                            onPressed: () => setState(() {
+                              _lrnController.clear();
+                              _firstNameController.clear();
+                              _middleNameController.clear();
+                              _lastNameController.clear();
+                              _extController.clear();
+                              _currentStep = 0;
+                            }),
+                            icon: const Icon(
+                              Icons.refresh,
+                              size: 16,
+                              color: AppColors.primaryGreen,
                             ),
-                            side: BorderSide(color: Colors.grey.shade400),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(
-                                AppSizes.radiusMedium,
+                            label: const Text(
+                              'Scan Another',
+                              style: TextStyle(
+                                color: AppColors.primaryGreen,
+                                fontWeight: FontWeight.w600,
                               ),
                             ),
                           ),
-                          icon: const Icon(
-                            Icons.arrow_back,
-                            size: 16,
-                            color: AppColors.textPrimary,
-                          ),
-                          label: const Text(
-                            'BACK',
-                            style: TextStyle(
+                          OutlinedButton.icon(
+                            onPressed: () {
+                              if (_ocrScannedFile != null) {
+                                showDocumentPreview(
+                                  context: context,
+                                  localFile: _ocrScannedFile!,
+                                  localFileName: _ocrScannedFile!.path.split('/').last,
+                                );
+                              }
+                            },
+                            icon: const Icon(
+                              Icons.visibility_outlined,
+                              size: 16,
                               color: AppColors.textPrimary,
-                              fontWeight: FontWeight.w600,
+                            ),
+                            label: const Text(
+                              'Preview Document',
+                              style: TextStyle(
+                                color: AppColors.textPrimary,
+                                fontWeight: FontWeight.w600,
+                              ),
                             ),
                           ),
-                        ),
-                        const SizedBox(width: 12),
-                      ],
-                      PrimaryButton(
-                        label: isLastStep ? 'SAVE STUDENT' : 'NEXT',
-                        isLoading: _isLoading && isLastStep,
-                        onPressed: () {
-                          if (_currentStep == 1) {
-                            final isValid = _studentFormKey.currentState?.validate() ?? false;
-                            if (!isValid) {
-                              setState(() {
-                                _errorMessage =
-                                    'Please complete all required fields in red before proceeding to Enrollment.';
-                              });
-                              return;
-                            }
-                          }
-                          if (isLastStep) {
-                            _handleSave();
-                          } else {
-                            setState(() {
+                        ],
+                      )
+                    else
+                      const SizedBox.shrink(),
+
+                    // Right side items
+                    Wrap(
+                      spacing: 12,
+                      runSpacing: 12,
+                      alignment: WrapAlignment.end,
+                      children: [
+                        if (isOcrStep && !ocrState.isLoading) ...[
+                          OutlinedButton(
+                            onPressed: () => setState(() {
                               _errorMessage = null;
-                              _currentStep += 1;
-                            });
-                          }
-                        },
-                      ),
-                    ],
+                              _currentStep = 1;
+                            }),
+                            child: const Text('Skip OCR & Enter Manually'),
+                          ),
+                          PrimaryButton(
+                            label: 'PROCEED TO FORM',
+                            onPressed: () => setState(() {
+                              _errorMessage = null;
+                              _currentStep = 1;
+                            }),
+                          ),
+                        ] else if (!isOcrStep) ...[
+                          if (_currentStep > 0)
+                            OutlinedButton.icon(
+                              onPressed: () => setState(() {
+                                _errorMessage = null;
+                                _currentStep -= 1;
+                              }),
+                              style: OutlinedButton.styleFrom(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 16,
+                                  vertical: 12,
+                                ),
+                                side: BorderSide(color: Colors.grey.shade400),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(
+                                    AppSizes.radiusMedium,
+                                  ),
+                                ),
+                              ),
+                              icon: const Icon(
+                                Icons.arrow_back,
+                                size: 16,
+                                color: AppColors.textPrimary,
+                              ),
+                              label: const Text(
+                                'BACK',
+                                style: TextStyle(
+                                  color: AppColors.textPrimary,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ),
+                          PrimaryButton(
+                            label: isLastStep ? 'SAVE STUDENT' : 'NEXT',
+                            isLoading: _isLoading && isLastStep,
+                            onPressed: () {
+                              if (_currentStep == 1) {
+                                final isValid = _studentFormKey.currentState?.validate() ?? false;
+                                if (!isValid) {
+                                  setState(() {
+                                    _errorMessage =
+                                        'Please complete all required fields in red before proceeding to Enrollment.';
+                                  });
+                                  return;
+                                }
+                              }
+                              if (isLastStep) {
+                                _handleSave();
+                              } else {
+                                setState(() {
+                                  _errorMessage = null;
+                                  _currentStep += 1;
+                                });
+                              }
+                            },
+                          ),
+                        ],
+                      ],
+                    ),
                   ],
                 ),
               ),

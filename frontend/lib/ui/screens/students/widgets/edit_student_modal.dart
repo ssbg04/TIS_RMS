@@ -39,6 +39,9 @@ class _EditStudentModalState extends ConsumerState<EditStudentModal> {
   bool _isLoading = false;
   String? _errorMessage;
 
+  late StudentModel _initialStudent;
+  bool _isFetchingDetails = true;
+
   // Cache of all enrollments loaded for the student being edited
   List<dynamic>? _loadedEnrollments;
 
@@ -57,17 +60,51 @@ class _EditStudentModalState extends ConsumerState<EditStudentModal> {
   @override
   void initState() {
     super.initState();
-    _lrnController = TextEditingController(text: widget.student.lrn);
-    _firstNameController = TextEditingController(text: widget.student.firstName);
-    _middleNameController =
-        TextEditingController(text: widget.student.middleName ?? '');
-    _lastNameController = TextEditingController(text: widget.student.lastName);
-    _extController = TextEditingController(text: widget.student.extension ?? '');
+    _initialStudent = widget.student;
 
-    _selectedSex = widget.student.sex;
-    _selectedStatus = widget.student.status;
-    _selectedDob = widget.student.birthDate;
-    _is4ps = widget.student.is4ps;
+    _lrnController = TextEditingController(text: _initialStudent.lrn);
+    _firstNameController = TextEditingController(text: _initialStudent.firstName);
+    _middleNameController =
+        TextEditingController(text: _initialStudent.middleName ?? '');
+    _lastNameController = TextEditingController(text: _initialStudent.lastName);
+    _extController = TextEditingController(text: _initialStudent.extension ?? '');
+
+    _selectedSex = _initialStudent.sex;
+    _selectedStatus = _initialStudent.status;
+    _selectedDob = _initialStudent.birthDate;
+    _is4ps = _initialStudent.is4ps;
+
+    Future.microtask(_fetchFullDetails);
+  }
+
+  Future<void> _fetchFullDetails() async {
+    try {
+      final fullStudent =
+          await ref.read(studentDetailProvider(widget.student.id).future);
+      if (mounted) {
+        setState(() {
+          // If the user hasn't made any edits yet, update the controllers
+          if (!_hasChanges) {
+            _lrnController.text = fullStudent.lrn;
+            _firstNameController.text = fullStudent.firstName;
+            _middleNameController.text = fullStudent.middleName ?? '';
+            _lastNameController.text = fullStudent.lastName;
+            _extController.text = fullStudent.extension ?? '';
+            _selectedSex = fullStudent.sex;
+            _selectedStatus = fullStudent.status;
+            _selectedDob = fullStudent.birthDate;
+            _is4ps = fullStudent.is4ps;
+          }
+          _initialStudent = fullStudent;
+          _loadedEnrollments = fullStudent.enrollments;
+          _isFetchingDetails = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _isFetchingDetails = false);
+      }
+    }
   }
 
   @override
@@ -81,21 +118,21 @@ class _EditStudentModalState extends ConsumerState<EditStudentModal> {
   }
 
   bool get _hasChanges {
-    return _lrnController.text.trim() != widget.student.lrn ||
-        _firstNameController.text.trim() != widget.student.firstName ||
-        _lastNameController.text.trim() != widget.student.lastName ||
+    return _lrnController.text.trim() != _initialStudent.lrn ||
+        _firstNameController.text.trim() != _initialStudent.firstName ||
+        _lastNameController.text.trim() != _initialStudent.lastName ||
         (_middleNameController.text.trim().isEmpty
                 ? null
                 : _middleNameController.text.trim()) !=
-            widget.student.middleName ||
+            _initialStudent.middleName ||
         (_extController.text.trim().isEmpty
                 ? null
                 : _extController.text.trim()) !=
-            widget.student.extension ||
-        _selectedSex != widget.student.sex ||
-        _selectedStatus != widget.student.status ||
-        _selectedDob != widget.student.birthDate ||
-        _is4ps != widget.student.is4ps;
+            _initialStudent.extension ||
+        _selectedSex != _initialStudent.sex ||
+        _selectedStatus != _initialStudent.status ||
+        _selectedDob != _initialStudent.birthDate ||
+        _is4ps != _initialStudent.is4ps;
   }
 
   void _confirmClose() {
@@ -253,6 +290,10 @@ class _EditStudentModalState extends ConsumerState<EditStudentModal> {
   }
 
   Widget _buildStudentDetailsTab() {
+    if (_isFetchingDetails) {
+      return const Center(child: CircularProgressIndicator());
+    }
+
     return SingleChildScrollView(
       padding: const EdgeInsets.all(24),
       child: Form(
@@ -281,141 +322,155 @@ class _EditStudentModalState extends ConsumerState<EditStudentModal> {
             LayoutBuilder(
               builder: (ctx, c) {
                 final wide = c.maxWidth > 480;
-                if (wide) {
-                  return Column(
-                    children: [
-                      Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
+
+                final sexDropdown = DropdownButtonFormField<String>(
+                  key: const ValueKey('edit_sex_dropdown'),
+                  initialValue: _selectedSex,
+                  validator: (v) => v == null ? 'Please select sex.' : null,
+                  isExpanded: true,
+                  decoration: const InputDecoration(
+                    labelText: 'SEX',
+                    prefixIcon: Icon(Icons.wc),
+                  ),
+                  items: ['Male', 'Female']
+                      .map((s) => DropdownMenuItem(value: s, child: Text(s)))
+                      .toList(),
+                  onChanged: (v) {
+                    if (v != null) {
+                      setState(() => _selectedSex = v);
+                    }
+                  },
+                );
+
+                final statusDropdown = DropdownButtonFormField<String>(
+                  key: const ValueKey('edit_status_dropdown'),
+                  initialValue: _selectedStatus,
+                  decoration: const InputDecoration(
+                    labelText: 'STATUS',
+                    prefixIcon: Icon(Icons.info_outline),
+                  ),
+                  items: _statuses
+                      .map((s) => DropdownMenuItem(value: s, child: Text(s)))
+                      .toList(),
+                  onChanged: (v) {
+                    if (v != null) {
+                      setState(() => _selectedStatus = v);
+                    }
+                  },
+                );
+
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    if (wide)
+                      Column(
                         children: [
-                          Expanded(
-                            flex: 3,
-                            child: TextFormField(
-                              controller: _firstNameController,
-                              textCapitalization: TextCapitalization.characters,
-                              inputFormatters: [UpperCaseWordsFormatter()],
-                              validator: (v) => _validateRequired(v, 'First name'),
-                              decoration: const InputDecoration(
-                                labelText: 'FIRST NAME',
-                                prefixIcon: Icon(Icons.badge_outlined),
+                          Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Expanded(
+                                flex: 3,
+                                child: TextFormField(
+                                  controller: _firstNameController,
+                                  textCapitalization: TextCapitalization.characters,
+                                  inputFormatters: [UpperCaseWordsFormatter()],
+                                  validator: (v) => _validateRequired(v, 'First name'),
+                                  decoration: const InputDecoration(
+                                    labelText: 'FIRST NAME',
+                                    prefixIcon: Icon(Icons.badge_outlined),
+                                  ),
+                                ),
                               ),
-                            ),
-                          ),
-                          const SizedBox(width: AppSizes.p12),
-                          Expanded(
-                            flex: 2,
-                            child: ExtensionNameField(
-                              controller: _extController,
-                              suggestions: _extSuggestions,
-                            ),
-                          ),
-                          const SizedBox(width: AppSizes.p12),
-                          Expanded(
-                            flex: 3,
-                            child: TextFormField(
-                              controller: _middleNameController,
-                              textCapitalization: TextCapitalization.characters,
-                              inputFormatters: [UpperCaseWordsFormatter()],
-                              decoration: const InputDecoration(
-                                labelText: 'MIDDLE NAME (Optional)',
-                                prefixIcon: Icon(Icons.badge_outlined),
+                              const SizedBox(width: AppSizes.p12),
+                              Expanded(
+                                flex: 2,
+                                child: ExtensionNameField(
+                                  controller: _extController,
+                                  suggestions: _extSuggestions,
+                                ),
                               ),
+                              const SizedBox(width: AppSizes.p12),
+                              Expanded(
+                                flex: 3,
+                                child: TextFormField(
+                                  controller: _middleNameController,
+                                  textCapitalization: TextCapitalization.characters,
+                                  inputFormatters: [UpperCaseWordsFormatter()],
+                                  decoration: const InputDecoration(
+                                    labelText: 'MIDDLE NAME (Optional)',
+                                    prefixIcon: Icon(Icons.badge_outlined),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: AppSizes.p12),
+                          TextFormField(
+                            controller: _lastNameController,
+                            textCapitalization: TextCapitalization.characters,
+                            inputFormatters: [UpperCaseWordsFormatter()],
+                            validator: (v) => _validateRequired(v, 'Last name'),
+                            decoration: const InputDecoration(
+                              labelText: 'LAST NAME',
+                              prefixIcon: Icon(Icons.badge_outlined),
                             ),
                           ),
                         ],
+                      )
+                    else
+                      Column(
+                        children: [
+                          TextFormField(
+                            controller: _firstNameController,
+                            textCapitalization: TextCapitalization.characters,
+                            inputFormatters: [UpperCaseWordsFormatter()],
+                            validator: (v) => _validateRequired(v, 'First name'),
+                            decoration: const InputDecoration(labelText: 'FIRST NAME'),
+                          ),
+                          const SizedBox(height: AppSizes.p12),
+                          ExtensionNameField(
+                            controller: _extController,
+                            suggestions: _extSuggestions,
+                          ),
+                          const SizedBox(height: AppSizes.p12),
+                          TextFormField(
+                            controller: _middleNameController,
+                            textCapitalization: TextCapitalization.characters,
+                            inputFormatters: [UpperCaseWordsFormatter()],
+                            decoration: const InputDecoration(labelText: 'MIDDLE NAME (Optional)'),
+                          ),
+                          const SizedBox(height: AppSizes.p12),
+                          TextFormField(
+                            controller: _lastNameController,
+                            textCapitalization: TextCapitalization.characters,
+                            inputFormatters: [UpperCaseWordsFormatter()],
+                            validator: (v) => _validateRequired(v, 'Last name'),
+                            decoration: const InputDecoration(labelText: 'LAST NAME'),
+                          ),
+                        ],
                       ),
-                      const SizedBox(height: AppSizes.p12),
-                      TextFormField(
-                        controller: _lastNameController,
-                        textCapitalization: TextCapitalization.characters,
-                        inputFormatters: [UpperCaseWordsFormatter()],
-                        validator: (v) => _validateRequired(v, 'Last name'),
-                        decoration: const InputDecoration(
-                          labelText: 'LAST NAME',
-                          prefixIcon: Icon(Icons.badge_outlined),
-                        ),
+                    const SizedBox(height: AppSizes.p16),
+                    const SectionLabel(label: 'PERSONAL INFORMATION'),
+                    const SizedBox(height: AppSizes.p8),
+                    if (wide)
+                      Row(
+                        children: [
+                          Expanded(child: sexDropdown),
+                          const SizedBox(width: AppSizes.p12),
+                          Expanded(child: statusDropdown),
+                        ],
+                      )
+                    else
+                      Column(
+                        children: [
+                          sexDropdown,
+                          const SizedBox(height: AppSizes.p12),
+                          statusDropdown,
+                        ],
                       ),
-                    ],
-                  );
-                } else {
-                  return Column(
-                    children: [
-                      TextFormField(
-                        controller: _firstNameController,
-                        textCapitalization: TextCapitalization.characters,
-                        inputFormatters: [UpperCaseWordsFormatter()],
-                        validator: (v) => _validateRequired(v, 'First name'),
-                        decoration: const InputDecoration(labelText: 'FIRST NAME'),
-                      ),
-                      const SizedBox(height: AppSizes.p12),
-                      ExtensionNameField(
-                        controller: _extController,
-                        suggestions: _extSuggestions,
-                      ),
-                      const SizedBox(height: AppSizes.p12),
-                      TextFormField(
-                        controller: _middleNameController,
-                        textCapitalization: TextCapitalization.characters,
-                        inputFormatters: [UpperCaseWordsFormatter()],
-                        decoration: const InputDecoration(labelText: 'MIDDLE NAME (Optional)'),
-                      ),
-                      const SizedBox(height: AppSizes.p12),
-                      TextFormField(
-                        controller: _lastNameController,
-                        textCapitalization: TextCapitalization.characters,
-                        inputFormatters: [UpperCaseWordsFormatter()],
-                        validator: (v) => _validateRequired(v, 'Last name'),
-                        decoration: const InputDecoration(labelText: 'LAST NAME'),
-                      ),
-                    ],
-                  );
-                }
+                  ],
+                );
               },
-            ),
-            const SizedBox(height: AppSizes.p16),
-            const SectionLabel(label: 'PERSONAL INFORMATION'),
-            const SizedBox(height: AppSizes.p8),
-            Row(
-              children: [
-                Expanded(
-                  child: DropdownButtonFormField<String>(
-                    key: const ValueKey('edit_sex_dropdown'),
-                    initialValue: _selectedSex,
-                    validator: (v) => v == null ? 'Please select sex.' : null,
-                    isExpanded: true,
-                    decoration: const InputDecoration(
-                      labelText: 'SEX',
-                      prefixIcon: Icon(Icons.wc),
-                    ),
-                    items: ['Male', 'Female']
-                        .map((s) => DropdownMenuItem(value: s, child: Text(s)))
-                        .toList(),
-                    onChanged: (v) {
-                      if (v != null) {
-                        setState(() => _selectedSex = v);
-                      }
-                    },
-                  ),
-                ),
-                const SizedBox(width: AppSizes.p12),
-                Expanded(
-                  child: DropdownButtonFormField<String>(
-                    key: const ValueKey('edit_status_dropdown'),
-                    initialValue: _selectedStatus,
-                    decoration: const InputDecoration(
-                      labelText: 'STATUS',
-                      prefixIcon: Icon(Icons.info_outline),
-                    ),
-                    items: _statuses
-                        .map((s) => DropdownMenuItem(value: s, child: Text(s)))
-                        .toList(),
-                    onChanged: (v) {
-                      if (v != null) {
-                        setState(() => _selectedStatus = v);
-                      }
-                    },
-                  ),
-                ),
-              ],
             ),
             const SizedBox(height: AppSizes.p12),
             DobPicker(
@@ -470,14 +525,15 @@ class _EditStudentModalState extends ConsumerState<EditStudentModal> {
               ErrorBanner(message: _errorMessage!),
             ],
             const SizedBox(height: AppSizes.p24),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.end,
+            Wrap(
+              alignment: WrapAlignment.end,
+              spacing: 12,
+              runSpacing: 12,
               children: [
                 OutlinedButton(
                   onPressed: _confirmClose,
                   child: const Text('CANCEL'),
                 ),
-                const SizedBox(width: 12),
                 PrimaryButton(
                   label: 'SAVE CHANGES',
                   isLoading: _isLoading,
