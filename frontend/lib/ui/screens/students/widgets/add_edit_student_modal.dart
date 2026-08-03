@@ -1035,13 +1035,18 @@ class _AddEditStudentModalState extends ConsumerState<AddEditStudentModal> {
               ),
             ),
           ),
-          const SizedBox(height: 12),
-          SizedBox(
-            width: double.infinity,
-            child: PrimaryButton(
-              label: 'UPDATE DETAILS',
-              isLoading: _isLoading,
-              onPressed: _handleSaveDetails,
+          Padding(
+            padding: EdgeInsets.symmetric(
+              horizontal: isMobile ? 16 : 24,
+              vertical: 16,
+            ),
+            child: SizedBox(
+              width: double.infinity,
+              child: PrimaryButton(
+                label: 'UPDATE DETAILS',
+                isLoading: _isLoading,
+                onPressed: _handleSaveDetails,
+              ),
             ),
           ),
         ],
@@ -1052,9 +1057,11 @@ class _AddEditStudentModalState extends ConsumerState<AddEditStudentModal> {
   Widget _buildEnrollmentsTabContent(bool isMobile) {
     final studentDetailAsync = ref.watch(studentDetailProvider(widget.student!.id));
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
+    return Padding(
+      padding: EdgeInsets.all(isMobile ? 16 : 24),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
         LayoutBuilder(
           builder: (ctx, constraints) {
             final isStacked = constraints.maxWidth < 420 ||
@@ -1281,8 +1288,9 @@ class _AddEditStudentModalState extends ConsumerState<AddEditStudentModal> {
           ),
         ),
       ],
-    );
-  }
+    ),
+  );
+}
 
   // -----------------------------------------------------  // BUILD — full-screen Scaffold with under-header line stepper
   // ----------------------------------------------------------------
@@ -2768,201 +2776,6 @@ class _OcrProgressLoaderState extends State<_OcrProgressLoader> {
           ),
           const SizedBox(height: AppSizes.p8),
 
-validator: (v) {
-                                  if (v == null ||
-                                      v.isEmpty ||
-                                      _selectedSectionId == null) {
-                                    return 'Please select a valid section.';
-                                  }
-                                  return null;
-                                },
-                              );
-                            },
-                      );
-                    },
-                    loading: () =>
-                        const Center(child: CircularProgressIndicator()),
-                    error: (err, _) => Text(
-                      'Error: $err',
-                      style: const TextStyle(color: Colors.red),
-                    ),
-                  ),
-
-                  if (_selectedGradeLevel != null &&
-                      _selectedGradeLevel! >= 11) ...[
-                    const SizedBox(height: AppSizes.p12),
-                    TextFormField(
-                      initialValue: _trackStrand,
-                      decoration: const InputDecoration(
-                        labelText: 'Track & Strand (for SHS)',
-                        prefixIcon: Icon(Icons.school_outlined),
-                      ),
-                      onChanged: (val) =>
-                          _trackStrand = val.trim().isEmpty ? null : val.trim(),
-                    ),
-                  ],
-
-                  if (isEdit) ...[
-                    const SizedBox(height: AppSizes.p12),
-                    DropdownButtonFormField<String>(
-                      key: ValueKey('status_$_selectedStatus'),
-                      initialValue: _selectedStatus,
-                      isExpanded: true,
-                      decoration: const InputDecoration(
-                        labelText: 'Status',
-                        prefixIcon: Icon(Icons.info_outline),
-                      ),
-                      items: _statuses
-                          .map(
-                            (s) => DropdownMenuItem(value: s, child: Text(s)),
-                          )
-                          .toList(),
-                      onChanged: (v) => setState(() => _selectedStatus = v!),
-                      validator: (v) {
-                        if (v == 'Graduated' &&
-                            _selectedGradeLevel != 10 &&
-                            _selectedGradeLevel != 12) {
-                          return 'Graduation only allowed for Grade 10 and Grade 12.';
-                        }
-                        return null;
-                      },
-                    ),
-                  ],
-                ],
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-// ================================================================
-// OCR PROGRESS LOADER — simulated progress bar with estimated time
-// ================================================================
-class _OcrProgressLoader extends StatefulWidget {
-  final String docType;
-  const _OcrProgressLoader({required this.docType});
-
-  @override
-  State<_OcrProgressLoader> createState() => _OcrProgressLoaderState();
-}
-
-class _OcrProgressLoaderState extends State<_OcrProgressLoader> {
-  static const int _maxSeconds = 30;
-
-  double _progress = 0.0;
-  int _elapsed = 0;
-  Timer? _timer;
-
-  @override
-  void initState() {
-    super.initState();
-    _timer = Timer.periodic(const Duration(seconds: 1), (_) {
-      if (!mounted) return;
-      setState(() {
-        _elapsed = (_elapsed + 1).clamp(0, _maxSeconds);
-        _progress = 0.85 * (1 - (1 / (1 + _elapsed / 8)));
-      });
-    });
-  }
-
-  @override
-  void dispose() {
-    _timer?.cancel();
-    super.dispose();
-  }
-
-  String get _etaLabel {
-    final remaining = (_maxSeconds - _elapsed).clamp(0, _maxSeconds);
-    if (remaining <= 0) return 'Almost done…';
-    return 'Est. ~$remaining s remaining';
-  }
-
-  String get _phaseLabel {
-    if (_progress < 0.25) return 'Uploading document…';
-    if (_progress < 0.55) return 'Running OCR engine…';
-    if (_progress < 0.78) return 'Parsing extracted text…';
-    return 'Finalizing data…';
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final pct = (_progress * 100).toStringAsFixed(0);
-
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: AppSizes.p24),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Container(
-            padding: const EdgeInsets.all(AppSizes.p16),
-            decoration: BoxDecoration(
-              color: AppColors.primaryGreen.withValues(alpha: 0.08),
-              shape: BoxShape.circle,
-            ),
-            child: const Icon(
-              Icons.document_scanner_outlined,
-              size: 48,
-              color: AppColors.primaryGreen,
-            ),
-          ),
-          const SizedBox(height: AppSizes.p16),
-
-          Text(
-            'Scanning ${widget.docType}…',
-            style: const TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
-              color: AppColors.textPrimary,
-            ),
-          ),
-          const SizedBox(height: AppSizes.p4),
-
-          Text(
-            _phaseLabel,
-            style: const TextStyle(
-              color: AppColors.textSecondary,
-              fontSize: 13,
-            ),
-          ),
-          const SizedBox(height: AppSizes.p24),
-
-          Row(
-            children: [
-              Expanded(
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(AppSizes.radiusCircular),
-                  child: LinearProgressIndicator(
-                    value: _progress,
-                    minHeight: 10,
-                    backgroundColor: AppColors.primaryGreen.withValues(
-                      alpha: 0.12,
-                    ),
-                    valueColor: const AlwaysStoppedAnimation<Color>(
-                      AppColors.primaryGreen,
-                    ),
-                  ),
-                ),
-              ),
-              const SizedBox(width: AppSizes.p12),
-              SizedBox(
-                width: 38,
-                child: Text(
-                  '$pct%',
-                  textAlign: TextAlign.right,
-                  style: const TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 13,
-                    color: AppColors.primaryGreen,
-                  ),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: AppSizes.p8),
-
           Align(
             alignment: Alignment.centerRight,
             child: Text(
@@ -3151,7 +2964,6 @@ class _ExtensionNameFieldState extends State<_ExtensionNameField> {
     );
   }
 }
-
 // ================================================================
 // DOB MASKED INPUT FORMATTER
 // Accepts digits only. Auto-inserts dashes: MM-DD-YYYY
