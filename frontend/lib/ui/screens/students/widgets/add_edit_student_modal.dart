@@ -1678,7 +1678,7 @@ class _AddEditStudentModalState extends ConsumerState<AddEditStudentModal> {
           _SectionLabel(label: 'PERSONAL INFORMATION'),
           const SizedBox(height: AppSizes.p8),
           DropdownButtonFormField<String>(
-            key: ValueKey('sex_$_selectedSex'),
+            key: const ValueKey('sex_dropdown'),
             initialValue: _selectedSex,
             validator: (v) => v == null ? 'Please select sex.' : null,
             isExpanded: true,
@@ -1689,12 +1689,22 @@ class _AddEditStudentModalState extends ConsumerState<AddEditStudentModal> {
             items: ['Male', 'Female']
                 .map((s) => DropdownMenuItem(value: s, child: Text(s)))
                 .toList(),
-            onChanged: (v) => setState(() => _selectedSex = v!),
+            onChanged: (v) {
+              if (v != null) {
+                WidgetsBinding.instance.addPostFrameCallback((_) {
+                  if (mounted) setState(() => _selectedSex = v);
+                });
+              }
+            },
           ),
           const SizedBox(height: AppSizes.p12),
           _DobPicker(
             initialDate: _selectedDob,
-            onChanged: (val) => setState(() => _selectedDob = val),
+            onChanged: (val) {
+              WidgetsBinding.instance.addPostFrameCallback((_) {
+                if (mounted) setState(() => _selectedDob = val);
+              });
+            },
           ),
           const SizedBox(height: AppSizes.p16),
           _SectionLabel(label: 'GOVERNMENT AID STATUS'),
@@ -1713,7 +1723,11 @@ class _AddEditStudentModalState extends ConsumerState<AddEditStudentModal> {
             ),
             child: SwitchListTile(
               value: _is4ps,
-              onChanged: (val) => setState(() => _is4ps = val),
+              onChanged: (val) {
+                WidgetsBinding.instance.addPostFrameCallback((_) {
+                  if (mounted) setState(() => _is4ps = val);
+                });
+              },
               activeColor: Colors.deepPurple,
               title: const Text('4Ps Beneficiary',
                   style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
