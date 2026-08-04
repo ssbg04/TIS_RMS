@@ -815,11 +815,9 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
                   ),
                   tabs: const [
                     Tab(
-                      icon: Icon(Icons.folder, size: 18),
                       text: 'Student Folders',
                     ),
                     Tab(
-                      icon: Icon(Icons.description, size: 18),
                       text: 'All Documents',
                     ),
                   ],
@@ -1159,9 +1157,30 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
 
           if (!isFolderOpened) ...[
             IconButton(
-              icon: const Icon(Icons.search, size: 28, color: Colors.black87),
-              tooltip: 'Search Documents',
-              onPressed: () => _showSearchDialog(context),
+              icon: Icon(
+                (_searchController.text.isNotEmpty || query.search.isNotEmpty)
+                    ? Icons.close
+                    : Icons.search,
+                size: 28,
+                color: Colors.black87,
+              ),
+              tooltip:
+                  (_searchController.text.isNotEmpty || query.search.isNotEmpty)
+                      ? 'Clear Search'
+                      : 'Search Documents',
+              onPressed: () {
+                if (_searchController.text.isNotEmpty ||
+                    query.search.isNotEmpty) {
+                  _searchController.clear();
+                  ref.read(documentQueryProvider.notifier).setSearch('');
+                  setState(() => _foldersPage = 1);
+                  ref.invalidate(foldersProvider);
+                  ref.invalidate(studentFoldersProvider);
+                  ref.invalidate(documentPageProvider);
+                } else {
+                  _showSearchDialog(context);
+                }
+              },
             ),
           ],
 
