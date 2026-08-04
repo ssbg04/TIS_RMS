@@ -921,21 +921,22 @@ class _AddStudentModalState extends ConsumerState<AddStudentModal> {
                   final isKeyboardOpen = MediaQuery.of(ctx).viewInsets.bottom > 100;
                   if (isKeyboardOpen) return const SizedBox.shrink();
                   return Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 24,
-                    vertical: 16,
-                  ),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withValues(alpha: 0.06),
-                        blurRadius: 10,
-                        offset: const Offset(0, -2),
-                      ),
-                    ],
-                  ),
-                  child: Wrap(
+                    width: double.infinity,
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 24,
+                      vertical: 16,
+                    ),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.06),
+                          blurRadius: 10,
+                          offset: const Offset(0, -2),
+                        ),
+                      ],
+                    ),
+                    child: Wrap(
                     alignment: WrapAlignment.spaceBetween,
                     crossAxisAlignment: WrapCrossAlignment.center,
                     spacing: 12,
@@ -1001,7 +1002,7 @@ class _AddStudentModalState extends ConsumerState<AddStudentModal> {
                     Wrap(
                       spacing: 12,
                       runSpacing: 12,
-                      alignment: WrapAlignment.end,
+                      alignment: WrapAlignment.center,
                       children: [
                         if (isOcrStep) ...[
                           OutlinedButton.icon(
