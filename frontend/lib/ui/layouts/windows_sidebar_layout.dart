@@ -2,7 +2,6 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../../core/constants/app_colors.dart';
-import '../../core/constants/app_sizes.dart';
 import '../screens/dashboard/dashboard_screen.dart';
 import '../screens/settings/settings_screen.dart';
 import '../screens/students/students_screen.dart';
@@ -126,8 +125,11 @@ class _WindowsSidebarLayoutState extends ConsumerState<WindowsSidebarLayout> {
                           ),
                           child: Text(
                             category.toUpperCase(),
-                            style: const TextStyle(
-                              color: AppColors.textSecondary,
+                            style: TextStyle(
+                              color: Theme.of(context)
+                                  .colorScheme
+                                  .onSurface
+                                  .withOpacity(0.6),
                               fontSize: 11,
                               fontWeight: FontWeight.bold,
                               letterSpacing: 1.0,
@@ -191,7 +193,10 @@ class _WindowsSidebarLayoutState extends ConsumerState<WindowsSidebarLayout> {
                                 as IconData,
                             color: isSelected
                                 ? AppColors.primaryGreen
-                                : Colors.grey.shade600,
+                                : Theme.of(context)
+                                    .colorScheme
+                                    .onSurface
+                                    .withOpacity(0.6),
                             size: 22,
                           ),
                           const SizedBox(width: 20),
@@ -208,7 +213,10 @@ class _WindowsSidebarLayoutState extends ConsumerState<WindowsSidebarLayout> {
                                       : FontWeight.w500,
                                   color: isSelected
                                       ? AppColors.primaryGreen
-                                      : Colors.grey.shade700,
+                                      : Theme.of(context)
+                                          .colorScheme
+                                          .onSurface
+                                          .withOpacity(0.8),
                                 ),
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
@@ -357,7 +365,7 @@ class _WindowsSidebarLayoutState extends ConsumerState<WindowsSidebarLayout> {
         }
       },
       child: Scaffold(
-        backgroundColor: AppColors.pageBackground, // Solid Off-white beige
+        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
         body: Column(
           children: [
             if (!kIsWeb &&
@@ -388,10 +396,10 @@ class _WindowsSidebarLayoutState extends ConsumerState<WindowsSidebarLayout> {
                     curve: Curves.easeInOut,
                     width: _isMinimized ? 80 : 260,
                     decoration: BoxDecoration(
-                      color: AppColors.surfaceWhite,
+                      color: Theme.of(context).colorScheme.surface,
                       border: Border(
                         right: BorderSide(
-                          color: Colors.grey.shade200,
+                          color: Theme.of(context).dividerColor,
                           width: 1,
                         ),
                       ),
@@ -459,12 +467,14 @@ class _WindowsSidebarLayoutState extends ConsumerState<WindowsSidebarLayout> {
                                         milliseconds: 200,
                                       ),
                                       opacity: _isMinimized ? 0.0 : 1.0,
-                                      child: const Text(
+                                      child: Text(
                                         'TIS RMS',
                                         style: TextStyle(
                                           fontSize: 18,
                                           fontWeight: FontWeight.bold,
-                                          color: Colors.black87,
+                                          color: Theme.of(context)
+                                              .colorScheme
+                                              .onSurface,
                                           letterSpacing: 1.2,
                                         ),
                                         maxLines: 1,
@@ -476,9 +486,12 @@ class _WindowsSidebarLayoutState extends ConsumerState<WindowsSidebarLayout> {
                                     duration: const Duration(milliseconds: 200),
                                     opacity: _isMinimized ? 0.0 : 1.0,
                                     child: IconButton(
-                                      icon: const Icon(
+                                      icon: Icon(
                                         Icons.menu,
-                                        color: Colors.black54,
+                                        color: Theme.of(context)
+                                            .colorScheme
+                                            .onSurface
+                                            .withOpacity(0.6),
                                       ),
                                       onPressed: () {
                                         if (!_isMinimized)
@@ -553,7 +566,10 @@ class _WindowsSidebarLayoutState extends ConsumerState<WindowsSidebarLayout> {
                         ),
 
                         // Bottom Section: User Profile & Logout
-                        const Divider(height: 1, color: Colors.black12),
+                        Divider(
+                          height: 1,
+                          color: Theme.of(context).dividerColor,
+                        ),
                         SingleChildScrollView(
                           scrollDirection: Axis.horizontal,
                           physics: const NeverScrollableScrollPhysics(),
@@ -616,19 +632,24 @@ class _WindowsSidebarLayoutState extends ConsumerState<WindowsSidebarLayout> {
                                                     .value
                                                     ?.fullName ??
                                                 'Unknown User',
-                                            style: const TextStyle(
+                                            style: TextStyle(
                                               fontWeight: FontWeight.bold,
                                               fontSize: 14,
-                                              color: Colors.black87,
+                                              color: Theme.of(context)
+                                                  .colorScheme
+                                                  .onSurface,
                                             ),
                                             maxLines: 1,
                                             overflow: TextOverflow.ellipsis,
                                           ),
                                           Text(
                                             widget.userRole.toUpperCase(),
-                                            style: const TextStyle(
+                                            style: TextStyle(
                                               fontSize: 12,
-                                              color: Colors.black54,
+                                              color: Theme.of(context)
+                                                  .colorScheme
+                                                  .onSurface
+                                                  .withOpacity(0.6),
                                             ),
                                           ),
                                         ],
@@ -639,9 +660,12 @@ class _WindowsSidebarLayoutState extends ConsumerState<WindowsSidebarLayout> {
                                     duration: const Duration(milliseconds: 200),
                                     opacity: _isMinimized ? 0.0 : 1.0,
                                     child: IconButton(
-                                      icon: const Icon(
+                                      icon: Icon(
                                         Icons.logout,
-                                        color: Colors.black54,
+                                        color: Theme.of(context)
+                                            .colorScheme
+                                            .onSurface
+                                            .withOpacity(0.6),
                                       ),
                                       tooltip: 'Logout',
                                       onPressed: () {

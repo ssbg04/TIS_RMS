@@ -154,4 +154,155 @@ class AppTheme {
       textTheme: GoogleFonts.interTextTheme(),
     );
   }
+
+  static ThemeData get darkTheme {
+    return ThemeData(
+      useMaterial3: true,
+      brightness: Brightness.dark,
+      scaffoldBackgroundColor: AppColors.darkPageBackground,
+      primaryColor: AppColors.primaryGreen,
+
+      // Color Scheme
+      colorScheme: ColorScheme.fromSeed(
+        seedColor: AppColors.primaryGreen,
+        brightness: Brightness.dark,
+        primary: AppColors.primaryGreen,
+        secondary: AppColors.darkGreen,
+        surface: AppColors.darkSurfaceCard,
+        onSurface: AppColors.darkTextPrimary,
+        error: AppColors.error,
+      ),
+
+      // AppBar Theme
+      appBarTheme: AppBarTheme(
+        backgroundColor: AppColors.darkSurfaceCard,
+        elevation: 1,
+        shadowColor: Colors.black.withOpacity(0.2),
+        scrolledUnderElevation: 0,
+        iconTheme: const IconThemeData(color: AppColors.darkTextPrimary),
+        titleTextStyle: GoogleFonts.inter(
+          color: AppColors.darkTextPrimary,
+          fontSize: 20,
+          fontWeight: FontWeight.w600,
+        ),
+      ),
+
+      // Card Theme
+      cardTheme: CardThemeData(
+        color: AppColors.darkSurfaceCard,
+        elevation: 2,
+        shadowColor: Colors.black.withOpacity(0.3),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(AppSizes.radiusMedium),
+        ),
+        margin: EdgeInsets.zero,
+      ),
+
+      // Elevated Button Theme
+      elevatedButtonTheme: ElevatedButtonThemeData(
+        style: ElevatedButton.styleFrom(
+          backgroundColor: AppColors.primaryGreen,
+          foregroundColor: Colors.white,
+          elevation: 2,
+          shadowColor: AppColors.primaryGreen.withOpacity(0.4),
+          padding: const EdgeInsets.symmetric(
+            horizontal: AppSizes.p24,
+            vertical: AppSizes.p16,
+          ),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(AppSizes.radiusMedium),
+          ),
+          textStyle: GoogleFonts.inter(
+            fontSize: 14,
+            fontWeight: FontWeight.w600,
+            letterSpacing: 0.5,
+          ),
+        ),
+      ),
+
+      // Outlined Button Theme
+      outlinedButtonTheme: OutlinedButtonThemeData(
+        style: OutlinedButton.styleFrom(
+          foregroundColor: AppColors.primaryGreen,
+          side: const BorderSide(color: AppColors.primaryGreen, width: 1.5),
+          padding: const EdgeInsets.symmetric(
+            horizontal: AppSizes.p24,
+            vertical: AppSizes.p16,
+          ),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(AppSizes.radiusMedium),
+          ),
+          textStyle: GoogleFonts.inter(
+            fontSize: 14,
+            fontWeight: FontWeight.w600,
+            letterSpacing: 0.5,
+          ),
+        ),
+      ),
+
+      // Text Button Theme
+      textButtonTheme: TextButtonThemeData(
+        style: TextButton.styleFrom(
+          foregroundColor: AppColors.primaryGreen,
+          padding: const EdgeInsets.symmetric(
+            horizontal: AppSizes.p16,
+            vertical: AppSizes.p12,
+          ),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(AppSizes.radiusMedium),
+          ),
+          textStyle: GoogleFonts.inter(
+            fontSize: 14,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+      ),
+
+      // Default Input Decoration (Text Fields)
+      inputDecorationTheme: InputDecorationTheme(
+        filled: true,
+        fillColor: AppColors.darkSurface2,
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: AppSizes.p16,
+          vertical: AppSizes.p16,
+        ),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(AppSizes.radiusMedium),
+          borderSide: BorderSide.none,
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(AppSizes.radiusMedium),
+          borderSide: BorderSide.none,
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(AppSizes.radiusMedium),
+          borderSide: const BorderSide(
+            color: AppColors.primaryGreen,
+            width: 2.0,
+          ),
+        ),
+        errorBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(AppSizes.radiusMedium),
+          borderSide: const BorderSide(color: AppColors.error, width: 1.5),
+        ),
+        focusedErrorBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(AppSizes.radiusMedium),
+          borderSide: const BorderSide(color: AppColors.error, width: 2.0),
+        ),
+        hintStyle: GoogleFonts.inter(color: AppColors.darkTextMuted),
+        labelStyle: GoogleFonts.inter(color: AppColors.darkTextSecondary),
+      ),
+
+      // ListTile Theme
+      listTileTheme: ListTileThemeData(
+        contentPadding: const EdgeInsets.symmetric(horizontal: AppSizes.p16),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(AppSizes.radiusSmall),
+        ),
+      ),
+
+      // Font Family & Typography
+      textTheme: GoogleFonts.interTextTheme(ThemeData.dark().textTheme),
+    );
+  }
 }

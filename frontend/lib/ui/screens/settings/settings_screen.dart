@@ -17,6 +17,7 @@ import '../../shared/dialogs/info_dialog.dart';
 import 'teacher_management_screen.dart';
 import '../../../domain/entities/setup_models.dart';
 import '../../providers/system_settings_provider.dart';
+import '../../providers/theme_provider.dart';
 class TitleCaseTextInputFormatter extends TextInputFormatter {
   @override
   TextEditingValue formatEditUpdate(TextEditingValue oldValue, TextEditingValue newValue) {
@@ -1269,6 +1270,87 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                         const SizedBox(height: AppSizes.p24),
                       ],
 
+                      // ── Appearance / Dark Mode Card ────────────────────────
+                      _buildCard(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Row(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Icon(
+                                  Icons.palette_outlined,
+                                  color: AppColors.primaryGreen,
+                                ),
+                                SizedBox(width: AppSizes.p8),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        'Appearance',
+                                        style: TextStyle(
+                                          fontSize: 18,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                      Text(
+                                        'Choose your preferred theme mode.',
+                                        style: TextStyle(
+                                          fontSize: 13,
+                                          color: AppColors.textSecondary,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const Divider(height: 28),
+                            Consumer(
+                              builder: (context, ref, child) {
+                                final themeNotifier =
+                                    ref.watch(themeModeProvider.notifier);
+                                final currentKey = themeNotifier.currentKey;
+
+                                return Wrap(
+                                  spacing: 12,
+                                  runSpacing: 12,
+                                  children: [
+                                    _buildThemeOptionChip(
+                                      label: 'System',
+                                      icon: Icons.brightness_auto_rounded,
+                                      value: 'system',
+                                      currentValue: currentKey,
+                                      onSelect: () => themeNotifier
+                                          .setThemeMode('system'),
+                                    ),
+                                    _buildThemeOptionChip(
+                                      label: 'Light',
+                                      icon: Icons.light_mode_rounded,
+                                      value: 'light',
+                                      currentValue: currentKey,
+                                      onSelect: () => themeNotifier
+                                          .setThemeMode('light'),
+                                    ),
+                                    _buildThemeOptionChip(
+                                      label: 'Dark',
+                                      icon: Icons.dark_mode_rounded,
+                                      value: 'dark',
+                                      currentValue: currentKey,
+                                      onSelect: () => themeNotifier
+                                          .setThemeMode('dark'),
+                                    ),
+                                  ],
+                                );
+                              },
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: AppSizes.p24),
+
                       // ── Change Password Card ──────────────────────────────
                       _buildCard(
                         child: Form(
@@ -1455,6 +1537,33 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           value,
         );
       },
+    );
+  }
+
+  Widget _buildThemeOptionChip({
+    required String label,
+    required IconData icon,
+    required String value,
+    required String currentValue,
+    required VoidCallback onSelect,
+  }) {
+    final isSelected = value == currentValue;
+    return ChoiceChip(
+      avatar: Icon(
+        icon,
+        size: 18,
+        color: isSelected ? Colors.white : AppColors.primaryGreen,
+      ),
+      label: Text(
+        label,
+        style: TextStyle(
+          color: isSelected ? Colors.white : AppColors.textPrimary,
+          fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+        ),
+      ),
+      selected: isSelected,
+      selectedColor: AppColors.primaryGreen,
+      onSelected: (_) => onSelect(),
     );
   }
 

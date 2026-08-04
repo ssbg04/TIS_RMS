@@ -13,6 +13,7 @@ import 'core/theme/app_theme.dart'; // Add this import
 import 'core/constants/app_colors.dart';
 import 'core/services/notification_service.dart';
 import 'core/services/background_sync_service.dart';
+import 'ui/providers/theme_provider.dart';
 import 'ui/shared/widgets/inactivity_wrapper.dart';
 import 'package:workmanager/workmanager.dart';
 
@@ -67,11 +68,13 @@ void main() async {
 
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
-class TisRmsApp extends StatelessWidget {
+class TisRmsApp extends ConsumerWidget {
   const TisRmsApp({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final themeMode = ref.watch(themeModeProvider);
+
     return InactivityWrapper(
       navigatorKey: navigatorKey,
       child: MaterialApp(
@@ -79,8 +82,9 @@ class TisRmsApp extends StatelessWidget {
         title: 'TIS RMS',
         debugShowCheckedModeBanner: false,
 
-        // Clean, centralized theme reference!
         theme: AppTheme.lightTheme,
+        darkTheme: AppTheme.darkTheme,
+        themeMode: themeMode,
 
         builder: (context, child) {
           return ColoredBox(
