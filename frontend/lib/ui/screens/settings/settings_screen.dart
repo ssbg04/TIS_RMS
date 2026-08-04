@@ -526,20 +526,23 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       // Header
-                      const Text(
+                      Text(
                         'Account Settings',
                         style: TextStyle(
                           fontSize: 28,
                           fontWeight: FontWeight.bold,
-                          color: AppColors.textPrimary,
+                          color: Theme.of(context).colorScheme.onSurface,
                         ),
                       ),
                       const SizedBox(height: AppSizes.p8),
-                      const Text(
+                      Text(
                         'Manage your profile information and security settings.',
                         style: TextStyle(
                           fontSize: 16,
-                          color: AppColors.textSecondary,
+                          color: Theme.of(context)
+                              .colorScheme
+                              .onSurface
+                              .withValues(alpha: 0.7),
                         ),
                       ),
                       const SizedBox(height: AppSizes.p32),
@@ -751,7 +754,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                                             'Configure required documents for JHS and SHS',
                                             style: TextStyle(
                                               fontSize: 13,
-                                              color: AppColors.textSecondary,
+                                              color: Colors.grey,
                                             ),
                                           ),
                                         ],
@@ -759,7 +762,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                                     ),
                                     Icon(
                                       Icons.chevron_right,
-                                      color: AppColors.textSecondary,
+                                      color: Colors.grey,
                                     ),
                                   ],
                                 ),
@@ -839,7 +842,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                                             'Manage teachers, academic years, grade levels, and sections',
                                             style: TextStyle(
                                               fontSize: 13,
-                                              color: AppColors.textSecondary,
+                                              color: Colors.grey,
                                             ),
                                           ),
                                         ],
@@ -847,7 +850,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                                     ),
                                     Icon(
                                       Icons.chevron_right,
-                                      color: AppColors.textSecondary,
+                                      color: Colors.grey,
                                     ),
                                   ],
                                 ),
@@ -922,7 +925,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                                               'Configure schedule dates for automatic sequential graduation of Grade 10 & 12 students',
                                               style: TextStyle(
                                                 fontSize: 13,
-                                                color: AppColors.textSecondary,
+                                                color: Colors.grey,
                                               ),
                                             ),
                                           ],
@@ -1171,7 +1174,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                                               'Automatically extract Academic Year, Grade Level, and Section from uploaded or scanned SF10/SF9 documents to update student enrollment records.',
                                               style: TextStyle(
                                                 fontSize: 13,
-                                                color: AppColors.textSecondary,
+                                                color: Colors.grey,
                                               ),
                                             ),
                                           ],
@@ -1275,7 +1278,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            const Row(
+                            Row(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Icon(
@@ -1299,7 +1302,10 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                                         'Choose your preferred theme mode.',
                                         style: TextStyle(
                                           fontSize: 13,
-                                          color: AppColors.textSecondary,
+                                          color: Theme.of(context)
+                                              .colorScheme
+                                              .onSurface
+                                              .withValues(alpha: 0.7),
                                         ),
                                       ),
                                     ],
@@ -1363,7 +1369,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                                 children: [
                                   const Icon(
                                     Icons.lock_outline,
-                                    color: AppColors.textPrimary,
+                                    color: AppColors.primaryGreen,
                                   ),
                                   const SizedBox(width: AppSizes.p8),
                                   Expanded(
@@ -1378,11 +1384,14 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                                             fontWeight: FontWeight.bold,
                                           ),
                                         ),
-                                        const Text(
+                                        Text(
                                           'Set a new password for your account.',
                                           style: TextStyle(
                                             fontSize: 13,
-                                            color: AppColors.textSecondary,
+                                            color: Theme.of(context)
+                                                .colorScheme
+                                                .onSurface
+                                                .withValues(alpha: 0.7),
                                           ),
                                         ),
                                       ],
@@ -1494,20 +1503,27 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
 }
 
   Widget _buildCard({required Widget child}) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(AppSizes.p24),
       decoration: BoxDecoration(
-        color: AppColors.surfaceWhite,
+        color: isDark ? AppColors.darkSurfaceCard : AppColors.surfaceWhite,
         borderRadius: BorderRadius.circular(AppSizes.radiusLarge),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.03),
+            color: isDark
+                ? Colors.black.withValues(alpha: 0.25)
+                : Colors.black.withValues(alpha: 0.03),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
         ],
-        border: Border.all(color: Colors.grey.shade200),
+        border: Border.all(
+          color: isDark ? AppColors.darkBorder : Colors.grey.shade200,
+        ),
       ),
       child: child,
     );
@@ -1519,18 +1535,21 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     required String value,
     required String currentValue,
   }) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final isSelected = currentValue == value;
     return ChoiceChip(
       label: Text(
         label,
         style: TextStyle(
-          color: isSelected ? Colors.white : AppColors.textPrimary,
+          color: isSelected
+              ? Colors.white
+              : Theme.of(context).colorScheme.onSurface,
           fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
         ),
       ),
       selected: isSelected,
       selectedColor: AppColors.primaryGreen,
-      backgroundColor: AppColors.pageBackground,
+      backgroundColor: isDark ? AppColors.darkSurface2 : AppColors.pageBackground,
       onSelected: (_) {
         ref.read(systemSettingsProvider.notifier).updateSetting(
           'auto_update_enrollment_from_sf_frequency',
@@ -1547,6 +1566,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     required String currentValue,
     required VoidCallback onSelect,
   }) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final isSelected = value == currentValue;
     return ChoiceChip(
       avatar: Icon(
@@ -1557,12 +1577,15 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       label: Text(
         label,
         style: TextStyle(
-          color: isSelected ? Colors.white : AppColors.textPrimary,
+          color: isSelected
+              ? Colors.white
+              : Theme.of(context).colorScheme.onSurface,
           fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
         ),
       ),
       selected: isSelected,
       selectedColor: AppColors.primaryGreen,
+      backgroundColor: isDark ? AppColors.darkSurface2 : AppColors.pageBackground,
       onSelected: (_) => onSelect(),
     );
   }

@@ -63,14 +63,23 @@ class CustomTextField extends StatelessWidget {
       decoration: InputDecoration(
         labelText: hintText,
         prefixIcon: prefixIcon != null
-            ? Icon(prefixIcon, color: Colors.grey.shade600)
+            ? Icon(
+                prefixIcon,
+                color: Theme.of(context)
+                    .colorScheme
+                    .onSurface
+                    .withValues(alpha: 0.6),
+              )
             : null,
         // Suffix icon only shows if it's a password field and a toggle callback is provided
         suffixIcon: isPassword && onToggleVisibility != null
             ? IconButton(
                 icon: Icon(
                   obscureText ? Icons.visibility_off : Icons.visibility,
-                  color: Colors.grey.shade600,
+                  color: Theme.of(context)
+                      .colorScheme
+                      .onSurface
+                      .withValues(alpha: 0.6),
                 ),
                 onPressed: onToggleVisibility,
               )
