@@ -1,3 +1,5 @@
+import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -272,11 +274,11 @@ class _EditStudentModalState extends ConsumerState<EditStudentModal> {
       if (!mounted) return;
       ref.invalidate(studentPageProvider);
       ref.invalidate(studentDetailProvider(widget.student.id));
-      showSuccessDialog(
+      await showSuccessDialog(
         context,
-        title: 'Student Updated',
-        message: 'The student details have been updated successfully.',
+        message: 'Student updated successfully!',
       );
+      if (!mounted) return;
       Navigator.of(context).pop(true);
     } catch (e) {
       if (!mounted) return;
@@ -373,7 +375,10 @@ class _EditStudentModalState extends ConsumerState<EditStudentModal> {
                                 child: TextFormField(
                                   controller: _firstNameController,
                                   textCapitalization: TextCapitalization.characters,
-                                  inputFormatters: [UpperCaseWordsFormatter()],
+                                  inputFormatters: [
+                                    UpperCaseWordsFormatter(),
+                                    FilteringTextInputFormatter.deny(RegExp(r'[0-9]')),
+                                  ],
                                   validator: (v) => _validateRequired(v, 'First name'),
                                   decoration: const InputDecoration(
                                     labelText: 'FIRST NAME',
@@ -395,7 +400,10 @@ class _EditStudentModalState extends ConsumerState<EditStudentModal> {
                                 child: TextFormField(
                                   controller: _middleNameController,
                                   textCapitalization: TextCapitalization.characters,
-                                  inputFormatters: [UpperCaseWordsFormatter()],
+                                  inputFormatters: [
+                                    UpperCaseWordsFormatter(),
+                                    FilteringTextInputFormatter.deny(RegExp(r'[0-9]')),
+                                  ],
                                   decoration: const InputDecoration(
                                     labelText: 'MIDDLE NAME (Optional)',
                                     prefixIcon: Icon(Icons.badge_outlined),
@@ -408,7 +416,10 @@ class _EditStudentModalState extends ConsumerState<EditStudentModal> {
                           TextFormField(
                             controller: _lastNameController,
                             textCapitalization: TextCapitalization.characters,
-                            inputFormatters: [UpperCaseWordsFormatter()],
+                            inputFormatters: [
+                              UpperCaseWordsFormatter(),
+                              FilteringTextInputFormatter.deny(RegExp(r'[0-9]')),
+                            ],
                             validator: (v) => _validateRequired(v, 'Last name'),
                             decoration: const InputDecoration(
                               labelText: 'LAST NAME',
@@ -423,7 +434,10 @@ class _EditStudentModalState extends ConsumerState<EditStudentModal> {
                           TextFormField(
                             controller: _firstNameController,
                             textCapitalization: TextCapitalization.characters,
-                            inputFormatters: [UpperCaseWordsFormatter()],
+                            inputFormatters: [
+                              UpperCaseWordsFormatter(),
+                              FilteringTextInputFormatter.deny(RegExp(r'[0-9]')),
+                            ],
                             validator: (v) => _validateRequired(v, 'First name'),
                             decoration: const InputDecoration(labelText: 'FIRST NAME'),
                           ),
@@ -436,14 +450,20 @@ class _EditStudentModalState extends ConsumerState<EditStudentModal> {
                           TextFormField(
                             controller: _middleNameController,
                             textCapitalization: TextCapitalization.characters,
-                            inputFormatters: [UpperCaseWordsFormatter()],
+                            inputFormatters: [
+                              UpperCaseWordsFormatter(),
+                              FilteringTextInputFormatter.deny(RegExp(r'[0-9]')),
+                            ],
                             decoration: const InputDecoration(labelText: 'MIDDLE NAME (Optional)'),
                           ),
                           const SizedBox(height: AppSizes.p12),
                           TextFormField(
                             controller: _lastNameController,
                             textCapitalization: TextCapitalization.characters,
-                            inputFormatters: [UpperCaseWordsFormatter()],
+                            inputFormatters: [
+                              UpperCaseWordsFormatter(),
+                              FilteringTextInputFormatter.deny(RegExp(r'[0-9]')),
+                            ],
                             validator: (v) => _validateRequired(v, 'Last name'),
                             decoration: const InputDecoration(labelText: 'LAST NAME'),
                           ),
@@ -535,7 +555,7 @@ class _EditStudentModalState extends ConsumerState<EditStudentModal> {
                   child: const Text('CANCEL'),
                 ),
                 PrimaryButton(
-                  label: 'SAVE CHANGES',
+                  label: 'UPDATE',
                   isLoading: _isLoading,
                   onPressed: _handleSaveDetails,
                 ),
@@ -795,17 +815,17 @@ class _EditStudentModalState extends ConsumerState<EditStudentModal> {
                 fontWeight: FontWeight.bold,
               ),
             ),
-            bottom: const TabBar(
+            bottom: TabBar(
               labelColor: Colors.white,
               unselectedLabelColor: Colors.white70,
               indicatorColor: Colors.white,
               indicatorWeight: 3,
               tabs: [
                 Tab(
-                    icon: Icon(Icons.person_outline, size: 20),
+                    icon: (!kIsWeb && Platform.isAndroid) ? null : const Icon(Icons.person_outline, size: 20),
                     text: 'Student Details'),
                 Tab(
-                    icon: Icon(Icons.school_outlined, size: 20),
+                    icon: (!kIsWeb && Platform.isAndroid) ? null : const Icon(Icons.school_outlined, size: 20),
                     text: 'Enrollments'),
               ],
             ),

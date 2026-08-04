@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -6,10 +7,7 @@ import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_sizes.dart';
 import '../../../../domain/entities/setup_models.dart';
 import '../../../shared/buttons/primary_button.dart';
-import '../../../shared/dialogs/error_dialog.dart';
-import '../../../shared/dialogs/success_dialog.dart';
 import '../../../providers/setup_provider.dart';
-import '../../../providers/document_provider.dart';
 import '../../../providers/ocr_provider.dart';
 import '../../../providers/student_provider.dart';
 import '../../documents/widgets/document_preview_modal.dart';
@@ -390,11 +388,7 @@ class _AddStudentModalState extends ConsumerState<AddStudentModal> {
         is4ps: _is4ps,
       );
       if (!mounted) return;
-      showSuccessDialog(
-        context,
-        title: 'Student Added',
-        message: 'The new student record has been saved successfully.',
-      );
+      ref.invalidate(studentPageProvider);
       Navigator.of(context).pop(true);
     } catch (e) {
       if (!mounted) return;
@@ -524,7 +518,10 @@ class _AddStudentModalState extends ConsumerState<AddStudentModal> {
                           child: TextFormField(
                             controller: _firstNameController,
                             textCapitalization: TextCapitalization.characters,
-                            inputFormatters: [UpperCaseWordsFormatter()],
+                            inputFormatters: [
+                              UpperCaseWordsFormatter(),
+                              FilteringTextInputFormatter.deny(RegExp(r'[0-9]')),
+                            ],
                             validator: (v) => _validateRequired(v, 'First name'),
                             decoration: const InputDecoration(
                               labelText: 'FIRST NAME',
@@ -546,7 +543,10 @@ class _AddStudentModalState extends ConsumerState<AddStudentModal> {
                           child: TextFormField(
                             controller: _middleNameController,
                             textCapitalization: TextCapitalization.characters,
-                            inputFormatters: [UpperCaseWordsFormatter()],
+                            inputFormatters: [
+                              UpperCaseWordsFormatter(),
+                              FilteringTextInputFormatter.deny(RegExp(r'[0-9]')),
+                            ],
                             decoration: const InputDecoration(
                               labelText: 'MIDDLE NAME (Optional)',
                               prefixIcon: Icon(Icons.badge_outlined),
@@ -559,7 +559,10 @@ class _AddStudentModalState extends ConsumerState<AddStudentModal> {
                     TextFormField(
                       controller: _lastNameController,
                       textCapitalization: TextCapitalization.characters,
-                      inputFormatters: [UpperCaseWordsFormatter()],
+                      inputFormatters: [
+                        UpperCaseWordsFormatter(),
+                        FilteringTextInputFormatter.deny(RegExp(r'[0-9]')),
+                      ],
                       validator: (v) => _validateRequired(v, 'Last name'),
                       decoration: const InputDecoration(
                         labelText: 'LAST NAME',
@@ -574,7 +577,10 @@ class _AddStudentModalState extends ConsumerState<AddStudentModal> {
                     TextFormField(
                       controller: _firstNameController,
                       textCapitalization: TextCapitalization.characters,
-                      inputFormatters: [UpperCaseWordsFormatter()],
+                      inputFormatters: [
+                        UpperCaseWordsFormatter(),
+                        FilteringTextInputFormatter.deny(RegExp(r'[0-9]')),
+                      ],
                       validator: (v) => _validateRequired(v, 'First name'),
                       decoration: const InputDecoration(labelText: 'FIRST NAME'),
                     ),
@@ -587,14 +593,20 @@ class _AddStudentModalState extends ConsumerState<AddStudentModal> {
                     TextFormField(
                       controller: _middleNameController,
                       textCapitalization: TextCapitalization.characters,
-                      inputFormatters: [UpperCaseWordsFormatter()],
+                      inputFormatters: [
+                        UpperCaseWordsFormatter(),
+                        FilteringTextInputFormatter.deny(RegExp(r'[0-9]')),
+                      ],
                       decoration: const InputDecoration(labelText: 'MIDDLE NAME (Optional)'),
                     ),
                     const SizedBox(height: AppSizes.p12),
                     TextFormField(
                       controller: _lastNameController,
                       textCapitalization: TextCapitalization.characters,
-                      inputFormatters: [UpperCaseWordsFormatter()],
+                      inputFormatters: [
+                        UpperCaseWordsFormatter(),
+                        FilteringTextInputFormatter.deny(RegExp(r'[0-9]')),
+                      ],
                       validator: (v) => _validateRequired(v, 'Last name'),
                       decoration: const InputDecoration(labelText: 'LAST NAME'),
                     ),
@@ -836,7 +848,6 @@ class _AddStudentModalState extends ConsumerState<AddStudentModal> {
 
   @override
   Widget build(BuildContext context) {
-    final ocrState = ref.watch(ocrProvider);
     final yearsAsync = ref.watch(academicYearsListProvider);
     final gradeLevelsAsync = ref.watch(gradeLevelsListProvider);
     final sectionsAsync = ref.watch(sectionsListProvider);
@@ -881,7 +892,14 @@ class _AddStudentModalState extends ConsumerState<AddStudentModal> {
             ),
           ),
         ),
-        body: SafeArea(
+        body: GestureDetector(
+          onTap: () {
+            if (!kIsWeb && Platform.isAndroid) {
+              FocusScope.of(context).unfocus();
+            }
+          },
+          behavior: HitTestBehavior.translucent,
+          child: SafeArea(
           child: Column(
             children: [
               ColorLineStepper(
@@ -905,55 +923,61 @@ class _AddStudentModalState extends ConsumerState<AddStudentModal> {
                   child: stepContent,
                 ),
               ),
-              Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 24,
-                  vertical: 16,
-                ),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.06),
-                      blurRadius: 10,
-                      offset: const Offset(0, -2),
-                    ),
-                  ],
-                ),
-                child: Wrap(
-                  alignment: WrapAlignment.spaceBetween,
-                  crossAxisAlignment: WrapCrossAlignment.center,
-                  spacing: 12,
-                  runSpacing: 12,
-                  children: [
-                    // Left side items
-                    if (!isOcrStep && _ocrScannedFile != null)
-                      Wrap(
-                        spacing: 12,
-                        runSpacing: 12,
-                        children: [
-                          TextButton.icon(
-                            onPressed: () => setState(() {
-                              _lrnController.clear();
-                              _firstNameController.clear();
-                              _middleNameController.clear();
-                              _lastNameController.clear();
-                              _extController.clear();
-                              _currentStep = 0;
-                            }),
-                            icon: const Icon(
-                              Icons.refresh,
-                              size: 16,
-                              color: AppColors.primaryGreen,
-                            ),
-                            label: const Text(
-                              'Scan Another',
-                              style: TextStyle(
+              Builder(
+                builder: (ctx) {
+                  final isKeyboardOpen = !kIsWeb && Platform.isAndroid
+                      ? MediaQuery.of(ctx).viewInsets.bottom > 100
+                      : false;
+                  if (isKeyboardOpen) return const SizedBox.shrink();
+                  return Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 24,
+                    vertical: 16,
+                  ),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.06),
+                        blurRadius: 10,
+                        offset: const Offset(0, -2),
+                      ),
+                    ],
+                  ),
+                  child: Wrap(
+                    alignment: WrapAlignment.spaceBetween,
+                    crossAxisAlignment: WrapCrossAlignment.center,
+                    spacing: 12,
+                    runSpacing: 12,
+                    children: [
+                      // Left side items
+                      if (!isOcrStep && _ocrScannedFile != null)
+                        Wrap(
+                          spacing: 12,
+                          runSpacing: 12,
+                          children: [
+                            TextButton.icon(
+                              onPressed: () => setState(() {
+                                _lrnController.clear();
+                                _firstNameController.clear();
+                                _middleNameController.clear();
+                                _lastNameController.clear();
+                                _extController.clear();
+                                _currentStep = 0;
+                              }),
+                              icon: const Icon(
+                                Icons.refresh,
+                                size: 16,
                                 color: AppColors.primaryGreen,
-                                fontWeight: FontWeight.w600,
+                              ),
+                              label: const Text(
+                                'Scan Another',
+                                style: TextStyle(
+                                  color: AppColors.primaryGreen,
+                                  fontWeight: FontWeight.w600,
+                                ),
                               ),
                             ),
-                          ),
                           OutlinedButton.icon(
                             onPressed: () {
                               if (_ocrScannedFile != null) {
@@ -988,22 +1012,7 @@ class _AddStudentModalState extends ConsumerState<AddStudentModal> {
                       runSpacing: 12,
                       alignment: WrapAlignment.end,
                       children: [
-                        if (isOcrStep && !ocrState.isLoading) ...[
-                          OutlinedButton(
-                            onPressed: () => setState(() {
-                              _errorMessage = null;
-                              _currentStep = 1;
-                            }),
-                            child: const Text('Skip OCR & Enter Manually'),
-                          ),
-                          PrimaryButton(
-                            label: 'PROCEED TO FORM',
-                            onPressed: () => setState(() {
-                              _errorMessage = null;
-                              _currentStep = 1;
-                            }),
-                          ),
-                        ] else if (!isOcrStep) ...[
+                        if (!isOcrStep) ...[
                           if (_currentStep > 0)
                             OutlinedButton.icon(
                               onPressed: () => setState(() {
@@ -1036,7 +1045,7 @@ class _AddStudentModalState extends ConsumerState<AddStudentModal> {
                               ),
                             ),
                           PrimaryButton(
-                            label: isLastStep ? 'SAVE STUDENT' : 'NEXT',
+                            label: isLastStep ? 'ADD' : 'NEXT',
                             isLoading: _isLoading && isLastStep,
                             onPressed: () {
                               if (_currentStep == 1) {
@@ -1064,8 +1073,11 @@ class _AddStudentModalState extends ConsumerState<AddStudentModal> {
                     ),
                   ],
                 ),
+                );
+                },
               ),
             ],
+          ),
           ),
         ),
       ),

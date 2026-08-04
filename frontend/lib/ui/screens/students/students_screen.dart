@@ -148,14 +148,13 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
             : EditStudentModal(student: student),
       ),
     );
-    // result == true means success — list already refreshed by provider
-    if (result == true && mounted) {
-      // Provider already invalidated inside mutation notifier
+    // For add: show success dialog here on students screen.
+    // For edit: success dialog is shown inside EditStudentModal before popping,
+    //           so we just return the result and let _viewProfile re-open the profile.
+    if (result == true && mounted && student == null) {
       await showSuccessDialog(
         context,
-        message: student == null
-            ? 'Student added successfully!'
-            : 'Student updated successfully!',
+        message: 'Student added successfully!',
       );
     }
     return result;
@@ -934,9 +933,20 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
               ),
             ),
             IconButton(
-              icon: const Icon(Icons.search, size: 28, color: Colors.black87),
-              tooltip: 'Search Students',
-              onPressed: () => _showSearchDialog(context),
+              icon: Icon(
+                query.search.isNotEmpty ? Icons.close : Icons.search,
+                size: 28,
+                color: Colors.black87,
+              ),
+              tooltip: query.search.isNotEmpty ? 'Clear Search' : 'Search Students',
+              onPressed: () {
+                if (query.search.isNotEmpty) {
+                  _searchController.clear();
+                  ref.read(studentQueryProvider.notifier).setSearch('');
+                } else {
+                  _showSearchDialog(context);
+                }
+              },
             ),
             ...[
               if (widget.userRole != 'teacher' &&
