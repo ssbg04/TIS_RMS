@@ -910,6 +910,23 @@ class _AddStudentModalState extends ConsumerState<AddStudentModal> {
                   'Student Details',
                   'Enrollment Details',
                 ],
+                onStepTapped: (targetStep) {
+                  if (targetStep == _currentStep) return;
+                  if (_currentStep == 1 && targetStep > 1) {
+                    final isValid = _studentFormKey.currentState?.validate() ?? false;
+                    if (!isValid) {
+                      setState(() {
+                        _errorMessage =
+                            'Please complete all required fields in red before proceeding to Enrollment.';
+                      });
+                      return;
+                    }
+                  }
+                  setState(() {
+                    _errorMessage = null;
+                    _currentStep = targetStep;
+                  });
+                },
               ),
               if (_isLoading)
                 const LinearProgressIndicator(
