@@ -546,9 +546,7 @@ class _EditStudentModalState extends ConsumerState<EditStudentModal> {
             ],
             Builder(
               builder: (ctx) {
-                final isKeyboardOpen = !kIsWeb && Platform.isAndroid
-                    ? MediaQuery.of(ctx).viewInsets.bottom > 100
-                    : false;
+                final isKeyboardOpen = MediaQuery.of(ctx).viewInsets.bottom > 100;
                 if (isKeyboardOpen) return const SizedBox.shrink();
                 return Wrap(
                   alignment: WrapAlignment.end,

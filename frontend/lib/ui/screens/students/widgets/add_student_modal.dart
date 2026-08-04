@@ -451,25 +451,6 @@ class _AddStudentModalState extends ConsumerState<AddStudentModal> {
           onFileSelected: _handleOcrScan,
           onError: (err) => setState(() => _errorMessage = err),
         ),
-        const SizedBox(height: AppSizes.p16),
-        Center(
-          child: OutlinedButton.icon(
-            onPressed: () => setState(() {
-              _errorMessage = null;
-              _currentStep = 1;
-            }),
-            icon: const Icon(Icons.edit_note, size: 20),
-            label: const Text('MANUAL INPUT'),
-            style: OutlinedButton.styleFrom(
-              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
-              side: const BorderSide(color: AppColors.primaryGreen),
-              foregroundColor: AppColors.primaryGreen,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(AppSizes.radiusMedium),
-              ),
-            ),
-          ),
-        ),
         const SizedBox(height: AppSizes.p24),
       ],
     );
@@ -937,9 +918,7 @@ class _AddStudentModalState extends ConsumerState<AddStudentModal> {
               ),
               Builder(
                 builder: (ctx) {
-                  final isKeyboardOpen = !kIsWeb && Platform.isAndroid
-                      ? MediaQuery.of(ctx).viewInsets.bottom > 100
-                      : false;
+                  final isKeyboardOpen = MediaQuery.of(ctx).viewInsets.bottom > 100;
                   if (isKeyboardOpen) return const SizedBox.shrink();
                   return Container(
                   padding: const EdgeInsets.symmetric(
