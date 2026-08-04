@@ -26,15 +26,11 @@ class UpperCaseWordsFormatter extends TextInputFormatter {
 class ColorLineStepper extends StatelessWidget {
   final int totalSteps;
   final int currentStep;
-  final List<String> stepTitles;
-  final ValueChanged<int>? onStepTapped;
 
   const ColorLineStepper({
     super.key,
     required this.totalSteps,
     required this.currentStep,
-    required this.stepTitles,
-    this.onStepTapped,
   });
 
   @override
@@ -45,75 +41,26 @@ class ColorLineStepper extends StatelessWidget {
         vertical: AppSizes.p16,
       ),
       color: Colors.white,
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Row(
-            children: List.generate(totalSteps * 2 - 1, (index) {
-              if (index.isOdd) {
-                return const SizedBox(width: 8);
-              }
-              final idx = index ~/ 2;
-              final activeOrDone = currentStep >= idx;
-              final color = activeOrDone ? AppColors.primaryGreen : Colors.grey.shade300;
-              final title = idx < stepTitles.length ? stepTitles[idx] : 'Step ${idx + 1}';
+      child: Row(
+        children: List.generate(totalSteps * 2 - 1, (index) {
+          if (index.isOdd) {
+            return const SizedBox(width: 8);
+          }
+          final idx = index ~/ 2;
+          final activeOrDone = currentStep >= idx;
+          final color = activeOrDone ? AppColors.primaryGreen : Colors.grey.shade300;
 
-              return Expanded(
-                child: InkWell(
-                  onTap: onStepTapped != null ? () => onStepTapped!(idx) : null,
-                  borderRadius: BorderRadius.circular(4),
-                  child: Tooltip(
-                    message: title,
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(vertical: 4),
-                      child: AnimatedContainer(
-                        duration: const Duration(milliseconds: 250),
-                        height: 6,
-                        decoration: BoxDecoration(
-                          color: color,
-                          borderRadius: BorderRadius.circular(3),
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-              );
-            }),
-          ),
-          if (stepTitles.isNotEmpty) ...[
-            const SizedBox(height: 6),
-            Row(
-              children: List.generate(totalSteps * 2 - 1, (index) {
-                if (index.isOdd) {
-                  return const SizedBox(width: 8);
-                }
-                final idx = index ~/ 2;
-                final isCurrent = currentStep == idx;
-                final title = idx < stepTitles.length ? stepTitles[idx] : '';
-
-                return Expanded(
-                  child: InkWell(
-                    onTap: onStepTapped != null ? () => onStepTapped!(idx) : null,
-                    child: Text(
-                      title,
-                      textAlign: TextAlign.center,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                        fontSize: 11,
-                        fontWeight: isCurrent ? FontWeight.bold : FontWeight.normal,
-                        color: isCurrent
-                            ? AppColors.primaryGreen
-                            : (currentStep > idx
-                                ? AppColors.textPrimary
-                                : AppColors.textSecondary),
-                      ),
-                    ),
-                  ),
-                );
-              }),
+          return Expanded(
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 250),
+              height: 6,
+              decoration: BoxDecoration(
+                color: color,
+                borderRadius: BorderRadius.circular(3),
+              ),
             ),
-          ],
-        ],
+          );
+        }),
       ),
     );
   }
@@ -235,7 +182,10 @@ class _ExtensionNameFieldState extends State<ExtensionNameField> {
           controller: fieldController,
           focusNode: focusNode,
           textCapitalization: TextCapitalization.characters,
-          inputFormatters: [UpperCaseWordsFormatter()],
+          inputFormatters: [
+            UpperCaseWordsFormatter(),
+            FilteringTextInputFormatter.deny(RegExp(r'[0-9]')),
+          ],
           decoration: const InputDecoration(
             labelText: 'SUFFIX (Optional)',
             hintText: 'Jr. / III',

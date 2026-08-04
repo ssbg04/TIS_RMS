@@ -544,22 +544,29 @@ class _EditStudentModalState extends ConsumerState<EditStudentModal> {
               const SizedBox(height: AppSizes.p16),
               ErrorBanner(message: _errorMessage!),
             ],
-            const SizedBox(height: AppSizes.p24),
-            Wrap(
-              alignment: WrapAlignment.end,
-              spacing: 12,
-              runSpacing: 12,
-              children: [
-                OutlinedButton(
-                  onPressed: _confirmClose,
-                  child: const Text('CANCEL'),
-                ),
-                PrimaryButton(
-                  label: 'UPDATE',
-                  isLoading: _isLoading,
-                  onPressed: _handleSaveDetails,
-                ),
-              ],
+            Builder(
+              builder: (ctx) {
+                final isKeyboardOpen = !kIsWeb && Platform.isAndroid
+                    ? MediaQuery.of(ctx).viewInsets.bottom > 100
+                    : false;
+                if (isKeyboardOpen) return const SizedBox.shrink();
+                return Wrap(
+                  alignment: WrapAlignment.end,
+                  spacing: 12,
+                  runSpacing: 12,
+                  children: [
+                    OutlinedButton(
+                      onPressed: _confirmClose,
+                      child: const Text('CANCEL'),
+                    ),
+                    PrimaryButton(
+                      label: 'UPDATE',
+                      isLoading: _isLoading,
+                      onPressed: _handleSaveDetails,
+                    ),
+                  ],
+                );
+              },
             ),
           ],
         ),
@@ -830,24 +837,30 @@ class _EditStudentModalState extends ConsumerState<EditStudentModal> {
               ],
             ),
           ),
-          body: SafeArea(
-            child: Column(
-              children: [
-                if (_isLoading)
-                  const LinearProgressIndicator(
-                    color: AppColors.primaryGreen,
-                    backgroundColor: Color(0xFFE0E0E0),
-                    minHeight: 3,
+          body: GestureDetector(
+            onTap: () {
+              FocusManager.instance.primaryFocus?.unfocus();
+            },
+            behavior: HitTestBehavior.translucent,
+            child: SafeArea(
+              child: Column(
+                children: [
+                  if (_isLoading)
+                    const LinearProgressIndicator(
+                      color: AppColors.primaryGreen,
+                      backgroundColor: Color(0xFFE0E0E0),
+                      minHeight: 3,
+                    ),
+                  Expanded(
+                    child: TabBarView(
+                      children: [
+                        _buildStudentDetailsTab(),
+                        _buildEnrollmentsTab(),
+                      ],
+                    ),
                   ),
-                Expanded(
-                  child: TabBarView(
-                    children: [
-                      _buildStudentDetailsTab(),
-                      _buildEnrollmentsTab(),
-                    ],
-                  ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
         ),

@@ -451,6 +451,25 @@ class _AddStudentModalState extends ConsumerState<AddStudentModal> {
           onFileSelected: _handleOcrScan,
           onError: (err) => setState(() => _errorMessage = err),
         ),
+        const SizedBox(height: AppSizes.p16),
+        Center(
+          child: OutlinedButton.icon(
+            onPressed: () => setState(() {
+              _errorMessage = null;
+              _currentStep = 1;
+            }),
+            icon: const Icon(Icons.edit_note, size: 20),
+            label: const Text('MANUAL INPUT'),
+            style: OutlinedButton.styleFrom(
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+              side: const BorderSide(color: AppColors.primaryGreen),
+              foregroundColor: AppColors.primaryGreen,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(AppSizes.radiusMedium),
+              ),
+            ),
+          ),
+        ),
         const SizedBox(height: AppSizes.p24),
       ],
     );
@@ -894,9 +913,7 @@ class _AddStudentModalState extends ConsumerState<AddStudentModal> {
         ),
         body: GestureDetector(
           onTap: () {
-            if (!kIsWeb && Platform.isAndroid) {
-              FocusScope.of(context).unfocus();
-            }
+            FocusManager.instance.primaryFocus?.unfocus();
           },
           behavior: HitTestBehavior.translucent,
           child: SafeArea(
@@ -905,28 +922,6 @@ class _AddStudentModalState extends ConsumerState<AddStudentModal> {
               ColorLineStepper(
                 totalSteps: 3,
                 currentStep: _currentStep,
-                stepTitles: const [
-                  'Document Scan',
-                  'Student Details',
-                  'Enrollment Details',
-                ],
-                onStepTapped: (targetStep) {
-                  if (targetStep == _currentStep) return;
-                  if (_currentStep == 1 && targetStep > 1) {
-                    final isValid = _studentFormKey.currentState?.validate() ?? false;
-                    if (!isValid) {
-                      setState(() {
-                        _errorMessage =
-                            'Please complete all required fields in red before proceeding to Enrollment.';
-                      });
-                      return;
-                    }
-                  }
-                  setState(() {
-                    _errorMessage = null;
-                    _currentStep = targetStep;
-                  });
-                },
               ),
               if (_isLoading)
                 const LinearProgressIndicator(
@@ -1029,7 +1024,29 @@ class _AddStudentModalState extends ConsumerState<AddStudentModal> {
                       runSpacing: 12,
                       alignment: WrapAlignment.end,
                       children: [
-                        if (!isOcrStep) ...[
+                        if (isOcrStep) ...[
+                          OutlinedButton.icon(
+                            onPressed: () => setState(() {
+                              _errorMessage = null;
+                              _currentStep = 1;
+                            }),
+                            icon: const Icon(Icons.edit_note, size: 16),
+                            label: const Text('MANUAL INPUT'),
+                            style: OutlinedButton.styleFrom(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 16,
+                                vertical: 12,
+                              ),
+                              side: const BorderSide(color: AppColors.primaryGreen),
+                              foregroundColor: AppColors.primaryGreen,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(
+                                  AppSizes.radiusMedium,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ] else ...[
                           if (_currentStep > 0)
                             OutlinedButton.icon(
                               onPressed: () => setState(() {
