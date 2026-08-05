@@ -65,6 +65,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> with SingleTickerProv
     
     _usernameFocus.addListener(_onFocusChange);
     _passwordFocus.addListener(_onFocusChange);
+    _usernameController.addListener(_onTextChange);
+    _passwordController.addListener(_onTextChange);
 
     _loadRememberMe(); // Load saved credentials on startup
     if (widget.sessionExpired) {
@@ -95,9 +97,20 @@ class _LoginScreenState extends ConsumerState<LoginScreen> with SingleTickerProv
     }
   }
 
+  void _onTextChange() {
+    if (!mounted) return;
+    _updateAnimationState();
+  }
+
   void _onFocusChange() {
     if (!mounted) return;
-    if (_usernameFocus.hasFocus || _passwordFocus.hasFocus) {
+    _updateAnimationState();
+  }
+
+  void _updateAnimationState() {
+    final hasFocus = _usernameFocus.hasFocus || _passwordFocus.hasFocus;
+    final hasText = _usernameController.text.isNotEmpty || _passwordController.text.isNotEmpty;
+    if (hasFocus || hasText) {
       _animController.reverse();
     } else {
       _animController.forward();
@@ -121,6 +134,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen> with SingleTickerProv
 
   @override
   void dispose() {
+    _usernameFocus.removeListener(_onFocusChange);
+    _passwordFocus.removeListener(_onFocusChange);
+    _usernameController.removeListener(_onTextChange);
+    _passwordController.removeListener(_onTextChange);
     _usernameFocus.dispose();
     _passwordFocus.dispose();
     _animController.dispose();
@@ -325,14 +342,18 @@ class _LoginScreenState extends ConsumerState<LoginScreen> with SingleTickerProv
                                       bottomLeft: Radius.circular(24.0 * _revealAnimation.value),
                                     ),
                                   ),
-                                  child: Center(
-                                    child: ConstrainedBox(
-                                      constraints: const BoxConstraints(
-                                        maxWidth: 400,
-                                      ),
-                                      child: _buildLoginForm(),
-                                    ),
-                                  ),
+                                   child: Align(
+                                     alignment: Alignment.topCenter,
+                                     child: SingleChildScrollView(
+                                       padding: const EdgeInsets.only(top: 80, left: 24, right: 24, bottom: 24),
+                                       child: ConstrainedBox(
+                                         constraints: const BoxConstraints(
+                                           maxWidth: 400,
+                                         ),
+                                         child: _buildLoginForm(),
+                                       ),
+                                     ),
+                                   ),
                                 ),
                               ),
                             ],
@@ -431,9 +452,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen> with SingleTickerProv
                                         topRight: Radius.circular(24.0 * _revealAnimation.value),
                                       ),
                                     ),
-                                    child: Center(
+                                    child: Align(
+                                      alignment: Alignment.topCenter,
                                       child: SingleChildScrollView(
-                                        padding: const EdgeInsets.all(AppSizes.p24),
+                                        padding: const EdgeInsets.only(top: 40, left: 24, right: 24, bottom: 24),
                                         child: ConstrainedBox(
                                           constraints: const BoxConstraints(
                                             maxWidth: 400,

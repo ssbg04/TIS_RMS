@@ -89,9 +89,8 @@ Files backup/restore - mirror mode or zip -->
 - do not use zip and unzip -->
 
 # LOGIN SCREEN
-- apply dark theme
-  - bring back the green background for the outer part of the login screen (the larger section)
-  - use darker saturation for green background
+- fix the login section that animates to full screen if the text fields is not empty make that section full screen
+- fix padding top in Login label, it has huge padding top
 
 
 ---
