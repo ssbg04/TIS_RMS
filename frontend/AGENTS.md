@@ -88,12 +88,9 @@ Files backup/restore - mirror mode or zip -->
 <!-- ## backend server backup/restore
 - do not use zip and unzip -->
 
-# WINDOWS AND ANDROID LAYOUT
-- make the navigation bar and screen header dark color theme lighter than the backdrop
-
-# DASHBOARD SCREEN
-- section of search icon, notification icon, profile icon blur effect top and bottom
-  - fix that blur effect sharp edges of border 
+# LOGIN SCREEN
+- hide the server ip modal in icon logo tap 3 times to activate the modal
+- apply dark theme
 
 
 ---

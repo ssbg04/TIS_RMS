@@ -34,12 +34,21 @@ class _LoginScreenState extends ConsumerState<LoginScreen> with SingleTickerProv
   final TextEditingController _passwordController = TextEditingController();
   bool _obscurePassword = true;
   bool _rememberMe = false;
+  int _logoTapCount = 0;
 
   final FocusNode _usernameFocus = FocusNode();
   final FocusNode _passwordFocus = FocusNode();
 
   late AnimationController _animController;
   late Animation<double> _revealAnimation;
+
+  void _handleLogoTap() {
+    _logoTapCount++;
+    if (_logoTapCount >= 3) {
+      _logoTapCount = 0;
+      _showServerConfigDialog();
+    }
+  }
 
   @override
   void initState() {
@@ -201,26 +210,30 @@ class _LoginScreenState extends ConsumerState<LoginScreen> with SingleTickerProv
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return GestureDetector(
       onTap: () {
         FocusScope.of(context).unfocus();
       },
       child: Scaffold(
-        backgroundColor: AppColors.pageBackground,
+        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: Column(
         children: [
           if (!kIsWeb &&
               (Platform.isWindows || Platform.isLinux || Platform.isMacOS))
-            const SizedBox(
+            SizedBox(
               height: 32,
-
               child: WindowCaption(
-                brightness: Brightness.dark,
-                backgroundColor: AppColors.primaryGreen,
+                brightness: Theme.of(context).brightness,
+                backgroundColor: isDark
+                    ? Theme.of(context).colorScheme.surface
+                    : AppColors.primaryGreen,
                 title: Text(
                   'Talisay Integrated School',
                   style: TextStyle(
-                    color: Colors.white,
+                    color: isDark
+                        ? Theme.of(context).colorScheme.onSurface
+                        : Colors.white,
                     fontSize: 13,
                     fontWeight: FontWeight.w500,
                   ),
@@ -237,7 +250,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> with SingleTickerProv
                       animation: _revealAnimation,
                       builder: (context, child) {
                         return Container(
-                          color: AppColors.primaryGreen,
+                          color: isDark
+                              ? Theme.of(context).colorScheme.surface
+                              : AppColors.primaryGreen,
                           child: Row(
                             children: [
                               if (_revealAnimation.value > 0)
@@ -251,10 +266,13 @@ class _LoginScreenState extends ConsumerState<LoginScreen> with SingleTickerProv
                                         child: Column(
                                           mainAxisAlignment: MainAxisAlignment.center,
                                           children: [
-                                            Image.asset(
-                                              'assets/images/logo.png',
-                                              width: 220,
-                                              height: 220,
+                                            GestureDetector(
+                                              onTap: _handleLogoTap,
+                                              child: Image.asset(
+                                                'assets/images/logo.png',
+                                                width: 220,
+                                                height: 220,
+                                              ),
                                             ),
                                             const SizedBox(height: AppSizes.p24),
                                             const Text(
@@ -303,7 +321,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> with SingleTickerProv
                                 flex: 4000,
                                 child: Container(
                                   decoration: BoxDecoration(
-                                    color: AppColors.pageBackground,
+                                    color: isDark ? AppColors.darkSurfaceCard : AppColors.pageBackground,
                                     borderRadius: BorderRadius.only(
                                       topLeft: Radius.circular(24.0 * _revealAnimation.value),
                                       bottomLeft: Radius.circular(24.0 * _revealAnimation.value),
@@ -330,7 +348,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> with SingleTickerProv
                       animation: _revealAnimation,
                       builder: (context, child) {
                         return Container(
-                          color: AppColors.primaryGreen,
+                          color: isDark ? Theme.of(context).colorScheme.surface : AppColors.primaryGreen,
                           child: Column(
                             children: [
                               if (_revealAnimation.value > 0)
@@ -351,10 +369,13 @@ class _LoginScreenState extends ConsumerState<LoginScreen> with SingleTickerProv
                                           child: Column(
                                             mainAxisAlignment: MainAxisAlignment.center,
                                             children: [
-                                              Image.asset(
-                                                'assets/images/logo.png',
-                                                width: 100,
-                                                height: 100,
+                                              GestureDetector(
+                                                onTap: _handleLogoTap,
+                                                child: Image.asset(
+                                                  'assets/images/logo.png',
+                                                  width: 100,
+                                                  height: 100,
+                                                ),
                                               ),
                                               const SizedBox(height: AppSizes.p16),
                                               const Text(
@@ -406,7 +427,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> with SingleTickerProv
                                   bottom: true,
                                   child: Container(
                                     decoration: BoxDecoration(
-                                      color: AppColors.pageBackground,
+                                      color: isDark ? AppColors.darkSurfaceCard : AppColors.pageBackground,
                                       borderRadius: BorderRadius.only(
                                         topLeft: Radius.circular(24.0 * _revealAnimation.value),
                                         topRight: Radius.circular(24.0 * _revealAnimation.value),
@@ -528,10 +549,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen> with SingleTickerProv
             _revealAnimation.value < 0.5 
                 ? 'Login to TIS Record Management System' 
                 : 'Login',
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 22,
               fontWeight: FontWeight.bold,
-              color: Colors.black,
+              color: Theme.of(context).colorScheme.onSurface,
             ),
             textAlign: TextAlign.center,
           ),
@@ -571,11 +592,11 @@ class _LoginScreenState extends ConsumerState<LoginScreen> with SingleTickerProv
                     onChanged: (val) =>
                         setState(() => _rememberMe = val ?? false),
                   ),
-                  const Text(
+                  Text(
                     'Remember Me',
                     style: TextStyle(
                       fontSize: 13,
-                      color: AppColors.textSecondary,
+                      color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
                     ),
                   ),
                 ],
@@ -598,21 +619,6 @@ class _LoginScreenState extends ConsumerState<LoginScreen> with SingleTickerProv
             label: 'LOGIN',
             isLoading: isLoading,
             onPressed: _handleLogin,
-          ),
-          const SizedBox(height: AppSizes.p24),
-          Center(
-            child: ActionChip(
-              label: Text(
-                'Server: ${ApiConstants.baseUrl}  ·  Change',
-                style: const TextStyle(
-                  fontSize: 11,
-                  color: AppColors.textSecondary,
-                ),
-              ),
-              backgroundColor: Colors.transparent,
-              side: BorderSide(color: Colors.grey.shade300),
-              onPressed: _showServerConfigDialog,
-            ),
           ),
         ],
       ),
