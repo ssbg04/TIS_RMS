@@ -326,18 +326,21 @@ class _AndroidBottomNavLayoutState extends ConsumerState<AndroidBottomNavLayout>
                           ),
                         ),
                         const SizedBox(width: 12),
-                        const Text(
+                        Text(
                           'TIS RMS',
                           style: TextStyle(
                             fontWeight: FontWeight.bold,
                             fontSize: 18,
                             letterSpacing: 1.2,
-                            color: Colors.black87,
+                            color: Theme.of(context).colorScheme.onSurface,
                           ),
                         ),
                         const Spacer(),
                         IconButton(
-                          icon: const Icon(Icons.menu, color: Colors.black54),
+                          icon: Icon(
+                            Icons.menu,
+                            color: Theme.of(context).colorScheme.onSurface.withOpacity(0.54),
+                          ),
                           onPressed: () => Navigator.pop(context),
                         ),
                       ],
@@ -465,26 +468,29 @@ class _AndroidBottomNavLayoutState extends ConsumerState<AndroidBottomNavLayout>
                               Text(
                                 ref.watch(authProvider).value?.fullName ??
                                     'Unknown User',
-                                style: const TextStyle(
+                                style: TextStyle(
                                   fontWeight: FontWeight.bold,
                                   fontSize: 14,
-                                  color: Colors.black87,
+                                  color: Theme.of(context).colorScheme.onSurface,
                                 ),
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
                               ),
                               Text(
                                 widget.userRole.toUpperCase(),
-                                style: const TextStyle(
+                                style: TextStyle(
                                   fontSize: 12,
-                                  color: Colors.black54,
+                                  color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
                                 ),
                               ),
                             ],
                           ),
                         ),
                         IconButton(
-                          icon: const Icon(Icons.logout, color: Colors.black54),
+                          icon: Icon(
+                            Icons.logout,
+                            color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+                          ),
                           onPressed: () {
                             Navigator.pop(context); // Close drawer first
                             showLogoutConfirmationDialog(context);
