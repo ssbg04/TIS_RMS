@@ -88,8 +88,19 @@ Files backup/restore - mirror mode or zip -->
 <!-- ## backend server backup/restore
 - do not use zip and unzip -->
 
+# DARK THEME COLOR
+- change other color, for the green gradient backdrop make it not green, its too much green in dark mode
+
 # SETTING SCREEN
-- dark mode color of screen font, and it does not have backdrop dark theme color
+- appearance section
+  - remove the check icon of the selected mode
+- academic year & auto graduation section
+  - note color in dark theme make it dark too much light
+- student enrollment section
+  - update frequency section font is not readable
+
+# ANDROID SIDE NAVIGATION
+- fonts are not readable
 
 ---
 

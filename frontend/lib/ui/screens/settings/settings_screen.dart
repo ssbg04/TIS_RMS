@@ -936,6 +936,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                                   const SizedBox(height: 16),
                                   academicYearsAsync.when(
                                     data: (years) {
+                                      final isDark = Theme.of(context).brightness == Brightness.dark;
                                       final activeYear = years.cast<AcademicYearModel?>().firstWhere(
                                         (y) => y?.status == 'active',
                                         orElse: () => null,
@@ -983,18 +984,27 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                                           Container(
                                             padding: const EdgeInsets.all(10),
                                             decoration: BoxDecoration(
-                                              color: Colors.blue.shade50,
+                                              color: isDark
+                                                  ? Colors.blue.withOpacity(0.08)
+                                                  : Colors.blue.shade50,
                                               borderRadius: BorderRadius.circular(8),
-                                              border: Border.all(color: Colors.blue.shade200),
+                                              border: Border.all(
+                                                color: isDark
+                                                    ? Colors.blue.withOpacity(0.2)
+                                                    : Colors.blue.shade200,
+                                              ),
                                             ),
-                                            child: const Row(
+                                            child: Row(
                                               children: [
-                                                Icon(Icons.info_outline, size: 16, color: Colors.blue),
-                                                SizedBox(width: 8),
+                                                const Icon(Icons.info_outline, size: 16, color: Colors.blue),
+                                                const SizedBox(width: 8),
                                                 Expanded(
                                                   child: Text(
                                                     'Note: If Start Date or End Date is not set, auto-graduation will not execute automatically. When the end date arrives, Grade 10 students are graduated first, then Grade 12 students.',
-                                                    style: TextStyle(fontSize: 12, color: Colors.blue),
+                                                    style: TextStyle(
+                                                      fontSize: 12,
+                                                      color: isDark ? Colors.blue.shade300 : Colors.blue,
+                                                    ),
                                                   ),
                                                 ),
                                               ],
@@ -1198,12 +1208,12 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                                     const SizedBox(height: AppSizes.p16),
                                     const Divider(color: Colors.grey),
                                     const SizedBox(height: AppSizes.p12),
-                                    const Text(
+                                    Text(
                                       'Update Frequency',
                                       style: TextStyle(
                                         fontSize: 14,
                                         fontWeight: FontWeight.w600,
-                                        color: AppColors.textPrimary,
+                                        color: Theme.of(context).colorScheme.onSurface,
                                       ),
                                     ),
                                     const SizedBox(height: AppSizes.p8),
@@ -1241,7 +1251,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                                       const SizedBox(height: AppSizes.p16),
                                       Row(
                                         children: [
-                                          const Icon(Icons.access_time, size: 18, color: AppColors.textSecondary),
+                                          Icon(Icons.access_time, size: 18, color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6)),
                                           const SizedBox(width: 8),
                                           const Text(
                                             'Execution Time:',
@@ -1569,6 +1579,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final isSelected = value == currentValue;
     return ChoiceChip(
+      showCheckmark: false,
       avatar: Icon(
         icon,
         size: 18,

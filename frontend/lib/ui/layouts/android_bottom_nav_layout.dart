@@ -533,6 +533,7 @@ class _AndroidBottomNavLayoutState extends ConsumerState<AndroidBottomNavLayout>
     final activeIcon = tab['activeIcon'] as IconData? ?? icon;
     final index = allTabs.indexWhere((t) => t['label'] == label);
     final isSelected = index == currentIndex;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 4.0),
@@ -558,7 +559,7 @@ class _AndroidBottomNavLayoutState extends ConsumerState<AndroidBottomNavLayout>
                   isSelected ? activeIcon : icon,
                   color: isSelected
                       ? AppColors.primaryGreen
-                      : Colors.grey.shade600,
+                      : (isDark ? Theme.of(context).colorScheme.onSurface.withOpacity(0.6) : Colors.grey.shade600),
                   size: 22,
                 ),
                 const SizedBox(width: 16),
@@ -569,7 +570,7 @@ class _AndroidBottomNavLayoutState extends ConsumerState<AndroidBottomNavLayout>
                     fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
                     color: isSelected
                         ? AppColors.primaryGreen
-                        : Colors.grey.shade700,
+                        : (isDark ? Theme.of(context).colorScheme.onSurface.withOpacity(0.7) : Colors.grey.shade700),
                   ),
                 ),
               ],

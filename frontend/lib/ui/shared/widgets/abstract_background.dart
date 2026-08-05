@@ -18,9 +18,9 @@ class AbstractBackground extends StatelessWidget {
           end: Alignment.bottomRight,
           colors: isDark
               ? [
-                  const Color(0xFF0F1A14),
+                  const Color(0xFF10141D),
                   AppColors.darkPageBackground,
-                  const Color(0xFF09120E),
+                  const Color(0xFF0D0F14),
                   AppColors.darkPageBackground,
                 ]
               : [
