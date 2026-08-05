@@ -285,6 +285,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     final dashboardAsync = ref.watch(dashboardDataProvider);
     final user = ref.watch(authProvider).value;
     final isAdmin = user?.role == 'admin';
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     // Clean up if not used
     return Scaffold(
@@ -317,7 +318,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                   onRefresh: _handleRefresh,
                   child: SingleChildScrollView(
                     physics: const AlwaysScrollableScrollPhysics(),
-                    padding: const EdgeInsets.fromLTRB(24, 90, 24, 24),
+                    padding: const EdgeInsets.fromLTRB(24, 90, 24, 76),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
@@ -361,6 +362,35 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                 left: 0,
                 right: 0,
                 child: _buildTopBar(context, user),
+              ),
+              // Sticky Blur Bottom Bar Overlay
+              Positioned(
+                bottom: 0,
+                left: 0,
+                right: 0,
+                height: 60,
+                child: ClipRect(
+                  child: BackdropFilter(
+                    filter: ImageFilter.blur(sigmaX: 5.0, sigmaY: 5.0),
+                    child: Container(
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          begin: Alignment.topCenter,
+                          end: Alignment.bottomCenter,
+                          colors: isDark
+                              ? [
+                                  AppColors.darkPageBackground.withValues(alpha: 0.0),
+                                  AppColors.darkPageBackground.withValues(alpha: 0.85),
+                                ]
+                              : [
+                                  Colors.white.withOpacity(0.0),
+                                  Colors.white.withOpacity(0.85),
+                                ],
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
               ),
             ],
           ),
@@ -706,18 +736,22 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
 
     return ClipRect(
       child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 10.0, sigmaY: 10.0),
+        filter: ImageFilter.blur(sigmaX: 5.0, sigmaY: 5.0),
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
           decoration: BoxDecoration(
-            color: isDark
-                ? AppColors.darkPageBackground.withOpacity(0.5)
-                : Colors.white.withOpacity(0.5),
-            border: Border(
-              bottom: BorderSide(
-                color: Theme.of(context).dividerColor,
-                width: 1.0,
-              ),
+            gradient: LinearGradient(
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+              colors: isDark
+                  ? [
+                      AppColors.darkPageBackground.withValues(alpha: 0.85),
+                      AppColors.darkPageBackground.withValues(alpha: 0.15),
+                    ]
+                  : [
+                      Colors.white.withOpacity(0.85),
+                      Colors.white.withOpacity(0.15),
+                    ],
             ),
           ),
           child: Row(

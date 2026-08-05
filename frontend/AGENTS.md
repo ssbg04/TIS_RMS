@@ -93,8 +93,9 @@ Files backup/restore - mirror mode or zip -->
 
 # DASHBOARD SCREEN
 - section of search icon, notification icon, profile icon
-  - the underline border separates the scrollable redesign into blur effect no reflection, no liquid glass just blur, make it work with theme mode 
-  
+  - remove the underline color in border, make the blur effect at top weak bottom half the top half is stronger 
+  - add blur effect too in bottom, weak top half stronger bottom half
+
 
 ---
 
