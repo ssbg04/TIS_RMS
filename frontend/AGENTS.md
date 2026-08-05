@@ -103,16 +103,13 @@ Files backup/restore - mirror mode or zip -->
 - apply dark theme
 - 
 
-# ANDROID LAYOUT
-- hamburger bar and screen title make it white and black not green, make it them mode responsive
+# USERS SCREEN 
+- list of users
+  - add blur effect at top weak bottom half the top half is stronger 
+  - add blur effect too in bottom, weak top half stronger bottom half
+  - blur effect smooth out sharp edges using ShaderMask
 
-<!-- # USERS SCREEN 
-- fonts are not readable in dark mode
-  - User Management title
-  - mange system accounts ...
-  - add user wolt modal
-
-- seach feature
+<!-- - seach feature
   - search icon into 'X' when searched an user, clears search and refresh users list
   - fix searched field didnt hide when searched an user -->
 

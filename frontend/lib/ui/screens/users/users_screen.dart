@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'dart:ui';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/constants/app_colors.dart';
@@ -559,20 +560,113 @@ class _UsersScreenState extends ConsumerState<UsersScreen> {
                           ],
                         ),
                         const SizedBox(height: AppSizes.p16),
-                        Expanded(
-                          child: RefreshIndicator(
-                            onRefresh: _handleRefresh,
-                            child: LayoutBuilder(
-                              builder: (context, constraints) {
-                                if (constraints.maxWidth > 800) {
-                                  return _buildDesktopTable(paginated);
-                                } else {
-                                  return _buildMobileList(paginated);
-                                }
-                              },
-                            ),
-                          ),
-                        ),
+                         Expanded(
+                           child: Stack(
+                             children: [
+                               Positioned.fill(
+                                 child: Padding(
+                                   padding: const EdgeInsets.symmetric(vertical: 4.0),
+                                   child: RefreshIndicator(
+                                     onRefresh: _handleRefresh,
+                                     child: LayoutBuilder(
+                                       builder: (context, constraints) {
+                                         if (constraints.maxWidth > 800) {
+                                           return _buildDesktopTable(paginated);
+                                         } else {
+                                           return _buildMobileList(paginated);
+                                         }
+                                       },
+                                     ),
+                                   ),
+                                 ),
+                               ),
+                               // Top Blur Overlay
+                               Positioned(
+                                 top: 0,
+                                 left: 0,
+                                 right: 0,
+                                 height: 24,
+                                 child: IgnorePointer(
+                                   child: ShaderMask(
+                                     shaderCallback: (rect) {
+                                       return const LinearGradient(
+                                         begin: Alignment.topCenter,
+                                         end: Alignment.bottomCenter,
+                                         colors: [Colors.black, Colors.transparent],
+                                         stops: [0.3, 1.0],
+                                       ).createShader(rect);
+                                     },
+                                     blendMode: BlendMode.dstIn,
+                                     child: ClipRect(
+                                       child: BackdropFilter(
+                                         filter: ImageFilter.blur(sigmaX: 5.0, sigmaY: 5.0),
+                                         child: Container(
+                                           decoration: BoxDecoration(
+                                             gradient: LinearGradient(
+                                               begin: Alignment.topCenter,
+                                               end: Alignment.bottomCenter,
+                                               colors: Theme.of(context).brightness == Brightness.dark
+                                                   ? [
+                                                       AppColors.darkPageBackground.withValues(alpha: 0.95),
+                                                       AppColors.darkPageBackground.withValues(alpha: 0.0),
+                                                     ]
+                                                   : [
+                                                       Colors.white.withOpacity(0.95),
+                                                       Colors.white.withOpacity(0.0),
+                                                     ],
+                                             ),
+                                           ),
+                                         ),
+                                       ),
+                                     ),
+                                   ),
+                                 ),
+                               ),
+                               // Bottom Blur Overlay
+                               Positioned(
+                                 bottom: 0,
+                                 left: 0,
+                                 right: 0,
+                                 height: 24,
+                                 child: IgnorePointer(
+                                   child: ShaderMask(
+                                     shaderCallback: (rect) {
+                                       return const LinearGradient(
+                                         begin: Alignment.topCenter,
+                                         end: Alignment.bottomCenter,
+                                         colors: [Colors.transparent, Colors.black],
+                                         stops: [0.0, 0.7],
+                                       ).createShader(rect);
+                                     },
+                                     blendMode: BlendMode.dstIn,
+                                     child: ClipRect(
+                                       child: BackdropFilter(
+                                         filter: ImageFilter.blur(sigmaX: 5.0, sigmaY: 5.0),
+                                         child: Container(
+                                           decoration: BoxDecoration(
+                                             gradient: LinearGradient(
+                                               begin: Alignment.topCenter,
+                                               end: Alignment.bottomCenter,
+                                               colors: Theme.of(context).brightness == Brightness.dark
+                                                   ? [
+                                                       AppColors.darkPageBackground.withValues(alpha: 0.0),
+                                                       AppColors.darkPageBackground.withValues(alpha: 0.95),
+                                                     ]
+                                                   : [
+                                                       Colors.white.withOpacity(0.0),
+                                                       Colors.white.withOpacity(0.95),
+                                                     ],
+                                             ),
+                                           ),
+                                         ),
+                                       ),
+                                     ),
+                                   ),
+                                 ),
+                               ),
+                             ],
+                           ),
+                         ),
                         if (!_searchFocusNode.hasFocus && totalPages > 1)
                           SafeArea(
                             top: false,
