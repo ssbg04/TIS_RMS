@@ -369,23 +369,34 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                 left: 0,
                 right: 0,
                 height: 60,
-                child: ClipRect(
-                  child: BackdropFilter(
-                    filter: ImageFilter.blur(sigmaX: 5.0, sigmaY: 5.0),
-                    child: Container(
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          begin: Alignment.topCenter,
-                          end: Alignment.bottomCenter,
-                          colors: isDark
-                              ? [
-                                  AppColors.darkPageBackground.withValues(alpha: 0.0),
-                                  AppColors.darkPageBackground.withValues(alpha: 0.85),
-                                ]
-                              : [
-                                  Colors.white.withOpacity(0.0),
-                                  Colors.white.withOpacity(0.85),
-                                ],
+                child: ShaderMask(
+                  shaderCallback: (rect) {
+                    return const LinearGradient(
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                      colors: [Colors.transparent, Colors.black],
+                      stops: [0.0, 0.4],
+                    ).createShader(rect);
+                  },
+                  blendMode: BlendMode.dstIn,
+                  child: ClipRect(
+                    child: BackdropFilter(
+                      filter: ImageFilter.blur(sigmaX: 5.0, sigmaY: 5.0),
+                      child: Container(
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            begin: Alignment.topCenter,
+                            end: Alignment.bottomCenter,
+                            colors: isDark
+                                ? [
+                                    AppColors.darkPageBackground.withValues(alpha: 0.0),
+                                    AppColors.darkPageBackground.withValues(alpha: 0.85),
+                                  ]
+                                : [
+                                    Colors.white.withOpacity(0.0),
+                                    Colors.white.withOpacity(0.85),
+                                  ],
+                          ),
                         ),
                       ),
                     ),
@@ -734,73 +745,84 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
 
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
-    return ClipRect(
-      child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 5.0, sigmaY: 5.0),
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topCenter,
-              end: Alignment.bottomCenter,
-              colors: isDark
-                  ? [
-                      AppColors.darkPageBackground.withValues(alpha: 0.85),
-                      AppColors.darkPageBackground.withValues(alpha: 0.15),
-                    ]
-                  : [
-                      Colors.white.withOpacity(0.85),
-                      Colors.white.withOpacity(0.15),
-                    ],
+    return ShaderMask(
+      shaderCallback: (rect) {
+        return const LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [Colors.black, Colors.transparent],
+          stops: [0.6, 1.0],
+        ).createShader(rect);
+      },
+      blendMode: BlendMode.dstIn,
+      child: ClipRect(
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 5.0, sigmaY: 5.0),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: isDark
+                    ? [
+                        AppColors.darkPageBackground.withValues(alpha: 0.85),
+                        AppColors.darkPageBackground.withValues(alpha: 0.15),
+                      ]
+                    : [
+                        Colors.white.withOpacity(0.85),
+                        Colors.white.withOpacity(0.15),
+                      ],
+              ),
             ),
-          ),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              const Spacer(),
-              Row(
-                children: [
-                  IconButton(
-                    icon: const Icon(Icons.search, size: 32),
-                    tooltip: 'Search Students',
-                    onPressed: () => _showSearchDialog(context),
-                  ),
-                  const SizedBox(width: 8),
-                  Builder(
-                    builder: (ctx) => Stack(
-                      children: [
-                        IconButton(
-                          icon: const Icon(Icons.notifications, size: 32),
-                          onPressed: () => _showNotifications(ctx),
-                        ),
-                        if (unreadCount > 0)
-                          Positioned(
-                            right: 8,
-                            top: 8,
-                            child: Container(
-                              padding: const EdgeInsets.all(4),
-                              decoration: const BoxDecoration(
-                                color: Colors.redAccent,
-                                shape: BoxShape.circle,
-                              ),
-                              child: Text(
-                                unreadCount.toString(),
-                                style: const TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 10,
-                                  fontWeight: FontWeight.bold,
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Spacer(),
+                Row(
+                  children: [
+                    IconButton(
+                      icon: const Icon(Icons.search, size: 32),
+                      tooltip: 'Search Students',
+                      onPressed: () => _showSearchDialog(context),
+                    ),
+                    const SizedBox(width: 8),
+                    Builder(
+                      builder: (ctx) => Stack(
+                        children: [
+                          IconButton(
+                            icon: const Icon(Icons.notifications, size: 32),
+                            onPressed: () => _showNotifications(ctx),
+                          ),
+                          if (unreadCount > 0)
+                            Positioned(
+                              right: 8,
+                              top: 8,
+                              child: Container(
+                                padding: const EdgeInsets.all(4),
+                                decoration: const BoxDecoration(
+                                  color: Colors.redAccent,
+                                  shape: BoxShape.circle,
+                                ),
+                                child: Text(
+                                  unreadCount.toString(),
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.bold,
+                                  ),
                                 ),
                               ),
                             ),
-                          ),
-                      ],
+                        ],
+                      ),
                     ),
-                  ),
-                  const SizedBox(width: 16),
-                  ProfileDropdownMenu(user: user, onRefresh: _handleRefresh),
-                ],
-              ),
-            ],
+                    const SizedBox(width: 16),
+                    ProfileDropdownMenu(user: user, onRefresh: _handleRefresh),
+                  ],
+                ),
+              ],
+            ),
           ),
         ),
       ),

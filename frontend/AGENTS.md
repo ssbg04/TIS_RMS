@@ -92,9 +92,8 @@ Files backup/restore - mirror mode or zip -->
 - make the navigation bar and screen header dark color theme lighter than the backdrop
 
 # DASHBOARD SCREEN
-- section of search icon, notification icon, profile icon
-  - remove the underline color in border, make the blur effect at top weak bottom half the top half is stronger 
-  - add blur effect too in bottom, weak top half stronger bottom half
+- section of search icon, notification icon, profile icon blur effect top and bottom
+  - fix that blur effect sharp edges of border 
 
 
 ---
