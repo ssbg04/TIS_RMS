@@ -541,14 +541,20 @@ class _UsersScreenState extends ConsumerState<UsersScreen> {
                             if (!_searchFocusNode.hasFocus)
                               IconButton(
                                 icon: Icon(
-                                  Icons.search,
+                                  _searchQuery.isNotEmpty ? Icons.close : Icons.search,
                                   size: 28,
                                   color: Theme.of(context).brightness == Brightness.dark
                                       ? AppColors.darkTextPrimary
                                       : Colors.black87,
                                 ),
-                                tooltip: 'Search Users',
-                                onPressed: () => _showSearchDialog(context),
+                                tooltip: _searchQuery.isNotEmpty ? 'Clear Search' : 'Search Users',
+                                onPressed: () {
+                                  if (_searchQuery.isNotEmpty) {
+                                    _searchController.clear();
+                                  } else {
+                                    _showSearchDialog(context);
+                                  }
+                                },
                               ),
                           ],
                         ),
@@ -590,18 +596,22 @@ class _UsersScreenState extends ConsumerState<UsersScreen> {
 
   Widget _buildHeader(BuildContext context, int resetCount) {
     final isDesktop = MediaQuery.of(context).size.width > 800;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final textPrimary = isDark ? AppColors.darkTextPrimary : AppColors.textPrimary;
+    final textSecondary = isDark ? AppColors.darkTextSecondary : AppColors.textSecondary;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            const Text(
+            Text(
               'User Management',
               style: TextStyle(
                 fontSize: 28,
                 fontWeight: FontWeight.bold,
-                color: AppColors.textPrimary,
+                color: textPrimary,
               ),
             ),
             if (isDesktop)
@@ -664,15 +674,16 @@ class _UsersScreenState extends ConsumerState<UsersScreen> {
           ],
         ),
         const SizedBox(height: 4),
-        const Text(
+        Text(
           'Manage system accounts and access roles.',
-          style: TextStyle(fontSize: 14, color: AppColors.textSecondary),
+          style: TextStyle(fontSize: 14, color: textSecondary),
         ),
       ],
     );
   }
 
   void _showSearchDialog(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     showDialog(
       context: context,
       barrierColor: Colors.black54,
@@ -682,7 +693,7 @@ class _UsersScreenState extends ConsumerState<UsersScreen> {
           child: Padding(
             padding: const EdgeInsets.only(top: kToolbarHeight + 24),
             child: Material(
-              color: Colors.white,
+              color: isDark ? AppColors.darkSurfaceCard : Colors.white,
               elevation: 4,
               borderRadius: BorderRadius.circular(12),
               child: AppSearchBar(
@@ -691,6 +702,9 @@ class _UsersScreenState extends ConsumerState<UsersScreen> {
                 focusNode: _searchFocusNode,
                 collapsible: false,
                 maxWidth: 600,
+                onSubmitted: (val) {
+                  Navigator.of(context).pop();
+                },
               ),
             ),
           ),
@@ -1224,17 +1238,18 @@ class _AddEditUserModalState extends ConsumerState<AddEditUserModal> {
   }
 
   Widget _credentialRow(String label, String value, {bool highlight = false}) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
       decoration: BoxDecoration(
         color: highlight
             ? AppColors.primaryGreen.withValues(alpha: 0.07)
-            : Colors.grey.shade50,
+            : (isDark ? AppColors.darkSurface2 : Colors.grey.shade50),
         borderRadius: BorderRadius.circular(8),
         border: Border.all(
           color: highlight
               ? AppColors.primaryGreen.withValues(alpha: 0.3)
-              : Colors.grey.shade200,
+              : (isDark ? AppColors.darkBorder : Colors.grey.shade200),
         ),
       ),
       child: Row(
@@ -1245,9 +1260,9 @@ class _AddEditUserModalState extends ConsumerState<AddEditUserModal> {
               children: [
                 Text(
                   label,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 11,
-                    color: Colors.grey,
+                    color: isDark ? AppColors.darkTextSecondary : Colors.grey,
                     fontWeight: FontWeight.w500,
                   ),
                 ),
@@ -1259,7 +1274,7 @@ class _AddEditUserModalState extends ConsumerState<AddEditUserModal> {
                     fontWeight: FontWeight.bold,
                     color: highlight
                         ? AppColors.primaryGreen
-                        : AppColors.textPrimary,
+                        : (isDark ? AppColors.darkTextPrimary : AppColors.textPrimary),
                     letterSpacing: 0.5,
                   ),
                 ),
@@ -1375,12 +1390,14 @@ class _AddEditUserModalState extends ConsumerState<AddEditUserModal> {
               },
               steps: [
                 Step(
-                  title: const Text(
+                  title: Text(
                     'Personal Information',
                     style: TextStyle(
                       fontWeight: FontWeight.bold,
                       fontSize: 16,
-                      color: AppColors.textPrimary,
+                      color: Theme.of(context).brightness == Brightness.dark
+                          ? AppColors.darkTextPrimary
+                          : AppColors.textPrimary,
                     ),
                   ),
                   isActive: _currentStep >= 0,
@@ -1497,12 +1514,14 @@ class _AddEditUserModalState extends ConsumerState<AddEditUserModal> {
                   ),
                 ),
                 Step(
-                  title: const Text(
+                  title: Text(
                     'Account Details',
                     style: TextStyle(
                       fontWeight: FontWeight.bold,
                       fontSize: 16,
-                      color: AppColors.textPrimary,
+                      color: Theme.of(context).brightness == Brightness.dark
+                          ? AppColors.darkTextPrimary
+                          : AppColors.textPrimary,
                     ),
                   ),
                   isActive: _currentStep >= 1,
@@ -1531,12 +1550,14 @@ class _AddEditUserModalState extends ConsumerState<AddEditUserModal> {
                   ),
                 ),
                 Step(
-                  title: const Text(
+                  title: Text(
                     'Contact Information',
                     style: TextStyle(
                       fontWeight: FontWeight.bold,
                       fontSize: 16,
-                      color: AppColors.textPrimary,
+                      color: Theme.of(context).brightness == Brightness.dark
+                          ? AppColors.darkTextPrimary
+                          : AppColors.textPrimary,
                     ),
                   ),
                   isActive: _currentStep >= 2,

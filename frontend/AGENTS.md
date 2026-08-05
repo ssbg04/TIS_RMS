@@ -105,22 +105,18 @@ Files backup/restore - mirror mode or zip -->
 
 # USERS SCREEN 
 - fonts are not readable in dark mode
-- apply dark mode
-  - filter
-  - cards
-  - user profile modal
+  - User Management title
+  - mange system accounts ...
   - add user wolt modal
-  - reset requests modal
-  - search icon
-  - pagination number border and fonts
 
-- add user wolt modal
-  - change title into Add New User
+- seach feature
+  - search icon into 'X' when searched an user, clears search and refresh users list
+  - fix searched field didnt hide when searched an user
 
 
 ---
 
-TIS_RMS Server Manager (dont do)
+# TIS_RMS Server Manager (dont do)
 Windows Service - NSSM nodejs
 - backup/restore db and files
 - backup: database backup, automatic schedule, snapshot retention 
@@ -136,7 +132,7 @@ Windows Service - NSSM nodejs
 ---
 
 ## (dont do) add some features
-- dark mode
+- dark mode -> ongoing
 - documents screen
   - excel to pdf all tabs export into one pdf
 

@@ -149,6 +149,7 @@ class _AppSearchBarState extends ConsumerState<AppSearchBar> {
   }
 
   Widget _buildHistoryOverlay() {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Consumer(
       builder: (context, ref, child) {
         final history = ref.watch(searchHistoryProvider);
@@ -158,13 +159,13 @@ class _AppSearchBarState extends ConsumerState<AppSearchBar> {
           groupId: _focusNode,
           child: Material(
             elevation: 4,
-            color: Colors.white,
+            color: isDark ? AppColors.darkSurfaceCard : Colors.white,
             borderRadius: BorderRadius.circular(12),
             child: Container(
               constraints: const BoxConstraints(maxHeight: 200),
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: Colors.grey.shade200),
+                border: Border.all(color: isDark ? AppColors.darkBorder : Colors.grey.shade200),
               ),
               child: ListView.builder(
                 padding: const EdgeInsets.symmetric(vertical: 8),
@@ -199,9 +200,9 @@ class _AppSearchBarState extends ConsumerState<AppSearchBar> {
                           Expanded(
                             child: Text(
                               term,
-                              style: const TextStyle(
+                              style: TextStyle(
                                 fontSize: 14,
-                                color: Colors.black87,
+                                color: isDark ? AppColors.darkTextPrimary : Colors.black87,
                               ),
                             ),
                           ),
