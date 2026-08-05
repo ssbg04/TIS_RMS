@@ -88,10 +88,9 @@ Files backup/restore - mirror mode or zip -->
 <!-- ## backend server backup/restore
 - do not use zip and unzip -->
 
-# LOGIN SCREEN
-- fix the login section that animates to full screen if the text fields is not empty make that section full screen
-- fix padding top in Login label, it has huge padding top
-
+# WINDOWS AND ANDROID LAYOUT
+- make the skeleton loading colors responsive from the theme colors
+- make the windows skeleton delay same from the android layout
 
 ---
 

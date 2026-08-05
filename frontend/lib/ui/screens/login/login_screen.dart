@@ -243,7 +243,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> with SingleTickerProv
               child: WindowCaption(
                 brightness: Theme.of(context).brightness,
                 backgroundColor: isDark
-                    ? Theme.of(context).colorScheme.surface
+                    ? AppColors.primaryGreen
                     : AppColors.primaryGreen,
                 title: Text(
                   'Talisay Integrated School',

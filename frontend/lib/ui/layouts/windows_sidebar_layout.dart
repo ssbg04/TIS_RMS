@@ -159,7 +159,7 @@ class _WindowsSidebarLayoutState extends ConsumerState<WindowsSidebarLayout> {
 
                   _tabLoadingTimer?.cancel();
                   _tabLoadingTimer = Timer(
-                    const Duration(milliseconds: 500),
+                    const Duration(milliseconds: 100),
                     () {
                       if (mounted) {
                         setState(() {
@@ -751,6 +751,10 @@ class _PageSkeletonLoaderState extends State<_PageSkeletonLoader>
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final baseColor = isDark ? Colors.grey.shade800 : Colors.grey.shade300;
+    final secondaryColor = isDark ? Colors.grey.shade900 : Colors.grey.shade200;
+
     return FadeTransition(
       opacity: Tween<double>(begin: 0.3, end: 1.0).animate(_controller),
       child: Padding(
@@ -762,7 +766,7 @@ class _PageSkeletonLoaderState extends State<_PageSkeletonLoader>
               height: 40,
               width: 180,
               decoration: BoxDecoration(
-                color: Colors.grey.shade300,
+                color: baseColor,
                 borderRadius: BorderRadius.circular(8),
               ),
             ),
@@ -773,7 +777,7 @@ class _PageSkeletonLoaderState extends State<_PageSkeletonLoader>
                   child: Container(
                     height: 80,
                     decoration: BoxDecoration(
-                      color: Colors.grey.shade200,
+                      color: secondaryColor,
                       borderRadius: BorderRadius.circular(12),
                     ),
                   ),
@@ -783,7 +787,7 @@ class _PageSkeletonLoaderState extends State<_PageSkeletonLoader>
                   child: Container(
                     height: 80,
                     decoration: BoxDecoration(
-                      color: Colors.grey.shade200,
+                      color: secondaryColor,
                       borderRadius: BorderRadius.circular(12),
                     ),
                   ),
@@ -799,7 +803,7 @@ class _PageSkeletonLoaderState extends State<_PageSkeletonLoader>
                 itemBuilder: (_, __) => Container(
                   height: 60,
                   decoration: BoxDecoration(
-                    color: Colors.grey.shade200,
+                    color: secondaryColor,
                     borderRadius: BorderRadius.circular(8),
                   ),
                 ),
