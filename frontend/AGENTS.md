@@ -89,8 +89,9 @@ Files backup/restore - mirror mode or zip -->
 - do not use zip and unzip -->
 
 # LOGIN SCREEN
-- hide the server ip modal in icon logo tap 3 times to activate the modal
 - apply dark theme
+  - bring back the green background for the outer part of the login screen (the larger section)
+  - use darker saturation for green background
 
 
 ---

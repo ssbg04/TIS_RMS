@@ -250,9 +250,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> with SingleTickerProv
                       animation: _revealAnimation,
                       builder: (context, child) {
                         return Container(
-                          color: isDark
-                              ? Theme.of(context).colorScheme.surface
-                              : AppColors.primaryGreen,
+                          color: AppColors.darkGreen,
                           child: Row(
                             children: [
                               if (_revealAnimation.value > 0)
@@ -348,7 +346,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> with SingleTickerProv
                       animation: _revealAnimation,
                       builder: (context, child) {
                         return Container(
-                          color: isDark ? Theme.of(context).colorScheme.surface : AppColors.primaryGreen,
+                          color: AppColors.darkGreen,
                           child: Column(
                             children: [
                               if (_revealAnimation.value > 0)
