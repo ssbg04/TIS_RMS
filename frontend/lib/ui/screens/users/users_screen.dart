@@ -170,6 +170,11 @@ class _UsersScreenState extends ConsumerState<UsersScreen> {
 
   void _showUserDetailModal(SystemUser user) {
     final currentUser = ref.watch(authProvider).value;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final textPrimary = isDark ? AppColors.darkTextPrimary : AppColors.textPrimary;
+    final textSecondary = isDark ? AppColors.darkTextSecondary : AppColors.textSecondary;
+    final headerBg = isDark ? AppColors.darkSurface2 : Colors.grey.shade50;
+    final borderCol = isDark ? AppColors.darkBorder : Colors.grey.shade200;
 
     CustomModal.show(
       context: context,
@@ -185,8 +190,8 @@ class _UsersScreenState extends ConsumerState<UsersScreen> {
             Container(
               padding: const EdgeInsets.all(AppSizes.p24),
               decoration: BoxDecoration(
-                color: Colors.grey.shade50,
-                border: Border(bottom: BorderSide(color: Colors.grey.shade200)),
+                color: headerBg,
+                border: Border(bottom: BorderSide(color: borderCol)),
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -214,17 +219,17 @@ class _UsersScreenState extends ConsumerState<UsersScreen> {
                           children: [
                             Text(
                               user.fullName,
-                              style: const TextStyle(
+                              style: TextStyle(
                                 fontSize: 20,
                                 fontWeight: FontWeight.bold,
-                                color: AppColors.textPrimary,
+                                color: textPrimary,
                               ),
                             ),
                             Text(
                               '@${user.username}',
-                              style: const TextStyle(
+                              style: TextStyle(
                                 fontSize: 14,
-                                color: AppColors.textSecondary,
+                                color: textSecondary,
                               ),
                             ),
                           ],
@@ -351,21 +356,24 @@ class _UsersScreenState extends ConsumerState<UsersScreen> {
   }
 
   Widget _detailRow(String label, String value) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final textPrimary = isDark ? AppColors.darkTextPrimary : AppColors.textPrimary;
+    final textSecondary = isDark ? AppColors.darkTextSecondary : AppColors.textSecondary;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
           label,
-          style: const TextStyle(
+          style: TextStyle(
             fontSize: 12,
-            color: AppColors.textSecondary,
+            color: textSecondary,
             fontWeight: FontWeight.bold,
           ),
         ),
         const SizedBox(height: 2),
         Text(
           value,
-          style: const TextStyle(fontSize: 15, color: AppColors.textPrimary),
+          style: TextStyle(fontSize: 15, color: textPrimary),
         ),
       ],
     );
@@ -373,6 +381,11 @@ class _UsersScreenState extends ConsumerState<UsersScreen> {
 
   Widget _buildAnimatedFilter(String label, String value, int count) {
     final isSelected = _roleFilter == value;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final unselectedBg = isDark ? AppColors.darkSurfaceCard : Colors.white;
+    final unselectedBorder = isDark ? AppColors.darkBorder : Colors.grey.shade300;
+    final unselectedText = isDark ? AppColors.darkTextSecondary : AppColors.textSecondary;
+
     return GestureDetector(
       onTap: () {
         setState(() {
@@ -386,10 +399,10 @@ class _UsersScreenState extends ConsumerState<UsersScreen> {
         margin: const EdgeInsets.only(right: 8),
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         decoration: BoxDecoration(
-          color: isSelected ? AppColors.primaryGreen : Colors.white,
+          color: isSelected ? AppColors.primaryGreen : unselectedBg,
           borderRadius: BorderRadius.circular(20),
           border: Border.all(
-            color: isSelected ? AppColors.primaryGreen : Colors.grey.shade300,
+            color: isSelected ? AppColors.primaryGreen : unselectedBorder,
           ),
           boxShadow: isSelected
               ? [
@@ -404,7 +417,7 @@ class _UsersScreenState extends ConsumerState<UsersScreen> {
         child: Text(
           '$label ($count)',
           style: TextStyle(
-            color: isSelected ? Colors.white : AppColors.textSecondary,
+            color: isSelected ? Colors.white : unselectedText,
             fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
           ),
         ),
@@ -527,7 +540,13 @@ class _UsersScreenState extends ConsumerState<UsersScreen> {
                             ),
                             if (!_searchFocusNode.hasFocus)
                               IconButton(
-                                icon: const Icon(Icons.search, size: 28, color: Colors.black87),
+                                icon: Icon(
+                                  Icons.search,
+                                  size: 28,
+                                  color: Theme.of(context).brightness == Brightness.dark
+                                      ? AppColors.darkTextPrimary
+                                      : Colors.black87,
+                                ),
                                 tooltip: 'Search Users',
                                 onPressed: () => _showSearchDialog(context),
                               ),
@@ -687,10 +706,15 @@ class _UsersScreenState extends ConsumerState<UsersScreen> {
   }
 
   Widget _buildDesktopTable(List<SystemUser> users) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final textPrimary = isDark ? AppColors.darkTextPrimary : AppColors.textPrimary;
+    final textSecondary = isDark ? AppColors.darkTextSecondary : AppColors.textSecondary;
+    final cardBg = isDark ? AppColors.darkSurfaceCard : AppColors.surfaceWhite;
+
     return Container(
       width: double.infinity,
       decoration: BoxDecoration(
-        color: AppColors.surfaceWhite,
+        color: cardBg,
         borderRadius: BorderRadius.circular(AppSizes.radiusLarge),
         boxShadow: [
           BoxShadow(
@@ -706,11 +730,13 @@ class _UsersScreenState extends ConsumerState<UsersScreen> {
           child: DataTable(
             showCheckboxColumn: false,
             headingRowColor: WidgetStateProperty.all(
-              AppColors.primaryGreen.withValues(alpha: 0.05),
+              isDark
+                  ? Colors.white.withValues(alpha: 0.03)
+                  : AppColors.primaryGreen.withValues(alpha: 0.05),
             ),
-            headingTextStyle: const TextStyle(
+            headingTextStyle: TextStyle(
               fontWeight: FontWeight.bold,
-              color: AppColors.textPrimary,
+              color: textPrimary,
             ),
             columnSpacing: 24,
             dataRowMaxHeight: 65,
@@ -726,14 +752,14 @@ class _UsersScreenState extends ConsumerState<UsersScreen> {
             ],
             rows: users.isEmpty
                 ? [
-                    const DataRow(
+                    DataRow(
                       cells: [
-                        DataCell(Text('No users found.')),
-                        DataCell(Text('')),
-                        DataCell(Text('')),
-                        DataCell(Text('')),
-                        DataCell(Text('')),
-                        DataCell(Text('')),
+                        DataCell(Text('No users found.', style: TextStyle(color: textSecondary))),
+                        const DataCell(Text('')),
+                        const DataCell(Text('')),
+                        const DataCell(Text('')),
+                        const DataCell(Text('')),
+                        const DataCell(Text('')),
                       ],
                     ),
                   ]
@@ -762,9 +788,10 @@ class _UsersScreenState extends ConsumerState<UsersScreen> {
                                   const SizedBox(width: 12),
                                   Text(
                                     user.fullName,
-                                    style: const TextStyle(
+                                    style: TextStyle(
                                       fontWeight: FontWeight.w600,
                                       fontSize: 14,
+                                      color: textPrimary,
                                     ),
                                   ),
                                 ],
@@ -773,8 +800,8 @@ class _UsersScreenState extends ConsumerState<UsersScreen> {
                             DataCell(
                               Text(
                                 '@${user.username}',
-                                style: const TextStyle(
-                                  color: AppColors.textSecondary,
+                                style: TextStyle(
+                                  color: textSecondary,
                                 ),
                               ),
                             ),
@@ -783,8 +810,8 @@ class _UsersScreenState extends ConsumerState<UsersScreen> {
                             DataCell(
                               Text(
                                 user.email ?? user.phone ?? '—',
-                                style: const TextStyle(
-                                  color: AppColors.textSecondary,
+                                style: TextStyle(
+                                  color: textSecondary,
                                   fontSize: 13,
                                 ),
                               ),
@@ -809,11 +836,17 @@ class _UsersScreenState extends ConsumerState<UsersScreen> {
   }
 
   Widget _buildMobileList(List<SystemUser> users) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final textPrimary = isDark ? AppColors.darkTextPrimary : AppColors.textPrimary;
+    final textSecondary = isDark ? AppColors.darkTextSecondary : AppColors.textSecondary;
+    final cardBg = isDark ? AppColors.darkSurfaceCard : AppColors.surfaceWhite;
+    final borderCol = isDark ? AppColors.darkBorder : Colors.grey.shade100;
+
     if (users.isEmpty) {
-      return const Center(
+      return Center(
         child: Text(
           'No users found.',
-          style: TextStyle(color: AppColors.textSecondary),
+          style: TextStyle(color: textSecondary),
         ),
       );
     }
@@ -828,7 +861,7 @@ class _UsersScreenState extends ConsumerState<UsersScreen> {
           child: Container(
             padding: const EdgeInsets.all(AppSizes.p16),
             decoration: BoxDecoration(
-              color: AppColors.surfaceWhite,
+              color: cardBg,
               borderRadius: BorderRadius.circular(AppSizes.radiusLarge),
               boxShadow: [
                 BoxShadow(
@@ -837,7 +870,7 @@ class _UsersScreenState extends ConsumerState<UsersScreen> {
                   offset: const Offset(0, 2),
                 ),
               ],
-              border: Border.all(color: Colors.grey.shade100),
+              border: Border.all(color: borderCol),
             ),
             child: Row(
               children: [
@@ -865,9 +898,10 @@ class _UsersScreenState extends ConsumerState<UsersScreen> {
                           Expanded(
                             child: Text(
                               user.fullName,
-                              style: const TextStyle(
+                              style: TextStyle(
                                 fontWeight: FontWeight.bold,
                                 fontSize: 16,
+                                color: textPrimary,
                               ),
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
@@ -879,8 +913,8 @@ class _UsersScreenState extends ConsumerState<UsersScreen> {
                       const SizedBox(height: 4),
                       Text(
                         '@${user.username}',
-                        style: const TextStyle(
-                          color: AppColors.textSecondary,
+                        style: TextStyle(
+                          color: textSecondary,
                           fontSize: 13,
                         ),
                       ),
@@ -891,9 +925,9 @@ class _UsersScreenState extends ConsumerState<UsersScreen> {
                             if (user.email != null) user.email!,
                             if (user.phone != null) user.phone!,
                           ].join(' · '),
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 12,
-                            color: AppColors.textSecondary,
+                            color: textSecondary,
                           ),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
@@ -965,12 +999,13 @@ class AddEditUserModal extends ConsumerStatefulWidget {
   const AddEditUserModal({super.key, this.user});
 
   static Future<bool?> show(BuildContext context, {SystemUser? user}) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return WoltModalSheet.show<bool>(
       context: context,
       pageListBuilder: (modalSheetContext) {
         return [
           WoltModalSheetPage(
-            backgroundColor: AppColors.surfaceWhite,
+            backgroundColor: isDark ? AppColors.darkSurfaceCard : AppColors.surfaceWhite,
             hasSabGradient: false,
             hasTopBarLayer: false,
             child: AddEditUserModal(user: user),
@@ -1268,18 +1303,25 @@ class _AddEditUserModalState extends ConsumerState<AddEditUserModal> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        _isEdit ? 'Edit System User' : 'Create New User',
-                        style: const TextStyle(
+                        _isEdit ? 'Edit System User' : 'Add New User',
+                        style: TextStyle(
                           fontSize: 20,
                           fontWeight: FontWeight.bold,
-                          color: AppColors.textPrimary,
+                          color: Theme.of(context).brightness == Brightness.dark
+                              ? AppColors.darkTextPrimary
+                              : AppColors.textPrimary,
                         ),
                       ),
                     ],
                   ),
                 ),
                 IconButton(
-                  icon: const Icon(Icons.close, color: AppColors.textSecondary),
+                  icon: Icon(
+                    Icons.close,
+                    color: Theme.of(context).brightness == Brightness.dark
+                        ? AppColors.darkTextSecondary
+                        : AppColors.textSecondary,
+                  ),
                   onPressed: () => Navigator.of(context).pop(),
                 ),
               ],
@@ -1625,13 +1667,14 @@ class _AddEditUserModalState extends ConsumerState<AddEditUserModal> {
   }
 
   Widget _buildRoleDropdown(dynamic currentUser) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     if (_isEdit && widget.user?.id == currentUser?.id) {
       return Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
         decoration: BoxDecoration(
-          color: Colors.grey.shade100,
+          color: isDark ? AppColors.darkSurface2 : Colors.grey.shade100,
           borderRadius: BorderRadius.circular(AppSizes.radiusMedium),
-          border: Border.all(color: Colors.grey.shade300),
+          border: Border.all(color: isDark ? AppColors.darkBorder : Colors.grey.shade300),
         ),
         child: Row(
           children: [
@@ -1645,11 +1688,18 @@ class _AddEditUserModalState extends ConsumerState<AddEditUserModal> {
               ),
             ),
             const SizedBox(width: 8),
-            const Icon(Icons.lock, color: Colors.grey, size: 14),
+            Icon(
+              Icons.lock,
+              color: isDark ? AppColors.darkTextMuted : Colors.grey,
+              size: 14,
+            ),
             const SizedBox(width: 4),
-            const Text(
+            Text(
               '(Your own role cannot be changed)',
-              style: TextStyle(fontSize: 12, color: Colors.grey),
+              style: TextStyle(
+                fontSize: 12,
+                color: isDark ? AppColors.darkTextSecondary : Colors.grey,
+              ),
             ),
           ],
         ),
@@ -1858,9 +1908,11 @@ class _ResetPasswordConfirmationDialogState
               const SizedBox(height: 8),
               Text(
                 'Reset the password for "${widget.user.username}"?\nTheir new password will be: changeme123\n\nPlease confirm using your admin password.',
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 13,
-                  color: AppColors.textSecondary,
+                  color: Theme.of(context).brightness == Brightness.dark
+                      ? AppColors.darkTextSecondary
+                      : AppColors.textSecondary,
                 ),
               ),
               const Divider(height: 28),

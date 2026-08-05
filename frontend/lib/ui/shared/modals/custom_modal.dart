@@ -56,7 +56,9 @@ class CustomModal extends StatelessWidget {
         borderRadius: BorderRadius.circular(12),
         child: Container(
           constraints: BoxConstraints(maxWidth: maxWidth),
-          color: AppColors.pageBackground,
+          color: Theme.of(context).brightness == Brightness.dark
+              ? AppColors.darkSurfaceCard
+              : AppColors.pageBackground,
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [

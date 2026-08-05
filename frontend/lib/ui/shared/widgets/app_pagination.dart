@@ -45,7 +45,11 @@ class AppPagination extends StatelessWidget {
                   borderRadius: BorderRadius.circular(6),
                   border: isActive
                       ? null
-                      : Border.all(color: Colors.grey.shade300),
+                      : Border.all(
+                          color: Theme.of(context).brightness == Brightness.dark
+                              ? AppColors.darkBorder
+                              : Colors.grey.shade300,
+                        ),
                 ),
                 child: Center(
                   child: Text(
@@ -53,7 +57,11 @@ class AppPagination extends StatelessWidget {
                     style: TextStyle(
                       fontSize: 13,
                       fontWeight: FontWeight.w600,
-                      color: isActive ? Colors.white : AppColors.textSecondary,
+                      color: isActive
+                          ? Colors.white
+                          : (Theme.of(context).brightness == Brightness.dark
+                              ? AppColors.darkTextSecondary
+                              : AppColors.textSecondary),
                     ),
                   ),
                 ),

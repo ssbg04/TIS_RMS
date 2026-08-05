@@ -138,16 +138,21 @@ class _ResetRequestsModalState extends ConsumerState<ResetRequestsModal> {
                   children: [
                     Text(
                       '${req['first_name']} ${req['last_name']} (@${req['username']})',
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontWeight: FontWeight.bold,
                         fontSize: 16,
+                        color: Theme.of(context).brightness == Brightness.dark
+                            ? AppColors.darkTextPrimary
+                            : AppColors.textPrimary,
                       ),
                     ),
                     const SizedBox(height: 4),
                     Text(
                       'Requested: ${date_utils.formatModalDate(req['requested_at'] as String)}',
                       style: TextStyle(
-                        color: Colors.grey.shade600,
+                        color: Theme.of(context).brightness == Brightness.dark
+                            ? AppColors.darkTextSecondary
+                            : Colors.grey.shade600,
                         fontSize: 14,
                       ),
                     ),

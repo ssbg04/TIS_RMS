@@ -88,8 +88,35 @@ Files backup/restore - mirror mode or zip -->
 <!-- ## backend server backup/restore
 - do not use zip and unzip -->
 
-# ANDROID LAYOUT
-- change icon of hamburger bar in side bar active into left arrow icon, add fade animation
+# SETTINGS SCREEN (dont do)
+
+## DOCUMENT REQUIREMENTS SCREEN (dont do)
+- remove the icon in top title header
+- make the JHS and SHS requirements into two tab
+- remove the filter for JHS and SHS
+- move the multi select icon in filter make it a label button instead no icon
+- apply dark theme
+
+## TEACHERS & ACADEMIC SETUP SCREEN (dont do)
+- remove the icon in top title header
+- title tab use label no icon
+- apply dark theme
+- 
+
+# USERS SCREEN 
+- fonts are not readable in dark mode
+- apply dark mode
+  - filter
+  - cards
+  - user profile modal
+  - add user wolt modal
+  - reset requests modal
+  - search icon
+  - pagination number border and fonts
+
+- add user wolt modal
+  - change title into Add New User
+
 
 ---
 
