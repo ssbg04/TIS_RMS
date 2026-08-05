@@ -103,11 +103,10 @@ Files backup/restore - mirror mode or zip -->
 - apply dark theme
 - 
 
-# USERS SCREEN 
-- list of users
-  - add blur effect at top weak bottom half the top half is stronger 
-  - add blur effect too in bottom, weak top half stronger bottom half
-  - blur effect smooth out sharp edges using ShaderMask
+# SETTINGS SCREEN 
+- add blur effect at top weak bottom half the top half is stronger 
+- add blur effect too in bottom, weak top half stronger bottom half
+- blur effect smooth out sharp edges using ShaderMask
 
 <!-- - seach feature
   - search icon into 'X' when searched an user, clears search and refresh users list
