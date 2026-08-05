@@ -309,60 +309,58 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
               ],
             ),
           ),
-          data: (data) => Column(
+          data: (data) => Stack(
             children: [
-              Padding(
-                padding: const EdgeInsets.only(left: 24, right: 24, top: 24),
-                child: _buildTopBar(context, user),
-              ),
-              Expanded(
-                child: Stack(
-                  children: [
-                    Positioned.fill(
-                      child: RefreshIndicator(
-                        onRefresh: _handleRefresh,
-                        child: SingleChildScrollView(
-                          physics: const AlwaysScrollableScrollPhysics(),
-                          padding: const EdgeInsets.all(24),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                'Dashboard Overview',
-                                style: TextStyle(
-                                  fontSize:
-                                      MediaQuery.of(context).size.width > 600
-                                      ? 28
-                                      : 24,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                              const SizedBox(height: 16),
-                              if (isAdmin && !_setupBannerDismissed) ...[
-                                _buildSetupGuidanceBanner(context),
-                                const SizedBox(height: 24),
-                              ],
-                              Text(
-                                'Welcome back, ${user?.firstName ?? 'Admin'}. Here is what is happening today.',
-                                style: TextStyle(
-                                  fontSize: 16,
-                                  color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
-                                ),
-                              ),
-                              const SizedBox(height: 24),
-                              _buildStatGrid(data.stats, user),
-                              const SizedBox(height: 32),
-                              const DashboardKpisSection(),
-                              const SizedBox(height: 32),
-                              _buildHistorySections(data, user),
-                              const SizedBox(height: 48),
-                            ],
+              // Scrollable Content
+              Positioned.fill(
+                child: RefreshIndicator(
+                  onRefresh: _handleRefresh,
+                  child: SingleChildScrollView(
+                    physics: const AlwaysScrollableScrollPhysics(),
+                    padding: const EdgeInsets.fromLTRB(24, 90, 24, 24),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Dashboard Overview',
+                          style: TextStyle(
+                            fontSize:
+                                MediaQuery.of(context).size.width > 600
+                                ? 28
+                                : 24,
+                            fontWeight: FontWeight.bold,
                           ),
                         ),
-                      ),
+                        const SizedBox(height: 16),
+                        if (isAdmin && !_setupBannerDismissed) ...[
+                          _buildSetupGuidanceBanner(context),
+                          const SizedBox(height: 24),
+                        ],
+                        Text(
+                          'Welcome back, ${user?.firstName ?? 'Admin'}. Here is what is happening today.',
+                          style: TextStyle(
+                            fontSize: 16,
+                            color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+                          ),
+                        ),
+                        const SizedBox(height: 24),
+                        _buildStatGrid(data.stats, user),
+                        const SizedBox(height: 32),
+                        const DashboardKpisSection(),
+                        const SizedBox(height: 32),
+                        _buildHistorySections(data, user),
+                        const SizedBox(height: 48),
+                      ],
                     ),
-                  ],
+                  ),
                 ),
+              ),
+              // Sticky Blur Top Bar
+              Positioned(
+                top: 0,
+                left: 0,
+                right: 0,
+                child: _buildTopBar(context, user),
               ),
             ],
           ),
@@ -704,61 +702,73 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     final unreadCount =
         notificationsAsync.value?.where((n) => !n.isRead).length ?? 0;
 
-    return Container(
-      padding: const EdgeInsets.only(bottom: 1, top: 1),
-      decoration: BoxDecoration(
-        border: Border(
-          bottom: BorderSide(color: Colors.grey.shade300, width: 1.0),
-        ),
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          // Dashboard Overview text moved to body
-          const Spacer(),
-          Row(
-            children: [
-              IconButton(
-                icon: const Icon(Icons.search, size: 32),
-                tooltip: 'Search Students',
-                onPressed: () => _showSearchDialog(context),
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    return ClipRect(
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 10.0, sigmaY: 10.0),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+          decoration: BoxDecoration(
+            color: isDark
+                ? AppColors.darkPageBackground.withOpacity(0.5)
+                : Colors.white.withOpacity(0.5),
+            border: Border(
+              bottom: BorderSide(
+                color: Theme.of(context).dividerColor,
+                width: 1.0,
               ),
-              const SizedBox(width: 8),
-              Builder(
-                builder: (ctx) => Stack(
-                  children: [
-                    IconButton(
-                      icon: const Icon(Icons.notifications, size: 32),
-                      onPressed: () => _showNotifications(ctx),
-                    ),
-                    if (unreadCount > 0)
-                      Positioned(
-                        right: 8,
-                        top: 8,
-                        child: Container(
-                          padding: const EdgeInsets.all(4),
-                          decoration: const BoxDecoration(
-                            color: Colors.redAccent,
-                            shape: BoxShape.circle,
-                          ),
-                          child: Text(
-                            unreadCount.toString(),
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 10,
-                              fontWeight: FontWeight.bold,
+            ),
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Spacer(),
+              Row(
+                children: [
+                  IconButton(
+                    icon: const Icon(Icons.search, size: 32),
+                    tooltip: 'Search Students',
+                    onPressed: () => _showSearchDialog(context),
+                  ),
+                  const SizedBox(width: 8),
+                  Builder(
+                    builder: (ctx) => Stack(
+                      children: [
+                        IconButton(
+                          icon: const Icon(Icons.notifications, size: 32),
+                          onPressed: () => _showNotifications(ctx),
+                        ),
+                        if (unreadCount > 0)
+                          Positioned(
+                            right: 8,
+                            top: 8,
+                            child: Container(
+                              padding: const EdgeInsets.all(4),
+                              decoration: const BoxDecoration(
+                                color: Colors.redAccent,
+                                shape: BoxShape.circle,
+                              ),
+                              child: Text(
+                                unreadCount.toString(),
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
                             ),
                           ),
-                        ),
-                      ),
-                  ],
-                ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+                  ProfileDropdownMenu(user: user, onRefresh: _handleRefresh),
+                ],
               ),
-              const SizedBox(width: 16),
-              ProfileDropdownMenu(user: user, onRefresh: _handleRefresh),
             ],
           ),
-        ],
+        ),
       ),
     );
   }

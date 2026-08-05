@@ -168,14 +168,14 @@ class AppTheme {
         brightness: Brightness.dark,
         primary: AppColors.primaryGreen,
         secondary: AppColors.darkGreen,
-        surface: AppColors.darkSurfaceCard,
+        surface: AppColors.darkSurface2,
         onSurface: AppColors.darkTextPrimary,
         error: AppColors.error,
       ),
 
       // AppBar Theme
       appBarTheme: AppBarTheme(
-        backgroundColor: AppColors.darkSurfaceCard,
+        backgroundColor: AppColors.darkSurface2,
         elevation: 1,
         shadowColor: Colors.black.withOpacity(0.2),
         scrolledUnderElevation: 0,

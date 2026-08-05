@@ -370,15 +370,19 @@ class _WindowsSidebarLayoutState extends ConsumerState<WindowsSidebarLayout> {
           children: [
             if (!kIsWeb &&
                 (Platform.isWindows || Platform.isLinux || Platform.isMacOS))
-              const SizedBox(
+              SizedBox(
                 height: 32,
                 child: WindowCaption(
-                  brightness: Brightness.dark,
-                  backgroundColor: AppColors.primaryGreen,
+                  brightness: Theme.of(context).brightness,
+                  backgroundColor: Theme.of(context).brightness == Brightness.dark
+                      ? Theme.of(context).colorScheme.surface
+                      : AppColors.primaryGreen,
                   title: Text(
                     'TIS RMS',
                     style: TextStyle(
-                      color: Colors.white,
+                      color: Theme.of(context).brightness == Brightness.dark
+                          ? Theme.of(context).colorScheme.onSurface
+                          : Colors.white,
                       fontSize: 13,
                       fontWeight: FontWeight.w500,
                     ),

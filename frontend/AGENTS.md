@@ -88,14 +88,13 @@ Files backup/restore - mirror mode or zip -->
 <!-- ## backend server backup/restore
 - do not use zip and unzip -->
 
+# WINDOWS AND ANDROID LAYOUT
+- make the navigation bar and screen header dark color theme lighter than the backdrop
+
 # DASHBOARD SCREEN
-## fix the dark theme
-- notification dropdown
-- profile details dropdown
-- setup required widget section
-- stats cards and KPI cards
-- fonts of analytics and KPIs, User history, recent history
-- list of user history and recent history
+- section of search icon, notification icon, profile icon
+  - the underline border separates the scrollable redesign into blur effect no reflection, no liquid glass just blur, make it work with theme mode 
+  
 
 ---
 
