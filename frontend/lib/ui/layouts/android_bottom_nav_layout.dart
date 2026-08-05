@@ -336,13 +336,7 @@ class _AndroidBottomNavLayoutState extends ConsumerState<AndroidBottomNavLayout>
                           ),
                         ),
                         const Spacer(),
-                        IconButton(
-                          icon: Icon(
-                            Icons.menu,
-                            color: Theme.of(context).colorScheme.onSurface.withOpacity(0.54),
-                          ),
-                          onPressed: () => Navigator.pop(context),
-                        ),
+                        const _DrawerCloseButton(),
                       ],
                     ),
                   ),
@@ -677,6 +671,50 @@ class _PageSkeletonLoaderState extends State<_PageSkeletonLoader>
           ],
         ),
       ),
+    );
+  }
+}
+
+class _DrawerCloseButton extends StatefulWidget {
+  const _DrawerCloseButton();
+
+  @override
+  State<_DrawerCloseButton> createState() => _DrawerCloseButtonState();
+}
+
+class _DrawerCloseButtonState extends State<_DrawerCloseButton> {
+  bool _useArrow = false;
+
+  @override
+  void initState() {
+    super.initState();
+    Future.delayed(const Duration(milliseconds: 150), () {
+      if (mounted) {
+        setState(() {
+          _useArrow = true;
+        });
+      }
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return IconButton(
+      icon: AnimatedSwitcher(
+        duration: const Duration(milliseconds: 250),
+        transitionBuilder: (child, animation) {
+          return FadeTransition(
+            opacity: animation,
+            child: ScaleTransition(scale: animation, child: child),
+          );
+        },
+        child: Icon(
+          _useArrow ? Icons.arrow_back : Icons.menu,
+          key: ValueKey(_useArrow),
+          color: Theme.of(context).colorScheme.onSurface.withOpacity(0.54),
+        ),
+      ),
+      onPressed: () => Navigator.pop(context),
     );
   }
 }

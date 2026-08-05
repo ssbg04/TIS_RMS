@@ -88,9 +88,8 @@ Files backup/restore - mirror mode or zip -->
 <!-- ## backend server backup/restore
 - do not use zip and unzip -->
 
-# WINDOWS AND ANDROID LAYOUT
-- make the skeleton loading colors responsive from the theme colors
-- make the windows skeleton delay same from the android layout
+# ANDROID LAYOUT
+- change icon of hamburger bar in side bar active into left arrow icon, add fade animation
 
 ---
 
