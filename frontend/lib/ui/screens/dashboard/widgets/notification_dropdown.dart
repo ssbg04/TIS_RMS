@@ -179,7 +179,7 @@ class _NotificationDropdownWidgetState
                                           ? FontWeight.normal
                                           : FontWeight.bold,
                                       fontSize: 13,
-                                      color: Colors.black87,
+                                      color: Theme.of(context).colorScheme.onSurface,
                                     ),
                                   ),
                                 ),
@@ -200,8 +200,8 @@ class _NotificationDropdownWidgetState
                               style: TextStyle(
                                 fontSize: 12,
                                 color: note.isRead
-                                    ? Colors.black54
-                                    : Colors.black87,
+                                    ? Theme.of(context).colorScheme.onSurface.withOpacity(0.6)
+                                    : Theme.of(context).colorScheme.onSurface,
                                 fontWeight: note.isRead
                                     ? FontWeight.normal
                                     : FontWeight.w500,
@@ -212,9 +212,9 @@ class _NotificationDropdownWidgetState
                             const SizedBox(height: 4),
                             Text(
                               pht.formatRelative(note.createdAt),
-                              style: const TextStyle(
+                              style: TextStyle(
                                 fontSize: 10,
-                                color: Colors.black38,
+                                color: Theme.of(context).colorScheme.onSurface.withOpacity(0.38),
                               ),
                             ),
                           ],

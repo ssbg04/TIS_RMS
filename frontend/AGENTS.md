@@ -94,7 +94,8 @@ Files backup/restore - mirror mode or zip -->
 - profile details dropdown
 - setup required widget section
 - stats cards and KPI cards
-- fonts of analytics and KPIs, User history
+- fonts of analytics and KPIs, User history, recent history
+- list of user history and recent history
 
 ---
 

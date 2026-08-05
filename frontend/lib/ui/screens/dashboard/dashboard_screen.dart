@@ -169,18 +169,18 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
           child: Container(
             width: 300,
             padding: const EdgeInsets.only(bottom: 8),
-            decoration: const BoxDecoration(
-              border: Border(bottom: BorderSide(color: Colors.black12)),
+            decoration: BoxDecoration(
+              border: Border(bottom: BorderSide(color: Theme.of(context).dividerColor)),
             ),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                const Text(
+                Text(
                   'Notifications',
                   style: TextStyle(
                     fontWeight: FontWeight.bold,
                     fontSize: 16,
-                    color: Colors.black87,
+                    color: Theme.of(context).colorScheme.onSurface,
                   ),
                 ),
                 Row(
@@ -346,7 +346,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                                 'Welcome back, ${user?.firstName ?? 'Admin'}. Here is what is happening today.',
                                 style: TextStyle(
                                   fontSize: 16,
-                                  color: Colors.grey.shade600,
+                                  color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
                                 ),
                               ),
                               const SizedBox(height: 24),
@@ -374,6 +374,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
   // ── ADMIN SETUP GUIDANCE BANNER ───────────────────────────────────────────
   Widget _buildSetupGuidanceBanner(BuildContext context) {
     final isMobile = MediaQuery.of(context).size.width < 600;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Container(
       decoration: BoxDecoration(
@@ -392,9 +393,12 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
           width: double.infinity,
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
-            color: Colors.white,
+            color: isDark ? AppColors.darkSurfaceCard : Colors.white,
             borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: Colors.grey.shade200, width: 1.0),
+            border: Border.all(
+              color: isDark ? AppColors.darkBorder : Colors.grey.shade200,
+              width: 1.0,
+            ),
           ),
           child: isMobile
               ? Column(
@@ -415,21 +419,21 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              const Text(
+                              Text(
                                 'Setup Required',
                                 style: TextStyle(
                                   fontWeight: FontWeight.bold,
                                   fontSize: 15,
-                                  color: Colors.black87,
+                                  color: Theme.of(context).colorScheme.onSurface,
                                 ),
                               ),
                               if (!_setupBannerMinimized) ...[
                                 const SizedBox(height: 4),
-                                const Text(
+                                Text(
                                   'Before using the system, please configure the following sections to get started:',
                                   style: TextStyle(
                                     fontSize: 13,
-                                    color: Colors.black54,
+                                    color: Theme.of(context).colorScheme.onSurface.withOpacity(0.7),
                                   ),
                                 ),
                               ],
@@ -446,7 +450,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                                 ? Icons.keyboard_arrow_down
                                 : Icons.keyboard_arrow_up,
                             size: 18,
-                            color: Colors.black38,
+                            color: Theme.of(context).colorScheme.onSurface.withOpacity(0.38),
                           ),
                           padding: EdgeInsets.zero,
                           constraints: const BoxConstraints(),
@@ -454,10 +458,10 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                         IconButton(
                           onPressed: () =>
                               setState(() => _setupBannerDismissed = true),
-                          icon: const Icon(
+                          icon: Icon(
                             Icons.close,
                             size: 18,
-                            color: Colors.black38,
+                            color: Theme.of(context).colorScheme.onSurface.withOpacity(0.38),
                           ),
                           padding: EdgeInsets.zero,
                           constraints: const BoxConstraints(),
@@ -509,21 +513,21 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const Text(
+                          Text(
                             'Setup Required',
                             style: TextStyle(
                               fontWeight: FontWeight.bold,
                               fontSize: 15,
-                              color: Colors.black87,
+                              color: Theme.of(context).colorScheme.onSurface,
                             ),
                           ),
                           if (!_setupBannerMinimized) ...[
                             const SizedBox(height: 4),
-                            const Text(
+                            Text(
                               'Before using the system, please configure the following sections to get started:',
                               style: TextStyle(
                                 fontSize: 13,
-                                color: Colors.black54,
+                                color: Theme.of(context).colorScheme.onSurface.withOpacity(0.7),
                               ),
                             ),
                             const SizedBox(height: 12),
@@ -564,7 +568,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                                 ? Icons.keyboard_arrow_down
                                 : Icons.keyboard_arrow_up,
                             size: 18,
-                            color: Colors.black38,
+                            color: Theme.of(context).colorScheme.onSurface.withOpacity(0.38),
                           ),
                           padding: EdgeInsets.zero,
                           constraints: const BoxConstraints(),
@@ -573,10 +577,10 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                         IconButton(
                           onPressed: () =>
                               setState(() => _setupBannerDismissed = true),
-                          icon: const Icon(
+                          icon: Icon(
                             Icons.close,
                             size: 18,
-                            color: Colors.black38,
+                            color: Theme.of(context).colorScheme.onSurface.withOpacity(0.38),
                           ),
                           padding: EdgeInsets.zero,
                           constraints: const BoxConstraints(),
@@ -604,10 +608,10 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: Theme.of(context).brightness == Brightness.dark ? AppColors.darkSurface2 : Colors.white,
           borderRadius: BorderRadius.circular(8),
           border: Border.all(
-            color: AppColors.primaryGreen.withValues(alpha: 0.4),
+            color: AppColors.primaryGreen.withOpacity(0.4),
           ),
           boxShadow: [
             BoxShadow(
@@ -908,10 +912,10 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
             children: [
               Text(
                 title,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 20,
                   fontWeight: FontWeight.bold,
-                  color: Colors.black87,
+                  color: Theme.of(context).colorScheme.onSurface,
                 ),
               ),
               TextButton.icon(
@@ -974,11 +978,12 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
   }
 
   Widget _buildActivitiesList(List<RecentActivity> activities) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     if (activities.isEmpty) {
       return Container(
         padding: const EdgeInsets.all(24),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: isDark ? AppColors.darkSurfaceCard : Colors.white,
           borderRadius: BorderRadius.circular(12),
           boxShadow: [
             BoxShadow(
@@ -1002,7 +1007,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
 
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: isDark ? AppColors.darkSurfaceCard : Colors.white,
         borderRadius: BorderRadius.circular(12),
         boxShadow: [
           BoxShadow(
@@ -1017,7 +1022,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
         physics: const NeverScrollableScrollPhysics(),
         itemCount: activities.length,
         separatorBuilder: (_, _s) =>
-            Divider(height: 1, color: Colors.grey.shade200),
+            Divider(height: 1, color: Theme.of(context).dividerColor),
         itemBuilder: (context, index) {
           final a = activities[index];
 
@@ -1062,10 +1067,10 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                   children: [
                     Text(
                       a.description,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontWeight: FontWeight.w500,
                         fontSize: 13,
-                        color: Colors.black87,
+                        color: Theme.of(context).colorScheme.onSurface,
                       ),
                     ),
                     const SizedBox(height: 4),
@@ -1073,7 +1078,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                       '${a.performedBy ?? a.username ?? 'System'} · ${_formatDate(a.createdAt)}',
                       style: TextStyle(
                         fontSize: 12,
-                        color: Colors.grey.shade600,
+                        color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
                       ),
                     ),
                   ],
@@ -1081,7 +1086,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                 trailing: Icon(
                   Icons.chevron_right_rounded,
                   size: 20,
-                  color: Colors.grey.shade400,
+                  color: Theme.of(context).colorScheme.onSurface.withOpacity(0.38),
                 ),
               ),
             ),
@@ -1092,11 +1097,12 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
   }
 
   Widget _buildUserHistoryList(List<UserHistoryEntry> history) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     if (history.isEmpty) {
       return Container(
         padding: const EdgeInsets.all(24),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: isDark ? AppColors.darkSurfaceCard : Colors.white,
           borderRadius: BorderRadius.circular(12),
           boxShadow: [
             BoxShadow(
@@ -1120,7 +1126,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
 
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: isDark ? AppColors.darkSurfaceCard : Colors.white,
         borderRadius: BorderRadius.circular(12),
         boxShadow: [
           BoxShadow(
@@ -1135,7 +1141,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
         physics: const NeverScrollableScrollPhysics(),
         itemCount: history.length,
         separatorBuilder: (_, _s) =>
-            Divider(height: 1, color: Colors.grey.shade200),
+            Divider(height: 1, color: Theme.of(context).dividerColor),
         itemBuilder: (context, index) {
           final h = history[index];
           final desc = '${h.action.toUpperCase()} User: ${h.fullName}';
@@ -1187,10 +1193,10 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                   children: [
                     Text(
                       desc,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontWeight: FontWeight.w500,
                         fontSize: 13,
-                        color: Colors.black87,
+                        color: Theme.of(context).colorScheme.onSurface,
                       ),
                     ),
                     const SizedBox(height: 4),
@@ -1198,7 +1204,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                       '${h.performedByName ?? h.performedByUsername ?? 'System'} · ${_formatDate(h.createdAt)}',
                       style: TextStyle(
                         fontSize: 12,
-                        color: Colors.grey.shade600,
+                        color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
                       ),
                     ),
                   ],
@@ -1206,7 +1212,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                 trailing: Icon(
                   Icons.chevron_right_rounded,
                   size: 20,
-                  color: Colors.grey.shade400,
+                  color: Theme.of(context).colorScheme.onSurface.withOpacity(0.38),
                 ),
               ),
             ),

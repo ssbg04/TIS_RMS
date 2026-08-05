@@ -74,10 +74,10 @@ class ProfileDropdownMenu extends ConsumerWidget {
               children: [
                 Text(
                   dispName,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontWeight: FontWeight.bold,
                     fontSize: 16,
-                    color: Colors.black87,
+                    color: Theme.of(context).colorScheme.onSurface,
                   ),
                 ),
                 const SizedBox(height: 2),
@@ -102,7 +102,7 @@ class ProfileDropdownMenu extends ConsumerWidget {
                           Icon(
                             Icons.email_outlined,
                             size: 16,
-                            color: Colors.grey.shade500,
+                            color: Theme.of(context).colorScheme.onSurface.withOpacity(0.54),
                           ),
                           const SizedBox(width: 12),
                           Expanded(
@@ -110,7 +110,7 @@ class ProfileDropdownMenu extends ConsumerWidget {
                               dispEmail,
                               style: TextStyle(
                                 fontSize: 13,
-                                color: Colors.grey.shade700,
+                                color: Theme.of(context).colorScheme.onSurface.withOpacity(0.7),
                               ),
                               overflow: TextOverflow.ellipsis,
                             ),
@@ -123,14 +123,14 @@ class ProfileDropdownMenu extends ConsumerWidget {
                           Icon(
                             Icons.phone_outlined,
                             size: 16,
-                            color: Colors.grey.shade500,
+                            color: Theme.of(context).colorScheme.onSurface.withOpacity(0.54),
                           ),
                           const SizedBox(width: 12),
                           Text(
                             dispPhone,
                             style: TextStyle(
                               fontSize: 13,
-                              color: Colors.grey.shade700,
+                              color: Theme.of(context).colorScheme.onSurface.withOpacity(0.7),
                             ),
                           ),
                         ],
@@ -151,10 +151,16 @@ class ProfileDropdownMenu extends ConsumerWidget {
         PopupMenuItem<String>(
           value: 'settings',
           child: Row(
-            children: const [
-              Icon(Icons.settings_outlined, color: Colors.black87, size: 20),
-              SizedBox(width: 12),
-              Text('Settings', style: TextStyle(fontWeight: FontWeight.w500)),
+            children: [
+              Icon(Icons.settings_outlined, color: Theme.of(context).colorScheme.onSurface.withOpacity(0.7), size: 20),
+              const SizedBox(width: 12),
+              Text(
+                'Settings',
+                style: TextStyle(
+                  fontWeight: FontWeight.w500,
+                  color: Theme.of(context).colorScheme.onSurface,
+                ),
+              ),
             ],
           ),
         ),

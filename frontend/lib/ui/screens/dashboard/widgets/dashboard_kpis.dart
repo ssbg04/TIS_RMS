@@ -178,7 +178,9 @@ class _ChartCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: Colors.white,
+      color: Theme.of(context).brightness == Brightness.dark
+          ? AppColors.darkSurfaceCard
+          : Colors.white,
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
@@ -201,10 +203,10 @@ class _ChartCard extends StatelessWidget {
                   children: [
                     Text(
                       title,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 14,
                         fontWeight: FontWeight.w700,
-                        color: AppColors.textPrimary,
+                        color: Theme.of(context).colorScheme.onSurface,
                       ),
                     ),
                     if (subtitle != null)
@@ -212,7 +214,7 @@ class _ChartCard extends StatelessWidget {
                         subtitle!,
                         style: TextStyle(
                           fontSize: 11,
-                          color: Colors.grey.shade500,
+                          color: Theme.of(context).colorScheme.onSurface.withOpacity(0.38),
                         ),
                       ),
                   ],
@@ -285,7 +287,9 @@ class _DonutWidget extends StatelessWidget {
                     ),
                     PieChartSectionData(
                       value: remaining.clamp(0, double.maxFinite.toInt()).toDouble().clamp(0.01, double.infinity),
-                      color: Colors.grey.shade200,
+                      color: Theme.of(context).brightness == Brightness.dark
+                          ? AppColors.darkSurface2
+                          : Colors.grey.shade200,
                       radius: 20,
                       showTitle: false,
                     ),
@@ -307,7 +311,7 @@ class _DonutWidget extends StatelessWidget {
         const SizedBox(height: 2),
         Text(
           '${category.digitized}/${category.total}',
-          style: TextStyle(fontSize: 11, color: Colors.grey.shade500),
+          style: TextStyle(fontSize: 11, color: Theme.of(context).colorScheme.onSurface.withOpacity(0.38)),
         ),
       ],
     );
@@ -394,7 +398,7 @@ class _ActivityBarCard extends StatelessWidget {
                   show: true,
                   drawVerticalLine: false,
                   getDrawingHorizontalLine: (_) =>
-                      FlLine(color: Colors.grey.shade100, strokeWidth: 1),
+                      FlLine(color: Theme.of(context).dividerColor, strokeWidth: 1),
                 ),
                 borderData: FlBorderData(show: false),
                 titlesData: FlTitlesData(
@@ -412,8 +416,8 @@ class _ActivityBarCard extends StatelessWidget {
                         final parts = days[idx].split('-');
                         return Text(
                           '${parts[1]}/${parts[2]}',
-                          style: const TextStyle(
-                              fontSize: 9, color: AppColors.textSecondary),
+                          style: TextStyle(
+                              fontSize: 9, color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6)),
                         );
                       },
                       reservedSize: 20,
@@ -456,6 +460,7 @@ class _StatusDistributionCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final total = entries.fold(0, (sum, e) => sum + e.count);
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return _ChartCard(
       title: 'Document Status Distribution',
@@ -464,7 +469,7 @@ class _StatusDistributionCard extends StatelessWidget {
       child: Column(
         children: entries.map((e) {
           final pct = total == 0 ? 0.0 : e.count / total;
-          final color = _colorMap[e.status] ?? Colors.grey.shade500;
+          final color = _colorMap[e.status] ?? (isDark ? Colors.grey.shade400 : Colors.grey.shade500);
           return Padding(
             padding: const EdgeInsets.only(bottom: 12),
             child: Column(
@@ -475,11 +480,18 @@ class _StatusDistributionCard extends StatelessWidget {
                   children: [
                     Text(
                       e.status,
-                      style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                        color: Theme.of(context).colorScheme.onSurface,
+                      ),
                     ),
                     Text(
                       '${e.count} (${(pct * 100).toStringAsFixed(1)}%)',
-                      style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+                      ),
                     ),
                   ],
                 ),
@@ -488,7 +500,7 @@ class _StatusDistributionCard extends StatelessWidget {
                   borderRadius: BorderRadius.circular(6),
                   child: LinearProgressIndicator(
                     value: pct,
-                    backgroundColor: Colors.grey.shade100,
+                    backgroundColor: isDark ? AppColors.darkSurface2 : Colors.grey.shade100,
                     valueColor: AlwaysStoppedAnimation<Color>(color),
                     minHeight: 10,
                   ),
@@ -586,14 +598,20 @@ class _DocTypePieCardState extends State<_DocTypePieCard> {
                       Expanded(
                         child: Text(
                           e.name,
-                          style: const TextStyle(fontSize: 11),
+                          style: TextStyle(
+                            fontSize: 11,
+                            color: Theme.of(context).colorScheme.onSurface,
+                          ),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                         ),
                       ),
                       Text(
                         '${pct.toStringAsFixed(1)}%',
-                        style: TextStyle(fontSize: 11, color: Colors.grey.shade600),
+                        style: TextStyle(
+                          fontSize: 11,
+                          color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+                        ),
                       ),
                     ],
                   ),
@@ -747,6 +765,7 @@ class _StudentDocCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final maxCount =
         students.isEmpty ? 1 : students.map((s) => s.docCount).reduce(max);
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return _ChartCard(
       title: title,
@@ -782,15 +801,18 @@ class _StudentDocCard extends StatelessWidget {
                                 fontWeight: FontWeight.bold,
                                 color: i == 0
                                     ? Colors.amber.shade700
-                                    : Colors.grey.shade600,
+                                    : Theme.of(context).colorScheme.onSurface.withOpacity(0.54),
                               ),
                             ),
                           if (isTop) const SizedBox(width: 6),
                           Expanded(
                             child: Text(
                               s.name,
-                              style: const TextStyle(
-                                  fontSize: 12, fontWeight: FontWeight.w500),
+                              style: TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w500,
+                                color: Theme.of(context).colorScheme.onSurface,
+                              ),
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
                             ),
@@ -798,7 +820,9 @@ class _StudentDocCard extends StatelessWidget {
                           Text(
                             '${s.docCount} docs',
                             style: TextStyle(
-                                fontSize: 11, color: Colors.grey.shade600),
+                              fontSize: 11,
+                              color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+                            ),
                           ),
                         ],
                       ),
@@ -807,7 +831,7 @@ class _StudentDocCard extends StatelessWidget {
                         borderRadius: BorderRadius.circular(4),
                         child: LinearProgressIndicator(
                           value: pct,
-                          backgroundColor: Colors.grey.shade100,
+                          backgroundColor: isDark ? AppColors.darkSurface2 : Colors.grey.shade100,
                           valueColor: AlwaysStoppedAnimation<Color>(color),
                           minHeight: 8,
                         ),
@@ -887,16 +911,18 @@ class _StorageCard extends StatelessWidget {
           ),
           if (analytics.byType.isNotEmpty) ...[
             const SizedBox(height: 16),
-            const Text(
+            Text(
               'Storage by Document Type',
               style: TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w600,
-                  color: AppColors.textSecondary),
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+                color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+              ),
             ),
             const SizedBox(height: 8),
             ...analytics.byType.map((t) {
               final pct = t.bytes / maxBytes;
+              final isDark = Theme.of(context).brightness == Brightness.dark;
               return Padding(
                 padding: const EdgeInsets.only(bottom: 8),
                 child: Column(
@@ -908,7 +934,10 @@ class _StorageCard extends StatelessWidget {
                         Expanded(
                           child: Text(
                             t.name,
-                            style: const TextStyle(fontSize: 11),
+                            style: TextStyle(
+                              fontSize: 11,
+                              color: Theme.of(context).colorScheme.onSurface,
+                            ),
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                           ),
@@ -916,7 +945,9 @@ class _StorageCard extends StatelessWidget {
                         Text(
                           _fmt(t.bytes),
                           style: TextStyle(
-                              fontSize: 11, color: Colors.grey.shade600),
+                            fontSize: 11,
+                            color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+                          ),
                         ),
                       ],
                     ),
@@ -925,7 +956,7 @@ class _StorageCard extends StatelessWidget {
                       borderRadius: BorderRadius.circular(4),
                       child: LinearProgressIndicator(
                         value: pct,
-                        backgroundColor: Colors.grey.shade100,
+                        backgroundColor: isDark ? AppColors.darkSurface2 : Colors.grey.shade100,
                         valueColor: AlwaysStoppedAnimation<Color>(
                             Colors.indigo.shade400),
                         minHeight: 6,
@@ -955,10 +986,11 @@ class _StorageStat extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.06),
+        color: isDark ? color.withOpacity(0.12) : color.withValues(alpha: 0.06),
         borderRadius: BorderRadius.circular(12),
         border: Border.all(color: color.withValues(alpha: 0.15)),
       ),
@@ -973,9 +1005,13 @@ class _StorageStat extends StatelessWidget {
                 fontSize: 16, fontWeight: FontWeight.bold, color: color),
           ),
           const SizedBox(height: 2),
-          Text(label,
-              style: const TextStyle(
-                  fontSize: 10, color: AppColors.textSecondary)),
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 10,
+              color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+            ),
+          ),
         ],
       ),
     );
@@ -998,10 +1034,10 @@ class _SectionHeader extends StatelessWidget {
         const SizedBox(width: 8),
         Text(
           title,
-          style: const TextStyle(
+          style: TextStyle(
             fontSize: 20,
             fontWeight: FontWeight.bold,
-            color: Colors.black87,
+            color: Theme.of(context).colorScheme.onSurface,
           ),
         ),
       ],
@@ -1026,7 +1062,7 @@ class _Legend extends StatelessWidget {
         const SizedBox(width: 4),
         Text(label,
             style:
-                const TextStyle(fontSize: 10, color: AppColors.textSecondary)),
+                TextStyle(fontSize: 10, color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6)),),
       ],
     );
   }
@@ -1041,7 +1077,9 @@ class _KpiSkeleton extends StatelessWidget {
       height: 120,
       margin: const EdgeInsets.symmetric(vertical: 8),
       decoration: BoxDecoration(
-        color: Colors.grey.shade100,
+        color: Theme.of(context).brightness == Brightness.dark
+            ? AppColors.darkSurfaceCard
+            : Colors.grey.shade100,
         borderRadius: BorderRadius.circular(16),
       ),
       child: const Center(
