@@ -103,7 +103,10 @@ Files backup/restore - mirror mode or zip -->
 - apply dark theme
 - 
 
-# USERS SCREEN 
+# ANDROID LAYOUT
+- hamburger bar and screen title make it white and black not green, make it them mode responsive
+
+<!-- # USERS SCREEN 
 - fonts are not readable in dark mode
   - User Management title
   - mange system accounts ...
@@ -111,7 +114,7 @@ Files backup/restore - mirror mode or zip -->
 
 - seach feature
   - search icon into 'X' when searched an user, clears search and refresh users list
-  - fix searched field didnt hide when searched an user
+  - fix searched field didnt hide when searched an user -->
 
 
 ---

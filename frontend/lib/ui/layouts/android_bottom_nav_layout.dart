@@ -266,13 +266,13 @@ class _AndroidBottomNavLayoutState extends ConsumerState<AndroidBottomNavLayout>
           backgroundColor: Theme.of(context).scaffoldBackgroundColor,
           appBar: AppBar(
             backgroundColor: Theme.of(context).appBarTheme.backgroundColor,
-            foregroundColor: Theme.of(context).colorScheme.primary,
-            iconTheme: IconThemeData(color: Theme.of(context).colorScheme.primary),
+            foregroundColor: Theme.of(context).colorScheme.onSurface,
+            iconTheme: IconThemeData(color: Theme.of(context).colorScheme.onSurface),
             title: Text(
               activeTab,
               style: TextStyle(
                 fontWeight: FontWeight.bold,
-                color: Theme.of(context).colorScheme.primary,
+                color: Theme.of(context).colorScheme.onSurface,
               ),
             ),
             elevation: 0,
