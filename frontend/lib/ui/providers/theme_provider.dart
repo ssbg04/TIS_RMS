@@ -43,12 +43,12 @@ class ThemeModeNotifier extends Notifier<ThemeMode> {
 
   static ThemeMode _fromString(String value) {
     switch (value) {
-      case 'system':
-        return ThemeMode.system;
+      case 'light':
+        return ThemeMode.light;
       case 'dark':
         return ThemeMode.dark;
       default:
-        return ThemeMode.light;
+        return ThemeMode.system;
     }
   }
 }

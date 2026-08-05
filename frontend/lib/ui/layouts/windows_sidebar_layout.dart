@@ -700,7 +700,7 @@ class _WindowsSidebarLayoutState extends ConsumerState<WindowsSidebarLayout> {
                           ),
                           if (_isTabLoading)
                             Container(
-                              color: AppColors.pageBackground,
+                              color: Theme.of(context).scaffoldBackgroundColor,
                               width: double.infinity,
                               height: double.infinity,
                               child: const _PageSkeletonLoader(),

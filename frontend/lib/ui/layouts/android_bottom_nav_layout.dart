@@ -263,23 +263,23 @@ class _AndroidBottomNavLayoutState extends ConsumerState<AndroidBottomNavLayout>
       child: SafeArea(
         child: Scaffold(
           key: _scaffoldKey,
-          backgroundColor: AppColors.pageBackground,
+          backgroundColor: Theme.of(context).scaffoldBackgroundColor,
           appBar: AppBar(
-            backgroundColor: Colors.white,
-            foregroundColor: AppColors.primaryGreen,
-            iconTheme: const IconThemeData(color: AppColors.primaryGreen),
+            backgroundColor: Theme.of(context).appBarTheme.backgroundColor,
+            foregroundColor: Theme.of(context).colorScheme.primary,
+            iconTheme: IconThemeData(color: Theme.of(context).colorScheme.primary),
             title: Text(
               activeTab,
-              style: const TextStyle(
+              style: TextStyle(
                 fontWeight: FontWeight.bold,
-                color: AppColors.primaryGreen,
+                color: Theme.of(context).colorScheme.primary,
               ),
             ),
             elevation: 0,
             surfaceTintColor: Colors.transparent,
           ),
           drawer: Drawer(
-            backgroundColor: Colors.white,
+            backgroundColor: Theme.of(context).colorScheme.surface,
             surfaceTintColor: Colors.transparent,
             width: 280,
             child: SafeArea(
@@ -359,12 +359,12 @@ class _AndroidBottomNavLayoutState extends ConsumerState<AndroidBottomNavLayout>
                                     vertical: 8,
                                   ),
                                   alignment: Alignment.centerLeft,
-                                  child: const Text(
+                                  child: Text(
                                     'MENU',
                                     style: TextStyle(
                                       fontSize: 12,
                                       fontWeight: FontWeight.bold,
-                                      color: Colors.black38,
+                                      color: Theme.of(context).colorScheme.onSurface.withOpacity(0.38),
                                     ),
                                   ),
                                 ),
@@ -398,12 +398,12 @@ class _AndroidBottomNavLayoutState extends ConsumerState<AndroidBottomNavLayout>
                                   vertical: 8,
                                 ),
                                 alignment: Alignment.centerLeft,
-                                child: const Text(
+                                child: Text(
                                   'SYSTEM',
                                   style: TextStyle(
                                     fontSize: 12,
                                     fontWeight: FontWeight.bold,
-                                    color: Colors.black38,
+                                    color: Theme.of(context).colorScheme.onSurface.withOpacity(0.38),
                                   ),
                                 ),
                               ),
@@ -510,7 +510,7 @@ class _AndroidBottomNavLayoutState extends ConsumerState<AndroidBottomNavLayout>
                 ),
                 if (_isTabLoading)
                   Container(
-                    color: AppColors.pageBackground,
+                    color: Theme.of(context).scaffoldBackgroundColor,
                     width: double.infinity,
                     height: double.infinity,
                     child: const _PageSkeletonLoader(),
