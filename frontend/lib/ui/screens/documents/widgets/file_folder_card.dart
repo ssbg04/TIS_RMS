@@ -186,12 +186,12 @@ class _FileFolderCardState extends State<FileFolderCard> {
           decoration: BoxDecoration(
             color: widget.isSelected
                 ? AppColors.primaryGreen.withValues(alpha: 0.05)
-                : AppColors.surfaceWhite,
+                : (Theme.of(context).brightness == Brightness.dark ? AppColors.darkSurfaceCard : AppColors.surfaceWhite),
             borderRadius: BorderRadius.circular(AppSizes.radiusLarge),
             border: Border.all(
               color: widget.isSelected
                   ? AppColors.primaryGreen
-                  : Colors.grey.shade200,
+                  : (Theme.of(context).brightness == Brightness.dark ? AppColors.darkBorder : Colors.grey.shade200),
               width: widget.isSelected ? 1.5 : 1.0,
             ),
             boxShadow: [
@@ -233,10 +233,10 @@ class _FileFolderCardState extends State<FileFolderCard> {
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
                       textAlign: TextAlign.center,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontWeight: FontWeight.w600,
                         fontSize: 12,
-                        color: AppColors.textPrimary,
+                        color: Theme.of(context).brightness == Brightness.dark ? AppColors.darkTextPrimary : AppColors.textPrimary,
                       ),
                     ),
                     const SizedBox(height: 4),
@@ -248,9 +248,9 @@ class _FileFolderCardState extends State<FileFolderCard> {
                                 : '—'),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 11,
-                        color: AppColors.textSecondary,
+                        color: Theme.of(context).brightness == Brightness.dark ? AppColors.darkTextSecondary : AppColors.textSecondary,
                       ),
                     ),
                     const SizedBox(height: 6),
@@ -264,9 +264,9 @@ class _FileFolderCardState extends State<FileFolderCard> {
                   top: 2,
                   right: 2,
                   child: PopupMenuButton<String>(
-                    icon: const Icon(
+                    icon: Icon(
                       Icons.more_vert,
-                      color: AppColors.textSecondary,
+                      color: Theme.of(context).brightness == Brightness.dark ? AppColors.darkTextSecondary : AppColors.textSecondary,
                       size: 18,
                     ),
                     onSelected: widget.onActionSelected,
@@ -332,10 +332,10 @@ class _FileFolderCardState extends State<FileFolderCard> {
                     widget.document.fileName,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontWeight: FontWeight.w600,
                       fontSize: 13,
-                      color: AppColors.textPrimary,
+                      color: Theme.of(context).brightness == Brightness.dark ? AppColors.darkTextPrimary : AppColors.textPrimary,
                     ),
                   ),
                 ),
@@ -351,9 +351,9 @@ class _FileFolderCardState extends State<FileFolderCard> {
                               : '—'),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 12,
-                      color: AppColors.textSecondary,
+                      color: Theme.of(context).brightness == Brightness.dark ? AppColors.darkTextSecondary : AppColors.textSecondary,
                     ),
                   ),
                 ),
@@ -365,9 +365,9 @@ class _FileFolderCardState extends State<FileFolderCard> {
                     widget.document.documentType ?? '—',
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 12,
-                      color: AppColors.textSecondary,
+                      color: Theme.of(context).brightness == Brightness.dark ? AppColors.darkTextSecondary : AppColors.textSecondary,
                     ),
                   ),
                 ),
@@ -381,10 +381,10 @@ class _FileFolderCardState extends State<FileFolderCard> {
                   child: (widget.isMultiSelectMode || _isMobile)
                       ? const SizedBox.shrink()
                       : PopupMenuButton<String>(
-                          icon: const Icon(
+                          icon: Icon(
                             Icons.more_vert,
                             size: 18,
-                            color: AppColors.textSecondary,
+                            color: Theme.of(context).brightness == Brightness.dark ? AppColors.darkTextSecondary : AppColors.textSecondary,
                           ),
                           onSelected: widget.onActionSelected,
                           itemBuilder: (_) => _buildMenuItems(),

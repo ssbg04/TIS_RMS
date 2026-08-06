@@ -783,7 +783,7 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
 
               // ── TabBar ──
               Container(
-                color: AppColors.surfaceWhite,
+                color: Theme.of(context).brightness == Brightness.dark ? AppColors.darkSurfaceCard : AppColors.surfaceWhite,
                 child: TabBar(
                   controller: _tabController,
                   onTap: (index) {
@@ -806,7 +806,7 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
                     }
                   },
                   labelColor: AppColors.primaryGreen,
-                  unselectedLabelColor: AppColors.textSecondary,
+                  unselectedLabelColor: Theme.of(context).brightness == Brightness.dark ? AppColors.darkTextSecondary : AppColors.textSecondary,
                   indicatorColor: AppColors.primaryGreen,
                   indicatorWeight: 2.5,
                   labelStyle: const TextStyle(
@@ -1033,8 +1033,10 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
   ) {
     final hPad = isMobile ? 12.0 : 20.0;
 
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return Container(
-      color: AppColors.surfaceWhite,
+      color: isDark ? AppColors.darkSurfaceCard : AppColors.surfaceWhite,
       padding: EdgeInsets.symmetric(horizontal: hPad, vertical: 12),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.center,
@@ -1082,21 +1084,21 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
                                 .read(documentQueryProvider.notifier)
                                 .setStudentId(null);
                           },
-                          child: const Text(
+                          child: Text(
                             'Student Folders',
                             style: TextStyle(
                               fontSize: 21,
                               fontWeight: FontWeight.w500,
-                              color: AppColors.textSecondary,
+                              color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
                             ),
                           ),
                         ),
-                        const Text(
+                        Text(
                           ' / ',
                           style: TextStyle(
                             fontSize: 21,
                             fontWeight: FontWeight.w500,
-                            color: AppColors.textSecondary,
+                            color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
                           ),
                         ),
                       ],
@@ -1106,7 +1108,7 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
                           style: TextStyle(
                             fontSize: isMobile ? 17 : 21,
                             fontWeight: FontWeight.bold,
-                            color: AppColors.textPrimary,
+                            color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
                           ),
                         ),
                       ),
@@ -1123,7 +1125,7 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
                     style: TextStyle(
                       fontSize: isMobile ? 17 : 21,
                       fontWeight: FontWeight.bold,
-                      color: AppColors.textPrimary,
+                      color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
                     ),
                   ),
           ),
@@ -1162,7 +1164,7 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
                     ? Icons.close
                     : Icons.search,
                 size: 28,
-                color: Colors.black87,
+                color: Theme.of(context).brightness == Brightness.dark ? AppColors.darkTextPrimary : Colors.black87,
               ),
               tooltip:
                   (_searchController.text.isNotEmpty || query.search.isNotEmpty)
