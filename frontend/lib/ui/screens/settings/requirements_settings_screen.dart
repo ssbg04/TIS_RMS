@@ -707,8 +707,6 @@ class _RequirementsModalState extends ConsumerState<RequirementsModal> {
             const SizedBox(height: AppSizes.p8),
             TextButton(
               onPressed: () => setState(() {
-                _showJhs = true;
-                _showShs = true;
                 _filterMandatory = null;
                 _filterEnabled = null;
                 _searchQuery = '';
