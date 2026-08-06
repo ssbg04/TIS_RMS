@@ -43,8 +43,6 @@ class RequirementsModal extends ConsumerStatefulWidget {
 
 class _RequirementsModalState extends ConsumerState<RequirementsModal> {
   // ── Filters ──────────────────────────────────────────────
-  bool _showJhs = true;
-  bool _showShs = true;
   bool? _filterMandatory; // null = all
   bool? _filterEnabled; // null = all
 
@@ -72,11 +70,6 @@ class _RequirementsModalState extends ConsumerState<RequirementsModal> {
     List<DocumentRequirementModel> all,
   ) {
     var result = all.where((r) {
-      // Category filter
-      final cat = r.category.toUpperCase();
-      if (!_showJhs && cat == 'JHS') return false;
-      if (!_showShs && cat == 'SHS') return false;
-
       // Mandatory filter
       if (_filterMandatory != null && r.isMandatory != _filterMandatory) {
         return false;
@@ -268,122 +261,126 @@ class _RequirementsModalState extends ConsumerState<RequirementsModal> {
     final isAndroid = Theme.of(context).platform == TargetPlatform.android;
     final settingsAsync = ref.watch(requirementsSettingsProvider);
 
-    final multiSelectWidget = Tooltip(
-      message: _multiSelectMode ? 'Exit selection' : 'Select multiple',
-      child: InkWell(
-        onTap: _toggleMultiSelect,
-        borderRadius: BorderRadius.circular(8),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(
-                _multiSelectMode
-                    ? Icons.check_box
-                    : Icons.check_box_outline_blank,
-                color: Colors.white,
-              ),
-              if (!isAndroid) ...[
-                const SizedBox(width: 8),
-                Text(
-                  _multiSelectMode ? 'Selecting' : 'Select',
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.w600,
-                    fontSize: 14,
-                  ),
-                ),
-              ],
-            ],
-          ),
-        ),
-      ),
-    );
-
     final content = Column(
       children: [
         _buildSearchAndControls(isAndroid),
         _buildFilterBar(isAndroid),
         const Divider(height: 1),
+        const TabBar(
+          labelColor: AppColors.primaryGreen,
+          unselectedLabelColor: AppColors.textSecondary,
+          indicatorColor: AppColors.primaryGreen,
+          tabs: [
+            Tab(text: 'JHS'),
+            Tab(text: 'SHS'),
+          ],
+        ),
+        const Divider(height: 1),
         Expanded(
-          child: settingsAsync.when(
-            data: (settings) {
-              final all = [...settings.jhs, ...settings.shs];
-              final filtered = _applyFiltersAndSort(all);
-              return _buildTable(filtered, isAndroid);
-            },
-            loading: () => const Center(child: CircularProgressIndicator()),
-            error: (e, _) => Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  const Icon(
-                    Icons.error_outline,
-                    size: 48,
-                    color: AppColors.error,
+          child: TabBarView(
+            children: [
+              settingsAsync.when(
+                data: (settings) {
+                  final filtered = _applyFiltersAndSort(settings.jhs);
+                  return _buildTable(filtered, isAndroid);
+                },
+                loading: () => const Center(child: CircularProgressIndicator()),
+                error: (e, _) => Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const Icon(
+                        Icons.error_outline,
+                        size: 48,
+                        color: AppColors.error,
+                      ),
+                      const SizedBox(height: AppSizes.p16),
+                      Text(
+                        'Error: $e',
+                        style: const TextStyle(color: AppColors.error),
+                      ),
+                      const SizedBox(height: AppSizes.p16),
+                      TextButton(
+                        onPressed: () =>
+                            ref.invalidate(requirementsSettingsProvider),
+                        child: const Text('Retry'),
+                      ),
+                    ],
                   ),
-                  const SizedBox(height: AppSizes.p16),
-                  Text(
-                    'Error: $e',
-                    style: const TextStyle(color: AppColors.error),
-                  ),
-                  const SizedBox(height: AppSizes.p16),
-                  TextButton(
-                    onPressed: () =>
-                        ref.invalidate(requirementsSettingsProvider),
-                    child: const Text('Retry'),
-                  ),
-                ],
+                ),
               ),
-            ),
+              settingsAsync.when(
+                data: (settings) {
+                  final filtered = _applyFiltersAndSort(settings.shs);
+                  return _buildTable(filtered, isAndroid);
+                },
+                loading: () => const Center(child: CircularProgressIndicator()),
+                error: (e, _) => Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const Icon(
+                        Icons.error_outline,
+                        size: 48,
+                        color: AppColors.error,
+                      ),
+                      const SizedBox(height: AppSizes.p16),
+                      Text(
+                        'Error: $e',
+                        style: const TextStyle(color: AppColors.error),
+                      ),
+                      const SizedBox(height: AppSizes.p16),
+                      TextButton(
+                        onPressed: () =>
+                            ref.invalidate(requirementsSettingsProvider),
+                        child: const Text('Retry'),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
           ),
         ),
       ],
     );
 
+    Widget result;
     if (isAndroid) {
-      return Scaffold(
+      result = Scaffold(
         backgroundColor: AppColors.surfaceWhite,
         appBar: AppBar(
           backgroundColor: AppColors.primaryGreen,
           foregroundColor: Colors.white,
           iconTheme: const IconThemeData(color: Colors.white),
-          title: const Row(
-            children: [
-              Icon(Icons.folder_open_outlined, size: 22, color: Colors.white),
-              SizedBox(width: 10),
-              Text(
-                'Document Requirements',
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w600,
-                  color: Colors.white,
-                ),
-              ),
-            ],
+          title: const Text(
+            'Document Requirements',
+            style: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.w600,
+              color: Colors.white,
+            ),
           ),
-          actions: [multiSelectWidget, const SizedBox(width: 16)],
         ),
         body: SafeArea(child: content),
         floatingActionButton: _buildFAB(context),
       );
+    } else {
+      result = CustomModal(
+        title: 'Document Requirements',
+        maxWidth: 900,
+        content: SizedBox(
+          height: screenSize.height * 0.8,
+          child: Scaffold(
+            backgroundColor: Colors.transparent,
+            body: content,
+            floatingActionButton: _buildFAB(context),
+          ),
+        ),
+      );
     }
 
-    return CustomModal(
-      title: 'Document Requirements',
-      icon: Icons.folder_open_outlined,
-      maxWidth: 900,
-      headerActions: [multiSelectWidget, const SizedBox(width: 8)],
-      content: SizedBox(
-        height: screenSize.height * 0.8,
-        child: Scaffold(
-          backgroundColor: Colors.transparent,
-          body: content,
-          floatingActionButton: _buildFAB(context),
-        ),
-      ),
-    );
+    return DefaultTabController(length: 2, child: result);
   }
 
   // ─────────────────────────────────────────────────────────
@@ -576,32 +573,6 @@ class _RequirementsModalState extends ConsumerState<RequirementsModal> {
           ),
           const SizedBox(width: AppSizes.p8),
 
-          // Category — JHS
-          _buildFilterChip(
-            label: 'JHS',
-            selected: _showJhs,
-            color: Colors.blue,
-            onSelected: (v) => setState(() => _showJhs = v),
-          ),
-          const SizedBox(width: 6),
-
-          // Category — SHS
-          _buildFilterChip(
-            label: 'SHS',
-            selected: _showShs,
-            color: Colors.purple,
-            onSelected: (v) => setState(() => _showShs = v),
-          ),
-          const SizedBox(width: AppSizes.p12),
-
-          const VerticalDivider(
-            width: 1,
-            thickness: 1,
-            indent: 4,
-            endIndent: 4,
-          ),
-          const SizedBox(width: AppSizes.p12),
-
           // Mandatory
           _buildToggleChip(
             labels: const ['All', 'Mandatory', 'Optional'],
@@ -617,11 +588,12 @@ class _RequirementsModalState extends ConsumerState<RequirementsModal> {
           ),
           const SizedBox(width: AppSizes.p12),
 
-          const VerticalDivider(
-            width: 1,
-            thickness: 1,
-            indent: 4,
-            endIndent: 4,
+          const SizedBox(
+            height: 16,
+            child: VerticalDivider(
+              width: 1,
+              thickness: 1,
+            ),
           ),
           const SizedBox(width: AppSizes.p12),
 
@@ -638,54 +610,35 @@ class _RequirementsModalState extends ConsumerState<RequirementsModal> {
               _filterEnabled = i == 0 ? null : i == 1;
             }),
           ),
-        ],
-      ),
-    );
-  }
 
-  Widget _buildFilterChip({
-    required String label,
-    required bool selected,
-    required Color color,
-    required ValueChanged<bool> onSelected,
-  }) {
-    return GestureDetector(
-      onTap: () => onSelected(!selected),
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 150),
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-        decoration: BoxDecoration(
-          color: selected
-              ? color.withValues(alpha: 0.12)
-              : Colors.grey.shade100,
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(
-            color: selected ? color : Colors.grey.shade300,
-            width: 1.5,
+          const SizedBox(width: AppSizes.p12),
+          const SizedBox(
+            height: 16,
+            child: VerticalDivider(
+              width: 1,
+              thickness: 1,
+            ),
           ),
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            if (selected)
-              Icon(Icons.check, size: 12, color: color)
-            else
-              Icon(
-                Icons.circle_outlined,
-                size: 12,
-                color: Colors.grey.shade400,
-              ),
-            const SizedBox(width: 4),
-            Text(
-              label,
+          const SizedBox(width: AppSizes.p12),
+
+          // Multi-select text button (no icon)
+          TextButton(
+            onPressed: _toggleMultiSelect,
+            style: TextButton.styleFrom(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              minimumSize: Size.zero,
+              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+            ),
+            child: Text(
+              _multiSelectMode ? 'Exit Selection' : 'Select Multiple',
               style: TextStyle(
                 fontSize: 12,
                 fontWeight: FontWeight.w600,
-                color: selected ? color : AppColors.textSecondary,
+                color: _multiSelectMode ? Colors.redAccent : AppColors.primaryGreen,
               ),
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }

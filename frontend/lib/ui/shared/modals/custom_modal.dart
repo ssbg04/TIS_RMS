@@ -3,7 +3,7 @@ import '../../../core/constants/app_colors.dart';
 
 class CustomModal extends StatelessWidget {
   final String title;
-  final IconData icon;
+  final IconData? icon;
   final Widget content;
   final List<Widget>? headerActions;
   final double maxWidth;
@@ -12,7 +12,7 @@ class CustomModal extends StatelessWidget {
   const CustomModal({
     super.key,
     required this.title,
-    required this.icon,
+    this.icon,
     required this.content,
     this.headerActions,
     this.maxWidth = 620,
@@ -22,7 +22,7 @@ class CustomModal extends StatelessWidget {
   static Future<T?> show<T>({
     required BuildContext context,
     required String title,
-    required IconData icon,
+    IconData? icon,
     required Widget content,
     List<Widget>? headerActions,
     double maxWidth = 620,
@@ -74,8 +74,10 @@ class CustomModal extends StatelessWidget {
                 ),
                 child: Row(
                   children: [
-                    Icon(icon, color: Colors.white, size: 22),
-                    const SizedBox(width: 10),
+                    if (icon != null) ...[
+                      Icon(icon, color: Colors.white, size: 22),
+                      const SizedBox(width: 10),
+                    ],
                     Expanded(
                       child: Text(
                         title,
