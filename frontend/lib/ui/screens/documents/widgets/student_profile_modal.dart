@@ -89,6 +89,7 @@ class _StudentProfileDialogShellState
         ? const EdgeInsets.all(4)
         : EdgeInsets.zero;
 
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Dialog(
       backgroundColor: Colors.transparent,
       insetPadding: widget.isMobile
@@ -98,7 +99,7 @@ class _StudentProfileDialogShellState
         borderRadius: BorderRadius.circular(12),
         child: Container(
           constraints: const BoxConstraints(maxWidth: 620),
-          color: AppColors.pageBackground,
+          color: isDark ? AppColors.darkPageBackground : AppColors.pageBackground,
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
@@ -334,7 +335,7 @@ class StudentProfileModalBody extends ConsumerWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _buildInfoCard(student),
+            _buildInfoCard(context, student),
             const SizedBox(height: 20),
 
             const SizedBox(height: 20),
@@ -390,7 +391,7 @@ class StudentProfileModalBody extends ConsumerWidget {
                 'Error: $e',
                 style: const TextStyle(color: AppColors.error),
               ),
-              data: (missing) => _buildRequirementsStatus(missing),
+              data: (missing) => _buildRequirementsStatus(context, missing),
             ),
             const SizedBox(height: 8),
           ],
@@ -400,11 +401,12 @@ class StudentProfileModalBody extends ConsumerWidget {
   }
 
   // ── Info card ────────────────────────────────────────────
-  Widget _buildInfoCard(dynamic student) {
+  Widget _buildInfoCard(BuildContext context, dynamic student) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: AppColors.surfaceWhite,
+        color: isDark ? AppColors.darkSurfaceCard : AppColors.surfaceWhite,
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
@@ -438,15 +440,16 @@ class StudentProfileModalBody extends ConsumerWidget {
                   children: [
                     Text(
                       student.profileDisplayName,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 17,
                         fontWeight: FontWeight.bold,
+                        color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
                       ),
                     ),
                     Text(
                       'LRN: ${student.lrn}',
-                      style: const TextStyle(
-                        color: AppColors.textSecondary,
+                      style: TextStyle(
+                        color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
                         fontSize: 13,
                       ),
                     ),
@@ -456,14 +459,14 @@ class StudentProfileModalBody extends ConsumerWidget {
               _buildStatusBadge(student.status),
             ],
           ),
-          const Divider(height: 24),
+          Divider(height: 24, color: isDark ? AppColors.darkBorder : Colors.grey.shade200),
           Wrap(
             spacing: 20,
             runSpacing: 8,
             children: [
-              _buildInfoItem('Sex', student.sex ?? 'N/A'),
-              _buildInfoItem('Birth Date', student.birthDate != null ? _formatDate(student.birthDate!) : 'N/A'),
-              _build4psItem(student.is4ps),
+              _buildInfoItem(context, 'Sex', student.sex ?? 'N/A'),
+              _buildInfoItem(context, 'Birth Date', student.birthDate != null ? _formatDate(student.birthDate!) : 'N/A'),
+              _build4psItem(context, student.is4ps),
             ],
           ),
         ],
@@ -507,29 +510,41 @@ class StudentProfileModalBody extends ConsumerWidget {
     );
   }
 
-  Widget _buildInfoItem(String label, String value) {
+  Widget _buildInfoItem(BuildContext context, String label, String value) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
           label,
-          style: const TextStyle(color: AppColors.textSecondary, fontSize: 11),
+          style: TextStyle(
+            color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
+            fontSize: 11,
+          ),
         ),
         Text(
           value,
-          style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
+          style: TextStyle(
+            fontWeight: FontWeight.w600,
+            fontSize: 13,
+            color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
+          ),
         ),
       ],
     );
   }
 
-  Widget _build4psItem(bool is4ps) {
+  Widget _build4psItem(BuildContext context, bool is4ps) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
+        Text(
           '4Ps Beneficiary',
-          style: TextStyle(color: AppColors.textSecondary, fontSize: 11),
+          style: TextStyle(
+            color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
+            fontSize: 11,
+          ),
         ),
         const SizedBox(height: 2),
         Container(
@@ -537,12 +552,12 @@ class StudentProfileModalBody extends ConsumerWidget {
           decoration: BoxDecoration(
             color: is4ps
                 ? Colors.deepPurple.withValues(alpha: 0.1)
-                : Colors.grey.shade100,
+                : (isDark ? AppColors.darkSurface2 : Colors.grey.shade100),
             borderRadius: BorderRadius.circular(20),
             border: Border.all(
               color: is4ps
                   ? Colors.deepPurple.withValues(alpha: 0.3)
-                  : Colors.grey.shade300,
+                  : (isDark ? AppColors.darkBorder : Colors.grey.shade300),
             ),
           ),
           child: Row(
@@ -559,7 +574,9 @@ class StudentProfileModalBody extends ConsumerWidget {
                 style: TextStyle(
                   fontSize: 12,
                   fontWeight: FontWeight.w600,
-                  color: is4ps ? Colors.deepPurple : Colors.grey.shade600,
+                  color: is4ps
+                      ? (isDark ? Colors.deepPurple[200] : Colors.deepPurple)
+                      : (isDark ? AppColors.darkTextSecondary : Colors.grey.shade600),
                 ),
               ),
             ],
@@ -569,19 +586,19 @@ class StudentProfileModalBody extends ConsumerWidget {
     );
   }
 
-  // ── Enrollment card ──────────────────────────────────────
   Widget _buildEnrollmentCard(
     BuildContext context,
     WidgetRef ref,
     dynamic enrollment,
   ) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Container(
       margin: const EdgeInsets.only(bottom: 8),
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: AppColors.surfaceWhite,
+        color: isDark ? AppColors.darkSurfaceCard : AppColors.surfaceWhite,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.grey.shade200),
+        border: Border.all(color: isDark ? AppColors.darkBorder : Colors.grey.shade200),
       ),
       child: Row(
         children: [
@@ -601,20 +618,23 @@ class StudentProfileModalBody extends ConsumerWidget {
               children: [
                 Text(
                   'Grade ${enrollment.gradeLevel}',
-                  style: const TextStyle(fontWeight: FontWeight.w600),
+                  style: TextStyle(
+                    fontWeight: FontWeight.w600,
+                    color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
+                  ),
                 ),
                 Text(
                   '${enrollment.sectionName ?? 'N/A'} · ${enrollment.yearRange ?? 'N/A'}',
-                  style: const TextStyle(
-                    color: AppColors.textSecondary,
+                  style: TextStyle(
+                    color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
                     fontSize: 12,
                   ),
                 ),
                 if (enrollment.trackStrand != null)
                   Text(
                     'Track: ${enrollment.trackStrand}',
-                    style: const TextStyle(
-                      color: AppColors.textSecondary,
+                    style: TextStyle(
+                      color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
                       fontSize: 11,
                     ),
                   ),
@@ -627,7 +647,8 @@ class StudentProfileModalBody extends ConsumerWidget {
   }
 
   // ── Requirements status ──────────────────────────────────
-  Widget _buildRequirementsStatus(MissingRequirements data) {
+  Widget _buildRequirementsStatus(BuildContext context, MissingRequirements data) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final jhsMissing = data.missing.where((r) => r.category == 'JHS').toList();
     final shsMissing = data.missing.where((r) => r.category == 'SHS').toList();
     final jhsVerified = data.verified
@@ -645,14 +666,14 @@ class StudentProfileModalBody extends ConsumerWidget {
       return Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: AppColors.surfaceWhite,
+          color: isDark ? AppColors.darkSurfaceCard : AppColors.surfaceWhite,
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: Colors.grey.shade200),
+          border: Border.all(color: isDark ? AppColors.darkBorder : Colors.grey.shade200),
         ),
-        child: const Center(
+        child: Center(
           child: Text(
             'No document requirements for this student.',
-            style: TextStyle(color: AppColors.textSecondary),
+            style: TextStyle(color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary),
           ),
         ),
       );
@@ -672,10 +693,10 @@ class StudentProfileModalBody extends ConsumerWidget {
       return Container(
         margin: const EdgeInsets.only(bottom: 12),
         decoration: BoxDecoration(
-          color: AppColors.surfaceWhite,
+          color: isDark ? AppColors.darkSurfaceCard : AppColors.surfaceWhite,
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
-            color: Colors.grey.shade200,
+            color: isDark ? AppColors.darkBorder : Colors.grey.shade200,
             width: isCurrent ? 1.5 : 1,
           ),
         ),
@@ -698,15 +719,15 @@ class StudentProfileModalBody extends ConsumerWidget {
                       vertical: 3,
                     ),
                     decoration: BoxDecoration(
-                      color: Colors.grey.shade100,
+                      color: isDark ? AppColors.darkSurface2 : Colors.grey.shade100,
                       borderRadius: BorderRadius.circular(20),
                     ),
                     child: Text(
                       label,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontWeight: FontWeight.bold,
                         fontSize: 12,
-                        color: AppColors.textPrimary,
+                        color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
                       ),
                     ),
                   ),
@@ -745,142 +766,155 @@ class StudentProfileModalBody extends ConsumerWidget {
                             const Text(
                               'Complete',
                               style: TextStyle(
-                                fontSize: 11,
-                                color: AppColors.success,
-                                fontWeight: FontWeight.bold,
+                                  fontSize: 11,
+                                  color: AppColors.success,
+                                  fontWeight: FontWeight.bold,
+                                ),
                               ),
+                            ],
+                          )
+                        : Text(
+                            '$completed/$total done',
+                            style: TextStyle(
+                              fontSize: 11,
+                              color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
+                              fontWeight: FontWeight.w600,
                             ),
-                          ],
-                        )
-                      : Text(
-                          '$completed/$total done',
+                          ),
+                  ],
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.all(12),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Wrap(
+                      spacing: 12,
+                      runSpacing: 6,
+                      crossAxisAlignment: WrapCrossAlignment.center,
+                      children: [
+                        Text(
+                          'Total: $total',
+                          style: TextStyle(
+                            fontSize: 13,
+                            color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
+                          ),
+                        ),
+                        Text(
+                          'Done: $completed',
                           style: const TextStyle(
-                            fontSize: 11,
-                            color: AppColors.textSecondary,
+                            fontSize: 13,
+                            color: AppColors.success,
                             fontWeight: FontWeight.w600,
                           ),
                         ),
-                ],
-              ),
-            ),
-            Padding(
-              padding: const EdgeInsets.all(12),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Wrap(
-                    spacing: 12,
-                    runSpacing: 6,
-                    crossAxisAlignment: WrapCrossAlignment.center,
-                    children: [
-                      Text(
-                        'Total: $total',
-                        style: const TextStyle(
-                          fontSize: 13,
-                          color: AppColors.textSecondary,
+                        Text(
+                          'Missing: $missingCount',
+                          style: TextStyle(
+                            fontSize: 13,
+                            color: missingCount > 0
+                                ? AppColors.error
+                                : (isDark ? AppColors.darkTextSecondary : AppColors.textSecondary),
+                            fontWeight: FontWeight.w600,
+                          ),
                         ),
-                      ),
+                      ],
+                    ),
+                    if (missing.isNotEmpty) ...[
+                      const SizedBox(height: 10),
                       Text(
-                        'Done: $completed',
-                        style: const TextStyle(
-                          fontSize: 13,
-                          color: AppColors.success,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                      Text(
-                        'Missing: $missingCount',
+                        'Not Yet Submitted',
                         style: TextStyle(
-                          fontSize: 13,
-                          color: missingCount > 0
-                              ? AppColors.error
-                              : AppColors.textSecondary,
+                          fontSize: 12,
                           fontWeight: FontWeight.w600,
+                          color: Colors.orange.shade700,
+                        ),
+                      ),
+                      const SizedBox(height: 6),
+                      ...missing.map(
+                        (r) => _reqItem(
+                          context,
+                          r.name,
+                          AppColors.error,
+                          Icons.pending_actions,
                         ),
                       ),
                     ],
-                  ),
-                  if (missing.isNotEmpty) ...[
-                    const SizedBox(height: 10),
-                    Text(
-                      'Not Yet Submitted',
-                      style: TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w600,
-                        color: Colors.orange.shade700,
+                    if (verified.isNotEmpty) ...[
+                      const SizedBox(height: 10),
+                      const Text(
+                        'Completed',
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.success,
+                        ),
                       ),
-                    ),
-                    const SizedBox(height: 6),
-                    ...missing.map(
-                      (r) => _reqItem(
-                        r.name,
-                        AppColors.error,
-                        Icons.pending_actions,
+                      const SizedBox(height: 6),
+                      ...verified.map(
+                        (r) => _reqItem(
+                          context,
+                          r.name,
+                          AppColors.success,
+                          Icons.check_circle,
+                        ),
                       ),
-                    ),
+                    ],
                   ],
-                  if (verified.isNotEmpty) ...[
-                    const SizedBox(height: 10),
-                    const Text(
-                      'Completed',
-                      style: TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w600,
-                        color: AppColors.success,
-                      ),
-                    ),
-                    const SizedBox(height: 6),
-                    ...verified.map(
-                      (r) => _reqItem(
-                        r.name,
-                        AppColors.success,
-                        Icons.check_circle,
-                      ),
-                    ),
-                  ],
-                ],
+                ),
+              ),
+            ],
+          ),
+        );
+      }
+
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          if (hasJhs)
+            levelSection(
+              label: 'JHS',
+              color: Colors.teal,
+              isCurrent: data.category == 'JHS',
+              missing: jhsMissing,
+              verified: jhsVerified,
+              total: jhsTotal,
+            ),
+          if (hasShs)
+            levelSection(
+              label: 'SHS',
+              color: Colors.purple,
+              isCurrent: data.category == 'SHS',
+              missing: shsMissing,
+              verified: shsVerified,
+              total: shsTotal,
+            ),
+        ],
+      );
+    }
+
+    Widget _reqItem(BuildContext context, String name, Color color, IconData icon) {
+      final isDark = Theme.of(context).brightness == Brightness.dark;
+      return Padding(
+        padding: const EdgeInsets.only(bottom: 5),
+        child: Row(
+          children: [
+            Icon(icon, size: 14, color: color),
+            const SizedBox(width: 7),
+            Expanded(
+              child: Text(
+                name,
+                style: TextStyle(
+                  fontSize: 12,
+                  color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
+                ),
               ),
             ),
           ],
         ),
       );
     }
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        if (hasJhs)
-          levelSection(
-            label: 'JHS',
-            color: Colors.teal,
-            isCurrent: data.category == 'JHS',
-            missing: jhsMissing,
-            verified: jhsVerified,
-            total: jhsTotal,
-          ),
-        if (hasShs)
-          levelSection(
-            label: 'SHS',
-            color: Colors.purple,
-            isCurrent: data.category == 'SHS',
-            missing: shsMissing,
-            verified: shsVerified,
-            total: shsTotal,
-          ),
-      ],
-    );
-  }
-
-  Widget _reqItem(String name, Color color, IconData icon) => Padding(
-    padding: const EdgeInsets.only(bottom: 5),
-    child: Row(
-      children: [
-        Icon(icon, size: 14, color: color),
-        const SizedBox(width: 7),
-        Expanded(child: Text(name, style: const TextStyle(fontSize: 12))),
-      ],
-    ),
-  );
 
   String _formatDate(dynamic date) {
     if (date == null) return 'N/A';

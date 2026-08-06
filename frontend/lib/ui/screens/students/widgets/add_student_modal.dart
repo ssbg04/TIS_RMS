@@ -457,6 +457,7 @@ class _AddStudentModalState extends ConsumerState<AddStudentModal> {
   }
 
   Widget _buildStudentDetailsStep() {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Form(
       key: _studentFormKey,
       child: Column(
@@ -650,12 +651,12 @@ class _AddStudentModalState extends ConsumerState<AddStudentModal> {
             decoration: BoxDecoration(
               color: _is4ps
                   ? Colors.deepPurple.withValues(alpha: 0.06)
-                  : Colors.grey.shade50,
+                  : (isDark ? AppColors.darkSurfaceCard : Colors.grey.shade50),
               borderRadius: BorderRadius.circular(AppSizes.radiusMedium),
               border: Border.all(
                 color: _is4ps
                     ? Colors.deepPurple.withValues(alpha: 0.3)
-                    : Colors.grey.shade200,
+                    : (isDark ? AppColors.darkBorder : Colors.grey.shade200),
               ),
             ),
             child: SwitchListTile(
@@ -673,8 +674,8 @@ class _AddStudentModalState extends ConsumerState<AddStudentModal> {
                 style: TextStyle(
                   fontSize: 11,
                   color: _is4ps
-                      ? Colors.deepPurple.shade600
-                      : AppColors.textSecondary,
+                      ? (isDark ? Colors.deepPurple[200] : Colors.deepPurple.shade600)
+                      : (isDark ? AppColors.darkTextSecondary : AppColors.textSecondary),
                 ),
               ),
               secondary: Icon(Icons.family_restroom,
@@ -848,6 +849,7 @@ class _AddStudentModalState extends ConsumerState<AddStudentModal> {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final yearsAsync = ref.watch(academicYearsListProvider);
     final gradeLevelsAsync = ref.watch(gradeLevelsListProvider);
     final sectionsAsync = ref.watch(sectionsListProvider);
@@ -873,7 +875,7 @@ class _AddStudentModalState extends ConsumerState<AddStudentModal> {
         if (!didPop) _confirmClose();
       },
       child: Scaffold(
-        backgroundColor: const Color(0xFFF8F9FA),
+        backgroundColor: isDark ? AppColors.darkPageBackground : const Color(0xFFF8F9FA),
         appBar: AppBar(
           backgroundColor: AppColors.primaryGreen,
           iconTheme: const IconThemeData(color: Colors.white),

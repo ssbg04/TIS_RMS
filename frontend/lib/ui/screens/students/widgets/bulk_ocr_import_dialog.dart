@@ -385,8 +385,9 @@ class _BulkOcrImportDialogState extends ConsumerState<BulkOcrImportDialog> {
   // ── build ─────────────────────────────────────────────────────────────────
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Scaffold(
-      backgroundColor: const Color(0xFFF8F9FA),
+      backgroundColor: isDark ? AppColors.darkPageBackground : const Color(0xFFF8F9FA),
       appBar: AppBar(
         backgroundColor: AppColors.primaryGreen,
         iconTheme: const IconThemeData(color: Colors.white),
@@ -419,10 +420,11 @@ class _BulkOcrImportDialogState extends ConsumerState<BulkOcrImportDialog> {
 
   // ── stepper ───────────────────────────────────────────────────────────────
   Widget _buildStepper() {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     const totalSteps = 3;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
-      color: const Color(0xFFF8F9FA),
+      color: isDark ? AppColors.darkPageBackground : const Color(0xFFF8F9FA),
       child: Row(
         children: List.generate(totalSteps, (idx) {
           final activeOrDone = _step >= idx;
@@ -433,7 +435,7 @@ class _BulkOcrImportDialogState extends ConsumerState<BulkOcrImportDialog> {
               decoration: BoxDecoration(
                 color: activeOrDone
                     ? AppColors.primaryGreen
-                    : Colors.grey.shade300,
+                    : (isDark ? AppColors.darkBorder : Colors.grey.shade300),
                 borderRadius: BorderRadius.circular(2),
               ),
             ),
@@ -680,6 +682,7 @@ class _BulkOcrImportDialogState extends ConsumerState<BulkOcrImportDialog> {
     AsyncValue<List<AcademicYearModel>> academicYearsAsync,
     AsyncValue<List<SectionModel>> sectionsAsync,
   ) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final academicYears = academicYearsAsync.asData?.value ?? <AcademicYearModel>[];
     final allSections = sectionsAsync.asData?.value ?? <SectionModel>[];
     final filteredSections = _sharedGradeLevel != null
@@ -688,7 +691,7 @@ class _BulkOcrImportDialogState extends ConsumerState<BulkOcrImportDialog> {
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      color: const Color(0xFFF0FAF4),
+      color: isDark ? AppColors.primaryGreen.withValues(alpha: 0.12) : const Color(0xFFF0FAF4),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         const Row(children: [
           Icon(Icons.info_outline_rounded, size: 16, color: AppColors.primaryGreen),
@@ -706,7 +709,7 @@ class _BulkOcrImportDialogState extends ConsumerState<BulkOcrImportDialog> {
             child: DropdownButtonFormField<int>(
               initialValue: _sharedAcademicYearId,
               isExpanded: true,
-              decoration: _compactDeco('Academic Year'),
+              decoration: _compactDeco(context, 'Academic Year'),
               items: academicYears
                   .map((y) => DropdownMenuItem<int>(
                       value: y.id, child: Text(y.yearRange)))
@@ -726,7 +729,7 @@ class _BulkOcrImportDialogState extends ConsumerState<BulkOcrImportDialog> {
             child: DropdownButtonFormField<int>(
               initialValue: _sharedGradeLevel,
               isExpanded: true,
-              decoration: _compactDeco('Grade Level'),
+              decoration: _compactDeco(context, 'Grade Level'),
               items: [7, 8, 9, 10, 11, 12]
                   .map((g) => DropdownMenuItem<int>(
                       value: g, child: Text('Grade $g')))
@@ -748,7 +751,7 @@ class _BulkOcrImportDialogState extends ConsumerState<BulkOcrImportDialog> {
                   ? _sharedSectionId
                   : null,
               isExpanded: true,
-              decoration: _compactDeco('Section'),
+              decoration: _compactDeco(context, 'Section'),
               items: filteredSections
                   .map((s) =>
                       DropdownMenuItem<int>(value: s.id, child: Text(s.name)))
@@ -766,17 +769,21 @@ class _BulkOcrImportDialogState extends ConsumerState<BulkOcrImportDialog> {
     );
   }
 
-  InputDecoration _compactDeco(String label) => InputDecoration(
-        labelText: label,
-        isDense: true,
-        contentPadding:
-            const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-        filled: true,
-        fillColor: Colors.white,
-      );
+  InputDecoration _compactDeco(BuildContext context, String label) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    return InputDecoration(
+      labelText: label,
+      isDense: true,
+      contentPadding:
+          const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+      border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+      filled: true,
+      fillColor: isDark ? AppColors.darkSurface2 : Colors.white,
+    );
+  }
 
   Widget _buildReviewList(List<_OcrItem> items) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return ListView.separated(
       padding: const EdgeInsets.all(16),
       itemCount: items.length,
@@ -788,7 +795,7 @@ class _BulkOcrImportDialogState extends ConsumerState<BulkOcrImportDialog> {
 
         return Container(
           decoration: BoxDecoration(
-            color: Colors.white,
+            color: isDark ? AppColors.darkSurfaceCard : Colors.white,
             borderRadius: BorderRadius.circular(12),
             border: Border.all(
               color: isValid
@@ -886,50 +893,55 @@ class _BulkOcrImportDialogState extends ConsumerState<BulkOcrImportDialog> {
     TextInputType keyboardType = TextInputType.text,
     String? hint,
     bool toUpperCase = false,
-  }) =>
-      SizedBox(
-        width: width,
-        child: TextFormField(
-          initialValue: value,
-          keyboardType: keyboardType,
-          textCapitalization: toUpperCase
-              ? TextCapitalization.characters
-              : TextCapitalization.none,
-          inputFormatters: toUpperCase
-              ? [
-                  _UpperCaseAllTextFormatter(),
-                ]
-              : null,
-          decoration: InputDecoration(
-            labelText: label,
-            hintText: hint,
-            isDense: true,
-            contentPadding:
-                const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
-            border:
-                OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-            filled: true,
-            fillColor: const Color(0xFFF8F9FA),
-          ),
-          style: const TextStyle(fontSize: 13),
-          onChanged: (v) =>
-              setState(() => onChanged(toUpperCase ? v.toUpperCase() : v)),
+  }) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    return SizedBox(
+      width: width,
+      child: TextFormField(
+        initialValue: value,
+        keyboardType: keyboardType,
+        textCapitalization: toUpperCase
+            ? TextCapitalization.characters
+            : TextCapitalization.none,
+        inputFormatters: toUpperCase
+            ? [
+                _UpperCaseAllTextFormatter(),
+              ]
+            : null,
+        decoration: InputDecoration(
+          labelText: label,
+          hintText: hint,
+          isDense: true,
+          contentPadding:
+              const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+          border:
+              OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+          filled: true,
+          fillColor: isDark ? AppColors.darkSurface2 : const Color(0xFFF8F9FA),
         ),
-      );
+        style: TextStyle(fontSize: 13, color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary),
+        onChanged: (v) =>
+            setState(() => onChanged(toUpperCase ? v.toUpperCase() : v)),
+      ),
+    );
+  }
 
-  Widget _sexDropdown(_OcrItem item) => SizedBox(
-        width: 110,
-        child: DropdownButtonFormField<String>(
-          initialValue: item.sex,
-          isExpanded: true,
-          decoration: _compactDeco('Sex'),
-          style: const TextStyle(fontSize: 13, color: AppColors.textPrimary),
-          items: ['Male', 'Female']
-              .map((s) => DropdownMenuItem<String>(value: s, child: Text(s)))
-              .toList(),
-          onChanged: (v) => setState(() => item.sex = v ?? 'Male'),
-        ),
-      );
+  Widget _sexDropdown(_OcrItem item) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    return SizedBox(
+      width: 110,
+      child: DropdownButtonFormField<String>(
+        initialValue: item.sex,
+        isExpanded: true,
+        decoration: _compactDeco(context, 'Sex'),
+        style: TextStyle(fontSize: 13, color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary),
+        items: ['Male', 'Female']
+            .map((s) => DropdownMenuItem<String>(value: s, child: Text(s)))
+            .toList(),
+        onChanged: (v) => setState(() => item.sex = v ?? 'Male'),
+      ),
+    );
+  }
 
   Widget _is4psCheckbox(_OcrItem item) => SizedBox(
         width: 100,
@@ -1073,8 +1085,7 @@ class _BulkOcrImportDialogState extends ConsumerState<BulkOcrImportDialog> {
       padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
       decoration: BoxDecoration(
         color: isDark ? AppColors.darkSurfaceCard : const Color(0xFFF8F9FA),
-        borderRadius:
-            const BorderRadius.vertical(bottom: Radius.circular(20)),
+        borderRadius: BorderRadius.zero,
         border: Border(top: BorderSide(color: isDark ? AppColors.darkBorder : Colors.grey.shade200)),
       ),
       child: Row(mainAxisAlignment: MainAxisAlignment.end, children: [

@@ -87,6 +87,7 @@ class _TeacherManagementModalState extends ConsumerState<TeacherManagementModal>
   Widget build(BuildContext context) {
     final screenSize = MediaQuery.of(context).size;
     final isAndroid = Theme.of(context).platform == TargetPlatform.android;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     final content = Column(
       children: [
@@ -102,7 +103,7 @@ class _TeacherManagementModalState extends ConsumerState<TeacherManagementModal>
 
     if (isAndroid) {
       return Scaffold(
-        backgroundColor: AppColors.surfaceWhite,
+        backgroundColor: isDark ? AppColors.darkPageBackground : AppColors.surfaceWhite,
         appBar: AppBar(
           backgroundColor: AppColors.primaryGreen,
           foregroundColor: Colors.white,
@@ -128,12 +129,13 @@ class _TeacherManagementModalState extends ConsumerState<TeacherManagementModal>
   }
 
   Widget _buildTabBar(bool isNarrow) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Container(
-      color: Colors.grey.shade50,
+      color: isDark ? AppColors.darkSurface2 : Colors.grey.shade50,
       child: TabBar(
         controller: _tabController,
         labelColor: AppColors.primaryGreen,
-        unselectedLabelColor: AppColors.textSecondary,
+        unselectedLabelColor: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
         indicatorColor: AppColors.primaryGreen,
         indicatorWeight: 2.5,
         labelStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
@@ -160,6 +162,7 @@ class _TeachersTab extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final usersAsync = ref.watch(usersProvider);
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return usersAsync.when(
       data: (users) {
@@ -172,13 +175,13 @@ class _TeachersTab extends ConsumerWidget {
                 Icon(
                   Icons.people_outline,
                   size: 64,
-                  color: Colors.grey.shade300,
+                  color: isDark ? AppColors.darkBorder : Colors.grey.shade300,
                 ),
                 const SizedBox(height: 16),
                 Text(
                   'No teachers found.',
                   style: TextStyle(
-                    color: Colors.grey.shade500,
+                    color: isDark ? AppColors.darkTextSecondary : Colors.grey.shade500,
                     fontSize: 16,
                     fontWeight: FontWeight.w500,
                   ),
@@ -186,7 +189,7 @@ class _TeachersTab extends ConsumerWidget {
                 const SizedBox(height: 8),
                 Text(
                   'Create teachers in User Settings.',
-                  style: TextStyle(color: Colors.grey.shade400, fontSize: 13),
+                  style: TextStyle(color: isDark ? AppColors.darkTextMuted : Colors.grey.shade400, fontSize: 13),
                 ),
               ],
             ),
@@ -212,10 +215,11 @@ class _TeacherCard extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Container(
       margin: const EdgeInsets.only(bottom: AppSizes.p8),
       child: Material(
-        color: AppColors.surfaceWhite,
+        color: isDark ? AppColors.darkSurfaceCard : AppColors.surfaceWhite,
         borderRadius: BorderRadius.circular(AppSizes.radiusMedium),
         child: InkWell(
           borderRadius: BorderRadius.circular(AppSizes.radiusMedium),
@@ -227,7 +231,7 @@ class _TeacherCard extends ConsumerWidget {
             padding: const EdgeInsets.all(AppSizes.p12),
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(AppSizes.radiusMedium),
-              border: Border.all(color: Colors.grey.shade200),
+              border: Border.all(color: isDark ? AppColors.darkBorder : Colors.grey.shade200),
             ),
             child: Row(
               children: [
@@ -254,10 +258,10 @@ class _TeacherCard extends ConsumerWidget {
                     children: [
                       Text(
                         '${teacher.lastName}, ${teacher.firstName}',
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontWeight: FontWeight.bold,
                           fontSize: 15,
-                          color: AppColors.textPrimary,
+                          color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
                         ),
                       ),
                       const SizedBox(height: 2),
@@ -265,13 +269,13 @@ class _TeacherCard extends ConsumerWidget {
                         '@${teacher.username}',
                         style: TextStyle(
                           fontSize: 13,
-                          color: Colors.grey.shade500,
+                          color: isDark ? AppColors.darkTextSecondary : Colors.grey.shade500,
                         ),
                       ),
                     ],
                   ),
                 ),
-                Icon(Icons.chevron_right, color: Colors.grey.shade400),
+                Icon(Icons.chevron_right, color: isDark ? AppColors.darkTextMuted : Colors.grey.shade400),
               ],
             ),
           ),
@@ -291,6 +295,7 @@ class TeacherDetailModal extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final teacherSecsAsync = ref.watch(teacherSectionsProvider(teacher.id));
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return CustomModal(
       title:
@@ -327,7 +332,7 @@ class TeacherDetailModal extends ConsumerWidget {
                 const SizedBox(width: 12),
                 Text(
                   '@${teacher.username}',
-                  style: TextStyle(color: Colors.grey.shade600, fontSize: 14),
+                  style: TextStyle(color: isDark ? AppColors.darkTextSecondary : Colors.grey.shade600, fontSize: 14),
                 ),
               ],
             ),
@@ -340,12 +345,12 @@ class TeacherDetailModal extends ConsumerWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   // Contact info
-                  const Text(
+                  Text(
                     'Contact Information',
                     style: TextStyle(
                       fontWeight: FontWeight.bold,
                       fontSize: 14,
-                      color: AppColors.textSecondary,
+                      color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
                     ),
                   ),
                   const SizedBox(height: AppSizes.p8),
@@ -362,12 +367,12 @@ class TeacherDetailModal extends ConsumerWidget {
                   const SizedBox(height: AppSizes.p16),
 
                   // Assigned sections
-                  const Text(
+                  Text(
                     'Assigned Sections',
                     style: TextStyle(
                       fontWeight: FontWeight.bold,
                       fontSize: 14,
-                      color: AppColors.textSecondary,
+                      color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
                     ),
                   ),
                   const SizedBox(height: AppSizes.p8),
@@ -526,22 +531,23 @@ class _DetailRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Padding(
       padding: const EdgeInsets.only(bottom: AppSizes.p8),
       child: Row(
         children: [
-          Icon(icon, size: 16, color: Colors.grey.shade500),
+          Icon(icon, size: 16, color: isDark ? AppColors.darkTextSecondary : Colors.grey.shade500),
           const SizedBox(width: 8),
           Text(
             '$label: ',
-            style: TextStyle(fontSize: 13, color: Colors.grey.shade500),
+            style: TextStyle(fontSize: 13, color: isDark ? AppColors.darkTextSecondary : Colors.grey.shade500),
           ),
           Flexible(
             child: Text(
               value,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 13,
-                color: AppColors.textPrimary,
+                color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
               ),
             ),
           ),
@@ -558,6 +564,7 @@ class _AcademicYearsTab extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final yearsAsync = ref.watch(academicYearsListProvider);
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Column(
       children: [
@@ -573,7 +580,7 @@ class _AcademicYearsTab extends ConsumerWidget {
               Expanded(
                 child: Text(
                   'Old/manual academic years are added as Inactive. Activating one deactivates all others.',
-                  style: TextStyle(fontSize: 11, color: Colors.grey.shade500),
+                  style: TextStyle(fontSize: 11, color: isDark ? AppColors.darkTextSecondary : Colors.grey.shade500),
                 ),
               ),
               const SizedBox(width: 8),
@@ -604,8 +611,9 @@ class _AcademicYearsTab extends ConsumerWidget {
         Expanded(
           child: yearsAsync.when(
             data: (years) {
-              if (years.isEmpty)
+              if (years.isEmpty) {
                 return const Center(child: Text('No academic years created.'));
+              }
               return ListView.builder(
                 padding: const EdgeInsets.symmetric(horizontal: AppSizes.p16),
                 itemCount: years.length,
@@ -620,15 +628,15 @@ class _AcademicYearsTab extends ConsumerWidget {
                     ),
                     decoration: BoxDecoration(
                       color: isActive
-                          ? AppColors.primaryGreen.withValues(alpha: 0.04)
-                          : AppColors.surfaceWhite,
+                          ? AppColors.primaryGreen.withValues(alpha: isDark ? 0.08 : 0.04)
+                          : (isDark ? AppColors.darkSurfaceCard : AppColors.surfaceWhite),
                       borderRadius: BorderRadius.circular(
                         AppSizes.radiusMedium,
                       ),
                       border: Border.all(
                         color: isActive
                             ? AppColors.primaryGreen.withValues(alpha: 0.35)
-                            : Colors.grey.shade200,
+                            : (isDark ? AppColors.darkBorder : Colors.grey.shade200),
                       ),
                     ),
                     child: Row(
@@ -637,7 +645,7 @@ class _AcademicYearsTab extends ConsumerWidget {
                           Icons.calendar_today,
                           color: isActive
                               ? AppColors.primaryGreen
-                              : Colors.grey.shade400,
+                              : (isDark ? AppColors.darkTextSecondary : Colors.grey.shade400),
                           size: 18,
                         ),
                         const SizedBox(width: AppSizes.p12),
@@ -652,7 +660,7 @@ class _AcademicYearsTab extends ConsumerWidget {
                                   fontSize: 15,
                                   color: isActive
                                       ? AppColors.primaryGreen
-                                      : AppColors.textPrimary,
+                                      : (isDark ? AppColors.darkTextPrimary : AppColors.textPrimary),
                                 ),
                               ),
                               const SizedBox(height: 2),
@@ -666,7 +674,7 @@ class _AcademicYearsTab extends ConsumerWidget {
                                       ? AppColors.success.withValues(
                                           alpha: 0.12,
                                         )
-                                      : Colors.grey.withValues(alpha: 0.1),
+                                      : (isDark ? AppColors.darkSurface2 : Colors.grey.withValues(alpha: 0.1)),
                                   borderRadius: BorderRadius.circular(20),
                                 ),
                                 child: Text(
@@ -676,7 +684,7 @@ class _AcademicYearsTab extends ConsumerWidget {
                                     fontWeight: FontWeight.bold,
                                     color: isActive
                                         ? AppColors.success
-                                        : Colors.grey.shade500,
+                                        : (isDark ? AppColors.darkTextSecondary : Colors.grey.shade500),
                                   ),
                                 ),
                               ),
@@ -794,6 +802,7 @@ class _SectionsTabState extends ConsumerState<_SectionsTab> {
   Widget build(BuildContext context) {
     final sectionsAsync = ref.watch(sectionsListProvider);
     final yearsAsync = ref.watch(academicYearsListProvider);
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return yearsAsync.when(
       data: (years) {
@@ -921,13 +930,13 @@ class _SectionsTabState extends ConsumerState<_SectionsTab> {
                           Icon(
                             Icons.segment,
                             size: 48,
-                            color: Colors.grey.shade300,
+                            color: isDark ? AppColors.darkBorder : Colors.grey.shade300,
                           ),
                           const SizedBox(height: 12),
                           Text(
                             'No sections found.',
                             style: TextStyle(
-                              color: Colors.grey.shade500,
+                              color: isDark ? AppColors.darkTextSecondary : Colors.grey.shade500,
                               fontSize: 15,
                             ),
                           ),
@@ -935,7 +944,7 @@ class _SectionsTabState extends ConsumerState<_SectionsTab> {
                           Text(
                             'Try adjusting the filters or add a new section.',
                             style: TextStyle(
-                              color: Colors.grey.shade400,
+                              color: isDark ? AppColors.darkTextMuted : Colors.grey.shade400,
                               fontSize: 12,
                             ),
                           ),
@@ -950,6 +959,7 @@ class _SectionsTabState extends ConsumerState<_SectionsTab> {
                     itemCount: filtered.length,
                     itemBuilder: (context, index) {
                       final section = filtered[index];
+                      final isDark = Theme.of(context).brightness == Brightness.dark;
                       return Container(
                         margin: const EdgeInsets.only(bottom: AppSizes.p8),
                         padding: const EdgeInsets.symmetric(
@@ -957,11 +967,11 @@ class _SectionsTabState extends ConsumerState<_SectionsTab> {
                           vertical: AppSizes.p12,
                         ),
                         decoration: BoxDecoration(
-                          color: AppColors.surfaceWhite,
+                          color: isDark ? AppColors.darkSurfaceCard : AppColors.surfaceWhite,
                           borderRadius: BorderRadius.circular(
                             AppSizes.radiusMedium,
                           ),
-                          border: Border.all(color: Colors.grey.shade200),
+                          border: Border.all(color: isDark ? AppColors.darkBorder : Colors.grey.shade200),
                         ),
                         child: Row(
                           children: [
@@ -970,7 +980,7 @@ class _SectionsTabState extends ConsumerState<_SectionsTab> {
                               height: 36,
                               decoration: BoxDecoration(
                                 color: AppColors.primaryGreen.withValues(
-                                  alpha: 0.1,
+                                  alpha: isDark ? 0.18 : 0.1,
                                 ),
                                 borderRadius: BorderRadius.circular(8),
                               ),
@@ -991,15 +1001,16 @@ class _SectionsTabState extends ConsumerState<_SectionsTab> {
                                 children: [
                                   Text(
                                     section.name,
-                                    style: const TextStyle(
+                                    style: TextStyle(
                                       fontWeight: FontWeight.bold,
                                       fontSize: 14,
+                                      color: isDark ? AppColors.darkTextPrimary : null,
                                     ),
                                   ),
                                   Text(
                                     'Grade ${section.gradeLevel} • ${section.academicYearRange ?? ""}',
                                     style: TextStyle(
-                                      color: Colors.grey.shade500,
+                                      color: isDark ? AppColors.darkTextSecondary : Colors.grey.shade500,
                                       fontSize: 12,
                                     ),
                                   ),
@@ -1137,17 +1148,18 @@ class _FilterDropdown<T> extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Container(
       height: 42,
       decoration: BoxDecoration(
-        color: Colors.grey.shade50,
+        color: isDark ? AppColors.darkSurface2 : Colors.grey.shade50,
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: Colors.grey.shade300),
+        border: Border.all(color: isDark ? AppColors.darkBorder : Colors.grey.shade300),
       ),
       child: Row(
         children: [
           const SizedBox(width: 10),
-          Icon(icon, size: 14, color: Colors.grey.shade500),
+          Icon(icon, size: 14, color: isDark ? AppColors.darkTextSecondary : Colors.grey.shade500),
           const SizedBox(width: 6),
           Expanded(
             child: DropdownButtonHideUnderline(
@@ -1156,7 +1168,7 @@ class _FilterDropdown<T> extends StatelessWidget {
                 menuMaxHeight: 300,
                 hint: Text(
                   hint,
-                  style: TextStyle(fontSize: 12, color: Colors.grey.shade500),
+                  style: TextStyle(fontSize: 12, color: isDark ? AppColors.darkTextSecondary : Colors.grey.shade500),
                 ),
                 isExpanded: true,
                 icon: Padding(
@@ -1167,20 +1179,20 @@ class _FilterDropdown<T> extends StatelessWidget {
                           child: Icon(
                             Icons.close,
                             size: 14,
-                            color: Colors.grey.shade500,
+                            color: isDark ? AppColors.darkTextSecondary : Colors.grey.shade500,
                           ),
                         )
                       : Icon(
                           Icons.expand_more,
                           size: 18,
-                          color: Colors.grey.shade500,
+                          color: isDark ? AppColors.darkTextSecondary : Colors.grey.shade500,
                         ),
                 ),
                 items: items,
                 onChanged: onChanged,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 12,
-                  color: AppColors.textPrimary,
+                  color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
                 ),
               ),
             ),
@@ -1237,6 +1249,7 @@ class _AcademicYearFormModalState extends ConsumerState<AcademicYearFormModal> {
   @override
   Widget build(BuildContext context) {
     final isEditing = widget.year != null;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final isNarrow =
         MediaQuery.of(context).size.width < 600 ||
         Theme.of(context).platform == TargetPlatform.android;
@@ -1244,33 +1257,37 @@ class _AcademicYearFormModalState extends ConsumerState<AcademicYearFormModal> {
       title: isEditing ? 'Edit Academic Year' : 'Add Academic Year',
       icon: Icons.calendar_today,
       maxWidth: 480,
-      onClose: () => Navigator.pop(context),
-      content: Padding(
-        padding: EdgeInsets.all(isNarrow ? 12 : AppSizes.p20),
-        child: Form(
-          key: _formKey,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
+      content: Container(
+        constraints: BoxConstraints(
+          maxHeight: MediaQuery.of(context).size.height * 0.8,
+        ),
+        child: SingleChildScrollView(
+          child: Padding(
+            padding: EdgeInsets.all(isNarrow ? 12 : AppSizes.p20),
+          child: Form(
+            key: _formKey,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
               if (!isEditing)
                 Padding(
                   padding: const EdgeInsets.only(bottom: 12),
                   child: Container(
                     padding: const EdgeInsets.all(10),
                     decoration: BoxDecoration(
-                      color: Colors.blue.shade50,
+                      color: isDark ? Colors.blue.withValues(alpha: 0.15) : Colors.blue.shade50,
                       borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: Colors.blue.shade200),
+                      border: Border.all(color: isDark ? Colors.blue.withValues(alpha: 0.3) : Colors.blue.shade200),
                     ),
-                    child: const Row(
+                    child: Row(
                       children: [
-                        Icon(Icons.info_outline, size: 14, color: Colors.blue),
-                        SizedBox(width: 8),
+                        Icon(Icons.info_outline, size: 14, color: isDark ? Colors.blueAccent : Colors.blue),
+                        const SizedBox(width: 8),
                         Expanded(
                           child: Text(
                             'New academic years are added as Inactive by default. Set to Active to make it the current year (this will deactivate all others).',
-                            style: TextStyle(fontSize: 11, color: Colors.blue),
+                            style: TextStyle(fontSize: 11, color: isDark ? Colors.blueAccent : Colors.blue),
                           ),
                         ),
                       ],
@@ -1379,44 +1396,41 @@ class _AcademicYearFormModalState extends ConsumerState<AcademicYearFormModal> {
                 ],
               ),
               const SizedBox(height: 24),
-              if (isNarrow)
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    PrimaryButton(
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton(
+                      onPressed: () => Navigator.pop(context),
+                      style: OutlinedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(
+                            AppSizes.radiusMedium,
+                          ),
+                        ),
+                      ),
+                      child: const Text('CANCEL'),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    flex: 2,
+                    child: PrimaryButton(
                       label: isEditing ? 'UPDATE' : 'CREATE',
                       isLoading: _isLoading,
                       onPressed: _handleSubmit,
                     ),
-                    const SizedBox(height: 8),
-                    OutlinedButton(
-                      onPressed: () => Navigator.pop(context),
-                      child: const Text('CANCEL'),
-                    ),
-                  ],
-                )
-              else
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.end,
-                  children: [
-                    TextButton(
-                      onPressed: () => Navigator.pop(context),
-                      child: const Text('CANCEL'),
-                    ),
-                    const SizedBox(width: 8),
-                    PrimaryButton(
-                      label: isEditing ? 'UPDATE' : 'CREATE',
-                      isLoading: _isLoading,
-                      onPressed: _handleSubmit,
-                    ),
-                  ],
-                ),
+                  ),
+                ],
+              ),
             ],
           ),
         ),
       ),
-    );
-  }
+    ),
+  ),
+);
+}
 
   Future<void> _handleSubmit() async {
     if (!_formKey.currentState!.validate()) return;
@@ -1701,6 +1715,7 @@ class _TeacherSectionsModalState extends ConsumerState<TeacherSectionsModal> {
       teacherSectionsProvider(widget.teacher.id),
     );
     final yearsAsync = ref.watch(academicYearsListProvider);
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return CustomModal(
       title: 'Assign Sections',
@@ -1737,10 +1752,11 @@ class _TeacherSectionsModalState extends ConsumerState<TeacherSectionsModal> {
 
                       return yearsAsync.when(
                         data: (years) {
-                          if (years.isEmpty)
+                          if (years.isEmpty) {
                             return const Center(
                               child: Text('No academic years found.'),
                             );
+                          }
 
                           if (_selectedYearId == null) {
                             final active = years.firstWhere(
@@ -1787,9 +1803,9 @@ class _TeacherSectionsModalState extends ConsumerState<TeacherSectionsModal> {
                                           horizontal: 10,
                                         ),
                                         decoration: BoxDecoration(
-                                          color: Colors.grey.shade50,
+                                          color: isDark ? AppColors.darkSurface2 : Colors.grey.shade50,
                                           border: Border.all(
-                                            color: Colors.grey.shade300,
+                                            color: isDark ? AppColors.darkBorder : Colors.grey.shade300,
                                           ),
                                           borderRadius: BorderRadius.circular(
                                             8,
@@ -1803,9 +1819,9 @@ class _TeacherSectionsModalState extends ConsumerState<TeacherSectionsModal> {
                                               size: 18,
                                               color: AppColors.primaryGreen,
                                             ),
-                                            style: const TextStyle(
+                                            style: TextStyle(
                                               fontSize: 12,
-                                              color: AppColors.textPrimary,
+                                              color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
                                               fontWeight: FontWeight.w600,
                                             ),
                                             items: years.map((y) {
@@ -1836,7 +1852,7 @@ class _TeacherSectionsModalState extends ConsumerState<TeacherSectionsModal> {
                                   isScrollable: true,
                                   tabAlignment: TabAlignment.start,
                                   labelColor: AppColors.primaryGreen,
-                                  unselectedLabelColor: Colors.grey.shade600,
+                                  unselectedLabelColor: isDark ? AppColors.darkTextSecondary : Colors.grey.shade600,
                                   indicatorColor: AppColors.primaryGreen,
                                   tabs: [
                                     const Tab(text: 'All'),
@@ -1855,8 +1871,9 @@ class _TeacherSectionsModalState extends ConsumerState<TeacherSectionsModal> {
                                               if (_searchQuery.isNotEmpty &&
                                                   !s.name
                                                       .toLowerCase()
-                                                      .contains(_searchQuery))
+                                                      .contains(_searchQuery)) {
                                                 return false;
+                                              }
                                               return true;
                                             }).toList();
                                         if (allGradesSections.isEmpty) {
@@ -1864,7 +1881,7 @@ class _TeacherSectionsModalState extends ConsumerState<TeacherSectionsModal> {
                                             child: Text(
                                               'No sections found',
                                               style: TextStyle(
-                                                color: Colors.grey.shade500,
+                                                color: isDark ? AppColors.darkTextSecondary : Colors.grey.shade500,
                                               ),
                                             ),
                                           );
@@ -1886,8 +1903,9 @@ class _TeacherSectionsModalState extends ConsumerState<TeacherSectionsModal> {
                                                   AppColors.primaryGreen,
                                               title: Text(
                                                 '${sec.name} (Grade ${sec.gradeLevel})',
-                                                style: const TextStyle(
+                                                style: TextStyle(
                                                   fontSize: 14,
+                                                  color: isDark ? AppColors.darkTextPrimary : null,
                                                 ),
                                               ),
                                               value: isChecked,
@@ -1912,13 +1930,15 @@ class _TeacherSectionsModalState extends ConsumerState<TeacherSectionsModal> {
                                       ...kGradeLevels.map((grade) {
                                         final gradeSections = activeYearSections
                                             .where((s) {
-                                              if (s.gradeLevel != grade)
+                                              if (s.gradeLevel != grade) {
                                                 return false;
+                                              }
                                               if (_searchQuery.isNotEmpty &&
                                                   !s.name
                                                       .toLowerCase()
-                                                      .contains(_searchQuery))
+                                                      .contains(_searchQuery)) {
                                                 return false;
+                                              }
                                               return true;
                                             })
                                             .toList();
@@ -1928,7 +1948,7 @@ class _TeacherSectionsModalState extends ConsumerState<TeacherSectionsModal> {
                                             child: Text(
                                               'No sections found for Grade $grade',
                                               style: TextStyle(
-                                                color: Colors.grey.shade500,
+                                                color: isDark ? AppColors.darkTextSecondary : Colors.grey.shade500,
                                               ),
                                             ),
                                           );
@@ -1950,8 +1970,9 @@ class _TeacherSectionsModalState extends ConsumerState<TeacherSectionsModal> {
                                                   AppColors.primaryGreen,
                                               title: Text(
                                                 sec.name,
-                                                style: const TextStyle(
+                                                style: TextStyle(
                                                   fontSize: 14,
+                                                  color: isDark ? AppColors.darkTextPrimary : null,
                                                 ),
                                               ),
                                               value: isChecked,
@@ -2001,7 +2022,7 @@ class _TeacherSectionsModalState extends ConsumerState<TeacherSectionsModal> {
                 vertical: AppSizes.p12,
               ),
               decoration: BoxDecoration(
-                border: Border(top: BorderSide(color: Colors.grey.shade200)),
+                border: Border(top: BorderSide(color: isDark ? AppColors.darkBorder : Colors.grey.shade200)),
               ),
               child: Row(
                 children: [

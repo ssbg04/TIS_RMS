@@ -260,17 +260,18 @@ class _RequirementsModalState extends ConsumerState<RequirementsModal> {
     final screenSize = MediaQuery.of(context).size;
     final isAndroid = Theme.of(context).platform == TargetPlatform.android;
     final settingsAsync = ref.watch(requirementsSettingsProvider);
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     final content = Column(
       children: [
         _buildSearchAndControls(isAndroid),
         _buildFilterBar(isAndroid),
         const Divider(height: 1),
-        const TabBar(
+        TabBar(
           labelColor: AppColors.primaryGreen,
-          unselectedLabelColor: AppColors.textSecondary,
+          unselectedLabelColor: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
           indicatorColor: AppColors.primaryGreen,
-          tabs: [
+          tabs: const [
             Tab(text: 'JHS'),
             Tab(text: 'SHS'),
           ],
@@ -348,7 +349,7 @@ class _RequirementsModalState extends ConsumerState<RequirementsModal> {
     Widget result;
     if (isAndroid) {
       result = Scaffold(
-        backgroundColor: AppColors.surfaceWhite,
+        backgroundColor: isDark ? AppColors.darkPageBackground : AppColors.surfaceWhite,
         appBar: AppBar(
           backgroundColor: AppColors.primaryGreen,
           foregroundColor: Colors.white,
@@ -387,6 +388,7 @@ class _RequirementsModalState extends ConsumerState<RequirementsModal> {
   // Search row + sort
   // ─────────────────────────────────────────────────────────
   Widget _buildSearchAndControls(bool isNarrow) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Padding(
       padding: const EdgeInsets.fromLTRB(
         AppSizes.p16,
@@ -404,21 +406,21 @@ class _RequirementsModalState extends ConsumerState<RequirementsModal> {
                 onChanged: (v) => setState(() => _searchQuery = v),
                 decoration: InputDecoration(
                   hintText: 'Search requirements…',
-                  hintStyle: const TextStyle(
+                  hintStyle: TextStyle(
                     fontSize: 13,
-                    color: AppColors.textMuted,
+                    color: isDark ? AppColors.darkTextMuted : AppColors.textMuted,
                   ),
-                  prefixIcon: const Icon(
+                  prefixIcon: Icon(
                     Icons.search,
                     size: 18,
-                    color: AppColors.textSecondary,
+                    color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
                   ),
                   suffixIcon: _searchQuery.isNotEmpty
                       ? IconButton(
-                          icon: const Icon(
+                          icon: Icon(
                             Icons.clear,
                             size: 16,
-                            color: AppColors.textSecondary,
+                            color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
                           ),
                           onPressed: () {
                             _searchCtrl.clear();
@@ -432,11 +434,11 @@ class _RequirementsModalState extends ConsumerState<RequirementsModal> {
                   ),
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(8),
-                    borderSide: BorderSide(color: Colors.grey.shade300),
+                    borderSide: BorderSide(color: isDark ? AppColors.darkBorder : Colors.grey.shade300),
                   ),
                   enabledBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(8),
-                    borderSide: BorderSide(color: Colors.grey.shade300),
+                    borderSide: BorderSide(color: isDark ? AppColors.darkBorder : Colors.grey.shade300),
                   ),
                   focusedBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(8),
@@ -446,7 +448,7 @@ class _RequirementsModalState extends ConsumerState<RequirementsModal> {
                     ),
                   ),
                   filled: true,
-                  fillColor: Colors.grey.shade50,
+                  fillColor: isDark ? AppColors.darkSurface2 : Colors.grey.shade50,
                 ),
               ),
             ),
@@ -471,29 +473,29 @@ class _RequirementsModalState extends ConsumerState<RequirementsModal> {
                 'Due date first',
               ),
             ],
-            child: Container(
+          child: Container(
               height: 40,
               padding: const EdgeInsets.symmetric(horizontal: 12),
               decoration: BoxDecoration(
-                color: Colors.grey.shade50,
+                color: isDark ? AppColors.darkSurface2 : Colors.grey.shade50,
                 borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: Colors.grey.shade300),
+                border: Border.all(color: isDark ? AppColors.darkBorder : Colors.grey.shade300),
               ),
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  const Icon(
+                  Icon(
                     Icons.sort,
                     size: 16,
-                    color: AppColors.textSecondary,
+                    color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
                   ),
                   if (!isNarrow) ...[
                     const SizedBox(width: 4),
-                    const Text(
+                    Text(
                       'Sort',
                       style: TextStyle(
                         fontSize: 13,
-                        color: AppColors.textSecondary,
+                        color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
                       ),
                     ),
                   ],
@@ -649,11 +651,12 @@ class _RequirementsModalState extends ConsumerState<RequirementsModal> {
     required Color color,
     required ValueChanged<int> onSelected,
   }) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Container(
       decoration: BoxDecoration(
-        color: Colors.grey.shade100,
+        color: isDark ? AppColors.darkSurface2 : Colors.grey.shade100,
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: Colors.grey.shade300),
+        border: Border.all(color: isDark ? AppColors.darkBorder : Colors.grey.shade300),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -675,7 +678,7 @@ class _RequirementsModalState extends ConsumerState<RequirementsModal> {
                 style: TextStyle(
                   fontSize: 12,
                   fontWeight: isActive ? FontWeight.w700 : FontWeight.normal,
-                  color: isActive ? color : AppColors.textSecondary,
+                  color: isActive ? color : (isDark ? AppColors.darkTextSecondary : AppColors.textSecondary),
                 ),
               ),
             ),
@@ -689,6 +692,7 @@ class _RequirementsModalState extends ConsumerState<RequirementsModal> {
   // Table list
   // ─────────────────────────────────────────────────────────
   Widget _buildTable(List<DocumentRequirementModel> filtered, bool isNarrow) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     if (filtered.isEmpty) {
       return Center(
         child: Column(
@@ -697,12 +701,12 @@ class _RequirementsModalState extends ConsumerState<RequirementsModal> {
             Icon(
               Icons.folder_off_outlined,
               size: 56,
-              color: Colors.grey.shade300,
+              color: isDark ? AppColors.darkBorder : Colors.grey.shade300,
             ),
             const SizedBox(height: AppSizes.p16),
-            const Text(
+            Text(
               'No requirements match your filters',
-              style: TextStyle(color: AppColors.textSecondary, fontSize: 15),
+              style: TextStyle(color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary, fontSize: 15),
             ),
             const SizedBox(height: AppSizes.p8),
             TextButton(
@@ -723,7 +727,7 @@ class _RequirementsModalState extends ConsumerState<RequirementsModal> {
       children: [
         // Table header
         Container(
-          color: Colors.grey.shade50,
+          color: isDark ? AppColors.darkSurface2 : Colors.grey.shade50,
           padding: const EdgeInsets.symmetric(
             horizontal: AppSizes.p16,
             vertical: AppSizes.p8,
@@ -753,20 +757,20 @@ class _RequirementsModalState extends ConsumerState<RequirementsModal> {
                     fontWeight: FontWeight.w700,
                     color: _multiSelectMode
                         ? AppColors.primaryGreen
-                        : AppColors.textMuted,
+                        : (isDark ? AppColors.darkTextMuted : AppColors.textMuted),
                     letterSpacing: 0.5,
                   ),
                 ),
               ),
               if (!isNarrow)
-                const SizedBox(
+                SizedBox(
                   width: 80,
                   child: Text(
                     'CATEGORY',
                     style: TextStyle(
                       fontSize: 11,
                       fontWeight: FontWeight.w700,
-                      color: AppColors.textMuted,
+                      color: isDark ? AppColors.darkTextMuted : AppColors.textMuted,
                       letterSpacing: 0.5,
                     ),
                     textAlign: TextAlign.center,
@@ -783,7 +787,7 @@ class _RequirementsModalState extends ConsumerState<RequirementsModal> {
             padding: const EdgeInsets.only(bottom: 100),
             itemCount: filtered.length,
             separatorBuilder: (ctx, i) =>
-                Divider(height: 1, color: Colors.grey.shade100),
+                Divider(height: 1, color: isDark ? AppColors.darkBorder : Colors.grey.shade100),
             itemBuilder: (context, index) =>
                 _buildRow(filtered[index], isNarrow),
           ),
@@ -793,6 +797,7 @@ class _RequirementsModalState extends ConsumerState<RequirementsModal> {
   }
 
   Widget _buildRow(DocumentRequirementModel req, bool isNarrow) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final isSelected = _selectedIds.contains(req.id);
     final catColor = req.category.toUpperCase() == 'JHS'
         ? Colors.blue
@@ -868,10 +873,10 @@ class _RequirementsModalState extends ConsumerState<RequirementsModal> {
                   children: [
                     Text(
                       req.name,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontWeight: FontWeight.w600,
                         fontSize: 14,
-                        color: AppColors.textPrimary,
+                        color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
                       ),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
@@ -894,14 +899,14 @@ class _RequirementsModalState extends ConsumerState<RequirementsModal> {
                                 )
                               : _badge(
                                   'Optional',
-                                  Colors.grey.shade600,
+                                  isDark ? AppColors.darkTextSecondary : Colors.grey.shade600,
                                   key: const ValueKey('opt'),
                                 ),
                         ),
                         if (req.isMandatory && !req.isEnabled)
                           const SizedBox(width: 4),
                         if (!req.isEnabled)
-                          _badge('Disabled', Colors.grey.shade500),
+                          _badge('Disabled', isDark ? AppColors.darkTextMuted : Colors.grey.shade500),
                         if (req.dueDate != null) ...[
                           const SizedBox(width: 4),
                           Row(
@@ -909,14 +914,14 @@ class _RequirementsModalState extends ConsumerState<RequirementsModal> {
                               Icon(
                                 Icons.calendar_today,
                                 size: 10,
-                                color: Colors.grey.shade400,
+                                color: isDark ? AppColors.darkTextMuted : Colors.grey.shade400,
                               ),
                               const SizedBox(width: 2),
                               Text(
                                 _formatDate(req.dueDate!),
                                 style: TextStyle(
                                   fontSize: 10,
-                                  color: Colors.grey.shade500,
+                                  color: isDark ? AppColors.darkTextSecondary : Colors.grey.shade500,
                                 ),
                               ),
                             ],
@@ -1175,6 +1180,7 @@ class _RequirementDetailModal extends StatelessWidget {
     final catColor = req.category.toUpperCase() == 'JHS'
         ? Colors.blue
         : Colors.purple;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Dialog(
       shape: RoundedRectangleBorder(
@@ -1190,11 +1196,11 @@ class _RequirementDetailModal extends StatelessWidget {
             Container(
               padding: const EdgeInsets.all(AppSizes.p20),
               decoration: BoxDecoration(
-                color: AppColors.primaryGreen.withValues(alpha: 0.05),
+                color: AppColors.primaryGreen.withValues(alpha: isDark ? 0.12 : 0.05),
                 borderRadius: const BorderRadius.vertical(
                   top: Radius.circular(AppSizes.radiusLarge),
                 ),
-                border: Border(bottom: BorderSide(color: Colors.grey.shade200)),
+                border: Border(bottom: BorderSide(color: isDark ? AppColors.darkBorder : Colors.grey.shade200)),
               ),
               child: Row(
                 children: [
@@ -1224,10 +1230,10 @@ class _RequirementDetailModal extends StatelessWidget {
                       children: [
                         Text(
                           req.name,
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.bold,
-                            color: AppColors.textPrimary,
+                            color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
                           ),
                         ),
                         const SizedBox(height: 4),
@@ -1250,6 +1256,7 @@ class _RequirementDetailModal extends StatelessWidget {
                 child: Column(
                   children: [
                     _detailTile(
+                      context,
                       Icons.notes,
                       'Description',
                       (req.description?.isNotEmpty == true)
@@ -1259,8 +1266,9 @@ class _RequirementDetailModal extends StatelessWidget {
                           ? null
                           : AppColors.textMuted,
                     ),
-                    const Divider(height: 20),
+                    Divider(height: 20, color: isDark ? AppColors.darkBorder : null),
                     _detailTile(
+                      context,
                       Icons.calendar_today,
                       'Due Date',
                       req.dueDate != null
@@ -1270,17 +1278,19 @@ class _RequirementDetailModal extends StatelessWidget {
                           ? null
                           : AppColors.textMuted,
                     ),
-                    const Divider(height: 20),
+                    Divider(height: 20, color: isDark ? AppColors.darkBorder : null),
                     _detailTile(
+                      context,
                       Icons.attach_file,
                       'Accepted File Types',
                       req.acceptedFileTypes.replaceAll(',', ', '),
                     ),
-                    const Divider(height: 20),
+                    Divider(height: 20, color: isDark ? AppColors.darkBorder : null),
                     Row(
                       children: [
                         Expanded(
                           child: _statusCard(
+                            context,
                             label: 'Mandatory',
                             value: req.isMandatory,
                             trueLabel: 'Mandatory',
@@ -1292,6 +1302,7 @@ class _RequirementDetailModal extends StatelessWidget {
                         const SizedBox(width: AppSizes.p12),
                         Expanded(
                           child: _statusCard(
+                            context,
                             label: 'Status',
                             value: req.isEnabled,
                             trueLabel: 'Enabled',
@@ -1314,7 +1325,7 @@ class _RequirementDetailModal extends StatelessWidget {
                 vertical: AppSizes.p12,
               ),
               decoration: BoxDecoration(
-                border: Border(top: BorderSide(color: Colors.grey.shade200)),
+                border: Border(top: BorderSide(color: isDark ? AppColors.darkBorder : Colors.grey.shade200)),
               ),
               child: Row(
                 children: [
@@ -1397,15 +1408,17 @@ class _RequirementDetailModal extends StatelessWidget {
   }
 
   Widget _detailTile(
+    BuildContext context,
     IconData icon,
     String label,
     String value, {
     Color? valueColor,
   }) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Icon(icon, size: 16, color: AppColors.textSecondary),
+        Icon(icon, size: 16, color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary),
         const SizedBox(width: AppSizes.p8),
         Expanded(
           child: Column(
@@ -1413,10 +1426,10 @@ class _RequirementDetailModal extends StatelessWidget {
             children: [
               Text(
                 label,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 11,
                   fontWeight: FontWeight.w700,
-                  color: AppColors.textMuted,
+                  color: isDark ? AppColors.darkTextMuted : AppColors.textMuted,
                   letterSpacing: 0.4,
                 ),
               ),
@@ -1425,7 +1438,7 @@ class _RequirementDetailModal extends StatelessWidget {
                 value,
                 style: TextStyle(
                   fontSize: 13,
-                  color: valueColor ?? AppColors.textPrimary,
+                  color: valueColor ?? (isDark ? AppColors.darkTextPrimary : AppColors.textPrimary),
                 ),
               ),
             ],
@@ -1435,7 +1448,8 @@ class _RequirementDetailModal extends StatelessWidget {
     );
   }
 
-  Widget _statusCard({
+  Widget _statusCard(
+    BuildContext context, {
     required String label,
     required bool value,
     required String trueLabel,
@@ -1443,6 +1457,7 @@ class _RequirementDetailModal extends StatelessWidget {
     required Color trueColor,
     required Color falseColor,
   }) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final color = value ? trueColor : falseColor;
     final displayLabel = value ? trueLabel : falseLabel;
     return Container(
@@ -1457,10 +1472,10 @@ class _RequirementDetailModal extends StatelessWidget {
         children: [
           Text(
             label,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 10,
               fontWeight: FontWeight.w700,
-              color: AppColors.textMuted,
+              color: isDark ? AppColors.darkTextMuted : AppColors.textMuted,
               letterSpacing: 0.4,
             ),
           ),
@@ -1513,6 +1528,7 @@ class _BulkEditModalState extends ConsumerState<_BulkEditModal> {
   Widget build(BuildContext context) {
     final screenSize = MediaQuery.of(context).size;
     final isNarrow = screenSize.width < 480;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Dialog(
       backgroundColor: Colors.transparent,
@@ -1525,7 +1541,7 @@ class _BulkEditModalState extends ConsumerState<_BulkEditModal> {
         child: BackdropFilter(
           filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
           child: Container(
-            color: AppColors.surfaceWhite.withValues(alpha: 0.85),
+            color: isDark ? AppColors.darkSurfaceCard.withValues(alpha: 0.85) : AppColors.surfaceWhite.withValues(alpha: 0.85),
             child: ConstrainedBox(
               constraints: const BoxConstraints(maxWidth: 400),
               child: Padding(
@@ -1564,9 +1580,9 @@ class _BulkEditModalState extends ConsumerState<_BulkEditModal> {
                               ),
                               Text(
                                 'Editing ${widget.targets.length} requirements',
-                                style: const TextStyle(
+                                style: TextStyle(
                                   fontSize: 12,
-                                  color: AppColors.textSecondary,
+                                  color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
                                 ),
                               ),
                             ],
@@ -1579,11 +1595,11 @@ class _BulkEditModalState extends ConsumerState<_BulkEditModal> {
                       ],
                     ),
                     const SizedBox(height: AppSizes.p20),
-                    const Text(
+                    Text(
                       'Leave a field as "No change" to keep each requirement\'s current value.',
                       style: TextStyle(
                         fontSize: 12,
-                        color: AppColors.textSecondary,
+                        color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
                       ),
                     ),
                     const SizedBox(height: AppSizes.p16),
@@ -1654,15 +1670,16 @@ class _BulkEditModalState extends ConsumerState<_BulkEditModal> {
     required String falseLabel,
     required ValueChanged<bool?> onChanged,
   }) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
           label,
-          style: const TextStyle(
+          style: TextStyle(
             fontSize: 12,
             fontWeight: FontWeight.w600,
-            color: AppColors.textSecondary,
+            color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
           ),
         ),
         const SizedBox(height: 6),
@@ -1695,6 +1712,7 @@ class _BulkEditModalState extends ConsumerState<_BulkEditModal> {
     VoidCallback onTap, {
     Color color = AppColors.textMuted,
   }) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return GestureDetector(
       onTap: onTap,
       child: AnimatedContainer(
@@ -1703,10 +1721,10 @@ class _BulkEditModalState extends ConsumerState<_BulkEditModal> {
         decoration: BoxDecoration(
           color: selected
               ? color.withValues(alpha: 0.12)
-              : Colors.grey.shade100,
+              : (isDark ? AppColors.darkSurface2 : Colors.grey.shade100),
           borderRadius: BorderRadius.circular(8),
           border: Border.all(
-            color: selected ? color : Colors.grey.shade300,
+            color: selected ? color : (isDark ? AppColors.darkBorder : Colors.grey.shade300),
             width: 1.5,
           ),
         ),
@@ -1715,7 +1733,7 @@ class _BulkEditModalState extends ConsumerState<_BulkEditModal> {
           style: TextStyle(
             fontSize: 12,
             fontWeight: selected ? FontWeight.w700 : FontWeight.normal,
-            color: selected ? color : AppColors.textSecondary,
+            color: selected ? color : (isDark ? AppColors.darkTextSecondary : AppColors.textSecondary),
           ),
         ),
       ),
@@ -1826,6 +1844,7 @@ class _RequirementFormModalState extends ConsumerState<RequirementFormModal> {
     final isEditing = widget.requirement != null;
     final screenSize = MediaQuery.of(context).size;
     final isNarrow = screenSize.width < 480;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Dialog(
       shape: RoundedRectangleBorder(
@@ -1849,11 +1868,11 @@ class _RequirementFormModalState extends ConsumerState<RequirementFormModal> {
                 AppSizes.p16,
               ),
               decoration: BoxDecoration(
-                color: AppColors.primaryGreen.withValues(alpha: 0.05),
+                color: AppColors.primaryGreen.withValues(alpha: isDark ? 0.12 : 0.05),
                 borderRadius: const BorderRadius.vertical(
                   top: Radius.circular(AppSizes.radiusLarge),
                 ),
-                border: Border(bottom: BorderSide(color: Colors.grey.shade200)),
+                border: Border(bottom: BorderSide(color: isDark ? AppColors.darkBorder : Colors.grey.shade200)),
               ),
               child: Row(
                 children: [
@@ -1873,10 +1892,10 @@ class _RequirementFormModalState extends ConsumerState<RequirementFormModal> {
                   Expanded(
                     child: Text(
                       isEditing ? 'Edit Requirement' : 'Add Requirement',
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.bold,
-                        color: AppColors.textPrimary,
+                        color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
                       ),
                     ),
                   ),
@@ -1921,20 +1940,20 @@ class _RequirementFormModalState extends ConsumerState<RequirementFormModal> {
                       const SizedBox(height: AppSizes.p16),
 
                       // Category checkboxes
-                      const Text(
+                      Text(
                         'Category',
                         style: TextStyle(
                           fontSize: 13,
                           fontWeight: FontWeight.w600,
-                          color: AppColors.textSecondary,
+                          color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
                         ),
                       ),
                       const SizedBox(height: 8),
                       Container(
                         decoration: BoxDecoration(
-                          color: Colors.grey.shade50,
+                          color: isDark ? AppColors.darkSurface2 : Colors.grey.shade50,
                           borderRadius: BorderRadius.circular(8),
-                          border: Border.all(color: Colors.grey.shade300),
+                          border: Border.all(color: isDark ? AppColors.darkBorder : Colors.grey.shade300),
                         ),
                         child: Column(
                           children: [
@@ -1944,7 +1963,7 @@ class _RequirementFormModalState extends ConsumerState<RequirementFormModal> {
                               color: Colors.blue,
                               onChanged: (v) => setState(() => _catJhs = v!),
                             ),
-                            const Divider(height: 1),
+                            Divider(height: 1, color: isDark ? AppColors.darkBorder : null),
                             _buildCategoryCheckTile(
                               label: 'SHS (Senior High School)',
                               value: _catShs,
@@ -1981,7 +2000,7 @@ class _RequirementFormModalState extends ConsumerState<RequirementFormModal> {
                           ),
                           enabledBorder: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(8),
-                            borderSide: BorderSide(color: Colors.grey.shade300),
+                            borderSide: BorderSide(color: isDark ? AppColors.darkBorder : Colors.grey.shade300),
                           ),
                           focusedBorder: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(8),
@@ -1991,7 +2010,7 @@ class _RequirementFormModalState extends ConsumerState<RequirementFormModal> {
                             ),
                           ),
                           filled: true,
-                          fillColor: Colors.grey.shade50,
+                          fillColor: isDark ? AppColors.darkSurface2 : Colors.grey.shade50,
                         ),
                         items: const [
                           DropdownMenuItem(
@@ -2023,9 +2042,9 @@ class _RequirementFormModalState extends ConsumerState<RequirementFormModal> {
                       // Switches
                       Container(
                         decoration: BoxDecoration(
-                          color: Colors.grey.shade50,
+                          color: isDark ? AppColors.darkSurface2 : Colors.grey.shade50,
                           borderRadius: BorderRadius.circular(8),
-                          border: Border.all(color: Colors.grey.shade200),
+                          border: Border.all(color: isDark ? AppColors.darkBorder : Colors.grey.shade200),
                         ),
                         child: Column(
                           children: [
@@ -2046,7 +2065,7 @@ class _RequirementFormModalState extends ConsumerState<RequirementFormModal> {
                                   setState(() => _isMandatory = v),
                               activeThumbColor: AppColors.error,
                             ),
-                            const Divider(height: 1),
+                            Divider(height: 1, color: isDark ? AppColors.darkBorder : null),
                             SwitchListTile(
                               title: const Text(
                                 'Enabled',
@@ -2079,7 +2098,7 @@ class _RequirementFormModalState extends ConsumerState<RequirementFormModal> {
                 vertical: AppSizes.p12,
               ),
               decoration: BoxDecoration(
-                border: Border(top: BorderSide(color: Colors.grey.shade200)),
+                border: Border(top: BorderSide(color: isDark ? AppColors.darkBorder : Colors.grey.shade200)),
               ),
               child: Row(
                 children: [
@@ -2120,13 +2139,14 @@ class _RequirementFormModalState extends ConsumerState<RequirementFormModal> {
     required Color color,
     required ValueChanged<bool?> onChanged,
   }) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return CheckboxListTile(
       title: Text(
         label,
         style: TextStyle(
           fontSize: 13,
           fontWeight: FontWeight.w500,
-          color: value ? color : AppColors.textPrimary,
+          color: value ? color : (isDark ? AppColors.darkTextPrimary : AppColors.textPrimary),
         ),
       ),
       value: value,

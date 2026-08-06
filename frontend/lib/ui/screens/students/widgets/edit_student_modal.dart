@@ -292,6 +292,7 @@ class _EditStudentModalState extends ConsumerState<EditStudentModal> {
   }
 
   Widget _buildStudentDetailsTab() {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     if (_isFetchingDetails) {
       return const Center(child: CircularProgressIndicator());
     }
@@ -506,12 +507,12 @@ class _EditStudentModalState extends ConsumerState<EditStudentModal> {
               decoration: BoxDecoration(
                 color: _is4ps
                     ? Colors.deepPurple.withValues(alpha: 0.06)
-                    : Colors.grey.shade50,
+                    : (isDark ? AppColors.darkSurfaceCard : Colors.grey.shade50),
                 borderRadius: BorderRadius.circular(AppSizes.radiusMedium),
                 border: Border.all(
                   color: _is4ps
                       ? Colors.deepPurple.withValues(alpha: 0.3)
-                      : Colors.grey.shade200,
+                      : (isDark ? AppColors.darkBorder : Colors.grey.shade200),
                 ),
               ),
               child: SwitchListTile(
@@ -529,8 +530,8 @@ class _EditStudentModalState extends ConsumerState<EditStudentModal> {
                   style: TextStyle(
                     fontSize: 11,
                     color: _is4ps
-                        ? Colors.deepPurple.shade600
-                        : AppColors.textSecondary,
+                        ? (isDark ? Colors.deepPurple[200] : Colors.deepPurple.shade600)
+                        : (isDark ? AppColors.darkTextSecondary : AppColors.textSecondary),
                   ),
                 ),
                 secondary: Icon(Icons.family_restroom,
@@ -574,6 +575,7 @@ class _EditStudentModalState extends ConsumerState<EditStudentModal> {
 
   Widget _buildEnrollmentsTab() {
     final detailAsync = ref.watch(studentDetailProvider(widget.student.id));
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return detailAsync.when(
       loading: () => const Center(child: CircularProgressIndicator()),
@@ -597,10 +599,10 @@ class _EditStudentModalState extends ConsumerState<EditStudentModal> {
                 children: [
                   Text(
                     'Academic History (${sorted.length})',
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.bold,
-                      color: AppColors.textPrimary,
+                      color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
                     ),
                   ),
                   ElevatedButton.icon(
@@ -638,19 +640,19 @@ class _EditStudentModalState extends ConsumerState<EditStudentModal> {
                   padding: const EdgeInsets.all(32),
                   alignment: Alignment.center,
                   decoration: BoxDecoration(
-                    color: Colors.white,
+                    color: isDark ? AppColors.darkSurfaceCard : Colors.white,
                     borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: Colors.grey.shade200),
+                    border: Border.all(color: isDark ? AppColors.darkBorder : Colors.grey.shade200),
                   ),
-                  child: const Column(
+                  child: Column(
                     children: [
                       Icon(Icons.school_outlined,
-                          size: 48, color: AppColors.textSecondary),
-                      SizedBox(height: 12),
+                          size: 48, color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary),
+                      const SizedBox(height: 12),
                       Text(
                         'No enrollments recorded yet.',
                         style: TextStyle(
-                          color: AppColors.textSecondary,
+                          color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
                           fontSize: 14,
                         ),
                       ),
@@ -667,9 +669,9 @@ class _EditStudentModalState extends ConsumerState<EditStudentModal> {
                       return Container(
                         padding: const EdgeInsets.all(12),
                         decoration: BoxDecoration(
-                          color: Colors.white,
+                          color: isDark ? AppColors.darkSurfaceCard : Colors.white,
                           borderRadius: BorderRadius.circular(12),
-                          border: Border.all(color: Colors.grey.shade200),
+                          border: Border.all(color: isDark ? AppColors.darkBorder : Colors.grey.shade200),
                         ),
                         child: Row(
                           children: [
@@ -693,22 +695,23 @@ class _EditStudentModalState extends ConsumerState<EditStudentModal> {
                                 children: [
                                   Text(
                                     'Grade ${enrollment.gradeLevel}',
-                                    style: const TextStyle(
+                                    style: TextStyle(
                                       fontWeight: FontWeight.w600,
+                                      color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
                                     ),
                                   ),
                                   Text(
                                     '${enrollment.sectionName ?? 'N/A'} · ${enrollment.yearRange ?? 'N/A'}',
-                                    style: const TextStyle(
-                                      color: AppColors.textSecondary,
+                                    style: TextStyle(
+                                      color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
                                       fontSize: 12,
                                     ),
                                   ),
                                   if (enrollment.trackStrand != null)
                                     Text(
                                       'Track: ${enrollment.trackStrand}',
-                                      style: const TextStyle(
-                                        color: AppColors.textSecondary,
+                                      style: TextStyle(
+                                        color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
                                         fontSize: 11,
                                       ),
                                     ),
@@ -794,6 +797,7 @@ class _EditStudentModalState extends ConsumerState<EditStudentModal> {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return PopScope(
       canPop: !_hasChanges,
       onPopInvokedWithResult: (didPop, _) {
@@ -802,7 +806,7 @@ class _EditStudentModalState extends ConsumerState<EditStudentModal> {
       child: DefaultTabController(
         length: 2,
         child: Scaffold(
-          backgroundColor: const Color(0xFFF8F9FA),
+          backgroundColor: isDark ? AppColors.darkPageBackground : const Color(0xFFF8F9FA),
           appBar: AppBar(
             backgroundColor: AppColors.primaryGreen,
             iconTheme: const IconThemeData(color: Colors.white),

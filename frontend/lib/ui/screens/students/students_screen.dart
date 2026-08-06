@@ -2521,6 +2521,7 @@ class _DocumentProgressBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     // Calculate how many documents are completed
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final int completedCount = (totalCount - missingCount).clamp(0, totalCount);
 
     // Prevent division by zero if totalCount is 0 (e.g. no requirements)
@@ -2579,7 +2580,7 @@ class _DocumentProgressBar extends StatelessWidget {
                   fontWeight: FontWeight.bold,
                   color: isComplete
                       ? AppColors.primaryGreen
-                      : AppColors.textPrimary,
+                      : (isDark ? AppColors.darkTextPrimary : AppColors.textPrimary),
                 ),
               ),
               if (isComplete) ...[
@@ -2597,7 +2598,7 @@ class _DocumentProgressBar extends StatelessWidget {
             width: 100, // Fixed width to keep column formatting tidy
             child: LinearProgressIndicator(
               value: progress,
-              backgroundColor: Colors.grey.shade200,
+              backgroundColor: isDark ? AppColors.darkBorder : Colors.grey.shade200,
               color: isComplete
                   ? AppColors.primaryGreen
                   : Colors.orange, // Orange indicates pending docs

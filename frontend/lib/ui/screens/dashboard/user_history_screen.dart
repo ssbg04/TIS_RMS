@@ -72,6 +72,7 @@ class _UserHistoryScreenState extends ConsumerState<UserHistoryScreen> {
   void _showFilterDialog(UserHistoryQueryParams query) {
     String pendingAction = query.action.isEmpty ? 'All Actions' : query.action;
     String pendingRole = query.role.isEmpty ? 'All Roles' : query.role;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     showDialog(
       context: context,
@@ -89,9 +90,9 @@ class _UserHistoryScreenState extends ConsumerState<UserHistoryScreen> {
               child: Container(
                 margin: const EdgeInsets.only(top: 10),
                 decoration: BoxDecoration(
-                  color: Colors.white,
+                  color: isDark ? AppColors.darkSurfaceCard : Colors.white,
                   borderRadius: BorderRadius.circular(14),
-                  border: Border.all(color: Colors.grey.shade200),
+                  border: Border.all(color: isDark ? AppColors.darkBorder : Colors.grey.shade200),
                   boxShadow: [
                     BoxShadow(
                       color: Colors.black.withValues(alpha: 0.07),
@@ -159,11 +160,11 @@ class _UserHistoryScreenState extends ConsumerState<UserHistoryScreen> {
                                 foregroundColor:
                                     (_fromDate != null || _toDate != null)
                                     ? AppColors.primaryGreen
-                                    : Colors.black87,
+                                    : (isDark ? AppColors.darkTextPrimary : Colors.black87),
                                 side: BorderSide(
                                   color: (_fromDate != null || _toDate != null)
                                       ? AppColors.primaryGreen
-                                      : Colors.grey.shade300,
+                                      : (isDark ? AppColors.darkBorder : Colors.grey.shade300),
                                 ),
                                 shape: RoundedRectangleBorder(
                                   borderRadius: BorderRadius.circular(8),
@@ -238,7 +239,7 @@ class _UserHistoryScreenState extends ConsumerState<UserHistoryScreen> {
                     Container(
                       padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
                       decoration: BoxDecoration(
-                        color: Colors.white,
+                        color: isDark ? AppColors.darkSurfaceCard : Colors.white,
                         borderRadius: const BorderRadius.vertical(
                           bottom: Radius.circular(14),
                         ),
@@ -273,8 +274,8 @@ class _UserHistoryScreenState extends ConsumerState<UserHistoryScreen> {
                           OutlinedButton(
                             onPressed: () => Navigator.pop(ctx),
                             style: OutlinedButton.styleFrom(
-                              side: BorderSide(color: Colors.grey.shade300),
-                              foregroundColor: Colors.grey.shade700,
+                              side: BorderSide(color: isDark ? AppColors.darkBorder : Colors.grey.shade300),
+                              foregroundColor: isDark ? AppColors.darkTextPrimary : Colors.grey.shade700,
                               padding: const EdgeInsets.symmetric(vertical: 12),
                             ),
                             child: const Text('Cancel'),
@@ -296,6 +297,7 @@ class _UserHistoryScreenState extends ConsumerState<UserHistoryScreen> {
   Widget build(BuildContext context) {
     final historyAsync = ref.watch(userHistoryPageProvider);
     final query = ref.watch(userHistoryQueryProvider);
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Scaffold(
       appBar: AppBar(
@@ -312,7 +314,7 @@ class _UserHistoryScreenState extends ConsumerState<UserHistoryScreen> {
           // ── Filter Bar ───────────────────────────────────────────────────
           Container(
             width: double.infinity,
-            color: Colors.white,
+            color: isDark ? AppColors.darkSurfaceCard : Colors.white,
             padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
             child: Wrap(
               spacing: 12,
@@ -341,11 +343,20 @@ class _UserHistoryScreenState extends ConsumerState<UserHistoryScreen> {
                     query.action.isNotEmpty ||
                     query.role.isNotEmpty)
                   ActionChip(
-                    avatar: const Icon(Icons.clear, size: 16),
-                    label: const Text('Clear'),
+                    avatar: Icon(
+                      Icons.clear,
+                      size: 16,
+                      color: isDark ? Colors.redAccent : Colors.red.shade700,
+                    ),
+                    label: Text(
+                      'Clear',
+                      style: TextStyle(
+                        color: isDark ? Colors.redAccent : Colors.red.shade700,
+                      ),
+                    ),
                     onPressed: _clearFilters,
-                    backgroundColor: Colors.red.shade50,
-                    labelStyle: TextStyle(color: Colors.red.shade700),
+                    backgroundColor: isDark ? Colors.red.withValues(alpha: 0.15) : Colors.red.shade50,
+                    side: BorderSide.none,
                   ),
               ],
             ),
@@ -403,6 +414,7 @@ class _UserHistoryScreenState extends ConsumerState<UserHistoryScreen> {
   }
 
   Widget _buildList(List<UserHistoryEntry> history) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Center(
       child: ConstrainedBox(
         constraints: const BoxConstraints(maxWidth: 800),
@@ -435,9 +447,9 @@ class _UserHistoryScreenState extends ConsumerState<UserHistoryScreen> {
               },
               child: Container(
                 decoration: BoxDecoration(
-                  color: Colors.white,
+                  color: isDark ? AppColors.darkSurfaceCard : Colors.white,
                   borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: Colors.grey.shade200),
+                  border: Border.all(color: isDark ? AppColors.darkBorder : Colors.grey.shade200),
                   boxShadow: [
                     BoxShadow(
                       color: Colors.black.withValues(alpha: 0.03),
@@ -476,16 +488,16 @@ class _UserHistoryScreenState extends ConsumerState<UserHistoryScreen> {
                         '@${a.username}',
                         style: TextStyle(
                           fontSize: 14,
-                          color: Colors.grey.shade600,
+                          color: isDark ? AppColors.darkTextSecondary : Colors.grey.shade600,
                         ),
                       ),
                       const SizedBox(height: 14),
                       Container(
                         padding: const EdgeInsets.all(12),
                         decoration: BoxDecoration(
-                          color: Colors.grey.shade50,
+                          color: isDark ? AppColors.darkSurface2 : Colors.grey.shade50,
                           borderRadius: BorderRadius.circular(8),
-                          border: Border.all(color: Colors.grey.shade100),
+                          border: Border.all(color: isDark ? AppColors.darkBorder : Colors.grey.shade100),
                         ),
                         child: Column(
                           children: [

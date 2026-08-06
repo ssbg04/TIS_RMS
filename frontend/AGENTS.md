@@ -88,42 +88,18 @@ Files backup/restore - mirror mode or zip -->
 <!-- ## backend server backup/restore
 - do not use zip and unzip -->
 
-# DASHBOARD SCREEN
-1. apply dark mode
-  1. SEARCH FEATURE
-    - search bar and text field font
-  2. DOCUMENT REQUIREMENTS SCREEN
-  3. TEACHERS & ACADEMIC SETUP SCREEN
-  4. USER ACCOUNTS HISTORY SCREEN
-  5. RECENT ACTIVITIES SCREEN
-  6. ACTIVITY DETAILS MODAL
-
-2. DOCUMENT REQUIREMENTS SCREEN
-- remove the icon in top title header
-- make the JHS and SHS requirements into two tab
-- remove the filter for JHS and SHS
-- move the multi select icon in filter make it a label button instead no icon
-
-3. TEACHERS & ACADEMIC SETUP SCREEN
-- remove the icon in top title header
-- title tab use label no icon
-
 # STUDENT SCREEN
 1. apply dark mode
-  - title "Students Directory" font color
-  - search icon color
-  - filter modal color
-  - table headers color
-  - table rows color
-  - pagination number border and fonts
-  - ADD NEW STUDENT SCREEN
-  - BULK ADD STUDENT SCREEN
-  - SEARCH FEATURE: search bar and text field font
+  - missing document count label font color
+  - student profile modal
+  - bulk ocr student import screen (fix the navigation section in the windows app it has round corners bottom left and bottom right)
+  - add new student screen
+  - edit student screen
 
-# DOCUMENTS SCREEN
+<!-- # DOCUMENTS SCREEN
 1. apply dark mode
 # ARCHIVES SCREEN
-1. apply dark mode
+1. apply dark mode -->
 
 
 <!-- - seach feature
