@@ -461,7 +461,7 @@ class _ArchivesScreenState extends ConsumerState<ArchivesScreen>
 
               // ── TabBar ──
               Container(
-                color: AppColors.surfaceWhite,
+                color: Theme.of(context).brightness == Brightness.dark ? AppColors.darkSurfaceCard : AppColors.surfaceWhite,
                 child: TabBar(
                   controller: _tabController,
                   onTap: (index) {
@@ -481,7 +481,7 @@ class _ArchivesScreenState extends ConsumerState<ArchivesScreen>
                     }
                   },
                   labelColor: AppColors.primaryGreen,
-                  unselectedLabelColor: AppColors.textSecondary,
+                  unselectedLabelColor: Theme.of(context).brightness == Brightness.dark ? AppColors.darkTextSecondary : AppColors.textSecondary,
                   indicatorColor: AppColors.primaryGreen,
                   indicatorWeight: 2.5,
                   labelStyle: const TextStyle(
@@ -501,7 +501,7 @@ class _ArchivesScreenState extends ConsumerState<ArchivesScreen>
                 ),
               ),
 
-              const Divider(height: 1),
+              Divider(height: 1, color: Theme.of(context).brightness == Brightness.dark ? AppColors.darkBorder : Colors.grey.shade200),
 
               // ── Tab Body ──
               Expanded(
@@ -527,12 +527,13 @@ class _ArchivesScreenState extends ConsumerState<ArchivesScreen>
       context: context,
       barrierColor: Colors.black54,
       builder: (context) {
+        final isDark = Theme.of(context).brightness == Brightness.dark;
         return Align(
           alignment: Alignment.topCenter,
           child: Padding(
             padding: const EdgeInsets.only(top: kToolbarHeight + 24),
             child: Material(
-              color: Colors.white,
+              color: isDark ? AppColors.darkSurfaceCard : Colors.white,
               elevation: 4,
               borderRadius: BorderRadius.circular(12),
               child: AppSearchBar(
@@ -569,8 +570,9 @@ class _ArchivesScreenState extends ConsumerState<ArchivesScreen>
     ArchiveDocumentQueryParams query,
   ) {
     final hPad = isMobile ? 12.0 : 20.0;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Container(
-      color: AppColors.surfaceWhite,
+      color: isDark ? AppColors.darkSurfaceCard : AppColors.surfaceWhite,
       padding: EdgeInsets.symmetric(horizontal: hPad, vertical: 12),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.center,
@@ -612,16 +614,16 @@ class _ArchivesScreenState extends ConsumerState<ArchivesScreen>
                   style: TextStyle(
                     fontSize: isMobile ? 17 : 21,
                     fontWeight: FontWeight.bold,
-                    color: AppColors.textPrimary,
+                    color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
                   ),
                   overflow: TextOverflow.ellipsis,
                 ),
                 if (!isFolderOpened)
-                  const Text(
+                  Text(
                     'Graduated · Transferred · Dropped · Inactive · Enrolled Archived Docs',
                     style: TextStyle(
                       fontSize: 11,
-                      color: AppColors.textMuted,
+                      color: isDark ? AppColors.darkTextMuted : AppColors.textMuted,
                     ),
                   ),
               ],
@@ -630,7 +632,11 @@ class _ArchivesScreenState extends ConsumerState<ArchivesScreen>
           
           if (!isFolderOpened) ...[
             IconButton(
-              icon: const Icon(Icons.search, size: 28, color: Colors.black87),
+              icon: Icon(
+                Icons.search, 
+                size: 28, 
+                color: isDark ? AppColors.darkTextPrimary : Colors.black87,
+              ),
               tooltip: 'Search Archives',
               onPressed: () => _showSearchDialog(context),
             ),
@@ -652,9 +658,9 @@ class _ArchivesScreenState extends ConsumerState<ArchivesScreen>
                       vertical: 8,
                     ),
                     decoration: BoxDecoration(
-                      color: AppColors.surfaceWhite,
+                      color: isDark ? AppColors.darkSurface2 : AppColors.surfaceWhite,
                       border: Border.all(
-                        color: Colors.grey.shade300,
+                        color: isDark ? AppColors.darkBorder : Colors.grey.shade300,
                         width: 1.2,
                       ),
                       borderRadius: BorderRadius.circular(8),
