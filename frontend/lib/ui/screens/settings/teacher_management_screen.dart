@@ -107,19 +107,13 @@ class _TeacherManagementModalState extends ConsumerState<TeacherManagementModal>
           backgroundColor: AppColors.primaryGreen,
           foregroundColor: Colors.white,
           iconTheme: const IconThemeData(color: Colors.white),
-          title: const Row(
-            children: [
-              Icon(Icons.school, size: 22, color: Colors.white),
-              SizedBox(width: 10),
-              Text(
-                'Teachers & Academic Setup',
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w600,
-                  color: Colors.white,
-                ),
-              ),
-            ],
+          title: const Text(
+            'Teachers & Academic Setup',
+            style: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.w600,
+              color: Colors.white,
+            ),
           ),
         ),
         body: SafeArea(child: content),
@@ -128,7 +122,6 @@ class _TeacherManagementModalState extends ConsumerState<TeacherManagementModal>
 
     return CustomModal(
       title: 'Teachers & Academic Setup',
-      icon: Icons.school,
       maxWidth: 900,
       content: SizedBox(height: screenSize.height * 0.8, child: content),
     );
@@ -146,17 +139,14 @@ class _TeacherManagementModalState extends ConsumerState<TeacherManagementModal>
         labelStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
         tabs: isNarrow
             ? const [
-                Tab(icon: Icon(Icons.people, size: 20)),
-                Tab(icon: Icon(Icons.calendar_today, size: 20)),
-                Tab(icon: Icon(Icons.segment, size: 20)),
+                Tab(text: 'Teachers'),
+                Tab(text: 'Years'),
+                Tab(text: 'Sections'),
               ]
             : const [
-                Tab(icon: Icon(Icons.people, size: 18), text: 'Teachers'),
-                Tab(
-                  icon: Icon(Icons.calendar_today, size: 18),
-                  text: 'Academic Years',
-                ),
-                Tab(icon: Icon(Icons.segment, size: 18), text: 'Sections'),
+                Tab(text: 'Teachers'),
+                Tab(text: 'Academic Years'),
+                Tab(text: 'Sections'),
               ],
       ),
     );
