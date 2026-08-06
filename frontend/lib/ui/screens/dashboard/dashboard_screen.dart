@@ -702,12 +702,13 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
       context: context,
       barrierColor: Colors.black54,
       builder: (context) {
+        final isDark = Theme.of(context).brightness == Brightness.dark;
         return Align(
           alignment: Alignment.topCenter,
           child: Padding(
             padding: const EdgeInsets.only(top: kToolbarHeight + 24),
             child: Material(
-              color: Colors.white,
+              color: isDark ? AppColors.darkSurfaceCard : Colors.white,
               elevation: 4,
               borderRadius: BorderRadius.circular(12),
               child: AppSearchBar(

@@ -88,25 +88,43 @@ Files backup/restore - mirror mode or zip -->
 <!-- ## backend server backup/restore
 - do not use zip and unzip -->
 
-# SETTINGS SCREEN (dont do)
+# DASHBOARD SCREEN
+1. apply dark mode
+  1. SEARCH FEATURE
+    - search bar and text field font
+  2. DOCUMENT REQUIREMENTS SCREEN
+  3. TEACHERS & ACADEMIC SETUP SCREEN
+  4. USER ACCOUNTS HISTORY SCREEN
+  5. RECENT ACTIVITIES SCREEN
+  6. ACTIVITY DETAILS MODAL
 
-## DOCUMENT REQUIREMENTS SCREEN (dont do)
+2. DOCUMENT REQUIREMENTS SCREEN
 - remove the icon in top title header
 - make the JHS and SHS requirements into two tab
 - remove the filter for JHS and SHS
 - move the multi select icon in filter make it a label button instead no icon
-- apply dark theme
 
-## TEACHERS & ACADEMIC SETUP SCREEN (dont do)
+3. TEACHERS & ACADEMIC SETUP SCREEN
 - remove the icon in top title header
 - title tab use label no icon
-- apply dark theme
-- 
 
-# SETTINGS SCREEN 
-- add blur effect at top weak bottom half the top half is stronger 
-- add blur effect too in bottom, weak top half stronger bottom half
-- blur effect smooth out sharp edges using ShaderMask
+# STUDENT SCREEN
+1. apply dark mode
+  - title "Students Directory" font color
+  - search icon color
+  - filter modal color
+  - table headers color
+  - table rows color
+  - pagination number border and fonts
+  - ADD NEW STUDENT SCREEN
+  - BULK ADD STUDENT SCREEN
+  - SEARCH FEATURE: search bar and text field font
+
+# DOCUMENTS SCREEN
+1. apply dark mode
+# ARCHIVES SCREEN
+1. apply dark mode
+
 
 <!-- - seach feature
   - search icon into 'X' when searched an user, clears search and refresh users list

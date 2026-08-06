@@ -51,6 +51,8 @@ class ViewActivityModal extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return SingleChildScrollView(
       padding: const EdgeInsets.all(24),
       child: Column(
@@ -61,10 +63,10 @@ class ViewActivityModal extends StatelessWidget {
             children: [
               Text(
                 title,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.bold,
-                  color: Colors.black87,
+                  color: isDark ? AppColors.darkTextPrimary : Colors.black87,
                 ),
               ),
               if (action != null) ...[
@@ -93,11 +95,11 @@ class ViewActivityModal extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 24),
-          const Text(
+          Text(
             'Description',
             style: TextStyle(
               fontSize: 14,
-              color: Colors.grey,
+              color: isDark ? AppColors.darkTextSecondary : Colors.grey,
               fontWeight: FontWeight.w600,
             ),
           ),
@@ -106,12 +108,12 @@ class ViewActivityModal extends StatelessWidget {
             width: double.infinity,
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: isDark ? AppColors.darkSurface2 : Colors.white,
               borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: Colors.grey.shade200),
+              border: Border.all(color: isDark ? AppColors.darkBorder : Colors.grey.shade200),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.02),
+                   color: Colors.black.withValues(alpha: 0.02),
                   blurRadius: 4,
                   offset: const Offset(0, 2),
                 ),
@@ -119,10 +121,10 @@ class ViewActivityModal extends StatelessWidget {
             ),
             child: Text(
               description,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 15,
                 height: 1.6,
-                color: Colors.black87,
+                color: isDark ? AppColors.darkTextPrimary : Colors.black87,
               ),
             ),
           ),
@@ -147,21 +149,21 @@ class ViewActivityModal extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text(
+                    Text(
                       'Date & Time',
                       style: TextStyle(
                         fontSize: 12,
-                        color: Colors.grey,
+                        color: isDark ? AppColors.darkTextSecondary : Colors.grey,
                         fontWeight: FontWeight.w500,
                       ),
                     ),
                     const SizedBox(height: 2),
                     Text(
                       date,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 14,
                         fontWeight: FontWeight.w600,
-                        color: Colors.black87,
+                        color: isDark ? AppColors.darkTextPrimary : Colors.black87,
                       ),
                     ),
                   ],
@@ -190,21 +192,21 @@ class ViewActivityModal extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text(
+                      Text(
                         'Performed By',
                         style: TextStyle(
                           fontSize: 12,
-                          color: Colors.grey,
+                          color: isDark ? AppColors.darkTextSecondary : Colors.grey,
                           fontWeight: FontWeight.w500,
                         ),
                       ),
                       const SizedBox(height: 2),
                       Text(
                         performedBy!,
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 14,
                           fontWeight: FontWeight.w600,
-                          color: Colors.black87,
+                          color: isDark ? AppColors.darkTextPrimary : Colors.black87,
                         ),
                       ),
                     ],

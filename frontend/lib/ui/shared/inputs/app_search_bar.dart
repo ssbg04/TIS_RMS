@@ -270,6 +270,8 @@ class _AppSearchBarState extends ConsumerState<AppSearchBar> {
       );
     }
 
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return TapRegion(
       groupId: _focusNode,
       onTapOutside: (event) => _focusNode.unfocus(),
@@ -290,10 +292,16 @@ class _AppSearchBarState extends ConsumerState<AppSearchBar> {
             textInputAction: TextInputAction.search,
             onSubmitted: _handleSubmit,
             onChanged: widget.onChanged,
-            style: const TextStyle(fontSize: 14),
+            style: TextStyle(
+              fontSize: 14,
+              color: isDark ? AppColors.darkTextPrimary : Colors.black87,
+            ),
             decoration: InputDecoration(
               hintText: widget.hint,
-              hintStyle: TextStyle(fontSize: 13, color: Colors.grey.shade500),
+              hintStyle: TextStyle(
+                fontSize: 13,
+                color: isDark ? AppColors.darkTextMuted : Colors.grey.shade500,
+              ),
               prefixIcon: widget.hideIconWhenExpanded
                   ? null
                   : const Icon(
@@ -313,7 +321,7 @@ class _AppSearchBarState extends ConsumerState<AppSearchBar> {
                       icon: Icon(
                         Icons.close_rounded,
                         size: 18,
-                        color: Colors.grey.shade500,
+                        color: isDark ? AppColors.darkTextMuted : Colors.grey.shade500,
                       ),
                       splashRadius: 16,
                       onPressed: () {

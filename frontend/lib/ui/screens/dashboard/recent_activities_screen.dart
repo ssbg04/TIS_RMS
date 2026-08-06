@@ -83,6 +83,7 @@ class _RecentActivitiesScreenState
       barrierColor: Colors.black.withValues(alpha: 0.25),
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setDialogState) {
+          final isDark = Theme.of(ctx).brightness == Brightness.dark;
           return Dialog(
             backgroundColor: Colors.transparent,
             insetPadding: const EdgeInsets.symmetric(
@@ -94,9 +95,9 @@ class _RecentActivitiesScreenState
               child: Container(
                 margin: const EdgeInsets.only(top: 10),
                 decoration: BoxDecoration(
-                  color: Colors.white,
+                  color: isDark ? AppColors.darkSurfaceCard : Colors.white,
                   borderRadius: BorderRadius.circular(14),
-                  border: Border.all(color: Colors.grey.shade200),
+                  border: Border.all(color: isDark ? AppColors.darkBorder : Colors.grey.shade200),
                   boxShadow: [
                     BoxShadow(
                       color: Colors.black.withValues(alpha: 0.07),
@@ -119,17 +120,18 @@ class _RecentActivitiesScreenState
                             color: AppColors.primaryGreen,
                           ),
                           const SizedBox(width: 8),
-                          const Text(
+                          Text(
                             'Filter Activities',
                             style: TextStyle(
                               fontSize: 16,
                               fontWeight: FontWeight.bold,
+                              color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
                             ),
                           ),
                         ],
                       ),
                     ),
-                    const Divider(height: 20),
+                    Divider(height: 20, color: isDark ? AppColors.darkBorder : Colors.grey.shade200),
                     Padding(
                       padding: const EdgeInsets.symmetric(
                         horizontal: 20,
@@ -138,12 +140,12 @@ class _RecentActivitiesScreenState
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const Text(
+                          Text(
                             'Date Range',
                             style: TextStyle(
                               fontWeight: FontWeight.w600,
                               fontSize: 13,
-                              color: Colors.grey,
+                              color: isDark ? AppColors.darkTextSecondary : Colors.grey,
                             ),
                           ),
                           const SizedBox(height: 8),
@@ -164,11 +166,11 @@ class _RecentActivitiesScreenState
                                 foregroundColor:
                                     (_fromDate != null || _toDate != null)
                                     ? AppColors.primaryGreen
-                                    : Colors.black87,
+                                    : (isDark ? AppColors.darkTextPrimary : Colors.black87),
                                 side: BorderSide(
                                   color: (_fromDate != null || _toDate != null)
                                       ? AppColors.primaryGreen
-                                      : Colors.grey.shade300,
+                                      : (isDark ? AppColors.darkBorder : Colors.grey.shade300),
                                 ),
                                 shape: RoundedRectangleBorder(
                                   borderRadius: BorderRadius.circular(8),
@@ -177,12 +179,12 @@ class _RecentActivitiesScreenState
                             ),
                           ),
                           const SizedBox(height: 16),
-                          const Text(
+                          Text(
                             'Action',
                             style: TextStyle(
                               fontWeight: FontWeight.w600,
                               fontSize: 13,
-                              color: Colors.grey,
+                              color: isDark ? AppColors.darkTextSecondary : Colors.grey,
                             ),
                           ),
                           const SizedBox(height: 8),
@@ -209,12 +211,12 @@ class _RecentActivitiesScreenState
                           ),
                           if (!isTeacher) ...[
                             const SizedBox(height: 16),
-                            const Text(
+                            Text(
                               'Entity Type',
                               style: TextStyle(
                                 fontWeight: FontWeight.w600,
                                 fontSize: 13,
-                                color: Colors.grey,
+                                color: isDark ? AppColors.darkTextSecondary : Colors.grey,
                               ),
                             ),
                             const SizedBox(height: 8),
@@ -240,11 +242,11 @@ class _RecentActivitiesScreenState
                         ],
                       ),
                     ),
-                    const Divider(height: 20),
+                    Divider(height: 20, color: isDark ? AppColors.darkBorder : Colors.grey.shade200),
                     Container(
                       padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
                       decoration: BoxDecoration(
-                        color: Colors.white,
+                        color: isDark ? AppColors.darkSurfaceCard : Colors.white,
                         borderRadius: const BorderRadius.vertical(
                           bottom: Radius.circular(14),
                         ),
@@ -280,8 +282,8 @@ class _RecentActivitiesScreenState
                           OutlinedButton(
                             onPressed: () => Navigator.pop(ctx),
                             style: OutlinedButton.styleFrom(
-                              side: BorderSide(color: Colors.grey.shade300),
-                              foregroundColor: Colors.grey.shade700,
+                              side: BorderSide(color: isDark ? AppColors.darkBorder : Colors.grey.shade300),
+                              foregroundColor: isDark ? AppColors.darkTextSecondary : Colors.grey.shade700,
                               padding: const EdgeInsets.symmetric(vertical: 12),
                             ),
                             child: const Text('Cancel'),
@@ -304,6 +306,7 @@ class _RecentActivitiesScreenState
     final activitiesAsync = ref.watch(recentActivitiesPageProvider);
     final query = ref.watch(activityQueryProvider);
     final isTeacher = ref.watch(authProvider).value?.role == 'teacher';
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Scaffold(
       appBar: AppBar(
@@ -320,7 +323,7 @@ class _RecentActivitiesScreenState
           // ── Filter Bar ───────────────────────────────────────────────────
           Container(
             width: double.infinity,
-            color: Colors.white,
+            color: isDark ? AppColors.darkSurfaceCard : Colors.white,
             padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
             child: Wrap(
               spacing: 12,
@@ -352,13 +355,13 @@ class _RecentActivitiesScreenState
                     avatar: const Icon(Icons.clear, size: 16),
                     label: const Text('Clear'),
                     onPressed: _clearFilters,
-                    backgroundColor: Colors.red.shade50,
-                    labelStyle: TextStyle(color: Colors.red.shade700),
+                    backgroundColor: isDark ? Colors.red.withValues(alpha: 0.15) : Colors.red.shade50,
+                    labelStyle: TextStyle(color: isDark ? Colors.redAccent : Colors.red.shade700),
                   ),
               ],
             ),
           ),
-          const Divider(height: 1),
+          Divider(height: 1, color: isDark ? AppColors.darkBorder : Colors.grey.shade200),
 
           // ── Content ──────────────────────────────────────────────────────
           Expanded(
@@ -411,6 +414,7 @@ class _RecentActivitiesScreenState
   }
 
   Widget _buildList(List<RecentActivity> activities) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Center(
       child: ConstrainedBox(
         constraints: const BoxConstraints(maxWidth: 800),
@@ -440,9 +444,9 @@ class _RecentActivitiesScreenState
               },
               child: Container(
                 decoration: BoxDecoration(
-                  color: Colors.white,
+                  color: isDark ? AppColors.darkSurfaceCard : Colors.white,
                   borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: Colors.grey.shade200),
+                  border: Border.all(color: isDark ? AppColors.darkBorder : Colors.grey.shade200),
                   boxShadow: [
                     BoxShadow(
                       color: Colors.black.withValues(alpha: 0.03),
@@ -462,9 +466,9 @@ class _RecentActivitiesScreenState
                           _actionChip(a.action),
                           Text(
                             '$dateStr • $timeStr',
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 12,
-                              color: Colors.grey,
+                              color: isDark ? AppColors.darkTextSecondary : Colors.grey,
                             ),
                           ),
                         ],
@@ -472,29 +476,30 @@ class _RecentActivitiesScreenState
                       const SizedBox(height: 14),
                       Text(
                         a.description,
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontWeight: FontWeight.bold,
                           fontSize: 15,
+                          color: isDark ? AppColors.darkTextPrimary : Colors.black87,
                         ),
                       ),
                       const SizedBox(height: 14),
                       Container(
                         padding: const EdgeInsets.all(12),
                         decoration: BoxDecoration(
-                          color: Colors.grey.shade50,
+                          color: isDark ? AppColors.darkSurface2 : Colors.grey.shade50,
                           borderRadius: BorderRadius.circular(8),
-                          border: Border.all(color: Colors.grey.shade100),
+                          border: Border.all(color: isDark ? AppColors.darkBorder : Colors.grey.shade100),
                         ),
                         child: Column(
                           children: [
                             Row(
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
-                                const Text(
+                                Text(
                                   'Entity Type',
                                   style: TextStyle(
                                     fontSize: 13,
-                                    color: Colors.grey,
+                                    color: isDark ? AppColors.darkTextSecondary : Colors.grey,
                                   ),
                                 ),
                                 Container(
@@ -503,10 +508,10 @@ class _RecentActivitiesScreenState
                                     vertical: 4,
                                   ),
                                   decoration: BoxDecoration(
-                                    color: Colors.grey.shade200,
+                                    color: isDark ? AppColors.darkSurfaceCard : Colors.grey.shade200,
                                     borderRadius: BorderRadius.circular(6),
                                     border: Border.all(
-                                      color: Colors.grey.shade300,
+                                      color: isDark ? AppColors.darkBorder : Colors.grey.shade300,
                                     ),
                                   ),
                                   child: Text(
@@ -514,33 +519,34 @@ class _RecentActivitiesScreenState
                                     style: TextStyle(
                                       fontSize: 11,
                                       fontWeight: FontWeight.bold,
-                                      color: Colors.grey.shade800,
+                                      color: isDark ? AppColors.darkTextPrimary : Colors.grey.shade800,
                                     ),
                                   ),
                                 ),
                               ],
                             ),
-                            const Padding(
-                              padding: EdgeInsets.symmetric(vertical: 8),
-                              child: Divider(height: 1),
+                            Padding(
+                              padding: const EdgeInsets.symmetric(vertical: 8),
+                              child: Divider(height: 1, color: isDark ? AppColors.darkBorder : Colors.grey.shade200),
                             ),
                             Row(
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
-                                const Text(
+                                Text(
                                   'Performed By',
                                   style: TextStyle(
                                     fontSize: 13,
-                                    color: Colors.grey,
+                                    color: isDark ? AppColors.darkTextSecondary : Colors.grey,
                                   ),
                                 ),
                                 Text(
-                                  a.performedBy ?? a.username ?? 'System',
-                                  style: const TextStyle(
-                                    fontSize: 13,
-                                    fontWeight: FontWeight.w600,
+                                    a.performedBy ?? a.username ?? 'System',
+                                    style: TextStyle(
+                                      fontSize: 13,
+                                      fontWeight: FontWeight.w600,
+                                      color: isDark ? AppColors.darkTextPrimary : Colors.black87,
+                                    ),
                                   ),
-                                ),
                               ],
                             ),
                           ],
