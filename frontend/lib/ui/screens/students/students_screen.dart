@@ -2196,8 +2196,9 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
                     }
                   : null,
               borderRadius: BorderRadius.circular(AppSizes.radiusLarge),
-                        padding: const EdgeInsets.all(AppSizes.p16),
-              decoration: BoxDecoration(
+              child: Container(
+                padding: const EdgeInsets.all(AppSizes.p16),
+                decoration: BoxDecoration(
                 color: Theme.of(context).brightness == Brightness.dark ? AppColors.darkSurfaceCard : AppColors.surfaceWhite,
                 borderRadius: BorderRadius.circular(AppSizes.radiusLarge),
                 border: Border.all(color: Theme.of(context).brightness == Brightness.dark ? AppColors.darkBorder : Colors.transparent),
@@ -2266,6 +2267,7 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
                                   fontWeight: FontWeight.bold,
                                   color: Theme.of(context).brightness == Brightness.dark ? AppColors.darkTextPrimary : AppColors.textPrimary,
                                 ),
+                              ),
                             ),
                             const SizedBox(width: 8),
                             if (s.is4ps) ...[
