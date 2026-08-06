@@ -920,6 +920,7 @@ class _AddStudentModalState extends ConsumerState<AddStudentModal> {
                 builder: (ctx) {
                   final isKeyboardOpen = MediaQuery.of(ctx).viewInsets.bottom > 100;
                   if (isKeyboardOpen) return const SizedBox.shrink();
+                  final isDark = Theme.of(ctx).brightness == Brightness.dark;
                   return Container(
                     width: double.infinity,
                     padding: const EdgeInsets.symmetric(
@@ -927,7 +928,7 @@ class _AddStudentModalState extends ConsumerState<AddStudentModal> {
                       vertical: 16,
                     ),
                     decoration: BoxDecoration(
-                      color: Colors.white,
+                      color: isDark ? AppColors.darkSurfaceCard : Colors.white,
                       boxShadow: [
                         BoxShadow(
                           color: Colors.black.withValues(alpha: 0.06),
@@ -980,15 +981,15 @@ class _AddStudentModalState extends ConsumerState<AddStudentModal> {
                                 );
                               }
                             },
-                            icon: const Icon(
+                            icon: Icon(
                               Icons.visibility_outlined,
                               size: 16,
-                              color: AppColors.textPrimary,
+                              color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
                             ),
-                            label: const Text(
+                            label: Text(
                               'Preview Document',
                               style: TextStyle(
-                                color: AppColors.textPrimary,
+                                color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
                                 fontWeight: FontWeight.w600,
                               ),
                             ),
@@ -1038,22 +1039,22 @@ class _AddStudentModalState extends ConsumerState<AddStudentModal> {
                                   horizontal: 16,
                                   vertical: 12,
                                 ),
-                                side: BorderSide(color: Colors.grey.shade400),
+                                side: BorderSide(color: isDark ? AppColors.darkBorder : Colors.grey.shade400),
                                 shape: RoundedRectangleBorder(
                                   borderRadius: BorderRadius.circular(
                                     AppSizes.radiusMedium,
                                   ),
                                 ),
                               ),
-                              icon: const Icon(
+                              icon: Icon(
                                 Icons.arrow_back,
                                 size: 16,
-                                color: AppColors.textPrimary,
+                                color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
                               ),
-                              label: const Text(
+                              label: Text(
                                 'BACK',
                                 style: TextStyle(
-                                  color: AppColors.textPrimary,
+                                  color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
                                   fontWeight: FontWeight.w600,
                                 ),
                               ),

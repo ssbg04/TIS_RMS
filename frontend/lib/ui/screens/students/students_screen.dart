@@ -873,12 +873,13 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
       context: context,
       barrierColor: Colors.black54,
       builder: (context) {
+        final isDark = Theme.of(context).brightness == Brightness.dark;
         return Align(
           alignment: Alignment.topCenter,
           child: Padding(
             padding: const EdgeInsets.only(top: kToolbarHeight + 24),
             child: Material(
-              color: Colors.white,
+              color: isDark ? AppColors.darkSurfaceCard : Colors.white,
               elevation: 4,
               borderRadius: BorderRadius.circular(12),
               child: AppSearchBar(
@@ -918,6 +919,8 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
       builder: (_, c) {
         final isDesktop = c.maxWidth > 800;
 
+        final isDark = Theme.of(context).brightness == Brightness.dark;
+
         return Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
@@ -927,7 +930,7 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
                 style: TextStyle(
                   fontSize: isDesktop ? 28 : 22,
                   fontWeight: FontWeight.bold,
-                  color: AppColors.textPrimary,
+                  color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
                 ),
                 overflow: TextOverflow.ellipsis,
               ),
@@ -936,7 +939,7 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
               icon: Icon(
                 query.search.isNotEmpty ? Icons.close : Icons.search,
                 size: 28,
-                color: Colors.black87,
+                color: isDark ? AppColors.darkTextPrimary : Colors.black87,
               ),
               tooltip: query.search.isNotEmpty ? 'Clear Search' : 'Search Students',
               onPressed: () {
@@ -1158,12 +1161,14 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
       }
     }
 
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return Container(
       margin: const EdgeInsets.only(top: 10),
       decoration: BoxDecoration(
-        color: AppColors.surfaceWhite,
+        color: isDark ? AppColors.darkSurfaceCard : AppColors.surfaceWhite,
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: Colors.grey.shade200),
+        border: Border.all(color: isDark ? AppColors.darkBorder : Colors.grey.shade200),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.07),
@@ -1187,19 +1192,19 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
                   color: AppColors.primaryGreen,
                 ),
                 const SizedBox(width: 8),
-                const Text(
+                Text(
                   'Filter',
                   style: TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.bold,
-                    color: AppColors.textPrimary,
+                    color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
                   ),
                 ),
               ],
             ),
           ),
 
-          const Divider(height: 20),
+          Divider(height: 20, color: isDark ? AppColors.darkBorder : Colors.grey.shade200),
 
           // Scrollable middle section for filter items
           Flexible(
@@ -1402,7 +1407,7 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
             ),
           ),
 
-          const Divider(height: 1),
+          Divider(height: 1, color: isDark ? AppColors.darkBorder : Colors.grey.shade200),
 
           // Footer buttons
           Padding(
@@ -1413,8 +1418,8 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
                 Expanded(
                   child: OutlinedButton(
                     style: OutlinedButton.styleFrom(
-                      foregroundColor: AppColors.textSecondary,
-                      side: BorderSide(color: Colors.grey.shade300),
+                      foregroundColor: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
+                      side: BorderSide(color: isDark ? AppColors.darkBorder : Colors.grey.shade300),
                       padding: const EdgeInsets.symmetric(vertical: 12),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(8),
@@ -1513,6 +1518,7 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
     required VoidCallback onReset,
     required Widget child,
   }) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
       child: Column(
@@ -1523,10 +1529,10 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
             children: [
               Text(
                 label,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 13,
                   fontWeight: FontWeight.w600,
-                  color: AppColors.textPrimary,
+                  color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
                 ),
               ),
               GestureDetector(
@@ -1557,12 +1563,15 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
     String? hint,
     bool enabled = true,
   }) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
       decoration: BoxDecoration(
-        color: enabled ? AppColors.surfaceWhite : Colors.grey.shade50,
-        border: Border.all(color: Colors.grey.shade300),
+        color: enabled 
+            ? (isDark ? AppColors.darkSurface2 : AppColors.surfaceWhite) 
+            : (isDark ? AppColors.darkSurfaceCard : Colors.grey.shade50),
+        border: Border.all(color: isDark ? AppColors.darkBorder : Colors.grey.shade300),
         borderRadius: BorderRadius.circular(8),
       ),
       child: DropdownButtonHideUnderline(
@@ -1570,9 +1579,12 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
           value: items.contains(value) ? value : items.first,
           isExpanded: true,
           isDense: true,
+          dropdownColor: isDark ? AppColors.darkSurfaceCard : Colors.white,
           style: TextStyle(
             fontSize: 14,
-            color: enabled ? AppColors.textPrimary : AppColors.textMuted,
+            color: enabled 
+                ? (isDark ? AppColors.darkTextPrimary : AppColors.textPrimary) 
+                : AppColors.textMuted,
           ),
           hint: hint != null
               ? Text(
@@ -1585,7 +1597,9 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
               : null,
           icon: Icon(
             Icons.keyboard_arrow_down_rounded,
-            color: enabled ? AppColors.textSecondary : AppColors.textMuted,
+            color: enabled 
+                ? (isDark ? AppColors.darkTextSecondary : AppColors.textSecondary) 
+                : AppColors.textMuted,
             size: 20,
           ),
           items: items
@@ -1595,7 +1609,13 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Text(i, style: const TextStyle(fontSize: 14)),
+                      Text(
+                        i, 
+                        style: TextStyle(
+                          fontSize: 14, 
+                          color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
+                        ),
+                      ),
                       if (counts != null && counts[i] != null && counts[i]! > 0)
                         Container(
                           padding: const EdgeInsets.symmetric(
@@ -1633,6 +1653,7 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
     required String selectedValue,
     required ValueChanged<String> onSelected,
   }) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Wrap(
       spacing: 8,
       runSpacing: 8,
@@ -1644,8 +1665,9 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
             style: TextStyle(
               fontSize: 13,
               fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
-              color:
-                  isSelected ? AppColors.primaryGreen : AppColors.textPrimary,
+              color: isSelected 
+                  ? AppColors.primaryGreen 
+                  : (isDark ? AppColors.darkTextPrimary : AppColors.textPrimary),
             ),
           ),
           selected: isSelected,
@@ -1655,13 +1677,13 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
             }
           },
           selectedColor: AppColors.primaryGreen.withValues(alpha: 0.12),
-          backgroundColor: Colors.grey.shade100,
+          backgroundColor: isDark ? AppColors.darkSurface2 : Colors.grey.shade100,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(20),
             side: BorderSide(
               color: isSelected
                   ? AppColors.primaryGreen
-                  : Colors.grey.shade300,
+                  : (isDark ? AppColors.darkBorder : Colors.grey.shade300),
               width: 1,
             ),
           ),
@@ -1752,10 +1774,12 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
           );
         }
 
+        final isDark = Theme.of(context).brightness == Brightness.dark;
+
         return Container(
             width: double.infinity,
             decoration: BoxDecoration(
-              color: AppColors.surfaceWhite,
+              color: isDark ? AppColors.darkSurfaceCard : AppColors.surfaceWhite,
               borderRadius: BorderRadius.circular(AppSizes.radiusLarge),
               boxShadow: [
                 BoxShadow(
@@ -2172,11 +2196,11 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
                     }
                   : null,
               borderRadius: BorderRadius.circular(AppSizes.radiusLarge),
-              child: Container(
-              padding: const EdgeInsets.all(AppSizes.p16),
+                        padding: const EdgeInsets.all(AppSizes.p16),
               decoration: BoxDecoration(
-                color: AppColors.surfaceWhite,
+                color: Theme.of(context).brightness == Brightness.dark ? AppColors.darkSurfaceCard : AppColors.surfaceWhite,
                 borderRadius: BorderRadius.circular(AppSizes.radiusLarge),
+                border: Border.all(color: Theme.of(context).brightness == Brightness.dark ? AppColors.darkBorder : Colors.transparent),
                 boxShadow: [
                   BoxShadow(
                     color: Colors.black.withValues(alpha: 0.04),
@@ -2237,12 +2261,11 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
                                 s.listDisplayName,
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
-                                style: const TextStyle(
+                                style: TextStyle(
                                   fontSize: 15,
                                   fontWeight: FontWeight.bold,
-                                  color: AppColors.textPrimary,
+                                  color: Theme.of(context).brightness == Brightness.dark ? AppColors.darkTextPrimary : AppColors.textPrimary,
                                 ),
-                              ),
                             ),
                             const SizedBox(width: 8),
                             if (s.is4ps) ...[
@@ -2274,14 +2297,14 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
                           'LRN: ${s.lrn}  ·  ${s.gradeSection}',
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 12,
-                            color: AppColors.textSecondary,
+                            color: Theme.of(context).brightness == Brightness.dark ? AppColors.darkTextSecondary : AppColors.textSecondary,
                           ),
                         ),
-                        const Padding(
-                          padding: EdgeInsets.symmetric(vertical: 10),
-                          child: Divider(height: 1),
+                        Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 10),
+                          child: Divider(height: 1, color: Theme.of(context).brightness == Brightness.dark ? AppColors.darkBorder : Colors.grey.shade200),
                         ),
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -2289,10 +2312,10 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
                           children: [
                             Row(
                               children: [
-                                const Icon(
+                                Icon(
                                   Icons.folder_outlined,
                                   size: 14,
-                                  color: AppColors.textSecondary,
+                                  color: Theme.of(context).brightness == Brightness.dark ? AppColors.darkTextSecondary : AppColors.textSecondary,
                                 ),
                                 const SizedBox(width: 4),
                                 _DocumentProgressBar(
@@ -2333,6 +2356,7 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
   }
 
   Widget _buildEmptyState({bool noSections = false}) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     if (noSections) {
       // Teacher has no sections assigned at all
       return Center(
@@ -2342,22 +2366,22 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
             Container(
               padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(
-                color: Colors.orange.shade50,
+                color: isDark ? Colors.orange.withValues(alpha: 0.15) : Colors.orange.shade50,
                 shape: BoxShape.circle,
               ),
               child: Icon(
                 Icons.class_outlined,
                 size: 56,
-                color: Colors.orange.shade400,
+                color: isDark ? Colors.orangeAccent : Colors.orange.shade400,
               ),
             ),
             const SizedBox(height: 20),
-            const Text(
+            Text(
               'No sections assigned',
               style: TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.bold,
-                color: AppColors.textPrimary,
+                color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
               ),
             ),
             const SizedBox(height: 8),
@@ -2365,7 +2389,7 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
               'You have no sections assigned to your account yet.\nContact your administrator to assign sections.',
               textAlign: TextAlign.center,
               style: TextStyle(
-                color: AppColors.textSecondary,
+                color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
                 fontSize: 13,
                 height: 1.5,
               ),
@@ -2378,16 +2402,16 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(Icons.people_outline, size: 64, color: Colors.grey.shade300),
+          Icon(Icons.people_outline, size: 64, color: isDark ? AppColors.darkTextMuted : Colors.grey.shade300),
           const SizedBox(height: 16),
           Text(
             'No students found.',
-            style: TextStyle(color: AppColors.textSecondary, fontSize: 16),
+            style: TextStyle(color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary, fontSize: 16),
           ),
           const SizedBox(height: 8),
           Text(
             'Try adjusting your search or filters.',
-            style: TextStyle(color: AppColors.textMuted, fontSize: 13),
+            style: TextStyle(color: isDark ? AppColors.darkTextMuted : AppColors.textMuted, fontSize: 13),
           ),
         ],
       ),

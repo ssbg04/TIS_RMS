@@ -1068,13 +1068,14 @@ class _BulkOcrImportDialogState extends ConsumerState<BulkOcrImportDialog> {
 
   // ── footer ────────────────────────────────────────────────────────────────
   Widget _buildFooter() {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
       decoration: BoxDecoration(
-        color: const Color(0xFFF8F9FA),
+        color: isDark ? AppColors.darkSurfaceCard : const Color(0xFFF8F9FA),
         borderRadius:
             const BorderRadius.vertical(bottom: Radius.circular(20)),
-        border: Border(top: BorderSide(color: Colors.grey.shade200)),
+        border: Border(top: BorderSide(color: isDark ? AppColors.darkBorder : Colors.grey.shade200)),
       ),
       child: Row(mainAxisAlignment: MainAxisAlignment.end, children: [
         if (_step < 2) ...[
