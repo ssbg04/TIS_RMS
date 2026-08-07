@@ -565,13 +565,17 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
     final count = _selectedDocumentIds.length;
     final isAdmin = widget.userRole != 'teacher';
 
+    final pageDocs = ref.watch(documentPageProvider).value?.documents ?? [];
+    final pageIds = pageDocs.map((d) => d.id).toSet();
+    final bool allSelected = pageIds.isNotEmpty && pageIds.every((id) => _selectedDocumentIds.contains(id));
+
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       decoration: BoxDecoration(
-        color: AppColors.primaryGreen.withValues(alpha: 0.1),
+        color: isDark ? AppColors.darkSurfaceCard : AppColors.primaryGreen.withValues(alpha: 0.1),
         border: Border(
-          bottom: BorderSide(color: AppColors.primaryGreen.withValues(alpha: 0.2)),
+          bottom: BorderSide(color: isDark ? AppColors.darkBorder : AppColors.primaryGreen.withValues(alpha: 0.2)),
         ),
       ),
       child: SingleChildScrollView(
@@ -595,8 +599,36 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
                 color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
               ),
             ),
+            const SizedBox(width: 8),
+            TextButton.icon(
+              onPressed: pageDocs.isEmpty
+                  ? null
+                  : () {
+                      setState(() {
+                        if (allSelected) {
+                          _selectedDocumentIds.removeAll(pageIds);
+                          if (_selectedDocumentIds.isEmpty) {
+                            _isMultiSelectMode = false;
+                          }
+                        } else {
+                          _selectedDocumentIds.addAll(pageIds);
+                        }
+                      });
+                    },
+              icon: Icon(
+                allSelected ? Icons.deselect : Icons.select_all,
+                size: 18,
+                color: isDark ? AppColors.darkTextPrimary : AppColors.primaryGreen,
+              ),
+              label: Text(
+                allSelected ? 'Deselect All' : 'Select All',
+                style: TextStyle(
+                  color: isDark ? AppColors.darkTextPrimary : AppColors.primaryGreen,
+                ),
+              ),
+            ),
             const SizedBox(width: 16),
-            Container(width: 1, height: 24, color: isDark ? AppColors.darkTextMuted : Colors.grey.shade400),
+            Container(width: 1, height: 24, color: isDark ? AppColors.darkBorder : Colors.grey.shade400),
             const SizedBox(width: 12),
             _batchActionBtn(
               icon: Icons.print_rounded,

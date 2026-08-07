@@ -437,4 +437,21 @@ class StudentRepository {
       throw Exception(msg);
     }
   }
+
+  // ----------------------------------------------------------------
+  // Manual SF9/SF10 OCR Scan Enrollment
+  // ----------------------------------------------------------------
+  Future<Map<String, dynamic>> scanEnrollmentFromSF(int studentId) async {
+    try {
+      final options = await _getAuthOptions();
+      final response = await _dio.post(
+        '/students/$studentId/ocr-enrollment',
+        options: options,
+      );
+      return response.data as Map<String, dynamic>;
+    } on DioException catch (e) {
+      final msg = e.response?.data?['message'] ?? 'Failed to scan SF10/SF9 for enrollment.';
+      throw Exception(msg);
+    }
+  }
 }

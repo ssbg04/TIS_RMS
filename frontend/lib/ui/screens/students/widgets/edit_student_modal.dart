@@ -8,6 +8,7 @@ import '../../../../core/constants/app_sizes.dart';
 import '../../../../domain/entities/student_model.dart';
 import '../../../shared/buttons/primary_button.dart';
 import '../../../shared/dialogs/success_dialog.dart';
+import '../../../shared/dialogs/error_dialog.dart';
 import '../../../providers/student_provider.dart';
 import 'edit_enrollment_modal.dart';
 import 'student_form_helpers.dart';
@@ -573,6 +574,54 @@ class _EditStudentModalState extends ConsumerState<EditStudentModal> {
     );
   }
 
+  Future<void> _handleScanEnrollmentFromSF() async {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => const Center(
+        child: Card(
+          child: Padding(
+            padding: EdgeInsets.all(24.0),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                CircularProgressIndicator(),
+                SizedBox(height: 16),
+                Text('Scanning SF9/SF10 for enrollment data...'),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+
+    try {
+      final res = await ref
+          .read(studentMutationProvider.notifier)
+          .scanEnrollmentFromSF(widget.student.id);
+
+      if (mounted) {
+        Navigator.of(context, rootNavigator: true).pop();
+      }
+
+      final msg = res['message'] as String? ??
+          'Successfully scanned enrollment from SF10/SF9.';
+
+      if (mounted) {
+        await showSuccessDialog(context, message: msg);
+        ref.invalidate(studentDetailProvider(widget.student.id));
+        ref.invalidate(studentPageProvider);
+      }
+    } catch (e) {
+      if (mounted) {
+        Navigator.of(context, rootNavigator: true).pop();
+        final raw = e.toString();
+        final msg = raw.startsWith('Exception: ') ? raw.substring(11) : raw;
+        showErrorDialog(context, 'OCR Scan Failed', msg);
+      }
+    }
+  }
+
   Widget _buildEnrollmentsTab() {
     final detailAsync = ref.watch(studentDetailProvider(widget.student.id));
     final isDark = Theme.of(context).brightness == Brightness.dark;
@@ -605,32 +654,48 @@ class _EditStudentModalState extends ConsumerState<EditStudentModal> {
                       color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
                     ),
                   ),
-                  ElevatedButton.icon(
-                    onPressed: () {
-                      showDialog(
-                        context: context,
-                        barrierColor: Colors.black.withValues(alpha: 0.45),
-                        builder: (ctx) => EditEnrollmentModal(
-                          studentId: widget.student.id,
-                          enrollment: null,
+                  Row(
+                    children: [
+                      OutlinedButton.icon(
+                        onPressed: _handleScanEnrollmentFromSF,
+                        icon: const Icon(Icons.document_scanner, size: 18),
+                        label: const Text('OCR Scan (SF9/SF10)'),
+                        style: OutlinedButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 14,
+                            vertical: 10,
+                          ),
                         ),
-                      ).then((_) {
-                        if (mounted) {
-                          ref.invalidate(studentDetailProvider(widget.student.id));
-                          ref.invalidate(studentPageProvider);
-                        }
-                      });
-                    },
-                    icon: const Icon(Icons.add, size: 18),
-                    label: const Text('Add Enrollment'),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.primaryGreen,
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 14,
-                        vertical: 10,
                       ),
-                    ),
+                      const SizedBox(width: 8),
+                      ElevatedButton.icon(
+                        onPressed: () {
+                          showDialog(
+                            context: context,
+                            barrierColor: Colors.black.withValues(alpha: 0.45),
+                            builder: (ctx) => EditEnrollmentModal(
+                              studentId: widget.student.id,
+                              enrollment: null,
+                            ),
+                          ).then((_) {
+                            if (mounted) {
+                              ref.invalidate(studentDetailProvider(widget.student.id));
+                              ref.invalidate(studentPageProvider);
+                            }
+                          });
+                        },
+                        icon: const Icon(Icons.add, size: 18),
+                        label: const Text('Add Enrollment'),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppColors.primaryGreen,
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 14,
+                            vertical: 10,
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
                 ],
               ),

@@ -21,9 +21,10 @@ class PrintQueueModal extends ConsumerStatefulWidget {
     WoltModalSheet.show<void>(
       context: context,
       pageListBuilder: (modalSheetContext) {
+        final isDark = Theme.of(modalSheetContext).brightness == Brightness.dark;
         return [
           WoltModalSheetPage(
-            backgroundColor: AppColors.surfaceWhite,
+            backgroundColor: isDark ? AppColors.darkSurfaceCard : AppColors.surfaceWhite,
             hasSabGradient: false,
             hasTopBarLayer: true,
             isTopBarLayerAlwaysVisible: true,
@@ -41,7 +42,7 @@ class PrintQueueModal extends ConsumerStatefulWidget {
                         color: AppColors.primaryGreen, size: 20),
                   ),
                   const SizedBox(width: AppSizes.p12),
-                  const Expanded(
+                  Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       mainAxisSize: MainAxisSize.min,
@@ -50,11 +51,11 @@ class PrintQueueModal extends ConsumerStatefulWidget {
                             style: TextStyle(
                                 fontSize: 18,
                                 fontWeight: FontWeight.bold,
-                                color: AppColors.textPrimary)),
+                                color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary)),
                         Text('Staged documents for print or request.',
                             style: TextStyle(
                                 fontSize: 11,
-                                color: AppColors.textSecondary,
+                                color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
                                 fontStyle: FontStyle.italic)),
                       ],
                     ),
@@ -65,7 +66,7 @@ class PrintQueueModal extends ConsumerStatefulWidget {
             trailingNavBarWidget: Padding(
               padding: const EdgeInsets.only(right: 8, top: 4),
               child: IconButton(
-                icon: const Icon(Icons.close, color: AppColors.textSecondary),
+                icon: Icon(Icons.close, color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary),
                 onPressed: () => Navigator.of(modalSheetContext).pop(),
               ),
             ),
@@ -302,9 +303,10 @@ class _PrintQueueModalState extends ConsumerState<PrintQueueModal> {
   }
 
   Widget _buildTabSelector() {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Container(
       decoration: BoxDecoration(
-        color: Colors.grey.shade100,
+        color: isDark ? AppColors.darkSurface2 : Colors.grey.shade100,
         borderRadius: BorderRadius.circular(8),
       ),
       padding: const EdgeInsets.all(4),
@@ -316,10 +318,12 @@ class _PrintQueueModalState extends ConsumerState<PrintQueueModal> {
               child: Container(
                 padding: const EdgeInsets.symmetric(vertical: 8),
                 decoration: BoxDecoration(
-                  color: _selectedTab == 0 ? Colors.white : Colors.transparent,
+                  color: _selectedTab == 0
+                      ? (isDark ? AppColors.darkSurfaceCard : Colors.white)
+                      : Colors.transparent,
                   borderRadius: BorderRadius.circular(6),
                   boxShadow: _selectedTab == 0
-                      ? [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 4)]
+                      ? [BoxShadow(color: Colors.black.withValues(alpha: isDark ? 0.3 : 0.05), blurRadius: 4)]
                       : null,
                 ),
                 alignment: Alignment.center,
@@ -327,7 +331,7 @@ class _PrintQueueModalState extends ConsumerState<PrintQueueModal> {
                   'Print List',
                   style: TextStyle(
                     fontWeight: _selectedTab == 0 ? FontWeight.bold : FontWeight.w500,
-                    color: _selectedTab == 0 ? AppColors.primaryGreen : AppColors.textSecondary,
+                    color: _selectedTab == 0 ? AppColors.primaryGreen : (isDark ? AppColors.darkTextSecondary : AppColors.textSecondary),
                     fontSize: 13,
                   ),
                 ),
@@ -340,10 +344,12 @@ class _PrintQueueModalState extends ConsumerState<PrintQueueModal> {
               child: Container(
                 padding: const EdgeInsets.symmetric(vertical: 8),
                 decoration: BoxDecoration(
-                  color: _selectedTab == 1 ? Colors.white : Colors.transparent,
+                  color: _selectedTab == 1
+                      ? (isDark ? AppColors.darkSurfaceCard : Colors.white)
+                      : Colors.transparent,
                   borderRadius: BorderRadius.circular(6),
                   boxShadow: _selectedTab == 1
-                      ? [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 4)]
+                      ? [BoxShadow(color: Colors.black.withValues(alpha: isDark ? 0.3 : 0.05), blurRadius: 4)]
                       : null,
                 ),
                 alignment: Alignment.center,
@@ -351,7 +357,7 @@ class _PrintQueueModalState extends ConsumerState<PrintQueueModal> {
                   'History',
                   style: TextStyle(
                     fontWeight: _selectedTab == 1 ? FontWeight.bold : FontWeight.w500,
-                    color: _selectedTab == 1 ? AppColors.primaryGreen : AppColors.textSecondary,
+                    color: _selectedTab == 1 ? AppColors.primaryGreen : (isDark ? AppColors.darkTextSecondary : AppColors.textSecondary),
                     fontSize: 13,
                   ),
                 ),
@@ -364,12 +370,13 @@ class _PrintQueueModalState extends ConsumerState<PrintQueueModal> {
   }
 
   Widget _buildQueueList(List<PrintQueueItem> items) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return ListView.separated(
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
       itemCount: items.length,
       separatorBuilder: (context, index) =>
-          Divider(height: 1, color: Colors.grey.shade100),
+          Divider(height: 1, color: isDark ? AppColors.darkBorder : Colors.grey.shade100),
       itemBuilder: (ctx, i) {
         final item = items[i];
         final isPdf = item.fileName.toLowerCase().endsWith('.pdf');
@@ -394,8 +401,8 @@ class _PrintQueueModalState extends ConsumerState<PrintQueueModal> {
             item.documentType != null && item.documentType!.isNotEmpty
                 ? '${item.documentType} • ${item.fileName}'
                 : item.fileName,
-            style: const TextStyle(
-                fontWeight: FontWeight.w600, fontSize: 13),
+            style: TextStyle(
+                fontWeight: FontWeight.w600, fontSize: 13, color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary),
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
           ),
@@ -407,9 +414,9 @@ class _PrintQueueModalState extends ConsumerState<PrintQueueModal> {
                   item.studentLrn != null && item.studentLrn!.isNotEmpty
                       ? '${item.studentName} (LRN: ${item.studentLrn})'
                       : item.studentName!,
-                  style: const TextStyle(
+                  style: TextStyle(
                       fontSize: 11.5,
-                      color: AppColors.textSecondary,
+                      color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
                       fontWeight: FontWeight.w500),
                 ),
             ],
@@ -458,28 +465,29 @@ class _PrintQueueModalState extends ConsumerState<PrintQueueModal> {
   }
 
   Widget _buildFooter(List<PrintQueueItem> items, bool isMobile) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        const Divider(height: AppSizes.p32),
+        Divider(height: AppSizes.p32, color: isDark ? AppColors.darkBorder : null),
         if (isMobile) ...[
           // Mobile layout: Stacked info and buttons
           Text('${items.length} document${items.length > 1 ? 's' : ''}',
-              style: const TextStyle(
-                  fontWeight: FontWeight.bold,
-                  color: AppColors.textPrimary)),
-          const Text('Ready for batch print',
               style: TextStyle(
-                  color: AppColors.textSecondary, fontSize: 12)),
+                  fontWeight: FontWeight.bold,
+                  color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary)),
+          Text('Ready for batch print',
+              style: TextStyle(
+                  color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary, fontSize: 12)),
           const SizedBox(height: 16),
           Row(
             children: [
               Expanded(
                 child: TextButton(
                   onPressed: _isPrinting ? null : _clearAll,
-                  child: const Text('CLEAR ALL',
+                  child: Text('CLEAR ALL',
                       style: TextStyle(
-                          color: AppColors.textSecondary,
+                          color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
                           fontWeight: FontWeight.bold)),
                 ),
               ),
@@ -502,21 +510,21 @@ class _PrintQueueModalState extends ConsumerState<PrintQueueModal> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text('${items.length} document${items.length > 1 ? 's' : ''}',
-                      style: const TextStyle(
-                          fontWeight: FontWeight.bold,
-                          color: AppColors.textPrimary)),
-                  const Text('Ready for batch print',
                       style: TextStyle(
-                          color: AppColors.textSecondary, fontSize: 12)),
+                          fontWeight: FontWeight.bold,
+                          color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary)),
+                  Text('Ready for batch print',
+                      style: TextStyle(
+                          color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary, fontSize: 12)),
                 ],
               ),
               Row(
                 children: [
                   TextButton(
                     onPressed: _isPrinting ? null : _clearAll,
-                    child: const Text('CLEAR ALL',
+                    child: Text('CLEAR ALL',
                         style: TextStyle(
-                            color: AppColors.textSecondary,
+                            color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
                             fontWeight: FontWeight.bold)),
                   ),
                   const SizedBox(width: AppSizes.p8),
@@ -539,12 +547,13 @@ class _PrintQueueModalState extends ConsumerState<PrintQueueModal> {
   }
 
   Widget _buildHistoryList(List<PrintHistoryItem> items) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return ListView.separated(
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
       itemCount: items.length,
       separatorBuilder: (context, index) =>
-          Divider(height: 1, color: Colors.grey.shade100),
+          Divider(height: 1, color: isDark ? AppColors.darkBorder : Colors.grey.shade100),
       itemBuilder: (ctx, i) {
         final item = items[i];
         final isPdf = (item.fileName ?? '').toLowerCase().endsWith('.pdf');
@@ -569,8 +578,8 @@ class _PrintQueueModalState extends ConsumerState<PrintQueueModal> {
             item.documentType != null && item.documentType!.isNotEmpty
                 ? '${item.documentType} • ${item.fileName ?? item.documentName}'
                 : (item.fileName ?? item.documentName),
-            style: const TextStyle(
-                fontWeight: FontWeight.w600, fontSize: 13),
+            style: TextStyle(
+                fontWeight: FontWeight.w600, fontSize: 13, color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary),
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
           ),
@@ -581,16 +590,16 @@ class _PrintQueueModalState extends ConsumerState<PrintQueueModal> {
                 item.studentLrn != null && item.studentLrn!.isNotEmpty
                     ? '${item.studentName} (LRN: ${item.studentLrn})'
                     : item.studentName,
-                style: const TextStyle(
+                style: TextStyle(
                     fontSize: 11.5,
-                    color: AppColors.textSecondary,
+                    color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
                     fontWeight: FontWeight.w500),
               ),
               const SizedBox(height: 2),
               Text(
                 'Printed on ${_formatHistoryDate(item.printedAt)}',
-                style: const TextStyle(
-                    fontSize: 10.5, color: AppColors.textMuted),
+                style: TextStyle(
+                    fontSize: 10.5, color: isDark ? AppColors.darkTextMuted : AppColors.textMuted),
               ),
             ],
           ),
@@ -601,23 +610,24 @@ class _PrintQueueModalState extends ConsumerState<PrintQueueModal> {
   }
 
   Widget _buildEmptyHistoryState() {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Center(
       child: Padding(
         padding: const EdgeInsets.symmetric(vertical: 32),
         child: Column(
           children: [
             Icon(Icons.history_toggle_off,
-                size: 48, color: Colors.grey.shade400),
+                size: 48, color: isDark ? AppColors.darkTextMuted : Colors.grey.shade400),
             const SizedBox(height: 12),
             Text('No print history found',
                 style: TextStyle(
                     fontSize: 15,
                     fontWeight: FontWeight.w600,
-                    color: Colors.grey.shade600)),
+                    color: isDark ? AppColors.darkTextSecondary : Colors.grey.shade600)),
             const SizedBox(height: 4),
             Text('Documents you print will appear here in your history.',
                 style: TextStyle(
-                    fontSize: 12, color: Colors.grey.shade500),
+                    fontSize: 12, color: isDark ? AppColors.darkTextMuted : Colors.grey.shade500),
                 textAlign: TextAlign.center),
           ],
         ),
@@ -626,6 +636,7 @@ class _PrintQueueModalState extends ConsumerState<PrintQueueModal> {
   }
 
   Widget _buildHistoryFooter(List<PrintHistoryItem> items) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Padding(
       padding: const EdgeInsets.only(top: 16),
       child: Align(
@@ -637,7 +648,7 @@ class _PrintQueueModalState extends ConsumerState<PrintQueueModal> {
           icon: const Icon(Icons.delete_sweep_outlined, size: 18),
           label: const Text('Clear History'),
           style: TextButton.styleFrom(
-            foregroundColor: AppColors.textSecondary,
+            foregroundColor: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
           ),
         ),
       ),
@@ -654,22 +665,23 @@ class _PrintQueueModalState extends ConsumerState<PrintQueueModal> {
   }
 
   Widget _buildEmptyState() {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(Icons.print_disabled, size: 64, color: Colors.grey.shade300),
+          Icon(Icons.print_disabled, size: 64, color: isDark ? AppColors.darkTextMuted : Colors.grey.shade300),
           const SizedBox(height: AppSizes.p16),
-          const Text('List is empty',
+          Text('List is empty',
               style: TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.bold,
-                  color: AppColors.textSecondary)),
+                  color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary)),
           const SizedBox(height: AppSizes.p8),
-          const Text(
+          Text(
             'Open a document\'s menu and select\n"Add to Print List" to batch print.',
             textAlign: TextAlign.center,
-            style: TextStyle(color: AppColors.textMuted, fontSize: 13),
+            style: TextStyle(color: isDark ? AppColors.darkTextMuted : AppColors.textMuted, fontSize: 13),
           ),
         ],
       ),

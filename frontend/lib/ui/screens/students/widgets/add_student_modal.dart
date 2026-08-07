@@ -262,7 +262,10 @@ class _AddStudentModalState extends ConsumerState<AddStudentModal> {
     }
 
     if (docType == null || !mounted) return;
-    setState(() => _selectedOcrDocType = docType);
+    setState(() {
+      _selectedOcrDocType = docType;
+      _isLoading = true;
+    });
 
     try {
       final ocrResult = await ref
@@ -289,7 +292,6 @@ class _AddStudentModalState extends ConsumerState<AddStudentModal> {
         if (ocrResult.dob != null && ocrResult.dob!.isNotEmpty) {
           _selectedDob = _parseFlexibleDob(ocrResult.dob);
         }
-        _isLoading = false;
         _ocrScannedFile = file;
         _selectedOcrDocType = docType;
         _currentStep = 1;
@@ -299,6 +301,10 @@ class _AddStudentModalState extends ConsumerState<AddStudentModal> {
       final raw = e.toString();
       final msg = raw.startsWith('Exception: ') ? raw.substring(11) : raw;
       setState(() => _errorMessage = msg);
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
     }
   }
 
@@ -406,6 +412,28 @@ class _AddStudentModalState extends ConsumerState<AddStudentModal> {
   // ----------------------------------------------------------------
   Widget _buildOcrStep() {
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    if (_isLoading) {
+      return Padding(
+        padding: const EdgeInsets.symmetric(vertical: AppSizes.p32),
+        child: Center(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const CircularProgressIndicator(),
+              const SizedBox(height: AppSizes.p16),
+              Text(
+                'Processing document with OCR... Please wait',
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w500,
+                  color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
     return Column(
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.start,

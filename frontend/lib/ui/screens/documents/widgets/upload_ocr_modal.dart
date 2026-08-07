@@ -72,9 +72,10 @@ class UploadOcrModal extends ConsumerStatefulWidget {
       context: context,
       useSafeArea: false,
       pageListBuilder: (modalSheetContext) {
+        final isDark = Theme.of(modalSheetContext).brightness == Brightness.dark;
         return [
           WoltModalSheetPage(
-            backgroundColor: AppColors.surfaceWhite,
+            backgroundColor: isDark ? AppColors.darkSurfaceCard : AppColors.surfaceWhite,
             hasSabGradient: false,
             hasTopBarLayer: true,
             isTopBarLayerAlwaysVisible: true,
@@ -550,15 +551,15 @@ class _UploadOcrModalState extends ConsumerState<UploadOcrModal> {
                 border:
                     Border.all(color: AppColors.warning.withValues(alpha: 0.3)),
               ),
-              child: const Row(
+              child: Row(
                 children: [
-                  Icon(Icons.info_outline, color: AppColors.warning, size: 20),
-                  SizedBox(width: 8),
+                  const Icon(Icons.info_outline, color: AppColors.warning, size: 20),
+                  const SizedBox(width: 8),
                   Expanded(
                     child: Text(
                       'You are not inside a student folder. Make sure you provide the correct LRN.',
                       style:
-                          TextStyle(fontSize: 12, color: AppColors.textPrimary),
+                          TextStyle(fontSize: 12, color: Theme.of(context).brightness == Brightness.dark ? AppColors.darkTextPrimary : AppColors.textPrimary),
                     ),
                   ),
                 ],
@@ -579,6 +580,7 @@ class _UploadOcrModalState extends ConsumerState<UploadOcrModal> {
 
   // ── Step 0: Pick files ────────────────────────────────────────
   Widget _buildStep0() {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final isMobile = Platform.isAndroid || Platform.isIOS;
     final isWindows = defaultTargetPlatform == TargetPlatform.windows;
     Widget content = Container(
@@ -587,13 +589,13 @@ class _UploadOcrModalState extends ConsumerState<UploadOcrModal> {
       padding: const EdgeInsets.symmetric(vertical: 48, horizontal: 24),
       decoration: BoxDecoration(
         color: _isDragOver
-            ? AppColors.primaryGreen.withValues(alpha: 0.15)
-            : AppColors.primaryGreen.withValues(alpha: 0.04),
+            ? AppColors.primaryGreen.withValues(alpha: isDark ? 0.25 : 0.15)
+            : (isDark ? AppColors.darkSurface2 : AppColors.primaryGreen.withValues(alpha: 0.04)),
         borderRadius: BorderRadius.circular(AppSizes.radiusMedium),
         border: Border.all(
           color: _isDragOver
               ? AppColors.primaryGreen
-              : AppColors.primaryGreen.withValues(alpha: 0.3),
+              : (isDark ? AppColors.darkBorder : AppColors.primaryGreen.withValues(alpha: 0.3)),
           width: _isDragOver ? 3 : 1,
           style: BorderStyle.solid,
         ),
@@ -622,7 +624,7 @@ class _UploadOcrModalState extends ConsumerState<UploadOcrModal> {
             textAlign: TextAlign.center,
             style: TextStyle(
               fontSize: 13,
-              color: AppColors.textSecondary.withValues(alpha: 0.8),
+              color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary.withValues(alpha: 0.8),
             ),
           ),
           const SizedBox(height: 24),
@@ -652,7 +654,7 @@ class _UploadOcrModalState extends ConsumerState<UploadOcrModal> {
                 label: const Text('Browse Files'),
                 style: ElevatedButton.styleFrom(
                   backgroundColor:
-                      isMobile ? Colors.white : AppColors.primaryGreen,
+                      isMobile ? (isDark ? AppColors.darkSurfaceCard : Colors.white) : AppColors.primaryGreen,
                   foregroundColor:
                       isMobile ? AppColors.primaryGreen : Colors.white,
                   side:
@@ -800,11 +802,12 @@ class _UploadOcrModalState extends ConsumerState<UploadOcrModal> {
   }
 
   Widget _buildFileCard(int idx, _UploadEntry item, List<dynamic> requirements) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final isDone = item.status == UploadStatus.done;
     final isError = item.status == UploadStatus.error;
     final isUploading = item.status == UploadStatus.uploading;
 
-    Color borderColor = Colors.grey.shade200;
+    Color borderColor = isDark ? AppColors.darkBorder : Colors.grey.shade200;
     if (isDone) borderColor = Colors.green.shade300;
     if (isError) borderColor = Colors.red.shade300;
     if (isUploading) borderColor = AppColors.primaryGreen;
@@ -814,10 +817,10 @@ class _UploadOcrModalState extends ConsumerState<UploadOcrModal> {
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         color: isDone
-            ? Colors.green.withValues(alpha: 0.04)
+            ? Colors.green.withValues(alpha: isDark ? 0.15 : 0.04)
             : isError
-                ? Colors.red.withValues(alpha: 0.04)
-                : AppColors.surfaceWhite,
+                ? Colors.red.withValues(alpha: isDark ? 0.15 : 0.04)
+                : (isDark ? AppColors.darkSurfaceCard : AppColors.surfaceWhite),
         borderRadius: BorderRadius.circular(AppSizes.radiusMedium),
         border: Border.all(color: borderColor),
         boxShadow: [
@@ -850,8 +853,10 @@ class _UploadOcrModalState extends ConsumerState<UploadOcrModal> {
                   children: [
                     Text(
                       item.fileName,
-                      style: const TextStyle(
-                          fontWeight: FontWeight.w600, fontSize: 13),
+                      style: TextStyle(
+                          fontWeight: FontWeight.w600,
+                          fontSize: 13,
+                          color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary),
                       overflow: TextOverflow.ellipsis,
                     ),
                     const SizedBox(height: 2),
@@ -859,14 +864,14 @@ class _UploadOcrModalState extends ConsumerState<UploadOcrModal> {
                       children: [
                         Text(
                           item.fileSize,
-                          style: const TextStyle(
-                              fontSize: 11, color: AppColors.textSecondary),
+                          style: TextStyle(
+                              fontSize: 11, color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary),
                         ),
                         if (item.selectedRequirementId != null &&
                             !isDone &&
                             !isError) ...[
-                          const Text(' · ',
-                              style: TextStyle(color: AppColors.textSecondary)),
+                          Text(' · ',
+                              style: TextStyle(color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary)),
                           const Icon(Icons.check_circle_outline,
                               size: 12, color: AppColors.primaryGreen),
                           const SizedBox(width: 3),
@@ -880,8 +885,8 @@ class _UploadOcrModalState extends ConsumerState<UploadOcrModal> {
                           ),
                         ],
                         if (item.selectedRequirementId == null) ...[
-                          const Text(' · ',
-                              style: TextStyle(color: AppColors.textSecondary)),
+                          Text(' · ',
+                              style: TextStyle(color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary)),
                           const Icon(Icons.warning_amber_rounded,
                               size: 12, color: Colors.orange),
                           const SizedBox(width: 3),
@@ -904,8 +909,8 @@ class _UploadOcrModalState extends ConsumerState<UploadOcrModal> {
                 const Icon(Icons.error_outline, color: Colors.red, size: 22)
               else if (!_isUploading)
                 IconButton(
-                  icon: const Icon(Icons.close,
-                      color: AppColors.textSecondary, size: 20),
+                  icon: Icon(Icons.close,
+                      color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary, size: 20),
                   onPressed: () => setState(() => _entries.removeAt(idx)),
                   tooltip: 'Remove',
                   constraints: const BoxConstraints(),
@@ -921,7 +926,7 @@ class _UploadOcrModalState extends ConsumerState<UploadOcrModal> {
               borderRadius: BorderRadius.circular(4),
               child: LinearProgressIndicator(
                 value: item.status == UploadStatus.done ? 1.0 : item.progress,
-                backgroundColor: Colors.grey.shade200,
+                backgroundColor: isDark ? AppColors.darkSurface2 : Colors.grey.shade200,
                 color: isDone ? Colors.green : AppColors.primaryGreen,
                 minHeight: 5,
               ),
@@ -961,6 +966,7 @@ class _UploadOcrModalState extends ConsumerState<UploadOcrModal> {
 
   Widget _buildRequirementDropdown(
       int idx, _UploadEntry item, List<dynamic> requirements) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     // Filter requirements based on student grade
     List<dynamic> applicable = requirements;
     if (_matchedStudent != null) {
@@ -1032,16 +1038,17 @@ class _UploadOcrModalState extends ConsumerState<UploadOcrModal> {
       menuHeight: 280,
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
-        fillColor: AppColors.surfaceWhite,
+        fillColor: isDark ? AppColors.darkSurface2 : AppColors.surfaceWhite,
+        hintStyle: TextStyle(color: isDark ? AppColors.darkTextMuted : AppColors.textMuted),
         contentPadding:
             const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(AppSizes.radiusMedium),
-          borderSide: BorderSide(color: Colors.grey.shade300),
+          borderSide: BorderSide(color: isDark ? AppColors.darkBorder : Colors.grey.shade300),
         ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(AppSizes.radiusMedium),
-          borderSide: BorderSide(color: Colors.grey.shade300),
+          borderSide: BorderSide(color: isDark ? AppColors.darkBorder : Colors.grey.shade300),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(AppSizes.radiusMedium),
@@ -1062,6 +1069,7 @@ class _UploadOcrModalState extends ConsumerState<UploadOcrModal> {
   }
 
   Widget _buildActionRow() {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final doneCnt = _entries.where((e) => e.status == UploadStatus.done).length;
     final totalCnt = _entries.length;
     final pendingCnt =
@@ -1100,9 +1108,9 @@ class _UploadOcrModalState extends ConsumerState<UploadOcrModal> {
                   style: TextButton.styleFrom(
                       padding: const EdgeInsets.symmetric(
                           vertical: 16, horizontal: 24)),
-                  child: const Text('START OVER',
+                  child: Text('START OVER',
                       style: TextStyle(
-                          color: AppColors.textSecondary,
+                          color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
                           fontWeight: FontWeight.bold)),
                 ),
                 SizedBox(
@@ -1125,6 +1133,7 @@ class _UploadOcrModalState extends ConsumerState<UploadOcrModal> {
   }
 
   Widget _buildDoneBanner() {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final errorCnt = _entries.where((e) => e.status == UploadStatus.error).length;
     return Column(
       children: [
@@ -1159,7 +1168,9 @@ class _UploadOcrModalState extends ConsumerState<UploadOcrModal> {
                   style: TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.w600,
-                    color: errorCnt > 0 ? Colors.orange.shade800 : Colors.green.shade800,
+                    color: errorCnt > 0
+                        ? (isDark ? Colors.orange.shade300 : Colors.orange.shade800)
+                        : (isDark ? Colors.green.shade300 : Colors.green.shade800),
                   ),
                 ),
               ),

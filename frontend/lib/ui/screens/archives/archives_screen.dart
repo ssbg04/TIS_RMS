@@ -2224,30 +2224,39 @@ class _ArchivesScreenState extends ConsumerState<ArchivesScreen>
 
   Widget _buildStudentStatusChip(String status) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final colorMap = {
-      'Graduated': Colors.blue.shade700,
-      'Transferred': Colors.purple.shade600,
-      'Dropped': Colors.red.shade600,
-      'Inactive': Colors.orange.shade600,
-      'Enrolled': AppColors.primaryGreen,
+
+    final bg = switch (status) {
+      'Enrolled' => AppColors.primaryGreen.withValues(alpha: isDark ? 0.20 : 0.10),
+      'Graduated' => Colors.blue.withValues(alpha: isDark ? 0.20 : 0.10),
+      'Transferred' => Colors.orange.withValues(alpha: isDark ? 0.20 : 0.10),
+      'Dropped' => Colors.red.withValues(alpha: isDark ? 0.20 : 0.10),
+      _ => isDark ? AppColors.darkSurface2 : Colors.grey.shade200,
     };
-    final color = colorMap[status] ?? (isDark ? AppColors.darkTextSecondary : Colors.grey.shade700);
+
+    final fg = switch (status) {
+      'Enrolled' => AppColors.primaryGreen,
+      'Graduated' => isDark ? Colors.blue.shade300 : Colors.blue.shade700,
+      'Transferred' => isDark ? Colors.orange.shade300 : Colors.orange.shade800,
+      'Dropped' => isDark ? Colors.red.shade300 : Colors.red.shade700,
+      _ => isDark ? AppColors.darkTextSecondary : Colors.grey.shade700,
+    };
+
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
           decoration: BoxDecoration(
-            color: color.withValues(alpha: 0.1),
+            color: bg,
             borderRadius: BorderRadius.circular(10),
-            border: Border.all(color: color.withValues(alpha: 0.3)),
+            border: Border.all(color: fg.withValues(alpha: 0.3)),
           ),
           child: Text(
             status,
             style: TextStyle(
               fontSize: 11,
               fontWeight: FontWeight.w600,
-              color: color,
+              color: fg,
             ),
           ),
         ),

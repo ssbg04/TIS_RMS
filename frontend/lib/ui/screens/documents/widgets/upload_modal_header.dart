@@ -8,6 +8,7 @@ class UploadModalHeaderWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 4),
       child: Row(
@@ -33,25 +34,25 @@ class UploadModalHeaderWidget extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisSize: MainAxisSize.min,
               children: [
-                const Text(
+                Text(
                   'Upload Documents',
                   style: TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.bold,
-                    color: AppColors.textPrimary,
+                    color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
                     height: 1.2,
                   ),
                 ),
                 const SizedBox(height: 4),
                 // Stepper
-                _buildStepper(),
+                _buildStepper(context, isDark),
               ],
             ),
           ),
           // Close button
           IconButton(
             icon: const Icon(Icons.close_rounded, size: 20),
-            color: AppColors.textSecondary,
+            color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
             onPressed: () => Navigator.of(context).pop(),
             tooltip: 'Close',
             padding: EdgeInsets.zero,
@@ -62,18 +63,18 @@ class UploadModalHeaderWidget extends StatelessWidget {
     );
   }
 
-  Widget _buildStepper() {
+  Widget _buildStepper(BuildContext context, bool isDark) {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        _buildStep(1, 'Select Files', isActive: step >= 0, isDone: step >= 1),
-        _buildConnector(active: step >= 1),
-        _buildStep(2, 'Review & Upload', isActive: step >= 1, isDone: false),
+        _buildStep(context, isDark, 1, 'Select Files', isActive: step >= 0, isDone: step >= 1),
+        _buildConnector(isDark, active: step >= 1),
+        _buildStep(context, isDark, 2, 'Review & Upload', isActive: step >= 1, isDone: false),
       ],
     );
   }
 
-  Widget _buildStep(int num, String label,
+  Widget _buildStep(BuildContext context, bool isDark, int num, String label,
       {required bool isActive, required bool isDone}) {
     return Row(
       mainAxisSize: MainAxisSize.min,
@@ -85,11 +86,11 @@ class UploadModalHeaderWidget extends StatelessWidget {
           height: 18,
           decoration: BoxDecoration(
             shape: BoxShape.circle,
-            color: isActive ? AppColors.primaryGreen : Colors.grey.shade200,
+            color: isActive ? AppColors.primaryGreen : (isDark ? AppColors.darkSurface2 : Colors.grey.shade200),
             border: Border.all(
               color: isActive
                   ? AppColors.primaryGreen
-                  : Colors.grey.shade300,
+                  : (isDark ? AppColors.darkBorder : Colors.grey.shade300),
               width: 1.5,
             ),
           ),
@@ -101,7 +102,7 @@ class UploadModalHeaderWidget extends StatelessWidget {
                     style: TextStyle(
                       fontSize: 9,
                       fontWeight: FontWeight.bold,
-                      color: isActive ? Colors.white : Colors.grey.shade500,
+                      color: isActive ? Colors.white : (isDark ? AppColors.darkTextMuted : Colors.grey.shade500),
                     ),
                   ),
           ),
@@ -112,7 +113,7 @@ class UploadModalHeaderWidget extends StatelessWidget {
           style: TextStyle(
             fontSize: 11,
             fontWeight: isActive ? FontWeight.w600 : FontWeight.normal,
-            color: isActive ? AppColors.primaryGreen : AppColors.textSecondary,
+            color: isActive ? AppColors.primaryGreen : (isDark ? AppColors.darkTextSecondary : AppColors.textSecondary),
           ),
           child: Text(label),
         ),
@@ -120,14 +121,14 @@ class UploadModalHeaderWidget extends StatelessWidget {
     );
   }
 
-  Widget _buildConnector({required bool active}) {
+  Widget _buildConnector(bool isDark, {required bool active}) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 6),
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 300),
         width: 20,
         height: 1.5,
-        color: active ? AppColors.primaryGreen : Colors.grey.shade300,
+        color: active ? AppColors.primaryGreen : (isDark ? AppColors.darkBorder : Colors.grey.shade300),
       ),
     );
   }

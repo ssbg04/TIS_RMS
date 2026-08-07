@@ -8,11 +8,12 @@ class DownloadGuideDialog extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final isWindows = Platform.isWindows;
     final isAndroid = Platform.isAndroid;
 
     return Dialog(
-      backgroundColor: AppColors.surfaceWhite,
+      backgroundColor: isDark ? AppColors.darkSurfaceCard : AppColors.surfaceWhite,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(AppSizes.radiusLarge),
       ),
@@ -39,80 +40,102 @@ class DownloadGuideDialog extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(width: AppSizes.p16),
-                  const Text(
+                  Text(
                     'Download Guide',
                     style: TextStyle(
                       fontSize: 20,
                       fontWeight: FontWeight.bold,
-                      color: AppColors.textPrimary,
+                      color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
                     ),
                   ),
                 ],
               ),
               const SizedBox(height: AppSizes.p24),
-              const Text(
+              Text(
                 'Where do my downloaded documents go?',
-                style: TextStyle(fontWeight: FontWeight.w600, fontSize: 16),
+                style: TextStyle(
+                  fontWeight: FontWeight.w600,
+                  fontSize: 16,
+                  color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
+                ),
               ),
               const SizedBox(height: AppSizes.p8),
               if (isWindows) ...[
-                const Text(
+                Text(
                   'On Windows, your downloaded documents are saved to:',
-                  style: TextStyle(color: AppColors.textSecondary),
+                  style: TextStyle(
+                    color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
+                  ),
                 ),
                 const SizedBox(height: 8),
                 Container(
                   width: double.infinity,
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: Colors.grey.shade100,
+                    color: isDark ? AppColors.darkSurface2 : Colors.grey.shade100,
                     borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: Colors.grey.shade300),
+                    border: Border.all(
+                      color: isDark ? AppColors.darkBorder : Colors.grey.shade300,
+                    ),
                   ),
-                  child: const SelectableText(
+                  child: SelectableText(
                     'C:\\Users\\<Your Username>\\Downloads\\TIS_RMS',
-                    style: TextStyle(fontFamily: 'monospace', fontSize: 13),
+                    style: TextStyle(
+                      fontFamily: 'monospace',
+                      fontSize: 13,
+                      color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
+                    ),
                   ),
                 ),
                 const SizedBox(height: 12),
-                const Text(
+                Text(
                   'You can quickly find them by opening File Explorer and going to your standard Downloads folder.',
                   style: TextStyle(
-                    color: AppColors.textSecondary,
+                    color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
                     fontSize: 13,
                   ),
                 ),
               ] else if (isAndroid) ...[
-                const Text(
+                Text(
                   'On Android, your downloaded documents are saved to:',
-                  style: TextStyle(color: AppColors.textSecondary),
+                  style: TextStyle(
+                    color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
+                  ),
                 ),
                 const SizedBox(height: 8),
                 Container(
                   width: double.infinity,
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: Colors.grey.shade100,
+                    color: isDark ? AppColors.darkSurface2 : Colors.grey.shade100,
                     borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: Colors.grey.shade300),
+                    border: Border.all(
+                      color: isDark ? AppColors.darkBorder : Colors.grey.shade300,
+                    ),
                   ),
-                  child: const SelectableText(
+                  child: SelectableText(
                     'Internal Storage > Download > TIS_RMS',
-                    style: TextStyle(fontFamily: 'monospace', fontSize: 13),
+                    style: TextStyle(
+                      fontFamily: 'monospace',
+                      fontSize: 13,
+                      color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
+                    ),
                   ),
                 ),
                 const SizedBox(height: 12),
-                const Text(
+                Text(
                   'You can access them using your device\'s "Files" or "My Files" app.',
                   style: TextStyle(
-                    color: AppColors.textSecondary,
+                    color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
                     fontSize: 13,
                   ),
                 ),
               ] else ...[
-                const Text(
+                Text(
                   'Downloads are saved to your device\'s standard downloads directory inside a "TIS_RMS" folder.',
-                  style: TextStyle(color: AppColors.textSecondary),
+                  style: TextStyle(
+                    color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
+                  ),
                 ),
               ],
               const SizedBox(height: AppSizes.p24),

@@ -697,23 +697,41 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
   }
 
   void _openDocumentsFolder(StudentModel student) {
-    if (student.status == 'Graduated' ||
-        student.status == 'Transferred' ||
-        student.status == 'Dropped' ||
-        student.status == 'Inactive') {
-      ref.read(activeTabProvider.notifier).setTab('Archives');
-      Future.microtask(() {
-        if (mounted) {
-          ref
-              .read(openedArchiveFolderProvider.notifier)
-              .setFolder(
-                OpenedArchiveFolderData(
-                  id: student.id,
-                  name: student.listDisplayName,
-                ),
-              );
-        }
-      });
+    if (student.status != 'Enrolled') {
+      showDialog(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          title: const Text('Student Not Enrolled'),
+          content: Text(
+            '${student.listDisplayName} is currently marked as ${student.status}. Would you like to navigate to the Archives screen to view their documents?',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(ctx).pop(),
+              child: const Text('CANCEL'),
+            ),
+            TextButton(
+              onPressed: () {
+                Navigator.of(ctx).pop();
+                ref.read(activeTabProvider.notifier).setTab('Archives');
+                Future.microtask(() {
+                  if (mounted) {
+                    ref
+                        .read(openedArchiveFolderProvider.notifier)
+                        .setFolder(
+                          OpenedArchiveFolderData(
+                            id: student.id,
+                            name: student.listDisplayName,
+                          ),
+                        );
+                  }
+                });
+              },
+              child: const Text('PROCEED'),
+            ),
+          ],
+        ),
+      );
     } else {
       ref.read(activeTabProvider.notifier).setTab('Documents');
       Future.microtask(() {
@@ -2459,32 +2477,30 @@ class _StatusChip extends StatelessWidget {
   final String status;
   const _StatusChip({required this.status});
 
-  Color get _bg {
-    return switch (status) {
-      'Enrolled' => AppColors.primaryGreen.withValues(alpha: 0.10),
-      'Graduated' => Colors.blue.withValues(alpha: 0.10),
-      'Transferred' => Colors.orange.withValues(alpha: 0.10),
-      'Dropped' => Colors.red.withValues(alpha: 0.10),
-      _ => Colors.grey.shade200,
-    };
-  }
-
-  Color get _text {
-    return switch (status) {
-      'Enrolled' => AppColors.primaryGreen,
-      'Graduated' => Colors.blue.shade700,
-      'Transferred' => Colors.orange.shade800,
-      'Dropped' => Colors.red.shade700,
-      _ => Colors.grey.shade700,
-    };
-  }
-
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    final bg = switch (status) {
+      'Enrolled' => AppColors.primaryGreen.withValues(alpha: isDark ? 0.20 : 0.10),
+      'Graduated' => Colors.blue.withValues(alpha: isDark ? 0.20 : 0.10),
+      'Transferred' => Colors.orange.withValues(alpha: isDark ? 0.20 : 0.10),
+      'Dropped' => Colors.red.withValues(alpha: isDark ? 0.20 : 0.10),
+      _ => isDark ? AppColors.darkSurface2 : Colors.grey.shade200,
+    };
+
+    final fg = switch (status) {
+      'Enrolled' => AppColors.primaryGreen,
+      'Graduated' => isDark ? Colors.blue.shade300 : Colors.blue.shade700,
+      'Transferred' => isDark ? Colors.orange.shade300 : Colors.orange.shade800,
+      'Dropped' => isDark ? Colors.red.shade300 : Colors.red.shade700,
+      _ => isDark ? AppColors.darkTextSecondary : Colors.grey.shade700,
+    };
+
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
-        color: _bg,
+        color: bg,
         borderRadius: BorderRadius.circular(20),
       ),
       child: FittedBox(
@@ -2494,7 +2510,7 @@ class _StatusChip extends StatelessWidget {
           maxLines: 1,
           softWrap: false,
           style: TextStyle(
-            color: _text,
+            color: fg,
             fontWeight: FontWeight.w600,
             fontSize: 12,
           ),

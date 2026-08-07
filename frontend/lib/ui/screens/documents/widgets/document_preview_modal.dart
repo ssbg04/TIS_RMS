@@ -246,13 +246,14 @@ class _DocumentPreviewDialogState extends State<_DocumentPreviewDialog> {
 
   // ── Excel viewer panel ────────────────────────────────────
   Widget _buildExcelViewer(bool isMobile) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final screenH = MediaQuery.of(context).size.height;
     final double viewerHeight =
         isMobile ? math.min(420.0, screenH * 0.55) : 620.0;
     return SizedBox(
       height: viewerHeight,
       child: Container(
-        color: Colors.grey.shade100,
+        color: isDark ? AppColors.darkSurface2 : Colors.grey.shade100,
         child: ExcelViewerWidget(
           localFile: widget.localFile,
           networkUrl: widget.localFile != null ? null : _fileUrl,
@@ -265,8 +266,9 @@ class _DocumentPreviewDialogState extends State<_DocumentPreviewDialog> {
 
   // ── Image preview ─────────────────────────────────────────
   Widget _buildImagePreview() {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Container(
-      color: Colors.grey.shade100,
+      color: isDark ? AppColors.darkSurface2 : Colors.grey.shade100,
       child: _imageError
           ? _buildImageError()
           : Stack(
@@ -307,10 +309,10 @@ class _DocumentPreviewDialogState extends State<_DocumentPreviewDialog> {
                                       color: AppColors.primaryGreen,
                                     ),
                                     const SizedBox(height: 12),
-                                    const Text(
+                                    Text(
                                       'Loading image…',
                                       style: TextStyle(
-                                        color: AppColors.textSecondary,
+                                        color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
                                         fontSize: 13,
                                       ),
                                     ),
@@ -352,19 +354,20 @@ class _DocumentPreviewDialogState extends State<_DocumentPreviewDialog> {
   }
 
   Widget _buildImageError() {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Center(
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          const Icon(
+          Icon(
             Icons.broken_image_rounded,
             size: 64,
-            color: AppColors.textSecondary,
+            color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
           ),
           const SizedBox(height: 12),
-          const Text(
+          Text(
             'Could not load image',
-            style: TextStyle(color: AppColors.textSecondary, fontSize: 14),
+            style: TextStyle(color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary, fontSize: 14),
           ),
           const SizedBox(height: 8),
           TextButton.icon(
@@ -382,8 +385,9 @@ class _DocumentPreviewDialogState extends State<_DocumentPreviewDialog> {
 
   // ── PDF info panel ────────────────────────────────────────
   Widget _buildPdfInfo(bool isMobile) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Container(
-      color: Colors.grey.shade100,
+      color: isDark ? AppColors.darkSurface2 : Colors.grey.shade100,
       child: widget.localFile != null
           ? SfPdfViewer.file(
               widget.localFile!,
@@ -454,8 +458,9 @@ class _DocumentPreviewDialogState extends State<_DocumentPreviewDialog> {
     required String detail,
     required List<Widget> actions,
   }) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Container(
-      color: AppColors.surfaceWhite,
+      color: isDark ? AppColors.darkSurfaceCard : AppColors.surfaceWhite,
       child: Center(
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(32),
@@ -487,8 +492,8 @@ class _DocumentPreviewDialogState extends State<_DocumentPreviewDialog> {
               Text(
                 subtitle,
                 textAlign: TextAlign.center,
-                style: const TextStyle(
-                  color: AppColors.textPrimary,
+                style: TextStyle(
+                  color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
                   fontSize: 18,
                   fontWeight: FontWeight.bold,
                 ),
@@ -497,8 +502,8 @@ class _DocumentPreviewDialogState extends State<_DocumentPreviewDialog> {
                 const SizedBox(height: 6),
                 Text(
                   detail,
-                  style: const TextStyle(
-                    color: AppColors.textSecondary,
+                  style: TextStyle(
+                    color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
                     fontSize: 13,
                   ),
                 ),
@@ -508,25 +513,28 @@ class _DocumentPreviewDialogState extends State<_DocumentPreviewDialog> {
               Container(
                 padding: const EdgeInsets.all(14),
                 decoration: BoxDecoration(
-                  color: Colors.blue.withValues(alpha: 0.05),
+                  color: Colors.blue.withValues(alpha: isDark ? 0.15 : 0.05),
                   borderRadius: BorderRadius.circular(12),
                   border: Border.all(
-                    color: Colors.blue.withValues(alpha: 0.15),
+                    color: Colors.blue.withValues(alpha: isDark ? 0.3 : 0.15),
                   ),
                 ),
-                child: const Row(
+                child: Row(
                   children: [
-                    Icon(
+                    const Icon(
                       Icons.info_outline_rounded,
                       size: 16,
                       color: Colors.blue,
                     ),
-                    SizedBox(width: 8),
+                    const SizedBox(width: 8),
                     Expanded(
                       child: Text(
                         'This file type cannot be previewed inline. '
                         'Use the buttons below to view or download it.',
-                        style: TextStyle(color: Colors.blue, fontSize: 13),
+                        style: TextStyle(
+                          color: isDark ? Colors.blue.shade300 : Colors.blue,
+                          fontSize: 13,
+                        ),
                       ),
                     ),
                   ],

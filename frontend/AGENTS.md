@@ -88,29 +88,11 @@ Files backup/restore - mirror mode or zip -->
 <!-- ## backend server backup/restore
 - do not use zip and unzip -->
 
-# STUDENT SCREEN
-- add new student screen
-  - add ocr scan process loading after uploaded a scanned or file
-- edit student screen -> enrollments tab
-  - add manual enrollment OCR scan from uploaded document SF9 and SF10
-- dark color theme
-  - fix inactive chip color
-- student document folder action button
-  - if not enrolled add a confirmation dialog that you will navigate to archive screen and show the student documents
-- update multi select menu action same from the document screen, add select all
-- create enrollment log description update: CREATE enrollment [YEAR] - [GRADE LEVEL] - [SECTION] student [LRN] 
- 
 # DOCUMENT SCREEN
-- apply dark theme color
-  - download guide
-  - upload document wolt modal
-  - print list modal
-  - preview document modal 
-- multi select menu action
-  - add select all
+- hold and right click feature for files, add select, when clicked select shows multi select menu
 
-# ARCHIVES SCREEN
-- change the chip colors from the students screen
+# STUDENT SCREEN
+- update multi select menu action same from the document screen, add select all
 
 <!-- # DOCUMENTS SCREEN
 1. apply dark mode

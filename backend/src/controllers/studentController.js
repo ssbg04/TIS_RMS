@@ -17,6 +17,19 @@ const logActivity = (userId, action, entityType, entityId, description) => {
     }
 };
 
+const getEnrollmentLogDesc = (academicYearId, gradeLevel, sectionId, lrn) => {
+    try {
+        const ay = db.prepare('SELECT year_range FROM academic_years WHERE id = ?').get(academicYearId);
+        const sec = db.prepare('SELECT name FROM sections WHERE id = ?').get(sectionId);
+        const year = ay?.year_range || '';
+        const secName = sec?.name || '';
+        const gradeStr = String(gradeLevel).toLowerCase().startsWith('grade') ? gradeLevel : `Grade ${gradeLevel}`;
+        return `CREATE enrollment ${year} - ${gradeStr} - ${secName} student ${lrn}`;
+    } catch (err) {
+        return `CREATE enrollment student ${lrn}`;
+    }
+};
+
 function normalizeBirthDate(val) {
     if (!val) return null;
     const str = String(val).trim();
@@ -391,7 +404,7 @@ exports.createStudent = (req, res) => {
                 INSERT INTO enrollments (student_id, academic_year_id, section_id, grade_level, track_strand)
                 VALUES (?, ?, ?, ?, ?)
             `).run(newId, academicYearId, sectionId, gradeLevel, trackStrand || null);
-            logActivity(req.user?.id, 'CREATE', 'enrollment', enrRes.lastInsertRowid, `CREATE enrollment ${enrRes.lastInsertRowid} student ${lrn.trim()}`);
+            logActivity(req.user?.id, 'CREATE', 'enrollment', enrRes.lastInsertRowid, getEnrollmentLogDesc(academicYearId, gradeLevel, sectionId, lrn.trim()));
 
             return result;
         })();
@@ -593,7 +606,7 @@ exports.updateStudent = (req, res) => {
                         INSERT INTO enrollments (student_id, academic_year_id, section_id, grade_level, track_strand)
                         VALUES (?, ?, ?, ?, ?)
                     `).run(id, academicYearId, sectionId, gradeLevel, trackStrand || null);
-                    logActivity(req.user?.id, 'CREATE', 'enrollment', resEnr.lastInsertRowid, `CREATE enrollment ${resEnr.lastInsertRowid} student ${lrn.trim()}`);
+                    logActivity(req.user?.id, 'CREATE', 'enrollment', resEnr.lastInsertRowid, getEnrollmentLogDesc(academicYearId, gradeLevel, sectionId, lrn.trim()));
                 }
             }
 
@@ -680,7 +693,7 @@ exports.bulkEnrollStudents = (req, res) => {
                     }
                 } else {
                     const resIns = insertEnrollment.run(studentId, academicYearId, sectionId, gradeLevel, trackStrand || null);
-                    logActivity(req.user?.id, 'CREATE', 'enrollment', resIns.lastInsertRowid, `CREATE enrollment ${resIns.lastInsertRowid} student ${lrn}`);
+                    logActivity(req.user?.id, 'CREATE', 'enrollment', resIns.lastInsertRowid, getEnrollmentLogDesc(academicYearId, gradeLevel, sectionId, lrn));
                 }
                 updateStudentStatus.run('Enrolled', studentId);
             }
@@ -775,7 +788,7 @@ exports.addEnrollment = (req, res) => {
 
         const studentRow = db.prepare('SELECT lrn FROM students WHERE id = ?').get(studentId);
         const lrn = studentRow?.lrn || studentId;
-        logActivity(req.user?.id, 'CREATE', 'enrollment', info.lastInsertRowid, `CREATE enrollment ${info.lastInsertRowid} student ${lrn}`);
+        logActivity(req.user?.id, 'CREATE', 'enrollment', info.lastInsertRowid, getEnrollmentLogDesc(academicYearId, gradeLevel, sectionId, lrn));
         res.status(201).json({ message: 'Enrollment added successfully', id: info.lastInsertRowid });
     } catch (error) {
         console.error('addEnrollment error:', error);
@@ -999,8 +1012,7 @@ exports.bulkCreateStudents = (req, res) => {
             INSERT INTO enrollments (student_id, academic_year_id, section_id, grade_level, track_strand)
             VALUES (?, ?, ?, ?, ?)
         `).run(newId, s.academicYearId, s.sectionId, s.gradeLevel, s.trackStrand || null);
-        logActivity(req.user?.id, 'CREATE', 'enrollment', enrRes.lastInsertRowid,
-            `BULK OCR CREATE enrollment ${enrRes.lastInsertRowid} student ${lrn}`);
+        logActivity(req.user?.id, 'CREATE', 'enrollment', enrRes.lastInsertRowid, getEnrollmentLogDesc(s.academicYearId, s.gradeLevel, s.sectionId, lrn));
 
         // Auto-create student directory
         const folderName = `${sanitizeFolderName(s.lastName)}_${sanitizeFolderName(s.firstName)}_${lrn}`;
