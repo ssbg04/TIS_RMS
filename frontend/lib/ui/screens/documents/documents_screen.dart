@@ -269,7 +269,12 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
     final documentId = document.id;
     final studentId = document.studentId;
 
-    if (action == 'view_profile' && studentId != null) {
+    if (action == 'select') {
+      setState(() {
+        _isMultiSelectMode = true;
+        _selectedDocumentIds.add(documentId);
+      });
+    } else if (action == 'view_profile' && studentId != null) {
       showStudentProfileModal(
         context,
         studentId: studentId,
@@ -568,6 +573,7 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
     final pageDocs = ref.watch(documentPageProvider).value?.documents ?? [];
     final pageIds = pageDocs.map((d) => d.id).toSet();
     final bool allSelected = pageIds.isNotEmpty && pageIds.every((id) => _selectedDocumentIds.contains(id));
+    final buttonColor = isDark ? Colors.white : Colors.black;
 
     return Container(
       width: double.infinity,
@@ -582,13 +588,15 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
         scrollDirection: Axis.horizontal,
         child: Row(
           children: [
-            IconButton(
-              icon: Icon(Icons.close, color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary),
-              tooltip: 'Cancel selection',
-              onPressed: () => setState(() {
-                _selectedDocumentIds.clear();
-                _isMultiSelectMode = false;
-              }),
+            Tooltip(
+              message: 'Cancel selection',
+              child: IconButton(
+                icon: Icon(Icons.close, color: buttonColor),
+                onPressed: () => setState(() {
+                  _selectedDocumentIds.clear();
+                  _isMultiSelectMode = false;
+                }),
+              ),
             ),
             const SizedBox(width: 8),
             Text(
@@ -600,113 +608,72 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
               ),
             ),
             const SizedBox(width: 8),
-            TextButton.icon(
-              onPressed: pageDocs.isEmpty
-                  ? null
-                  : () {
-                      setState(() {
-                        if (allSelected) {
-                          _selectedDocumentIds.removeAll(pageIds);
-                          if (_selectedDocumentIds.isEmpty) {
-                            _isMultiSelectMode = false;
-                          }
-                        } else {
-                          _selectedDocumentIds.addAll(pageIds);
-                        }
-                      });
-                    },
-              icon: Icon(
-                allSelected ? Icons.deselect : Icons.select_all,
-                size: 18,
-                color: isDark ? AppColors.darkTextPrimary : AppColors.primaryGreen,
-              ),
-              label: Text(
-                allSelected ? 'Deselect All' : 'Select All',
-                style: TextStyle(
-                  color: isDark ? AppColors.darkTextPrimary : AppColors.primaryGreen,
+            Tooltip(
+              message: allSelected ? 'Unselect All' : 'Select All',
+              child: IconButton(
+                icon: Icon(
+                  allSelected ? Icons.deselect : Icons.select_all,
+                  color: buttonColor,
                 ),
+                onPressed: pageDocs.isEmpty
+                    ? null
+                    : () {
+                        setState(() {
+                          if (allSelected) {
+                            _selectedDocumentIds.clear();
+                          } else {
+                            _selectedDocumentIds.addAll(pageIds);
+                          }
+                        });
+                      },
               ),
             ),
             const SizedBox(width: 16),
             Container(width: 1, height: 24, color: isDark ? AppColors.darkBorder : Colors.grey.shade400),
             const SizedBox(width: 12),
-            _batchActionBtn(
-              icon: Icons.print_rounded,
-              label: 'Print',
-              color: AppColors.primaryGreen,
-              onTap: count == 0 ? () {} : _handleBatchPrint,
+            Tooltip(
+              message: 'Print',
+              child: IconButton(
+                icon: Icon(Icons.print_rounded, color: buttonColor),
+                onPressed: count == 0 ? null : _handleBatchPrint,
+              ),
             ),
-            _batchActionBtn(
-              icon: Icons.copy_rounded,
-              label: 'Copy',
-              color: Colors.blue,
-              onTap: count == 0 ? () {} : _handleBatchCopy,
+            Tooltip(
+              message: 'Copy',
+              child: IconButton(
+                icon: Icon(Icons.copy_rounded, color: buttonColor),
+                onPressed: count == 0 ? null : _handleBatchCopy,
+              ),
             ),
-            _batchActionBtn(
-              icon: Icons.download_rounded,
-              label: 'Download',
-              color: AppColors.primaryGreen,
-              onTap: count == 0 ? () {} : _handleBatchDownload,
+            Tooltip(
+              message: 'Download',
+              child: IconButton(
+                icon: Icon(Icons.download_rounded, color: buttonColor),
+                onPressed: count == 0 ? null : _handleBatchDownload,
+              ),
             ),
-            _batchActionBtn(
-              icon: Icons.check_circle_outline_rounded,
-              label: 'Complete',
-              color: AppColors.success,
-              onTap: count == 0 ? () {} : () => _handleBatchStatus('Completed'),
+            Tooltip(
+              message: 'Complete',
+              child: IconButton(
+                icon: Icon(Icons.check_circle_outline_rounded, color: buttonColor),
+                onPressed: count == 0 ? null : () => _handleBatchStatus('Completed'),
+              ),
             ),
-            _batchActionBtn(
-              icon: Icons.archive_outlined,
-              label: 'Archive',
-              color: Colors.orange,
-              onTap: count == 0 ? () {} : () => _handleBatchStatus('Archived'),
+            Tooltip(
+              message: 'Archive',
+              child: IconButton(
+                icon: Icon(Icons.archive_outlined, color: buttonColor),
+                onPressed: count == 0 ? null : () => _handleBatchStatus('Archived'),
+              ),
             ),
             if (isAdmin)
-              _batchActionBtn(
-                icon: Icons.delete_outline_rounded,
-                label: 'Delete',
-                color: AppColors.error,
-                onTap: count == 0 ? () {} : _handleBatchDelete,
+              Tooltip(
+                message: 'Delete',
+                child: IconButton(
+                  icon: Icon(Icons.delete_outline_rounded, color: buttonColor),
+                  onPressed: count == 0 ? null : _handleBatchDelete,
+                ),
               ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  /// Icon + label button used in the mobile batch actions row.
-  Widget _batchActionBtn({
-    required IconData icon,
-    required String label,
-    required Color color,
-    required VoidCallback onTap,
-  }) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(12),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              width: 44,
-              height: 44,
-              decoration: BoxDecoration(
-                color: color.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: color.withValues(alpha: 0.25)),
-              ),
-              child: Icon(icon, color: color, size: 22),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              label,
-              style: TextStyle(
-                fontSize: 10,
-                fontWeight: FontWeight.w600,
-                color: color,
-              ),
-            ),
           ],
         ),
       ),
@@ -3079,6 +3046,16 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
         Overlay.of(context).context.findRenderObject() as RenderBox;
 
     final items = <PopupMenuEntry<String>>[
+      const PopupMenuItem(
+        value: 'select',
+        child: Row(
+          children: [
+            Icon(Icons.check_box_outlined, size: 18),
+            SizedBox(width: 12),
+            Text('Select', style: TextStyle(fontSize: 14)),
+          ],
+        ),
+      ),
       const PopupMenuItem(
         value: 'queue',
         child: Row(

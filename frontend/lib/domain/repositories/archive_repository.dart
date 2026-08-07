@@ -46,7 +46,7 @@ class ArchiveRepository {
   Future<ArchivePage> getArchives({
     String search = '',
     int page = 1,
-    int limit = 10,
+    int limit = 15,
     String status = 'All Statuses',
   }) async {
     try {
@@ -95,7 +95,7 @@ class ArchiveRepository {
   Future<DocumentPage> getArchivedDocuments({
     String search = '',
     int page = 1,
-    int limit = 20,
+    int limit = 15,
     String status = 'All Statuses',
     String documentType = 'All Types',
     String gradeLevel = '',

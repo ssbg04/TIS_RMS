@@ -79,7 +79,7 @@ class TisRmsApp extends ConsumerWidget {
       navigatorKey: navigatorKey,
       child: MaterialApp(
         navigatorKey: navigatorKey,
-        title: 'TIS RMS',
+        title: 'TIS Record Management System',
         debugShowCheckedModeBanner: false,
 
         theme: AppTheme.lightTheme,

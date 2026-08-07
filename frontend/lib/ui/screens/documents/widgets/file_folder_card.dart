@@ -78,6 +78,16 @@ class _FileFolderCardState extends State<FileFolderCard> {
   List<PopupMenuEntry<String>> _buildMenuItems() {
     final items = <PopupMenuEntry<String>>[
       const PopupMenuItem(
+        value: 'select',
+        child: Row(
+          children: [
+            Icon(Icons.check_box_outlined, size: 18),
+            SizedBox(width: 12),
+            Text('Select', style: TextStyle(fontSize: 14)),
+          ],
+        ),
+      ),
+      const PopupMenuItem(
         value: 'queue',
         child: Row(
           children: [

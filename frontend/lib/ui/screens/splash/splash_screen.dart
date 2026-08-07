@@ -264,18 +264,28 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
         children: [
           if (!kIsWeb &&
               (Platform.isWindows || Platform.isLinux || Platform.isMacOS))
-            const SizedBox(
+            SizedBox(
               height: 32,
               child: WindowCaption(
                 brightness: Brightness.dark,
                 backgroundColor: AppColors.primaryGreen,
-                title: Text(
-                  'TIS RMS',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 13,
-                    fontWeight: FontWeight.w500,
-                  ),
+                title: Row(
+                  children: [
+                    Image.asset(
+                      'assets/images/logo.png',
+                      width: 18,
+                      height: 18,
+                    ),
+                    const SizedBox(width: 8),
+                    const Text(
+                      'TIS Record Management System',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 13,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ),

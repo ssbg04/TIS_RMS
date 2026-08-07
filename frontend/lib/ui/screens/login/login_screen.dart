@@ -211,6 +211,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> with SingleTickerProv
     showDialog(
       context: context,
       builder: (ctx) => _ForgotPasswordDialog(
+        initialUsername: _usernameController.text,
         onSuccess: (msg) {
           Navigator.pop(ctx);
           showSuccessDialog(
@@ -241,19 +242,25 @@ class _LoginScreenState extends ConsumerState<LoginScreen> with SingleTickerProv
             SizedBox(
               height: 32,
               child: WindowCaption(
-                brightness: Theme.of(context).brightness,
-                backgroundColor: isDark
-                    ? AppColors.primaryGreen
-                    : AppColors.primaryGreen,
-                title: Text(
-                  'Talisay Integrated School',
-                  style: TextStyle(
-                    color: isDark
-                        ? Theme.of(context).colorScheme.onSurface
-                        : Colors.white,
-                    fontSize: 13,
-                    fontWeight: FontWeight.w500,
-                  ),
+                brightness: Brightness.dark,
+                backgroundColor: AppColors.primaryGreen,
+                title: Row(
+                  children: [
+                    Image.asset(
+                      'assets/images/logo.png',
+                      width: 18,
+                      height: 18,
+                    ),
+                    const SizedBox(width: 8),
+                    const Text(
+                      'TIS Record Management System',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 13,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ),
@@ -651,7 +658,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> with SingleTickerProv
 // ================================================================
 class _ForgotPasswordDialog extends ConsumerStatefulWidget {
   final void Function(String message) onSuccess;
-  const _ForgotPasswordDialog({required this.onSuccess});
+  final String? initialUsername;
+  const _ForgotPasswordDialog({required this.onSuccess, this.initialUsername});
 
   @override
   ConsumerState<_ForgotPasswordDialog> createState() =>
@@ -665,6 +673,15 @@ class _ForgotPasswordDialogState extends ConsumerState<_ForgotPasswordDialog> {
   final _confirmPassCtrl = TextEditingController();
   bool _obscurePasswords = true;
   bool _isLoading = false;
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.initialUsername != null &&
+        widget.initialUsername!.trim().isNotEmpty) {
+      _usernameCtrl.text = widget.initialUsername!.trim();
+    }
+  }
 
   @override
   void dispose() {

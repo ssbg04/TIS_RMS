@@ -638,67 +638,106 @@ class _EditStudentModalState extends ConsumerState<EditStudentModal> {
           (a, b) => (b.gradeLevel ?? 0).compareTo(a.gradeLevel ?? 0),
         );
 
+        final isMobile = MediaQuery.of(context).size.width < 600;
+
+        Widget buildHeaderButtons({required bool expanded}) {
+          final ocrButton = OutlinedButton.icon(
+            onPressed: _handleScanEnrollmentFromSF,
+            icon: const Icon(Icons.document_scanner, size: 18),
+            label: Text(
+              isMobile ? 'OCR Scan' : 'OCR Scan (SF9/SF10)',
+              overflow: TextOverflow.ellipsis,
+            ),
+            style: OutlinedButton.styleFrom(
+              padding: EdgeInsets.symmetric(
+                horizontal: isMobile ? 8 : 14,
+                vertical: 10,
+              ),
+            ),
+          );
+
+          final addButton = ElevatedButton.icon(
+            onPressed: () {
+              showDialog(
+                context: context,
+                barrierColor: Colors.black.withValues(alpha: 0.45),
+                builder: (ctx) => EditEnrollmentModal(
+                  studentId: widget.student.id,
+                  enrollment: null,
+                ),
+              ).then((_) {
+                if (mounted) {
+                  ref.invalidate(studentDetailProvider(widget.student.id));
+                  ref.invalidate(studentPageProvider);
+                }
+              });
+            },
+            icon: const Icon(Icons.add, size: 18),
+            label: const Text(
+              'Add Enrollment',
+              overflow: TextOverflow.ellipsis,
+            ),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.primaryGreen,
+              foregroundColor: Colors.white,
+              padding: EdgeInsets.symmetric(
+                horizontal: isMobile ? 8 : 14,
+                vertical: 10,
+              ),
+            ),
+          );
+
+          if (expanded) {
+            return Row(
+              children: [
+                Expanded(child: ocrButton),
+                const SizedBox(width: 8),
+                Expanded(child: addButton),
+              ],
+            );
+          } else {
+            return Row(
+              children: [
+                ocrButton,
+                const SizedBox(width: 8),
+                addButton,
+              ],
+            );
+          }
+        }
+
         return Padding(
           padding: const EdgeInsets.all(24),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    'Academic History (${sorted.length})',
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                      color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
+              if (isMobile) ...[
+                Text(
+                  'Academic History (${sorted.length})',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                buildHeaderButtons(expanded: true),
+              ] else ...[
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      'Academic History (${sorted.length})',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                        color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
+                      ),
                     ),
-                  ),
-                  Row(
-                    children: [
-                      OutlinedButton.icon(
-                        onPressed: _handleScanEnrollmentFromSF,
-                        icon: const Icon(Icons.document_scanner, size: 18),
-                        label: const Text('OCR Scan (SF9/SF10)'),
-                        style: OutlinedButton.styleFrom(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 14,
-                            vertical: 10,
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      ElevatedButton.icon(
-                        onPressed: () {
-                          showDialog(
-                            context: context,
-                            barrierColor: Colors.black.withValues(alpha: 0.45),
-                            builder: (ctx) => EditEnrollmentModal(
-                              studentId: widget.student.id,
-                              enrollment: null,
-                            ),
-                          ).then((_) {
-                            if (mounted) {
-                              ref.invalidate(studentDetailProvider(widget.student.id));
-                              ref.invalidate(studentPageProvider);
-                            }
-                          });
-                        },
-                        icon: const Icon(Icons.add, size: 18),
-                        label: const Text('Add Enrollment'),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: AppColors.primaryGreen,
-                          foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 14,
-                            vertical: 10,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
+                    buildHeaderButtons(expanded: false),
+                  ],
+                ),
+              ],
               const SizedBox(height: 16),
               if (sorted.isEmpty)
                 Container(

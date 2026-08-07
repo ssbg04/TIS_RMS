@@ -88,11 +88,34 @@ Files backup/restore - mirror mode or zip -->
 <!-- ## backend server backup/restore
 - do not use zip and unzip -->
 
+# DASHBOARD SCREEN
+- remove background color in icon setup required widget
+
 # DOCUMENT SCREEN
-- hold and right click feature for files, add select, when clicked select shows multi select menu
+- remove icon before 'Students Folder'
+- remove background color in icon files 
+- enlarge icon slightly
+- android app hold feature dropdown same actions copy to menu of files
+- pagination limit 20
+- add back prevention for multi select menu active, it deactivates multi select menu
+- add back prevention for opened student folder, back to student folders tab  
 
 # STUDENT SCREEN
-- update multi select menu action same from the document screen, add select all
+- update multi select menu actions same from the document screen
+- add top and bottom list edge fade
+- add new student -> student details step -> responsive back and next button
+- pagination limit 20
+- add back prevention for multi select menu active, it deactivates multi select menu
+
+# ARCHIVES SCREEN
+- remove icon before 'System Archives'
+- pagination limit 20
+- add back prevention for opened student folder, back to student folders tab  
+
+# USERS MANAGEMENT SCREEN
+- pagination limit 20
+
+
 
 <!-- # DOCUMENTS SCREEN
 1. apply dark mode
@@ -123,9 +146,13 @@ Windows Service - NSSM nodejs
 ---
 
 ## (dont do) add some features
+- archives screen, add files menu for print, download
+- copy files name
+- auto enrollment OCR do not add in database if not 7-12 grade level detect
+- auto add enrollment in add student if the OCR upload is SF9/SF10
 - dark mode -> ongoing
 - documents screen
-  - excel to pdf all tabs export into one pdf
+  - excel to pdf: all tabs export into one pdf
 
 
 ---
