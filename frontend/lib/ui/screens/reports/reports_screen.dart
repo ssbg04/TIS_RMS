@@ -2835,7 +2835,9 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                   borderData: FlBorderData(show: false),
                   barTouchData: BarTouchData(
                     touchTooltipData: BarTouchTooltipData(
-                      getTooltipColor: (group) => Colors.blueGrey.shade800,
+                      getTooltipColor: (group) => isDark
+                          ? AppColors.darkSurface2
+                          : Colors.blueGrey.shade800,
                       getTooltipItem: (group, groupIndex, rod, rodIndex) {
                         if (groupIndex >= grades.length) return null;
                         final g = grades[groupIndex];
@@ -3134,8 +3136,9 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                           maxY: maxY,
                           barTouchData: BarTouchData(
                             touchTooltipData: BarTouchTooltipData(
-                              getTooltipColor: (group) =>
-                                  Colors.blueGrey.shade800,
+                              getTooltipColor: (group) => isDark
+                                  ? AppColors.darkSurface2
+                                  : Colors.blueGrey.shade800,
                               getTooltipItem:
                                   (group, groupIndex, rod, rodIndex) {
                                     if (groupIndex >= data.length) return null;
