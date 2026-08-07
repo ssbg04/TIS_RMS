@@ -236,35 +236,30 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
     });
   }
 
-  Widget _buildBatchActionsBar(List<StudentModel> allStudents) {
-    if (!_showMultiSelect) return const SizedBox.shrink();
-
+  Widget _buildInlineMultiSelectHeader(List<StudentModel> allStudents) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final count = _selectedStudentIds.length;
-    final allSelected = count > 0 && count == allStudents.length;
+    final allSelected = allStudents.isNotEmpty && count == allStudents.length;
     final buttonColor = isDark ? Colors.white : Colors.black;
 
     return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 16),
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       decoration: BoxDecoration(
-        color: isDark ? AppColors.darkSurfaceCard : AppColors.primaryGreen.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(32),
-        border: Border.all(
-          color: isDark ? AppColors.darkBorder : AppColors.primaryGreen.withValues(alpha: 0.2),
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.1),
-            blurRadius: 12,
-            offset: const Offset(0, 4),
+        color: isDark
+            ? AppColors.darkSurfaceCard
+            : AppColors.primaryGreen.withValues(alpha: 0.1),
+        border: Border(
+          bottom: BorderSide(
+            color: isDark
+                ? AppColors.darkBorder
+                : AppColors.primaryGreen.withValues(alpha: 0.2),
           ),
-        ],
+        ),
       ),
       child: SingleChildScrollView(
         scrollDirection: Axis.horizontal,
         child: Row(
-          mainAxisSize: MainAxisSize.min,
           children: [
             Tooltip(
               message: 'Cancel selection',
@@ -281,8 +276,10 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
               count == 0 ? 'Select items' : '$count selected',
               style: TextStyle(
                 fontWeight: FontWeight.bold,
-                fontSize: 15,
-                color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
+                fontSize: 16,
+                color: isDark
+                    ? AppColors.darkTextPrimary
+                    : AppColors.textPrimary,
               ),
             ),
             const SizedBox(width: 8),
@@ -293,10 +290,12 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
                   allSelected ? Icons.deselect : Icons.select_all,
                   color: buttonColor,
                 ),
-                onPressed: allStudents.isEmpty ? null : () => _toggleSelectAll(allStudents),
+                onPressed: allStudents.isEmpty
+                    ? null
+                    : () => _toggleSelectAll(allStudents),
               ),
             ),
-            const SizedBox(width: 12),
+            const SizedBox(width: 16),
             Container(
               width: 1,
               height: 24,
@@ -306,36 +305,53 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
             Tooltip(
               message: 'Enroll',
               child: IconButton(
-                icon: Icon(Icons.group_add_rounded, color: count == 0 ? Colors.grey : AppColors.primaryGreen),
+                icon: Icon(Icons.group_add_rounded, color: buttonColor),
                 onPressed: count == 0 ? null : _showBulkEnrollModal,
               ),
             ),
             Tooltip(
               message: 'Graduate',
               child: IconButton(
-                icon: Icon(Icons.school_rounded, color: count == 0 ? Colors.grey : Colors.blue),
+                icon: Icon(Icons.school_rounded, color: buttonColor),
                 onPressed: count == 0 ? null : _showBulkGraduateConfirm,
               ),
             ),
             Tooltip(
               message: 'Transfer',
               child: IconButton(
-                icon: Icon(Icons.transfer_within_a_station_rounded, color: count == 0 ? Colors.grey : Colors.orange),
-                onPressed: count == 0 ? null : () => _showBulkChangeStatusConfirm('Transferred', allStudents),
+                icon: Icon(
+                  Icons.transfer_within_a_station_rounded,
+                  color: buttonColor,
+                ),
+                onPressed: count == 0
+                    ? null
+                    : () => _showBulkChangeStatusConfirm(
+                        'Transferred',
+                        allStudents,
+                      ),
               ),
             ),
             Tooltip(
               message: 'Drop',
               child: IconButton(
-                icon: Icon(Icons.person_off_rounded, color: count == 0 ? Colors.grey : AppColors.error),
-                onPressed: count == 0 ? null : () => _showBulkChangeStatusConfirm('Dropped', allStudents),
+                icon: Icon(Icons.person_off_rounded, color: buttonColor),
+                onPressed: count == 0
+                    ? null
+                    : () =>
+                        _showBulkChangeStatusConfirm('Dropped', allStudents),
               ),
             ),
             Tooltip(
               message: 'Inactive',
               child: IconButton(
-                icon: Icon(Icons.do_not_disturb_on_total_silence_rounded, color: count == 0 ? Colors.grey : Colors.blueGrey),
-                onPressed: count == 0 ? null : () => _showBulkChangeStatusConfirm('Inactive', allStudents),
+                icon: Icon(
+                  Icons.do_not_disturb_on_total_silence_rounded,
+                  color: buttonColor,
+                ),
+                onPressed: count == 0
+                    ? null
+                    : () =>
+                        _showBulkChangeStatusConfirm('Inactive', allStudents),
               ),
             ),
           ],
@@ -704,20 +720,25 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // ── Header + Controls ──
-                      Padding(
-                        padding: const EdgeInsets.only(
-                          left: AppSizes.p24,
-                          right: AppSizes.p24,
-                          top: AppSizes.p24,
+                      // ── Header + Controls or Inline Multi-Select Header ──
+                      if (_showMultiSelect)
+                        _buildInlineMultiSelectHeader(
+                          pageAsync.value?.students ?? [],
+                        )
+                      else
+                        Padding(
+                          padding: const EdgeInsets.only(
+                            left: AppSizes.p24,
+                            right: AppSizes.p24,
+                            top: AppSizes.p24,
+                          ),
+                          child: _buildHeaderControls(
+                            context,
+                            query,
+                            ref,
+                            activeCount,
+                          ),
                         ),
-                        child: _buildHeaderControls(
-                          context,
-                          query,
-                          ref,
-                          activeCount,
-                        ),
-                      ),
                       const SizedBox(height: AppSizes.p24),
 
                       // ── Data Table / Cards ──
@@ -783,18 +804,6 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
               ],
             ),
           ),
-          if (_showMultiSelect)
-            Positioned(
-              left: 0,
-              right: 0,
-              bottom: 16,
-              child: SafeArea(
-                child: pageAsync.maybeWhen(
-                  data: (page) => _buildBatchActionsBar(page.students),
-                  orElse: () => const SizedBox.shrink(),
-                ),
-              ),
-            ),
         ],
       ),),
     );

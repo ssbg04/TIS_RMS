@@ -709,6 +709,9 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
           setState(() {
             _openedFolderStudentId = null;
             _openedFolderName = null;
+            if (_tabController.index != 0) {
+              _tabController.index = 0;
+            }
           });
           ref.read(openedFolderProvider.notifier).setFolder(null);
           ref.read(documentQueryProvider.notifier).setStudentId(null);

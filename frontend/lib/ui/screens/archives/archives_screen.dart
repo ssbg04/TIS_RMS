@@ -460,7 +460,11 @@ class _ArchivesScreenState extends ConsumerState<ArchivesScreen>
           setState(() {
             _openedFolderStudentId = null;
             _openedFolderName = null;
+            if (_tabController.index != 0) {
+              _tabController.index = 0;
+            }
           });
+          ref.read(openedArchiveFolderProvider.notifier).setFolder(null);
           ref.read(archiveDocumentQueryProvider.notifier).setStudentId(null);
           return;
         }

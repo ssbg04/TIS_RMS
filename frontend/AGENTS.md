@@ -89,15 +89,15 @@ Files backup/restore - mirror mode or zip -->
 - do not use zip and unzip -->
 
 # DOCUMENT SCREEN
-- add back prevention for multi select menu active, it deactivates multi select menu
-- add back prevention for opened student folder, back to student folders tab  
+- add back prevention when user press back button, if multi select menu active, it deactivates multi select menu
+- add back prevention when user press back button, if user open student folder, back to student folders tab  
 
 # STUDENT SCREEN
-- update multi select menu actions design same from the document screen
-- add back prevention for multi select menu active, it deactivates multi select menu
+- update multi select menu actions design same from the document screen, multi menu replace temporary the line of Students Directory, search icon and filter section
+- add back prevention when user press back button, if multi select menu active, it deactivates multi select menu
 
 # ARCHIVES SCREEN
-- add back prevention for opened student folder, back to student folders tab  
+- add back prevention when user press back button, if user open student folder, back to student folders list
 
 
 
