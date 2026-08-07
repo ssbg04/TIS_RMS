@@ -88,16 +88,34 @@ Files backup/restore - mirror mode or zip -->
 <!-- ## backend server backup/restore
 - do not use zip and unzip -->
 
+# ANDROID APP
+
 # DOCUMENT SCREEN
-- add back prevention when user press back button, if multi select menu active, it deactivates multi select menu
-- add back prevention when user press back button, if user open student folder, back to student folders tab  
+- add back prevention active multi select
+  - 1st back, deactivates multi select
+  - 2nd back, navigates to dashboard screen
+- if the mutli select deactive
+  - 1st back, navigate to dashboard
+
+- add back prevention inside student folder
+  - 1st back, navigates back folder 'Student Folders' tab
+  - 2nd back, navigates to dashboard screen
+- if the open folder is not present
+  - 1st back, navigate to dashboard
 
 # STUDENT SCREEN
-- update multi select menu actions design same from the document screen, multi menu replace temporary the line of Students Directory, search icon and filter section
-- add back prevention when user press back button, if multi select menu active, it deactivates multi select menu
+- add back prevention active multi select
+  - 1st back, deactivates multi select
+  - 2nd back, navigates to dashboard screen
+- if the mutli select deactive
+  - 1st back, navigate to dashboard
 
 # ARCHIVES SCREEN
-- add back prevention when user press back button, if user open student folder, back to student folders list
+- add back prevention inside student folder
+  - 1st back, navigates back folder 'Student Folders' tab
+  - 2nd back, navigates to dashboard screen
+- if the open folder is not present
+  - 1st back, navigate to dashboard
 
 
 

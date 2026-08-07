@@ -682,16 +682,18 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
     ].where((v) => v).length;
 
     return PopScope(
-      canPop: !_showMultiSelect,
+      canPop: false,
       onPopInvokedWithResult: (didPop, result) {
         if (didPop) return;
-        if (_showMultiSelect) {
+        if (ref.read(activeTabProvider) != 'Students') return;
+        if (_showMultiSelect || _selectedStudentIds.isNotEmpty) {
           setState(() {
             _showMultiSelect = false;
             _selectedStudentIds.clear();
           });
           return;
         }
+        ref.read(activeTabProvider.notifier).setTab('Dashboard');
       },
       child: Scaffold(
       backgroundColor: Colors.transparent,
@@ -2123,7 +2125,7 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
                 : null,
             child: InkWell(
               onTap: () {
-                if (_showMultiSelect) {
+        if (_showMultiSelect || _selectedStudentIds.isNotEmpty) {
                   setState(() {
                     if (_selectedStudentIds.contains(s.id)) {
                       _selectedStudentIds.remove(s.id);

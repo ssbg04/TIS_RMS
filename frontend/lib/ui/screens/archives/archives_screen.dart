@@ -446,17 +446,27 @@ class _ArchivesScreenState extends ConsumerState<ArchivesScreen>
     final isFolderOpened = _openedFolderStudentId != null;
 
     return PopScope(
-      canPop: !_isMultiSelectMode && !isFolderOpened,
+      canPop: false,
       onPopInvokedWithResult: (didPop, result) {
         if (didPop) return;
+        if (ref.read(activeTabProvider) != 'Archives') return;
         if (_isMultiSelectMode) {
           setState(() {
             _isMultiSelectMode = false;
             _selectedDocumentIds.clear();
+            if (_openedFolderStudentId != null) {
+              _openedFolderStudentId = null;
+              _openedFolderName = null;
+              if (_tabController.index != 0) {
+                _tabController.index = 0;
+              }
+            }
           });
+          ref.read(openedArchiveFolderProvider.notifier).setFolder(null);
+          ref.read(archiveDocumentQueryProvider.notifier).setStudentId(null);
           return;
         }
-        if (isFolderOpened) {
+        if (_openedFolderStudentId != null) {
           setState(() {
             _openedFolderStudentId = null;
             _openedFolderName = null;
@@ -468,6 +478,7 @@ class _ArchivesScreenState extends ConsumerState<ArchivesScreen>
           ref.read(archiveDocumentQueryProvider.notifier).setStudentId(null);
           return;
         }
+        ref.read(activeTabProvider.notifier).setTab('Dashboard');
       },
       child: GestureDetector(
         onTap: () => FocusScope.of(context).unfocus(),

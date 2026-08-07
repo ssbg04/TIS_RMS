@@ -22,8 +22,8 @@ import 'widgets/print_queue_modal.dart';
 import 'widgets/student_profile_modal.dart';
 import 'widgets/document_preview_modal.dart';
 import 'widgets/download_guide_dialog.dart';
-import '../../../../core/utils/download_service.dart';
-import '../../../../core/network/api_constants.dart';
+import '../../../core/utils/download_service.dart';
+import '../../../core/network/api_constants.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'widgets/recycle_bin_modal.dart';
 import '../../../domain/entities/document_model.dart';
@@ -695,14 +695,24 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
     final isFolderOpened = _openedFolderStudentId != null;
 
     return PopScope(
-      canPop: !_isMultiSelectMode && _openedFolderStudentId == null,
+      canPop: false,
       onPopInvokedWithResult: (didPop, result) {
         if (didPop) return;
+        if (ref.read(activeTabProvider) != 'Documents') return;
         if (_isMultiSelectMode) {
           setState(() {
             _isMultiSelectMode = false;
             _selectedDocumentIds.clear();
+            if (_openedFolderStudentId != null) {
+              _openedFolderStudentId = null;
+              _openedFolderName = null;
+              if (_tabController.index != 0) {
+                _tabController.index = 0;
+              }
+            }
           });
+          ref.read(openedFolderProvider.notifier).setFolder(null);
+          ref.read(documentQueryProvider.notifier).setStudentId(null);
           return;
         }
         if (_openedFolderStudentId != null) {
@@ -717,6 +727,7 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
           ref.read(documentQueryProvider.notifier).setStudentId(null);
           return;
         }
+        ref.read(activeTabProvider.notifier).setTab('Dashboard');
       },
       child: GestureDetector(
         onTap: () => FocusScope.of(context).unfocus(),

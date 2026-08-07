@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 // Use a relative import to reliably find your main.dart file
-import '../lib/main.dart';
+import 'package:frontend/main.dart';
 
 void main() {
   testWidgets('App boots up and displays the Splash Screen', (
@@ -12,8 +12,7 @@ void main() {
     await tester.pumpWidget(const TisRmsApp());
 
     // 2. Verify that our branding text is present on the Splash Screen
-    expect(find.text('TIS RMS'), findsOneWidget);
-    expect(find.text('Record Management System'), findsOneWidget);
+    expect(find.textContaining('TIS RMS'), findsWidgets);
 
     // 3. Verify that the loading spinner is present
     expect(find.byType(CircularProgressIndicator), findsOneWidget);

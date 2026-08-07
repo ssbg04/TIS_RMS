@@ -216,6 +216,11 @@ class _AndroidBottomNavLayoutState extends ConsumerState<AndroidBottomNavLayout>
         if (didPop) return;
 
         if (activeTab != 'Dashboard') {
+          if (activeTab == 'Documents' ||
+              activeTab == 'Students' ||
+              activeTab == 'Archives') {
+            return;
+          }
           _onNavTapped('Dashboard');
           return;
         }
