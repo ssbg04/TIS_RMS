@@ -783,7 +783,6 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
         behavior: HitTestBehavior.translucent,
         child: _buildDragDropWrapper(
         context,
-        showHint: _tabController.index == 1 && !isFolderOpened,
         child: Scaffold(
         backgroundColor: Colors.transparent,
         floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
@@ -975,20 +974,22 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
   }
 
   // ── DRAG AND DROP WRAPPER (Windows only) ──────────────────────────────────
-  Widget _buildDragDropWrapper(BuildContext context, {
-    required Widget child,
-    bool showHint = false,
-  }) {
+  Widget _buildDragDropWrapper(BuildContext context, {required Widget child}) {
     final isWindows = defaultTargetPlatform == TargetPlatform.windows;
     if (!isWindows) return child;
 
     return DropTarget(
-      onDragEntered: (details) => setState(() => _isDragOver = true),
-      onDragExited: (details) => setState(() => _isDragOver = false),
-      onDragDone: (details) {
+      onDragEntered: (details) {
+        if (ModalRoute.of(context)?.isCurrent != true) return;
+        setState(() => _isDragOver = true);
+      },
+      onDragExited: (details) {
+        if (ModalRoute.of(context)?.isCurrent != true) return;
         setState(() => _isDragOver = false);
-        // Only process drop when on a valid tab (All Files or inside a student folder)
-        if (!showHint) return;
+      },
+      onDragDone: (details) {
+        if (ModalRoute.of(context)?.isCurrent != true) return;
+        setState(() => _isDragOver = false);
         final validFiles = details.files.where((xfile) {
           final ext = xfile.path.toLowerCase();
           return ext.endsWith('.pdf') ||
@@ -1012,9 +1013,8 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
       child: Stack(
         children: [
           child,
-          // ── Idle hint removed from document tabs (only shown in Upload Modal) ──
-          // ── Active drop overlay (only when on a valid tab) ──
-          if (_isDragOver && showHint)
+          // ── Active drop overlay ──
+          if (_isDragOver)
               Positioned.fill(
                 child: IgnorePointer(
                   child: AnimatedContainer(

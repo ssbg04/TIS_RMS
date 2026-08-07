@@ -1,4 +1,6 @@
 import 'dart:async';
+import 'dart:io';
+import 'package:desktop_drop/desktop_drop.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -38,6 +40,7 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
 
   final List<int> _selectedStudentIds = [];
   bool _showMultiSelect = false;
+  bool _isDragOver = false;
   ProviderSubscription<String>? _tabListener;
   // Pending filter state (applied only when user taps "Apply now")
   String _pendingSchoolYear = 'All School Years';
@@ -163,10 +166,95 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
   // ----------------------------------------------------------------
   // SHOW BULK OCR IMPORT DIALOG
   // ----------------------------------------------------------------
-  Future<void> _openBulkOcrImport() async {
+  Future<void> _openBulkOcrImport({List<File>? preloadedFiles}) async {
     await Navigator.of(context).push<void>(
       MaterialPageRoute(
-        builder: (_) => const BulkOcrImportDialog(),
+        builder: (_) => BulkOcrImportDialog(preloadedFiles: preloadedFiles),
+      ),
+    );
+  }
+
+  // ── DRAG AND DROP WRAPPER (Windows only) ──────────────────────────────────
+  Widget _buildDragDropWrapper(BuildContext context, {required Widget child}) {
+    final isWindows = defaultTargetPlatform == TargetPlatform.windows;
+    if (!isWindows) return child;
+
+    return DropTarget(
+      onDragEntered: (details) {
+        if (ModalRoute.of(context)?.isCurrent != true) return;
+        setState(() => _isDragOver = true);
+      },
+      onDragExited: (details) {
+        if (ModalRoute.of(context)?.isCurrent != true) return;
+        setState(() => _isDragOver = false);
+      },
+      onDragDone: (details) {
+        if (ModalRoute.of(context)?.isCurrent != true) return;
+        setState(() => _isDragOver = false);
+        final validFiles = details.files.where((xfile) {
+          final ext = xfile.path.toLowerCase();
+          return ext.endsWith('.pdf') ||
+              ext.endsWith('.jpg') ||
+              ext.endsWith('.jpeg') ||
+              ext.endsWith('.png') ||
+              ext.endsWith('.xlsx') ||
+              ext.endsWith('.xls') ||
+              ext.endsWith('.csv');
+        }).map((x) => File(x.path)).toList();
+
+        if (validFiles.isNotEmpty) {
+          _openBulkOcrImport(preloadedFiles: validFiles);
+        }
+      },
+      child: Stack(
+        children: [
+          child,
+          if (_isDragOver)
+            Positioned.fill(
+              child: IgnorePointer(
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 200),
+                  decoration: BoxDecoration(
+                    color: AppColors.primaryGreen.withValues(alpha: 0.08),
+                    border: Border.all(
+                      color: AppColors.primaryGreen,
+                      width: 2.5,
+                      strokeAlign: BorderSide.strokeAlignInside,
+                    ),
+                  ),
+                  child: Center(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          Icons.cloud_upload_outlined,
+                          size: 64,
+                          color: AppColors.primaryGreen.withValues(alpha: 0.8),
+                        ),
+                        const SizedBox(height: 12),
+                        Text(
+                          'Drop files to import students',
+                          style: TextStyle(
+                            fontSize: 20,
+                            fontWeight: FontWeight.bold,
+                            color: AppColors.primaryGreen.withValues(alpha: 0.9),
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          'PDF, JPG, PNG, XLSX supported',
+                          style: TextStyle(
+                            fontSize: 13,
+                            color: AppColors.primaryGreen.withValues(alpha: 0.6),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
+        ],
       ),
     );
   }
@@ -695,7 +783,9 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
         }
         ref.read(activeTabProvider.notifier).setTab('Dashboard');
       },
-      child: Scaffold(
+      child: _buildDragDropWrapper(
+        context,
+        child: Scaffold(
       backgroundColor: Colors.transparent,
       floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
       floatingActionButton:
@@ -807,6 +897,7 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
             ),
           ),
         ],
+      ),
       ),),
     );
   }

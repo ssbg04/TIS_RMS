@@ -85,7 +85,9 @@ class _OcrItem {
 // Dialog
 // ---------------------------------------------------------------------------
 class BulkOcrImportDialog extends ConsumerStatefulWidget {
-  const BulkOcrImportDialog({super.key});
+  const BulkOcrImportDialog({super.key, this.preloadedFiles});
+
+  final List<File>? preloadedFiles;
 
   @override
   ConsumerState<BulkOcrImportDialog> createState() =>
@@ -99,6 +101,18 @@ class _BulkOcrImportDialogState extends ConsumerState<BulkOcrImportDialog> {
   bool _isDragOver = false;
   bool _isProcessing = false;
   int _processingIndex = -1;
+
+  @override
+  void initState() {
+    super.initState();
+    final preloaded = widget.preloadedFiles;
+    if (preloaded != null) {
+      for (final f in preloaded) {
+        final name = f.path.split(Platform.pathSeparator).last;
+        _items.add(_OcrItem(filePath: f.path, fileName: name));
+      }
+    }
+  }
 
   // Shared enrollment selection
   int? _sharedAcademicYearId;
