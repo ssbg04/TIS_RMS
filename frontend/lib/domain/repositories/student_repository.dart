@@ -35,6 +35,33 @@ class StudentPage {
   }
 }
 
+/// A single enrollment record extracted from an SF9/SF10 OCR scan.
+class OcrEnrollmentRecord {
+  final String gradeLevel;
+  final String section;
+  final String schoolYear;
+  final String adviserName;
+  final String semester;
+
+  const OcrEnrollmentRecord({
+    required this.gradeLevel,
+    required this.section,
+    required this.schoolYear,
+    this.adviserName = '',
+    this.semester = '',
+  });
+
+  factory OcrEnrollmentRecord.fromJson(Map<String, dynamic> json) {
+    return OcrEnrollmentRecord(
+      gradeLevel: (json['gradeLevel'] as String?) ?? '',
+      section: (json['section'] as String?) ?? '',
+      schoolYear: (json['schoolYear'] as String?) ?? '',
+      adviserName: (json['adviserName'] as String?) ?? '',
+      semester: (json['semester'] as String?) ?? '',
+    );
+  }
+}
+
 class StudentRepository {
   final Dio _dio = ApiConstants.createDio();
   final FlutterSecureStorage _storage = const FlutterSecureStorage();
@@ -441,14 +468,18 @@ class StudentRepository {
   // ----------------------------------------------------------------
   // Manual SF9/SF10 OCR Scan Enrollment
   // ----------------------------------------------------------------
-  Future<Map<String, dynamic>> scanEnrollmentFromSF(int studentId) async {
+  Future<List<OcrEnrollmentRecord>> scanEnrollmentFromSF(int studentId) async {
     try {
       final options = await _getAuthOptions();
       final response = await _dio.post(
         '/students/$studentId/ocr-enrollment',
         options: options,
       );
-      return response.data as Map<String, dynamic>;
+      final data = response.data as Map<String, dynamic>;
+      final records = (data['data'] as Map<String, dynamic>?)?['records'] as List?;
+      return (records ?? [])
+          .map((r) => OcrEnrollmentRecord.fromJson(r as Map<String, dynamic>))
+          .toList();
     } on DioException catch (e) {
       final msg = e.response?.data?['message'] ?? 'Failed to scan SF10/SF9 for enrollment.';
       throw Exception(msg);

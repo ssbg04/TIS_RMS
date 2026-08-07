@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'dart:convert';
+import 'dart:typed_data';
 import 'package:dio/dio.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import '../../core/network/api_constants.dart';
@@ -317,6 +318,34 @@ class DocumentRepository {
       await _dio.post('/documents/$id/copy', options: options);
     } on DioException catch (e) {
       final msg = e.response?.data?['message'] ?? 'Failed to copy document.';
+      throw Exception(msg);
+    }
+  }
+
+  /// Uploads in-memory bytes (e.g. a converted PDF) as a new document in the
+  /// student's folder.
+  Future<void> uploadDocumentBytes({
+    required int studentId,
+    required String documentType,
+    int? requirementId,
+    required String fileName,
+    required Uint8List bytes,
+  }) async {
+    try {
+      final options = await _getAuthOptions();
+      final formData = FormData.fromMap({
+        'studentId': studentId,
+        'documentType': documentType,
+        if (requirementId != null) 'requirementId': requirementId,
+        'document': MultipartFile.fromBytes(
+          bytes,
+          filename: fileName,
+          contentType: DioMediaType('application', 'pdf'),
+        ),
+      });
+      await _dio.post('/documents/upload', data: formData, options: options);
+    } on DioException catch (e) {
+      final msg = e.response?.data?['message'] ?? 'Failed to upload document.';
       throw Exception(msg);
     }
   }

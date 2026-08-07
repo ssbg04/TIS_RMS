@@ -888,45 +888,48 @@ exports.scanEnrollmentFromSF = async (req, res) => {
         }
 
         const sfEnrollmentService = require('../services/sfEnrollmentService');
-        let lastResult = null;
-        let successCount = 0;
-        let results = [];
-        let aggregatedRecords = [];
+        const seenKey = new Set();
+        const records = [];
+        let lastExtracted = null;
+        let lastError = null;
 
         for (const doc of docs) {
-            const resData = await sfEnrollmentService.autoEnrollFromSF({
-                studentId,
+            const result = await sfEnrollmentService.extractEnrollmentData({
                 file: { path: doc.file_path, originalname: doc.file_name },
                 documentType: doc.document_type,
-                userId: req.user?.id,
                 manual: true
             });
-            results.push(resData);
-            if (resData.success) {
-                successCount++;
-                lastResult = resData;
-                if (Array.isArray(resData.allRecords)) {
-                    aggregatedRecords.push(...resData.allRecords);
-                }
+            if (!result.ok) {
+                lastError = result.message;
+                continue;
+            }
+            lastExtracted = result.extracted;
+            for (const rec of result.uniqueRecords) {
+                const gradeNum = parseInt(String(rec.gradeLevel).replace(/\D/g, ''), 10);
+                const key = `${gradeNum}_${(rec.schoolYear || '').trim()}_${(rec.section || '').trim()}`.toLowerCase();
+                if (seenKey.has(key)) continue;
+                seenKey.add(key);
+                records.push({
+                    gradeLevel: String(gradeNum),
+                    section: (rec.section || '').trim(),
+                    schoolYear: (rec.schoolYear || '').trim(),
+                    adviserName: rec.adviserName || '',
+                    semester: rec.semester || ''
+                });
             }
         }
 
-        if (successCount === 0) {
+        if (records.length === 0) {
             return res.status(400).json({
                 success: false,
-                message: lastResult?.message || 'Failed to extract Academic Year, Grade Level, or Section from the scanned SF10/SF9 documents.',
-                details: results
+                message: lastError || 'No Grade 7-12 enrollment records could be extracted from the SF10/SF9 documents.'
             });
-        }
-
-        if (aggregatedRecords.length > 0) {
-            lastResult.allRecords = aggregatedRecords;
         }
 
         return res.json({
             success: true,
-            message: `Successfully scanned SF10/SF9 and processed ${aggregatedRecords.length || 1} enrollment record(s).`,
-            data: lastResult
+            message: `Scanned ${records.length} enrollment record(s). Review before saving.`,
+            data: { extracted: lastExtracted, records }
         });
     } catch (error) {
         console.error('scanEnrollmentFromSF error:', error);

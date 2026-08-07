@@ -11,6 +11,7 @@ import '../../../shared/dialogs/success_dialog.dart';
 import '../../../shared/dialogs/error_dialog.dart';
 import '../../../providers/student_provider.dart';
 import 'edit_enrollment_modal.dart';
+import 'ocr_enrollment_validation_modal.dart';
 import 'student_form_helpers.dart';
 
 class EditStudentModal extends ConsumerStatefulWidget {
@@ -40,6 +41,7 @@ class _EditStudentModalState extends ConsumerState<EditStudentModal> {
   late bool _is4ps;
 
   bool _isLoading = false;
+  bool _isOcrScanning = false;
   String? _errorMessage;
 
   late StudentModel _initialStudent;
@@ -575,50 +577,48 @@ class _EditStudentModalState extends ConsumerState<EditStudentModal> {
   }
 
   Future<void> _handleScanEnrollmentFromSF() async {
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (ctx) => const Center(
-        child: Card(
-          child: Padding(
-            padding: EdgeInsets.all(24.0),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                CircularProgressIndicator(),
-                SizedBox(height: 16),
-                Text('Scanning SF9/SF10 for enrollment data...'),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-
+    setState(() => _isOcrScanning = true);
     try {
-      final res = await ref
+      final records = await ref
           .read(studentMutationProvider.notifier)
           .scanEnrollmentFromSF(widget.student.id);
 
-      if (mounted) {
-        Navigator.of(context, rootNavigator: true).pop();
+      if (!mounted) return;
+
+      if (records.isEmpty) {
+        showErrorDialog(
+          context,
+          'OCR Scan Failed',
+          'No Grade 7-12 enrollment records were detected from the '
+          'SF9/SF10 documents.',
+        );
+        return;
       }
 
-      final msg = res['message'] as String? ??
-          'Successfully scanned enrollment from SF10/SF9.';
+      final accepted = await OcrEnrollmentValidationModal.show(
+        context,
+        studentId: widget.student.id,
+        records: records,
+      );
 
-      if (mounted) {
-        await showSuccessDialog(context, message: msg);
-        ref.invalidate(studentDetailProvider(widget.student.id));
-        ref.invalidate(studentPageProvider);
+      if (!mounted) return;
+
+      ref.invalidate(studentDetailProvider(widget.student.id));
+      ref.invalidate(studentPageProvider);
+
+      if (accepted > 0) {
+        await showSuccessDialog(
+          context,
+          message: '$accepted enrollment record(s) added.',
+        );
       }
     } catch (e) {
-      if (mounted) {
-        Navigator.of(context, rootNavigator: true).pop();
-        final raw = e.toString();
-        final msg = raw.startsWith('Exception: ') ? raw.substring(11) : raw;
-        showErrorDialog(context, 'OCR Scan Failed', msg);
-      }
+      if (!mounted) return;
+      final raw = e.toString();
+      final msg = raw.startsWith('Exception: ') ? raw.substring(11) : raw;
+      showErrorDialog(context, 'OCR Scan Failed', msg);
+    } finally {
+      if (mounted) setState(() => _isOcrScanning = false);
     }
   }
 
@@ -642,10 +642,20 @@ class _EditStudentModalState extends ConsumerState<EditStudentModal> {
 
         Widget buildHeaderButtons({required bool expanded}) {
           final ocrButton = OutlinedButton.icon(
-            onPressed: _handleScanEnrollmentFromSF,
-            icon: const Icon(Icons.document_scanner, size: 18),
+            onPressed: _isOcrScanning ? null : _handleScanEnrollmentFromSF,
+            icon: _isOcrScanning
+                ? const SizedBox(
+                    width: 16,
+                    height: 16,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                : const Icon(Icons.document_scanner, size: 18),
             label: Text(
-              isMobile ? 'OCR Scan' : 'OCR Scan (SF9/SF10)',
+              isMobile
+                  ? (_isOcrScanning ? 'Scanning...' : 'OCR Scan')
+                  : (_isOcrScanning
+                      ? 'Scanning...'
+                      : 'OCR Scan (SF9/SF10)'),
               overflow: TextOverflow.ellipsis,
             ),
             style: OutlinedButton.styleFrom(

@@ -27,6 +27,7 @@ import '../../../core/network/api_constants.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'widgets/recycle_bin_modal.dart';
 import '../../../domain/entities/document_model.dart';
+import '../../../core/utils/excel_to_pdf_converter.dart';
 
 class DocumentsScreen extends ConsumerStatefulWidget {
   final String userRole;
@@ -306,6 +307,8 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
         if (!mounted) return;
         showErrorDialog(context, 'Copy Failed', e.toString());
       }
+    } else if (action == 'convert_pdf') {
+      await _handleConvertToPdf(document);
     } else if (action == 'preview') {
       showDocumentPreview(context: context, document: document);
     } else if (action == 'download') {
@@ -334,6 +337,52 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
         if (!context.mounted) return;
         showErrorDialog(context, 'Download Failed', e.toString());
       }
+    }
+  }
+
+  bool _isExcelFile(DocumentModel doc) {
+    final name = doc.fileName.toLowerCase();
+    return name.endsWith('.xls') || name.endsWith('.xlsx') || name.endsWith('.csv');
+  }
+
+  Future<void> _handleConvertToPdf(DocumentModel doc) async {
+    if (doc.studentId == null) {
+      showErrorDialog(context, 'Conversion Failed', 'No student folder found for this document.');
+      return;
+    }
+    try {
+      final bytes =
+          await ref.read(documentRepositoryProvider).downloadDocumentBytes(doc.id);
+      if (!mounted) return;
+      final pdfBytes = await convertExcelBytesToPdf(bytes);
+      if (pdfBytes.length > 10 * 1024 * 1024) {
+        showErrorDialog(
+          context,
+          'Conversion Failed',
+          'Converted PDF exceeds the 10MB upload limit.',
+        );
+        return;
+      }
+      final baseName = doc.fileName.replaceFirst(
+        RegExp(r'\.(xls|xlsx|csv)$', caseSensitive: false),
+        '',
+      );
+      await ref.read(documentRepositoryProvider).uploadDocumentBytes(
+            studentId: doc.studentId!,
+            documentType: doc.documentType ?? 'Document',
+            requirementId: doc.requirementId,
+            fileName: '$baseName.pdf',
+            bytes: pdfBytes,
+          );
+      if (!mounted) return;
+      ref.invalidate(documentPageProvider);
+      showSuccessDialog(
+        context,
+        message: 'Converted to PDF and saved in the student folder.',
+      );
+    } catch (e) {
+      if (!mounted) return;
+      showErrorDialog(context, 'Conversion Failed', e.toString());
     }
   }
 
@@ -2836,6 +2885,18 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
                           ],
                         ),
                       ),
+                      if (_isExcelFile(doc as DocumentModel)) ...[
+                        const PopupMenuItem(
+                          value: 'convert_pdf',
+                          child: Row(
+                            children: [
+                              Icon(Icons.picture_as_pdf, size: 16),
+                              SizedBox(width: 10),
+                              Text('Convert to PDF', style: TextStyle(fontSize: 13)),
+                            ],
+                          ),
+                        ),
+                      ],
                       const PopupMenuDivider(),
                       const PopupMenuItem(
                         value: 'view_profile',
@@ -3137,18 +3198,23 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
           ],
         ),
       ),
-      const PopupMenuDivider(),
-      const PopupMenuItem(
-        value: 'view_profile',
-        child: Row(
-          children: [
-            Icon(Icons.person, size: 18, color: AppColors.primaryGreen),
-            SizedBox(width: 12),
-            Text('View Student Profile', style: TextStyle(fontSize: 14)),
-          ],
-        ),
-      ),
     ];
+
+    if (_isExcelFile(doc)) {
+      items.insert(
+        4,
+        const PopupMenuItem(
+          value: 'convert_pdf',
+          child: Row(
+            children: [
+              Icon(Icons.picture_as_pdf, size: 18),
+              SizedBox(width: 12),
+              Text('Convert to PDF', style: TextStyle(fontSize: 14)),
+            ],
+          ),
+        ),
+      );
+    }
 
     if (widget.userRole != 'teacher') {
       items.add(const PopupMenuDivider());

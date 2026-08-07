@@ -17,6 +17,10 @@ import '../../shared/inputs/custom_text_field.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/navigation_provider.dart';
 import '../documents/widgets/document_preview_modal.dart';
+import '../documents/widgets/print_queue_modal.dart';
+import '../../../core/utils/download_service.dart';
+import '../../../core/network/api_constants.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 class ArchivesScreen extends ConsumerStatefulWidget {
   final String userRole;
@@ -434,6 +438,104 @@ class _ArchivesScreenState extends ConsumerState<ArchivesScreen>
   // ── Preview document ────────────────────────────────────────────
   void _handlePreview(DocumentModel doc) {
     showDocumentPreview(context: context, document: doc);
+  }
+
+  // ── Document file menu (print, download, preview) ──────────────
+  Future<void> _handleDocumentAction(String action, DocumentModel doc) async {
+    if (action == 'preview') {
+      _handlePreview(doc);
+    } else if (action == 'print') {
+      try {
+        await ref.read(printQueueMutationProvider.notifier).addToQueue(doc.id);
+      } catch (_) {
+        // Already in the print list - still open the queue.
+      }
+      if (!mounted) return;
+      PrintQueueModal.show(context);
+    } else if (action == 'download') {
+      try {
+        final token =
+            await const FlutterSecureStorage().read(key: 'jwt_token');
+        if (token == null) return;
+        final url =
+            '${ApiConstants.baseUrl}/documents/${doc.id}/view?token=$token&download=true';
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Download started...'),
+            duration: Duration(seconds: 2),
+          ),
+        );
+        await DownloadService.downloadFile(
+          url: url,
+          fileName: doc.fileName,
+        );
+        if (!context.mounted) return;
+        showSuccessDialog(
+          context,
+          message: 'Document downloaded successfully.',
+        );
+      } catch (e) {
+        if (!context.mounted) return;
+        showErrorDialog(context, 'Download Failed', e.toString());
+      }
+    }
+  }
+
+  List<PopupMenuEntry<String>> _buildDocumentMenuItems() {
+    return const [
+      PopupMenuItem(
+        value: 'preview',
+        child: Row(
+          children: [
+            Icon(Icons.visibility_outlined, size: 18),
+            SizedBox(width: 12),
+            Text('Preview', style: TextStyle(fontSize: 14)),
+          ],
+        ),
+      ),
+      PopupMenuItem(
+        value: 'print',
+        child: Row(
+          children: [
+            Icon(Icons.print, size: 18),
+            SizedBox(width: 12),
+            Text('Print', style: TextStyle(fontSize: 14)),
+          ],
+        ),
+      ),
+      PopupMenuItem(
+        value: 'download',
+        child: Row(
+          children: [
+            Icon(Icons.download, size: 18),
+            SizedBox(width: 12),
+            Text('Download', style: TextStyle(fontSize: 14)),
+          ],
+        ),
+      ),
+    ];
+  }
+
+  void _showDocumentContextMenu(
+    BuildContext context,
+    Offset position,
+    DocumentModel doc,
+  ) {
+    if (_isMultiSelectMode) return;
+    final RenderBox overlay =
+        Overlay.of(context).context.findRenderObject() as RenderBox;
+
+    showMenu<String>(
+      context: context,
+      position: RelativeRect.fromRect(
+        position & const Size(40, 40),
+        Offset.zero & overlay.size,
+      ),
+      items: _buildDocumentMenuItems(),
+    ).then((value) {
+      if (value != null) _handleDocumentAction(value, doc);
+    });
   }
 
   @override
@@ -1669,21 +1771,24 @@ class _ArchivesScreenState extends ConsumerState<ArchivesScreen>
   Widget _buildDesktopListRow(DocumentModel doc) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final isSelected = _selectedDocumentIds.contains(doc.id);
-    return InkWell(
-      onTap: () {
-        if (_isMultiSelectMode) {
-          setState(() {
-            if (isSelected) {
-              _selectedDocumentIds.remove(doc.id);
-            } else {
-              _selectedDocumentIds.add(doc.id);
-            }
-          });
-        } else {
-          _handlePreview(doc);
-        }
-      },
-      child: Container(
+    return GestureDetector(
+      onSecondaryTapDown: (details) =>
+          _showDocumentContextMenu(context, details.globalPosition, doc),
+      child: InkWell(
+        onTap: () {
+          if (_isMultiSelectMode) {
+            setState(() {
+              if (isSelected) {
+                _selectedDocumentIds.remove(doc.id);
+              } else {
+                _selectedDocumentIds.add(doc.id);
+              }
+            });
+          } else {
+            _handlePreview(doc);
+          }
+        },
+        child: Container(
         color: isSelected
             ? AppColors.primaryGreen.withValues(alpha: 0.06)
             : Colors.transparent,
@@ -1770,17 +1875,22 @@ class _ArchivesScreenState extends ConsumerState<ArchivesScreen>
               ),
             ),
             Expanded(child: _buildStatusChip(doc.status)),
-            SizedBox(
-              width: 40,
-              child: IconButton(
-                icon: const Icon(Icons.visibility_outlined, size: 18),
-                color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
-                tooltip: 'Preview',
-                onPressed: () => _handlePreview(doc),
+            if (!_isMultiSelectMode)
+              SizedBox(
+                width: 40,
+                child: PopupMenuButton<String>(
+                  icon: const Icon(Icons.more_vert, size: 18),
+                  iconColor: isDark
+                      ? AppColors.darkTextSecondary
+                      : AppColors.textSecondary,
+                  padding: EdgeInsets.zero,
+                  onSelected: (a) => _handleDocumentAction(a, doc),
+                  itemBuilder: (_) => _buildDocumentMenuItems(),
+                ),
               ),
-            ),
           ],
         ),
+      ),
       ),
     );
   }
@@ -1788,21 +1898,26 @@ class _ArchivesScreenState extends ConsumerState<ArchivesScreen>
   Widget _buildMobileListRow(DocumentModel doc) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final isSelected = _selectedDocumentIds.contains(doc.id);
-    return InkWell(
-      onTap: () {
-        if (_isMultiSelectMode) {
-          setState(() {
-            if (isSelected) {
-              _selectedDocumentIds.remove(doc.id);
-            } else {
-              _selectedDocumentIds.add(doc.id);
-            }
-          });
-        } else {
-          _handlePreview(doc);
-        }
-      },
-      child: Container(
+    return GestureDetector(
+      onSecondaryTapDown: (details) =>
+          _showDocumentContextMenu(context, details.globalPosition, doc),
+      onLongPressStart: (details) =>
+          _showDocumentContextMenu(context, details.globalPosition, doc),
+      child: InkWell(
+        onTap: () {
+          if (_isMultiSelectMode) {
+            setState(() {
+              if (isSelected) {
+                _selectedDocumentIds.remove(doc.id);
+              } else {
+                _selectedDocumentIds.add(doc.id);
+              }
+            });
+          } else {
+            _handlePreview(doc);
+          }
+        },
+        child: Container(
         color: isSelected
             ? AppColors.primaryGreen.withValues(alpha: 0.06)
             : Colors.transparent,
@@ -1882,17 +1997,22 @@ class _ArchivesScreenState extends ConsumerState<ArchivesScreen>
               crossAxisAlignment: CrossAxisAlignment.end,
               children: [
                 _buildStatusChip(doc.status),
-                IconButton(
-                  icon: const Icon(Icons.visibility_outlined, size: 20),
-                  color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
-                  padding: EdgeInsets.zero,
-                  constraints: const BoxConstraints(),
-                  onPressed: () => _handlePreview(doc),
-                ),
+                if (!_isMultiSelectMode)
+                  PopupMenuButton<String>(
+                    icon: const Icon(Icons.more_vert, size: 20),
+                    iconColor: isDark
+                        ? AppColors.darkTextSecondary
+                        : AppColors.textSecondary,
+                    padding: EdgeInsets.zero,
+                    constraints: const BoxConstraints(),
+                    onSelected: (a) => _handleDocumentAction(a, doc),
+                    itemBuilder: (_) => _buildDocumentMenuItems(),
+                  ),
               ],
             ),
           ],
         ),
+      ),
       ),
     );
   }
@@ -1925,7 +2045,12 @@ class _ArchivesScreenState extends ConsumerState<ArchivesScreen>
                 itemBuilder: (ctx, i) {
                   final doc = documents[i];
                   final isSelected = _selectedDocumentIds.contains(doc.id);
-                  return InkWell(
+                  return GestureDetector(
+                    onSecondaryTapDown: (details) =>
+                        _showDocumentContextMenu(ctx, details.globalPosition, doc),
+                    onLongPressStart: (details) =>
+                        _showDocumentContextMenu(ctx, details.globalPosition, doc),
+                    child: InkWell(
                     onTap: () {
                       if (_isMultiSelectMode) {
                         setState(() {
@@ -1940,7 +2065,9 @@ class _ArchivesScreenState extends ConsumerState<ArchivesScreen>
                       }
                     },
                     borderRadius: BorderRadius.circular(12),
-                    child: Container(
+                    child: Stack(
+                      children: [
+                        Container(
                       decoration: BoxDecoration(
                         color: isSelected
                             ? AppColors.primaryGreen.withValues(alpha: 0.08)
@@ -2018,6 +2145,24 @@ class _ArchivesScreenState extends ConsumerState<ArchivesScreen>
                           ],
                         ],
                       ),
+                        ),
+                        if (!_isMultiSelectMode)
+                          Positioned(
+                            top: 4,
+                            right: 4,
+                            child: PopupMenuButton<String>(
+                              icon: const Icon(Icons.more_vert, size: 16),
+                              iconColor: isDark
+                                  ? AppColors.darkTextSecondary
+                                  : AppColors.textSecondary,
+                              padding: EdgeInsets.zero,
+                              constraints: const BoxConstraints(),
+                              onSelected: (a) => _handleDocumentAction(a, doc),
+                              itemBuilder: (_) => _buildDocumentMenuItems(),
+                            ),
+                          ),
+                      ],
+                    ),
                     ),
                   );
                 },

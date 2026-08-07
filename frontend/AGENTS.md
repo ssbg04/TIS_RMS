@@ -88,7 +88,7 @@ Files backup/restore - mirror mode or zip -->
 <!-- ## backend server backup/restore
 - do not use zip and unzip -->
 
-# ANDROID APP
+<!-- # ANDROID APP
 
 # DOCUMENT SCREEN
 - add back prevention active multi select
@@ -115,9 +115,7 @@ Files backup/restore - mirror mode or zip -->
   - 1st back, navigates back folder 'Student Folders' tab
   - 2nd back, navigates to dashboard screen
 - if the open folder is not present
-  - 1st back, navigate to dashboard
-
-
+  - 1st back, navigate to dashboard -->
 
 <!-- # DOCUMENTS SCREEN
 1. apply dark mode
@@ -129,6 +127,23 @@ Files backup/restore - mirror mode or zip -->
   - search icon into 'X' when searched an user, clears search and refresh users list
   - fix searched field didnt hide when searched an user -->
 
+
+# ARCHIVES SCREEN
+- add files menu for print, download, hold for android app, right click for windows app, add icon menu for easy access
+
+# DOCUMENTS SCREEN
+- copy file rename format same as orginal file name add (1) or incrementing number if name already exist
+- add new feature -> excel to pdf: all tabs export into one pdf, hold/right click, or icon menu for excel files then make a convertion but in pdf do not delete the excel file
+
+# STUDENT SCREEN
+1. edit student screen -> enrollments tab -> auto enrollment OCR:
+  - do not add in database if not 7-12 grade level detect
+  - add manual validation to add year level, grade level, section before saving to database
+  - in manual validation add actions accept, decline, or delete, use only icons.
+  - for icon only icons no container, no background, no border
+2. Add new student screen:
+  - processing OCR remove the circle loading
+  - auto add enrollment if the OCR scan uploaded is SF9/SF10
 
 ---
 
@@ -148,13 +163,8 @@ Windows Service - NSSM nodejs
 ---
 
 ## (dont do) add some features
-- archives screen, add files menu for print, download
-- copy files name
-- auto enrollment OCR do not add in database if not 7-12 grade level detect
-- auto add enrollment in add student if the OCR upload is SF9/SF10
 - dark mode -> ongoing
-- documents screen
-  - excel to pdf: all tabs export into one pdf
+
 
 
 ---

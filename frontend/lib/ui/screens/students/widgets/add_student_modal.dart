@@ -6,12 +6,15 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_sizes.dart';
 import '../../../../domain/entities/setup_models.dart';
+import '../../../../domain/entities/ocr_result_model.dart';
+import '../../../../domain/repositories/student_repository.dart';
 import '../../../shared/buttons/primary_button.dart';
 import '../../../providers/setup_provider.dart';
 import '../../../providers/ocr_provider.dart';
 import '../../../providers/student_provider.dart';
 import '../../documents/widgets/document_preview_modal.dart';
 import '../../../shared/inputs/document_source_picker.dart';
+import 'ocr_enrollment_validation_modal.dart';
 import 'student_form_helpers.dart';
 
 class AddStudentModal extends ConsumerStatefulWidget {
@@ -42,6 +45,10 @@ class _AddStudentModalState extends ConsumerState<AddStudentModal> {
   int? _selectedGradeLevel;
   int? _selectedSectionId;
   String? _trackStrand;
+
+  /// Enrollment accepted from the OCR review dialog; auto-fills the
+  /// enrollment step until the student is saved.
+  OcrEnrollmentPrefill? _ocrSavedEnrollment;
 
   File? _ocrScannedFile;
   String? _selectedOcrDocType;
@@ -296,6 +303,8 @@ class _AddStudentModalState extends ConsumerState<AddStudentModal> {
         _selectedOcrDocType = docType;
         _currentStep = 1;
       });
+
+      await _offerOcrEnrollment(ocrResult, docType);
     } catch (e) {
       if (!mounted) return;
       final raw = e.toString();
@@ -306,6 +315,37 @@ class _AddStudentModalState extends ConsumerState<AddStudentModal> {
         setState(() => _isLoading = false);
       }
     }
+  }
+
+  /// For SF9/SF10 scans with a Grade 7-12 level, let the user review and
+  /// edit the detected enrollment (year level, grade level, section).
+  /// On accept the enrollment is saved into [_ocrSavedEnrollment] and the
+  /// enrollment step auto-fills with it.
+  Future<void> _offerOcrEnrollment(
+    OcrResultModel ocrResult,
+    String docType,
+  ) async {
+    if (docType != 'SF9' && docType != 'SF10') return;
+    final gradeNum = int.tryParse(ocrResult.gradeLevel.replaceAll(RegExp(r'\D'), ''));
+    if (gradeNum == null || gradeNum < 7 || gradeNum > 12) return;
+    if (!mounted) return;
+
+    final prefill = await OcrEnrollmentValidationModal.showForAddStudent(
+      context,
+      record: OcrEnrollmentRecord(
+        gradeLevel: gradeNum.toString(),
+        section: ocrResult.section,
+        schoolYear: ocrResult.schoolYear,
+      ),
+    );
+    if (!mounted || prefill == null) return;
+
+    setState(() {
+      _ocrSavedEnrollment = prefill;
+      _selectedAcademicYearId = prefill.academicYearId;
+      _selectedGradeLevel = prefill.gradeLevel;
+      _selectedSectionId = prefill.sectionId;
+    });
   }
 
   String? _validateLRN(String? value) {
@@ -414,23 +454,29 @@ class _AddStudentModalState extends ConsumerState<AddStudentModal> {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     if (_isLoading) {
       return Padding(
-        padding: const EdgeInsets.symmetric(vertical: AppSizes.p32),
-        child: Center(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const CircularProgressIndicator(),
-              const SizedBox(height: AppSizes.p16),
-              Text(
-                'Processing document with OCR... Please wait',
-                style: TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w500,
-                  color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
-                ),
+        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: AppSizes.p32),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ClipRRect(
+              borderRadius: BorderRadius.circular(4),
+              child: LinearProgressIndicator(
+                color: AppColors.primaryGreen,
+                backgroundColor:
+                    isDark ? AppColors.darkSurface2 : const Color(0xFFE0E0E0),
+                minHeight: 8,
               ),
-            ],
-          ),
+            ),
+            const SizedBox(height: AppSizes.p16),
+            Text(
+              'Processing document with OCR... Please wait',
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w500,
+                color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
+              ),
+            ),
+          ],
         ),
       );
     }
@@ -740,6 +786,40 @@ class _AddStudentModalState extends ConsumerState<AddStudentModal> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          if (_ocrSavedEnrollment != null) ...[
+            Container(
+              padding: const EdgeInsets.all(AppSizes.p12),
+              decoration: BoxDecoration(
+                color: AppColors.primaryGreen.withValues(alpha: 0.07),
+                borderRadius: BorderRadius.circular(AppSizes.radiusMedium),
+                border: Border.all(
+                  color: AppColors.primaryGreen.withValues(alpha: 0.25),
+                ),
+              ),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Icon(
+                    Icons.check_circle_outline,
+                    size: 18,
+                    color: AppColors.primaryGreen,
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'Enrollment saved from OCR scan: Grade '
+                      '${_ocrSavedEnrollment!.gradeLevel} · '
+                      '${_ocrSavedEnrollment!.sectionName} · '
+                      'SY ${_ocrSavedEnrollment!.schoolYear} — '
+                      'verify before saving the student.',
+                      style: const TextStyle(fontSize: 13),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: AppSizes.p16),
+          ],
           const SectionLabel(label: 'ENROLLMENT DETAILS'),
           const SizedBox(height: AppSizes.p16),
           yearsAsync.when(
@@ -942,7 +1022,7 @@ class _AddStudentModalState extends ConsumerState<AddStudentModal> {
                 totalSteps: 3,
                 currentStep: _currentStep,
               ),
-              if (_isLoading)
+              if (_isLoading && _currentStep != 0)
                 const LinearProgressIndicator(
                   color: AppColors.primaryGreen,
                   backgroundColor: Color(0xFFE0E0E0),

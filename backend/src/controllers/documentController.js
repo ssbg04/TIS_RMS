@@ -644,7 +644,15 @@ exports.copyDocument = (req, res) => {
 
         const ext = path.extname(doc.file_name);
         const baseName = path.basename(doc.file_name, ext);
-        const newFileName = `${baseName} - Copy${ext}`;
+        const existingNames = db.prepare(
+            'SELECT file_name FROM documents WHERE student_id = ? AND deleted_at IS NULL'
+        ).all(doc.student_id).map((r) => r.file_name);
+        let counter = 1;
+        let newFileName = `${baseName} (${counter})${ext}`;
+        while (existingNames.includes(newFileName)) {
+            counter++;
+            newFileName = `${baseName} (${counter})${ext}`;
+        }
 
         const dir = path.dirname(originalPath);
         const newFilePath = path.join(dir, `${Date.now()}-${newFileName.replace(/[^a-zA-Z0-9.-]/g, '_')}`);
@@ -819,6 +827,7 @@ exports.bulkCopy = (req, res) => {
             INSERT INTO documents (student_id, requirement_id, file_name, file_path, document_type, status, uploaded_by)
             VALUES (?, ?, ?, ?, ?, ?, ?)
         `);
+        const usedNames = new Set();
 
         for (const id of ids) {
             const doc = getStmt.get(id);
@@ -843,7 +852,16 @@ exports.bulkCopy = (req, res) => {
                 if (fs.existsSync(originalPath)) {
                     const ext = path.extname(doc.file_name);
                     const baseName = path.basename(doc.file_name, ext);
-                    const newFileName = `${baseName} - Copy${ext}`;
+                    const existingNames = db.prepare(
+                        'SELECT file_name FROM documents WHERE student_id = ? AND deleted_at IS NULL'
+                    ).all(doc.student_id).map((r) => r.file_name);
+                    let counter = 1;
+                    let newFileName = `${baseName} (${counter})${ext}`;
+                    while (existingNames.includes(newFileName) || usedNames.has(newFileName)) {
+                        counter++;
+                        newFileName = `${baseName} (${counter})${ext}`;
+                    }
+                    usedNames.add(newFileName);
                     const dir = path.dirname(originalPath);
                     const newFilePath = path.join(dir, `${Date.now()}-${newFileName.replace(/[^a-zA-Z0-9.-]/g, '_')}`);
 

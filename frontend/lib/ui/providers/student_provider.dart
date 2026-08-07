@@ -466,14 +466,12 @@ class StudentMutationNotifier extends AsyncNotifier<void> {
     }
   }
 
-  Future<Map<String, dynamic>> scanEnrollmentFromSF(int studentId) async {
+  Future<List<OcrEnrollmentRecord>> scanEnrollmentFromSF(int studentId) async {
     state = const AsyncLoading();
     try {
       final repo = ref.read(studentRepositoryProvider);
       final result = await repo.scanEnrollmentFromSF(studentId);
       state = const AsyncData(null);
-      ref.invalidate(studentDetailProvider(studentId));
-      ref.invalidate(studentPageProvider);
       return result;
     } catch (e, st) {
       state = AsyncError(e, st);
