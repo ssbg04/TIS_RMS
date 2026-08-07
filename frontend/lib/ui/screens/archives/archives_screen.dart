@@ -43,7 +43,7 @@ class _ArchivesScreenState extends ConsumerState<ArchivesScreen>
 
   // Folder pagination
   int _foldersPage = 1;
-  final int _foldersPerPage = 10;
+  final int _foldersPerPage = 20;
 
   // Filter values
   String _selectedStatus = 'All Statuses';
@@ -445,9 +445,29 @@ class _ArchivesScreenState extends ConsumerState<ArchivesScreen>
     final isMobile = screenW < 700;
     final isFolderOpened = _openedFolderStudentId != null;
 
-    return GestureDetector(
-      onTap: () => FocusScope.of(context).unfocus(),
-      child: Scaffold(
+    return PopScope(
+      canPop: !_isMultiSelectMode && !isFolderOpened,
+      onPopInvokedWithResult: (didPop, result) {
+        if (didPop) return;
+        if (_isMultiSelectMode) {
+          setState(() {
+            _isMultiSelectMode = false;
+            _selectedDocumentIds.clear();
+          });
+          return;
+        }
+        if (isFolderOpened) {
+          setState(() {
+            _openedFolderStudentId = null;
+            _openedFolderName = null;
+          });
+          ref.read(archiveDocumentQueryProvider.notifier).setStudentId(null);
+          return;
+        }
+      },
+      child: GestureDetector(
+        onTap: () => FocusScope.of(context).unfocus(),
+        child: Scaffold(
         backgroundColor: Colors.transparent,
         bottomNavigationBar: _isMultiSelectMode
             ? _buildBatchActionsBar(isMobile)
@@ -519,6 +539,7 @@ class _ArchivesScreenState extends ConsumerState<ArchivesScreen>
           ),
         ),
       ),
+      ),
     );
   }
 
@@ -577,31 +598,29 @@ class _ArchivesScreenState extends ConsumerState<ArchivesScreen>
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          // Back / archive icon
-          IconButton(
-            icon: Icon(
-              isFolderOpened
-                  ? Icons.arrow_back_ios_new_rounded
-                  : Icons.archive_rounded,
-              size: 20,
+          // Back button if folder opened
+          if (isFolderOpened) ...[
+            IconButton(
+              icon: const Icon(
+                Icons.arrow_back_ios_new_rounded,
+                size: 20,
+              ),
+              color: AppColors.primaryGreen,
+              tooltip: 'Back to Folders',
+              onPressed: () {
+                setState(() {
+                  _openedFolderStudentId = null;
+                  _openedFolderName = null;
+                  _isMultiSelectMode = false;
+                  _selectedDocumentIds.clear();
+                });
+                ref
+                    .read(archiveDocumentQueryProvider.notifier)
+                    .setStudentId(null);
+              },
             ),
-            color: AppColors.primaryGreen,
-            tooltip: isFolderOpened ? 'Back to Folders' : null,
-            onPressed: isFolderOpened
-                ? () {
-                    setState(() {
-                      _openedFolderStudentId = null;
-                      _openedFolderName = null;
-                      _isMultiSelectMode = false;
-                      _selectedDocumentIds.clear();
-                    });
-                    ref
-                        .read(archiveDocumentQueryProvider.notifier)
-                        .setStudentId(null);
-                  }
-                : null,
-          ),
-          const SizedBox(width: 6),
+            const SizedBox(width: 6),
+          ],
 
           // Screen title
           Expanded(

@@ -88,32 +88,18 @@ Files backup/restore - mirror mode or zip -->
 <!-- ## backend server backup/restore
 - do not use zip and unzip -->
 
-# DASHBOARD SCREEN
-- remove background color in icon setup required widget
-
 # DOCUMENT SCREEN
-- remove icon before 'Students Folder'
-- remove background color in icon files 
-- enlarge icon slightly
-- android app hold feature dropdown same actions copy to menu of files
-- pagination limit 20
 - add back prevention for multi select menu active, it deactivates multi select menu
 - add back prevention for opened student folder, back to student folders tab  
 
 # STUDENT SCREEN
-- update multi select menu actions same from the document screen
-- add top and bottom list edge fade
-- add new student -> student details step -> responsive back and next button
-- pagination limit 20
+- update multi select menu actions design same from the document screen
 - add back prevention for multi select menu active, it deactivates multi select menu
 
 # ARCHIVES SCREEN
 - remove icon before 'System Archives'
 - pagination limit 20
 - add back prevention for opened student folder, back to student folders tab  
-
-# USERS MANAGEMENT SCREEN
-- pagination limit 20
 
 
 

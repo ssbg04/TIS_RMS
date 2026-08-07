@@ -760,10 +760,22 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
       query.status.isNotEmpty,
       query.is4Ps.isNotEmpty,
       query.sortBy.isNotEmpty,
-      query.limit != 15,
+      query.limit != 20,
     ].where((v) => v).length;
 
-    return Scaffold(
+    return PopScope(
+      canPop: !_showMultiSelect,
+      onPopInvokedWithResult: (didPop, result) {
+        if (didPop) return;
+        if (_showMultiSelect) {
+          setState(() {
+            _showMultiSelect = false;
+            _selectedStudentIds.clear();
+          });
+          return;
+        }
+      },
+      child: Scaffold(
       backgroundColor: Colors.transparent,
       floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
       floatingActionButton:
@@ -882,7 +894,7 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
               ),
             ),
         ],
-      ),
+      ),),
     );
   }
 
@@ -2173,11 +2185,21 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
         // Wait for the provider to rebuild
         await ref.read(studentPageProvider.future);
       },
-      child: ListView.separated(
-        physics: const AlwaysScrollableScrollPhysics(),
-        itemCount: students.length,
-        separatorBuilder: (ctx, index) => const SizedBox(height: AppSizes.p12),
-        itemBuilder: (_, i) {
+      child: ShaderMask(
+        shaderCallback: (Rect bounds) {
+          return const LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [Colors.transparent, Colors.black, Colors.black, Colors.transparent],
+            stops: [0.0, 0.02, 0.98, 1.0],
+          ).createShader(bounds);
+        },
+        blendMode: BlendMode.dstIn,
+        child: ListView.separated(
+          physics: const AlwaysScrollableScrollPhysics(),
+          itemCount: students.length,
+          separatorBuilder: (ctx, index) => const SizedBox(height: AppSizes.p12),
+          itemBuilder: (_, i) {
           final s = students[i];
 
           return GestureDetector(
@@ -2360,6 +2382,7 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
         );
       },
       ),
+      ),
     );
   }
 
@@ -2414,10 +2437,10 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
                 height: 1.5,
               ),
             ),
-          ],
-        ),
-      );
-    }
+        ],
+      ),
+    );
+  }
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,

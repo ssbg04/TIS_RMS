@@ -229,14 +229,7 @@ class _FileFolderCardState extends State<FileFolderCard> {
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Container(
-                      padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(
-                        color: _fileColor.withValues(alpha: 0.1),
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      child: Icon(_fileIcon, size: 40, color: _fileColor),
-                    ),
+                    Icon(_fileIcon, size: 48, color: _fileColor),
                     const SizedBox(height: 10),
                     Text(
                       widget.document.fileName,
@@ -324,14 +317,12 @@ class _FileFolderCardState extends State<FileFolderCard> {
                   const SizedBox(width: 4),
                 ],
                 // File icon
-                Container(
-                  width: 36,
-                  height: 36,
-                  decoration: BoxDecoration(
-                    color: _fileColor.withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(8),
+                SizedBox(
+                  width: 32,
+                  height: 32,
+                  child: Center(
+                    child: Icon(_fileIcon, size: 24, color: _fileColor),
                   ),
-                  child: Icon(_fileIcon, size: 18, color: _fileColor),
                 ),
                 const SizedBox(width: 8),
 

@@ -87,7 +87,7 @@ class StudentQueryParams {
   const StudentQueryParams({
     this.search = '',
     this.page = 1,
-    this.limit = 15,
+    this.limit = 20,
     this.gradeLevel = '',
     this.status = '',
     this.section = '',

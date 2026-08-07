@@ -694,10 +694,31 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
     final isStudentFiltered = query.studentId != null;
     final isFolderOpened = _openedFolderStudentId != null;
 
-    return GestureDetector(
-      onTap: () => FocusScope.of(context).unfocus(),
-      behavior: HitTestBehavior.translucent,
-      child: _buildDragDropWrapper(
+    return PopScope(
+      canPop: !_isMultiSelectMode && _openedFolderStudentId == null,
+      onPopInvokedWithResult: (didPop, result) {
+        if (didPop) return;
+        if (_isMultiSelectMode) {
+          setState(() {
+            _isMultiSelectMode = false;
+            _selectedDocumentIds.clear();
+          });
+          return;
+        }
+        if (_openedFolderStudentId != null) {
+          setState(() {
+            _openedFolderStudentId = null;
+            _openedFolderName = null;
+          });
+          ref.read(openedFolderProvider.notifier).setFolder(null);
+          ref.read(documentQueryProvider.notifier).setStudentId(null);
+          return;
+        }
+      },
+      child: GestureDetector(
+        onTap: () => FocusScope.of(context).unfocus(),
+        behavior: HitTestBehavior.translucent,
+        child: _buildDragDropWrapper(
         context,
         showHint: _tabController.index == 1 && !isFolderOpened,
         child: Scaffold(
@@ -886,6 +907,7 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
         ),
       ),
       ),
+    ),
     );
   }
 
@@ -1043,28 +1065,26 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          // Back / folder icon
-          IconButton(
-            icon: Icon(
-              isFolderOpened
-                  ? Icons.arrow_back_ios_new_rounded
-                  : Icons.folder_open_rounded,
-              size: 20,
+          // Back button if folder opened
+          if (isFolderOpened) ...[
+            IconButton(
+              icon: const Icon(
+                Icons.arrow_back_ios_new_rounded,
+                size: 20,
+              ),
+              color: AppColors.primaryGreen,
+              tooltip: 'Back to Folders',
+              onPressed: () {
+                setState(() {
+                  _openedFolderStudentId = null;
+                  _openedFolderName = null;
+                });
+                ref.read(openedFolderProvider.notifier).setFolder(null);
+                ref.read(documentQueryProvider.notifier).setStudentId(null);
+              },
             ),
-            color: AppColors.primaryGreen,
-            tooltip: isFolderOpened ? 'Back to Folders' : null,
-            onPressed: isFolderOpened
-                ? () {
-                    setState(() {
-                      _openedFolderStudentId = null;
-                      _openedFolderName = null;
-                    });
-                    ref.read(openedFolderProvider.notifier).setFolder(null);
-                    ref.read(documentQueryProvider.notifier).setStudentId(null);
-                  }
-                : null,
-          ),
-          const SizedBox(width: 6),
+            const SizedBox(width: 6),
+          ],
 
           // Screen title
           Expanded(
@@ -2676,14 +2696,12 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
               ],
 
               // File icon
-              Container(
-                width: 36,
-                height: 36,
-                decoration: BoxDecoration(
-                  color: fileColor.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(8),
+              SizedBox(
+                width: 32,
+                height: 32,
+                child: Center(
+                  child: Icon(fileIcon, size: 24, color: fileColor),
                 ),
-                child: Icon(fileIcon, size: 18, color: fileColor),
               ),
               const SizedBox(width: 10),
 
@@ -2764,14 +2782,33 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
                     padding: EdgeInsets.zero,
                     onSelected: (a) => _handleAction(a, doc as DocumentModel),
                     itemBuilder: (_) => [
-                      // removed preview
+                      const PopupMenuItem(
+                        value: 'select',
+                        child: Row(
+                          children: [
+                            Icon(Icons.check_box_outlined, size: 16),
+                            SizedBox(width: 10),
+                            Text('Select', style: TextStyle(fontSize: 13)),
+                          ],
+                        ),
+                      ),
                       const PopupMenuItem(
                         value: 'queue',
                         child: Row(
                           children: [
                             Icon(Icons.print, size: 16),
                             SizedBox(width: 10),
-                            Text('Print List', style: TextStyle(fontSize: 13)),
+                            Text('Add to Print List', style: TextStyle(fontSize: 13)),
+                          ],
+                        ),
+                      ),
+                      const PopupMenuItem(
+                        value: 'copy',
+                        child: Row(
+                          children: [
+                            Icon(Icons.copy, size: 16),
+                            SizedBox(width: 10),
+                            Text('Copy', style: TextStyle(fontSize: 13)),
                           ],
                         ),
                       ),

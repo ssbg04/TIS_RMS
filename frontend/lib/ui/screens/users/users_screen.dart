@@ -34,7 +34,7 @@ class _UsersScreenState extends ConsumerState<UsersScreen> {
   String _searchQuery = '';
   String _roleFilter = 'all'; // 'all', 'admin', 'teacher'
   int _currentPage = 1;
-  final int _itemsPerPage = 10;
+  final int _itemsPerPage = 20;
 
   @override
   void initState() {

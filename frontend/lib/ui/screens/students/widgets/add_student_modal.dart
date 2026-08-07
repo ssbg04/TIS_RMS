@@ -975,156 +975,229 @@ class _AddStudentModalState extends ConsumerState<AddStudentModal> {
                         ),
                       ],
                     ),
-                    child: Wrap(
-                    alignment: WrapAlignment.spaceBetween,
-                    crossAxisAlignment: WrapCrossAlignment.center,
-                    spacing: 12,
-                    runSpacing: 12,
-                    children: [
-                      // Left side items
-                      if (!isOcrStep && _ocrScannedFile != null)
-                        Wrap(
+                    child: LayoutBuilder(
+                      builder: (context, constraints) {
+                        final isSmallScreen = constraints.maxWidth < 480;
+
+                        if (isSmallScreen && !isOcrStep) {
+                          return Row(
+                            children: [
+                              if (_currentStep > 0) ...[
+                                Expanded(
+                                  child: OutlinedButton.icon(
+                                    onPressed: () => setState(() {
+                                      _errorMessage = null;
+                                      _currentStep -= 1;
+                                    }),
+                                    style: OutlinedButton.styleFrom(
+                                      padding: const EdgeInsets.symmetric(
+                                        vertical: 14,
+                                      ),
+                                      side: BorderSide(color: isDark ? Colors.white : Colors.black),
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(
+                                          AppSizes.radiusMedium,
+                                        ),
+                                      ),
+                                    ),
+                                    icon: Icon(
+                                      Icons.arrow_back,
+                                      size: 16,
+                                      color: isDark ? Colors.white : Colors.black,
+                                    ),
+                                    label: Text(
+                                      'BACK',
+                                      style: TextStyle(
+                                        color: isDark ? Colors.white : Colors.black,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(width: 12),
+                              ],
+                              Expanded(
+                                child: PrimaryButton(
+                                  label: isLastStep ? 'ADD' : 'NEXT',
+                                  isLoading: _isLoading && isLastStep,
+                                  onPressed: () {
+                                    if (_currentStep == 1) {
+                                      final isValid = _studentFormKey.currentState?.validate() ?? false;
+                                      if (!isValid) {
+                                        setState(() {
+                                          _errorMessage =
+                                              'Please complete all required fields in red before proceeding to Enrollment.';
+                                        });
+                                        return;
+                                      }
+                                    }
+                                    if (isLastStep) {
+                                      _handleSave();
+                                    } else {
+                                      setState(() {
+                                        _errorMessage = null;
+                                        _currentStep += 1;
+                                      });
+                                    }
+                                  },
+                                ),
+                              ),
+                            ],
+                          );
+                        }
+
+                        return Wrap(
+                          alignment: WrapAlignment.spaceBetween,
+                          crossAxisAlignment: WrapCrossAlignment.center,
                           spacing: 12,
                           runSpacing: 12,
                           children: [
-                            TextButton.icon(
-                              onPressed: () => setState(() {
-                                _lrnController.clear();
-                                _firstNameController.clear();
-                                _middleNameController.clear();
-                                _lastNameController.clear();
-                                _extController.clear();
-                                _currentStep = 0;
-                              }),
-                              icon: const Icon(
-                                Icons.refresh,
-                                size: 16,
-                                color: AppColors.primaryGreen,
-                              ),
-                              label: const Text(
-                                'Scan Another',
-                                style: TextStyle(
-                                  color: AppColors.primaryGreen,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                            ),
-                          OutlinedButton.icon(
-                            onPressed: () {
-                              if (_ocrScannedFile != null) {
-                                showDocumentPreview(
-                                  context: context,
-                                  localFile: _ocrScannedFile!,
-                                  localFileName: _ocrScannedFile!.path.split('/').last,
-                                );
-                              }
-                            },
-                            icon: Icon(
-                              Icons.visibility_outlined,
-                              size: 16,
-                              color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
-                            ),
-                            label: Text(
-                              'Preview Document',
-                              style: TextStyle(
-                                color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                          ),
-                        ],
-                      )
-                    else
-                      const SizedBox.shrink(),
-
-                    // Right side items
-                    Wrap(
-                      spacing: 12,
-                      runSpacing: 12,
-                      alignment: WrapAlignment.center,
-                      children: [
-                        if (isOcrStep) ...[
-                          OutlinedButton.icon(
-                            onPressed: () => setState(() {
-                              _errorMessage = null;
-                              _currentStep = 1;
-                            }),
-                            icon: Icon(Icons.edit_note, size: 16, color: isDark ? Colors.white : Colors.black),
-                            label: Text('MANUAL INPUT', style: TextStyle(color: isDark ? Colors.white : Colors.black, fontWeight: FontWeight.w600)),
-                            style: OutlinedButton.styleFrom(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 16,
-                                vertical: 12,
-                              ),
-                              side: BorderSide(color: isDark ? Colors.white : Colors.black),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(
-                                  AppSizes.radiusMedium,
-                                ),
-                              ),
-                            ),
-                          ),
-                        ] else ...[
-                          if (_currentStep > 0)
-                            OutlinedButton.icon(
-                              onPressed: () => setState(() {
-                                _errorMessage = null;
-                                _currentStep -= 1;
-                              }),
-                              style: OutlinedButton.styleFrom(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 16,
-                                  vertical: 12,
-                                ),
-                                side: BorderSide(color: isDark ? Colors.white : Colors.black),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(
-                                    AppSizes.radiusMedium,
+                            // Left side items
+                            if (!isOcrStep && _ocrScannedFile != null)
+                              Wrap(
+                                spacing: 12,
+                                runSpacing: 12,
+                                children: [
+                                  TextButton.icon(
+                                    onPressed: () => setState(() {
+                                      _lrnController.clear();
+                                      _firstNameController.clear();
+                                      _middleNameController.clear();
+                                      _lastNameController.clear();
+                                      _extController.clear();
+                                      _currentStep = 0;
+                                    }),
+                                    icon: const Icon(
+                                      Icons.refresh,
+                                      size: 16,
+                                      color: AppColors.primaryGreen,
+                                    ),
+                                    label: const Text(
+                                      'Scan Another',
+                                      style: TextStyle(
+                                        color: AppColors.primaryGreen,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
                                   ),
-                                ),
-                              ),
-                              icon: Icon(
-                                Icons.arrow_back,
-                                size: 16,
-                                color: isDark ? Colors.white : Colors.black,
-                              ),
-                              label: Text(
-                                'BACK',
-                                style: TextStyle(
-                                  color: isDark ? Colors.white : Colors.black,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
+                                  OutlinedButton.icon(
+                                    onPressed: () {
+                                      if (_ocrScannedFile != null) {
+                                        showDocumentPreview(
+                                          context: context,
+                                          localFile: _ocrScannedFile!,
+                                          localFileName: _ocrScannedFile!.path.split('/').last,
+                                        );
+                                      }
+                                    },
+                                    icon: Icon(
+                                      Icons.visibility_outlined,
+                                      size: 16,
+                                      color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
+                                    ),
+                                    label: Text(
+                                      'Preview Document',
+                                      style: TextStyle(
+                                        color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              )
+                            else
+                              const SizedBox.shrink(),
+
+                            // Right side items
+                            Wrap(
+                              spacing: 12,
+                              runSpacing: 12,
+                              alignment: WrapAlignment.center,
+                              children: [
+                                if (isOcrStep) ...[
+                                  OutlinedButton.icon(
+                                    onPressed: () => setState(() {
+                                      _errorMessage = null;
+                                      _currentStep = 1;
+                                    }),
+                                    icon: Icon(Icons.edit_note, size: 16, color: isDark ? Colors.white : Colors.black),
+                                    label: Text('MANUAL INPUT', style: TextStyle(color: isDark ? Colors.white : Colors.black, fontWeight: FontWeight.w600)),
+                                    style: OutlinedButton.styleFrom(
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 16,
+                                        vertical: 12,
+                                      ),
+                                      side: BorderSide(color: isDark ? Colors.white : Colors.black),
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(
+                                          AppSizes.radiusMedium,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ] else ...[
+                                  if (_currentStep > 0)
+                                    OutlinedButton.icon(
+                                      onPressed: () => setState(() {
+                                        _errorMessage = null;
+                                        _currentStep -= 1;
+                                      }),
+                                      style: OutlinedButton.styleFrom(
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 16,
+                                          vertical: 12,
+                                        ),
+                                        side: BorderSide(color: isDark ? Colors.white : Colors.black),
+                                        shape: RoundedRectangleBorder(
+                                          borderRadius: BorderRadius.circular(
+                                            AppSizes.radiusMedium,
+                                          ),
+                                        ),
+                                      ),
+                                      icon: Icon(
+                                        Icons.arrow_back,
+                                        size: 16,
+                                        color: isDark ? Colors.white : Colors.black,
+                                      ),
+                                      label: Text(
+                                        'BACK',
+                                        style: TextStyle(
+                                          color: isDark ? Colors.white : Colors.black,
+                                          fontWeight: FontWeight.w600,
+                                        ),
+                                      ),
+                                    ),
+                                  PrimaryButton(
+                                    label: isLastStep ? 'ADD' : 'NEXT',
+                                    isLoading: _isLoading && isLastStep,
+                                    onPressed: () {
+                                      if (_currentStep == 1) {
+                                        final isValid = _studentFormKey.currentState?.validate() ?? false;
+                                        if (!isValid) {
+                                          setState(() {
+                                            _errorMessage =
+                                                'Please complete all required fields in red before proceeding to Enrollment.';
+                                          });
+                                          return;
+                                        }
+                                      }
+                                      if (isLastStep) {
+                                        _handleSave();
+                                      } else {
+                                        setState(() {
+                                          _errorMessage = null;
+                                          _currentStep += 1;
+                                        });
+                                      }
+                                    },
+                                  ),
+                                ],
+                              ],
                             ),
-                          PrimaryButton(
-                            label: isLastStep ? 'ADD' : 'NEXT',
-                            isLoading: _isLoading && isLastStep,
-                            onPressed: () {
-                              if (_currentStep == 1) {
-                                final isValid = _studentFormKey.currentState?.validate() ?? false;
-                                if (!isValid) {
-                                  setState(() {
-                                    _errorMessage =
-                                        'Please complete all required fields in red before proceeding to Enrollment.';
-                                  });
-                                  return;
-                                }
-                              }
-                              if (isLastStep) {
-                                _handleSave();
-                              } else {
-                                setState(() {
-                                  _errorMessage = null;
-                                  _currentStep += 1;
-                                });
-                              }
-                            },
-                          ),
-                        ],
-                      ],
+                          ],
+                        );
+                      },
                     ),
-                  ],
-                ),
                 );
                 },
               ),

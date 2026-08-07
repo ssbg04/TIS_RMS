@@ -536,11 +536,6 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Container(
-                      padding: const EdgeInsets.all(10),
-                      decoration: BoxDecoration(
-                        color: AppColors.primaryGreen.withValues(alpha: 0.15),
-                        shape: BoxShape.circle,
-                      ),
                       child: const Icon(
                         Icons.settings_suggest_rounded,
                         color: AppColors.primaryGreen,

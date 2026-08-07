@@ -20,7 +20,7 @@ class ArchiveQueryParams {
   const ArchiveQueryParams({
     this.search = '',
     this.page = 1,
-    this.limit = 15,
+    this.limit = 20,
     this.status = 'All Statuses',
   });
 
@@ -147,7 +147,7 @@ class ArchiveDocumentQueryParams {
   const ArchiveDocumentQueryParams({
     this.search = '',
     this.page = 1,
-    this.limit = 15,
+    this.limit = 20,
     this.status = 'All Statuses',
     this.documentType = 'All Types',
     this.gradeLevel = '',
