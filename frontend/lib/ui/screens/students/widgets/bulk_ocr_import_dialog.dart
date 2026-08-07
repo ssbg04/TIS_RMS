@@ -461,6 +461,7 @@ class _BulkOcrImportDialogState extends ConsumerState<BulkOcrImportDialog> {
 
   // ── STEP 0: UPLOAD ────────────────────────────────────────────────────────
   Widget _buildUploadStep() {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final isWindows = defaultTargetPlatform == TargetPlatform.windows;
 
     Widget dropZone = GestureDetector(
@@ -503,17 +504,19 @@ class _BulkOcrImportDialogState extends ConsumerState<BulkOcrImportDialog> {
                     ? 'Drop Files Here'
                     : 'Drag & Drop or Click to Select Files')
                 : 'Tap to Select Files',
-            style: const TextStyle(
+            style: TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.bold,
-                color: AppColors.textPrimary),
+                color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary),
           ),
           const SizedBox(height: 6),
-          const Text(
+          Text(
             'Supports PDF, JPG, PNG, JPEG, XLSX, XLS, CSV\nNo file limit — one file per student',
             textAlign: TextAlign.center,
             style: TextStyle(
-                fontSize: 12, color: AppColors.textSecondary, height: 1.6),
+                fontSize: 12,
+                color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
+                height: 1.6),
           ),
           const SizedBox(height: 20),
           ElevatedButton.icon(
@@ -558,10 +561,10 @@ class _BulkOcrImportDialogState extends ConsumerState<BulkOcrImportDialog> {
           const SizedBox(height: 20),
           Row(children: [
             Text('Queued Files (${_items.length})',
-                style: const TextStyle(
+                style: TextStyle(
                     fontWeight: FontWeight.bold,
                     fontSize: 14,
-                    color: AppColors.textPrimary)),
+                    color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary)),
             const Spacer(),
             if (!_isProcessing)
               TextButton.icon(
@@ -586,6 +589,7 @@ class _BulkOcrImportDialogState extends ConsumerState<BulkOcrImportDialog> {
   }
 
   Widget _buildFileQueueTile(_OcrItem item, int index) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     Color statusColor;
     IconData statusIcon;
     String statusLabel;
@@ -616,13 +620,17 @@ class _BulkOcrImportDialogState extends ConsumerState<BulkOcrImportDialog> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
       decoration: BoxDecoration(
-        color: const Color(0xFFF8F9FA),
+        color: isDark ? AppColors.darkSurfaceCard : const Color(0xFFF8F9FA),
         borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: Colors.grey.shade200),
+        border: Border.all(
+            color: isDark ? AppColors.darkBorder : Colors.grey.shade200),
       ),
       child: Row(children: [
-        const Icon(Icons.insert_drive_file_outlined,
-            size: 20, color: AppColors.textSecondary),
+        Icon(Icons.insert_drive_file_outlined,
+            size: 20,
+            color: isDark
+                ? AppColors.darkTextSecondary
+                : AppColors.textSecondary),
         const SizedBox(width: 10),
         Expanded(
           child: Column(
@@ -632,8 +640,12 @@ class _BulkOcrImportDialogState extends ConsumerState<BulkOcrImportDialog> {
                 Text(item.fileName,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                        fontSize: 13, fontWeight: FontWeight.w500)),
+                    style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w500,
+                        color: isDark
+                            ? AppColors.darkTextPrimary
+                            : AppColors.textPrimary)),
                 if (item.status != _FileStatus.pending)
                   Row(children: [
                     Icon(statusIcon, size: 12, color: statusColor),
@@ -651,7 +663,7 @@ class _BulkOcrImportDialogState extends ConsumerState<BulkOcrImportDialog> {
           IconButton(
             onPressed: () => _removeItem(index),
             icon: const Icon(Icons.close, size: 16),
-            color: Colors.grey,
+            color: isDark ? AppColors.darkTextMuted : Colors.grey,
             padding: EdgeInsets.zero,
             constraints: const BoxConstraints(),
             visualDensity: VisualDensity.compact,
@@ -1095,6 +1107,8 @@ class _BulkOcrImportDialogState extends ConsumerState<BulkOcrImportDialog> {
                 ? null
                 : () => Navigator.of(context).pop(),
             style: OutlinedButton.styleFrom(
+                foregroundColor: isDark ? Colors.white : Colors.black,
+                side: BorderSide(color: isDark ? Colors.white : Colors.black),
                 shape: const StadiumBorder(),
                 padding: const EdgeInsets.symmetric(
                     horizontal: 20, vertical: 12)),
@@ -1108,18 +1122,19 @@ class _BulkOcrImportDialogState extends ConsumerState<BulkOcrImportDialog> {
           ElevatedButton.icon(
             onPressed: _isProcessing ? null : _processAll,
             icon: _isProcessing
-                ? const SizedBox(
+                ? SizedBox(
                     width: 16,
                     height: 16,
                     child: CircularProgressIndicator(
-                        strokeWidth: 2, color: Colors.white))
+                        strokeWidth: 2,
+                        color: isDark ? Colors.white : Colors.black))
                 : const Icon(Icons.play_arrow_rounded, size: 20),
             label: Text(_isProcessing
                 ? 'Processing…'
                 : 'Process All (${_items.length})'),
             style: ElevatedButton.styleFrom(
               backgroundColor: AppColors.primaryGreen,
-              foregroundColor: Colors.white,
+              foregroundColor: isDark ? Colors.white : Colors.black,
               shape: const StadiumBorder(),
               padding:
                   const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
@@ -1130,9 +1145,11 @@ class _BulkOcrImportDialogState extends ConsumerState<BulkOcrImportDialog> {
         if (_step == 1) ...[
           OutlinedButton.icon(
             onPressed: _isImporting ? null : () => setState(() => _step = 0),
-            icon: const Icon(Icons.arrow_back, size: 16),
-            label: const Text('Back'),
+            icon: Icon(Icons.arrow_back, size: 16, color: isDark ? Colors.white : Colors.black),
+            label: Text('Back', style: TextStyle(color: isDark ? Colors.white : Colors.black)),
             style: OutlinedButton.styleFrom(
+                foregroundColor: isDark ? Colors.white : Colors.black,
+                side: BorderSide(color: isDark ? Colors.white : Colors.black),
                 shape: const StadiumBorder(),
                 padding: const EdgeInsets.symmetric(
                     horizontal: 20, vertical: 12)),
@@ -1141,18 +1158,19 @@ class _BulkOcrImportDialogState extends ConsumerState<BulkOcrImportDialog> {
           ElevatedButton.icon(
             onPressed: _isImporting ? null : _importAll,
             icon: _isImporting
-                ? const SizedBox(
+                ? SizedBox(
                     width: 16,
                     height: 16,
                     child: CircularProgressIndicator(
-                        strokeWidth: 2, color: Colors.white))
+                        strokeWidth: 2,
+                        color: isDark ? Colors.white : Colors.black))
                 : const Icon(Icons.upload_rounded, size: 20),
             label: Text(_isImporting
                 ? 'Importing…'
                 : 'Import All (${_items.where((i) => i.status == _FileStatus.done && i.hasRequiredFields).length})'),
             style: ElevatedButton.styleFrom(
               backgroundColor: AppColors.primaryGreen,
-              foregroundColor: Colors.white,
+              foregroundColor: isDark ? Colors.white : Colors.black,
               shape: const StadiumBorder(),
               padding:
                   const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
@@ -1168,7 +1186,7 @@ class _BulkOcrImportDialogState extends ConsumerState<BulkOcrImportDialog> {
             label: const Text('Done'),
             style: ElevatedButton.styleFrom(
               backgroundColor: AppColors.primaryGreen,
-              foregroundColor: Colors.white,
+              foregroundColor: isDark ? Colors.white : Colors.black,
               shape: const StadiumBorder(),
               padding:
                   const EdgeInsets.symmetric(horizontal: 28, vertical: 12),

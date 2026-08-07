@@ -561,6 +561,7 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
   }
 
   Widget _buildInlineMultiSelectHeader() {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final count = _selectedDocumentIds.length;
     final isAdmin = widget.userRole != 'teacher';
 
@@ -578,7 +579,7 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
         child: Row(
           children: [
             IconButton(
-              icon: const Icon(Icons.close, color: AppColors.textPrimary),
+              icon: Icon(Icons.close, color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary),
               tooltip: 'Cancel selection',
               onPressed: () => setState(() {
                 _selectedDocumentIds.clear();
@@ -588,14 +589,14 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
             const SizedBox(width: 8),
             Text(
               count == 0 ? 'Select items' : '$count selected',
-              style: const TextStyle(
+              style: TextStyle(
                 fontWeight: FontWeight.bold,
                 fontSize: 16,
-                color: AppColors.textPrimary,
+                color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
               ),
             ),
             const SizedBox(width: 16),
-            Container(width: 1, height: 24, color: Colors.grey.shade400),
+            Container(width: 1, height: 24, color: isDark ? AppColors.darkTextMuted : Colors.grey.shade400),
             const SizedBox(width: 12),
             _batchActionBtn(
               icon: Icons.print_rounded,
@@ -682,6 +683,7 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final docState = ref.watch(documentPageProvider);
     final query = ref.watch(documentQueryProvider);
     final requirementsAsync = ref.watch(documentRequirementsProvider);
@@ -783,7 +785,7 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
 
               // ── TabBar ──
               Container(
-                color: Theme.of(context).brightness == Brightness.dark ? AppColors.darkSurfaceCard : AppColors.surfaceWhite,
+                color: isDark ? AppColors.darkSurfaceCard : AppColors.surfaceWhite,
                 child: TabBar(
                   controller: _tabController,
                   onTap: (index) {
@@ -806,7 +808,7 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
                     }
                   },
                   labelColor: AppColors.primaryGreen,
-                  unselectedLabelColor: Theme.of(context).brightness == Brightness.dark ? AppColors.darkTextSecondary : AppColors.textSecondary,
+                  unselectedLabelColor: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
                   indicatorColor: AppColors.primaryGreen,
                   indicatorWeight: 2.5,
                   labelStyle: const TextStyle(
@@ -981,6 +983,7 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
   }
 
   void _showSearchDialog(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     showDialog(
       context: context,
       barrierColor: Colors.black54,
@@ -990,7 +993,7 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
           child: Padding(
             padding: const EdgeInsets.only(top: kToolbarHeight + 24),
             child: Material(
-              color: Colors.white,
+              color: isDark ? AppColors.darkSurfaceCard : Colors.white,
               elevation: 4,
               borderRadius: BorderRadius.circular(12),
               child: AppSearchBar(
@@ -1164,7 +1167,7 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
                     ? Icons.close
                     : Icons.search,
                 size: 28,
-                color: Theme.of(context).brightness == Brightness.dark ? AppColors.darkTextPrimary : Colors.black87,
+                color: isDark ? AppColors.darkTextPrimary : Colors.black87,
               ),
               tooltip:
                   (_searchController.text.isNotEmpty || query.search.isNotEmpty)
@@ -1286,8 +1289,9 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
   }
 
   Widget _buildMoreOptionsDropdown(bool isMobile) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return PopupMenuButton<String>(
-      icon: const Icon(Icons.more_vert, color: AppColors.textSecondary),
+      icon: Icon(Icons.more_vert, color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary),
       tooltip: 'More Options',
       position: PopupMenuPosition.under,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
@@ -1314,7 +1318,7 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
                 Icon(
                   Icons.checklist_rounded,
                   size: 20,
-                  color: AppColors.textSecondary,
+                  color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
                 ),
                 const SizedBox(width: 8),
                 Text(
@@ -1333,7 +1337,7 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
               Icon(
                 _isGridView ? Icons.view_list_rounded : Icons.grid_view_rounded,
                 size: 20,
-                color: AppColors.textSecondary,
+                color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
               ),
               const SizedBox(width: 8),
               Text(
@@ -1344,17 +1348,17 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
           ),
         ),
         const PopupMenuDivider(),
-        const PopupMenuItem(
+        PopupMenuItem(
           value: 'recycle_bin',
           child: Row(
             children: [
               Icon(
                 Icons.delete_sweep,
                 size: 20,
-                color: AppColors.textSecondary,
+                color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
               ),
-              SizedBox(width: 8),
-              Text('Recycle Bin', style: TextStyle(fontSize: 14)),
+              const SizedBox(width: 8),
+              const Text('Recycle Bin', style: TextStyle(fontSize: 14)),
             ],
           ),
         ),
@@ -1363,6 +1367,7 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
   }
 
   Widget _buildPrintQueueButton({bool compact = false}) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final queueAsync = ref.watch(printQueueProvider);
     final count = queueAsync.maybeWhen(
       data: (items) => items.length,
@@ -1388,8 +1393,8 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
                 ),
               ),
         style: OutlinedButton.styleFrom(
-          foregroundColor: AppColors.textPrimary,
-          side: BorderSide(color: Colors.grey.shade300),
+          foregroundColor: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
+          side: BorderSide(color: isDark ? AppColors.darkBorder : Colors.grey.shade300),
           padding: compact
               ? const EdgeInsets.all(10)
               : const EdgeInsets.symmetric(horizontal: 14),
@@ -1457,6 +1462,7 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
     StateSetter setDialogState,
     VoidCallback onApply,
   ) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     const defaultStatuses = [
       'All Statuses',
       'Pending',
@@ -1519,9 +1525,9 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
     return Container(
       margin: const EdgeInsets.only(top: 10),
       decoration: BoxDecoration(
-        color: AppColors.surfaceWhite,
+        color: isDark ? AppColors.darkSurfaceCard : AppColors.surfaceWhite,
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: Colors.grey.shade200),
+        border: Border.all(color: isDark ? AppColors.darkBorder : Colors.grey.shade200),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.07),
@@ -1545,12 +1551,12 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
                   color: AppColors.primaryGreen,
                 ),
                 const SizedBox(width: 8),
-                const Text(
+                Text(
                   'Filter Documents',
                   style: TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.bold,
-                    color: AppColors.textPrimary,
+                    color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
                   ),
                 ),
               ],
@@ -1639,8 +1645,8 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
                 Expanded(
                   child: OutlinedButton(
                     style: OutlinedButton.styleFrom(
-                      foregroundColor: AppColors.textSecondary,
-                      side: BorderSide(color: Colors.grey.shade300),
+                      foregroundColor: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
+                      side: BorderSide(color: isDark ? AppColors.darkBorder : Colors.grey.shade300),
                       padding: const EdgeInsets.symmetric(vertical: 12),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(8),
@@ -1699,6 +1705,7 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
     required String selectedValue,
     required ValueChanged<String> onSelected,
   }) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Wrap(
       spacing: 8,
       runSpacing: 8,
@@ -1711,7 +1718,7 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
               fontSize: 13,
               fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
               color:
-                  isSelected ? AppColors.primaryGreen : AppColors.textPrimary,
+                  isSelected ? AppColors.primaryGreen : (isDark ? AppColors.darkTextPrimary : AppColors.textPrimary),
             ),
           ),
           selected: isSelected,
@@ -1721,13 +1728,13 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
             }
           },
           selectedColor: AppColors.primaryGreen.withValues(alpha: 0.12),
-          backgroundColor: Colors.grey.shade100,
+          backgroundColor: isDark ? AppColors.darkSurface2 : Colors.grey.shade100,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(20),
             side: BorderSide(
               color: isSelected
                   ? AppColors.primaryGreen
-                  : Colors.grey.shade300,
+                  : (isDark ? AppColors.darkBorder : Colors.grey.shade300),
               width: 1,
             ),
           ),
@@ -1742,6 +1749,7 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
     required VoidCallback onReset,
     required Widget child,
   }) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
       child: Column(
@@ -1752,10 +1760,10 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
             children: [
               Text(
                 label,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 13,
                   fontWeight: FontWeight.w600,
-                  color: AppColors.textPrimary,
+                  color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
                 ),
               ),
               GestureDetector(
@@ -1785,12 +1793,13 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
     String? hint,
     bool enabled = true,
   }) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
       decoration: BoxDecoration(
-        color: enabled ? AppColors.surfaceWhite : Colors.grey.shade50,
-        border: Border.all(color: Colors.grey.shade300),
+        color: enabled ? (isDark ? AppColors.darkSurfaceCard : AppColors.surfaceWhite) : (isDark ? AppColors.darkSurface2 : Colors.grey.shade50),
+        border: Border.all(color: isDark ? AppColors.darkBorder : Colors.grey.shade300),
         borderRadius: BorderRadius.circular(8),
       ),
       child: DropdownButtonHideUnderline(
@@ -1800,20 +1809,20 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
           isDense: true,
           style: TextStyle(
             fontSize: 14,
-            color: enabled ? AppColors.textPrimary : AppColors.textMuted,
+            color: enabled ? (isDark ? AppColors.darkTextPrimary : AppColors.textPrimary) : (isDark ? AppColors.darkTextMuted : AppColors.textMuted),
           ),
           hint: hint != null
               ? Text(
                   hint,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 13,
-                    color: AppColors.textMuted,
+                    color: isDark ? AppColors.darkTextMuted : AppColors.textMuted,
                   ),
                 )
               : null,
           icon: Icon(
             Icons.keyboard_arrow_down_rounded,
-            color: enabled ? AppColors.textSecondary : AppColors.textMuted,
+            color: enabled ? (isDark ? AppColors.darkTextSecondary : AppColors.textSecondary) : (isDark ? AppColors.darkTextMuted : AppColors.textMuted),
             size: 20,
           ),
           items: items
@@ -1840,6 +1849,7 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
     bool isMobile,
     double screenW,
   ) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     // If a folder is opened, show documents inline in this same tab
     if (_openedFolderStudentId != null) {
       return Column(
@@ -1902,7 +1912,7 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
                   Container(
                     padding: const EdgeInsets.all(20),
                     decoration: BoxDecoration(
-                      color: Colors.orange.shade50,
+                      color: isDark ? AppColors.darkSurface2 : Colors.orange.shade50,
                       shape: BoxShape.circle,
                     ),
                     child: Icon(
@@ -1912,20 +1922,20 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
                     ),
                   ),
                   const SizedBox(height: 20),
-                  const Text(
+                  Text(
                     'No sections assigned',
                     style: TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.bold,
-                      color: AppColors.textPrimary,
+                      color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
                     ),
                   ),
                   const SizedBox(height: 8),
-                  const Text(
+                  Text(
                     'You have no sections assigned to your account yet.\nContact your administrator to assign sections.',
                     textAlign: TextAlign.center,
                     style: TextStyle(
-                      color: AppColors.textSecondary,
+                      color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
                       fontSize: 13,
                       height: 1.5,
                     ),
@@ -1942,15 +1952,15 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
                 Icon(
                   Icons.folder_off_outlined,
                   size: 64,
-                  color: Colors.grey.shade300,
+                  color: isDark ? AppColors.darkTextMuted : Colors.grey.shade300,
                 ),
                 const SizedBox(height: 16),
-                const Text(
+                Text(
                   'No Student Folders',
                   style: TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.bold,
-                    color: AppColors.textSecondary,
+                    color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
                   ),
                 ),
               ],
@@ -1991,7 +2001,7 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
                 child: Container(
                   margin: EdgeInsets.all(isMobile ? 8 : 16),
                   decoration: BoxDecoration(
-                    color: AppColors.surfaceWhite,
+                    color: isDark ? AppColors.darkSurfaceCard : AppColors.surfaceWhite,
                     borderRadius: BorderRadius.circular(12),
                     boxShadow: [
                       BoxShadow(
@@ -2016,18 +2026,18 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
                             children: [
                               const SizedBox(width: 40),
                               const SizedBox(width: 12),
-                              const Expanded(
+                              Expanded(
                                 child: Text(
                                   'Folder Name',
                                   style: TextStyle(
                                     fontWeight: FontWeight.bold,
                                     fontSize: 12,
-                                    color: AppColors.textSecondary,
+                                    color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
                                   ),
                                 ),
                               ),
                               if (!isMobile)
-                                const Expanded(
+                                Expanded(
                                   flex: 2,
                                   child: Text(
                                     'Requirement Progress',
@@ -2035,7 +2045,7 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
                                     style: TextStyle(
                                       fontWeight: FontWeight.bold,
                                       fontSize: 12,
-                                      color: AppColors.textSecondary,
+                                      color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
                                     ),
                                   ),
                                 ),
@@ -2047,7 +2057,7 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
                           child: ListView.separated(
                             itemCount: paginatedFolders.length,
                             separatorBuilder: (context, index) =>
-                                Divider(height: 1, color: Colors.grey.shade100),
+                                Divider(height: 1, color: isDark ? AppColors.darkBorder : Colors.grey.shade100),
                             itemBuilder: (ctx, i) {
                               final folder = paginatedFolders[i];
                               return GestureDetector(
@@ -2106,13 +2116,14 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
                                                       maxLines: 2,
                                                       overflow:
                                                           TextOverflow.ellipsis,
-                                                      style: const TextStyle(
-                                                        fontWeight:
-                                                            FontWeight.bold,
-                                                        fontSize: 13,
-                                                        color: AppColors
-                                                            .textPrimary,
-                                                      ),
+                                                       style: TextStyle(
+                                                         fontWeight:
+                                                             FontWeight.bold,
+                                                         fontSize: 13,
+                                                         color: isDark
+                                                             ? AppColors.darkTextPrimary
+                                                             : AppColors.textPrimary,
+                                                       ),
                                                     ),
                                                     const SizedBox(height: 4),
                                                     _buildFolderCompletionBadge(
@@ -2129,13 +2140,14 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
                                                         maxLines: 1,
                                                         overflow: TextOverflow
                                                             .ellipsis,
-                                                        style: const TextStyle(
-                                                          fontWeight:
-                                                              FontWeight.bold,
-                                                          fontSize: 14,
-                                                          color: AppColors
-                                                              .textPrimary,
-                                                        ),
+                                                         style: TextStyle(
+                                                           fontWeight:
+                                                               FontWeight.bold,
+                                                           fontSize: 14,
+                                                           color: isDark
+                                                               ? AppColors.darkTextPrimary
+                                                               : AppColors.textPrimary,
+                                                         ),
                                                       ),
                                                     ),
                                                     Expanded(
@@ -2152,11 +2164,13 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
                                                   ],
                                                 ),
                                         ),
-                                        const Icon(
-                                          Icons.chevron_right,
-                                          size: 18,
-                                          color: AppColors.textMuted,
-                                        ),
+                                         Icon(
+                                           Icons.chevron_right,
+                                           size: 18,
+                                           color: isDark
+                                               ? AppColors.darkTextMuted
+                                               : AppColors.textMuted,
+                                         ),
                                       ],
                                     ),
                                   ),
@@ -2224,9 +2238,9 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
                     borderRadius: BorderRadius.circular(12),
                     child: Container(
                       decoration: BoxDecoration(
-                        color: AppColors.surfaceWhite,
+                        color: isDark ? AppColors.darkSurfaceCard : AppColors.surfaceWhite,
                         borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: Colors.grey.shade200),
+                        border: Border.all(color: isDark ? AppColors.darkBorder : Colors.grey.shade200),
                         boxShadow: [
                           BoxShadow(
                             color: Colors.black.withValues(alpha: 0.03),
@@ -2254,7 +2268,7 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
                               style: TextStyle(
                                 fontWeight: FontWeight.bold,
                                 fontSize: isMobile ? 11 : 13,
-                                color: AppColors.textPrimary,
+                                color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
                               ),
                             ),
                           ),
@@ -2413,6 +2427,7 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
   // LIST VIEW
   // ══════════════════════════════════════════════════════════════
   Widget _buildListView(List documents, int totalPages, int currentPage) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final screenW = MediaQuery.of(context).size.width;
     final isMobileList = screenW < 700;
     return Column(
@@ -2421,7 +2436,7 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
           child: Container(
             margin: EdgeInsets.all(isMobileList ? 8 : 16),
             decoration: BoxDecoration(
-              color: AppColors.surfaceWhite,
+              color: isDark ? AppColors.darkSurfaceCard : AppColors.surfaceWhite,
               borderRadius: BorderRadius.circular(12),
               boxShadow: [
                 BoxShadow(
@@ -2448,51 +2463,51 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
                         const SizedBox(width: 40),
                         const SizedBox(width: 8),
                         // File name always visible
-                        const Expanded(
+                        Expanded(
                           flex: 3,
                           child: Text(
                             'File Name',
                             style: TextStyle(
                               fontWeight: FontWeight.bold,
                               fontSize: 12,
-                              color: AppColors.textSecondary,
+                              color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
                             ),
                           ),
                         ),
                         // Student column — hidden on mobile
                         if (!isMobileList)
-                          const Expanded(
+                          Expanded(
                             flex: 2,
                             child: Text(
                               'Folder Path',
                               style: TextStyle(
                                 fontWeight: FontWeight.bold,
                                 fontSize: 12,
-                                color: AppColors.textSecondary,
+                                color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
                               ),
                             ),
                           ),
                         // Doc type — hidden on mobile
                         if (!isMobileList)
-                          const Expanded(
+                          Expanded(
                             flex: 2,
                             child: Text(
                               'Doc Type',
                               style: TextStyle(
                                 fontWeight: FontWeight.bold,
                                 fontSize: 12,
-                                color: AppColors.textSecondary,
+                                color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
                               ),
                             ),
                           ),
                         // Status always visible
-                        const Expanded(
+                        Expanded(
                           child: Text(
                             'Status',
                             style: TextStyle(
                               fontWeight: FontWeight.bold,
                               fontSize: 12,
-                              color: AppColors.textSecondary,
+                              color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
                             ),
                           ),
                         ),
@@ -2504,7 +2519,7 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
                     child: ListView.separated(
                       itemCount: documents.length,
                       separatorBuilder: (context, index) =>
-                          Divider(height: 1, color: Colors.grey.shade100),
+                          Divider(height: 1, color: isDark ? AppColors.darkBorder : Colors.grey.shade100),
                       itemBuilder: (ctx, i) {
                         return isMobileList
                             ? _buildMobileListRow(documents[i], i)
@@ -2574,6 +2589,7 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
 
   /// Compact card row for mobile list view – stacks info vertically.
   Widget _buildMobileListRow(dynamic doc, int i) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     Color fileColor;
     IconData fileIcon;
     final name = doc.fileName.toLowerCase() as String;
@@ -2681,10 +2697,10 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
                       doc.fileName as String,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontWeight: FontWeight.w600,
                         fontSize: 13,
-                        color: AppColors.textPrimary,
+                        color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
                       ),
                     ),
                     const SizedBox(height: 2),
@@ -2695,9 +2711,9 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
                               : '—'),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 11,
-                        color: AppColors.textSecondary,
+                        color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
                       ),
                     ),
                     if ((doc.documentType as String?) != null) ...[
@@ -2708,7 +2724,7 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
                         overflow: TextOverflow.ellipsis,
                         style: TextStyle(
                           fontSize: 10,
-                          color: Colors.grey.shade500,
+                          color: isDark ? AppColors.darkTextSecondary : Colors.grey.shade500,
                         ),
                       ),
                     ],
@@ -2741,10 +2757,10 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
                 SizedBox(
                   width: 30,
                   child: PopupMenuButton<String>(
-                    icon: const Icon(
+                    icon: Icon(
                       Icons.more_vert,
                       size: 16,
-                      color: AppColors.textSecondary,
+                      color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
                     ),
                     padding: EdgeInsets.zero,
                     onSelected: (a) => _handleAction(a, doc as DocumentModel),
@@ -2828,6 +2844,7 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
   // EMPTY / ERROR STATES
   // ══════════════════════════════════════════════════════════════
   Widget _buildEmptyState({bool noSections = false}) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     if (noSections) {
       return Center(
         child: Column(
@@ -2846,20 +2863,20 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
               ),
             ),
             const SizedBox(height: 20),
-            const Text(
+            Text(
               'No sections assigned',
               style: TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.bold,
-                color: AppColors.textPrimary,
+                color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
               ),
             ),
             const SizedBox(height: 8),
-            const Text(
+            Text(
               'You have no sections assigned to your account yet.\nContact your administrator to assign sections.',
               textAlign: TextAlign.center,
               style: TextStyle(
-                color: AppColors.textSecondary,
+                color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
                 fontSize: 13,
                 height: 1.5,
               ),
@@ -2875,21 +2892,21 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
           Icon(
             Icons.folder_off_outlined,
             size: 72,
-            color: Colors.grey.shade300,
+            color: isDark ? AppColors.darkTextMuted : Colors.grey.shade300,
           ),
           const SizedBox(height: 16),
-          const Text(
+          Text(
             'No documents found',
             style: TextStyle(
               fontSize: 18,
               fontWeight: FontWeight.w600,
-              color: AppColors.textPrimary,
+              color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
             ),
           ),
           const SizedBox(height: 8),
-          const Text(
+          Text(
             'Upload a document or adjust your filters',
-            style: TextStyle(color: AppColors.textSecondary),
+            style: TextStyle(color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary),
           ),
           if (_selectedStatus != 'All Statuses' ||
               _selectedDocumentType != 'All Types' ||

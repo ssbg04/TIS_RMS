@@ -35,12 +35,13 @@ class ColorLineStepper extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Container(
       padding: const EdgeInsets.symmetric(
         horizontal: AppSizes.p24,
         vertical: AppSizes.p16,
       ),
-      color: Colors.white,
+      color: isDark ? AppColors.darkPageBackground : const Color(0xFFF8F9FA),
       child: Row(
         children: List.generate(totalSteps * 2 - 1, (index) {
           if (index.isOdd) {
@@ -48,7 +49,9 @@ class ColorLineStepper extends StatelessWidget {
           }
           final idx = index ~/ 2;
           final activeOrDone = currentStep >= idx;
-          final color = activeOrDone ? AppColors.primaryGreen : Colors.grey.shade300;
+          final color = activeOrDone
+              ? AppColors.primaryGreen
+              : (isDark ? AppColors.darkBorder : Colors.grey.shade300);
 
           return Expanded(
             child: AnimatedContainer(

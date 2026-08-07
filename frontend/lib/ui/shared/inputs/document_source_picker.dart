@@ -91,6 +91,7 @@ class _DocumentSourcePickerState extends State<DocumentSourcePicker> {
 
     return LayoutBuilder(
       builder: (context, constraints) {
+        final isDark = Theme.of(context).brightness == Brightness.dark;
         final narrow = constraints.maxWidth < 300;
         final iconSize = narrow ? 44.0 : 56.0;
 
@@ -138,18 +139,22 @@ class _DocumentSourcePickerState extends State<DocumentSourcePicker> {
                         ? 'Select Document or Drag & Drop'
                         : 'Select Document Source'),
                 textAlign: TextAlign.center,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.bold,
-                  color: AppColors.textPrimary,
+                  color: isDark
+                      ? AppColors.darkTextPrimary
+                      : AppColors.textPrimary,
                 ),
               ),
               const SizedBox(height: AppSizes.p4),
               Text(
                 'Supports ${allowed.map((e) => e.toUpperCase()).join(', ')} (Max 10MB)',
                 textAlign: TextAlign.center,
-                style: const TextStyle(
-                  color: AppColors.textSecondary,
+                style: TextStyle(
+                  color: isDark
+                      ? AppColors.darkTextSecondary
+                      : AppColors.textSecondary,
                   fontSize: 12,
                 ),
               ),
@@ -183,7 +188,9 @@ class _DocumentSourcePickerState extends State<DocumentSourcePicker> {
                     label: const Text('Browse Files'),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: isMobile
-                          ? Colors.white
+                          ? (isDark
+                              ? AppColors.darkSurface2
+                              : Colors.white)
                           : AppColors.primaryGreen,
                       foregroundColor: isMobile
                           ? AppColors.primaryGreen

@@ -405,6 +405,7 @@ class _AddStudentModalState extends ConsumerState<AddStudentModal> {
   // STEPS UI
   // ----------------------------------------------------------------
   Widget _buildOcrStep() {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Column(
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -422,15 +423,15 @@ class _AddStudentModalState extends ConsumerState<AddStudentModal> {
               color: AppColors.primaryGreen.withValues(alpha: 0.25),
             ),
           ),
-          child: const Row(
+          child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Icon(
+              const Icon(
                 Icons.auto_awesome,
                 size: 18,
                 color: AppColors.primaryGreen,
               ),
-              SizedBox(width: 8),
+              const SizedBox(width: 8),
               Expanded(
                 child: Text(
                   'Pick a file — the document type (SF9 or SF10) will be '
@@ -438,7 +439,9 @@ class _AddStudentModalState extends ConsumerState<AddStudentModal> {
                   'be detected, you will be asked to confirm.',
                   style: TextStyle(
                     fontSize: 12,
-                    color: AppColors.textSecondary,
+                    color: isDark
+                        ? AppColors.darkTextSecondary
+                        : AppColors.textSecondary,
                   ),
                 ),
               ),
@@ -471,15 +474,20 @@ class _AddStudentModalState extends ConsumerState<AddStudentModal> {
                 border: Border.all(color: AppColors.info.withValues(alpha: 0.3)),
                 borderRadius: BorderRadius.circular(AppSizes.radiusMedium),
               ),
-              child: const Row(
+              child: Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Icon(Icons.check_circle_outline, color: AppColors.info, size: 20),
-                  SizedBox(width: 8),
+                  const Icon(Icons.check_circle_outline, color: AppColors.info, size: 20),
+                  const SizedBox(width: 8),
                   Expanded(
                     child: Text(
                       'Scan complete! OCR extracted data from your document. Please review and verify all auto-filled fields before proceeding.',
-                      style: TextStyle(color: AppColors.textPrimary, fontSize: 13),
+                      style: TextStyle(
+                        color: isDark
+                            ? AppColors.darkTextPrimary
+                            : AppColors.textPrimary,
+                        fontSize: 13,
+                      ),
                     ),
                   ),
                 ],
@@ -1013,15 +1021,14 @@ class _AddStudentModalState extends ConsumerState<AddStudentModal> {
                               _errorMessage = null;
                               _currentStep = 1;
                             }),
-                            icon: const Icon(Icons.edit_note, size: 16),
-                            label: const Text('MANUAL INPUT'),
+                            icon: Icon(Icons.edit_note, size: 16, color: isDark ? Colors.white : Colors.black),
+                            label: Text('MANUAL INPUT', style: TextStyle(color: isDark ? Colors.white : Colors.black, fontWeight: FontWeight.w600)),
                             style: OutlinedButton.styleFrom(
                               padding: const EdgeInsets.symmetric(
                                 horizontal: 16,
                                 vertical: 12,
                               ),
-                              side: const BorderSide(color: AppColors.primaryGreen),
-                              foregroundColor: AppColors.primaryGreen,
+                              side: BorderSide(color: isDark ? Colors.white : Colors.black),
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(
                                   AppSizes.radiusMedium,
@@ -1041,7 +1048,7 @@ class _AddStudentModalState extends ConsumerState<AddStudentModal> {
                                   horizontal: 16,
                                   vertical: 12,
                                 ),
-                                side: BorderSide(color: isDark ? AppColors.darkBorder : Colors.grey.shade400),
+                                side: BorderSide(color: isDark ? Colors.white : Colors.black),
                                 shape: RoundedRectangleBorder(
                                   borderRadius: BorderRadius.circular(
                                     AppSizes.radiusMedium,
@@ -1051,12 +1058,12 @@ class _AddStudentModalState extends ConsumerState<AddStudentModal> {
                               icon: Icon(
                                 Icons.arrow_back,
                                 size: 16,
-                                color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
+                                color: isDark ? Colors.white : Colors.black,
                               ),
                               label: Text(
                                 'BACK',
                                 style: TextStyle(
-                                  color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
+                                  color: isDark ? Colors.white : Colors.black,
                                   fontWeight: FontWeight.w600,
                                 ),
                               ),

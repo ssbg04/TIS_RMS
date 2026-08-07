@@ -587,6 +587,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
   }
 
   Widget _buildViewModeToggle() {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return LayoutBuilder(
       builder: (context, constraints) {
         final isNarrow = constraints.maxWidth < 800;
@@ -614,9 +615,13 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
         return Container(
           padding: const EdgeInsets.all(6),
           decoration: BoxDecoration(
-            color: AppColors.surfaceWhite,
+            color: isDark ? AppColors.darkSurfaceCard : AppColors.surfaceWhite,
             borderRadius: BorderRadius.circular(AppSizes.radiusLarge),
-            border: Border.all(color: Colors.grey.withValues(alpha: 0.2)),
+            border: Border.all(
+              color: isDark
+                  ? AppColors.darkBorder
+                  : Colors.grey.withValues(alpha: 0.2),
+            ),
             boxShadow: [
               BoxShadow(
                 color: Colors.black.withValues(alpha: 0.03),
@@ -655,6 +660,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
     required String title,
     required String subtitle,
   }) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final isSelected = _selectedViewMode == index;
     return InkWell(
         onTap: () => setState(() => _selectedViewMode = index),
@@ -680,7 +686,9 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                 icon,
                 color: isSelected
                     ? AppColors.primaryGreen
-                    : AppColors.textSecondary,
+                    : (isDark
+                        ? AppColors.darkTextSecondary
+                        : AppColors.textSecondary),
                 size: 22,
               ),
               const SizedBox(width: 10),
@@ -695,7 +703,9 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                         fontSize: 13,
                         color: isSelected
                             ? AppColors.primaryGreen
-                            : AppColors.textPrimary,
+                            : (isDark
+                                ? AppColors.darkTextPrimary
+                                : AppColors.textPrimary),
                       ),
                     ),
                     const SizedBox(height: 2),
@@ -705,7 +715,9 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                         fontSize: 11,
                         color: isSelected
                             ? AppColors.primaryGreen.withValues(alpha: 0.8)
-                            : AppColors.textSecondary,
+                            : (isDark
+                                ? AppColors.darkTextSecondary
+                                : AppColors.textSecondary),
                       ),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
@@ -722,6 +734,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
 
   // ── Header + Export Actions ───────────────────────────────────────────────
   Widget _buildTitleAndExportActions(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final statsAsync = ref.watch(reportStatsProvider);
     final isDesktop = MediaQuery.of(context).size.width > 900;
 
@@ -735,18 +748,21 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text(
+                  Text(
                     'System Reports & Analytics',
                     style: TextStyle(
                       fontSize: 28,
                       fontWeight: FontWeight.bold,
-                      color: AppColors.textPrimary,
+                      color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
                     ),
                   ),
                   const SizedBox(height: AppSizes.p8),
                   Text(
                     'Document Compliance & Statistics Dashboard • Tiaong Integrated School',
-                    style: TextStyle(fontSize: 15, color: Colors.grey.shade600),
+                    style: TextStyle(
+                      fontSize: 15,
+                      color: isDark ? AppColors.darkTextSecondary : Colors.grey.shade600,
+                    ),
                   ),
                 ],
               ),
@@ -784,6 +800,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
 
   // ── Filter Panel (collapsible) ────────────────────────────────────────────
   Widget _buildFilterPanel(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final yearsAsync = ref.watch(academicYearsProvider);
     final selectedYearId = ref.watch(selectedAcademicYearIdProvider);
 
@@ -819,9 +836,11 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
 
     return Container(
       decoration: BoxDecoration(
-        color: AppColors.surfaceWhite,
+        color: isDark ? AppColors.darkSurfaceCard : AppColors.surfaceWhite,
         borderRadius: BorderRadius.circular(AppSizes.radiusLarge),
-        border: Border.all(color: Colors.grey.shade200),
+        border: Border.all(
+          color: isDark ? AppColors.darkBorder : Colors.grey.shade200,
+        ),
         boxShadow: [
           BoxShadow(color: Colors.black.withValues(alpha: 0.02), blurRadius: 8),
         ],
@@ -851,11 +870,11 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                     size: 18,
                   ),
                   const SizedBox(width: 8),
-                  const Text(
+                  Text(
                     'Filter Status & Statistics',
                     style: TextStyle(
                       fontWeight: FontWeight.bold,
-                      color: AppColors.textPrimary,
+                      color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
                     ),
                   ),
                   const SizedBox(width: 12),
@@ -899,7 +918,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                       'No active filters',
                       style: TextStyle(
                         fontSize: 12,
-                        color: Colors.grey.shade500,
+                        color: isDark ? AppColors.darkTextSecondary : Colors.grey.shade500,
                       ),
                     ),
                     const Spacer(),
@@ -909,7 +928,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                     isExpanded
                         ? Icons.keyboard_arrow_up
                         : Icons.keyboard_arrow_down,
-                    color: Colors.grey.shade600,
+                    color: isDark ? AppColors.darkTextSecondary : Colors.grey.shade600,
                     size: 20,
                   ),
                 ],
@@ -923,7 +942,10 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
             secondChild: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Divider(height: 1, color: Colors.grey.shade200),
+                Divider(
+                  height: 1,
+                  color: isDark ? AppColors.darkBorder : Colors.grey.shade200,
+                ),
                 Padding(
                   padding: const EdgeInsets.all(AppSizes.p16),
                   child: Column(
@@ -1162,12 +1184,12 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                             activeThumbColor: AppColors.primaryGreen,
                           ),
                           const SizedBox(width: 8),
-                          const Expanded(
+                          Expanded(
                             child: Text(
                               'Show only students with missing documents',
                               style: TextStyle(
                                 fontWeight: FontWeight.w600,
-                                color: AppColors.textPrimary,
+                                color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
                               ),
                             ),
                           ),
@@ -1188,20 +1210,30 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
     );
   }
 
-  InputDecoration _filterDecoration(String label) => InputDecoration(
-    labelText: label,
-    border: UnderlineInputBorder(
-      borderSide: BorderSide(color: Colors.grey.shade300),
-    ),
-    enabledBorder: UnderlineInputBorder(
-      borderSide: BorderSide(color: Colors.grey.shade300),
-    ),
-    focusedBorder: const UnderlineInputBorder(
-      borderSide: BorderSide(color: AppColors.primaryGreen, width: 2),
-    ),
-    contentPadding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
-    filled: false,
-  );
+  InputDecoration _filterDecoration(String label) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    return InputDecoration(
+      labelText: label,
+      labelStyle: TextStyle(
+        color: isDark ? AppColors.darkTextSecondary : null,
+      ),
+      border: UnderlineInputBorder(
+        borderSide: BorderSide(
+          color: isDark ? AppColors.darkBorder : Colors.grey.shade300,
+        ),
+      ),
+      enabledBorder: UnderlineInputBorder(
+        borderSide: BorderSide(
+          color: isDark ? AppColors.darkBorder : Colors.grey.shade300,
+        ),
+      ),
+      focusedBorder: const UnderlineInputBorder(
+        borderSide: BorderSide(color: AppColors.primaryGreen, width: 2),
+      ),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
+      filled: false,
+    );
+  }
 
   // ── KPI Cards: Compliance + Student status grid ───────────────────────────
   Widget _buildMetricsGrid(ReportStats reportData, int? storageBytes) {
@@ -1356,33 +1388,40 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
           const SizedBox(height: 8),
           Align(
             alignment: Alignment.centerRight,
-            child: Container(
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
-              decoration: BoxDecoration(
-                color: Colors.blueGrey.shade50,
-                borderRadius: BorderRadius.circular(20),
-                border: Border.all(color: Colors.blueGrey.shade100),
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(
-                    Icons.storage_outlined,
-                    size: 13,
-                    color: Colors.blueGrey.shade600,
-                  ),
-                  const SizedBox(width: 6),
-                  Text(
-                    'Storage: ${formatBytes(storageBytes)} used',
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: Colors.blueGrey.shade700,
-                      fontWeight: FontWeight.w500,
+            child: Builder(
+              builder: (ctx) {
+                final isDark = Theme.of(ctx).brightness == Brightness.dark;
+                return Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
+                  decoration: BoxDecoration(
+                    color: isDark ? AppColors.darkSurface2 : Colors.blueGrey.shade50,
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(
+                      color: isDark ? AppColors.darkBorder : Colors.blueGrey.shade100,
                     ),
                   ),
-                ],
-              ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        Icons.storage_outlined,
+                        size: 13,
+                        color: isDark ? AppColors.darkTextSecondary : Colors.blueGrey.shade600,
+                      ),
+                      const SizedBox(width: 6),
+                      Text(
+                        'Storage: ${formatBytes(storageBytes)} used',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: isDark ? AppColors.darkTextSecondary : Colors.blueGrey.shade700,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ],
+                  ),
+                );
+              },
             ),
           ),
         ],
@@ -1398,10 +1437,11 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
     required IconData icon,
     required Color color,
   }) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: isDark ? AppColors.darkSurfaceCard : Colors.white,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(color: color.withValues(alpha: 0.25)),
         boxShadow: [
@@ -1430,10 +1470,10 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
               Expanded(
                 child: Text(
                   title,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 13,
                     fontWeight: FontWeight.w600,
-                    color: AppColors.textPrimary,
+                    color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
                   ),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
@@ -1460,9 +1500,9 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
               const SizedBox(height: 2),
               Text(
                 subtitle,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 11,
-                  color: AppColors.textSecondary,
+                  color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
                 ),
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
@@ -1479,6 +1519,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
     List<MissingDocBreakdown> breakdown, {
     required bool isDesktop,
   }) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final isFilterExpanded = ref.watch(missingDocsFilterExpandedProvider);
 
     // Categorize by SHS (grade 11-12) vs JHS (grade 7-10)
@@ -1530,19 +1571,19 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text(
+                    Text(
                       'Missing Documents by Requirement Type',
                       style: TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.bold,
-                        color: AppColors.textPrimary,
+                        color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
                       ),
                     ),
                     const SizedBox(height: 4),
-                    const Text(
+                    Text(
                       'Count of active student compliance requirements currently unsubmitted/unverified.',
                       style: TextStyle(
-                        color: AppColors.textSecondary,
+                        color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
                         fontSize: 13,
                       ),
                     ),
@@ -1619,19 +1660,19 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                               child: level == 'SHS'
                                   ? levelBadge(
                                       'SHS',
-                                      Colors.purple.shade50,
-                                      Colors.purple.shade700,
+                                      isDark ? AppColors.darkSurface2 : Colors.purple.shade50,
+                                      isDark ? Colors.purple.shade300 : Colors.purple.shade700,
                                     )
                                   : level == 'JHS'
                                   ? levelBadge(
                                       'JHS',
-                                      Colors.teal.shade50,
-                                      Colors.teal.shade700,
+                                      isDark ? AppColors.darkSurface2 : Colors.teal.shade50,
+                                      isDark ? Colors.teal.shade300 : Colors.teal.shade700,
                                     )
                                   : levelBadge(
                                       'ALL',
-                                      Colors.grey.shade100,
-                                      Colors.grey.shade600,
+                                      isDark ? AppColors.darkSurface2 : Colors.grey.shade100,
+                                      isDark ? AppColors.darkTextSecondary : Colors.grey.shade600,
                                     ),
                             ),
                             const SizedBox(width: 8),
@@ -1656,7 +1697,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                                   Container(
                                     height: 10,
                                     decoration: BoxDecoration(
-                                      color: Colors.grey.shade100,
+                                      color: isDark ? AppColors.darkSurface2 : Colors.grey.shade100,
                                       borderRadius: BorderRadius.circular(5),
                                     ),
                                   ),
@@ -1690,13 +1731,13 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                                 vertical: 2,
                               ),
                               decoration: BoxDecoration(
-                                color: Colors.red.shade50,
+                                color: isDark ? Colors.red.withValues(alpha: 0.15) : Colors.red.shade50,
                                 borderRadius: BorderRadius.circular(8),
                               ),
                               child: Text(
                                 '${item.count}',
                                 style: TextStyle(
-                                  color: Colors.red.shade700,
+                                  color: isDark ? Colors.red.shade300 : Colors.red.shade700,
                                   fontWeight: FontWeight.bold,
                                   fontSize: 11,
                                 ),
@@ -1740,19 +1781,19 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                               child: level == 'SHS'
                                   ? levelBadge(
                                       'SHS',
-                                      Colors.purple.shade50,
-                                      Colors.purple.shade700,
+                                      isDark ? AppColors.darkSurface2 : Colors.purple.shade50,
+                                      isDark ? Colors.purple.shade300 : Colors.purple.shade700,
                                     )
                                   : level == 'JHS'
                                   ? levelBadge(
                                       'JHS',
-                                      Colors.teal.shade50,
-                                      Colors.teal.shade700,
+                                      isDark ? AppColors.darkSurface2 : Colors.teal.shade50,
+                                      isDark ? Colors.teal.shade300 : Colors.teal.shade700,
                                     )
                                   : levelBadge(
                                       'ALL',
-                                      Colors.grey.shade100,
-                                      Colors.grey.shade600,
+                                      isDark ? AppColors.darkSurface2 : Colors.grey.shade100,
+                                      isDark ? AppColors.darkTextSecondary : Colors.grey.shade600,
                                     ),
                             ),
                             const SizedBox(width: 8),
@@ -1778,7 +1819,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                                     Container(
                                       height: 10,
                                       decoration: BoxDecoration(
-                                        color: Colors.grey.shade100,
+                                        color: isDark ? AppColors.darkSurface2 : Colors.grey.shade100,
                                         borderRadius: BorderRadius.circular(5),
                                       ),
                                     ),
@@ -1810,13 +1851,13 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                                 vertical: 2,
                               ),
                               decoration: BoxDecoration(
-                                color: Colors.red.shade50,
+                                color: isDark ? Colors.red.withValues(alpha: 0.15) : Colors.red.shade50,
                                 borderRadius: BorderRadius.circular(8),
                               ),
                               child: Text(
                                 '${item.count}',
                                 style: TextStyle(
-                                  color: Colors.red.shade700,
+                                  color: isDark ? Colors.red.shade300 : Colors.red.shade700,
                                   fontWeight: FontWeight.bold,
                                   fontSize: 11,
                                 ),
@@ -1840,6 +1881,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
 
   // ── Interactive Compliance Table ──────────────────────────────────────────
   Widget _buildComplianceTable(ReportStats data) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final showOnlyMissing = ref.watch(showOnlyMissingDocsProvider);
     final activeYearId = ref.watch(selectedAcademicYearIdProvider);
     final activeGrade = ref.watch(selectedGradeLevelProvider);
@@ -1938,7 +1980,9 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                       : Icons.arrow_downward_rounded)
                   : Icons.unfold_more_rounded,
               size: 13,
-              color: isActive ? AppColors.primaryGreen : Colors.grey.shade400,
+              color: isActive
+                  ? AppColors.primaryGreen
+                  : (isDark ? AppColors.darkTextMuted : Colors.grey.shade400),
             ),
           ],
         ),
@@ -1959,7 +2003,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                 Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Expanded(
+                    Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
@@ -1968,14 +2012,14 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                             style: TextStyle(
                               fontSize: 18,
                               fontWeight: FontWeight.bold,
-                              color: AppColors.textPrimary,
+                              color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
                             ),
                           ),
-                          SizedBox(height: 4),
+                          const SizedBox(height: 4),
                           Text(
                             'Tap a student row to view their full profile. Columns LRN, Name, and Missing are sortable.',
                             style: TextStyle(
-                              color: AppColors.textSecondary,
+                              color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
                               fontSize: 13,
                             ),
                           ),
@@ -2011,24 +2055,27 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                     _searchQuery = val;
                     _currentPage = 0;
                   }),
-                  style: const TextStyle(fontSize: 13),
+                  style: TextStyle(
+                    fontSize: 13,
+                    color: isDark ? AppColors.darkTextPrimary : null,
+                  ),
                   decoration: InputDecoration(
                     hintText: 'Search by student name or LRN...',
                     hintStyle: TextStyle(
                       fontSize: 13,
-                      color: Colors.grey.shade400,
+                      color: isDark ? AppColors.darkTextMuted : Colors.grey.shade400,
                     ),
                     prefixIcon: Icon(
                       Icons.search_rounded,
                       size: 18,
-                      color: Colors.grey.shade400,
+                      color: isDark ? AppColors.darkTextMuted : Colors.grey.shade400,
                     ),
                     suffixIcon: _searchQuery.isNotEmpty
                         ? IconButton(
                             icon: Icon(
                               Icons.close_rounded,
                               size: 16,
-                              color: Colors.grey.shade500,
+                              color: isDark ? AppColors.darkTextSecondary : Colors.grey.shade500,
                             ),
                             onPressed: () => setState(() {
                               _searchController.clear();
@@ -2038,18 +2085,22 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                           )
                         : null,
                     filled: true,
-                    fillColor: Colors.grey.shade50,
+                    fillColor: isDark ? AppColors.darkSurface2 : Colors.grey.shade50,
                     contentPadding: const EdgeInsets.symmetric(
                       horizontal: 12,
                       vertical: 10,
                     ),
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(8),
-                      borderSide: BorderSide(color: Colors.grey.shade200),
+                      borderSide: BorderSide(
+                        color: isDark ? AppColors.darkBorder : Colors.grey.shade200,
+                      ),
                     ),
                     enabledBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(8),
-                      borderSide: BorderSide(color: Colors.grey.shade200),
+                      borderSide: BorderSide(
+                        color: isDark ? AppColors.darkBorder : Colors.grey.shade200,
+                      ),
                     ),
                     focusedBorder: const OutlineInputBorder(
                       borderRadius: BorderRadius.all(Radius.circular(8)),
@@ -2071,10 +2122,12 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                     avatar: Icon(
                       Icons.close_rounded,
                       size: 14,
-                      color: Colors.grey.shade600,
+                      color: isDark ? AppColors.darkTextSecondary : Colors.grey.shade600,
                     ),
-                    backgroundColor: Colors.grey.shade100,
-                    side: BorderSide(color: Colors.grey.shade300),
+                    backgroundColor: isDark ? AppColors.darkSurface2 : Colors.grey.shade100,
+                    side: BorderSide(
+                      color: isDark ? AppColors.darkBorder : Colors.grey.shade300,
+                    ),
                     onPressed: () {
                       _searchController.clear();
                       setState(() {
@@ -2101,7 +2154,10 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
               ],
             ),
           ),
-          const Divider(height: 1),
+          Divider(
+            height: 1,
+            color: isDark ? AppColors.darkBorder : null,
+          ),
           ClipRRect(
             borderRadius: const BorderRadius.vertical(
               bottom: Radius.circular(AppSizes.radiusLarge),
@@ -2164,9 +2220,13 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                     : paginatedStudents.map((student) {
                         Color? rowBg;
                         if (student.missingCount == 0) {
-                          rowBg = Colors.green.shade50;
+                          rowBg = isDark
+                              ? AppColors.primaryGreen.withValues(alpha: 0.1)
+                              : Colors.green.shade50;
                         } else if (student.missingCount >= 3) {
-                          rowBg = Colors.red.shade50;
+                          rowBg = isDark
+                              ? Colors.red.withValues(alpha: 0.1)
+                              : Colors.red.shade50;
                         }
                         return DataRow(
                           color: rowBg != null
@@ -2210,10 +2270,16 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                                 ),
                                 decoration: BoxDecoration(
                                   color: student.status == 'Enrolled'
-                                      ? Colors.green.shade50
+                                      ? (isDark
+                                          ? Colors.green.withValues(alpha: 0.15)
+                                          : Colors.green.shade50)
                                       : student.status == 'Graduated'
-                                      ? Colors.blue.shade50
-                                      : Colors.orange.shade50,
+                                      ? (isDark
+                                          ? Colors.blue.withValues(alpha: 0.15)
+                                          : Colors.blue.shade50)
+                                      : (isDark
+                                          ? Colors.orange.withValues(alpha: 0.15)
+                                          : Colors.orange.shade50),
                                   borderRadius: BorderRadius.circular(12),
                                 ),
                                 child: Text(
@@ -2222,10 +2288,16 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                                       : student.status,
                                   style: TextStyle(
                                     color: student.status == 'Enrolled'
-                                        ? Colors.green.shade700
+                                        ? (isDark
+                                            ? Colors.green.shade300
+                                            : Colors.green.shade700)
                                         : student.status == 'Graduated'
-                                        ? Colors.blue.shade700
-                                        : Colors.orange.shade700,
+                                        ? (isDark
+                                            ? Colors.blue.shade300
+                                            : Colors.blue.shade700)
+                                        : (isDark
+                                            ? Colors.orange.shade300
+                                            : Colors.orange.shade700),
                                     fontWeight: FontWeight.bold,
                                     fontSize: 11,
                                   ),
@@ -2246,16 +2318,24 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                                 ),
                                 decoration: BoxDecoration(
                                   color: student.missingCount > 0
-                                      ? Colors.red.shade50
-                                      : Colors.green.shade50,
+                                      ? (isDark
+                                          ? Colors.red.withValues(alpha: 0.15)
+                                          : Colors.red.shade50)
+                                      : (isDark
+                                          ? Colors.green.withValues(alpha: 0.15)
+                                          : Colors.green.shade50),
                                   borderRadius: BorderRadius.circular(12),
                                 ),
                                 child: Text(
                                   student.missingCount.toString(),
                                   style: TextStyle(
                                     color: student.missingCount > 0
-                                        ? Colors.red.shade700
-                                        : Colors.green.shade700,
+                                        ? (isDark
+                                            ? Colors.red.shade300
+                                            : Colors.red.shade700)
+                                        : (isDark
+                                            ? Colors.green.shade300
+                                            : Colors.green.shade700),
                                     fontWeight: FontWeight.bold,
                                     fontSize: 12,
                                   ),
@@ -2268,8 +2348,12 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                                     'None — Complete',
                                 style: TextStyle(
                                   color: student.missingCount > 0
-                                      ? Colors.grey.shade700
-                                      : Colors.green.shade700,
+                                      ? (isDark
+                                          ? AppColors.darkTextSecondary
+                                          : Colors.grey.shade700)
+                                      : (isDark
+                                          ? Colors.green.shade300
+                                          : Colors.green.shade700),
                                   fontSize: 12,
                                   fontStyle: student.missingCount > 0
                                       ? FontStyle.normal
@@ -2284,7 +2368,10 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
             ),
           ),
           if (totalPages > 1) ...[
-            const Divider(height: 1),
+            Divider(
+              height: 1,
+              color: isDark ? AppColors.darkBorder : null,
+            ),
             Padding(
               padding: const EdgeInsets.symmetric(
                 horizontal: AppSizes.p24,
@@ -2297,8 +2384,8 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                 children: [
                   Text(
                     'Showing ${safeStartIndex + 1} - $safeEndIndex / $totalRows',
-                    style: const TextStyle(
-                      color: AppColors.textSecondary,
+                    style: TextStyle(
+                      color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
                       fontSize: 11,
                     ),
                   ),
@@ -2330,7 +2417,11 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                               borderRadius: BorderRadius.circular(6),
                               border: isActive
                                   ? null
-                                  : Border.all(color: Colors.grey.shade300),
+                                  : Border.all(
+                                      color: isDark
+                                          ? AppColors.darkBorder
+                                          : Colors.grey.shade300,
+                                    ),
                             ),
                             child: Center(
                               child: Text(
@@ -2340,7 +2431,9 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                                   fontWeight: FontWeight.w600,
                                   color: isActive
                                       ? Colors.white
-                                      : AppColors.textSecondary,
+                                      : (isDark
+                                          ? AppColors.darkTextSecondary
+                                          : AppColors.textSecondary),
                                 ),
                               ),
                             ),
@@ -2432,6 +2525,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
 
   Widget _summaryItem(
       IconData icon, String value, String label, Color color) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
@@ -2451,9 +2545,9 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
             ),
             Text(
               label,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 11,
-                color: AppColors.textSecondary,
+                color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
               ),
             ),
           ],
@@ -2464,6 +2558,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
 
   // ── Status Donut Chart ────────────────────────────────────────────────────
   Widget _buildStatusDonutChart(StudentCounts counts) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final total = counts.active +
         counts.dropped +
         counts.transferee +
@@ -2476,18 +2571,21 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
+          Text(
             'Student Status Distribution',
             style: TextStyle(
               fontSize: 18,
               fontWeight: FontWeight.bold,
-              color: AppColors.textPrimary,
+              color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
             ),
           ),
           const SizedBox(height: 4),
-          const Text(
+          Text(
             'Breakdown of all students by enrollment status.',
-            style: TextStyle(color: AppColors.textSecondary, fontSize: 13),
+            style: TextStyle(
+              color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
+              fontSize: 13,
+            ),
           ),
           const SizedBox(height: AppSizes.p24),
           if (total == 0)
@@ -2564,17 +2662,17 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                     children: [
                       Text(
                         '$total',
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 26,
                           fontWeight: FontWeight.bold,
-                          color: AppColors.textPrimary,
+                          color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
                         ),
                       ),
-                      const Text(
+                      Text(
                         'Students',
                         style: TextStyle(
                           fontSize: 11,
-                          color: AppColors.textSecondary,
+                          color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
                         ),
                       ),
                     ],
@@ -2604,6 +2702,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
 
   // ── Grade Compliance Chart ────────────────────────────────────────────────
   Widget _buildGradeComplianceChart(List<ReportStudent> students) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final gradeMap = <int, _GradeCompliance>{};
     for (final s in students) {
       if (s.gradeLevel == null) continue;
@@ -2622,18 +2721,21 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
+          Text(
             'Compliance Rate by Grade Level',
             style: TextStyle(
               fontSize: 18,
               fontWeight: FontWeight.bold,
-              color: AppColors.textPrimary,
+              color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
             ),
           ),
           const SizedBox(height: 4),
-          const Text(
+          Text(
             'Percentage of students with complete documents per grade.',
-            style: TextStyle(color: AppColors.textSecondary, fontSize: 13),
+            style: TextStyle(
+              color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
+              fontSize: 13,
+            ),
           ),
           const SizedBox(height: AppSizes.p24),
           if (grades.isEmpty)
@@ -2667,7 +2769,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                           backDrawRodData: BackgroundBarChartRodData(
                             show: true,
                             toY: 100,
-                            color: Colors.grey.shade100,
+                            color: isDark ? AppColors.darkSurface2 : Colors.grey.shade100,
                           ),
                         ),
                       ],
@@ -2688,9 +2790,9 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                             padding: const EdgeInsets.only(top: 6),
                             child: Text(
                               'G${grades[idx].grade}',
-                              style: const TextStyle(
+                              style: TextStyle(
                                 fontSize: 12,
-                                color: AppColors.textSecondary,
+                                color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
                                 fontWeight: FontWeight.bold,
                               ),
                             ),
@@ -2706,9 +2808,9 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                           if (value % 25 != 0) return const SizedBox.shrink();
                           return Text(
                             '${value.toInt()}%',
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 11,
-                              color: AppColors.textSecondary,
+                              color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
                             ),
                           );
                         },
@@ -2726,7 +2828,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                     drawVerticalLine: false,
                     horizontalInterval: 25,
                     getDrawingHorizontalLine: (value) => FlLine(
-                      color: Colors.grey.shade200,
+                      color: isDark ? AppColors.darkBorder : Colors.grey.shade200,
                       strokeWidth: 1,
                     ),
                   ),
@@ -2779,52 +2881,76 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
 
   // ── Helpers ──────────────────────────────────────────────────────────────
 
-  Widget _errorWidget(String msg) => Container(
-    padding: const EdgeInsets.all(16),
-    decoration: BoxDecoration(
-      color: Colors.red.shade50,
-      borderRadius: BorderRadius.circular(8),
-    ),
-    child: Row(
-      children: [
-        const Icon(Icons.error_outline, color: Colors.red),
-        const SizedBox(width: 8),
-        Expanded(
-          child: Text(msg, style: const TextStyle(color: Colors.red)),
-        ),
-      ],
-    ),
-  );
-
-  Widget _emptyWidget(String msg) => Center(
-    child: Padding(
-      padding: const EdgeInsets.all(32),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
+  Widget _errorWidget(String msg) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: isDark ? Colors.red.withValues(alpha: 0.15) : Colors.red.shade50,
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Row(
         children: [
-          Icon(Icons.bar_chart, size: 48, color: Colors.grey.shade400),
-          const SizedBox(height: 12),
-          Text(msg, style: TextStyle(color: Colors.grey.shade500)),
+          Icon(Icons.error_outline, color: isDark ? Colors.red.shade300 : Colors.red),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              msg,
+              style: TextStyle(color: isDark ? Colors.red.shade300 : Colors.red),
+            ),
+          ),
         ],
       ),
-    ),
-  );
+    );
+  }
 
-  BoxDecoration _cardDecoration() => BoxDecoration(
-    color: AppColors.surfaceWhite,
-    borderRadius: BorderRadius.circular(AppSizes.radiusLarge),
-    boxShadow: [
-      BoxShadow(
-        color: Colors.black.withValues(alpha: 0.02),
-        blurRadius: 10,
-        offset: const Offset(0, 4),
+  Widget _emptyWidget(String msg) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(32),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              Icons.bar_chart,
+              size: 48,
+              color: isDark ? AppColors.darkTextMuted : Colors.grey.shade400,
+            ),
+            const SizedBox(height: 12),
+            Text(
+              msg,
+              style: TextStyle(
+                color: isDark ? AppColors.darkTextSecondary : Colors.grey.shade500,
+              ),
+            ),
+          ],
+        ),
       ),
-    ],
-    border: Border.all(color: Colors.grey.shade200),
-  );
+    );
+  }
+
+  BoxDecoration _cardDecoration() {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    return BoxDecoration(
+      color: isDark ? AppColors.darkSurfaceCard : AppColors.surfaceWhite,
+      borderRadius: BorderRadius.circular(AppSizes.radiusLarge),
+      boxShadow: [
+        BoxShadow(
+          color: Colors.black.withValues(alpha: 0.02),
+          blurRadius: 10,
+          offset: const Offset(0, 4),
+        ),
+      ],
+      border: Border.all(
+        color: isDark ? AppColors.darkBorder : Colors.grey.shade200,
+      ),
+    );
+  }
 
   // ── Yearly Comparison Chart ───────────────────────────────────────────────
   Widget _buildYearlyComparisonChart({required bool isDesktop}) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final yearlyAsync = ref.watch(yearlyComparisonProvider);
     final selectedYears = ref.watch(yearlyComparisonSelectedYearsProvider);
     final selectedStatuses = ref.watch(
@@ -2862,20 +2988,20 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
-                  children: const [
+                  children: [
                     Text(
                       'Yearly Comparison by Status',
                       style: TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.bold,
-                        color: AppColors.textPrimary,
+                        color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
                       ),
                     ),
-                    SizedBox(height: 4),
+                    const SizedBox(height: 4),
                     Text(
                       'Trend of student statuses across academic years (ascending).',
                       style: TextStyle(
-                        color: AppColors.textSecondary,
+                        color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
                         fontSize: 13,
                       ),
                     ),
@@ -3056,8 +3182,8 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                                     padding: const EdgeInsets.only(top: 8.0),
                                     child: Text(
                                       data[value.toInt()].year,
-                                      style: const TextStyle(
-                                        color: AppColors.textSecondary,
+                                      style: TextStyle(
+                                        color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
                                         fontSize: 12,
                                         fontWeight: FontWeight.bold,
                                       ),
@@ -3077,8 +3203,8 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                                   }
                                   return Text(
                                     value.toInt().toString(),
-                                    style: const TextStyle(
-                                      color: AppColors.textSecondary,
+                                    style: TextStyle(
+                                      color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
                                       fontSize: 12,
                                     ),
                                   );
@@ -3097,7 +3223,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                             drawVerticalLine: false,
                             horizontalInterval: (maxY / 5) > 0 ? (maxY / 5) : 1,
                             getDrawingHorizontalLine: (value) => FlLine(
-                              color: Colors.grey.shade200,
+                              color: isDark ? AppColors.darkBorder : Colors.grey.shade200,
                               strokeWidth: 1,
                             ),
                           ),
@@ -3435,6 +3561,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
   }
 
   Widget _buildLegendItem(Color color, String text) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
@@ -3449,9 +3576,9 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
         const SizedBox(width: 6),
         Text(
           text,
-          style: const TextStyle(
+          style: TextStyle(
             fontSize: 12,
-            color: AppColors.textSecondary,
+            color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
             fontWeight: FontWeight.w500,
           ),
         ),

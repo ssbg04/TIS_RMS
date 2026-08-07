@@ -89,12 +89,28 @@ Files backup/restore - mirror mode or zip -->
 - do not use zip and unzip -->
 
 # STUDENT SCREEN
-1. apply dark mode
-  - missing document count label font color
-  - student profile modal
-  - bulk ocr student import screen (fix the navigation section in the windows app it has round corners bottom left and bottom right)
-  - add new student screen
-  - edit student screen
+- add new student screen
+  - add ocr scan process loading after uploaded a scanned or file
+- edit student screen -> enrollments tab
+  - add manual enrollment OCR scan from uploaded document SF9 and SF10
+- dark color theme
+  - fix inactive chip color
+- student document folder action button
+  - if not enrolled add a confirmation dialog that you will navigate to archive screen and show the student documents
+- update multi select menu action same from the document screen, add select all
+- create enrollment log description update: CREATE enrollment [YEAR] - [GRADE LEVEL] - [SECTION] student [LRN] 
+ 
+# DOCUMENT SCREEN
+- apply dark theme color
+  - download guide
+  - upload document wolt modal
+  - print list modal
+  - preview document modal 
+- multi select menu action
+  - add select all
+
+# ARCHIVES SCREEN
+- change the chip colors from the students screen
 
 <!-- # DOCUMENTS SCREEN
 1. apply dark mode

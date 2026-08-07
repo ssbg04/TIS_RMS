@@ -750,6 +750,7 @@ class _ArchivesScreenState extends ConsumerState<ArchivesScreen>
     StateSetter setDialogState,
     VoidCallback onApply,
   ) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final academicYearsAsync = ref.watch(academicYearsProvider);
     final requirementsAsync = ref.watch(documentRequirementsProvider);
 
@@ -797,9 +798,9 @@ class _ArchivesScreenState extends ConsumerState<ArchivesScreen>
     return Container(
       margin: const EdgeInsets.only(top: 10),
       decoration: BoxDecoration(
-        color: AppColors.surfaceWhite,
+        color: isDark ? AppColors.darkSurfaceCard : AppColors.surfaceWhite,
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: Colors.grey.shade200),
+        border: Border.all(color: isDark ? AppColors.darkBorder : Colors.grey.shade200),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.07),
@@ -822,12 +823,12 @@ class _ArchivesScreenState extends ConsumerState<ArchivesScreen>
                   color: AppColors.primaryGreen,
                 ),
                 const SizedBox(width: 8),
-                const Text(
+                Text(
                   'Filter Archives',
                   style: TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.bold,
-                    color: AppColors.textPrimary,
+                    color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
                   ),
                 ),
               ],
@@ -903,8 +904,8 @@ class _ArchivesScreenState extends ConsumerState<ArchivesScreen>
                 Expanded(
                   child: OutlinedButton(
                     style: OutlinedButton.styleFrom(
-                      foregroundColor: AppColors.textSecondary,
-                      side: BorderSide(color: Colors.grey.shade300),
+                      foregroundColor: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
+                      side: BorderSide(color: isDark ? AppColors.darkBorder : Colors.grey.shade300),
                       padding: const EdgeInsets.symmetric(vertical: 12),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(8),
@@ -976,6 +977,7 @@ class _ArchivesScreenState extends ConsumerState<ArchivesScreen>
     required VoidCallback onReset,
     required Widget child,
   }) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
       child: Column(
@@ -986,21 +988,21 @@ class _ArchivesScreenState extends ConsumerState<ArchivesScreen>
             children: [
               Text(
                 label,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 13,
                   fontWeight: FontWeight.w600,
-                  color: AppColors.textPrimary,
+                  color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
                 ),
               ),
               InkWell(
                 onTap: onReset,
                 borderRadius: BorderRadius.circular(4),
-                child: const Text(
+                child: Text(
                   'Reset',
                   style: TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.w500,
-                    color: AppColors.textMuted,
+                    color: isDark ? AppColors.darkTextMuted : AppColors.textMuted,
                   ),
                 ),
               ),
@@ -1018,13 +1020,14 @@ class _ArchivesScreenState extends ConsumerState<ArchivesScreen>
     required List<String> items,
     required ValueChanged<String?> onChanged,
   }) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final safeValue = items.contains(value) ? value : items.first;
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
       decoration: BoxDecoration(
-        color: AppColors.surfaceWhite,
-        border: Border.all(color: Colors.grey.shade300),
+        color: isDark ? AppColors.darkSurfaceCard : AppColors.surfaceWhite,
+        border: Border.all(color: isDark ? AppColors.darkBorder : Colors.grey.shade300),
         borderRadius: BorderRadius.circular(8),
       ),
       child: DropdownButtonHideUnderline(
@@ -1032,10 +1035,10 @@ class _ArchivesScreenState extends ConsumerState<ArchivesScreen>
           value: safeValue,
           isExpanded: true,
           isDense: true,
-          style: const TextStyle(fontSize: 14, color: AppColors.textPrimary),
-          icon: const Icon(
+          style: TextStyle(fontSize: 14, color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary),
+          icon: Icon(
             Icons.keyboard_arrow_down,
-            color: AppColors.textMuted,
+            color: isDark ? AppColors.darkTextMuted : AppColors.textMuted,
             size: 20,
           ),
           items: items
@@ -1061,6 +1064,7 @@ class _ArchivesScreenState extends ConsumerState<ArchivesScreen>
     required String tooltip,
     required VoidCallback onTap,
   }) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Tooltip(
       message: tooltip,
       child: InkWell(
@@ -1071,16 +1075,16 @@ class _ArchivesScreenState extends ConsumerState<ArchivesScreen>
           decoration: BoxDecoration(
             color: isActive
                 ? AppColors.primaryGreen.withValues(alpha: 0.1)
-                : AppColors.surfaceWhite,
+                : (isDark ? AppColors.darkSurfaceCard : AppColors.surfaceWhite),
             borderRadius: BorderRadius.circular(8),
             border: Border.all(
-              color: isActive ? AppColors.primaryGreen : Colors.grey.shade300,
+              color: isActive ? AppColors.primaryGreen : (isDark ? AppColors.darkBorder : Colors.grey.shade300),
             ),
           ),
           child: Icon(
             icon,
             size: 20,
-            color: isActive ? AppColors.primaryGreen : AppColors.textSecondary,
+            color: isActive ? AppColors.primaryGreen : (isDark ? AppColors.darkTextSecondary : AppColors.textSecondary),
           ),
         ),
       ),
@@ -1096,6 +1100,7 @@ class _ArchivesScreenState extends ConsumerState<ArchivesScreen>
     ArchiveDocumentQueryParams query,
     bool isMobile,
   ) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     // If a folder is opened, show that student's documents
     if (_openedFolderStudentId != null) {
       return Column(
@@ -1160,7 +1165,7 @@ class _ArchivesScreenState extends ConsumerState<ArchivesScreen>
         Widget containerList = Container(
           margin: EdgeInsets.all(isMobile ? 8 : 16),
           decoration: BoxDecoration(
-            color: AppColors.surfaceWhite,
+            color: isDark ? AppColors.darkSurfaceCard : AppColors.surfaceWhite,
             borderRadius: BorderRadius.circular(12),
             boxShadow: [
               BoxShadow(
@@ -1185,35 +1190,35 @@ class _ArchivesScreenState extends ConsumerState<ArchivesScreen>
                     children: [
                       const SizedBox(width: 40),
                       const SizedBox(width: 12),
-                      const Expanded(
+                      Expanded(
                         flex: 3,
                         child: Text(
                           'Student Name',
                           style: TextStyle(
                             fontWeight: FontWeight.bold,
                             fontSize: 12,
-                            color: AppColors.textSecondary,
+                            color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
                           ),
                         ),
                       ),
                       if (!isMobile) ...[
-                        const Expanded(
+                        Expanded(
                           child: Text(
                             'Status',
                             style: TextStyle(
                               fontWeight: FontWeight.bold,
                               fontSize: 12,
-                              color: AppColors.textSecondary,
+                              color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
                             ),
                           ),
                         ),
-                        const Expanded(
+                        Expanded(
                           child: Text(
                             'Documents',
                             style: TextStyle(
                               fontWeight: FontWeight.bold,
                               fontSize: 12,
-                              color: AppColors.textSecondary,
+                              color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
                             ),
                           ),
                         ),
@@ -1226,7 +1231,7 @@ class _ArchivesScreenState extends ConsumerState<ArchivesScreen>
                   child: ListView.separated(
                     itemCount: paginatedFolders.length,
                     separatorBuilder: (_, _) =>
-                        Divider(height: 1, color: Colors.grey.shade100),
+                        Divider(height: 1, color: isDark ? AppColors.darkBorder : Colors.grey.shade100),
                     itemBuilder: (ctx, i) {
                       final folder = paginatedFolders[i];
                       final studentName =
@@ -1273,9 +1278,9 @@ class _ArchivesScreenState extends ConsumerState<ArchivesScreen>
                                     ),
                                     Text(
                                       folder.studentLrn ?? '',
-                                      style: const TextStyle(
+                                      style: TextStyle(
                                         fontSize: 11,
-                                        color: AppColors.textSecondary,
+                                        color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
                                       ),
                                     ),
                                   ],
@@ -1290,9 +1295,9 @@ class _ArchivesScreenState extends ConsumerState<ArchivesScreen>
                                 Expanded(
                                   child: Text(
                                     '${folder.documentCount ?? 0} docs',
-                                    style: const TextStyle(
+                                    style: TextStyle(
                                       fontSize: 13,
-                                      color: AppColors.textSecondary,
+                                      color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
                                     ),
                                   ),
                                 ),
@@ -1302,10 +1307,10 @@ class _ArchivesScreenState extends ConsumerState<ArchivesScreen>
                                   folder.studentId!,
                                   studentName,
                                 ),
-                              const Icon(
+                              Icon(
                                 Icons.chevron_right,
                                 size: 18,
-                                color: AppColors.textMuted,
+                                color: isDark ? AppColors.darkTextMuted : AppColors.textMuted,
                               ),
                             ],
                           ),
@@ -1354,9 +1359,9 @@ class _ArchivesScreenState extends ConsumerState<ArchivesScreen>
                   borderRadius: BorderRadius.circular(12),
                   child: Container(
                     decoration: BoxDecoration(
-                      color: AppColors.surfaceWhite,
+                      color: isDark ? AppColors.darkSurfaceCard : AppColors.surfaceWhite,
                       borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: Colors.grey.shade200),
+                      border: Border.all(color: isDark ? AppColors.darkBorder : Colors.grey.shade200),
                       boxShadow: [
                         BoxShadow(
                           color: Colors.black.withValues(alpha: 0.03),
@@ -1384,7 +1389,7 @@ class _ArchivesScreenState extends ConsumerState<ArchivesScreen>
                             style: TextStyle(
                               fontWeight: FontWeight.bold,
                               fontSize: isMobile ? 11 : 13,
-                              color: AppColors.textPrimary,
+                              color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
                             ),
                           ),
                         ),
@@ -1395,9 +1400,9 @@ class _ArchivesScreenState extends ConsumerState<ArchivesScreen>
                         const SizedBox(height: 4),
                         Text(
                           '${folder.documentCount ?? 0} docs',
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 11,
-                            color: AppColors.textSecondary,
+                            color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
                           ),
                         ),
                         if (_isAdmin) ...[
@@ -1440,8 +1445,9 @@ class _ArchivesScreenState extends ConsumerState<ArchivesScreen>
   }
 
   Widget _buildFolderActionMenu(int studentId, String studentName) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return PopupMenuButton<String>(
-      icon: Icon(Icons.more_vert, size: 18, color: AppColors.textSecondary),
+      icon: Icon(Icons.more_vert, size: 18, color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary),
       tooltip: 'Actions',
       onSelected: (val) {
         if (val == 'restore') _handleRestoreStudent(studentId, studentName);
@@ -1526,10 +1532,11 @@ class _ArchivesScreenState extends ConsumerState<ArchivesScreen>
     int totalPages,
     int currentPage,
   ) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Container(
       margin: EdgeInsets.all(isMobile ? 8 : 16),
       decoration: BoxDecoration(
-        color: AppColors.surfaceWhite,
+        color: isDark ? AppColors.darkSurfaceCard : AppColors.surfaceWhite,
         borderRadius: BorderRadius.circular(12),
         boxShadow: [
           BoxShadow(
@@ -1554,48 +1561,48 @@ class _ArchivesScreenState extends ConsumerState<ArchivesScreen>
                 children: [
                   const SizedBox(width: 40),
                   const SizedBox(width: 8),
-                  const Expanded(
+                  Expanded(
                     flex: 3,
                     child: Text(
                       'File Name',
                       style: TextStyle(
                         fontWeight: FontWeight.bold,
                         fontSize: 12,
-                        color: AppColors.textSecondary,
+                        color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
                       ),
                     ),
                   ),
                   if (!isMobile) ...[
-                    const Expanded(
+                    Expanded(
                       flex: 2,
                       child: Text(
                         'Student',
                         style: TextStyle(
                           fontWeight: FontWeight.bold,
                           fontSize: 12,
-                          color: AppColors.textSecondary,
+                          color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
                         ),
                       ),
                     ),
-                    const Expanded(
+                    Expanded(
                       flex: 2,
                       child: Text(
                         'Doc Type',
                         style: TextStyle(
                           fontWeight: FontWeight.bold,
                           fontSize: 12,
-                          color: AppColors.textSecondary,
+                          color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
                         ),
                       ),
                     ),
                   ],
-                  const Expanded(
+                  Expanded(
                     child: Text(
                       'Status',
                       style: TextStyle(
                         fontWeight: FontWeight.bold,
                         fontSize: 12,
-                        color: AppColors.textSecondary,
+                        color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
                       ),
                     ),
                   ),
@@ -1607,7 +1614,7 @@ class _ArchivesScreenState extends ConsumerState<ArchivesScreen>
               child: ListView.separated(
                 itemCount: documents.length,
                 separatorBuilder: (_, _) =>
-                    Divider(height: 1, color: Colors.grey.shade100),
+                    Divider(height: 1, color: isDark ? AppColors.darkBorder : Colors.grey.shade100),
                 itemBuilder: (ctx, i) => isMobile
                     ? _buildMobileListRow(documents[i])
                     : _buildDesktopListRow(documents[i]),
@@ -1615,7 +1622,7 @@ class _ArchivesScreenState extends ConsumerState<ArchivesScreen>
             ),
             if (totalPages > 1)
               Container(
-                color: Colors.white,
+                color: isDark ? AppColors.darkSurfaceCard : Colors.white,
                 padding: const EdgeInsets.symmetric(vertical: 12),
                 child: _buildPagination(totalPages, currentPage),
               ),
@@ -1626,6 +1633,7 @@ class _ArchivesScreenState extends ConsumerState<ArchivesScreen>
   }
 
   Widget _buildDesktopListRow(DocumentModel doc) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final isSelected = _selectedDocumentIds.contains(doc.id);
     return InkWell(
       onTap: () {
@@ -1674,16 +1682,17 @@ class _ArchivesScreenState extends ConsumerState<ArchivesScreen>
                     doc.fileName,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontWeight: FontWeight.w600,
                       fontSize: 13,
+                      color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
                     ),
                   ),
                   Text(
                     _formatDate(doc.createdAt),
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 11,
-                      color: AppColors.textMuted,
+                      color: isDark ? AppColors.darkTextMuted : AppColors.textMuted,
                     ),
                   ),
                 ],
@@ -1698,14 +1707,17 @@ class _ArchivesScreenState extends ConsumerState<ArchivesScreen>
                     doc.studentName ?? '—',
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(fontSize: 13),
+                    style: TextStyle(
+                      fontSize: 13,
+                      color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
+                    ),
                   ),
                   if (doc.studentLrn != null)
                     Text(
                       doc.studentLrn!,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 11,
-                        color: AppColors.textSecondary,
+                        color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
                       ),
                     ),
                 ],
@@ -1717,9 +1729,9 @@ class _ArchivesScreenState extends ConsumerState<ArchivesScreen>
                 doc.documentType ?? '—',
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 13,
-                  color: AppColors.textSecondary,
+                  color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
                 ),
               ),
             ),
@@ -1728,7 +1740,7 @@ class _ArchivesScreenState extends ConsumerState<ArchivesScreen>
               width: 40,
               child: IconButton(
                 icon: const Icon(Icons.visibility_outlined, size: 18),
-                color: AppColors.textSecondary,
+                color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
                 tooltip: 'Preview',
                 onPressed: () => _handlePreview(doc),
               ),
@@ -1740,6 +1752,7 @@ class _ArchivesScreenState extends ConsumerState<ArchivesScreen>
   }
 
   Widget _buildMobileListRow(DocumentModel doc) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final isSelected = _selectedDocumentIds.contains(doc.id);
     return InkWell(
       onTap: () {
@@ -1796,10 +1809,10 @@ class _ArchivesScreenState extends ConsumerState<ArchivesScreen>
                     doc.fileName,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontWeight: FontWeight.w600,
                       fontSize: 13,
-                      color: AppColors.textPrimary,
+                      color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
                     ),
                   ),
                   const SizedBox(height: 2),
@@ -1810,9 +1823,9 @@ class _ArchivesScreenState extends ConsumerState<ArchivesScreen>
                             : '—'),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 11,
-                      color: AppColors.textSecondary,
+                      color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
                     ),
                   ),
                   if (doc.documentType != null) ...[
@@ -1823,7 +1836,7 @@ class _ArchivesScreenState extends ConsumerState<ArchivesScreen>
                       overflow: TextOverflow.ellipsis,
                       style: TextStyle(
                         fontSize: 10,
-                        color: Colors.grey.shade500,
+                        color: isDark ? AppColors.darkTextSecondary : Colors.grey.shade500,
                       ),
                     ),
                   ],
@@ -1837,7 +1850,7 @@ class _ArchivesScreenState extends ConsumerState<ArchivesScreen>
                 _buildStatusChip(doc.status),
                 IconButton(
                   icon: const Icon(Icons.visibility_outlined, size: 20),
-                  color: AppColors.textSecondary,
+                  color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
                   padding: EdgeInsets.zero,
                   constraints: const BoxConstraints(),
                   onPressed: () => _handlePreview(doc),
@@ -1859,6 +1872,7 @@ class _ArchivesScreenState extends ConsumerState<ArchivesScreen>
     int totalPages,
     int currentPage,
   ) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return LayoutBuilder(
       builder: (ctx, c) {
         final cols = isMobile ? 2 : (c.maxWidth / 180).floor().clamp(2, 6);
@@ -1896,12 +1910,12 @@ class _ArchivesScreenState extends ConsumerState<ArchivesScreen>
                       decoration: BoxDecoration(
                         color: isSelected
                             ? AppColors.primaryGreen.withValues(alpha: 0.08)
-                            : AppColors.surfaceWhite,
+                            : (isDark ? AppColors.darkSurfaceCard : AppColors.surfaceWhite),
                         borderRadius: BorderRadius.circular(12),
                         border: Border.all(
                           color: isSelected
                               ? AppColors.primaryGreen
-                              : Colors.grey.shade200,
+                              : (isDark ? AppColors.darkBorder : Colors.grey.shade200),
                         ),
                         boxShadow: [
                           BoxShadow(
@@ -1944,6 +1958,7 @@ class _ArchivesScreenState extends ConsumerState<ArchivesScreen>
                               style: TextStyle(
                                 fontWeight: FontWeight.bold,
                                 fontSize: isMobile ? 10 : 12,
+                                color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
                               ),
                             ),
                           ),
@@ -1960,9 +1975,9 @@ class _ArchivesScreenState extends ConsumerState<ArchivesScreen>
                                 textAlign: TextAlign.center,
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
-                                style: const TextStyle(
+                                style: TextStyle(
                                   fontSize: 10,
-                                  color: AppColors.textSecondary,
+                                  color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
                                 ),
                               ),
                             ),
@@ -1989,12 +2004,13 @@ class _ArchivesScreenState extends ConsumerState<ArchivesScreen>
   // BATCH ACTIONS BAR (multi-select)
   // ════════════════════════════════════════════════════════════════
   Widget _buildBatchActionsBar(bool isMobile) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final count = _selectedDocumentIds.length;
 
     if (isMobile) {
       return Container(
         decoration: BoxDecoration(
-          color: AppColors.surfaceWhite,
+          color: isDark ? AppColors.darkSurfaceCard : AppColors.surfaceWhite,
           boxShadow: [
             BoxShadow(
               color: Colors.black.withValues(alpha: 0.12),
@@ -2002,7 +2018,7 @@ class _ArchivesScreenState extends ConsumerState<ArchivesScreen>
               offset: const Offset(0, -3),
             ),
           ],
-          border: Border(top: BorderSide(color: Colors.grey.shade200)),
+          border: Border(top: BorderSide(color: isDark ? AppColors.darkBorder : Colors.grey.shade200)),
         ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -2050,7 +2066,7 @@ class _ArchivesScreenState extends ConsumerState<ArchivesScreen>
     // Desktop bar
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-      color: AppColors.surfaceWhite,
+      color: isDark ? AppColors.darkSurfaceCard : AppColors.surfaceWhite,
       child: Row(
         children: [
           Container(
@@ -2102,6 +2118,7 @@ class _ArchivesScreenState extends ConsumerState<ArchivesScreen>
   // HELPERS
   // ════════════════════════════════════════════════════════════════
   Widget _buildEmptyState(String message) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -2109,15 +2126,15 @@ class _ArchivesScreenState extends ConsumerState<ArchivesScreen>
           Icon(
             Icons.inventory_2_outlined,
             size: 64,
-            color: Colors.grey.shade300,
+            color: isDark ? AppColors.darkBorder : Colors.grey.shade300,
           ),
           const SizedBox(height: 16),
           Text(
             message,
             textAlign: TextAlign.center,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 15,
-              color: AppColors.textSecondary,
+              color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
             ),
           ),
         ],
@@ -2170,6 +2187,7 @@ class _ArchivesScreenState extends ConsumerState<ArchivesScreen>
   }
 
   Widget _buildStatusChip(String status) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     Color bg;
     Color fg;
     if (status == 'Completed') {
@@ -2179,8 +2197,8 @@ class _ArchivesScreenState extends ConsumerState<ArchivesScreen>
       bg = Colors.orange.withValues(alpha: 0.1);
       fg = Colors.orange.shade700;
     } else {
-      bg = Colors.grey.shade200;
-      fg = Colors.grey.shade700;
+      bg = isDark ? AppColors.darkSurface2 : Colors.grey.shade200;
+      fg = isDark ? AppColors.darkTextSecondary : Colors.grey.shade700;
     }
     return Row(
       mainAxisSize: MainAxisSize.min,
@@ -2205,6 +2223,7 @@ class _ArchivesScreenState extends ConsumerState<ArchivesScreen>
   }
 
   Widget _buildStudentStatusChip(String status) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final colorMap = {
       'Graduated': Colors.blue.shade700,
       'Transferred': Colors.purple.shade600,
@@ -2212,7 +2231,7 @@ class _ArchivesScreenState extends ConsumerState<ArchivesScreen>
       'Inactive': Colors.orange.shade600,
       'Enrolled': AppColors.primaryGreen,
     };
-    final color = colorMap[status] ?? Colors.grey.shade700;
+    final color = colorMap[status] ?? (isDark ? AppColors.darkTextSecondary : Colors.grey.shade700);
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
