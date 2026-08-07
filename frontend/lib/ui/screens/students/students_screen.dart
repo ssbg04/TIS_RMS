@@ -239,205 +239,107 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
   Widget _buildBatchActionsBar(List<StudentModel> allStudents) {
     if (!_showMultiSelect) return const SizedBox.shrink();
 
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final count = _selectedStudentIds.length;
-    final isMobile = MediaQuery.of(context).size.width <= 800;
     final allSelected = count > 0 && count == allStudents.length;
+    final buttonColor = isDark ? Colors.white : Colors.black;
 
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16),
-      padding: EdgeInsets.symmetric(
-        horizontal: isMobile ? 8 : 16,
-        vertical: 10,
-      ),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
       decoration: BoxDecoration(
-        color: AppColors.surfaceWhite,
+        color: isDark ? AppColors.darkSurfaceCard : AppColors.primaryGreen.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(32),
+        border: Border.all(
+          color: isDark ? AppColors.darkBorder : AppColors.primaryGreen.withValues(alpha: 0.2),
+        ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.15),
-            blurRadius: 15,
-            offset: const Offset(0, 5),
+            color: Colors.black.withValues(alpha: 0.1),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
           ),
         ],
-        border: Border.all(color: Colors.grey.shade200),
       ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-            decoration: BoxDecoration(
-              color: AppColors.primaryGreen.withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(20),
+      child: SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Tooltip(
+              message: 'Cancel selection',
+              child: IconButton(
+                icon: Icon(Icons.close, color: buttonColor),
+                onPressed: () => setState(() {
+                  _selectedStudentIds.clear();
+                  _showMultiSelect = false;
+                }),
+              ),
             ),
-            child: Text(
-              count == 0 ? (isMobile ? '0' : 'Select') : '$count',
+            const SizedBox(width: 8),
+            Text(
+              count == 0 ? 'Select items' : '$count selected',
               style: TextStyle(
                 fontWeight: FontWeight.bold,
-                color: count == 0
-                    ? AppColors.textSecondary
-                    : AppColors.primaryGreen,
+                fontSize: 15,
+                color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
               ),
-            ),
-          ),
-          const SizedBox(width: 8),
-          if (!isMobile) ...[
-            TextButton.icon(
-              onPressed: () => _toggleSelectAll(allStudents),
-              icon: Icon(
-                allSelected ? Icons.deselect : Icons.select_all,
-                size: 18,
-              ),
-              label: Text(allSelected ? 'Deselect' : 'Select All'),
             ),
             const SizedBox(width: 8),
-          ] else ...[
-            IconButton(
-              onPressed: () => _toggleSelectAll(allStudents),
-              icon: Icon(
-                allSelected ? Icons.deselect : Icons.select_all,
-                size: 20,
+            Tooltip(
+              message: allSelected ? 'Unselect All' : 'Select All',
+              child: IconButton(
+                icon: Icon(
+                  allSelected ? Icons.deselect : Icons.select_all,
+                  color: buttonColor,
+                ),
+                onPressed: allStudents.isEmpty ? null : () => _toggleSelectAll(allStudents),
               ),
-              tooltip: allSelected ? 'Deselect All' : 'Select All',
+            ),
+            const SizedBox(width: 12),
+            Container(
+              width: 1,
+              height: 24,
+              color: isDark ? AppColors.darkBorder : Colors.grey.shade400,
+            ),
+            const SizedBox(width: 12),
+            Tooltip(
+              message: 'Enroll',
+              child: IconButton(
+                icon: Icon(Icons.group_add_rounded, color: count == 0 ? Colors.grey : AppColors.primaryGreen),
+                onPressed: count == 0 ? null : _showBulkEnrollModal,
+              ),
+            ),
+            Tooltip(
+              message: 'Graduate',
+              child: IconButton(
+                icon: Icon(Icons.school_rounded, color: count == 0 ? Colors.grey : Colors.blue),
+                onPressed: count == 0 ? null : _showBulkGraduateConfirm,
+              ),
+            ),
+            Tooltip(
+              message: 'Transfer',
+              child: IconButton(
+                icon: Icon(Icons.transfer_within_a_station_rounded, color: count == 0 ? Colors.grey : Colors.orange),
+                onPressed: count == 0 ? null : () => _showBulkChangeStatusConfirm('Transferred', allStudents),
+              ),
+            ),
+            Tooltip(
+              message: 'Drop',
+              child: IconButton(
+                icon: Icon(Icons.person_off_rounded, color: count == 0 ? Colors.grey : AppColors.error),
+                onPressed: count == 0 ? null : () => _showBulkChangeStatusConfirm('Dropped', allStudents),
+              ),
+            ),
+            Tooltip(
+              message: 'Inactive',
+              child: IconButton(
+                icon: Icon(Icons.do_not_disturb_on_total_silence_rounded, color: count == 0 ? Colors.grey : Colors.blueGrey),
+                onPressed: count == 0 ? null : () => _showBulkChangeStatusConfirm('Inactive', allStudents),
+              ),
             ),
           ],
-          Container(
-            height: 24,
-            width: 1,
-            color: Colors.grey.shade300,
-            margin: const EdgeInsets.symmetric(horizontal: 4),
-          ),
-          if (!isMobile) ...[
-            ElevatedButton.icon(
-              onPressed: count == 0 ? null : _showBulkEnrollModal,
-              icon: const Icon(Icons.group_add, size: 18),
-              label: const Text('Enroll'),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.primaryGreen,
-                foregroundColor: Colors.white,
-                shape: const StadiumBorder(),
-              ),
-            ),
-            const SizedBox(width: 8),
-            ElevatedButton.icon(
-              onPressed: count == 0 ? null : _showBulkGraduateConfirm,
-              icon: const Icon(Icons.school, size: 18),
-              label: const Text('Graduate'),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.blue,
-                foregroundColor: Colors.white,
-                shape: const StadiumBorder(),
-              ),
-            ),
-            const SizedBox(width: 8),
-            ElevatedButton.icon(
-              onPressed: count == 0
-                  ? null
-                  : () => _showBulkChangeStatusConfirm(
-                      'Transferred',
-                      allStudents,
-                    ),
-              icon: const Icon(Icons.transfer_within_a_station, size: 18),
-              label: const Text('Transfer'),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.orange,
-                foregroundColor: Colors.white,
-                shape: const StadiumBorder(),
-              ),
-            ),
-            const SizedBox(width: 8),
-            ElevatedButton.icon(
-              onPressed: count == 0
-                  ? null
-                  : () => _showBulkChangeStatusConfirm('Dropped', allStudents),
-              icon: const Icon(Icons.person_off, size: 18),
-              label: const Text('Drop'),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.red,
-                foregroundColor: Colors.white,
-                shape: const StadiumBorder(),
-              ),
-            ),
-            const SizedBox(width: 8),
-            ElevatedButton.icon(
-              onPressed: count == 0
-                  ? null
-                  : () => _showBulkChangeStatusConfirm('Inactive', allStudents),
-              icon: const Icon(Icons.do_not_disturb_on_total_silence, size: 18),
-              label: const Text('Inactive'),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.blueGrey,
-                foregroundColor: Colors.white,
-                shape: const StadiumBorder(),
-              ),
-            ),
-          ] else ...[
-            IconButton(
-              onPressed: count == 0 ? null : _showBulkEnrollModal,
-              icon: Icon(
-                Icons.group_add,
-                color: count == 0 ? Colors.grey : AppColors.primaryGreen,
-              ),
-              tooltip: 'Enroll',
-            ),
-            IconButton(
-              onPressed: count == 0 ? null : _showBulkGraduateConfirm,
-              icon: Icon(
-                Icons.school,
-                color: count == 0 ? Colors.grey : Colors.blue,
-              ),
-              tooltip: 'Graduate',
-            ),
-            IconButton(
-              onPressed: count == 0
-                  ? null
-                  : () => _showBulkChangeStatusConfirm(
-                      'Transferred',
-                      allStudents,
-                    ),
-              icon: Icon(
-                Icons.transfer_within_a_station,
-                color: count == 0 ? Colors.grey : Colors.orange,
-              ),
-              tooltip: 'Transfer',
-            ),
-            IconButton(
-              onPressed: count == 0
-                  ? null
-                  : () => _showBulkChangeStatusConfirm('Dropped', allStudents),
-              icon: Icon(
-                Icons.person_off,
-                color: count == 0 ? Colors.grey : Colors.red,
-              ),
-              tooltip: 'Drop',
-            ),
-            IconButton(
-              onPressed: count == 0
-                  ? null
-                  : () => _showBulkChangeStatusConfirm('Inactive', allStudents),
-              icon: Icon(
-                Icons.do_not_disturb_on_total_silence,
-                color: count == 0 ? Colors.grey : Colors.blueGrey,
-              ),
-              tooltip: 'Inactive',
-            ),
-          ],
-          const SizedBox(width: 4),
-          Container(
-            height: 24,
-            width: 1,
-            color: Colors.grey.shade300,
-            margin: const EdgeInsets.symmetric(horizontal: 4),
-          ),
-          IconButton(
-            onPressed: () => setState(() {
-              _selectedStudentIds.clear();
-              _showMultiSelect = false;
-            }),
-            icon: const Icon(Icons.close, size: 20),
-            tooltip: 'Cancel',
-          ),
-        ],
+        ),
       ),
     );
   }

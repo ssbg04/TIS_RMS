@@ -97,8 +97,6 @@ Files backup/restore - mirror mode or zip -->
 - add back prevention for multi select menu active, it deactivates multi select menu
 
 # ARCHIVES SCREEN
-- remove icon before 'System Archives'
-- pagination limit 20
 - add back prevention for opened student folder, back to student folders tab  
 
 
