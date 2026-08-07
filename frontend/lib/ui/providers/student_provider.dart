@@ -219,7 +219,7 @@ class StudentMutationNotifier extends AsyncNotifier<void> {
   @override
   FutureOr<void> build() {}
 
-  Future<void> createStudent({
+  Future<int> createStudent({
     required String lrn,
     required String firstName,
     String? middleName,
@@ -236,7 +236,7 @@ class StudentMutationNotifier extends AsyncNotifier<void> {
     state = const AsyncLoading();
     try {
       final repo = ref.read(studentRepositoryProvider);
-      await repo.createStudent(
+      final id = await repo.createStudent(
         lrn: lrn,
         firstName: firstName,
         middleName: middleName,
@@ -253,6 +253,7 @@ class StudentMutationNotifier extends AsyncNotifier<void> {
       state = const AsyncData(null);
       // Invalidate to refresh the list
       ref.invalidate(studentPageProvider);
+      return id;
     } catch (e, st) {
       state = AsyncError(e, st);
       rethrow;

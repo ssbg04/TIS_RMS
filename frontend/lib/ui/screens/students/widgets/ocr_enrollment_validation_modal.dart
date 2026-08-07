@@ -70,19 +70,21 @@ class OcrEnrollmentValidationModal extends ConsumerStatefulWidget {
   }
 
   /// Add-student mode: no API writes. Returns the accepted, edited
-  /// enrollment, or null when the user rejects the record.
-  static Future<OcrEnrollmentPrefill?> showForAddStudent(
+  /// enrollments, or an empty list when the user rejects/closes without
+  /// accepting anything.
+  static Future<List<OcrEnrollmentPrefill>> showForAddStudent(
     BuildContext context, {
-    required OcrEnrollmentRecord record,
-  }) {
-    return showDialog<OcrEnrollmentPrefill>(
+    required List<OcrEnrollmentRecord> records,
+  }) async {
+    final result = await showDialog<List<OcrEnrollmentPrefill>>(
       context: context,
       barrierDismissible: true,
       builder: (_) => OcrEnrollmentValidationModal._(
-        records: [record],
+        records: records,
         mode: _ValidationMode.addStudent,
       ),
     );
+    return result ?? const [];
   }
 
   @override
@@ -94,6 +96,7 @@ class _OcrEnrollmentValidationModalState
     extends ConsumerState<OcrEnrollmentValidationModal> {
   late List<_Entry> _entries;
   int _acceptedCount = 0;
+  final List<OcrEnrollmentPrefill> _acceptedPrefills = [];
   int? _acceptingIndex;
 
   bool get _isEditMode => widget._mode == _ValidationMode.editStudent;
@@ -192,7 +195,10 @@ class _OcrEnrollmentValidationModalState
             entry.record.section.isEmpty ? 'Section' : entry.record.section,
         schoolYear: year?.yearRange ?? entry.record.schoolYear,
       );
-      Navigator.of(context).pop(prefill);
+      setState(() {
+        _acceptedPrefills.add(prefill);
+        _entries.removeAt(index);
+      });
       return;
     }
 
@@ -224,7 +230,11 @@ class _OcrEnrollmentValidationModalState
   }
 
   void _close() {
-    Navigator.of(context).pop(_isEditMode ? _acceptedCount : null);
+    Navigator.of(context).pop(
+      _isEditMode
+          ? _acceptedCount
+          : List<OcrEnrollmentPrefill>.from(_acceptedPrefills),
+    );
   }
 
   InputDecoration _deco(String label) {
@@ -247,7 +257,8 @@ class _OcrEnrollmentValidationModalState
     final sectionsAsync = ref.watch(sectionsListProvider);
     final years = yearsAsync.asData?.value ?? <AcademicYearModel>[];
     final allSections = sectionsAsync.asData?.value ?? <SectionModel>[];
-    final initialCount = _entries.length + _acceptedCount;
+    final initialCount =
+        _entries.length + (_isEditMode ? _acceptedCount : _acceptedPrefills.length);
 
     return Dialog(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -320,7 +331,7 @@ class _OcrEnrollmentValidationModalState
                   Text(
                     _isEditMode
                         ? '$_acceptedCount of $initialCount accepted'
-                        : 'Accept to add this enrollment',
+                        : '${_acceptedPrefills.length} of $initialCount accepted',
                     style: const TextStyle(
                       fontSize: 13,
                       fontWeight: FontWeight.w500,

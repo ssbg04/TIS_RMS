@@ -12,6 +12,7 @@ import '../../../shared/buttons/primary_button.dart';
 import '../../../providers/setup_provider.dart';
 import '../../../providers/ocr_provider.dart';
 import '../../../providers/student_provider.dart';
+import '../../../providers/document_provider.dart';
 import '../../documents/widgets/document_preview_modal.dart';
 import '../../../shared/inputs/document_source_picker.dart';
 import 'ocr_enrollment_validation_modal.dart';
@@ -46,11 +47,12 @@ class _AddStudentModalState extends ConsumerState<AddStudentModal> {
   int? _selectedSectionId;
   String? _trackStrand;
 
-  /// Enrollment accepted from the OCR review dialog; auto-fills the
-  /// enrollment step until the student is saved.
-  OcrEnrollmentPrefill? _ocrSavedEnrollment;
+  /// Enrollments accepted from the OCR review dialog; auto-fill the
+  /// enrollment step and are created with the student on save.
+  final List<OcrEnrollmentPrefill> _ocrSavedEnrollments = [];
 
   File? _ocrScannedFile;
+  String _ocrScannedFileName = '';
   String? _selectedOcrDocType;
 
   static const _extSuggestions = [
@@ -260,6 +262,7 @@ class _AddStudentModalState extends ConsumerState<AddStudentModal> {
     setState(() {
       _errorMessage = null;
       _ocrScannedFile = file;
+      _ocrScannedFileName = fileName;
     });
 
     String? docType = _detectDocType(fileName);
@@ -318,9 +321,9 @@ class _AddStudentModalState extends ConsumerState<AddStudentModal> {
   }
 
   /// For SF9/SF10 scans with a Grade 7-12 level, let the user review and
-  /// edit the detected enrollment (year level, grade level, section).
-  /// On accept the enrollment is saved into [_ocrSavedEnrollment] and the
-  /// enrollment step auto-fills with it.
+  /// edit the detected enrollment(s) (academic year, grade level, section).
+  /// Accepted enrollments are appended to [_ocrSavedEnrollments] and the
+  /// enrollment step auto-fills with the last accepted one.
   Future<void> _offerOcrEnrollment(
     OcrResultModel ocrResult,
     String docType,
@@ -330,21 +333,27 @@ class _AddStudentModalState extends ConsumerState<AddStudentModal> {
     if (gradeNum == null || gradeNum < 7 || gradeNum > 12) return;
     if (!mounted) return;
 
-    final prefill = await OcrEnrollmentValidationModal.showForAddStudent(
+    final accepted = await OcrEnrollmentValidationModal.showForAddStudent(
       context,
-      record: OcrEnrollmentRecord(
-        gradeLevel: gradeNum.toString(),
-        section: ocrResult.section,
-        schoolYear: ocrResult.schoolYear,
-      ),
+      records: [
+        OcrEnrollmentRecord(
+          gradeLevel: gradeNum.toString(),
+          section: ocrResult.section,
+          schoolYear: ocrResult.schoolYear,
+        ),
+      ],
     );
-    if (!mounted || prefill == null) return;
+    if (!mounted || accepted.isEmpty) return;
 
     setState(() {
-      _ocrSavedEnrollment = prefill;
-      _selectedAcademicYearId = prefill.academicYearId;
-      _selectedGradeLevel = prefill.gradeLevel;
-      _selectedSectionId = prefill.sectionId;
+      _ocrSavedEnrollments.addAll(accepted);
+      final last = accepted.last;
+      _selectedAcademicYearId = last.academicYearId;
+      _selectedGradeLevel = last.gradeLevel;
+      _selectedSectionId = last.sectionId;
+      _trackStrand = ocrResult.trackStrand.trim().isEmpty
+          ? null
+          : ocrResult.trackStrand.trim();
     });
   }
 
@@ -415,7 +424,7 @@ class _AddStudentModalState extends ConsumerState<AddStudentModal> {
     setState(() => _isLoading = true);
     try {
       final notifier = ref.read(studentMutationProvider.notifier);
-      await notifier.createStudent(
+      final studentId = await notifier.createStudent(
         lrn: _lrnController.text.trim(),
         firstName: _firstNameController.text.trim(),
         middleName: _middleNameController.text.trim().isEmpty
@@ -433,8 +442,65 @@ class _AddStudentModalState extends ConsumerState<AddStudentModal> {
         trackStrand: _trackStrand,
         is4ps: _is4ps,
       );
+
+      // Additional enrollments accepted from OCR scans (the primary one
+      // was already created with the student).
+      for (final e in _ocrSavedEnrollments) {
+        if (e.academicYearId == _selectedAcademicYearId &&
+            e.gradeLevel == _selectedGradeLevel &&
+            e.sectionId == _selectedSectionId) {
+          continue;
+        }
+        await notifier.addEnrollment(
+          studentId: studentId,
+          academicYearId: e.academicYearId,
+          gradeLevel: e.gradeLevel,
+          sectionId: e.sectionId!,
+        );
+      }
+
+      // After the student's directory is created, upload the scanned
+      // SF9/SF10 document into it.
+      String? uploadError;
+      if (_ocrScannedFile != null) {
+        try {
+          final bytes = await _ocrScannedFile!.readAsBytes();
+          await ref.read(documentRepositoryProvider).uploadDocumentBytes(
+            studentId: studentId,
+            documentType: _selectedOcrDocType ?? 'SF9',
+            fileName: _ocrScannedFileName.isEmpty
+                ? _ocrScannedFile!.path.split(RegExp(r'[\\/]')).last
+                : _ocrScannedFileName,
+            bytes: bytes,
+          );
+        } catch (e) {
+          final raw = e.toString();
+          uploadError = raw.startsWith('Exception: ') ? raw.substring(11) : raw;
+        }
+      }
+
       if (!mounted) return;
       ref.invalidate(studentPageProvider);
+      if (uploadError != null) {
+        await showDialog(
+          context: context,
+          builder: (ctx) => AlertDialog(
+            title: const Text('Student Created - Upload Failed'),
+            content: Text(
+              'The student was created successfully, but the scanned '
+              'document could not be uploaded to their folder.\n\n'
+              '$uploadError',
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(ctx).pop(),
+                child: const Text('OK'),
+              ),
+            ],
+          ),
+        );
+      }
+      if (!mounted) return;
       Navigator.of(context).pop(true);
     } catch (e) {
       if (!mounted) return;
@@ -786,7 +852,7 @@ class _AddStudentModalState extends ConsumerState<AddStudentModal> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          if (_ocrSavedEnrollment != null) ...[
+          if (_ocrSavedEnrollments.isNotEmpty) ...[
             Container(
               padding: const EdgeInsets.all(AppSizes.p12),
               decoration: BoxDecoration(
@@ -807,17 +873,53 @@ class _AddStudentModalState extends ConsumerState<AddStudentModal> {
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
-                      'Enrollment saved from OCR scan: Grade '
-                      '${_ocrSavedEnrollment!.gradeLevel} · '
-                      '${_ocrSavedEnrollment!.sectionName} · '
-                      'SY ${_ocrSavedEnrollment!.schoolYear} — '
-                      'verify before saving the student.',
+                      _ocrSavedEnrollments.length == 1
+                          ? 'Enrollment saved from OCR scan: Grade '
+                              '${_ocrSavedEnrollments.first.gradeLevel} · '
+                              '${_ocrSavedEnrollments.first.sectionName} · '
+                              'SY ${_ocrSavedEnrollments.first.schoolYear} — '
+                              'verify before saving the student.'
+                          : '${_ocrSavedEnrollments.length} enrollments saved '
+                              'from OCR scans — verify before saving the '
+                              'student.',
                       style: const TextStyle(fontSize: 13),
                     ),
                   ),
                 ],
               ),
             ),
+            if (_ocrSavedEnrollments.length > 1) ...[
+              const SizedBox(height: AppSizes.p8),
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: [
+                  for (final e in _ocrSavedEnrollments)
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 5,
+                      ),
+                      decoration: BoxDecoration(
+                        color: AppColors.primaryGreen.withValues(alpha: 0.07),
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(
+                          color: AppColors.primaryGreen.withValues(alpha: 0.25),
+                        ),
+                      ),
+                      child: Text(
+                        'Grade ${e.gradeLevel} · ${e.sectionName} · '
+                        'SY ${e.schoolYear}',
+                        style: const TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.primaryGreen,
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+            ],
             const SizedBox(height: AppSizes.p16),
           ],
           const SectionLabel(label: 'ENROLLMENT DETAILS'),
