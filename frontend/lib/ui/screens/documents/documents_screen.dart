@@ -318,12 +318,6 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
         final url =
             '${ApiConstants.baseUrl}/documents/${document.id}/view?token=$token&download=true';
 
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Download started...'),
-            duration: Duration(seconds: 2),
-          ),
-        );
         await DownloadService.downloadFile(
           url: url,
           fileName: document.fileName,
@@ -490,15 +484,6 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
     try {
       final token = await const FlutterSecureStorage().read(key: 'jwt_token');
       if (token == null) return;
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            'Downloading ${_selectedDocumentIds.length} documents...',
-          ),
-          duration: const Duration(seconds: 2),
-        ),
-      );
 
       final docs = ref.read(documentPageProvider).value?.documents ?? [];
       int successCount = 0;

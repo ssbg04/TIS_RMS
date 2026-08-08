@@ -882,18 +882,18 @@ class _NetworkScanDialogState extends State<_NetworkScanDialog> {
     if (found != null) {
       ApiConstants.setBaseUrl(found);
       await ServerDiscoveryService.save(ApiConstants.baseUrl);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('✅ Connected to local server: $found'),
-          backgroundColor: AppColors.success,
-        ),
+      if (!mounted) return;
+      showSuccessDialog(
+        context,
+        title: 'Server Connected',
+        message: 'Connected to local server: $found',
       );
     } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('No TIS RMS server found on local network.'),
-          backgroundColor: AppColors.error,
-        ),
+      if (!mounted) return;
+      showErrorDialog(
+        context,
+        'Server Not Found',
+        'No TIS RMS server found on local network.',
       );
     }
   }

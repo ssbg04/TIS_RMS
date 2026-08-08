@@ -460,12 +460,6 @@ class _ArchivesScreenState extends ConsumerState<ArchivesScreen>
         final url =
             '${ApiConstants.baseUrl}/documents/${doc.id}/view?token=$token&download=true';
 
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Download started...'),
-            duration: Duration(seconds: 2),
-          ),
-        );
         await DownloadService.downloadFile(
           url: url,
           fileName: doc.fileName,

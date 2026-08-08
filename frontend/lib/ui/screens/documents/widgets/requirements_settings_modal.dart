@@ -4,6 +4,8 @@ import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_sizes.dart';
 import '../../../providers/document_provider.dart';
 import '../../../shared/buttons/primary_button.dart';
+import '../../../shared/dialogs/error_dialog.dart';
+import '../../../shared/dialogs/info_dialog.dart';
 import '../../../../domain/entities/document_requirement_model.dart';
 
 class RequirementsSettingsModal extends ConsumerStatefulWidget {
@@ -181,9 +183,11 @@ class _RequirementsSettingsModalState
   }
 
   void _addNewRequirement() {
-    // Show dialog to add a new requirement
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Add requirement form coming soon')),
+    // Show info dialog to add a new requirement
+    showInfoDialog(
+      context,
+      title: 'Coming Soon',
+      message: 'Add requirement form coming soon.',
     );
   }
 
@@ -206,9 +210,7 @@ class _RequirementsSettingsModalState
       ref.invalidate(requirementsSettingsProvider);
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('Error: $e')));
+      showErrorDialog(context, 'Update Failed', e.toString());
     }
   }
 
@@ -220,9 +222,7 @@ class _RequirementsSettingsModalState
       ref.invalidate(requirementsSettingsProvider);
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('Error: $e')));
+      showErrorDialog(context, 'Delete Failed', e.toString());
     }
   }
 }

@@ -2889,11 +2889,10 @@ class _BulkEnrollDialogState extends ConsumerState<BulkEnrollDialog> {
       widget.onSuccess();
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Failed to bulk enroll: $e'),
-          backgroundColor: AppColors.error,
-        ),
+      showErrorDialog(
+        context,
+        'Bulk Enrollment Failed',
+        'Failed to bulk enroll: $e',
       );
     } finally {
       if (mounted) setState(() => _isLoading = false);

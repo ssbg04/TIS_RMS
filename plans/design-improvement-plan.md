@@ -335,13 +335,13 @@ Use consistently across all screens.
   - Remove hardcoded light theme colors in `capstone_members_screen.dart`.
 
 ### Phase 2: Shared Component Extraction
-- [ ] **Task 2.1**: Build `AppErrorState` Component (`lib/ui/shared/widgets/app_error_state.dart`)
+- [X] **Task 2.1**: Build `AppErrorState` Component (`lib/ui/shared/widgets/app_error_state.dart`)
   - Extract duplicate error UI from 5 screens into a single configurable widget.
-- [ ] **Task 2.2**: Build `AppEmptyState` Component (`lib/ui/shared/widgets/app_empty_state.dart`)
+- [X] **Task 2.2**: Build `AppEmptyState` Component (`lib/ui/shared/widgets/app_empty_state.dart`)
   - Extract duplicate empty state UI with title, subtitle, icon, and optional CTA button.
-- [ ] **Task 2.3**: Build `FilterDropdownSection` & `FilterChipGroup`
+- [X] **Task 2.3**: Build `FilterDropdownSection` & `FilterChipGroup`
   - Consolidate duplicated filter UI logic across `documents_screen.dart`, `students_screen.dart`, `archives_screen.dart`.
-- [ ] **Task 2.4**: Complete SnackBar to Dialog Migration
+- [X] **Task 2.4**: Complete SnackBar to Dialog Migration
   - Replace 17 remaining `SnackBar` calls with `showSuccessDialog` / `showErrorDialog`.
 
 ### Phase 3: Screen Refactoring & Decomposition

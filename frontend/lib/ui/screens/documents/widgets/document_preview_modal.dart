@@ -158,9 +158,6 @@ class _DocumentPreviewDialogState extends State<_DocumentPreviewDialog> {
 
   Future<void> _downloadFile() async {
     try {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('Download started...')));
       await DownloadService.downloadFile(
         url: _downloadUrl,
         fileName: _fileName,
