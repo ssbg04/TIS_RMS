@@ -127,7 +127,7 @@ Files backup/restore - mirror mode or zip -->
   - search icon into 'X' when searched an user, clears search and refresh users list
   - fix searched field didnt hide when searched an user -->
 
-# DOCUMENTS SCREEN
+<!-- # DOCUMENTS SCREEN
 - copy file rename format remove the timestamp in the copied filename
 - remove the feature: excel to pdf
 
@@ -139,7 +139,11 @@ Files backup/restore - mirror mode or zip -->
   - for icon only icons no container, no background, no border
   - fix drag and drop not working in windows app
 2. Add new student screen:
-  - fix drag and drop not working in windows app
+  - fix drag and drop not working in windows app -->
+
+Make a new plan for light and dark theme colors
+- keep the light theme colors, its the schools trademark colors
+- for dark theme 
 
 ---
 

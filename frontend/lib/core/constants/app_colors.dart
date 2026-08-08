@@ -30,22 +30,22 @@ class AppColors {
   static const Color info = Colors.blue;
 
   // ── Dark Theme Backgrounds ───────────────────────────────────
-  /// Main scaffold background — deep space/slate black
-  static const Color darkPageBackground = Color(0xFF0A0C10);
+  /// Main scaffold background — deep charcoal with a soft green undertone (not black)
+  static const Color darkPageBackground = Color(0xFF161D19);
 
   /// Card / dialog surface in dark mode
-  static const Color darkSurfaceCard = Color(0xFF12161A);
+  static const Color darkSurfaceCard = Color(0xFF202A25);
 
   /// Secondary surface (inputs, hover areas) in dark mode
-  static const Color darkSurface2 = Color(0xFF1A2026);
-  static const Color hoverDark = Color(0xFF222B33);
+  static const Color darkSurface2 = Color(0xFF2A362F);
+  static const Color hoverDark = Color(0xFF35443B);
   static const Color overlayDark = Color(0xB3000000);
 
   // ── Dark Theme Text Colors ───────────────────────────────────
-  static const Color darkTextPrimary = Color(0xFFE2E6EA);
-  static const Color darkTextSecondary = Color(0xFF949CA4);
-  static const Color darkTextMuted = Color(0xFF5F666E);
+  static const Color darkTextPrimary = Color(0xFFE7ECE7);
+  static const Color darkTextSecondary = Color(0xFF9EAEA4);
+  static const Color darkTextMuted = Color(0xFF67746A);
 
   // ── Dark Theme Borders & Dividers ───────────────────────────
-  static const Color darkBorder = Color(0xFF222B33);
+  static const Color darkBorder = Color(0xFF35443B);
 }
