@@ -14,6 +14,9 @@ class AppColors {
   ); // Light gray background
   static const Color surfaceWhite = Colors.white; // Cards, Dialogs
   static const Color inputBackground = Color(0xFFE5E5E5);
+  static const Color borderLight = Color(0xFFE5E7EB);
+  static const Color hoverLight = Color(0xFFF3F4F6);
+  static const Color overlayLight = Color(0x7F000000);
 
   // ── Light Theme Text Colors ──────────────────────────────────
   static const Color textPrimary = Color(0xFF1A1A1A);
@@ -35,6 +38,8 @@ class AppColors {
 
   /// Secondary surface (inputs, hover areas) in dark mode
   static const Color darkSurface2 = Color(0xFF1A2026);
+  static const Color hoverDark = Color(0xFF222B33);
+  static const Color overlayDark = Color(0xB3000000);
 
   // ── Dark Theme Text Colors ───────────────────────────────────
   static const Color darkTextPrimary = Color(0xFFE2E6EA);

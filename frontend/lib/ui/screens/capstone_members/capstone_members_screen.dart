@@ -1,12 +1,15 @@
 import 'package:flutter/material.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_sizes.dart';
+import '../../../core/utils/theme_extension.dart';
 
 class CapstoneMembersScreen extends StatelessWidget {
   const CapstoneMembersScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
+    final isDark = context.isDark;
+
     const members = [
       {'name': 'Alibutod, Rhina Mhay C.', 'role': 'Technical Writer', 'email': 'rhina@example.com'},
       {'name': 'Antonio, Clara Maris B.', 'role': 'UI/UX Designer', 'email': 'clara@example.com'},
@@ -17,11 +20,11 @@ class CapstoneMembersScreen extends StatelessWidget {
     ];
 
     return Scaffold(
-      backgroundColor: Colors.grey.shade50,
+      backgroundColor: isDark ? AppColors.darkPageBackground : Colors.grey.shade50,
       appBar: AppBar(
         title: const Text('Capstone 1-2'),
-        backgroundColor: Colors.white,
-        foregroundColor: AppColors.textPrimary,
+        backgroundColor: isDark ? AppColors.darkSurfaceCard : Colors.white,
+        foregroundColor: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
         elevation: 1,
       ),
       body: SingleChildScrollView(
@@ -42,11 +45,11 @@ class CapstoneMembersScreen extends StatelessWidget {
                   textAlign: TextAlign.center,
                 ),
                 const SizedBox(height: 8),
-                const Text(
+                Text(
                   'Capstone 1-2 Project Team',
                   style: TextStyle(
                     fontSize: 18,
-                    color: AppColors.textSecondary,
+                    color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
                   ),
                 ),
                 const SizedBox(height: 32),
@@ -59,13 +62,17 @@ class CapstoneMembersScreen extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(height: 32),
-                const Row(
+                Row(
                   children: [
-                    Icon(Icons.groups_rounded, color: AppColors.primaryGreen, size: 32),
-                    SizedBox(width: 12),
+                    const Icon(Icons.groups_rounded, color: AppColors.primaryGreen, size: 32),
+                    const SizedBox(width: 12),
                     Text(
                       'Capstone Members',
-                      style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+                      style: TextStyle(
+                        fontSize: 24,
+                        fontWeight: FontWeight.bold,
+                        color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
+                      ),
                     ),
                   ],
                 ),
@@ -77,16 +84,20 @@ class CapstoneMembersScreen extends StatelessWidget {
                       borderRadius: BorderRadius.circular(12),
                     ),
                     elevation: 1,
-                    color: Colors.white,
+                    color: isDark ? AppColors.darkSurfaceCard : Colors.white,
                     child: ListTile(
                       contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
                       leading: CircleAvatar(
-                        backgroundColor: AppColors.primaryGreen.withOpacity(0.1),
+                        backgroundColor: AppColors.primaryGreen.withValues(alpha: 0.1),
                         child: const Icon(Icons.person, color: AppColors.primaryGreen),
                       ),
                       title: Text(
                         member['name']!,
-                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16,
+                          color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
+                        ),
                       ),
                       subtitle: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -94,19 +105,25 @@ class CapstoneMembersScreen extends StatelessWidget {
                           const SizedBox(height: 4),
                           Text(
                             member['role']!,
-                            style: const TextStyle(
-                              color: AppColors.textSecondary,
+                            style: TextStyle(
+                              color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
                               fontStyle: FontStyle.italic,
                             ),
                           ),
                           const SizedBox(height: 4),
                           Row(
                             children: [
-                              const Icon(Icons.email, size: 14, color: Colors.grey),
+                              Icon(
+                                Icons.email,
+                                size: 14,
+                                color: isDark ? AppColors.darkTextMuted : Colors.grey,
+                              ),
                               const SizedBox(width: 6),
                               Text(
                                 member['email']!,
-                                style: const TextStyle(color: Colors.blue),
+                                style: TextStyle(
+                                  color: isDark ? Colors.blue.shade300 : Colors.blue,
+                                ),
                               ),
                             ],
                           ),

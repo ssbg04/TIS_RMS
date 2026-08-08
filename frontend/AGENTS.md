@@ -127,13 +127,9 @@ Files backup/restore - mirror mode or zip -->
   - search icon into 'X' when searched an user, clears search and refresh users list
   - fix searched field didnt hide when searched an user -->
 
-
-# ARCHIVES SCREEN
-- add files menu for print, download, hold for android app, right click for windows app, add icon menu for easy access
-
 # DOCUMENTS SCREEN
-- copy file rename format same as orginal file name add (1) or incrementing number if name already exist
-- add new feature -> excel to pdf: all tabs export into one pdf, hold/right click, or icon menu for excel files then make a convertion but in pdf do not delete the excel file
+- copy file rename format remove the timestamp in the copied filename
+- remove the feature: excel to pdf
 
 # STUDENT SCREEN
 1. edit student screen -> enrollments tab -> auto enrollment OCR:
@@ -141,9 +137,9 @@ Files backup/restore - mirror mode or zip -->
   - add manual validation to add year level, grade level, section before saving to database
   - in manual validation add actions accept, decline, or delete, use only icons.
   - for icon only icons no container, no background, no border
+  - fix drag and drop not working in windows app
 2. Add new student screen:
-  - processing OCR remove the circle loading
-  - auto add enrollment if the OCR scan uploaded is SF9/SF10
+  - fix drag and drop not working in windows app
 
 ---
 
