@@ -1358,7 +1358,12 @@ class _ArchivesScreenState extends ConsumerState<ArchivesScreen>
                   ),
                 ),
                 Expanded(
-                  child: ListView.separated(
+                  child: RefreshIndicator(
+                    onRefresh: () async {
+                      ref.invalidate(archiveStudentFoldersProvider);
+                      ref.invalidate(archiveDocumentPageProvider);
+                    },
+                    child: ListView.separated(
                     itemCount: paginatedFolders.length,
                     separatorBuilder: (_, _) =>
                         Divider(height: 1, color: isDark ? AppColors.darkBorder : Colors.grey.shade100),
@@ -1449,6 +1454,7 @@ class _ArchivesScreenState extends ConsumerState<ArchivesScreen>
                     },
                   ),
                 ),
+              ),
               ],
             ),
           ),
@@ -1741,13 +1747,18 @@ class _ArchivesScreenState extends ConsumerState<ArchivesScreen>
               ),
             ),
             Expanded(
-              child: ListView.separated(
-                itemCount: documents.length,
-                separatorBuilder: (_, _) =>
-                    Divider(height: 1, color: isDark ? AppColors.darkBorder : Colors.grey.shade100),
-                itemBuilder: (ctx, i) => isMobile
-                    ? _buildMobileListRow(documents[i])
-                    : _buildDesktopListRow(documents[i]),
+              child: RefreshIndicator(
+                onRefresh: () async {
+                  ref.invalidate(archiveDocumentPageProvider);
+                },
+                child: ListView.separated(
+                  itemCount: documents.length,
+                  separatorBuilder: (_, _) =>
+                      Divider(height: 1, color: isDark ? AppColors.darkBorder : Colors.grey.shade100),
+                  itemBuilder: (ctx, i) => isMobile
+                      ? _buildMobileListRow(documents[i])
+                      : _buildDesktopListRow(documents[i]),
+                ),
               ),
             ),
             if (totalPages > 1)

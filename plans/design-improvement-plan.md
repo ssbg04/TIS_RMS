@@ -345,32 +345,32 @@ Use consistently across all screens.
   - Replace 17 remaining `SnackBar` calls with `showSuccessDialog` / `showErrorDialog`.
 
 ### Phase 3: Screen Refactoring & Decomposition
-- [ ] **Task 3.1**: Refactor `documents_screen.dart` (3,251 lines)
+- [X] **Task 3.1**: Refactor `documents_screen.dart` (3,251 lines)
   - Extract `DocumentsHeader`, `DocumentsFilterPanel`, `DocumentsGridView`, `DocumentsListView`, `DocumentsMobileList`, `BulkOperationsBar`.
-- [ ] **Task 3.2**: Refactor `reports_screen.dart` (3,611 lines)
+- [X] **Task 3.2**: Refactor `reports_screen.dart` (3,611 lines)
   - Extract table cards, header filters, export dialog triggers, and compliance widgets into `lib/ui/screens/reports/widgets/`.
-- [ ] **Task 3.3**: Refactor `students_screen.dart` (2,902 lines)
+- [X] **Task 3.3**: Refactor `students_screen.dart` (2,902 lines)
   - Extract filter headers, table views, grid views, and mobile list items.
-- [ ] **Task 3.4**: Refactor `archives_screen.dart` (2,449 lines) and `settings` screens.
+- [X] **Task 3.4**: Refactor `archives_screen.dart` (2,449 lines) and `settings` screens.
 
 ### Phase 4: Platform-Specific Optimization & Project TODO Alignment
-- [ ] **Task 4.1**: Android Optimizations & Back Prevention (`PopScope`)
+- [x] **Task 4.1**: Android Optimizations & Back Prevention (`PopScope`)
   - Replace global orientation lock in `main.dart` with phone-only portrait lock (allow tablet landscape).
   - Implement `PopScope` back handling on Documents Screen, Students Screen, and Archives Screen:
     - 1st back inside multi-select: deactivate multi-select. 2nd back: navigate to Dashboard.
     - 1st back inside folder: return to 'Student Folders' tab. 2nd back: navigate to Dashboard.
   - Stack action buttons vertically on Android (`Column` with full-width `ElevatedButton`).
   - Add `RefreshIndicator` pull-to-refresh on mobile lists.
-- [ ] **Task 4.2**: Windows Desktop Optimizations & Drag-and-Drop Fixes
+- [x] **Task 4.2**: Windows Desktop Optimizations & Drag-and-Drop Fixes
   - Fix desktop drag-and-drop file upload in Add Student Modal and Edit Student Modal.
   - Add keyboard shortcuts (`Shortcuts` + `Actions` for `Ctrl+F`, `Escape`, etc.).
   - Add right-click context menus (`onSecondaryTapUp`).
   - Improve sidebar hover states and tooltip placements.
-- [ ] **Task 4.3**: Screen-Specific Feature Fixes (per Project TODOs)
+- [x] **Task 4.3**: Screen-Specific Feature Fixes (per Project TODOs)
   - **Documents Screen**: Remove timestamp from copied filename format; remove Excel-to-PDF feature.
   - **Reports Screen**: Fix card overflow on overall compliance, students with issues, and total missing documents cards; add clickable path links in success dialogs.
   - **Students Screen (OCR Validation)**: Reject non 7-12 grade levels; add manual validation step for year/grade/section using icon-only buttons (no container, background, or border).
-- [ ] **Task 4.4**: Accessibility & Visual Polish
+- [x] **Task 4.4**: Accessibility & Visual Polish
   - Add `Semantics` labels to interactive elements and icons.
   - Replace color-only status indicators with text + icon badges.
   - Add shimmer skeleton loading states for cards and tables.

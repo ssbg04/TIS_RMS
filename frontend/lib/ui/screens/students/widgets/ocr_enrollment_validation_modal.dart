@@ -401,6 +401,7 @@ class _OcrEnrollmentValidationModalState
                 onPressed: _acceptingIndex == index
                     ? null
                     : () => _accept(index),
+                tooltip: 'Accept Enrollment',
                 visualDensity: VisualDensity.compact,
                 padding: EdgeInsets.zero,
                 constraints: const BoxConstraints(),
@@ -421,6 +422,7 @@ class _OcrEnrollmentValidationModalState
                 onPressed: _acceptingIndex == index
                     ? null
                     : () => _remove(index),
+                tooltip: 'Decline Enrollment',
                 visualDensity: VisualDensity.compact,
                 padding: EdgeInsets.zero,
                 constraints: const BoxConstraints(),
@@ -435,6 +437,7 @@ class _OcrEnrollmentValidationModalState
                 IconButton(
                   onPressed:
                       _acceptingIndex == index ? null : () => _remove(index),
+                  tooltip: 'Delete Record',
                   visualDensity: VisualDensity.compact,
                   padding: EdgeInsets.zero,
                   constraints: const BoxConstraints(),

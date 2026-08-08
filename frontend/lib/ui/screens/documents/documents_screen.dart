@@ -2454,11 +2454,15 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
                     ),
                   ),
                   Expanded(
-                    child: ListView.separated(
-                      itemCount: documents.length,
-                      separatorBuilder: (context, index) =>
-                          Divider(height: 1, color: isDark ? AppColors.darkBorder : Colors.grey.shade100),
-                      itemBuilder: (ctx, i) {
+                    child: RefreshIndicator(
+                      onRefresh: () async {
+                        ref.invalidate(documentPageProvider);
+                      },
+                      child: ListView.separated(
+                        itemCount: documents.length,
+                        separatorBuilder: (ctx, i) =>
+                            Divider(height: 1, color: isDark ? AppColors.darkBorder : Colors.grey.shade100),
+                        itemBuilder: (ctx, i) {
                         return isMobileList
                             ? _buildMobileListRow(documents[i], i)
                             : FileFolderCard(
