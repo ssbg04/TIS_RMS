@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'package:desktop_drop/desktop_drop.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -1131,9 +1132,21 @@ class _AddStudentModalState extends ConsumerState<AddStudentModal> {
                   minHeight: 3,
                 ),
               Expanded(
-                child: SingleChildScrollView(
-                  padding: const EdgeInsets.all(24),
-                  child: stepContent,
+                child: DropTarget(
+                  onDragDone: (details) async {
+                    if (details.files.isNotEmpty && _currentStep == 0) {
+                      final path = details.files.first.path;
+                      final droppedFile = File(path);
+                      final fileName = path.split(RegExp(r'[\\/]')).last;
+                      final length = await droppedFile.length();
+                      final fileSize = '${(length / 1024).toStringAsFixed(1)} KB';
+                      _handleOcrScan(droppedFile, fileName, fileSize);
+                    }
+                  },
+                  child: SingleChildScrollView(
+                    padding: const EdgeInsets.all(24),
+                    child: stepContent,
+                  ),
                 ),
               ),
               Builder(

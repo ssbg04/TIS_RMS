@@ -1287,7 +1287,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                 crossAxisCount: cols,
                 crossAxisSpacing: 16,
                 mainAxisSpacing: 16,
-                mainAxisExtent: 145,
+                mainAxisExtent: 160,
               ),
               children: [
                 _buildPrimaryKpiCard(

@@ -333,17 +333,19 @@ class _BulkOcrImportDialogState extends ConsumerState<BulkOcrImportDialog> {
       item.trackStrand ??= _sharedTrackStrand;
     }
 
-    // Validate enrollment completeness
+    // Validate enrollment completeness & grade level bounds (7-12)
     final missingEnr = _items
         .where((i) =>
             i.status == _FileStatus.done &&
             (i.academicYearId == null ||
                 i.gradeLevel == null ||
+                i.gradeLevel! < 7 ||
+                i.gradeLevel! > 12 ||
                 i.sectionId == null))
         .toList();
     if (missingEnr.isNotEmpty && mounted) {
-      showErrorDialog(context, 'Missing Enrollment',
-          'Please select Academic Year, Grade Level, and Section before importing.');
+      showErrorDialog(context, 'Invalid Enrollment',
+          'Please select a valid Academic Year, Grade Level (Grades 7–12), and Section before importing.');
       return;
     }
 

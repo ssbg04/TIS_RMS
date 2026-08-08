@@ -26,8 +26,9 @@ import '../../../core/utils/download_service.dart';
 import '../../../core/network/api_constants.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'widgets/recycle_bin_modal.dart';
+import 'widgets/bulk_operations_bar.dart';
+import 'widgets/documents_header.dart';
 import '../../../domain/entities/document_model.dart';
-import '../../../core/utils/excel_to_pdf_converter.dart';
 
 class DocumentsScreen extends ConsumerStatefulWidget {
   final String userRole;
@@ -307,8 +308,6 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
         if (!mounted) return;
         showErrorDialog(context, 'Copy Failed', e.toString());
       }
-    } else if (action == 'convert_pdf') {
-      await _handleConvertToPdf(document);
     } else if (action == 'preview') {
       showDocumentPreview(context: context, document: document);
     } else if (action == 'download') {
@@ -331,52 +330,6 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
         if (!context.mounted) return;
         showErrorDialog(context, 'Download Failed', e.toString());
       }
-    }
-  }
-
-  bool _isExcelFile(DocumentModel doc) {
-    final name = doc.fileName.toLowerCase();
-    return name.endsWith('.xls') || name.endsWith('.xlsx') || name.endsWith('.csv');
-  }
-
-  Future<void> _handleConvertToPdf(DocumentModel doc) async {
-    if (doc.studentId == null) {
-      showErrorDialog(context, 'Conversion Failed', 'No student folder found for this document.');
-      return;
-    }
-    try {
-      final bytes =
-          await ref.read(documentRepositoryProvider).downloadDocumentBytes(doc.id);
-      if (!mounted) return;
-      final pdfBytes = await convertExcelBytesToPdf(bytes);
-      if (pdfBytes.length > 10 * 1024 * 1024) {
-        showErrorDialog(
-          context,
-          'Conversion Failed',
-          'Converted PDF exceeds the 10MB upload limit.',
-        );
-        return;
-      }
-      final baseName = doc.fileName.replaceFirst(
-        RegExp(r'\.(xls|xlsx|csv)$', caseSensitive: false),
-        '',
-      );
-      await ref.read(documentRepositoryProvider).uploadDocumentBytes(
-            studentId: doc.studentId!,
-            documentType: doc.documentType ?? 'Document',
-            requirementId: doc.requirementId,
-            fileName: '$baseName.pdf',
-            bytes: pdfBytes,
-          );
-      if (!mounted) return;
-      ref.invalidate(documentPageProvider);
-      showSuccessDialog(
-        context,
-        message: 'Converted to PDF and saved in the student folder.',
-      );
-    } catch (e) {
-      if (!mounted) return;
-      showErrorDialog(context, 'Conversion Failed', e.toString());
     }
   }
 
@@ -600,117 +553,35 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
   }
 
   Widget _buildInlineMultiSelectHeader() {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final count = _selectedDocumentIds.length;
-    final isAdmin = widget.userRole != 'teacher';
-
     final pageDocs = ref.watch(documentPageProvider).value?.documents ?? [];
     final pageIds = pageDocs.map((d) => d.id).toSet();
     final bool allSelected = pageIds.isNotEmpty && pageIds.every((id) => _selectedDocumentIds.contains(id));
-    final buttonColor = isDark ? Colors.white : Colors.black;
 
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      decoration: BoxDecoration(
-        color: isDark ? AppColors.darkSurfaceCard : AppColors.primaryGreen.withValues(alpha: 0.1),
-        border: Border(
-          bottom: BorderSide(color: isDark ? AppColors.darkBorder : AppColors.primaryGreen.withValues(alpha: 0.2)),
-        ),
-      ),
-      child: SingleChildScrollView(
-        scrollDirection: Axis.horizontal,
-        child: Row(
-          children: [
-            Tooltip(
-              message: 'Cancel selection',
-              child: IconButton(
-                icon: Icon(Icons.close, color: buttonColor),
-                onPressed: () => setState(() {
+    return BulkOperationsBar(
+      selectedCount: _selectedDocumentIds.length,
+      allSelected: allSelected,
+      isAdmin: widget.userRole != 'teacher',
+      onCancel: () => setState(() {
+        _selectedDocumentIds.clear();
+        _isMultiSelectMode = false;
+      }),
+      onToggleSelectAll: pageDocs.isEmpty
+          ? () {}
+          : () {
+              setState(() {
+                if (allSelected) {
                   _selectedDocumentIds.clear();
-                  _isMultiSelectMode = false;
-                }),
-              ),
-            ),
-            const SizedBox(width: 8),
-            Text(
-              count == 0 ? 'Select items' : '$count selected',
-              style: TextStyle(
-                fontWeight: FontWeight.bold,
-                fontSize: 16,
-                color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
-              ),
-            ),
-            const SizedBox(width: 8),
-            Tooltip(
-              message: allSelected ? 'Unselect All' : 'Select All',
-              child: IconButton(
-                icon: Icon(
-                  allSelected ? Icons.deselect : Icons.select_all,
-                  color: buttonColor,
-                ),
-                onPressed: pageDocs.isEmpty
-                    ? null
-                    : () {
-                        setState(() {
-                          if (allSelected) {
-                            _selectedDocumentIds.clear();
-                          } else {
-                            _selectedDocumentIds.addAll(pageIds);
-                          }
-                        });
-                      },
-              ),
-            ),
-            const SizedBox(width: 16),
-            Container(width: 1, height: 24, color: isDark ? AppColors.darkBorder : Colors.grey.shade400),
-            const SizedBox(width: 12),
-            Tooltip(
-              message: 'Print',
-              child: IconButton(
-                icon: Icon(Icons.print_rounded, color: buttonColor),
-                onPressed: count == 0 ? null : _handleBatchPrint,
-              ),
-            ),
-            Tooltip(
-              message: 'Copy',
-              child: IconButton(
-                icon: Icon(Icons.copy_rounded, color: buttonColor),
-                onPressed: count == 0 ? null : _handleBatchCopy,
-              ),
-            ),
-            Tooltip(
-              message: 'Download',
-              child: IconButton(
-                icon: Icon(Icons.download_rounded, color: buttonColor),
-                onPressed: count == 0 ? null : _handleBatchDownload,
-              ),
-            ),
-            Tooltip(
-              message: 'Complete',
-              child: IconButton(
-                icon: Icon(Icons.check_circle_outline_rounded, color: buttonColor),
-                onPressed: count == 0 ? null : () => _handleBatchStatus('Completed'),
-              ),
-            ),
-            Tooltip(
-              message: 'Archive',
-              child: IconButton(
-                icon: Icon(Icons.archive_outlined, color: buttonColor),
-                onPressed: count == 0 ? null : () => _handleBatchStatus('Archived'),
-              ),
-            ),
-            if (isAdmin)
-              Tooltip(
-                message: 'Delete',
-                child: IconButton(
-                  icon: Icon(Icons.delete_outline_rounded, color: buttonColor),
-                  onPressed: count == 0 ? null : _handleBatchDelete,
-                ),
-              ),
-          ],
-        ),
-      ),
+                } else {
+                  _selectedDocumentIds.addAll(pageIds);
+                }
+              });
+            },
+      onBatchPrint: _handleBatchPrint,
+      onBatchCopy: _handleBatchCopy,
+      onBatchDownload: _handleBatchDownload,
+      onBatchStatus: _handleBatchStatus,
+      onBatchArchive: () => _handleBatchStatus('Archived'),
+      onBatchDelete: _handleBatchDelete,
     );
   }
 
@@ -2870,18 +2741,6 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
                           ],
                         ),
                       ),
-                      if (_isExcelFile(doc as DocumentModel)) ...[
-                        const PopupMenuItem(
-                          value: 'convert_pdf',
-                          child: Row(
-                            children: [
-                              Icon(Icons.picture_as_pdf, size: 16),
-                              SizedBox(width: 10),
-                              Text('Convert to PDF', style: TextStyle(fontSize: 13)),
-                            ],
-                          ),
-                        ),
-                      ],
                       const PopupMenuDivider(),
                       const PopupMenuItem(
                         value: 'view_profile',
@@ -3184,22 +3043,6 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
         ),
       ),
     ];
-
-    if (_isExcelFile(doc)) {
-      items.insert(
-        4,
-        const PopupMenuItem(
-          value: 'convert_pdf',
-          child: Row(
-            children: [
-              Icon(Icons.picture_as_pdf, size: 18),
-              SizedBox(width: 12),
-              Text('Convert to PDF', style: TextStyle(fontSize: 14)),
-            ],
-          ),
-        ),
-      );
-    }
 
     if (widget.userRole != 'teacher') {
       items.add(const PopupMenuDivider());
