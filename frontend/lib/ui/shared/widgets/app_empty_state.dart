@@ -31,10 +31,13 @@ class AppEmptyState extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.center,
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(
-              icon,
-              size: 64,
-              color: isDark ? AppColors.darkTextMuted : Colors.grey.shade400,
+            Semantics(
+              label: title,
+              child: Icon(
+                icon,
+                size: 64,
+                color: isDark ? AppColors.darkTextMuted : Colors.grey.shade400,
+              ),
             ),
             const SizedBox(height: AppSizes.p16),
             Text(

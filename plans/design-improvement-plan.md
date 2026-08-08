@@ -373,7 +373,7 @@ Use consistently across all screens.
 - [x] **Task 4.4**: Accessibility & Visual Polish
   - Add `Semantics` labels to interactive elements and icons.
   - Replace color-only status indicators with text + icon badges.
-  - Add shimmer skeleton loading states for cards and tables.
+  - Add shimmer skeleton loading states for cards and tables (`AppSkeletonLoader`).
 
 ---
 
