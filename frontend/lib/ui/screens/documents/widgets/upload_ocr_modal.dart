@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
@@ -110,6 +111,7 @@ class _UploadOcrModalState extends ConsumerState<UploadOcrModal> {
   List<_UploadEntry> _entries = [];
   bool _isUploading = false;
   bool _isDragOver = false;
+  Timer? _dragResetTimer;
 
   @override
   void initState() {
@@ -144,6 +146,7 @@ class _UploadOcrModalState extends ConsumerState<UploadOcrModal> {
 
   @override
   void dispose() {
+    _dragResetTimer?.cancel();
     _lrnController.removeListener(_onLrnChanged);
     _lrnController.dispose();
     super.dispose();
@@ -676,10 +679,22 @@ class _UploadOcrModalState extends ConsumerState<UploadOcrModal> {
 
     if (isWindows) {
       content = DropTarget(
-        onDragEntered: (_) => setState(() => _isDragOver = true),
-        onDragExited: (_) => setState(() => _isDragOver = false),
+        onDragEntered: (_) {
+          _dragResetTimer?.cancel();
+          if (mounted) setState(() => _isDragOver = true);
+          _dragResetTimer = Timer(const Duration(seconds: 3), () {
+            if (mounted && _isDragOver) {
+              setState(() => _isDragOver = false);
+            }
+          });
+        },
+        onDragExited: (_) {
+          _dragResetTimer?.cancel();
+          if (mounted) setState(() => _isDragOver = false);
+        },
         onDragDone: (details) {
-          setState(() => _isDragOver = false);
+          _dragResetTimer?.cancel();
+          if (mounted) setState(() => _isDragOver = false);
           _handleDroppedFiles(details.files);
         },
         child: content,

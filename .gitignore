@@ -12,6 +12,8 @@ TIS*
 backend/.env
 backend/.env.*
 !backend/.example.env
+backend/brain
+frontend/brain
 
 # Database (runtime data — never commit)
 backend/*.db

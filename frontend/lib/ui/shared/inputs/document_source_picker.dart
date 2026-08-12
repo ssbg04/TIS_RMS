@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -28,6 +29,13 @@ class DocumentSourcePicker extends StatefulWidget {
 class _DocumentSourcePickerState extends State<DocumentSourcePicker> {
   final ImagePicker _imagePicker = ImagePicker();
   bool _isDragOver = false;
+  Timer? _dragResetTimer;
+
+  @override
+  void dispose() {
+    _dragResetTimer?.cancel();
+    super.dispose();
+  }
 
   Future<void> _pickFile() async {
     try {
@@ -213,10 +221,22 @@ class _DocumentSourcePickerState extends State<DocumentSourcePicker> {
 
         if (isWindows) {
           content = DropTarget(
-            onDragEntered: (details) => setState(() => _isDragOver = true),
-            onDragExited: (details) => setState(() => _isDragOver = false),
+            onDragEntered: (details) {
+              _dragResetTimer?.cancel();
+              if (mounted) setState(() => _isDragOver = true);
+              _dragResetTimer = Timer(const Duration(seconds: 3), () {
+                if (mounted && _isDragOver) {
+                  setState(() => _isDragOver = false);
+                }
+              });
+            },
+            onDragExited: (details) {
+              _dragResetTimer?.cancel();
+              if (mounted) setState(() => _isDragOver = false);
+            },
             onDragDone: (details) {
-              setState(() => _isDragOver = false);
+              _dragResetTimer?.cancel();
+              if (mounted) setState(() => _isDragOver = false);
               if (details.files.isNotEmpty) {
                 final xfile = details.files.first;
                 final ext = xfile.path.split('.').last.toLowerCase();

@@ -37,16 +37,16 @@ exports.extractEnrollmentData = async ({ file, documentType = '', manual = false
     // 1. Determine if SF10 or SF9
     const docTypeStr = String(documentType || '');
     const fileNameStr = String(file?.originalname || file?.name || '');
-    const isSF10 = /sf10|sf-10|sf 10|permanent record|form 10/i.test(docTypeStr) ||
-                   /sf10|sf-10|sf 10|permanent record|form 10/i.test(fileNameStr);
-    const isSF9  = /sf9|sf-9|sf 9|report card|form 9/i.test(docTypeStr) ||
-                   /sf9|sf-9|sf 9|report card|form 9/i.test(fileNameStr);
+    const isSF10 = /sf10|sf-10|sf 10|permanent record|form 10|school form 10|form 137|form-137|form 137-a|form 137a|student permanent record/i.test(docTypeStr) ||
+                   /sf10|sf-10|sf 10|permanent record|form 10|school form 10|form 137|form-137|form 137-a|form 137a|student permanent record/i.test(fileNameStr);
+    const isSF9  = /sf9|sf-9|sf 9|report card|form 9|school form 9|form 138|form-138|form 138|student report card|sf1 for jhs\/sf9 for shs|sf1\b|sf-1\b|sf 1\b/i.test(docTypeStr) ||
+                   /sf9|sf-9|sf 9|report card|form 9|school form 9|form 138|form-138|form 138|student report card|sf1 for jhs\/sf9 for shs|sf1\b|sf-1\b|sf 1\b/i.test(fileNameStr);
 
     if (!isSF10 && !isSF9 && !manual) {
         return {
             ok: false,
             skipped: true,
-            message: 'Document is not an SF10 or SF9.'
+            message: 'Auto Enrollment supports only SF9 and SF10 documents.'
         };
     }
 

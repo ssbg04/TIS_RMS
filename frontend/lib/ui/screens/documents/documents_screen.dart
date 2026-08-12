@@ -2580,7 +2580,6 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
     }
 
     Color statusColor;
-    final isDark = Theme.of(context).brightness == Brightness.dark;
     switch (doc.status as String) {
       case 'Completed':
         statusColor = isDark ? Colors.lightGreenAccent.shade400 : AppColors.success;

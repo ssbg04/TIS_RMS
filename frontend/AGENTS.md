@@ -141,9 +141,23 @@ Files backup/restore - mirror mode or zip -->
 2. Add new student screen:
   - fix drag and drop not working in windows app -->
 
-Make a new plan for light and dark theme colors
-- keep the light theme colors, its the schools trademark colors
-- for dark theme 
+
+<!-- # AUTO ENROLLMENT
+- currently supports only SF9 and SF10
+- SF9 is equal to report card, Form 138, School Form 9, Student Report Card, SF1 for JHS/SF9 for SHS
+- SF10 is equal to School Form 10, Form 137, Form 137-A, Student Permanent Record -->
+
+# STUDENT SCREEN
+- bring back background color chip for status in students table (windows) and card (android)
+
+# DOCUMENT SCREEN
+- remove background color and border of the chips 
+  - file status inside of student folder
+- bring back the background color chip for requirements progress
+
+# ARCHIVES SCREEN
+- bring back the background color chip for status in root student folders tab
+
 
 ---
 

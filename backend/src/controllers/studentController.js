@@ -874,8 +874,14 @@ exports.scanEnrollmentFromSF = async (req, res) => {
               AND (
                 document_type LIKE '%SF10%' OR document_type LIKE '%SF9%'
                 OR document_type LIKE '%Form 10%' OR document_type LIKE '%Form 9%'
+                OR document_type LIKE '%Form 137%' OR document_type LIKE '%Form 138%'
+                OR document_type LIKE '%School Form 10%' OR document_type LIKE '%School Form 9%'
                 OR document_type LIKE '%Report Card%' OR document_type LIKE '%Permanent Record%'
+                OR document_type LIKE '%SF1%' OR document_type LIKE '%SF-1%'
                 OR file_name LIKE '%sf10%' OR file_name LIKE '%sf9%'
+                OR file_name LIKE '%form 137%' OR file_name LIKE '%form 138%'
+                OR file_name LIKE '%form 10%' OR file_name LIKE '%form 9%'
+                OR file_name LIKE '%sf1%' OR file_name LIKE '%report card%'
               )
             ORDER BY id DESC
         `).all(studentId);
@@ -883,7 +889,7 @@ exports.scanEnrollmentFromSF = async (req, res) => {
         if (!docs || docs.length === 0) {
             return res.status(404).json({
                 success: false,
-                message: 'No SF10 or SF9 document found for this student. Please upload an SF10 or SF9 document first.'
+                message: 'No SF10 or SF9 document found for this student. Auto Enrollment supports only SF9 and SF10 documents.'
             });
         }
 

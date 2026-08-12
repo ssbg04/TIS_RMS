@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -99,7 +100,14 @@ class _BulkOcrImportDialogState extends ConsumerState<BulkOcrImportDialog> {
 
   final List<_OcrItem> _items = [];
   bool _isDragOver = false;
+  Timer? _dragResetTimer;
   bool _isProcessing = false;
+
+  @override
+  void dispose() {
+    _dragResetTimer?.cancel();
+    super.dispose();
+  }
   int _processingIndex = -1;
 
   @override
@@ -165,15 +173,34 @@ class _BulkOcrImportDialogState extends ConsumerState<BulkOcrImportDialog> {
         l.contains('sf-9') ||
         l.contains('sf 9') ||
         l.contains('report card') ||
-        l.contains('reportcard')) {
+        l.contains('reportcard') ||
+        l.contains('student report card') ||
+        l.contains('form 138') ||
+        l.contains('form-138') ||
+        l.contains('form138') ||
+        l.contains('school form 9') ||
+        l.contains('school-form-9') ||
+        l.contains('sf1 for jhs') ||
+        l.contains('sf1') ||
+        l.contains('sf-1') ||
+        l.contains('sf 1')) {
       return 'SF9';
     }
     if (l.contains('sf10') ||
         l.contains('sf-10') ||
         l.contains('sf 10') ||
         l.contains('permanent record') ||
+        l.contains('permanentrecord') ||
+        l.contains('student permanent record') ||
         l.contains('school form 10') ||
-        l.contains('school-form-10')) {
+        l.contains('school-form-10') ||
+        l.contains('form 137') ||
+        l.contains('form-137') ||
+        l.contains('form137') ||
+        l.contains('form 137-a') ||
+        l.contains('form 137a') ||
+        l.contains('form 10') ||
+        l.contains('form-10')) {
       return 'SF10';
     }
     return null;
@@ -552,10 +579,22 @@ class _BulkOcrImportDialogState extends ConsumerState<BulkOcrImportDialog> {
 
     if (isWindows) {
       dropZone = DropTarget(
-        onDragEntered: (_) => setState(() => _isDragOver = true),
-        onDragExited: (_) => setState(() => _isDragOver = false),
+        onDragEntered: (_) {
+          _dragResetTimer?.cancel();
+          if (mounted) setState(() => _isDragOver = true);
+          _dragResetTimer = Timer(const Duration(seconds: 3), () {
+            if (mounted && _isDragOver) {
+              setState(() => _isDragOver = false);
+            }
+          });
+        },
+        onDragExited: (_) {
+          _dragResetTimer?.cancel();
+          if (mounted) setState(() => _isDragOver = false);
+        },
         onDragDone: (detail) {
-          setState(() => _isDragOver = false);
+          _dragResetTimer?.cancel();
+          if (mounted) setState(() => _isDragOver = false);
           if (detail.files.isNotEmpty) {
             final valid = detail.files
                 .where((f) => _allowedExtensions

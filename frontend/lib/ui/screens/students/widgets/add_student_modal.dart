@@ -129,7 +129,17 @@ class _AddStudentModalState extends ConsumerState<AddStudentModal> {
         lower.contains('sf-9') ||
         lower.contains('sf 9') ||
         lower.contains('report card') ||
-        lower.contains('reportcard')) {
+        lower.contains('reportcard') ||
+        lower.contains('student report card') ||
+        lower.contains('form 138') ||
+        lower.contains('form-138') ||
+        lower.contains('form138') ||
+        lower.contains('school form 9') ||
+        lower.contains('school-form-9') ||
+        lower.contains('sf1 for jhs') ||
+        lower.contains('sf1') ||
+        lower.contains('sf-1') ||
+        lower.contains('sf 1')) {
       return 'SF9';
     }
     if (lower.contains('sf10') ||
@@ -137,8 +147,16 @@ class _AddStudentModalState extends ConsumerState<AddStudentModal> {
         lower.contains('sf 10') ||
         lower.contains('permanent record') ||
         lower.contains('permanentrecord') ||
+        lower.contains('student permanent record') ||
         lower.contains('school form 10') ||
-        lower.contains('school-form-10')) {
+        lower.contains('school-form-10') ||
+        lower.contains('form 137') ||
+        lower.contains('form-137') ||
+        lower.contains('form137') ||
+        lower.contains('form 137-a') ||
+        lower.contains('form 137a') ||
+        lower.contains('form 10') ||
+        lower.contains('form-10')) {
       return 'SF10';
     }
     return null;
