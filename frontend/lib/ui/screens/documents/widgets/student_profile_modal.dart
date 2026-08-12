@@ -547,40 +547,26 @@ class StudentProfileModalBody extends ConsumerWidget {
           ),
         ),
         const SizedBox(height: 2),
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-          decoration: BoxDecoration(
-            color: is4ps
-                ? Colors.deepPurple.withValues(alpha: 0.1)
-                : (isDark ? AppColors.darkSurface2 : Colors.grey.shade100),
-            borderRadius: BorderRadius.circular(20),
-            border: Border.all(
-              color: is4ps
-                  ? Colors.deepPurple.withValues(alpha: 0.3)
-                  : (isDark ? AppColors.darkBorder : Colors.grey.shade300),
+        Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              is4ps ? Icons.check_circle : Icons.cancel_outlined,
+              size: 14,
+              color: is4ps ? Colors.deepPurple : Colors.grey.shade500,
             ),
-          ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(
-                is4ps ? Icons.check_circle : Icons.cancel_outlined,
-                size: 12,
-                color: is4ps ? Colors.deepPurple : Colors.grey.shade500,
+            const SizedBox(width: 4),
+            Text(
+              is4ps ? 'Yes — 4Ps' : 'No',
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+                color: is4ps
+                    ? (isDark ? Colors.deepPurple[200] : Colors.deepPurple)
+                    : (isDark ? AppColors.darkTextSecondary : Colors.grey.shade600),
               ),
-              const SizedBox(width: 4),
-              Text(
-                is4ps ? 'Yes — 4Ps' : 'No',
-                style: TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w600,
-                  color: is4ps
-                      ? (isDark ? Colors.deepPurple[200] : Colors.deepPurple)
-                      : (isDark ? AppColors.darkTextSecondary : Colors.grey.shade600),
-                ),
-              ),
-            ],
-          ),
+            ),
+          ],
         ),
       ],
     );

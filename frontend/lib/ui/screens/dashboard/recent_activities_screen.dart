@@ -463,7 +463,18 @@ class _RecentActivitiesScreenState
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          _actionChip(a.action),
+                          Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(
+                                _actionIcon(a.action, a.entityType),
+                                color: _actionColor(a.action),
+                                size: 22,
+                              ),
+                              const SizedBox(width: 8),
+                              _actionChip(a.action),
+                            ],
+                          ),
                           Text(
                             '$dateStr • $timeStr',
                             style: TextStyle(
@@ -502,27 +513,14 @@ class _RecentActivitiesScreenState
                                     color: isDark ? AppColors.darkTextSecondary : Colors.grey,
                                   ),
                                 ),
-                                Container(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 10,
-                                    vertical: 4,
-                                  ),
-                                  decoration: BoxDecoration(
-                                    color: isDark ? AppColors.darkSurfaceCard : Colors.grey.shade200,
-                                    borderRadius: BorderRadius.circular(6),
-                                    border: Border.all(
-                                      color: isDark ? AppColors.darkBorder : Colors.grey.shade300,
-                                    ),
-                                  ),
-                                  child: Text(
-                                    a.entityType.toUpperCase(),
-                                    style: TextStyle(
-                                      fontSize: 11,
-                                      fontWeight: FontWeight.bold,
-                                      color: isDark ? AppColors.darkTextPrimary : Colors.grey.shade800,
-                                    ),
-                                  ),
-                                ),
+                                 Text(
+                                   a.entityType.toUpperCase(),
+                                   style: TextStyle(
+                                     fontSize: 11,
+                                     fontWeight: FontWeight.bold,
+                                     color: isDark ? AppColors.darkTextPrimary : Colors.grey.shade800,
+                                   ),
+                                 ),
                               ],
                             ),
                             Padding(
@@ -573,32 +571,25 @@ class _RecentActivitiesScreenState
 
   Widget _actionChip(String action) {
     final color = _actionColor(action);
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.12),
-        borderRadius: BorderRadius.circular(6),
-        border: Border.all(color: color.withValues(alpha: 0.2)),
-      ),
-      child: Text(
-        action.toUpperCase(),
-        style: TextStyle(
-          fontSize: 12,
-          fontWeight: FontWeight.bold,
-          color: color,
-        ),
+    return Text(
+      action.toUpperCase(),
+      style: TextStyle(
+        fontSize: 12,
+        fontWeight: FontWeight.bold,
+        color: color,
       ),
     );
   }
 
   Color _actionColor(String action) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     switch (action.toUpperCase()) {
       case 'CREATE':
-        return AppColors.primaryGreen;
+        return isDark ? Colors.lightGreenAccent.shade400 : AppColors.primaryGreen;
       case 'DELETE':
-        return Colors.red;
+        return isDark ? Colors.redAccent.shade100 : Colors.red;
       default:
-        return Colors.blue;
+        return isDark ? Colors.lightBlueAccent : Colors.blue;
     }
   }
 

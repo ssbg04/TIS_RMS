@@ -1107,15 +1107,10 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                   horizontal: 16,
                   vertical: 12,
                 ),
-                leading: CircleAvatar(
-                  backgroundColor: _actionColor(
-                    a.action,
-                  ).withValues(alpha: 0.1),
-                  child: Icon(
-                    _actionIcon(a.action, a.entityType),
-                    color: _actionColor(a.action),
-                    size: 20,
-                  ),
+                leading: Icon(
+                  _actionIcon(a.action, a.entityType),
+                  color: _actionColor(a.action),
+                  size: 26,
                 ),
                 title: Padding(
                   padding: const EdgeInsets.only(bottom: 6.0),
@@ -1286,13 +1281,14 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
 
   // ── HELPERS ───────────────────────────────────────────────────────────────
   Color _actionColor(String action) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     switch (action.toUpperCase()) {
       case 'CREATE':
-        return AppColors.primaryGreen;
+        return isDark ? Colors.lightGreenAccent.shade400 : AppColors.primaryGreen;
       case 'DELETE':
-        return Colors.red;
+        return isDark ? Colors.redAccent.shade100 : Colors.red;
       default:
-        return Colors.blue;
+        return isDark ? Colors.lightBlueAccent : Colors.blue;
     }
   }
 
@@ -1329,19 +1325,12 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
 
   Widget _buildActionChip(String action) {
     final color = _actionColor(action);
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(20),
-      ),
-      child: Text(
-        action.toUpperCase(),
-        style: TextStyle(
-          fontSize: 11,
-          fontWeight: FontWeight.bold,
-          color: color,
-        ),
+    return Text(
+      action.toUpperCase(),
+      style: TextStyle(
+        fontSize: 11,
+        fontWeight: FontWeight.bold,
+        color: color,
       ),
     );
   }

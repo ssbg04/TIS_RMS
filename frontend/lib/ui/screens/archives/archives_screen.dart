@@ -2372,37 +2372,21 @@ class _ArchivesScreenState extends ConsumerState<ArchivesScreen>
 
   Widget _buildStatusChip(String status) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    Color bg;
     Color fg;
     if (status == 'Completed') {
-      bg = AppColors.primaryGreen.withValues(alpha: 0.1);
-      fg = AppColors.primaryGreen;
+      fg = isDark ? Colors.lightGreenAccent.shade400 : AppColors.primaryGreen;
     } else if (status == 'Archived') {
-      bg = Colors.orange.withValues(alpha: 0.1);
-      fg = Colors.orange.shade700;
+      fg = isDark ? Colors.orangeAccent : Colors.orange.shade700;
     } else {
-      bg = isDark ? AppColors.darkSurface2 : Colors.grey.shade200;
-      fg = isDark ? AppColors.darkTextSecondary : Colors.grey.shade700;
+      fg = isDark ? AppColors.darkTextPrimary : Colors.grey.shade700;
     }
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-          decoration: BoxDecoration(
-            color: bg,
-            borderRadius: BorderRadius.circular(10),
-          ),
-          child: Text(
-            status,
-            style: TextStyle(
-              fontSize: 10,
-              fontWeight: FontWeight.w600,
-              color: fg,
-            ),
-          ),
-        ),
-      ],
+    return Text(
+      status,
+      style: TextStyle(
+        fontSize: 10,
+        fontWeight: FontWeight.w600,
+        color: fg,
+      ),
     );
   }
 
@@ -2410,19 +2394,19 @@ class _ArchivesScreenState extends ConsumerState<ArchivesScreen>
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     final bg = switch (status) {
-      'Enrolled' => AppColors.primaryGreen.withValues(alpha: isDark ? 0.20 : 0.10),
-      'Graduated' => Colors.blue.withValues(alpha: isDark ? 0.20 : 0.10),
-      'Transferred' => Colors.orange.withValues(alpha: isDark ? 0.20 : 0.10),
-      'Dropped' => Colors.red.withValues(alpha: isDark ? 0.20 : 0.10),
+      'Enrolled' => AppColors.primaryGreen.withValues(alpha: isDark ? 0.25 : 0.10),
+      'Graduated' => Colors.blue.withValues(alpha: isDark ? 0.25 : 0.10),
+      'Transferred' => Colors.orange.withValues(alpha: isDark ? 0.25 : 0.10),
+      'Dropped' => Colors.red.withValues(alpha: isDark ? 0.25 : 0.10),
       _ => isDark ? AppColors.darkSurface2 : Colors.grey.shade200,
     };
 
     final fg = switch (status) {
-      'Enrolled' => AppColors.primaryGreen,
-      'Graduated' => isDark ? Colors.blue.shade300 : Colors.blue.shade700,
-      'Transferred' => isDark ? Colors.orange.shade300 : Colors.orange.shade800,
-      'Dropped' => isDark ? Colors.red.shade300 : Colors.red.shade700,
-      _ => isDark ? AppColors.darkTextSecondary : Colors.grey.shade700,
+      'Enrolled' => isDark ? Colors.lightGreenAccent.shade400 : AppColors.primaryGreen,
+      'Graduated' => isDark ? Colors.lightBlueAccent : Colors.blue.shade700,
+      'Transferred' => isDark ? Colors.orangeAccent : Colors.orange.shade800,
+      'Dropped' => isDark ? Colors.redAccent.shade100 : Colors.red.shade700,
+      _ => isDark ? AppColors.darkTextPrimary : Colors.grey.shade700,
     };
 
     return Row(

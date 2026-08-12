@@ -71,24 +71,12 @@ class ViewActivityModal extends StatelessWidget {
               ),
               if (action != null) ...[
                 const SizedBox(height: 6),
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 10,
-                    vertical: 4,
-                  ),
-                  decoration: BoxDecoration(
-                    color: (actionColor ?? AppColors.primaryGreen).withValues(
-                      alpha: 0.15,
-                    ),
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  child: Text(
-                    action!.toUpperCase(),
-                    style: TextStyle(
-                      fontSize: 11,
-                      fontWeight: FontWeight.bold,
-                      color: actionColor ?? AppColors.primaryGreen,
-                    ),
+                Text(
+                  action!.toUpperCase(),
+                  style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.bold,
+                    color: actionColor ?? AppColors.primaryGreen,
                   ),
                 ),
               ],

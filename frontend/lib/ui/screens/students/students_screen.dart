@@ -41,6 +41,7 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
   final List<int> _selectedStudentIds = [];
   bool _showMultiSelect = false;
   bool _isDragOver = false;
+  Timer? _dragResetTimer;
   ProviderSubscription<String>? _tabListener;
   // Pending filter state (applied only when user taps "Apply now")
   String _pendingSchoolYear = 'All School Years';
@@ -113,6 +114,7 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
 
   @override
   void dispose() {
+    _dragResetTimer?.cancel();
     _tabListener?.close();
     _debounce?.cancel();
     _searchController.removeListener(_onSearchChanged);
@@ -179,18 +181,40 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
     final isWindows = defaultTargetPlatform == TargetPlatform.windows;
     if (!isWindows) return child;
 
+    // Reset drag overlay if screen is no longer current active route
+    if (_isDragOver && ModalRoute.of(context)?.isCurrent != true) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted && _isDragOver) {
+          setState(() => _isDragOver = false);
+        }
+      });
+    }
+
     return DropTarget(
       onDragEntered: (details) {
-        if (ModalRoute.of(context)?.isCurrent != true) return;
-        setState(() => _isDragOver = true);
+        _dragResetTimer?.cancel();
+        if (ModalRoute.of(context)?.isCurrent == true) {
+          setState(() => _isDragOver = true);
+        }
+        // Safety auto-reset timer in case Windows OS swallows dragExit event
+        _dragResetTimer = Timer(const Duration(seconds: 3), () {
+          if (mounted && _isDragOver) {
+            setState(() => _isDragOver = false);
+          }
+        });
       },
       onDragExited: (details) {
-        if (ModalRoute.of(context)?.isCurrent != true) return;
-        setState(() => _isDragOver = false);
+        _dragResetTimer?.cancel();
+        if (mounted) {
+          setState(() => _isDragOver = false);
+        }
       },
       onDragDone: (details) {
+        _dragResetTimer?.cancel();
+        if (mounted) {
+          setState(() => _isDragOver = false);
+        }
         if (ModalRoute.of(context)?.isCurrent != true) return;
-        setState(() => _isDragOver = false);
         final validFiles = details.files.where((xfile) {
           final ext = xfile.path.toLowerCase();
           return ext.endsWith('.pdf') ||
@@ -2314,27 +2338,17 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
                               ),
                             ),
                             const SizedBox(width: 8),
-                            if (s.is4ps) ...[
-                              Container(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 6,
-                                  vertical: 2,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: AppColors.primaryGreen,
-                                  borderRadius: BorderRadius.circular(4),
-                                ),
-                                child: const Text(
-                                  '4Ps',
-                                  style: TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 10,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                              ),
-                              const SizedBox(width: 8),
-                            ],
+                             if (s.is4ps) ...[
+                               const Text(
+                                 '4Ps',
+                                 style: TextStyle(
+                                   color: AppColors.primaryGreen,
+                                   fontSize: 10,
+                                   fontWeight: FontWeight.bold,
+                                 ),
+                               ),
+                               const SizedBox(width: 8),
+                             ],
                             _StatusChip(status: s.status),
                           ],
                         ),
@@ -2509,19 +2523,19 @@ class _StatusChip extends StatelessWidget {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     final bg = switch (status) {
-      'Enrolled' => AppColors.primaryGreen.withValues(alpha: isDark ? 0.20 : 0.10),
-      'Graduated' => Colors.blue.withValues(alpha: isDark ? 0.20 : 0.10),
-      'Transferred' => Colors.orange.withValues(alpha: isDark ? 0.20 : 0.10),
-      'Dropped' => Colors.red.withValues(alpha: isDark ? 0.20 : 0.10),
+      'Enrolled' => AppColors.primaryGreen.withValues(alpha: isDark ? 0.25 : 0.10),
+      'Graduated' => Colors.blue.withValues(alpha: isDark ? 0.25 : 0.10),
+      'Transferred' => Colors.orange.withValues(alpha: isDark ? 0.25 : 0.10),
+      'Dropped' => Colors.red.withValues(alpha: isDark ? 0.25 : 0.10),
       _ => isDark ? AppColors.darkSurface2 : Colors.grey.shade200,
     };
 
     final fg = switch (status) {
-      'Enrolled' => AppColors.primaryGreen,
-      'Graduated' => isDark ? Colors.blue.shade300 : Colors.blue.shade700,
-      'Transferred' => isDark ? Colors.orange.shade300 : Colors.orange.shade800,
-      'Dropped' => isDark ? Colors.red.shade300 : Colors.red.shade700,
-      _ => isDark ? AppColors.darkTextSecondary : Colors.grey.shade700,
+      'Enrolled' => isDark ? Colors.lightGreenAccent.shade400 : AppColors.primaryGreen,
+      'Graduated' => isDark ? Colors.lightBlueAccent : Colors.blue.shade700,
+      'Transferred' => isDark ? Colors.orangeAccent : Colors.orange.shade800,
+      'Dropped' => isDark ? Colors.redAccent.shade100 : Colors.red.shade700,
+      _ => isDark ? AppColors.darkTextPrimary : Colors.grey.shade700,
     };
 
     return Container(

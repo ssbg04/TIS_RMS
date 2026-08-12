@@ -55,6 +55,7 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
   bool _isGridView = false;
   late final TabController _tabController;
   bool _isDragOver = false;
+  Timer? _dragResetTimer;
 
   // --- Windows Explorer State Variables ---
   int? _openedFolderStudentId;
@@ -202,6 +203,7 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
 
   @override
   void dispose() {
+    _dragResetTimer?.cancel();
     _tabListener?.close();
     _folderListener?.close();
     _pollingTimer?.cancel();
@@ -834,18 +836,40 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
     final isWindows = defaultTargetPlatform == TargetPlatform.windows;
     if (!isWindows) return child;
 
+    // Safety check: reset drag state if modal/route is no longer active
+    if (_isDragOver && ModalRoute.of(context)?.isCurrent != true) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted && _isDragOver) {
+          setState(() => _isDragOver = false);
+        }
+      });
+    }
+
     return DropTarget(
       onDragEntered: (details) {
-        if (ModalRoute.of(context)?.isCurrent != true) return;
-        setState(() => _isDragOver = true);
+        _dragResetTimer?.cancel();
+        if (ModalRoute.of(context)?.isCurrent == true) {
+          setState(() => _isDragOver = true);
+        }
+        // Auto-reset timer to prevent stuck hover overlay on cancelled drag
+        _dragResetTimer = Timer(const Duration(seconds: 3), () {
+          if (mounted && _isDragOver) {
+            setState(() => _isDragOver = false);
+          }
+        });
       },
       onDragExited: (details) {
-        if (ModalRoute.of(context)?.isCurrent != true) return;
-        setState(() => _isDragOver = false);
+        _dragResetTimer?.cancel();
+        if (mounted) {
+          setState(() => _isDragOver = false);
+        }
       },
       onDragDone: (details) {
+        _dragResetTimer?.cancel();
+        if (mounted) {
+          setState(() => _isDragOver = false);
+        }
         if (ModalRoute.of(context)?.isCurrent != true) return;
-        setState(() => _isDragOver = false);
         final validFiles = details.files.where((xfile) {
           final ext = xfile.path.toLowerCase();
           return ext.endsWith('.pdf') ||
@@ -858,10 +882,11 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
         }).map((x) => File(x.path)).toList();
 
         if (validFiles.isNotEmpty) {
+          final targetStudentId =
+              _openedFolderStudentId ?? widget.initialStudentId;
           UploadOcrModal.show(
             context,
-            prefilledStudentId:
-                _openedFolderStudentId ?? widget.initialStudentId,
+            prefilledStudentId: targetStudentId,
             preloadedFiles: validFiles,
           );
         }
@@ -2237,21 +2262,24 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
 
   Widget _buildFolderCompletionBadge(dynamic folder) {
     final FolderModel f = folder as FolderModel;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final pills = <Widget>[];
 
     // JHS Pill
     final jhsTotal = f.jhsTotal;
     final jhsDone = f.jhsCompleted;
     final jhsComplete = jhsTotal > 0 && jhsDone >= jhsTotal;
-    final jhsColor = jhsComplete ? Colors.green : Colors.orange;
+    final jhsColor = jhsComplete
+        ? (isDark ? Colors.lightGreenAccent.shade400 : Colors.green)
+        : (isDark ? Colors.orangeAccent : Colors.orange);
     pills.add(
       Container(
         margin: const EdgeInsets.only(right: 4),
         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
         decoration: BoxDecoration(
-          color: jhsColor.withValues(alpha: 0.12),
+          color: jhsColor.withValues(alpha: isDark ? 0.20 : 0.12),
           borderRadius: BorderRadius.circular(10),
-          border: Border.all(color: jhsColor.withValues(alpha: 0.35)),
+          border: Border.all(color: jhsColor.withValues(alpha: isDark ? 0.45 : 0.35)),
         ),
         child: Text(
           'JHS $jhsDone/$jhsTotal',
@@ -2268,14 +2296,16 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
     final shsTotal = f.shsTotal;
     final shsDone = f.shsCompleted;
     final shsComplete = shsTotal > 0 && shsDone >= shsTotal;
-    final shsColor = shsComplete ? Colors.green : Colors.blue.shade700;
+    final shsColor = shsComplete
+        ? (isDark ? Colors.lightGreenAccent.shade400 : Colors.green)
+        : (isDark ? Colors.lightBlueAccent : Colors.blue.shade700);
     pills.add(
       Container(
         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
         decoration: BoxDecoration(
-          color: shsColor.withValues(alpha: 0.12),
+          color: shsColor.withValues(alpha: isDark ? 0.20 : 0.12),
           borderRadius: BorderRadius.circular(10),
-          border: Border.all(color: shsColor.withValues(alpha: 0.35)),
+          border: Border.all(color: shsColor.withValues(alpha: isDark ? 0.45 : 0.35)),
         ),
         child: Text(
           'SHS $shsDone/$shsTotal',
@@ -2550,15 +2580,16 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
     }
 
     Color statusColor;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     switch (doc.status as String) {
       case 'Completed':
-        statusColor = AppColors.success;
+        statusColor = isDark ? Colors.lightGreenAccent.shade400 : AppColors.success;
         break;
       case 'Archived':
-        statusColor = Colors.blue;
+        statusColor = isDark ? Colors.lightBlueAccent : Colors.blue;
         break;
       default:
-        statusColor = Colors.grey;
+        statusColor = isDark ? AppColors.darkTextSecondary : Colors.grey;
     }
 
     final isSelected = _selectedDocumentIds.contains(doc.id);
@@ -2675,20 +2706,12 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
               const SizedBox(width: 8),
 
               // Status badge
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
-                decoration: BoxDecoration(
-                  color: statusColor.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(20),
-                  border: Border.all(color: statusColor.withValues(alpha: 0.3)),
-                ),
-                child: Text(
-                  doc.status as String,
-                  style: TextStyle(
-                    fontSize: 10,
-                    color: statusColor,
-                    fontWeight: FontWeight.w600,
-                  ),
+              Text(
+                doc.status as String,
+                style: TextStyle(
+                  fontSize: 10,
+                  color: statusColor,
+                  fontWeight: FontWeight.w600,
                 ),
               ),
               const SizedBox(width: 4),

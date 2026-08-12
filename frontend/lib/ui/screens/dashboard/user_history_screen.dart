@@ -466,7 +466,18 @@ class _UserHistoryScreenState extends ConsumerState<UserHistoryScreen> {
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          _actionChip(a.action),
+                          Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(
+                                _actionIcon(a.action),
+                                color: _actionColor(a.action),
+                                size: 22,
+                              ),
+                              const SizedBox(width: 8),
+                              _actionChip(a.action),
+                            ],
+                          ),
                           Text(
                             '$dateStr • $timeStr',
                             style: const TextStyle(
@@ -562,53 +573,41 @@ class _UserHistoryScreenState extends ConsumerState<UserHistoryScreen> {
 
   Widget _actionChip(String action) {
     final color = _actionColor(action);
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.12),
-        borderRadius: BorderRadius.circular(6),
-        border: Border.all(color: color.withValues(alpha: 0.2)),
-      ),
-      child: Text(
-        action.toUpperCase(),
-        style: TextStyle(
-          fontSize: 12,
-          fontWeight: FontWeight.bold,
-          color: color,
-        ),
+    return Text(
+      action.toUpperCase(),
+      style: TextStyle(
+        fontSize: 12,
+        fontWeight: FontWeight.bold,
+        color: color,
       ),
     );
   }
 
   Widget _roleChip(String role) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final isAdmin = role == 'admin';
-    final color = isAdmin ? Colors.purple : Colors.teal;
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.12),
-        borderRadius: BorderRadius.circular(6),
-        border: Border.all(color: color.withValues(alpha: 0.2)),
-      ),
-      child: Text(
-        role.toUpperCase(),
-        style: TextStyle(
-          fontSize: 12,
-          fontWeight: FontWeight.bold,
-          color: color,
-        ),
+    final color = isAdmin
+        ? (isDark ? Colors.purpleAccent.shade100 : Colors.purple)
+        : (isDark ? Colors.tealAccent.shade400 : Colors.teal);
+    return Text(
+      role.toUpperCase(),
+      style: TextStyle(
+        fontSize: 12,
+        fontWeight: FontWeight.bold,
+        color: color,
       ),
     );
   }
 
   Color _actionColor(String action) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     switch (action.toLowerCase()) {
       case 'created':
-        return AppColors.primaryGreen;
+        return isDark ? Colors.lightGreenAccent.shade400 : AppColors.primaryGreen;
       case 'deleted':
-        return Colors.red;
+        return isDark ? Colors.redAccent.shade100 : Colors.red;
       default:
-        return Colors.orange;
+        return isDark ? Colors.orangeAccent : Colors.orange;
     }
   }
 
