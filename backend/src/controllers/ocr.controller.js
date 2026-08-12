@@ -4,7 +4,6 @@ const { execFile } = require('child_process');
 const util = require('util');
 const execFileAsync = util.promisify(execFile);
 const ocrParser = require('../services/ocrParser.js');
-const xlsx = require('xlsx');
 
 exports.extractOcrData = async (req, res) => {
     let generatedImagePath = null;
@@ -25,26 +24,9 @@ exports.extractOcrData = async (req, res) => {
         const isPdf = req.file.mimetype === 'application/pdf' || /\.(pdf)$/i.test(req.file.originalname);
 
         if (isExcel) {
-            console.log('[OCR] Excel/Spreadsheet file detected. Reading tabs directly via xlsx...');
-            const workbook = xlsx.readFile(req.file.path);
-            const tabTexts = [];
-            for (const tabName of workbook.SheetNames) {
-                const sheet = workbook.Sheets[tabName];
-                const rows = xlsx.utils.sheet_to_json(sheet, { header: 1, defval: '' });
-                const rowsText = rows
-                    .map(row => {
-                        return row
-                            .filter(cell => cell !== null && cell !== undefined && String(cell).trim() !== '')
-                            .map(cell => String(cell).trim())
-                            .join(' ');
-                    })
-                    .filter(line => line.length > 0)
-                    .join('\n');
-                const csvText = xlsx.utils.sheet_to_csv(sheet);
-                tabTexts.push(`--- TAB: ${tabName} ---\n${rowsText}\n\n${csvText}`);
-            }
-            text = tabTexts.join('\n\n');
-            console.log(`[OCR] Excel parsed ${workbook.SheetNames.length} tabs successfully. Extracted text length: ${text.length}`);
+            console.log('[OCR] Excel/Spreadsheet file detected. Reading tabs directly via exceljs...');
+            text = await ocrParser.extractTextFromFile(req.file.path, req.file.originalname, req.file.mimetype);
+            console.log(`[OCR] Excel parsed successfully. Extracted text length: ${text.length}`);
             if (fs.existsSync(req.file.path)) fs.unlinkSync(req.file.path);
         } else {
             let imagePathToScan = req.file.path;

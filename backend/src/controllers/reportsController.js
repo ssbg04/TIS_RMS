@@ -302,39 +302,36 @@ exports.getStorageUsed = async (req, res) => {
     const path = require('path');
     const { promisify } = require('util');
     const stat = promisify(fs.stat);
-    const readdir = promisify(fs.readdir);
-
-    const getDirSize = async (dirPath) => {
-        let size = 0;
-        try {
-            const files = await readdir(dirPath);
-            for (const file of files) {
-                const filePath = path.join(dirPath, file);
-                const fileStat = await stat(filePath);
-                if (fileStat.isDirectory()) {
-                    size += await getDirSize(filePath);
-                } else {
-                    size += fileStat.size;
-                }
-            }
-        } catch (e) {
-            // Ignore missing or inaccessible files
-        }
-        return size;
-    };
 
     try {
         const rootDir = path.join(__dirname, '../../');
-        const uploadsPath = path.join(rootDir, 'data');
-        const dbPath = path.join(rootDir, 'tis_rms.db');
+        const dbPath = process.env.DB_PATH
+            ? path.resolve(process.env.DB_PATH)
+            : path.join(rootDir, 'data', 'tis_rms.db');
+
+        const dbWalPath = `${dbPath}-wal`;
+        const dbShmPath = `${dbPath}-shm`;
+        const legacyDbPath = path.join(rootDir, 'tis_rms.db');
 
         let totalSize = 0;
-        totalSize += await getDirSize(uploadsPath);
 
-        try {
-            const dbStat = await stat(dbPath);
-            totalSize += dbStat.size;
-        } catch (e) {}
+        const addFileSize = async (filePath) => {
+            try {
+                const fileStat = await stat(filePath);
+                if (fileStat.isFile()) {
+                    totalSize += fileStat.size;
+                }
+            } catch (e) {
+                // Ignore missing file
+            }
+        };
+
+        await addFileSize(dbPath);
+        await addFileSize(dbWalPath);
+        await addFileSize(dbShmPath);
+        if (legacyDbPath !== dbPath) {
+            await addFileSize(legacyDbPath);
+        }
 
         res.json({ bytes: totalSize });
     } catch (error) {

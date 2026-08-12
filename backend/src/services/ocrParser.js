@@ -1,6 +1,6 @@
 const fs = require('fs');
 const path = require('path');
-const xlsx = require('xlsx');
+const ExcelJS = require('exceljs');
 const { execFile } = require('child_process');
 const util = require('util');
 const execFileAsync = util.promisify(execFile);
@@ -351,25 +351,53 @@ exports.extractTextFromFile = async (filePath, originalName = '', mimeType = '')
     const isPdf = (mimeType === 'application/pdf') || /\.(pdf)$/i.test(originalName || filePath);
 
     if (isExcel) {
-        console.log('[ocrParser] Excel/Spreadsheet file detected. Reading tabs via xlsx...');
-        const workbook = xlsx.readFile(filePath, { cellDates: true });
-        const tabTexts = [];
-        for (const tabName of workbook.SheetNames) {
-            const sheet = workbook.Sheets[tabName];
-            const rows = xlsx.utils.sheet_to_json(sheet, { header: 1, defval: '', raw: false });
-            const rowsText = rows
-                .map(row => {
-                    const r = Array.isArray(row) ? row : [row];
-                    return r
-                        .filter(cell => cell !== null && cell !== undefined && String(cell).trim() !== '')
-                        .map(cell => String(cell).trim())
-                        .join(' ');
-                })
-                .filter(line => line.length > 0)
-                .join('\n');
-            const csvText = xlsx.utils.sheet_to_csv(sheet);
-            tabTexts.push(`--- TAB: ${tabName} ---\n${rowsText}\n\n${csvText}`);
+        console.log('[ocrParser] Excel/Spreadsheet file detected. Reading tabs via exceljs...');
+        const workbook = new ExcelJS.Workbook();
+        const ext = path.extname(originalName || filePath).toLowerCase();
+        if (ext === '.csv' || (mimeType && mimeType.includes('csv'))) {
+            await workbook.csv.readFile(filePath);
+        } else {
+            await workbook.xlsx.readFile(filePath);
         }
+
+        const tabTexts = [];
+        workbook.eachSheet((worksheet) => {
+            const tabName = worksheet.name;
+            const rowsText = [];
+            const csvLines = [];
+            worksheet.eachRow({ includeEmpty: false }, (row) => {
+                const rowValues = [];
+                row.eachCell({ includeEmpty: false }, (cell) => {
+                    let val = cell.value;
+                    if (val !== null && val !== undefined) {
+                        if (typeof val === 'object') {
+                            if (val instanceof Date) {
+                                val = val.toISOString().split('T')[0];
+                            } else if (val.result !== undefined && val.result !== null) {
+                                val = val.result;
+                            } else if (val.text !== undefined && val.text !== null) {
+                                val = val.text;
+                            } else if (Array.isArray(val.richText)) {
+                                val = val.richText.map(r => r.text).join('');
+                            } else {
+                                val = JSON.stringify(val);
+                            }
+                        }
+                        const str = String(val).trim();
+                        if (str.length > 0) {
+                            rowValues.push(str);
+                        }
+                    }
+                });
+                if (rowValues.length > 0) {
+                    rowsText.push(rowValues.join(' '));
+                    csvLines.push(rowValues.map(v => `"${v.replace(/"/g, '""')}"`).join(','));
+                }
+            });
+            const formattedRows = rowsText.join('\n');
+            const csvText = csvLines.join('\n');
+            tabTexts.push(`--- TAB: ${tabName} ---\n${formattedRows}\n\n${csvText}`);
+        });
         text = tabTexts.join('\n\n');
         return text;
     }
