@@ -148,7 +148,8 @@ Files backup/restore - mirror mode or zip -->
 - SF10 is equal to School Form 10, Form 137, Form 137-A, Student Permanent Record -->
 
 # OCR PARSEER 
-- middle name and extension not working, bulk add and add student
+- FIX JHS and SHS Form 137/SF10/School-Form-10 NOT WORKING
+- check these files for references: F:\SumbrerongBato\tis_rms_server\requirements\test
 
 # STUDENT SCREEN
 - bring back background color chip for status in students table (windows) and card (android)

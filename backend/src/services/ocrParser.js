@@ -462,13 +462,18 @@ exports.extractTextFromFile = async (filePath, originalName = '', mimeType = '')
         }
 
         const tabTexts = [];
-        workbook.eachSheet((worksheet) => {
+        for (const worksheet of workbook.worksheets) {
             const tabName = worksheet.name;
             const rowsText = [];
-            const csvLines = [];
-            worksheet.eachRow({ includeEmpty: false }, (row) => {
+            const maxRows = Math.max(worksheet.rowCount || 0, 300);
+
+            for (let r = 1; r <= maxRows; r++) {
+                const row = worksheet.getRow(r);
                 const rowValues = [];
-                row.eachCell({ includeEmpty: false }, (cell) => {
+                let lastValStr = '';
+
+                for (let c = 1; c <= 150; c++) {
+                    const cell = row.getCell(c);
                     let val = cell.value;
                     if (val !== null && val !== undefined) {
                         if (typeof val === 'object') {
@@ -481,23 +486,26 @@ exports.extractTextFromFile = async (filePath, originalName = '', mimeType = '')
                             } else if (Array.isArray(val.richText)) {
                                 val = val.richText.map(r => r.text).join('');
                             } else {
-                                val = JSON.stringify(val);
+                                val = '';
                             }
                         }
-                        const str = String(val).trim();
-                        if (str.length > 0) {
+                        const str = String(val ?? '').trim();
+                        if (str.length > 0 && str !== lastValStr) {
                             rowValues.push(str);
+                            lastValStr = str;
                         }
                     }
-                });
+                }
+
                 if (rowValues.length > 0) {
                     rowsText.push(rowValues.join(' '));
-                    csvLines.push(rowValues.map(v => `"${v.replace(/"/g, '""')}"`).join(','));
                 }
-            });
-            const formattedRows = rowsText.join('\n');
-            tabTexts.push(`--- TAB: ${tabName} ---\n${formattedRows}`);
-        });
+            }
+
+            if (rowsText.length > 0) {
+                tabTexts.push(`--- TAB: ${tabName} ---\n` + rowsText.join('\n'));
+            }
+        }
         text = tabTexts.join('\n\n');
         return text;
     }
