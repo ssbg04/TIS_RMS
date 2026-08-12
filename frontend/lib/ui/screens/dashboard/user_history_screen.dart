@@ -587,8 +587,8 @@ class _UserHistoryScreenState extends ConsumerState<UserHistoryScreen> {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final isAdmin = role == 'admin';
     final color = isAdmin
-        ? (isDark ? Colors.purpleAccent.shade100 : Colors.purple)
-        : (isDark ? Colors.tealAccent.shade400 : Colors.teal);
+        ? (isDark ? Colors.purple.shade300 : Colors.purple)
+        : (isDark ? Colors.teal.shade300 : Colors.teal);
     return Text(
       role.toUpperCase(),
       style: TextStyle(
@@ -603,11 +603,11 @@ class _UserHistoryScreenState extends ConsumerState<UserHistoryScreen> {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     switch (action.toLowerCase()) {
       case 'created':
-        return isDark ? Colors.lightGreenAccent.shade400 : AppColors.primaryGreen;
+        return isDark ? Colors.green.shade300 : AppColors.primaryGreen;
       case 'deleted':
-        return isDark ? Colors.redAccent.shade100 : Colors.red;
+        return isDark ? Colors.red.shade300 : Colors.red;
       default:
-        return isDark ? Colors.orangeAccent : Colors.orange;
+        return isDark ? Colors.orange.shade300 : Colors.orange;
     }
   }
 

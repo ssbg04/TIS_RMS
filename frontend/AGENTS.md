@@ -147,6 +147,9 @@ Files backup/restore - mirror mode or zip -->
 - SF9 is equal to report card, Form 138, School Form 9, Student Report Card, SF1 for JHS/SF9 for SHS
 - SF10 is equal to School Form 10, Form 137, Form 137-A, Student Permanent Record -->
 
+# OCR PARSEER 
+- middle name and extension not working, bulk add and add student
+
 # STUDENT SCREEN
 - bring back background color chip for status in students table (windows) and card (android)
 

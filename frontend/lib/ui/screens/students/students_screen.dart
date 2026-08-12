@@ -2531,10 +2531,10 @@ class _StatusChip extends StatelessWidget {
     };
 
     final fg = switch (status) {
-      'Enrolled' => isDark ? Colors.lightGreenAccent.shade400 : AppColors.primaryGreen,
-      'Graduated' => isDark ? Colors.lightBlueAccent : Colors.blue.shade700,
-      'Transferred' => isDark ? Colors.orangeAccent : Colors.orange.shade800,
-      'Dropped' => isDark ? Colors.redAccent.shade100 : Colors.red.shade700,
+      'Enrolled' => isDark ? Colors.green.shade300 : AppColors.primaryGreen,
+      'Graduated' => isDark ? Colors.blue.shade300 : Colors.blue.shade700,
+      'Transferred' => isDark ? Colors.orange.shade300 : Colors.orange.shade800,
+      'Dropped' => isDark ? Colors.red.shade300 : Colors.red.shade700,
       _ => isDark ? AppColors.darkTextPrimary : Colors.grey.shade700,
     };
 

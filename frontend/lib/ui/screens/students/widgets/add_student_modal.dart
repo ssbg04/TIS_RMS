@@ -309,12 +309,8 @@ class _AddStudentModalState extends ConsumerState<AddStudentModal> {
         if (ocrResult.lastName.isNotEmpty) {
           _lastNameController.text = ocrResult.lastName;
         }
-        if (ocrResult.middleName.isNotEmpty) {
-          _middleNameController.text = ocrResult.middleName;
-        }
-        if (ocrResult.extension.isNotEmpty) {
-          _extController.text = ocrResult.extension;
-        }
+        _middleNameController.text = ocrResult.middleName;
+        _extController.text = ocrResult.extension;
         if (ocrResult.sex == 'Male' || ocrResult.sex == 'Female') {
           _selectedSex = ocrResult.sex;
         }

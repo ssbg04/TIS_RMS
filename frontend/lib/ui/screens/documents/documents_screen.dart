@@ -2270,8 +2270,8 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
     final jhsDone = f.jhsCompleted;
     final jhsComplete = jhsTotal > 0 && jhsDone >= jhsTotal;
     final jhsColor = jhsComplete
-        ? (isDark ? Colors.lightGreenAccent.shade400 : Colors.green)
-        : (isDark ? Colors.orangeAccent : Colors.orange);
+        ? (isDark ? Colors.green.shade300 : Colors.green)
+        : (isDark ? Colors.orange.shade300 : Colors.orange);
     pills.add(
       Container(
         margin: const EdgeInsets.only(right: 4),
@@ -2297,8 +2297,8 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
     final shsDone = f.shsCompleted;
     final shsComplete = shsTotal > 0 && shsDone >= shsTotal;
     final shsColor = shsComplete
-        ? (isDark ? Colors.lightGreenAccent.shade400 : Colors.green)
-        : (isDark ? Colors.lightBlueAccent : Colors.blue.shade700);
+        ? (isDark ? Colors.green.shade300 : Colors.green)
+        : (isDark ? Colors.blue.shade300 : Colors.blue.shade700);
     pills.add(
       Container(
         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
@@ -2582,10 +2582,10 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
     Color statusColor;
     switch (doc.status as String) {
       case 'Completed':
-        statusColor = isDark ? Colors.lightGreenAccent.shade400 : AppColors.success;
+        statusColor = isDark ? Colors.green.shade300 : AppColors.success;
         break;
       case 'Archived':
-        statusColor = isDark ? Colors.lightBlueAccent : Colors.blue;
+        statusColor = isDark ? Colors.blue.shade300 : Colors.blue;
         break;
       default:
         statusColor = isDark ? AppColors.darkTextSecondary : Colors.grey;

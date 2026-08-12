@@ -215,7 +215,7 @@ function cleanNameField(str) {
     if (!str || typeof str !== 'string') return '';
     
     // 1. Remove unwanted field headers/labels if accidentally captured in name string
-    let cleaned = str.replace(/\b(?:LAST|FIRST|MIDDLE|SURNAME|FAMILY|GIVEN|NAME|LEARNER'?S?|STUDENT|LRN|SEX|GENDER|DOB|BIRTH|DATE|GRADE|SECTION|SCHOOL|S\.?Y\.?)\b/gi, ' ');
+    let cleaned = str.replace(/\b(?:LAST|FIRST|MIDDLE|SURNAME|FAMILY|GIVEN|NAME|EXTENSION|SUFFIX|EXT|LEARNER'?S?|STUDENT|LRN|SEX|GENDER|DOB|BIRTH|DATE|GRADE|SECTION|SCHOOL|S\.?Y\.?)\b/gi, ' ');
     
     // 2. Keep only valid name characters: letters, hyphens, periods, apostrophes, and spaces
     cleaned = cleaned.replace(/[^A-Za-z\-\.\'\s]/g, ' ');
@@ -256,27 +256,33 @@ function extractStudentName(text) {
     let middleName = '';
     let extension = '';
 
-    // 1. Try explicit separate headers: LAST NAME, FIRST NAME, MIDDLE NAME
-    const lastNameMatch = text.match(/(?:LAST\s*NAME|SURNAME|FAMILY\s*NAME)[:\s,]*([A-Za-z\-\s\.\']+?)(?=\s*(?:FIRST|GIVEN|MIDDLE|NAME|LRN|SEX|DOB|DATE|GRADE|SECTION|S\.?Y\.?|,|\n|$))/i);
-    const firstNameMatch = text.match(/(?:FIRST\s*NAME|GIVEN\s*NAME)[:\s,]*([A-Za-z\-\s\.\']+?)(?=\s*(?:LAST|SURNAME|MIDDLE|NAME|LRN|SEX|DOB|DATE|GRADE|SECTION|S\.?Y\.?|,|\n|$))/i);
-    const middleNameMatch = text.match(/(?:MIDDLE\s*NAME)[:\s,]*([A-Za-z\-\s\.\']+?)(?=\s*(?:LAST|SURNAME|FIRST|GIVEN|NAME|LRN|SEX|DOB|DATE|GRADE|SECTION|S\.?Y\.?|,|\n|$))/i);
+    // 1. Try explicit separate headers: LAST NAME, FIRST NAME, MIDDLE NAME, EXTENSION
+    const lastNameMatch = text.match(/(?:LAST\s*NAME|SURNAME|FAMILY\s*NAME)[:\s,]*([A-Za-z\-\s\.\']+?)(?=\s*(?:FIRST|GIVEN|MIDDLE|M\.?I\.?|EXT|SUFFIX|NAME|LRN|SEX|DOB|DATE|GRADE|SECTION|S\.?Y\.?|,|\n|$))/i);
+    const firstNameMatch = text.match(/(?:FIRST\s*NAME|GIVEN\s*NAME)[:\s,]*([A-Za-z\-\s\.\']+?)(?=\s*(?:LAST|SURNAME|MIDDLE|M\.?I\.?|EXT|SUFFIX|NAME|LRN|SEX|DOB|DATE|GRADE|SECTION|S\.?Y\.?|,|\n|$))/i);
+    const middleNameMatch = text.match(/(?:MIDDLE\s*NAME|MIDDLE\s*INITIAL|MIDDLE|M\.?I\.?)[:\s,]*([A-Za-z\-\s\.\']+?)(?=\s*(?:LAST|SURNAME|FIRST|GIVEN|EXT|SUFFIX|NAME|LRN|SEX|DOB|DATE|GRADE|SECTION|S\.?Y\.?|,|\n|$))/i);
+    const extensionMatch = text.match(/(?:EXTENSION\s*NAME|EXT\.?\s*NAME|NAME\s*EXT\.?|EXTENSION|SUFFIX|EXT)[:\s,]*([A-Za-z0-9\.\-]+?)(?=\s*(?:LAST|FIRST|MIDDLE|M\.?I\.?|NAME|LRN|SEX|DOB|DATE|GRADE|SECTION|S\.?Y\.?|,|\n|$))/i);
 
     if (lastNameMatch) lastName = lastNameMatch[1].trim();
     if (firstNameMatch) firstName = firstNameMatch[1].trim();
     if (middleNameMatch) middleName = middleNameMatch[1].trim();
+    if (extensionMatch) extension = extensionMatch[1].trim();
 
     // 2. Try combined format if separate headers didn't yield both lastName and firstName
     if (!lastName || !firstName) {
         const combinedMatch = text.match(/(?:Name|Learner'?s?\s*Name|Name\s*of\s*Learner|Name\s*of\s*Student)[:\s,]+([A-Za-z\-\s\.\']+?),\s*([A-Za-z\-\s\.\']+?)(?=\s*(?:LRN|SEX|GENDER|DOB|BIRTH|DATE|GRADE|SECTION|SCHOOL|S\.?Y\.?|TRACK|STRAND|\n|$))/i);
         if (combinedMatch) {
             const candLast = combinedMatch[1].trim();
-            const candRest = combinedMatch[2].trim().split(/\s+/);
+            let candRest = combinedMatch[2].trim().split(/\s+/);
             if (!lastName) lastName = candLast;
-            if (!firstName && candRest.length > 0) {
-                if (candRest.length > 2 && !middleName) {
+            if (candRest.length > 0) {
+                const extCheck = candRest[candRest.length - 1].toUpperCase().replace(/\./g, '');
+                if (['JR', 'SR', 'I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X'].includes(extCheck)) {
+                    if (!extension) extension = candRest.pop();
+                }
+                if (candRest.length >= 2 && !middleName) {
                     middleName = candRest.pop();
                 }
-                firstName = candRest.join(' ');
+                if (!firstName) firstName = candRest.join(' ');
             }
         }
     }
@@ -285,6 +291,7 @@ function extractStudentName(text) {
     lastName = cleanNameField(lastName);
     firstName = cleanNameField(firstName);
     middleName = cleanNameField(middleName);
+    extension = extension.replace(/[\.,]/g, '').trim().toUpperCase();
 
     // 4. Remove cross-field duplicate values ONLY when target field has extra remaining words
     const cleanLowerLast = lastName.toLowerCase();
@@ -317,7 +324,7 @@ function extractStudentName(text) {
     firstName = cleanNameField(firstName);
     middleName = cleanNameField(middleName);
 
-    // 5. Extract extension name from lastName or firstName
+    // 5. Extract extension name from lastName, firstName, or middleName if not already found
     let res = extractExtension({ lastName, firstName, middleName, extension });
     res.lastName = cleanNameField(res.lastName);
     res.firstName = cleanNameField(res.firstName);
@@ -327,21 +334,32 @@ function extractStudentName(text) {
 }
 
 function extractExtension(extracted) {
-    const extRegex = /(?:,\s*|\b)(JR\.?|SR\.?|II|III|IV|V|VI)\b/i;
+    const extRegex = /(?:,\s*|\b)(JR\.?|SR\.?|I{1,3}|IV|V|VI{0,3}|IX|X)\b/i;
     
-    let extMatch = extracted.lastName.match(extRegex);
-    if (extMatch) {
-        extracted.extension = extMatch[1].replace(/[\.,]/g, '').trim().toUpperCase();
-        extracted.lastName = extracted.lastName.replace(extMatch[0], '').replace(/,$/, '').trim();
+    if (!extracted.extension) {
+        let extMatch = extracted.lastName.match(extRegex);
+        if (extMatch) {
+            extracted.extension = extMatch[1].replace(/[\.,]/g, '').trim().toUpperCase();
+            extracted.lastName = extracted.lastName.replace(extMatch[0], '').replace(/,$/, '').trim();
+        }
     }
     
     if (!extracted.extension) {
-        extMatch = extracted.firstName.match(extRegex);
+        let extMatch = extracted.firstName.match(extRegex);
         if (extMatch) {
             extracted.extension = extMatch[1].replace(/[\.,]/g, '').trim().toUpperCase();
             extracted.firstName = extracted.firstName.replace(extMatch[0], '').replace(/,$/, '').trim();
         }
     }
+
+    if (!extracted.extension) {
+        let extMatch = extracted.middleName.match(extRegex);
+        if (extMatch) {
+            extracted.extension = extMatch[1].replace(/[\.,]/g, '').trim().toUpperCase();
+            extracted.middleName = extracted.middleName.replace(extMatch[0], '').replace(/,$/, '').trim();
+        }
+    }
+
     return extracted;
 }
 

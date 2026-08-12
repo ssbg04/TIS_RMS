@@ -585,11 +585,11 @@ class _RecentActivitiesScreenState
     final isDark = Theme.of(context).brightness == Brightness.dark;
     switch (action.toUpperCase()) {
       case 'CREATE':
-        return isDark ? Colors.lightGreenAccent.shade400 : AppColors.primaryGreen;
+        return isDark ? Colors.green.shade300 : AppColors.primaryGreen;
       case 'DELETE':
-        return isDark ? Colors.redAccent.shade100 : Colors.red;
+        return isDark ? Colors.red.shade300 : Colors.red;
       default:
-        return isDark ? Colors.lightBlueAccent : Colors.blue;
+        return isDark ? Colors.blue.shade300 : Colors.blue;
     }
   }
 

@@ -315,12 +315,8 @@ class _BulkOcrImportDialogState extends ConsumerState<BulkOcrImportDialog> {
             if (result.lastName.isNotEmpty) {
               item.lastName = result.lastName.toUpperCase();
             }
-            if (result.middleName.isNotEmpty) {
-              item.middleName = result.middleName.toUpperCase();
-            }
-            if (result.extension.isNotEmpty) {
-              item.extension = result.extension.toUpperCase();
-            }
+            item.middleName = result.middleName.toUpperCase();
+            item.extension = result.extension.toUpperCase();
             if (result.sex == 'Male' || result.sex == 'Female') {
               item.sex = result.sex;
             }
