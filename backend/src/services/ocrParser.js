@@ -40,31 +40,12 @@ exports.parseSF9 = (text) => {
         extracted.lrn = lrnMatch[1].replace(/[\s\-\.]/g, '');
     }
 
-    // 2. Extract Name (Format: "Name: LASTNAME, FIRSTNAME MIDDLENAME" or Excel CSV)
-    const sf9NameMatch = text.match(/(?:Name|Learner'?s?\s*Name|Name\s*of\s*Learner|Name\s*of\s*Student)[:\s,]+([^,\n]+),\s*([^\n]+)/i);
-    if (sf9NameMatch) {
-        extracted.lastName = sf9NameMatch[1].trim(); 
-        const firstMiddle = sf9NameMatch[2].trim().split(/\s+/);
-        if (firstMiddle.length > 1) {
-            extracted.middleName = firstMiddle.pop(); 
-            extracted.firstName = firstMiddle.join(' '); 
-        } else {
-            extracted.firstName = firstMiddle[0];
-        }
-    } else {
-        // Try LAST NAME / FIRST NAME / MIDDLE NAME separated headers
-        const lastNameMatch = text.match(/LAST\s*NAME[:\s,]+([A-Za-z\-\s\.]+?)(?=\s*(?:FIRST|MIDDLE|,|\n|$))/i);
-        if (lastNameMatch) extracted.lastName = lastNameMatch[1].trim();
-
-        const firstNameMatch = text.match(/FIRST\s*NAME[:\s,]+([A-Za-z\-\s\.]+?)(?=\s*(?:LAST|MIDDLE|,|\n|$))/i);
-        if (firstNameMatch) extracted.firstName = firstNameMatch[1].trim();
-
-        const middleNameMatch = text.match(/MIDDLE\s*NAME[:\s,]+([A-Za-z\-\s\.]+?)(?=\s*(?:LRN|SEX|DOB|DATE|,|\n|$))/i);
-        if (middleNameMatch) extracted.middleName = middleNameMatch[1].trim();
-    }
-
-    // 3. Extract Extension Name from First Name or Last Name
-    extracted = extractExtension(extracted);
+    // 2. Extract Name fields
+    const nameData = extractStudentName(text);
+    extracted.lastName = nameData.lastName;
+    extracted.firstName = nameData.firstName;
+    extracted.middleName = nameData.middleName;
+    extracted.extension = nameData.extension;
 
     // 4. Extract SF9 Specifics
     extracted.dob = extractDob(text);
@@ -125,28 +106,12 @@ exports.parseSF10 = (text) => {
         if (fallbackLrn) extracted.lrn = fallbackLrn[0];
     }
 
-    // 2. Extract Name (Format: "LAST NAME: ... FIRST NAME: ...")
-    const lastNameMatch = text.match(/LAST\s*NAME[:\s,]*([A-Za-z\-\s\.]+?)(?=\s*(?:FIRST|MIDDLE|,|\n|$))/i);
-    if (lastNameMatch) extracted.lastName = lastNameMatch[1].trim();
-
-    const firstNameMatch = text.match(/FIRST\s*NAME[:\s,]*([A-Za-z\-\s\.]+?)(?=\s*(?:LAST|MIDDLE|,|\n|$))/i);
-    if (firstNameMatch) extracted.firstName = firstNameMatch[1].trim();
-
-    const middleNameMatch = text.match(/MIDDLE\s*NAME[:\s,]*([A-Za-z\-\s\.]+?)(?=\s*(?:LRN|SEX|DOB|DATE|,|\n|$))/i);
-    if (middleNameMatch) extracted.middleName = middleNameMatch[1].trim();
-
-    // Fallback if specific labels fail
-    if (!extracted.lastName && !extracted.firstName) {
-        const fallbackNameMatch = text.match(/(?:Name|Learner'?s?\s*Name|Name\s*of\s*Learner|Name\s*of\s*Student)[:\s,]+([A-Za-z\s\-]+?),\s*([A-Za-z\s\-]+?)(?:\s+([A-Za-z\s\-]+))?(?=\s*(?:LRN|SEX|DOB|DATE|Grade|Section|,|\n|$))/i);
-        if (fallbackNameMatch) {
-            extracted.lastName = fallbackNameMatch[1] || '';
-            extracted.firstName = fallbackNameMatch[2] || '';
-            extracted.middleName = fallbackNameMatch[3] || '';
-        }
-    }
-
-    // 3. Extract Extension Name
-    extracted = extractExtension(extracted);
+    // 2. Extract Name fields
+    const nameData = extractStudentName(text);
+    extracted.lastName = nameData.lastName;
+    extracted.firstName = nameData.firstName;
+    extracted.middleName = nameData.middleName;
+    extracted.extension = nameData.extension;
 
     // 4. Extract SF10 Specifics
     extracted.dob = extractDob(text);
@@ -243,6 +208,124 @@ exports.extractAllScholasticRecords = (text) => {
 // ==========================================
 // HELPER FUNCTION
 // ==========================================
+// ==========================================
+// HELPER FUNCTIONS FOR NAME CLEANING
+// ==========================================
+function cleanNameField(str) {
+    if (!str || typeof str !== 'string') return '';
+    
+    // 1. Remove unwanted field headers/labels if accidentally captured in name string
+    let cleaned = str.replace(/\b(?:LAST|FIRST|MIDDLE|SURNAME|FAMILY|GIVEN|NAME|LEARNER'?S?|STUDENT|LRN|SEX|GENDER|DOB|BIRTH|DATE|GRADE|SECTION|SCHOOL|S\.?Y\.?)\b/gi, ' ');
+    
+    // 2. Keep only valid name characters: letters, hyphens, periods, apostrophes, and spaces
+    cleaned = cleaned.replace(/[^A-Za-z\-\.\'\s]/g, ' ');
+
+    // 3. Split into trimmed words and strip lone or boundary periods
+    let words = cleaned.trim().split(/\s+/).map(w => w.replace(/^\.+|\.+$/g, '')).filter(w => w.length > 0);
+    if (words.length === 0) return '';
+
+    // 4. Iteratively deduplicate any repeated adjacent sub-sequences of words (e.g. 1-word, 2-word, 3-word repeats)
+    let changed = true;
+    while (changed) {
+        changed = false;
+        const maxChunk = Math.floor(words.length / 2);
+        for (let k = maxChunk; k >= 1; k--) {
+            for (let i = 0; i <= words.length - 2 * k; i++) {
+                const chunk1 = words.slice(i, i + k).map(w => w.toLowerCase()).join(' ');
+                const chunk2 = words.slice(i + k, i + 2 * k).map(w => w.toLowerCase()).join(' ');
+                if (chunk1.length > 0 && chunk1 === chunk2) {
+                    words.splice(i + k, k);
+                    changed = true;
+                    break;
+                }
+            }
+            if (changed) break;
+        }
+    }
+
+    return words.join(' ');
+}
+
+function escapeRegExp(string) {
+    return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+function extractStudentName(text) {
+    let lastName = '';
+    let firstName = '';
+    let middleName = '';
+    let extension = '';
+
+    // 1. Try explicit separate headers: LAST NAME, FIRST NAME, MIDDLE NAME
+    const lastNameMatch = text.match(/(?:LAST\s*NAME|SURNAME|FAMILY\s*NAME)[:\s,]*([A-Za-z\-\s\.\']+?)(?=\s*(?:FIRST|GIVEN|MIDDLE|NAME|LRN|SEX|DOB|DATE|GRADE|SECTION|S\.?Y\.?|,|\n|$))/i);
+    const firstNameMatch = text.match(/(?:FIRST\s*NAME|GIVEN\s*NAME)[:\s,]*([A-Za-z\-\s\.\']+?)(?=\s*(?:LAST|SURNAME|MIDDLE|NAME|LRN|SEX|DOB|DATE|GRADE|SECTION|S\.?Y\.?|,|\n|$))/i);
+    const middleNameMatch = text.match(/(?:MIDDLE\s*NAME)[:\s,]*([A-Za-z\-\s\.\']+?)(?=\s*(?:LAST|SURNAME|FIRST|GIVEN|NAME|LRN|SEX|DOB|DATE|GRADE|SECTION|S\.?Y\.?|,|\n|$))/i);
+
+    if (lastNameMatch) lastName = lastNameMatch[1].trim();
+    if (firstNameMatch) firstName = firstNameMatch[1].trim();
+    if (middleNameMatch) middleName = middleNameMatch[1].trim();
+
+    // 2. Try combined format if separate headers didn't yield both lastName and firstName
+    if (!lastName || !firstName) {
+        const combinedMatch = text.match(/(?:Name|Learner'?s?\s*Name|Name\s*of\s*Learner|Name\s*of\s*Student)[:\s,]+([A-Za-z\-\s\.\']+?),\s*([A-Za-z\-\s\.\']+?)(?=\s*(?:LRN|SEX|GENDER|DOB|BIRTH|DATE|GRADE|SECTION|SCHOOL|S\.?Y\.?|TRACK|STRAND|\n|$))/i);
+        if (combinedMatch) {
+            const candLast = combinedMatch[1].trim();
+            const candRest = combinedMatch[2].trim().split(/\s+/);
+            if (!lastName) lastName = candLast;
+            if (!firstName && candRest.length > 0) {
+                if (candRest.length > 2 && !middleName) {
+                    middleName = candRest.pop();
+                }
+                firstName = candRest.join(' ');
+            }
+        }
+    }
+
+    // 3. Initial cleaning of fields
+    lastName = cleanNameField(lastName);
+    firstName = cleanNameField(firstName);
+    middleName = cleanNameField(middleName);
+
+    // 4. Remove cross-field duplicate values ONLY when target field has extra remaining words
+    const cleanLowerLast = lastName.toLowerCase();
+    const cleanLowerFirst = firstName.toLowerCase();
+
+    if (lastName && firstName && cleanLowerFirst !== cleanLowerLast) {
+        const lastPattern = new RegExp(`\\b${escapeRegExp(lastName)}\\b`, 'gi');
+        const candidateFirst = firstName.replace(lastPattern, '').trim();
+        if (candidateFirst.length > 0) {
+            firstName = candidateFirst;
+        }
+    }
+    if (lastName && middleName && middleName.toLowerCase() !== cleanLowerLast) {
+        const lastPattern = new RegExp(`\\b${escapeRegExp(lastName)}\\b`, 'gi');
+        const candidateMiddle = middleName.replace(lastPattern, '').trim();
+        if (candidateMiddle.length > 0) {
+            middleName = candidateMiddle;
+        }
+    }
+    if (firstName && middleName && middleName.toLowerCase() !== cleanLowerFirst) {
+        const firstPattern = new RegExp(`\\b${escapeRegExp(firstName)}\\b`, 'gi');
+        const candidateMiddle = middleName.replace(firstPattern, '').trim();
+        if (candidateMiddle.length > 0) {
+            middleName = candidateMiddle;
+        }
+    }
+
+    // Clean fields again after cross-field deduplication
+    lastName = cleanNameField(lastName);
+    firstName = cleanNameField(firstName);
+    middleName = cleanNameField(middleName);
+
+    // 5. Extract extension name from lastName or firstName
+    let res = extractExtension({ lastName, firstName, middleName, extension });
+    res.lastName = cleanNameField(res.lastName);
+    res.firstName = cleanNameField(res.firstName);
+    res.middleName = cleanNameField(res.middleName);
+
+    return res;
+}
+
 function extractExtension(extracted) {
     const extRegex = /(?:,\s*|\b)(JR\.?|SR\.?|II|III|IV|V|VI)\b/i;
     
@@ -395,8 +478,7 @@ exports.extractTextFromFile = async (filePath, originalName = '', mimeType = '')
                 }
             });
             const formattedRows = rowsText.join('\n');
-            const csvText = csvLines.join('\n');
-            tabTexts.push(`--- TAB: ${tabName} ---\n${formattedRows}\n\n${csvText}`);
+            tabTexts.push(`--- TAB: ${tabName} ---\n${formattedRows}`);
         });
         text = tabTexts.join('\n\n');
         return text;
