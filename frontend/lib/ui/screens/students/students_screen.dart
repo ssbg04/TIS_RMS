@@ -181,8 +181,9 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
     final isWindows = defaultTargetPlatform == TargetPlatform.windows;
     if (!isWindows) return child;
 
-    // Reset drag overlay if screen is no longer current active route
-    if (_isDragOver && ModalRoute.of(context)?.isCurrent != true) {
+    // Reset drag overlay if screen is no longer current active route or active tab
+    final isActiveTab = ref.read(activeTabProvider) == 'Students';
+    if (_isDragOver && (!isActiveTab || ModalRoute.of(context)?.isCurrent != true)) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted && _isDragOver) {
           setState(() => _isDragOver = false);
@@ -193,6 +194,7 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
     return DropTarget(
       onDragEntered: (details) {
         _dragResetTimer?.cancel();
+        if (ref.read(activeTabProvider) != 'Students') return;
         if (ModalRoute.of(context)?.isCurrent == true) {
           setState(() => _isDragOver = true);
         }
@@ -214,6 +216,7 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
         if (mounted) {
           setState(() => _isDragOver = false);
         }
+        if (ref.read(activeTabProvider) != 'Students') return;
         if (ModalRoute.of(context)?.isCurrent != true) return;
         final validFiles = details.files.where((xfile) {
           final ext = xfile.path.toLowerCase();

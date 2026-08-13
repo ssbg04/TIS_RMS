@@ -383,7 +383,7 @@ class _UsersScreenState extends ConsumerState<UsersScreen> {
   Widget _buildAnimatedFilter(String label, String value, int count) {
     final isSelected = _roleFilter == value;
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final unselectedBg = isDark ? AppColors.darkSurfaceCard : Colors.white;
+    final unselectedBg = Colors.transparent;
     final unselectedBorder = isDark ? AppColors.darkBorder : Colors.grey.shade300;
     final unselectedText = isDark ? AppColors.darkTextSecondary : AppColors.textSecondary;
 
@@ -585,7 +585,7 @@ class _UsersScreenState extends ConsumerState<UsersScreen> {
                                  top: 0,
                                  left: 0,
                                  right: 0,
-                                 height: 24,
+                                 height: 60,
                                  child: IgnorePointer(
                                    child: ShaderMask(
                                      shaderCallback: (rect) {
@@ -593,7 +593,7 @@ class _UsersScreenState extends ConsumerState<UsersScreen> {
                                          begin: Alignment.topCenter,
                                          end: Alignment.bottomCenter,
                                          colors: [Colors.black, Colors.transparent],
-                                         stops: [0.3, 1.0],
+                                         stops: [0.6, 1.0],
                                        ).createShader(rect);
                                      },
                                      blendMode: BlendMode.dstIn,
@@ -607,12 +607,12 @@ class _UsersScreenState extends ConsumerState<UsersScreen> {
                                                end: Alignment.bottomCenter,
                                                colors: Theme.of(context).brightness == Brightness.dark
                                                    ? [
-                                                       AppColors.darkPageBackground.withValues(alpha: 0.95),
-                                                       AppColors.darkPageBackground.withValues(alpha: 0.0),
+                                                       AppColors.darkPageBackground.withValues(alpha: 0.85),
+                                                       AppColors.darkPageBackground.withValues(alpha: 0.15),
                                                      ]
                                                    : [
-                                                       Colors.white.withOpacity(0.95),
-                                                       Colors.white.withOpacity(0.0),
+                                                       Colors.white.withValues(alpha: 0.85),
+                                                       Colors.white.withValues(alpha: 0.15),
                                                      ],
                                              ),
                                            ),
@@ -627,7 +627,7 @@ class _UsersScreenState extends ConsumerState<UsersScreen> {
                                  bottom: 0,
                                  left: 0,
                                  right: 0,
-                                 height: 24,
+                                 height: 60,
                                  child: IgnorePointer(
                                    child: ShaderMask(
                                      shaderCallback: (rect) {
@@ -635,7 +635,7 @@ class _UsersScreenState extends ConsumerState<UsersScreen> {
                                          begin: Alignment.topCenter,
                                          end: Alignment.bottomCenter,
                                          colors: [Colors.transparent, Colors.black],
-                                         stops: [0.0, 0.7],
+                                         stops: [0.0, 0.4],
                                        ).createShader(rect);
                                      },
                                      blendMode: BlendMode.dstIn,
@@ -650,11 +650,11 @@ class _UsersScreenState extends ConsumerState<UsersScreen> {
                                                colors: Theme.of(context).brightness == Brightness.dark
                                                    ? [
                                                        AppColors.darkPageBackground.withValues(alpha: 0.0),
-                                                       AppColors.darkPageBackground.withValues(alpha: 0.95),
+                                                       AppColors.darkPageBackground.withValues(alpha: 0.85),
                                                      ]
                                                    : [
-                                                       Colors.white.withOpacity(0.0),
-                                                       Colors.white.withOpacity(0.95),
+                                                       Colors.white.withValues(alpha: 0.0),
+                                                       Colors.white.withValues(alpha: 0.85),
                                                      ],
                                              ),
                                            ),

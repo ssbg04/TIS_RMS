@@ -147,13 +147,9 @@ Files backup/restore - mirror mode or zip -->
 - SF9 is equal to report card, Form 138, School Form 9, Student Report Card, SF1 for JHS/SF9 for SHS
 - SF10 is equal to School Form 10, Form 137, Form 137-A, Student Permanent Record -->
 
-# OCR PARSEER 
-- KEEP JHS and SHS Form 137/SF10/School-Form-10 
-- fix SF9 not working, sample layout: F:\SumbrerongBato\tis_rms_server\requirements\test\SF9.jpg
-
-# SETTINGS SCREEN
-- copy the edge to edge fade from dashboard screen to settings screen
-
+# USERS SCREEN
+- remove background color for user mangement filter and search bar, inshort the top section
+- copy the edge to edge fade from dashboard screen to users screen
 
 ---
 

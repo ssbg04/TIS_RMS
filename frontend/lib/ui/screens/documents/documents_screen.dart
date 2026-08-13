@@ -3,7 +3,6 @@ import 'dart:io';
 import 'package:flutter/foundation.dart'
     show defaultTargetPlatform, TargetPlatform;
 import 'package:flutter/material.dart';
-import 'package:desktop_drop/desktop_drop.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../domain/entities/folder_model.dart';
@@ -54,8 +53,6 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
   Timer? _debounce;
   bool _isGridView = false;
   late final TabController _tabController;
-  bool _isDragOver = false;
-  Timer? _dragResetTimer;
 
   // --- Windows Explorer State Variables ---
   int? _openedFolderStudentId;
@@ -203,7 +200,6 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
 
   @override
   void dispose() {
-    _dragResetTimer?.cancel();
     _tabListener?.close();
     _folderListener?.close();
     _pollingTimer?.cancel();
@@ -639,8 +635,6 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
       child: GestureDetector(
         onTap: () => FocusScope.of(context).unfocus(),
         behavior: HitTestBehavior.translucent,
-        child: _buildDragDropWrapper(
-        context,
         child: Scaffold(
         backgroundColor: Colors.transparent,
         floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
@@ -826,124 +820,7 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
           ),
         ),
       ),
-      ),
     ),
-    );
-  }
-
-  // ── DRAG AND DROP WRAPPER (Windows only) ──────────────────────────────────
-  Widget _buildDragDropWrapper(BuildContext context, {required Widget child}) {
-    final isWindows = defaultTargetPlatform == TargetPlatform.windows;
-    if (!isWindows) return child;
-
-    // Safety check: reset drag state if modal/route is no longer active
-    if (_isDragOver && ModalRoute.of(context)?.isCurrent != true) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted && _isDragOver) {
-          setState(() => _isDragOver = false);
-        }
-      });
-    }
-
-    return DropTarget(
-      onDragEntered: (details) {
-        _dragResetTimer?.cancel();
-        if (ModalRoute.of(context)?.isCurrent == true) {
-          setState(() => _isDragOver = true);
-        }
-        // Auto-reset timer to prevent stuck hover overlay on cancelled drag
-        _dragResetTimer = Timer(const Duration(seconds: 3), () {
-          if (mounted && _isDragOver) {
-            setState(() => _isDragOver = false);
-          }
-        });
-      },
-      onDragExited: (details) {
-        _dragResetTimer?.cancel();
-        if (mounted) {
-          setState(() => _isDragOver = false);
-        }
-      },
-      onDragDone: (details) {
-        _dragResetTimer?.cancel();
-        if (mounted) {
-          setState(() => _isDragOver = false);
-        }
-        if (ModalRoute.of(context)?.isCurrent != true) return;
-        final validFiles = details.files.where((xfile) {
-          final ext = xfile.path.toLowerCase();
-          return ext.endsWith('.pdf') ||
-              ext.endsWith('.jpg') ||
-              ext.endsWith('.jpeg') ||
-              ext.endsWith('.png') ||
-              ext.endsWith('.xlsx') ||
-              ext.endsWith('.xls') ||
-              ext.endsWith('.csv');
-        }).map((x) => File(x.path)).toList();
-
-        if (validFiles.isNotEmpty) {
-          final targetStudentId =
-              _openedFolderStudentId ?? widget.initialStudentId;
-          UploadOcrModal.show(
-            context,
-            prefilledStudentId: targetStudentId,
-            preloadedFiles: validFiles,
-          );
-        }
-      },
-      child: Stack(
-        children: [
-          child,
-          // ── Active drop overlay ──
-          if (_isDragOver)
-              Positioned.fill(
-                child: IgnorePointer(
-                  child: AnimatedContainer(
-                    duration: const Duration(milliseconds: 200),
-                    decoration: BoxDecoration(
-                      color: AppColors.primaryGreen.withValues(alpha: 0.08),
-                      border: Border.all(
-                        color: AppColors.primaryGreen,
-                        width: 2.5,
-                        strokeAlign: BorderSide.strokeAlignInside,
-                      ),
-                    ),
-                    child: Center(
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(
-                            Icons.cloud_upload_outlined,
-                            size: 64,
-                            color: AppColors.primaryGreen.withValues(alpha: 0.8),
-                          ),
-                          const SizedBox(height: 12),
-                          Text(
-                            'Drop files to upload',
-                            style: TextStyle(
-                              fontSize: 20,
-                              fontWeight: FontWeight.bold,
-                              color:
-                                  AppColors.primaryGreen.withValues(alpha: 0.9),
-                            ),
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            'PDF, JPG, PNG supported',
-                            style: TextStyle(
-                              fontSize: 13,
-                              color:
-                                  AppColors.primaryGreen.withValues(alpha: 0.6),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-          ],
-        ),
     );
   }
 
