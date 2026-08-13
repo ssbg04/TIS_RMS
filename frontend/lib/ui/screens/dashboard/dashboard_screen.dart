@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'dart:ui';
 import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -39,6 +40,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
   bool _setupBannerMinimized = false;
   final TextEditingController _searchController = TextEditingController();
   final FocusNode _searchFocusNode = FocusNode();
+  final FocusNode _shortcutFocusNode = FocusNode();
   ProviderSubscription<String>? _tabListener;
   Timer? _pollingTimer;
 
@@ -48,6 +50,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     _tabListener?.close();
     _searchController.dispose();
     _searchFocusNode.dispose();
+    _shortcutFocusNode.dispose();
     super.dispose();
   }
 
@@ -67,6 +70,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
 
       if (ref.read(activeTabProvider) == 'Dashboard') {
         _startPolling();
+        _shortcutFocusNode.requestFocus();
       }
 
       // Listen to tab changes outside of build() so it is properly cleaned up.
@@ -82,6 +86,11 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
           });
           if (_searchFocusNode.hasFocus) _searchFocusNode.unfocus();
           _searchController.clear();
+          Future.delayed(const Duration(milliseconds: 120), () {
+            if (mounted) {
+              _shortcutFocusNode.requestFocus();
+            }
+          });
 
           _handleRefresh();
           ref.read(authProvider.notifier).refreshUser();
@@ -288,9 +297,18 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     // Clean up if not used
-    return Scaffold(
-      backgroundColor: Colors.transparent,
-      body: SafeArea(
+    return CallbackShortcuts(
+      bindings: <ShortcutActivator, VoidCallback>{
+        const SingleActivator(LogicalKeyboardKey.keyF, control: true): () {
+          _showSearchDialog(context);
+        },
+      },
+      child: Focus(
+        focusNode: _shortcutFocusNode,
+        autofocus: true,
+        child: Scaffold(
+          backgroundColor: Colors.transparent,
+          body: SafeArea(
         child: dashboardAsync.when(
           skipLoadingOnReload: true,
           loading: () => const Center(child: CircularProgressIndicator()),
@@ -407,6 +425,8 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
           ),
         ),
       ),
+    ),
+    ),
     );
   }
 
@@ -777,10 +797,20 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                 const Spacer(),
                 Row(
                   children: [
-                    IconButton(
-                      icon: const Icon(Icons.search, size: 32),
-                      tooltip: 'Search Students',
-                      onPressed: () => _showSearchDialog(context),
+                    Tooltip(
+                      richMessage: const TextSpan(
+                        text: 'Search Students ',
+                        children: [
+                          TextSpan(
+                            text: '(Ctrl+F)',
+                            style: TextStyle(fontStyle: FontStyle.italic),
+                          ),
+                        ],
+                      ),
+                      child: IconButton(
+                        icon: const Icon(Icons.search, size: 32),
+                        onPressed: () => _showSearchDialog(context),
+                      ),
                     ),
                     const SizedBox(width: 8),
                     Builder(

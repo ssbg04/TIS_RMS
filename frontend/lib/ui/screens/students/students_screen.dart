@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:desktop_drop/desktop_drop.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_sizes.dart';
@@ -36,6 +37,7 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
   final TextEditingController _searchController = TextEditingController();
   final ScrollController _horizontalScrollController = ScrollController();
   final FocusNode _searchFocusNode = FocusNode();
+  final FocusNode _shortcutFocusNode = FocusNode();
   Timer? _debounce;
 
   final List<int> _selectedStudentIds = [];
@@ -86,6 +88,9 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
     _searchFocusNode.addListener(_onSearchFocusChanged);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
+      if (ref.read(activeTabProvider) == 'Students') {
+        _shortcutFocusNode.requestFocus();
+      }
       _tabListener = ref.listenManual<String>(activeTabProvider, (
         previous,
         next,
@@ -101,6 +106,11 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
             });
           }
         } else {
+          Future.delayed(const Duration(milliseconds: 120), () {
+            if (mounted) {
+              _shortcutFocusNode.requestFocus();
+            }
+          });
           // Sync search text if returning to Students tab with a pre-filled query
           final currentQuery = ref.read(studentQueryProvider).search;
           if (_searchController.text != currentQuery) {
@@ -121,6 +131,7 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
     _searchFocusNode.removeListener(_onSearchFocusChanged);
     _searchController.dispose();
     _searchFocusNode.dispose();
+    _shortcutFocusNode.dispose();
     _horizontalScrollController.dispose();
     ref.read(studentQueryProvider.notifier).reset();
     super.dispose();
@@ -796,7 +807,16 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
       query.limit != 20,
     ].where((v) => v).length;
 
-    return PopScope(
+    return CallbackShortcuts(
+      bindings: <ShortcutActivator, VoidCallback>{
+        const SingleActivator(LogicalKeyboardKey.keyF, control: true): () {
+          _showSearchDialog(context);
+        },
+      },
+      child: Focus(
+        focusNode: _shortcutFocusNode,
+        autofocus: true,
+        child: PopScope(
       canPop: false,
       onPopInvokedWithResult: (didPop, result) {
         if (didPop) return;
@@ -925,12 +945,21 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
           ),
         ],
       ),
-      ),),
+    ),
+    ),
+    ),
+    ),
     );
   }
 
-  void _showSearchDialog(BuildContext context) {
-    showDialog(
+  Future<void> _showSearchDialog(BuildContext context) async {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        _searchFocusNode.requestFocus();
+      }
+    });
+
+    await showDialog(
       context: context,
       barrierColor: Colors.black54,
       builder: (context) {
@@ -959,12 +988,10 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
         );
       },
     );
-    
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted) {
-        _searchFocusNode.requestFocus();
-      }
-    });
+
+    if (mounted) {
+      _shortcutFocusNode.requestFocus();
+    }
   }
 
   // ================================================================
@@ -996,21 +1023,33 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
                 overflow: TextOverflow.ellipsis,
               ),
             ),
-            IconButton(
-              icon: Icon(
-                query.search.isNotEmpty ? Icons.close : Icons.search,
-                size: 28,
-                color: isDark ? AppColors.darkTextPrimary : Colors.black87,
+            Tooltip(
+              richMessage: query.search.isNotEmpty
+                  ? const TextSpan(text: 'Clear Search')
+                  : const TextSpan(
+                      text: 'Search Students ',
+                      children: [
+                        TextSpan(
+                          text: '(Ctrl+F)',
+                          style: TextStyle(fontStyle: FontStyle.italic),
+                        ),
+                      ],
+                    ),
+              child: IconButton(
+                icon: Icon(
+                  query.search.isNotEmpty ? Icons.close : Icons.search,
+                  size: 28,
+                  color: isDark ? AppColors.darkTextPrimary : Colors.black87,
+                ),
+                onPressed: () {
+                  if (query.search.isNotEmpty) {
+                    _searchController.clear();
+                    ref.read(studentQueryProvider.notifier).setSearch('');
+                  } else {
+                    _showSearchDialog(context);
+                  }
+                },
               ),
-              tooltip: query.search.isNotEmpty ? 'Clear Search' : 'Search Students',
-              onPressed: () {
-                if (query.search.isNotEmpty) {
-                  _searchController.clear();
-                  ref.read(studentQueryProvider.notifier).setSearch('');
-                } else {
-                  _showSearchDialog(context);
-                }
-              },
             ),
             ...[
               if (widget.userRole != 'teacher' &&
@@ -2216,17 +2255,7 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
         // Wait for the provider to rebuild
         await ref.read(studentPageProvider.future);
       },
-      child: ShaderMask(
-        shaderCallback: (Rect bounds) {
-          return const LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [Colors.transparent, Colors.black, Colors.black, Colors.transparent],
-            stops: [0.0, 0.02, 0.98, 1.0],
-          ).createShader(bounds);
-        },
-        blendMode: BlendMode.dstIn,
-        child: ListView.separated(
+      child: ListView.separated(
           physics: const AlwaysScrollableScrollPhysics(),
           itemCount: students.length,
           separatorBuilder: (ctx, index) => const SizedBox(height: AppSizes.p12),
@@ -2402,7 +2431,6 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
           ),
         );
       },
-      ),
       ),
     );
   }

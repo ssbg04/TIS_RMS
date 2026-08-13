@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:flutter/foundation.dart'
     show defaultTargetPlatform, TargetPlatform;
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../domain/entities/folder_model.dart';
@@ -49,6 +50,7 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
     with SingleTickerProviderStateMixin {
   final TextEditingController _searchController = TextEditingController();
   final FocusNode _searchFocusNode = FocusNode();
+  final FocusNode _shortcutFocusNode = FocusNode();
   final GlobalKey _searchBarKey = GlobalKey();
   Timer? _debounce;
   bool _isGridView = false;
@@ -153,6 +155,9 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
+      if (ref.read(activeTabProvider) == 'Documents') {
+        _shortcutFocusNode.requestFocus();
+      }
       ref.read(documentQueryProvider.notifier).setPage(1);
 
       _tabListener = ref.listenManual<String>(activeTabProvider, (
@@ -173,6 +178,12 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
           if (mounted && _tabController.index != 0) {
             _tabController.index = 0;
           }
+        } else {
+          Future.delayed(const Duration(milliseconds: 120), () {
+            if (mounted) {
+              _shortcutFocusNode.requestFocus();
+            }
+          });
         }
       });
 
@@ -207,6 +218,7 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
     _searchController.dispose();
     _searchFocusNode.removeListener(_onSearchFocusChanged);
     _searchFocusNode.dispose();
+    _shortcutFocusNode.dispose();
     _debounce?.cancel();
     super.dispose();
   }
@@ -597,7 +609,16 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
     final isStudentFiltered = query.studentId != null;
     final isFolderOpened = _openedFolderStudentId != null;
 
-    return PopScope(
+    return CallbackShortcuts(
+      bindings: <ShortcutActivator, VoidCallback>{
+        const SingleActivator(LogicalKeyboardKey.keyF, control: true): () {
+          _showSearchDialog(context);
+        },
+      },
+      child: Focus(
+        focusNode: _shortcutFocusNode,
+        autofocus: true,
+        child: PopScope(
       canPop: false,
       onPopInvokedWithResult: (didPop, result) {
         if (didPop) return;
@@ -820,13 +841,21 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
           ),
         ),
       ),
-    ),
+      ),
+      ),
+      ),
     );
   }
 
-  void _showSearchDialog(BuildContext context) {
+  Future<void> _showSearchDialog(BuildContext context) async {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    showDialog(
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        _searchFocusNode.requestFocus();
+      }
+    });
+
+    await showDialog(
       context: context,
       barrierColor: Colors.black54,
       builder: (context) {
@@ -857,11 +886,9 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
       },
     );
 
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted) {
-        _searchFocusNode.requestFocus();
-      }
-    });
+    if (mounted) {
+      _shortcutFocusNode.requestFocus();
+    }
   }
 
   // ══════════════════════════════════════════════════════════════
@@ -1001,31 +1028,40 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
           ],
 
           if (!isFolderOpened) ...[
-            IconButton(
-              icon: Icon(
-                (_searchController.text.isNotEmpty || query.search.isNotEmpty)
-                    ? Icons.close
-                    : Icons.search,
-                size: 28,
-                color: isDark ? AppColors.darkTextPrimary : Colors.black87,
-              ),
-              tooltip:
+            Tooltip(
+              richMessage: (_searchController.text.isNotEmpty || query.search.isNotEmpty)
+                  ? const TextSpan(text: 'Clear Search')
+                  : const TextSpan(
+                      text: 'Search Documents ',
+                      children: [
+                        TextSpan(
+                          text: '(Ctrl+F)',
+                          style: TextStyle(fontStyle: FontStyle.italic),
+                        ),
+                      ],
+                    ),
+              child: IconButton(
+                icon: Icon(
                   (_searchController.text.isNotEmpty || query.search.isNotEmpty)
-                      ? 'Clear Search'
-                      : 'Search Documents',
-              onPressed: () {
-                if (_searchController.text.isNotEmpty ||
-                    query.search.isNotEmpty) {
-                  _searchController.clear();
-                  ref.read(documentQueryProvider.notifier).setSearch('');
-                  setState(() => _foldersPage = 1);
-                  ref.invalidate(foldersProvider);
-                  ref.invalidate(studentFoldersProvider);
-                  ref.invalidate(documentPageProvider);
-                } else {
-                  _showSearchDialog(context);
-                }
-              },
+                      ? Icons.close
+                      : Icons.search,
+                  size: 28,
+                  color: isDark ? AppColors.darkTextPrimary : Colors.black87,
+                ),
+                onPressed: () {
+                  if (_searchController.text.isNotEmpty ||
+                      query.search.isNotEmpty) {
+                    _searchController.clear();
+                    ref.read(documentQueryProvider.notifier).setSearch('');
+                    setState(() => _foldersPage = 1);
+                    ref.invalidate(foldersProvider);
+                    ref.invalidate(studentFoldersProvider);
+                    ref.invalidate(documentPageProvider);
+                  } else {
+                    _showSearchDialog(context);
+                  }
+                },
+              ),
             ),
           ],
 

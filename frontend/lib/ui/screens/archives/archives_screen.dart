@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../domain/entities/document_model.dart';
@@ -35,6 +36,7 @@ class _ArchivesScreenState extends ConsumerState<ArchivesScreen>
     with SingleTickerProviderStateMixin {
   final TextEditingController _searchController = TextEditingController();
   final FocusNode _searchFocusNode = FocusNode();
+  final FocusNode _shortcutFocusNode = FocusNode();
   Timer? _debounce;
   Timer? _pollingTimer;
   late final TabController _tabController;
@@ -156,6 +158,10 @@ class _ArchivesScreenState extends ConsumerState<ArchivesScreen>
         },
       );
 
+      if (ref.read(activeTabProvider) == 'Archives') {
+        _shortcutFocusNode.requestFocus();
+      }
+
       _tabListener = ref.listenManual<String>(activeTabProvider, (
         previous,
         next,
@@ -174,6 +180,12 @@ class _ArchivesScreenState extends ConsumerState<ArchivesScreen>
           if (mounted && _tabController.index != 0) {
             _tabController.index = 0;
           }
+        } else {
+          Future.delayed(const Duration(milliseconds: 120), () {
+            if (mounted) {
+              _shortcutFocusNode.requestFocus();
+            }
+          });
         }
       });
     });
@@ -187,6 +199,7 @@ class _ArchivesScreenState extends ConsumerState<ArchivesScreen>
     _tabController.dispose();
     _searchController.dispose();
     _searchFocusNode.dispose();
+    _shortcutFocusNode.dispose();
     _debounce?.cancel();
     super.dispose();
   }
@@ -541,7 +554,16 @@ class _ArchivesScreenState extends ConsumerState<ArchivesScreen>
     final isMobile = screenW < 700;
     final isFolderOpened = _openedFolderStudentId != null;
 
-    return PopScope(
+    return CallbackShortcuts(
+      bindings: <ShortcutActivator, VoidCallback>{
+        const SingleActivator(LogicalKeyboardKey.keyF, control: true): () {
+          _showSearchDialog(context);
+        },
+      },
+      child: Focus(
+        focusNode: _shortcutFocusNode,
+        autofocus: true,
+        child: PopScope(
       canPop: false,
       onPopInvokedWithResult: (didPop, result) {
         if (didPop) return;
@@ -650,12 +672,20 @@ class _ArchivesScreenState extends ConsumerState<ArchivesScreen>
           ),
         ),
       ),
-      ),
+    ),
+    ),
+    ),
     );
   }
 
-  void _showSearchDialog(BuildContext context) {
-    showDialog(
+  Future<void> _showSearchDialog(BuildContext context) async {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        _searchFocusNode.requestFocus();
+      }
+    });
+
+    await showDialog(
       context: context,
       barrierColor: Colors.black54,
       builder: (context) {
@@ -686,11 +716,9 @@ class _ArchivesScreenState extends ConsumerState<ArchivesScreen>
       },
     );
 
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted) {
-        _searchFocusNode.requestFocus();
-      }
-    });
+    if (mounted) {
+      _shortcutFocusNode.requestFocus();
+    }
   }
 
   // ════════════════════════════════════════════════════════════════
@@ -761,14 +789,24 @@ class _ArchivesScreenState extends ConsumerState<ArchivesScreen>
           ),
           
           if (!isFolderOpened) ...[
-            IconButton(
-              icon: Icon(
-                Icons.search, 
-                size: 28, 
-                color: isDark ? AppColors.darkTextPrimary : Colors.black87,
+            Tooltip(
+              richMessage: const TextSpan(
+                text: 'Search Archives ',
+                children: [
+                  TextSpan(
+                    text: '(Ctrl+F)',
+                    style: TextStyle(fontStyle: FontStyle.italic),
+                  ),
+                ],
               ),
-              tooltip: 'Search Archives',
-              onPressed: () => _showSearchDialog(context),
+              child: IconButton(
+                icon: Icon(
+                  Icons.search, 
+                  size: 28, 
+                  color: isDark ? AppColors.darkTextPrimary : Colors.black87,
+                ),
+                onPressed: () => _showSearchDialog(context),
+              ),
             ),
             const SizedBox(width: 8),
           ],

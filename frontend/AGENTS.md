@@ -148,8 +148,15 @@ Files backup/restore - mirror mode or zip -->
 - SF10 is equal to School Form 10, Form 137, Form 137-A, Student Permanent Record -->
 
 # USERS SCREEN
-- remove background color for user mangement filter and search bar, inshort the top section
-- copy the edge to edge fade from dashboard screen to users screen
+- remove the edge to edge fade
+
+# STUDENTS SCREEN
+- remove the edge to edge fade
+
+# DASHBOARD, STUDENTS, DOCUMENTS, ARCHIVES, USER MANAGEMENT SCREENS IN WINDOWS APP
+- add shortcut key "ctrl+f" for activate search in each screen
+- fix that i can only search once after i change the tab screen
+
 
 ---
 

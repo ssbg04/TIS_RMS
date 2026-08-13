@@ -31,6 +31,8 @@ class UsersScreen extends ConsumerStatefulWidget {
 class _UsersScreenState extends ConsumerState<UsersScreen> {
   final TextEditingController _searchController = TextEditingController();
   final FocusNode _searchFocusNode = FocusNode();
+  final FocusNode _shortcutFocusNode = FocusNode();
+  ProviderSubscription<String>? _tabListener;
   String _searchQuery = '';
   String _roleFilter = 'all'; // 'all', 'admin', 'teacher'
   int _currentPage = 1;
@@ -39,6 +41,7 @@ class _UsersScreenState extends ConsumerState<UsersScreen> {
   @override
   void initState() {
     super.initState();
+    _searchFocusNode.addListener(_onSearchFocusChanged);
     _searchController.addListener(() {
       setState(() {
         _searchQuery = _searchController.text.toLowerCase();
@@ -46,15 +49,48 @@ class _UsersScreenState extends ConsumerState<UsersScreen> {
       });
     });
     WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
       ref.invalidate(resetRequestsProvider);
+
+      if (ref.read(activeTabProvider) == 'Users') {
+        _shortcutFocusNode.requestFocus();
+      }
+
+      _tabListener = ref.listenManual<String>(activeTabProvider, (
+        previous,
+        next,
+      ) {
+        if (!mounted) return;
+        if (next == 'Users') {
+          Future.delayed(const Duration(milliseconds: 120), () {
+            if (mounted) {
+              _shortcutFocusNode.requestFocus();
+            }
+          });
+          if (previous != 'Users') {
+            _searchController.clear();
+            setState(() {
+              _roleFilter = 'all';
+              _searchQuery = '';
+            });
+          }
+        }
+      });
     });
   }
 
   @override
   void dispose() {
+    _tabListener?.close();
+    _searchFocusNode.removeListener(_onSearchFocusChanged);
     _searchController.dispose();
     _searchFocusNode.dispose();
+    _shortcutFocusNode.dispose();
     super.dispose();
+  }
+
+  void _onSearchFocusChanged() {
+    if (mounted) setState(() {});
   }
 
   List<SystemUser> _filter(List<SystemUser> users) {
@@ -428,24 +464,25 @@ class _UsersScreenState extends ConsumerState<UsersScreen> {
 
   @override
   Widget build(BuildContext context) {
-    ref.listen<String>(activeTabProvider, (previous, next) {
-      if (next == 'Users' && previous != 'Users') {
-        _searchController.clear();
-        setState(() {
-          _roleFilter = 'all';
-          _searchQuery = '';
-        });
-      }
-    });
-
     final usersAsync = ref.watch(usersProvider);
     final resetRequestsAsync = ref.watch(resetRequestsProvider);
     final resetCount = resetRequestsAsync.value?.length ?? 0;
 
-    return Scaffold(
+    return CallbackShortcuts(
+      bindings: <ShortcutActivator, VoidCallback>{
+        const SingleActivator(LogicalKeyboardKey.keyF, control: true): () {
+          _showSearchDialog(context);
+        },
+      },
+      child: Focus(
+        focusNode: _shortcutFocusNode,
+        autofocus: true,
+        child: Scaffold(
       backgroundColor: Colors.transparent,
       floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
-      floatingActionButton: MediaQuery.of(context).size.width > 800 || _searchFocusNode.hasFocus
+      floatingActionButton: (MediaQuery.of(context).size.width > 800 ||
+              _searchFocusNode.hasFocus ||
+              _searchQuery.isNotEmpty)
           ? null
           : Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16.0),
@@ -540,131 +577,53 @@ class _UsersScreenState extends ConsumerState<UsersScreen> {
                               ),
                             ),
                             if (!_searchFocusNode.hasFocus)
-                              IconButton(
-                                icon: Icon(
-                                  _searchQuery.isNotEmpty ? Icons.close : Icons.search,
-                                  size: 28,
-                                  color: Theme.of(context).brightness == Brightness.dark
-                                      ? AppColors.darkTextPrimary
-                                      : Colors.black87,
+                              Tooltip(
+                                richMessage: _searchQuery.isNotEmpty
+                                    ? const TextSpan(text: 'Clear Search')
+                                    : const TextSpan(
+                                        text: 'Search Users ',
+                                        children: [
+                                          TextSpan(
+                                            text: '(Ctrl+F)',
+                                            style: TextStyle(fontStyle: FontStyle.italic),
+                                          ),
+                                        ],
+                                      ),
+                                child: IconButton(
+                                  icon: Icon(
+                                    _searchQuery.isNotEmpty ? Icons.close : Icons.search,
+                                    size: 28,
+                                    color: Theme.of(context).brightness == Brightness.dark
+                                        ? AppColors.darkTextPrimary
+                                        : Colors.black87,
+                                  ),
+                                  onPressed: () {
+                                    if (_searchQuery.isNotEmpty) {
+                                      _searchController.clear();
+                                    } else {
+                                      _showSearchDialog(context);
+                                    }
+                                  },
                                 ),
-                                tooltip: _searchQuery.isNotEmpty ? 'Clear Search' : 'Search Users',
-                                onPressed: () {
-                                  if (_searchQuery.isNotEmpty) {
-                                    _searchController.clear();
-                                  } else {
-                                    _showSearchDialog(context);
-                                  }
-                                },
                               ),
                           ],
                         ),
                         const SizedBox(height: AppSizes.p16),
                          Expanded(
-                           child: Stack(
-                             children: [
-                               Positioned.fill(
-                                 child: Padding(
-                                   padding: const EdgeInsets.symmetric(vertical: 4.0),
-                                   child: RefreshIndicator(
-                                     onRefresh: _handleRefresh,
-                                     child: LayoutBuilder(
-                                       builder: (context, constraints) {
-                                         if (constraints.maxWidth > 800) {
-                                           return _buildDesktopTable(paginated);
-                                         } else {
-                                           return _buildMobileList(paginated);
-                                         }
-                                       },
-                                     ),
-                                   ),
-                                 ),
+                           child: Padding(
+                             padding: const EdgeInsets.symmetric(vertical: 4.0),
+                             child: RefreshIndicator(
+                               onRefresh: _handleRefresh,
+                               child: LayoutBuilder(
+                                 builder: (context, constraints) {
+                                   if (constraints.maxWidth > 800) {
+                                     return _buildDesktopTable(paginated);
+                                   } else {
+                                     return _buildMobileList(paginated);
+                                   }
+                                 },
                                ),
-                               // Top Blur Overlay
-                               Positioned(
-                                 top: 0,
-                                 left: 0,
-                                 right: 0,
-                                 height: 60,
-                                 child: IgnorePointer(
-                                   child: ShaderMask(
-                                     shaderCallback: (rect) {
-                                       return const LinearGradient(
-                                         begin: Alignment.topCenter,
-                                         end: Alignment.bottomCenter,
-                                         colors: [Colors.black, Colors.transparent],
-                                         stops: [0.6, 1.0],
-                                       ).createShader(rect);
-                                     },
-                                     blendMode: BlendMode.dstIn,
-                                     child: ClipRect(
-                                       child: BackdropFilter(
-                                         filter: ImageFilter.blur(sigmaX: 5.0, sigmaY: 5.0),
-                                         child: Container(
-                                           decoration: BoxDecoration(
-                                             gradient: LinearGradient(
-                                               begin: Alignment.topCenter,
-                                               end: Alignment.bottomCenter,
-                                               colors: Theme.of(context).brightness == Brightness.dark
-                                                   ? [
-                                                       AppColors.darkPageBackground.withValues(alpha: 0.85),
-                                                       AppColors.darkPageBackground.withValues(alpha: 0.15),
-                                                     ]
-                                                   : [
-                                                       Colors.white.withValues(alpha: 0.85),
-                                                       Colors.white.withValues(alpha: 0.15),
-                                                     ],
-                                             ),
-                                           ),
-                                         ),
-                                       ),
-                                     ),
-                                   ),
-                                 ),
-                               ),
-                               // Bottom Blur Overlay
-                               Positioned(
-                                 bottom: 0,
-                                 left: 0,
-                                 right: 0,
-                                 height: 60,
-                                 child: IgnorePointer(
-                                   child: ShaderMask(
-                                     shaderCallback: (rect) {
-                                       return const LinearGradient(
-                                         begin: Alignment.topCenter,
-                                         end: Alignment.bottomCenter,
-                                         colors: [Colors.transparent, Colors.black],
-                                         stops: [0.0, 0.4],
-                                       ).createShader(rect);
-                                     },
-                                     blendMode: BlendMode.dstIn,
-                                     child: ClipRect(
-                                       child: BackdropFilter(
-                                         filter: ImageFilter.blur(sigmaX: 5.0, sigmaY: 5.0),
-                                         child: Container(
-                                           decoration: BoxDecoration(
-                                             gradient: LinearGradient(
-                                               begin: Alignment.topCenter,
-                                               end: Alignment.bottomCenter,
-                                               colors: Theme.of(context).brightness == Brightness.dark
-                                                   ? [
-                                                       AppColors.darkPageBackground.withValues(alpha: 0.0),
-                                                       AppColors.darkPageBackground.withValues(alpha: 0.85),
-                                                     ]
-                                                   : [
-                                                       Colors.white.withValues(alpha: 0.0),
-                                                       Colors.white.withValues(alpha: 0.85),
-                                                     ],
-                                             ),
-                                           ),
-                                         ),
-                                       ),
-                                     ),
-                                   ),
-                                 ),
-                               ),
-                             ],
+                             ),
                            ),
                          ),
                         if (!_searchFocusNode.hasFocus && totalPages > 1)
@@ -684,6 +643,8 @@ class _UsersScreenState extends ConsumerState<UsersScreen> {
             ],
           ),
         ),
+      ),
+      ),
       ),
     );
   }
@@ -776,9 +737,15 @@ class _UsersScreenState extends ConsumerState<UsersScreen> {
     );
   }
 
-  void _showSearchDialog(BuildContext context) {
+  Future<void> _showSearchDialog(BuildContext context) async {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    showDialog(
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        _searchFocusNode.requestFocus();
+      }
+    });
+
+    await showDialog(
       context: context,
       barrierColor: Colors.black54,
       builder: (context) {
@@ -806,11 +773,11 @@ class _UsersScreenState extends ConsumerState<UsersScreen> {
       },
     );
 
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted) {
-        _searchFocusNode.requestFocus();
-      }
-    });
+    if (mounted) {
+      _searchFocusNode.unfocus();
+      _shortcutFocusNode.requestFocus();
+      setState(() {});
+    }
   }
 
   Widget _buildDesktopTable(List<SystemUser> users) {
