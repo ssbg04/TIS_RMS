@@ -17,121 +17,23 @@ exports.extractOcrData = async (req, res) => {
         console.log(`[OCR] Received file: ${req.file.originalname} (Type: ${req.file.mimetype})`);
         
         let text = '';
-        const isExcel = /\.(xlsx|xls|csv)$/i.test(req.file.originalname) ||
-                        req.file.mimetype.includes('spreadsheet') ||
-                        req.file.mimetype.includes('excel') ||
-                        req.file.mimetype.includes('csv');
-        const isPdf = req.file.mimetype === 'application/pdf' || /\.(pdf)$/i.test(req.file.originalname);
-
-        if (isExcel) {
-            console.log('[OCR] Excel/Spreadsheet file detected. Reading tabs directly via exceljs...');
+        try {
             text = await ocrParser.extractTextFromFile(req.file.path, req.file.originalname, req.file.mimetype);
-            console.log(`[OCR] Excel parsed successfully. Extracted text length: ${text.length}`);
-            if (fs.existsSync(req.file.path)) fs.unlinkSync(req.file.path);
-        } else {
-            let imagePathToScan = req.file.path;
-
-            // ==========================================
-            // 1. PDF TO IMAGE CONVERSION (Native Ghostscript)
-            // ==========================================
-            if (isPdf) {
-                console.log('[OCR] PDF detected. Spawning Ghostscript natively to convert to PNG...');
-                
-                const saveDirectory = path.resolve('./uploads/temp_ocr/');
-                if (!fs.existsSync(saveDirectory)) {
-                    fs.mkdirSync(saveDirectory, { recursive: true });
-                }
-
-                const outputPngPath = path.join(saveDirectory, `temp_ocr_${Date.now()}.png`);
-
-                // Execute Ghostscript directly to avoid GraphicsMagick registry issues on Windows
-                const gsArgs = [
-                    '-dQUIET', '-dPARANOIDSAFER', '-dBATCH', '-dNOPAUSE', '-dNOPROMPT',
-                    '-sDEVICE=png16m', // Output format
-                    '-dTextAlphaBits=4', '-dGraphicsAlphaBits=4', // Anti-aliasing
-                    '-r300', // 300 DPI resolution
-                    '-dFirstPage=1', '-dLastPage=1', // Only convert the first page
-                    `-sOutputFile=${outputPngPath}`,
-                    req.file.path // Input PDF file
-                ];
-
-                const isWindows = process.platform === 'win32';
-
-                try {
-                    if (isWindows) {
-                        try {
-                            await execFileAsync('gswin64c', gsArgs);
-                        } catch (err) {
-                            if (err.code === 'ENOENT') {
-                                try {
-                                    await execFileAsync('gs', gsArgs);
-                                } catch (fallbackErr) {
-                                    await execFileAsync('gswin32c', gsArgs);
-                                }
-                            } else throw err;
-                        }
-                    } else {
-                        // Linux / Ubuntu: Run 'gs' executable directly from system PATH
-                        await execFileAsync('gs', gsArgs);
-                    }
-                } catch (finalErr) {
-                    if (finalErr.code === 'ENOENT') {
-                        const missingErr = isWindows
-                            ? 'Ghostscript is not installed or missing from backend/ghostscript folder.'
-                            : 'Ghostscript (gs) is missing on Linux. Install via: sudo apt-get install -y ghostscript';
-                        return res.status(500).json({ 
-                            message: 'Missing OCR Program', 
-                            error: missingErr 
-                        });
-                    }
-                    throw finalErr;
-                }
-                
-                console.log('[OCR] Ghostscript successfully generated PNG:', outputPngPath);
-                imagePathToScan = outputPngPath;
-                generatedImagePath = outputPngPath;
+        } catch (extractErr) {
+            if (extractErr.message && extractErr.message.includes('ENOENT')) {
+                const missingErr = process.platform === 'win32'
+                    ? 'Tesseract/Ghostscript OCR is not installed or missing from backend folders.'
+                    : 'Tesseract/Ghostscript OCR is missing on Linux. Install via: sudo apt-get install -y tesseract-ocr tesseract-ocr-eng ghostscript';
+                return res.status(500).json({ 
+                    message: 'Missing OCR Program', 
+                    error: missingErr 
+                });
             }
-
-            // ==========================================
-            // 2. RUN NATIVE TESSERACT EXECUTABLE
-            // ==========================================
-            console.log('[OCR] Starting Native Tesseract Engine...');
-            
-            // Ensure TESSDATA_PREFIX fallback for both Windows and Linux
-            const defaultTessData = path.join(__dirname, '..', '..', 'tesseract', 'tessdata');
-            const tessEnv = { 
-                ...process.env, 
-                TESSDATA_PREFIX: process.env.TESSDATA_PREFIX || defaultTessData 
-            };
-            
-            let stdout;
-            try {
-                const result = await execFileAsync('tesseract', [
-                    imagePathToScan,
-                    'stdout', // Output to standard output instead of a file
-                    '-l', 'eng'
-                ], { env: tessEnv, maxBuffer: 1024 * 1024 * 10 }); // 10MB buffer just in case
-                stdout = result.stdout;
-            } catch (tessErr) {
-                if (tessErr.code === 'ENOENT') {
-                    const missingErr = process.platform === 'win32'
-                        ? 'Tesseract OCR is not installed or missing from backend/tesseract folder.'
-                        : 'Tesseract OCR is missing on Linux. Install via: sudo apt-get install -y tesseract-ocr tesseract-ocr-eng';
-                    return res.status(500).json({ 
-                        message: 'Missing OCR Program', 
-                        error: missingErr 
-                    });
-                }
-                throw tessErr;
+            throw extractErr;
+        } finally {
+            if (fs.existsSync(req.file.path)) {
+                try { fs.unlinkSync(req.file.path); } catch (_) {}
             }
-            
-            text = stdout;
-
-            console.log('[OCR] Tesseract scan complete. Processing regex...');
-
-            // Clean up immediately after reading
-            if (fs.existsSync(req.file.path)) fs.unlinkSync(req.file.path);
-            if (generatedImagePath && fs.existsSync(generatedImagePath)) fs.unlinkSync(generatedImagePath);
         }
 
         // ==========================================

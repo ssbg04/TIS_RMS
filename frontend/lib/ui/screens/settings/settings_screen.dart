@@ -1516,7 +1516,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                   top: 0,
                   left: 0,
                   right: 0,
-                  height: 24,
+                  height: 60,
                   child: IgnorePointer(
                     child: ShaderMask(
                       shaderCallback: (rect) {
@@ -1524,7 +1524,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                           begin: Alignment.topCenter,
                           end: Alignment.bottomCenter,
                           colors: [Colors.black, Colors.transparent],
-                          stops: [0.3, 1.0],
+                          stops: [0.6, 1.0],
                         ).createShader(rect);
                       },
                       blendMode: BlendMode.dstIn,
@@ -1538,12 +1538,12 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                                 end: Alignment.bottomCenter,
                                 colors: isDark
                                     ? [
-                                        AppColors.darkPageBackground.withValues(alpha: 0.95),
-                                        AppColors.darkPageBackground.withValues(alpha: 0.0),
+                                        AppColors.darkPageBackground.withValues(alpha: 0.85),
+                                        AppColors.darkPageBackground.withValues(alpha: 0.15),
                                       ]
                                     : [
-                                        Colors.white.withOpacity(0.95),
-                                        Colors.white.withOpacity(0.0),
+                                        Colors.white.withOpacity(0.85),
+                                        Colors.white.withOpacity(0.15),
                                       ],
                               ),
                             ),
@@ -1558,7 +1558,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                   bottom: 0,
                   left: 0,
                   right: 0,
-                  height: 24,
+                  height: 60,
                   child: IgnorePointer(
                     child: ShaderMask(
                       shaderCallback: (rect) {
@@ -1566,7 +1566,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                           begin: Alignment.topCenter,
                           end: Alignment.bottomCenter,
                           colors: [Colors.transparent, Colors.black],
-                          stops: [0.0, 0.7],
+                          stops: [0.0, 0.4],
                         ).createShader(rect);
                       },
                       blendMode: BlendMode.dstIn,
@@ -1581,11 +1581,11 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                                 colors: isDark
                                     ? [
                                         AppColors.darkPageBackground.withValues(alpha: 0.0),
-                                        AppColors.darkPageBackground.withValues(alpha: 0.95),
+                                        AppColors.darkPageBackground.withValues(alpha: 0.85),
                                       ]
                                     : [
                                         Colors.white.withOpacity(0.0),
-                                        Colors.white.withOpacity(0.95),
+                                        Colors.white.withOpacity(0.85),
                                       ],
                               ),
                             ),

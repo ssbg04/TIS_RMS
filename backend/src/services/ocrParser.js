@@ -38,6 +38,9 @@ exports.parseSF9 = (text) => {
 
     if (lrnMatch) {
         extracted.lrn = lrnMatch[1].replace(/[\s\-\.]/g, '');
+    } else {
+        const fallbackLrn = processedText.match(/\b\d{12}\b/);
+        if (fallbackLrn) extracted.lrn = fallbackLrn[0];
     }
 
     // 2. Extract Name fields
@@ -56,19 +59,33 @@ exports.parseSF9 = (text) => {
     const gradeMatch = text.match(/(?:Grade|Grade\s*Level)[:\s,]*(\d+)/i);
     if (gradeMatch) extracted.gradeLevel = gradeMatch[1];
 
-    const sectionMatch = text.match(/Section[:\s,]*([^\n,]+)/i);
-    if (sectionMatch) extracted.section = sectionMatch[1].trim();
+    const sectionMatch = text.match(/Section[:\s,]*([^\r\n,]+)/i);
+    if (sectionMatch) {
+        let sec = sectionMatch[1].trim();
+        sec = sec.replace(/^[^A-Za-z0-9]+/, '').trim();
+        extracted.section = sec;
+    }
 
     const syMatch = text.match(/(?:School\s*Year|S\.?Y\.?)[:\s,]*(\d{4}\s*-\s*\d{4})/i);
     if (syMatch) extracted.schoolYear = syMatch[1].replace(/\s/g, '');
 
+    const trackMatch = text.match(/(?:TRACK\s*\/?\s*STRAND|TRACK|STRAND)[:\s,]*([A-Za-z0-9\/\-\s]+?)(?=\s*(?:Admitted|Grade|Section|School\s*Year|S\.?Y\.?|LRN|SEX|DOB|DATE|\r|\n|$))/i);
+    if (trackMatch) extracted.trackStrand = trackMatch[1].trim();
+
+    const advMatch = text.match(/(?:Teacher|Adviser|Name\s*of\s*Adviser\/?Teacher)[:\s,]*([A-Za-z\s\-\.]+?)(?=\s*(?:Principal|Signature|Date|\r|\n|$))/i);
+    if (advMatch) {
+        let adv = advMatch[1].replace(/[,:]/g, '').trim();
+        adv = adv.replace(/\s*(?:Signature|Date).*$/i, '').trim();
+        extracted.adviserName = adv;
+    }
+
     extracted.scholasticRecords = exports.extractAllScholasticRecords(text);
     if (extracted.scholasticRecords.length > 0) {
         const latest = extracted.scholasticRecords[extracted.scholasticRecords.length - 1];
-        extracted.gradeLevel = latest.gradeLevel;
-        extracted.section = latest.section;
-        extracted.schoolYear = latest.schoolYear;
-        extracted.adviserName = latest.adviserName || '';
+        if (!extracted.gradeLevel) extracted.gradeLevel = latest.gradeLevel;
+        if (!extracted.section) extracted.section = latest.section;
+        if (!extracted.schoolYear) extracted.schoolYear = latest.schoolYear;
+        if (!extracted.adviserName) extracted.adviserName = latest.adviserName || '';
         extracted.semester = latest.semester || '';
     }
 
@@ -257,10 +274,10 @@ function extractStudentName(text) {
     let extension = '';
 
     // 1. Try explicit separate headers: LAST NAME, FIRST NAME, MIDDLE NAME, EXTENSION
-    const lastNameMatch = text.match(/(?:LAST\s*NAME|SURNAME|FAMILY\s*NAME)[:\s,]*([A-Za-z\-\s\.\']+?)(?=\s*(?:FIRST|GIVEN|MIDDLE|M\.?I\.?|EXT|SUFFIX|NAME|LRN|SEX|DOB|DATE|GRADE|SECTION|S\.?Y\.?|,|\n|$))/i);
-    const firstNameMatch = text.match(/(?:FIRST\s*NAME|GIVEN\s*NAME)[:\s,]*([A-Za-z\-\s\.\']+?)(?=\s*(?:LAST|SURNAME|MIDDLE|M\.?I\.?|EXT|SUFFIX|NAME|LRN|SEX|DOB|DATE|GRADE|SECTION|S\.?Y\.?|,|\n|$))/i);
-    const middleNameMatch = text.match(/(?:MIDDLE\s*NAME|MIDDLE\s*INITIAL|MIDDLE|M\.?I\.?)[:\s,]*([A-Za-z\-\s\.\']+?)(?=\s*(?:LAST|SURNAME|FIRST|GIVEN|EXT|SUFFIX|NAME|LRN|SEX|DOB|DATE|GRADE|SECTION|S\.?Y\.?|,|\n|$))/i);
-    const extensionMatch = text.match(/(?:EXTENSION\s*NAME|EXT\.?\s*NAME|NAME\s*EXT\.?|EXTENSION|SUFFIX|EXT)[:\s,]*([A-Za-z0-9\.\-]+?)(?=\s*(?:LAST|FIRST|MIDDLE|M\.?I\.?|NAME|LRN|SEX|DOB|DATE|GRADE|SECTION|S\.?Y\.?|,|\n|$))/i);
+    const lastNameMatch = text.match(/\b(?:LAST\s*NAME|SURNAME|FAMILY\s*NAME)[:\s,]*([A-Za-z\-\ \.\']+?)(?=\s*(?:FIRST|GIVEN|MIDDLE|\bM\.?I\.?\b|EXT|SUFFIX|NAME|LRN|SEX|DOB|DATE|GRADE|SECTION|S\.?Y\.?|,|\r|\n|$))/i);
+    const firstNameMatch = text.match(/\b(?:FIRST\s*NAME|GIVEN\s*NAME)[:\s,]*([A-Za-z\-\ \.\']+?)(?=\s*(?:LAST|SURNAME|MIDDLE|\bM\.?I\.?\b|EXT|SUFFIX|NAME|LRN|SEX|DOB|DATE|GRADE|SECTION|S\.?Y\.?|,|\r|\n|$))/i);
+    const middleNameMatch = text.match(/\b(?:MIDDLE\s*NAME|MIDDLE\s*INITIAL|MIDDLE|\bM\.?I\.?\b)[:\s,]*([A-Za-z\-\ \.\']+?)(?=\s*(?:LAST|SURNAME|FIRST|GIVEN|EXT|SUFFIX|NAME|LRN|SEX|DOB|DATE|GRADE|SECTION|S\.?Y\.?|,|\r|\n|$))/i);
+    const extensionMatch = text.match(/\b(?:EXTENSION\s*NAME|EXT\.?\s*NAME|NAME\s*EXT\.?|EXTENSION|SUFFIX|EXT)[:\s,]*([A-Za-z0-9\.\-]+?)(?=\s*(?:LAST|FIRST|MIDDLE|\bM\.?I\.?\b|NAME|LRN|SEX|DOB|DATE|GRADE|SECTION|S\.?Y\.?|,|\r|\n|$))/i);
 
     if (lastNameMatch) lastName = lastNameMatch[1].trim();
     if (firstNameMatch) firstName = firstNameMatch[1].trim();
@@ -269,7 +286,7 @@ function extractStudentName(text) {
 
     // 2. Try combined format if separate headers didn't yield both lastName and firstName
     if (!lastName || !firstName) {
-        const combinedMatch = text.match(/(?:Name|Learner'?s?\s*Name|Name\s*of\s*Learner|Name\s*of\s*Student)[:\s,]+([A-Za-z\-\s\.\']+?),\s*([A-Za-z\-\s\.\']+?)(?=\s*(?:LRN|SEX|GENDER|DOB|BIRTH|DATE|GRADE|SECTION|SCHOOL|S\.?Y\.?|TRACK|STRAND|\n|$))/i);
+        const combinedMatch = text.match(/(?:Name|Learner'?s?\s*Name|Name\s*of\s*Learner|Name\s*of\s*Student)[:\s,]+([A-Za-z\-\ \.\']+?),\s*([A-Za-z\-\ \.\']+?)(?=\s*(?:LRN|SEX|GENDER|DOB|BIRTH|DATE|GRADE|SECTION|SCHOOL|S\.?Y\.?|TRACK|STRAND|\r|\n|$))/i);
         if (combinedMatch) {
             const candLast = combinedMatch[1].trim();
             let candRest = combinedMatch[2].trim().split(/\s+/);
@@ -566,6 +583,48 @@ exports.extractTextFromFile = async (filePath, originalName = '', mimeType = '')
             '-l', 'eng'
         ], { env: tessEnv, maxBuffer: 1024 * 1024 * 10 });
         text = result.stdout || '';
+
+        // Auto-rotation fallback: check if initial text parsed key fields
+        let bestText = text;
+        let parsedSF9 = exports.parseSF9(bestText);
+        let parsedSF10 = exports.parseSF10(bestText);
+        let bestScore = Math.max(evalParseScore(parsedSF9), evalParseScore(parsedSF10));
+
+        if (bestScore < 3) {
+            console.log(`[ocrParser] Initial OCR score (${bestScore}) is low. Trying image rotations (90, 180, 270)...`);
+            const saveDirectory = path.resolve('./uploads/temp_ocr/');
+            if (!fs.existsSync(saveDirectory)) {
+                fs.mkdirSync(saveDirectory, { recursive: true });
+            }
+            for (const angle of [90, 180, 270]) {
+                const rotPath = path.join(saveDirectory, `rot_${angle}_${Date.now()}_${Math.floor(Math.random() * 1000)}.jpg`);
+                try {
+                    await rotateImage(imagePathToScan, angle, rotPath);
+                    const rotResult = await execFileAsync('tesseract', [
+                        rotPath,
+                        'stdout',
+                        '-l', 'eng'
+                    ], { env: tessEnv, maxBuffer: 1024 * 1024 * 10 });
+                    const rotText = rotResult.stdout || '';
+                    const rSF9 = exports.parseSF9(rotText);
+                    const rSF10 = exports.parseSF10(rotText);
+                    const rotScore = Math.max(evalParseScore(rSF9), evalParseScore(rSF10));
+                    if (rotScore > bestScore) {
+                        bestScore = rotScore;
+                        bestText = rotText;
+                        console.log(`[ocrParser] Found better orientation at ${angle} degrees (score ${rotScore}).`);
+                    }
+                    if (bestScore >= 4) break;
+                } catch (rotErr) {
+                    console.error(`[ocrParser] Rotation ${angle} failed:`, rotErr.message);
+                } finally {
+                    if (fs.existsSync(rotPath)) {
+                        try { fs.unlinkSync(rotPath); } catch (_) {}
+                    }
+                }
+            }
+        }
+        text = bestText;
     } catch (err) {
         console.error('[ocrParser] Tesseract execution failed:', err.message);
         throw new Error('Tesseract OCR execution failed: ' + err.message);
@@ -577,3 +636,46 @@ exports.extractTextFromFile = async (filePath, originalName = '', mimeType = '')
 
     return text;
 };
+
+function evalParseScore(parsed) {
+    if (!parsed) return 0;
+    let score = 0;
+    if (parsed.lrn && parsed.lrn.length === 12) score += 3;
+    if (parsed.lastName && parsed.firstName) score += 3;
+    if (parsed.gradeLevel) score += 1;
+    if (parsed.schoolYear) score += 1;
+    if (parsed.section) score += 1;
+    if (parsed.scholasticRecords && parsed.scholasticRecords.length > 0) score += 2;
+    return score;
+}
+
+async function rotateImage(srcPath, angle, dstPath) {
+    if (process.platform === 'win32') {
+        const s = '$';
+        const script = 'param([string]' + s + 'src, [int]' + s + 'angle, [string]' + s + 'dst)\n' +
+            'Add-Type -AssemblyName System.Drawing\n' +
+            s + 'img = [System.Drawing.Image]::FromFile(' + s + 'src)\n' +
+            s + 'bmp = New-Object System.Drawing.Bitmap(' + s + 'img)\n' +
+            s + 'img.Dispose()\n' +
+            'if (' + s + 'angle -eq 90) { ' + s + 'bmp.RotateFlip([System.Drawing.RotateFlipType]::Rotate90FlipNone) }\n' +
+            'elseif (' + s + 'angle -eq 180) { ' + s + 'bmp.RotateFlip([System.Drawing.RotateFlipType]::Rotate180FlipNone) }\n' +
+            'elseif (' + s + 'angle -eq 270) { ' + s + 'bmp.RotateFlip([System.Drawing.RotateFlipType]::Rotate270FlipNone) }\n' +
+            s + 'bmp.Save(' + s + 'dst, [System.Drawing.Imaging.ImageFormat]::Jpeg)\n' +
+            s + 'bmp.Dispose()\n';
+        const dir = path.dirname(dstPath);
+        if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+        const tempScript = path.join(dir, `rot_${Date.now()}_${Math.floor(Math.random() * 1000)}.ps1`);
+        fs.writeFileSync(tempScript, script, 'utf8');
+        try {
+            await execFileAsync('powershell', ['-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', tempScript, '-src', path.resolve(srcPath), '-angle', String(angle), '-dst', path.resolve(dstPath)]);
+        } finally {
+            if (fs.existsSync(tempScript)) {
+                try { fs.unlinkSync(tempScript); } catch (_) {}
+            }
+        }
+    } else {
+        try {
+            await execFileAsync('convert', [srcPath, '-rotate', String(angle), dstPath]);
+        } catch (_) {}
+    }
+}

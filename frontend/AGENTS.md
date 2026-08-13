@@ -148,19 +148,11 @@ Files backup/restore - mirror mode or zip -->
 - SF10 is equal to School Form 10, Form 137, Form 137-A, Student Permanent Record -->
 
 # OCR PARSEER 
-- FIX JHS and SHS Form 137/SF10/School-Form-10 NOT WORKING
-- check these files for references: F:\SumbrerongBato\tis_rms_server\requirements\test
+- KEEP JHS and SHS Form 137/SF10/School-Form-10 
+- fix SF9 not working, sample layout: F:\SumbrerongBato\tis_rms_server\requirements\test\SF9.jpg
 
-# STUDENT SCREEN
-- bring back background color chip for status in students table (windows) and card (android)
-
-# DOCUMENT SCREEN
-- remove background color and border of the chips 
-  - file status inside of student folder
-- bring back the background color chip for requirements progress
-
-# ARCHIVES SCREEN
-- bring back the background color chip for status in root student folders tab
+# SETTINGS SCREEN
+- copy the edge to edge fade from dashboard screen to settings screen
 
 
 ---
