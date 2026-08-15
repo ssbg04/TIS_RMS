@@ -147,16 +147,16 @@ Files backup/restore - mirror mode or zip -->
 - SF9 is equal to report card, Form 138, School Form 9, Student Report Card, SF1 for JHS/SF9 for SHS
 - SF10 is equal to School Form 10, Form 137, Form 137-A, Student Permanent Record -->
 
-# USERS SCREEN
-- remove the edge to edge fade
-
-# STUDENTS SCREEN
-- remove the edge to edge fade
-
-# DASHBOARD, STUDENTS, DOCUMENTS, ARCHIVES, USER MANAGEMENT SCREENS IN WINDOWS APP
-- add shortcut key "ctrl+f" for activate search in each screen
-- fix that i can only search once after i change the tab screen
-
+# STUDENT SCREEN
+- edit student screen -> enrollments tab -> add enrollement modal
+  - make the dropdowns realtime change
+  - when select a academic year clears select of grade level(default grade 7) and section text fields, then refresh the selection
+  - when select grade level clears the section text fields, then refresh the selection of section
+  - add a new label button to make a new enrollment, then the selected academic year, grade level, and section will be set as 1st enrollment
+- edit student screen -> enrollments tab -> edit enrollment
+  - make the dropdowns realtime change
+  - when select a academic year clears select of grade level(default grade 7) and section text fields, then refresh the selection
+  - when select grade level clears the section text fields, then refresh the selection of section
 
 ---
 

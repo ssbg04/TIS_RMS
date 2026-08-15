@@ -14,10 +14,10 @@ class EditEnrollmentModal extends ConsumerStatefulWidget {
   enrollment; // If null, it's an Add operation. If set, it's an Edit operation.
 
   const EditEnrollmentModal({
-    Key? key,
+    super.key,
     required this.studentId,
     this.enrollment,
-  }) : super(key: key);
+  });
 
   @override
   ConsumerState<EditEnrollmentModal> createState() =>
@@ -27,6 +27,7 @@ class EditEnrollmentModal extends ConsumerStatefulWidget {
 class _EditEnrollmentModalState extends ConsumerState<EditEnrollmentModal> {
   final _formKey = GlobalKey<FormState>();
 
+  dynamic _currentEnrollment;
   int? _selectedAcademicYearId;
   int? _selectedGradeLevel;
   int? _selectedSectionId;
@@ -34,15 +35,19 @@ class _EditEnrollmentModalState extends ConsumerState<EditEnrollmentModal> {
 
   bool _isLoading = false;
   String? _errorMessage;
+  String? _successMessage;
 
   @override
   void initState() {
     super.initState();
-    if (widget.enrollment != null) {
-      _selectedAcademicYearId = widget.enrollment.academicYearId;
-      _selectedGradeLevel = widget.enrollment.gradeLevel;
-      _selectedSectionId = widget.enrollment.sectionId;
-      _trackStrand = widget.enrollment.trackStrand;
+    _currentEnrollment = widget.enrollment;
+    if (_currentEnrollment != null) {
+      _selectedAcademicYearId = _currentEnrollment.academicYearId;
+      _selectedGradeLevel = _currentEnrollment.gradeLevel;
+      _selectedSectionId = _currentEnrollment.sectionId;
+      _trackStrand = _currentEnrollment.trackStrand;
+    } else {
+      _selectedGradeLevel = 7;
     }
   }
 
@@ -64,6 +69,14 @@ class _EditEnrollmentModalState extends ConsumerState<EditEnrollmentModal> {
 
   Future<void> _handleSave() async {
     if (!_formKey.currentState!.validate()) return;
+    if (_selectedAcademicYearId == null) {
+      _showValidationDialog('Please select an academic year.');
+      return;
+    }
+    if (_selectedGradeLevel == null) {
+      _showValidationDialog('Please select a grade level.');
+      return;
+    }
     if (_selectedSectionId == null) {
       _showValidationDialog('Please select a valid section.');
       return;
@@ -72,11 +85,12 @@ class _EditEnrollmentModalState extends ConsumerState<EditEnrollmentModal> {
     setState(() {
       _isLoading = true;
       _errorMessage = null;
+      _successMessage = null;
     });
 
     try {
       final notifier = ref.read(studentMutationProvider.notifier);
-      if (widget.enrollment == null) {
+      if (_currentEnrollment == null) {
         // Add
         await notifier.addEnrollment(
           studentId: widget.studentId,
@@ -89,7 +103,7 @@ class _EditEnrollmentModalState extends ConsumerState<EditEnrollmentModal> {
         // Update
         await notifier.updateEnrollment(
           studentId: widget.studentId,
-          enrollmentId: widget.enrollment.id,
+          enrollmentId: _currentEnrollment.id,
           academicYearId: _selectedAcademicYearId!,
           gradeLevel: _selectedGradeLevel!,
           sectionId: _selectedSectionId!,
@@ -99,6 +113,72 @@ class _EditEnrollmentModalState extends ConsumerState<EditEnrollmentModal> {
 
       if (!mounted) return;
       Navigator.of(context).pop(true);
+    } catch (e) {
+      if (!mounted) return;
+      final raw = e.toString();
+      final msg = raw.startsWith('Exception: ') ? raw.substring(11) : raw;
+      setState(() {
+        _isLoading = false;
+        _errorMessage = msg;
+      });
+    }
+  }
+
+  Future<void> _handleAddMoreEnrollment() async {
+    if (!_formKey.currentState!.validate()) return;
+    if (_selectedAcademicYearId == null) {
+      _showValidationDialog('Please select an academic year.');
+      return;
+    }
+    if (_selectedGradeLevel == null) {
+      _showValidationDialog('Please select a grade level.');
+      return;
+    }
+    if (_selectedSectionId == null) {
+      _showValidationDialog('Please select a valid section.');
+      return;
+    }
+
+    setState(() {
+      _isLoading = true;
+      _errorMessage = null;
+      _successMessage = null;
+    });
+
+    try {
+      final notifier = ref.read(studentMutationProvider.notifier);
+      if (_currentEnrollment == null) {
+        // Add
+        await notifier.addEnrollment(
+          studentId: widget.studentId,
+          academicYearId: _selectedAcademicYearId!,
+          gradeLevel: _selectedGradeLevel!,
+          sectionId: _selectedSectionId!,
+          trackStrand: _trackStrand,
+        );
+      } else {
+        // Update
+        await notifier.updateEnrollment(
+          studentId: widget.studentId,
+          enrollmentId: _currentEnrollment.id,
+          academicYearId: _selectedAcademicYearId!,
+          gradeLevel: _selectedGradeLevel!,
+          sectionId: _selectedSectionId!,
+          trackStrand: _trackStrand,
+        );
+      }
+
+      if (!mounted) return;
+      setState(() {
+        _isLoading = false;
+        _currentEnrollment = null; // Switch to add mode for subsequent additions
+        _selectedGradeLevel = 7; // Reset to default Grade 7
+        _selectedSectionId = null; // Clear section for the next record
+        _trackStrand = null;
+        _errorMessage = null;
+        _successMessage =
+            'Enrollment record saved successfully. Initialized for next enrollment.';
+      });
     } catch (e) {
       if (!mounted) return;
       final raw = e.toString();
@@ -121,18 +201,18 @@ class _EditEnrollmentModalState extends ConsumerState<EditEnrollmentModal> {
     final screenWidth = MediaQuery.sizeOf(context).width;
     final isMobile = screenWidth < 600;
 
-    double maxDialogHeight = isMobile ? (screenHeight * 0.8) : 480;
+    double maxDialogHeight = isMobile ? (screenHeight * 0.85) : 520;
     double dialogHeight = maxDialogHeight.clamp(
       200.0,
       screenHeight - viewInsets.bottom - 24.0,
     );
 
     return CustomModal(
-      title: widget.enrollment == null ? 'Add Enrollment' : 'Edit Enrollment',
-      icon: widget.enrollment == null
+      title: _currentEnrollment == null ? 'Add Enrollment' : 'Edit Enrollment',
+      icon: _currentEnrollment == null
           ? Icons.add_box_outlined
           : Icons.edit_document,
-      maxWidth: 450,
+      maxWidth: 480,
       onClose: () => Navigator.of(context).pop(),
       content: ConstrainedBox(
         constraints: BoxConstraints(maxHeight: dialogHeight),
@@ -151,9 +231,16 @@ class _EditEnrollmentModalState extends ConsumerState<EditEnrollmentModal> {
                       // Academic Year
                       yearsAsync.when(
                         data: (years) {
+                          final selectedYearExists = years.any(
+                            (y) => y.id == _selectedAcademicYearId,
+                          );
+                          final currentYearValue = selectedYearExists
+                              ? _selectedAcademicYearId
+                              : null;
+
                           return DropdownButtonFormField<int>(
                             key: const ValueKey('edit_enrollment_academic_dropdown'),
-                            initialValue: _selectedAcademicYearId,
+                            value: currentYearValue,
                             decoration: const InputDecoration(
                               labelText: 'Academic Year',
                               prefixIcon: Icon(Icons.calendar_today),
@@ -169,7 +256,13 @@ class _EditEnrollmentModalState extends ConsumerState<EditEnrollmentModal> {
                             onChanged: (val) {
                               setState(() {
                                 _selectedAcademicYearId = val;
+                                // Reset Grade Level to default value of Grade 7
+                                _selectedGradeLevel = 7;
+                                // Clear section selection
                                 _selectedSectionId = null;
+                                _trackStrand = null;
+                                _errorMessage = null;
+                                _successMessage = null;
                               });
                             },
                             validator: (v) =>
@@ -188,9 +281,18 @@ class _EditEnrollmentModalState extends ConsumerState<EditEnrollmentModal> {
                       // Grade Level
                       gradeLevelsAsync.when(
                         data: (grades) {
+                          final selectedGradeExists = grades.any(
+                            (g) => g.level == _selectedGradeLevel,
+                          );
+                          final currentGradeValue = selectedGradeExists
+                              ? _selectedGradeLevel
+                              : (grades.any((g) => g.level == 7)
+                                  ? 7
+                                  : (grades.isNotEmpty ? grades.first.level : null));
+
                           return DropdownButtonFormField<int>(
                             key: const ValueKey('edit_enrollment_grade_dropdown'),
-                            initialValue: _selectedGradeLevel,
+                            value: currentGradeValue,
                             decoration: const InputDecoration(
                               labelText: 'Grade Level',
                               prefixIcon: Icon(Icons.grade),
@@ -206,7 +308,13 @@ class _EditEnrollmentModalState extends ConsumerState<EditEnrollmentModal> {
                             onChanged: (val) {
                               setState(() {
                                 _selectedGradeLevel = val;
+                                // Clear section selection
                                 _selectedSectionId = null;
+                                if (val != null && val < 11) {
+                                  _trackStrand = null;
+                                }
+                                _errorMessage = null;
+                                _successMessage = null;
                               });
                             },
                             validator: (v) =>
@@ -241,8 +349,8 @@ class _EditEnrollmentModalState extends ConsumerState<EditEnrollmentModal> {
                               ? matches.first.name
                               : '';
 
-                          const autocompleteKey = ValueKey(
-                            'edit_enrollment_section_autocomplete',
+                          final autocompleteKey = ValueKey(
+                            'edit_enrollment_section_autocomplete_${_selectedAcademicYearId}_$_selectedGradeLevel',
                           );
 
                           return Autocomplete<SectionModel>(
@@ -274,10 +382,13 @@ class _EditEnrollmentModalState extends ConsumerState<EditEnrollmentModal> {
                                   return TextFormField(
                                     controller: controller,
                                     focusNode: focusNode,
-                                    decoration: const InputDecoration(
+                                    decoration: InputDecoration(
                                       labelText: 'Section (Type or Select)',
-                                      prefixIcon: Icon(Icons.segment),
-                                      suffixIcon: Icon(Icons.arrow_drop_down),
+                                      prefixIcon: const Icon(Icons.segment),
+                                      suffixIcon: const Icon(Icons.arrow_drop_down),
+                                      hintText: filtered.isEmpty
+                                          ? 'No sections available'
+                                          : null,
                                     ),
                                     onChanged: (val) {
                                       if (val.isEmpty) {
@@ -338,6 +449,44 @@ class _EditEnrollmentModalState extends ConsumerState<EditEnrollmentModal> {
               ),
             ),
 
+            if (_successMessage != null) ...[
+              const SizedBox(height: 8),
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 10,
+                ),
+                decoration: BoxDecoration(
+                  color: AppColors.primaryGreen.withValues(alpha: 0.1),
+                  border: Border.all(
+                    color: AppColors.primaryGreen.withValues(alpha: 0.4),
+                  ),
+                  borderRadius: BorderRadius.circular(AppSizes.radiusMedium),
+                ),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Icon(
+                      Icons.check_circle_outline,
+                      color: AppColors.primaryGreen,
+                      size: 20,
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        _successMessage!,
+                        style: const TextStyle(
+                          color: AppColors.primaryGreen,
+                          fontSize: 13,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+
             if (_errorMessage != null) ...[
               const SizedBox(height: 8),
               Container(
@@ -395,8 +544,25 @@ class _EditEnrollmentModalState extends ConsumerState<EditEnrollmentModal> {
                       ),
                     ),
                   ),
+                  OutlinedButton.icon(
+                    key: const ValueKey('add_more_enrollment_button'),
+                    onPressed: _isLoading ? null : _handleAddMoreEnrollment,
+                    icon: const Icon(Icons.add_circle_outline, size: 16),
+                    label: const Text(
+                      'add more Enrollment',
+                      style: TextStyle(fontWeight: FontWeight.bold),
+                    ),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: AppColors.primaryGreen,
+                      side: const BorderSide(color: AppColors.primaryGreen),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 14,
+                        vertical: 12,
+                      ),
+                    ),
+                  ),
                   SizedBox(
-                    width: 150,
+                    width: 140,
                     child: PrimaryButton(
                       label: 'SAVE',
                       isLoading: _isLoading,

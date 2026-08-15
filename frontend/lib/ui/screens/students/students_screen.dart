@@ -2784,6 +2784,7 @@ class _BulkEnrollDialogState extends ConsumerState<BulkEnrollDialog> {
                       onChanged: (val) {
                         setState(() {
                           _selectedAcademicYearId = val;
+                          _selectedGradeLevel = 7;
                           _selectedSectionId = null;
                         });
                       },

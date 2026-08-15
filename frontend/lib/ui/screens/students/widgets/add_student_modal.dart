@@ -947,9 +947,12 @@ class _AddStudentModalState extends ConsumerState<AddStudentModal> {
               final defaultYearId = (active.isNotEmpty ? active.last : (years.isNotEmpty ? years.last : null))?.id;
               final currentYearId = _selectedAcademicYearId ?? defaultYearId;
 
+              final selectedYearExists = years.any((y) => y.id == currentYearId);
+              final effectiveValue = selectedYearExists ? currentYearId : null;
+
               return DropdownButtonFormField<int>(
                 key: const ValueKey('academic_year_dropdown'),
-                initialValue: currentYearId,
+                value: effectiveValue,
                 decoration: const InputDecoration(
                   labelText: 'Academic Year',
                   prefixIcon: Icon(Icons.calendar_today),
@@ -960,7 +963,9 @@ class _AddStudentModalState extends ConsumerState<AddStudentModal> {
                     .toList(),
                 onChanged: (val) => setState(() {
                   _selectedAcademicYearId = val;
+                  _selectedGradeLevel = 7;
                   _selectedSectionId = null;
+                  _trackStrand = null;
                 }),
                 validator: (v) => v == null ? 'Academic year is required.' : null,
               );
@@ -972,9 +977,17 @@ class _AddStudentModalState extends ConsumerState<AddStudentModal> {
           const SizedBox(height: AppSizes.p12),
           gradeLevelsAsync.when(
             data: (grades) {
+              final selectedGradeExists =
+                  grades.any((g) => g.level == _selectedGradeLevel);
+              final effectiveGradeValue = selectedGradeExists
+                  ? _selectedGradeLevel
+                  : (grades.any((g) => g.level == 7)
+                      ? 7
+                      : (grades.isNotEmpty ? grades.first.level : null));
+
               return DropdownButtonFormField<int>(
                 key: const ValueKey('grade_level_dropdown'),
-                initialValue: _selectedGradeLevel,
+                value: effectiveGradeValue,
                 decoration: const InputDecoration(
                   labelText: 'Grade Level',
                   prefixIcon: Icon(Icons.grade),
@@ -986,6 +999,9 @@ class _AddStudentModalState extends ConsumerState<AddStudentModal> {
                 onChanged: (val) => setState(() {
                   _selectedGradeLevel = val;
                   _selectedSectionId = null;
+                  if (val != null && val < 11) {
+                    _trackStrand = null;
+                  }
                 }),
                 validator: (v) => v == null ? 'Grade level is required.' : null,
               );
@@ -1010,7 +1026,7 @@ class _AddStudentModalState extends ConsumerState<AddStudentModal> {
               final initialSectionName =
                   matches.isNotEmpty ? matches.first.name : '';
               return Autocomplete<SectionModel>(
-                key: const ValueKey('section_autocomplete'),
+                key: ValueKey('section_autocomplete_${effectiveYearId}_$_selectedGradeLevel'),
                 initialValue: TextEditingValue(text: initialSectionName),
                 displayStringForOption: (sec) => sec.name,
                 optionsBuilder: (textEditingValue) {
@@ -1027,10 +1043,11 @@ class _AddStudentModalState extends ConsumerState<AddStudentModal> {
                   return TextFormField(
                     controller: controller,
                     focusNode: focusNode,
-                    decoration: const InputDecoration(
+                    decoration: InputDecoration(
                       labelText: 'Section (Type or Select)',
-                      prefixIcon: Icon(Icons.segment),
-                      suffixIcon: Icon(Icons.arrow_drop_down),
+                      prefixIcon: const Icon(Icons.segment),
+                      suffixIcon: const Icon(Icons.arrow_drop_down),
+                      hintText: filtered.isEmpty ? 'No sections available' : null,
                     ),
                     onChanged: (val) {
                       if (val.isEmpty) {
