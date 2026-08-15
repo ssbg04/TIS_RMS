@@ -147,18 +147,8 @@ Files backup/restore - mirror mode or zip -->
 - SF9 is equal to report card, Form 138, School Form 9, Student Report Card, SF1 for JHS/SF9 for SHS
 - SF10 is equal to School Form 10, Form 137, Form 137-A, Student Permanent Record -->
 
-# DASHBOARD SCREEN (Teachers side)
-- Analytics an KPIs
-  - make fetch only their students, not all students in the database
-  - digitalization rate of their students
-  - document status distribution of their students 
-  - document type breakdown of their students
-  - top students by documents of their student
-  - needs attention of their students
-
-# DOCUMENT SCREEN (Teachers side)
-- hide or unauthorize teacher role to print and upload documents
-- hide or disable hold and right click, multi select, copy, just hide the show menu and hold/right click functions for teachers role
+# STUDENTS SCREEN
+- remove the count in school year and grade level in filter modal
 
 
 ---

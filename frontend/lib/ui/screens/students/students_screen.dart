@@ -62,7 +62,6 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
     'High-Low Attention',
   ];
 
-  static const _gradeLevels = ['All Grades', '7', '8', '9', '10', '11', '12'];
   static const _statusItems = [
     'All Status',
     'Enrolled',
@@ -1095,6 +1094,7 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
                 onPressed: () => _openFilterDialog(
                   query,
                   ref.read(academicYearsListProvider),
+                  ref.read(gradeLevelsListProvider),
                   ref.read(sectionsListProvider),
                 ),
                 icon: Badge(
@@ -1119,6 +1119,7 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
   void _openFilterDialog(
     StudentQueryParams query,
     AsyncValue<dynamic> academicYearsAsync,
+    AsyncValue<dynamic> gradeLevelsAsync,
     AsyncValue<dynamic> sectionsAsync,
   ) {
     // Sync pending state from current applied query before opening
@@ -1158,6 +1159,7 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
               child: _buildFilterPanelContent(
                 query,
                 academicYearsAsync,
+                gradeLevelsAsync,
                 sectionsAsync,
                 setDialogState,
                 () => Navigator.of(ctx).pop(),
@@ -1200,6 +1202,7 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
   Widget _buildFilterPanelContent(
     StudentQueryParams query,
     AsyncValue<dynamic> academicYearsAsync,
+    AsyncValue<dynamic> gradeLevelsAsync,
     AsyncValue<dynamic> sectionsAsync,
     StateSetter setDialogState,
     VoidCallback onApply,
@@ -1213,16 +1216,41 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
         ) ??
         ['All School Years'];
 
+    final dbGradeLevels =
+        gradeLevelsAsync.whenOrNull(
+          data: (grades) =>
+              (grades as List).map((g) => g.level.toString()).toList(),
+        ) ??
+        ['7', '8', '9', '10', '11', '12'];
+
+    List<String> availableGrades;
+    if (_pendingSchoolYear != 'All School Years' && sectionsAsync.value != null) {
+      final sList = sectionsAsync.value as List;
+      final gradesInYear = sList
+          .where((s) => s.academicYearRange == _pendingSchoolYear)
+          .map((s) => s.gradeLevel.toString())
+          .toSet();
+      availableGrades = gradesInYear.isNotEmpty
+          ? dbGradeLevels.where((g) => gradesInYear.contains(g)).toList()
+          : dbGradeLevels;
+    } else {
+      availableGrades = dbGradeLevels;
+    }
+
+    final gradeLevelItems = ['All Grades', ...availableGrades];
+
     final sectionItems =
         sectionsAsync.whenOrNull(
           data: (sections) {
             final filteredSections = (sections as List).where((s) {
               if (_pendingGradeLevel != 'All Grades' &&
-                  s.gradeLevel.toString() != _pendingGradeLevel)
+                  s.gradeLevel.toString() != _pendingGradeLevel) {
                 return false;
+              }
               if (_pendingSchoolYear != 'All School Years' &&
-                  s.academicYearRange != _pendingSchoolYear)
+                  s.academicYearRange != _pendingSchoolYear) {
                 return false;
+              }
               return true;
             });
             final raw = [
@@ -1233,33 +1261,6 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
           },
         ) ??
         ['All Sections'];
-
-    // Precompute counts for badges
-    final Map<String, int> syGradeCount = {};
-    if (academicYearsAsync.value != null && sectionsAsync.value != null) {
-      final sList = sectionsAsync.value as List;
-      for (final sy in syItems.skip(1)) {
-        syGradeCount[sy] = sList
-            .where((s) => s.academicYearRange == sy)
-            .map((s) => s.gradeLevel)
-            .toSet()
-            .length;
-      }
-    }
-
-    final Map<String, int> gradeSectionCount = {};
-    if (sectionsAsync.value != null) {
-      final sList = sectionsAsync.value as List;
-      for (final grade in _gradeLevels.skip(1)) {
-        gradeSectionCount[grade] = sList.where((s) {
-          final matchGrade = s.gradeLevel.toString() == grade;
-          final matchSy =
-              _pendingSchoolYear == 'All School Years' ||
-              s.academicYearRange == _pendingSchoolYear;
-          return matchGrade && matchSy;
-        }).length;
-      }
-    }
 
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
@@ -1357,6 +1358,7 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
                     label: 'School Year',
                     onReset: () => setDialogState(() {
                       _pendingSchoolYear = 'All School Years';
+                      _pendingGradeLevel = 'All Grades';
                       _pendingSection = 'All Sections';
                     }),
                     child: _buildFilterDropdown(
@@ -1364,9 +1366,9 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
                           ? _pendingSchoolYear
                           : 'All School Years',
                       items: syItems,
-                      counts: syGradeCount,
                       onChanged: (v) => setDialogState(() {
                         _pendingSchoolYear = v!;
+                        _pendingGradeLevel = 'All Grades';
                         _pendingSection = 'All Sections';
                       }),
                     ),
@@ -1382,11 +1384,10 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
                       _pendingSection = 'All Sections';
                     }),
                     child: _buildFilterDropdown(
-                      value: _gradeLevels.contains(_pendingGradeLevel)
+                      value: gradeLevelItems.contains(_pendingGradeLevel)
                           ? _pendingGradeLevel
                           : 'All Grades',
-                      items: _gradeLevels.toList(),
-                      counts: gradeSectionCount,
+                      items: gradeLevelItems,
                       onChanged: (v) => setDialogState(() {
                         _pendingGradeLevel = v!;
                         _pendingSection = 'All Sections';
@@ -1408,9 +1409,13 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
                       items: sectionItems,
                       hint: _pendingGradeLevel == 'All Grades'
                           ? 'Select Grade Level first'
-                          : null,
-                      enabled: _pendingGradeLevel != 'All Grades',
-                      onChanged: _pendingGradeLevel == 'All Grades'
+                          : (sectionItems.length <= 1
+                              ? 'No sections available'
+                              : null),
+                      enabled: _pendingGradeLevel != 'All Grades' &&
+                          sectionItems.length > 1,
+                      onChanged: (_pendingGradeLevel == 'All Grades' ||
+                              sectionItems.length <= 1)
                           ? null
                           : (v) => setDialogState(() => _pendingSection = v!),
                     ),
@@ -1658,7 +1663,6 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
   Widget _buildFilterDropdown({
     required String value,
     required List<String> items,
-    Map<String, int>? counts,
     ValueChanged<String?>? onChanged,
     String? hint,
     bool enabled = true,
@@ -1706,38 +1710,12 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
               .map(
                 (i) => DropdownMenuItem(
                   value: i,
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(
-                        i, 
-                        style: TextStyle(
-                          fontSize: 14, 
-                          color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
-                        ),
-                      ),
-                      if (counts != null && counts[i] != null && counts[i]! > 0)
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 6,
-                            vertical: 2,
-                          ),
-                          decoration: BoxDecoration(
-                            color: AppColors.primaryGreen.withValues(
-                              alpha: 0.1,
-                            ),
-                            borderRadius: BorderRadius.circular(10),
-                          ),
-                          child: Text(
-                            counts[i].toString(),
-                            style: const TextStyle(
-                              fontSize: 11,
-                              color: AppColors.primaryGreen,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ),
-                    ],
+                  child: Text(
+                    i, 
+                    style: TextStyle(
+                      fontSize: 14, 
+                      color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
+                    ),
                   ),
                 ),
               )
