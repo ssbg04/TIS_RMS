@@ -139,6 +139,44 @@ class _EditEnrollmentModalState extends ConsumerState<EditEnrollmentModal> {
       return;
     }
 
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Add More Enrollment'),
+        content: const Text(
+          'Do you want to save this enrollment and add another record?',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: const Text('NO'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.of(ctx).pop(true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.primaryGreen,
+              foregroundColor: Colors.white,
+            ),
+            child: const Text('YES'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == null) return;
+
+    if (!confirmed) {
+      setState(() {
+        _selectedAcademicYearId = null;
+        _selectedGradeLevel = 7;
+        _selectedSectionId = null;
+        _trackStrand = null;
+        _errorMessage = null;
+        _successMessage = null;
+      });
+      return;
+    }
+
     setState(() {
       _isLoading = true;
       _errorMessage = null;
@@ -549,7 +587,7 @@ class _EditEnrollmentModalState extends ConsumerState<EditEnrollmentModal> {
                     onPressed: _isLoading ? null : _handleAddMoreEnrollment,
                     icon: const Icon(Icons.add_circle_outline, size: 16),
                     label: const Text(
-                      'add more Enrollment',
+                      'Add More Enrollment',
                       style: TextStyle(fontWeight: FontWeight.bold),
                     ),
                     style: OutlinedButton.styleFrom(

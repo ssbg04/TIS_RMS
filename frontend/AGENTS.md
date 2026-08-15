@@ -148,16 +148,14 @@ Files backup/restore - mirror mode or zip -->
 - SF10 is equal to School Form 10, Form 137, Form 137-A, Student Permanent Record -->
 
 # STUDENT SCREEN
-- edit student screen -> enrollments tab -> add enrollement modal
-  - make the dropdowns realtime change
-  - when select a academic year clears select of grade level(default grade 7) and section text fields, then refresh the selection
-  - when select grade level clears the section text fields, then refresh the selection of section
-  - add a new label button to make a new enrollment, then the selected academic year, grade level, and section will be set as 1st enrollment
-- edit student screen -> enrollments tab -> edit enrollment
-  - make the dropdowns realtime change
-  - when select a academic year clears select of grade level(default grade 7) and section text fields, then refresh the selection
-  - when select grade level clears the section text fields, then refresh the selection of section
+- edit student screen -> enrollments tab -> add/edit enrollement modal
+  - add more enrollment confirmation to add, yes and no
+  - in the add more confirmation if no, clears section and grade level and reset academic year, and grade level to default 7.
 
+- change the 4ps color to #2e3192
+  1. student profile modal
+  2. edit student screen
+  3. add student screen 
 ---
 
 # TIS_RMS Server Manager (dont do)

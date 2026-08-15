@@ -509,12 +509,12 @@ class _EditStudentModalState extends ConsumerState<EditStudentModal> {
             Container(
               decoration: BoxDecoration(
                 color: _is4ps
-                    ? Colors.deepPurple.withValues(alpha: 0.06)
+                    ? AppColors.fourPs.withValues(alpha: 0.06)
                     : (isDark ? AppColors.darkSurfaceCard : Colors.grey.shade50),
                 borderRadius: BorderRadius.circular(AppSizes.radiusMedium),
                 border: Border.all(
                   color: _is4ps
-                      ? Colors.deepPurple.withValues(alpha: 0.3)
+                      ? AppColors.fourPs.withValues(alpha: 0.3)
                       : (isDark ? AppColors.darkBorder : Colors.grey.shade200),
                 ),
               ),
@@ -523,7 +523,7 @@ class _EditStudentModalState extends ConsumerState<EditStudentModal> {
                 onChanged: (val) {
                   setState(() => _is4ps = val);
                 },
-                activeColor: Colors.deepPurple,
+                activeColor: AppColors.fourPs,
                 title: const Text('4Ps Beneficiary',
                     style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
                 subtitle: Text(
@@ -533,12 +533,12 @@ class _EditStudentModalState extends ConsumerState<EditStudentModal> {
                   style: TextStyle(
                     fontSize: 11,
                     color: _is4ps
-                        ? (isDark ? Colors.deepPurple[200] : Colors.deepPurple.shade600)
+                        ? (isDark ? const Color(0xFF8B8ED8) : AppColors.fourPs)
                         : (isDark ? AppColors.darkTextSecondary : AppColors.textSecondary),
                   ),
                 ),
                 secondary: Icon(Icons.family_restroom,
-                    color: _is4ps ? Colors.deepPurple : Colors.grey.shade400),
+                    color: _is4ps ? AppColors.fourPs : Colors.grey.shade400),
                 dense: true,
                 contentPadding:
                     const EdgeInsets.symmetric(horizontal: 12, vertical: 4),

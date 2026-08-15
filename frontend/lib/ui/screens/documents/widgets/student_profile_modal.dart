@@ -553,7 +553,7 @@ class StudentProfileModalBody extends ConsumerWidget {
             Icon(
               is4ps ? Icons.check_circle : Icons.cancel_outlined,
               size: 14,
-              color: is4ps ? Colors.deepPurple : Colors.grey.shade500,
+              color: is4ps ? AppColors.fourPs : Colors.grey.shade500,
             ),
             const SizedBox(width: 4),
             Text(
@@ -562,7 +562,7 @@ class StudentProfileModalBody extends ConsumerWidget {
                 fontSize: 12,
                 fontWeight: FontWeight.w600,
                 color: is4ps
-                    ? (isDark ? Colors.deepPurple[200] : Colors.deepPurple)
+                    ? (isDark ? const Color(0xFF8B8ED8) : AppColors.fourPs)
                     : (isDark ? AppColors.darkTextSecondary : Colors.grey.shade600),
               ),
             ),

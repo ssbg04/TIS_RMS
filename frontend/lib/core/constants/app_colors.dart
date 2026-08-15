@@ -7,6 +7,7 @@ class AppColors {
   // Primary Brand Colors
   static const Color primaryGreen = Color(0xFF1C8248);
   static const Color darkGreen = Color(0xFF085F32);
+  static const Color fourPs = Color(0xFF2E3192);
 
   // ── Light Theme Backgrounds ──────────────────────────────────
   static const Color pageBackground = Color(

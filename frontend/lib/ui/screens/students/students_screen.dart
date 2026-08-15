@@ -2200,15 +2200,54 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
                       buildHoverCell(Text(student.gradeSection), student),
                       buildHoverCell(
                         student.is4ps
-                            ? const Icon(
-                                Icons.check_circle,
-                                color: AppColors.primaryGreen,
-                                size: 20,
+                            ? Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 8,
+                                  vertical: 3,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: (isDark
+                                          ? const Color(0xFF8B8ED8)
+                                          : AppColors.fourPs)
+                                      .withValues(alpha: isDark ? 0.2 : 0.08),
+                                  borderRadius: BorderRadius.circular(12),
+                                  border: Border.all(
+                                    color: (isDark
+                                            ? const Color(0xFF8B8ED8)
+                                            : AppColors.fourPs)
+                                        .withValues(alpha: isDark ? 0.6 : 0.35),
+                                  ),
+                                ),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Icon(
+                                      Icons.check_circle,
+                                      color: isDark
+                                          ? const Color(0xFF8B8ED8)
+                                          : AppColors.fourPs,
+                                      size: 13,
+                                    ),
+                                    const SizedBox(width: 4),
+                                    Text(
+                                      '4Ps',
+                                      style: TextStyle(
+                                        color: isDark
+                                            ? const Color(0xFF8B8ED8)
+                                            : AppColors.fourPs,
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 11,
+                                      ),
+                                    ),
+                                  ],
+                                ),
                               )
-                            : const Icon(
-                                Icons.cancel,
-                                color: Colors.grey,
-                                size: 20,
+                            : Icon(
+                                Icons.cancel_outlined,
+                                color: isDark
+                                    ? AppColors.darkTextMuted
+                                    : Colors.grey.shade400,
+                                size: 18,
                               ),
                         student,
                       ),
@@ -2370,17 +2409,51 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
                               ),
                             ),
                             const SizedBox(width: 8),
-                             if (s.is4ps) ...[
-                               const Text(
-                                 '4Ps',
-                                 style: TextStyle(
-                                   color: AppColors.primaryGreen,
-                                   fontSize: 10,
-                                   fontWeight: FontWeight.bold,
-                                 ),
-                               ),
-                               const SizedBox(width: 8),
-                             ],
+                            if (s.is4ps) ...[
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 6,
+                                  vertical: 2,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: (Theme.of(context).brightness ==
+                                              Brightness.dark
+                                          ? const Color(0xFF8B8ED8)
+                                          : AppColors.fourPs)
+                                      .withValues(
+                                    alpha: Theme.of(context).brightness ==
+                                            Brightness.dark
+                                        ? 0.2
+                                        : 0.08,
+                                  ),
+                                  borderRadius: BorderRadius.circular(4),
+                                  border: Border.all(
+                                    color: (Theme.of(context).brightness ==
+                                                Brightness.dark
+                                            ? const Color(0xFF8B8ED8)
+                                            : AppColors.fourPs)
+                                        .withValues(
+                                      alpha: Theme.of(context).brightness ==
+                                              Brightness.dark
+                                          ? 0.6
+                                          : 0.35,
+                                    ),
+                                  ),
+                                ),
+                                child: Text(
+                                  '4Ps',
+                                  style: TextStyle(
+                                    color: Theme.of(context).brightness ==
+                                            Brightness.dark
+                                        ? const Color(0xFF8B8ED8)
+                                        : AppColors.fourPs,
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                            ],
                             _StatusChip(status: s.status),
                           ],
                         ),
