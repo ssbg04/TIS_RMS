@@ -668,8 +668,8 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    // Left FAB: Print List (Only for Android/mobile app)
-                    if (isMobile)
+                    // Left FAB: Print List (Only for Android/mobile app, admin only)
+                    if (isMobile && widget.userRole != 'teacher')
                       Badge(
                         label: Text(
                           '${ref.watch(printQueueProvider).value?.length ?? 0}',
@@ -691,8 +691,8 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
                       )
                     else
                       const SizedBox.shrink(),
-                    // Right FAB: Upload Document
-                    if (isMobile)
+                    // Right FAB: Upload Document (admin only)
+                    if (isMobile && widget.userRole != 'teacher')
                       if (_tabController.index == 1 || isFolderOpened)
                         FloatingActionButton(
                           heroTag: 'fab-upload-doc',
@@ -1091,8 +1091,8 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
             const SizedBox(width: 4),
           ],
 
-          // Desktop action buttons (Upload available to all roles)
-          if (!isMobile && _tabController.index != 2) ...[
+          // Desktop action buttons (Upload available to admins only)
+          if (!isMobile && _tabController.index != 2 && widget.userRole != 'teacher') ...[
             SizedBox(
               height: 36,
               child: ElevatedButton.icon(
@@ -1122,7 +1122,7 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
             const SizedBox(width: 8),
           ],
 
-          if (defaultTargetPlatform != TargetPlatform.android && !isMobile) ...[
+          if (defaultTargetPlatform != TargetPlatform.android && !isMobile && widget.userRole != 'teacher') ...[
             SizedBox(
               height: 36,
               child: _buildPrintQueueButton(compact: false),
@@ -1186,7 +1186,7 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
         }
       },
       itemBuilder: (context) => [
-        if (_tabController.index == 1 || _openedFolderStudentId != null) ...[
+        if (widget.userRole != 'teacher' && (_tabController.index == 1 || _openedFolderStudentId != null)) ...[
           PopupMenuItem(
             value: 'multi_select',
             child: Row(
@@ -1937,18 +1937,20 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
                             itemBuilder: (ctx, i) {
                               final folder = paginatedFolders[i];
                               return GestureDetector(
-                                onSecondaryTapDown: (details) =>
-                                    _showFolderContextMenu(
-                                      context,
-                                      details.globalPosition,
-                                      folder,
-                                    ),
-                                onLongPressStart: (details) =>
-                                    _showFolderContextMenu(
-                                      context,
-                                      details.globalPosition,
-                                      folder,
-                                    ),
+                                onSecondaryTapDown: widget.userRole == 'teacher'
+                                    ? null
+                                    : (details) => _showFolderContextMenu(
+                                        context,
+                                        details.globalPosition,
+                                        folder,
+                                      ),
+                                onLongPressStart: widget.userRole == 'teacher'
+                                    ? null
+                                    : (details) => _showFolderContextMenu(
+                                        context,
+                                        details.globalPosition,
+                                        folder,
+                                      ),
                                 child: InkWell(
                                   onTap: () {
                                     if (folder.studentId != null) {
@@ -2086,16 +2088,20 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
               itemBuilder: (ctx, i) {
                 final folder = paginatedFolders[i];
                 return GestureDetector(
-                  onSecondaryTapDown: (details) => _showFolderContextMenu(
-                    context,
-                    details.globalPosition,
-                    folder,
-                  ),
-                  onLongPressStart: (details) => _showFolderContextMenu(
-                    context,
-                    details.globalPosition,
-                    folder,
-                  ),
+                  onSecondaryTapDown: widget.userRole == 'teacher'
+                      ? null
+                      : (details) => _showFolderContextMenu(
+                          context,
+                          details.globalPosition,
+                          folder,
+                        ),
+                  onLongPressStart: widget.userRole == 'teacher'
+                      ? null
+                      : (details) => _showFolderContextMenu(
+                          context,
+                          details.globalPosition,
+                          folder,
+                        ),
                   child: InkWell(
                     onTap: () {
                       if (folder.studentId != null) {
@@ -2507,16 +2513,20 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
     final isSelected = _selectedDocumentIds.contains(doc.id);
 
     return GestureDetector(
-      onSecondaryTapDown: (details) => _showDocumentContextMenu(
-        context,
-        details.globalPosition,
-        doc as DocumentModel,
-      ),
-      onLongPressStart: (details) => _showDocumentContextMenu(
-        context,
-        details.globalPosition,
-        doc as DocumentModel,
-      ),
+      onSecondaryTapDown: widget.userRole == 'teacher'
+          ? null
+          : (details) => _showDocumentContextMenu(
+              context,
+              details.globalPosition,
+              doc as DocumentModel,
+            ),
+      onLongPressStart: widget.userRole == 'teacher'
+          ? null
+          : (details) => _showDocumentContextMenu(
+              context,
+              details.globalPosition,
+              doc as DocumentModel,
+            ),
       child: InkWell(
         onTap: () {
           if (_isMultiSelectMode) {
@@ -2628,8 +2638,8 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
               ),
               const SizedBox(width: 4),
 
-              // Actions menu
-              if (!_isMultiSelectMode)
+              // Actions menu (hidden for teachers)
+              if (!_isMultiSelectMode && widget.userRole != 'teacher')
                 SizedBox(
                   width: 30,
                   child: PopupMenuButton<String>(

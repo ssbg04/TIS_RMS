@@ -180,13 +180,14 @@ class _FileFolderCardState extends State<FileFolderCard> {
   // ════════════════════════════════════════
   Widget _buildGridCard(BuildContext context) {
     return GestureDetector(
-      // Desktop: right-click opens context menu
-      onSecondaryTapDown: (details) =>
-          _showContextMenu(context, details.globalPosition),
-      // Mobile: long press opens context menu
-      onLongPressStart: _isMobile
-          ? (details) => _showContextMenu(context, details.globalPosition)
-          : null,
+      // Desktop: right-click opens context menu (disabled for teachers)
+      onSecondaryTapDown: widget.userRole == 'teacher'
+          ? null
+          : (details) => _showContextMenu(context, details.globalPosition),
+      // Mobile: long press opens context menu (disabled for teachers)
+      onLongPressStart: (widget.userRole == 'teacher' || !_isMobile)
+          ? null
+          : (details) => _showContextMenu(context, details.globalPosition),
       child: InkWell(
         onTap: widget.isMultiSelectMode
             ? () => widget.onSelectedChanged?.call(!widget.isSelected)
@@ -261,8 +262,8 @@ class _FileFolderCardState extends State<FileFolderCard> {
                   ],
                 ),
               ),
-              // ⋮ button only on desktop — on mobile, long press triggers the menu
-              if (!widget.isMultiSelectMode && !_isMobile)
+              // ⋮ button only on desktop and not for teachers — on mobile, long press triggers the menu
+              if (!widget.isMultiSelectMode && !_isMobile && widget.userRole != 'teacher')
                 Positioned(
                   top: 2,
                   right: 2,
@@ -288,11 +289,12 @@ class _FileFolderCardState extends State<FileFolderCard> {
   // ════════════════════════════════════════
   Widget _buildListRow(BuildContext context) {
     return GestureDetector(
-      onSecondaryTapDown: (details) =>
-          _showContextMenu(context, details.globalPosition),
-      onLongPressStart: _isMobile
-          ? (details) => _showContextMenu(context, details.globalPosition)
-          : null,
+      onSecondaryTapDown: widget.userRole == 'teacher'
+          ? null
+          : (details) => _showContextMenu(context, details.globalPosition),
+      onLongPressStart: (widget.userRole == 'teacher' || !_isMobile)
+          ? null
+          : (details) => _showContextMenu(context, details.globalPosition),
       child: InkWell(
         onTap: widget.isMultiSelectMode
             ? () => widget.onSelectedChanged?.call(!widget.isSelected)
@@ -376,10 +378,10 @@ class _FileFolderCardState extends State<FileFolderCard> {
                 // Status
                 Expanded(child: _buildStatusBadge()),
 
-                // ⋮ Actions — desktop only; on mobile use long press
+                // ⋮ Actions — desktop only; on mobile use long press; hidden for teachers
                 SizedBox(
                   width: 40,
-                  child: (widget.isMultiSelectMode || _isMobile)
+                  child: (widget.isMultiSelectMode || _isMobile || widget.userRole == 'teacher')
                       ? const SizedBox.shrink()
                       : PopupMenuButton<String>(
                           icon: Icon(

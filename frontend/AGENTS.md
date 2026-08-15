@@ -147,15 +147,20 @@ Files backup/restore - mirror mode or zip -->
 - SF9 is equal to report card, Form 138, School Form 9, Student Report Card, SF1 for JHS/SF9 for SHS
 - SF10 is equal to School Form 10, Form 137, Form 137-A, Student Permanent Record -->
 
-# STUDENT SCREEN
-- edit student screen -> enrollments tab -> add/edit enrollement modal
-  - add more enrollment confirmation to add, yes and no
-  - in the add more confirmation if no, clears section and grade level and reset academic year, and grade level to default 7.
+# DASHBOARD SCREEN (Teachers side)
+- Analytics an KPIs
+  - make fetch only their students, not all students in the database
+  - digitalization rate of their students
+  - document status distribution of their students 
+  - document type breakdown of their students
+  - top students by documents of their student
+  - needs attention of their students
 
-- change the 4ps color to #2e3192
-  1. student profile modal
-  2. edit student screen
-  3. add student screen 
+# DOCUMENT SCREEN (Teachers side)
+- hide or unauthorize teacher role to print and upload documents
+- hide or disable hold and right click, multi select, copy, just hide the show menu and hold/right click functions for teachers role
+
+
 ---
 
 # TIS_RMS Server Manager (dont do)
