@@ -147,9 +147,8 @@ Files backup/restore - mirror mode or zip -->
 - SF9 is equal to report card, Form 138, School Form 9, Student Report Card, SF1 for JHS/SF9 for SHS
 - SF10 is equal to School Form 10, Form 137, Form 137-A, Student Permanent Record -->
 
-# DOCUMENTS SCREEN
-- make the filter model responsive, in mobile it has overlaps in buttons, make the filters section scrollable
-
+# ARCHIVES SCREEN
+- make the 3-5 dropdown selection into chip in filter modal 
 
 ---
 

@@ -892,17 +892,21 @@ class _ArchivesScreenState extends ConsumerState<ArchivesScreen>
 
     showDialog(
       context: context,
-      barrierColor: Colors.black.withValues(alpha: 0.25),
+      barrierColor: Colors.black.withValues(alpha: 0.35),
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setDialogState) {
+          final isSmallScreen = MediaQuery.of(context).size.height < 600;
           return Dialog(
             backgroundColor: Colors.transparent,
-            insetPadding: const EdgeInsets.symmetric(
+            insetPadding: EdgeInsets.symmetric(
               horizontal: 20,
-              vertical: 40,
+              vertical: isSmallScreen ? 16 : 36,
             ),
             child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 440),
+              constraints: BoxConstraints(
+                maxWidth: 440,
+                maxHeight: MediaQuery.of(context).size.height * 0.85,
+              ),
               child: _buildFilterPanelContent(
                 setDialogState,
                 () => Navigator.of(ctx).pop(),
@@ -963,17 +967,26 @@ class _ArchivesScreenState extends ConsumerState<ArchivesScreen>
       error: (_, _) => const ['All Years'],
     );
 
+    const statusItems = [
+      'All Statuses',
+      'Graduated',
+      'Transferred',
+      'Dropped',
+      'Inactive',
+    ];
+
     return Container(
-      margin: const EdgeInsets.only(top: 10),
       decoration: BoxDecoration(
         color: isDark ? AppColors.darkSurfaceCard : AppColors.surfaceWhite,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: isDark ? AppColors.darkBorder : Colors.grey.shade200),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: isDark ? AppColors.darkBorder : Colors.grey.shade200,
+        ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.07),
-            blurRadius: 16,
-            offset: const Offset(0, 4),
+            color: Colors.black.withValues(alpha: 0.12),
+            blurRadius: 24,
+            offset: const Offset(0, 8),
           ),
         ],
       ),
@@ -981,102 +994,180 @@ class _ArchivesScreenState extends ConsumerState<ArchivesScreen>
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisSize: MainAxisSize.min,
         children: [
+          // Header (Fixed)
           Padding(
-            padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
+            padding: const EdgeInsets.fromLTRB(20, 18, 16, 0),
             child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                const Icon(
-                  Icons.tune_rounded,
-                  size: 18,
-                  color: AppColors.primaryGreen,
+                Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(6),
+                      decoration: BoxDecoration(
+                        color: AppColors.primaryGreen.withValues(alpha: 0.12),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: const Icon(
+                        Icons.tune_rounded,
+                        size: 20,
+                        color: AppColors.primaryGreen,
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Text(
+                      'Filter Archives',
+                      style: TextStyle(
+                        fontSize: 17,
+                        fontWeight: FontWeight.w700,
+                        color: isDark
+                            ? AppColors.darkTextPrimary
+                            : AppColors.textPrimary,
+                      ),
+                    ),
+                  ],
                 ),
-                const SizedBox(width: 8),
-                Text(
-                  'Filter Archives',
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                    color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
+                IconButton(
+                  icon: Icon(
+                    Icons.close_rounded,
+                    size: 20,
+                    color: isDark
+                        ? AppColors.darkTextSecondary
+                        : AppColors.textSecondary,
                   ),
+                  tooltip: 'Close',
+                  onPressed: () => Navigator.of(context).pop(),
                 ),
               ],
             ),
           ),
 
-          const Divider(height: 20),
+          Divider(
+            height: 20,
+            thickness: 1,
+            color: isDark ? AppColors.darkBorder : Colors.grey.shade200,
+          ),
 
-          _buildFilterSection(
-            label: 'Student Status',
-            onReset: () =>
-                setDialogState(() => _pendingStatus = 'All Statuses'),
-            child: _buildFilterDropdown(
-              value: _pendingStatus,
-              items: const [
-                'All Statuses',
-                'Graduated',
-                'Transferred',
-                'Dropped',
-                'Inactive',
-              ],
-              onChanged: (v) => setDialogState(() => _pendingStatus = v!),
+          // Scrollable middle section for filter items
+          Flexible(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.symmetric(vertical: 4),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  // Student Status (Chip Group for 3-5 options)
+                  _buildFilterSection(
+                    label: 'Student Status',
+                    hasActiveFilter: _pendingStatus != 'All Statuses',
+                    onReset: () =>
+                        setDialogState(() => _pendingStatus = 'All Statuses'),
+                    child: _buildFilterChipGroup(
+                      items: statusItems,
+                      selectedValue: statusItems.contains(_pendingStatus)
+                          ? _pendingStatus
+                          : 'All Statuses',
+                      onSelected: (v) =>
+                          setDialogState(() => _pendingStatus = v),
+                    ),
+                  ),
+
+                  _buildDivider(isDark),
+
+                  // Document Type
+                  _buildFilterSection(
+                    label: 'Document Type',
+                    hasActiveFilter: _pendingDocumentType != 'All Types',
+                    onReset: () =>
+                        setDialogState(() => _pendingDocumentType = 'All Types'),
+                    child: _buildFilterDropdown(
+                      value: docTypes.contains(_pendingDocumentType)
+                          ? _pendingDocumentType
+                          : 'All Types',
+                      items: docTypes,
+                      onChanged: (v) =>
+                          setDialogState(() => _pendingDocumentType = v!),
+                    ),
+                  ),
+
+                  _buildDivider(isDark),
+
+                  // Grade Level
+                  _buildFilterSection(
+                    label: 'Grade Level',
+                    hasActiveFilter: _pendingGradeLevel != 'All Grades',
+                    onReset: () =>
+                        setDialogState(() => _pendingGradeLevel = 'All Grades'),
+                    child: _buildFilterDropdown(
+                      value: const [
+                        'All Grades',
+                        '7',
+                        '8',
+                        '9',
+                        '10',
+                        '11',
+                        '12',
+                      ].contains(_pendingGradeLevel)
+                          ? _pendingGradeLevel
+                          : 'All Grades',
+                      items: const ['All Grades', '7', '8', '9', '10', '11', '12'],
+                      labelBuilder: (g) =>
+                          (g == 'All Grades' || g.toLowerCase().startsWith('grade'))
+                              ? g
+                              : 'Grade $g',
+                      onChanged: (v) =>
+                          setDialogState(() => _pendingGradeLevel = v!),
+                    ),
+                  ),
+
+                  _buildDivider(isDark),
+
+                  // School Year
+                  _buildFilterSection(
+                    label: 'School Year',
+                    hasActiveFilter: _pendingSchoolYear != 'All Years',
+                    onReset: () =>
+                        setDialogState(() => _pendingSchoolYear = 'All Years'),
+                    child: _buildFilterDropdown(
+                      value: years.contains(_pendingSchoolYear)
+                          ? _pendingSchoolYear
+                          : 'All Years',
+                      items: years,
+                      onChanged: (v) =>
+                          setDialogState(() => _pendingSchoolYear = v!),
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
 
-          const Divider(height: 1, indent: 20, endIndent: 20),
-
-          _buildFilterSection(
-            label: 'Document Type',
-            onReset: () =>
-                setDialogState(() => _pendingDocumentType = 'All Types'),
-            child: _buildFilterDropdown(
-              value: docTypes.contains(_pendingDocumentType)
-                  ? _pendingDocumentType
-                  : 'All Types',
-              items: docTypes,
-              onChanged: (v) => setDialogState(() => _pendingDocumentType = v!),
-            ),
+          Divider(
+            height: 1,
+            thickness: 1,
+            color: isDark ? AppColors.darkBorder : Colors.grey.shade200,
           ),
 
-          const Divider(height: 1, indent: 20, endIndent: 20),
-
-          _buildFilterSection(
-            label: 'Grade Level',
-            onReset: () =>
-                setDialogState(() => _pendingGradeLevel = 'All Grades'),
-            child: _buildFilterDropdown(
-              value: _pendingGradeLevel,
-              items: const ['All Grades', '7', '8', '9', '10', '11', '12'],
-              onChanged: (v) => setDialogState(() => _pendingGradeLevel = v!),
-            ),
-          ),
-
-          const Divider(height: 1, indent: 20, endIndent: 20),
-
-          _buildFilterSection(
-            label: 'School Year',
-            onReset: () =>
-                setDialogState(() => _pendingSchoolYear = 'All Years'),
-            child: _buildFilterDropdown(
-              value: years.contains(_pendingSchoolYear)
-                  ? _pendingSchoolYear
-                  : 'All Years',
-              items: years,
-              onChanged: (v) => setDialogState(() => _pendingSchoolYear = v!),
-            ),
-          ),
-
+          // Footer buttons (Fixed at bottom)
           Padding(
-            padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
+            padding: const EdgeInsets.fromLTRB(20, 14, 20, 16),
             child: Row(
               children: [
+                // Reset all
                 Expanded(
                   child: OutlinedButton(
                     style: OutlinedButton.styleFrom(
-                      foregroundColor: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
-                      side: BorderSide(color: isDark ? AppColors.darkBorder : Colors.grey.shade300),
+                      foregroundColor: isDark
+                          ? AppColors.darkTextSecondary
+                          : AppColors.textSecondary,
+                      side: BorderSide(
+                        color: isDark
+                            ? AppColors.darkBorder
+                            : Colors.grey.shade300,
+                      ),
                       padding: const EdgeInsets.symmetric(vertical: 12),
                       shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8),
+                        borderRadius: BorderRadius.circular(10),
                       ),
                     ),
                     onPressed: () {
@@ -1096,11 +1187,15 @@ class _ArchivesScreenState extends ConsumerState<ArchivesScreen>
                     },
                     child: const Text(
                       'Reset all',
-                      style: TextStyle(fontWeight: FontWeight.w600),
+                      style: TextStyle(
+                        fontWeight: FontWeight.w600,
+                        fontSize: 13.5,
+                      ),
                     ),
                   ),
                 ),
                 const SizedBox(width: 12),
+                // Apply
                 Expanded(
                   flex: 2,
                   child: ElevatedButton(
@@ -1109,7 +1204,7 @@ class _ArchivesScreenState extends ConsumerState<ArchivesScreen>
                       foregroundColor: Colors.white,
                       padding: const EdgeInsets.symmetric(vertical: 12),
                       shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8),
+                        borderRadius: BorderRadius.circular(10),
                       ),
                       elevation: 0,
                     ),
@@ -1124,7 +1219,7 @@ class _ArchivesScreenState extends ConsumerState<ArchivesScreen>
                       onApply();
                     },
                     child: const Text(
-                      'Apply now',
+                      'Apply Filters',
                       style: TextStyle(
                         fontWeight: FontWeight.w700,
                         fontSize: 14,
@@ -1140,14 +1235,74 @@ class _ArchivesScreenState extends ConsumerState<ArchivesScreen>
     );
   }
 
+  Widget _buildDivider(bool isDark) {
+    return Divider(
+      height: 1,
+      indent: 20,
+      endIndent: 20,
+      color: isDark
+          ? AppColors.darkBorder.withValues(alpha: 0.5)
+          : Colors.grey.shade100,
+    );
+  }
+
+  Widget _buildFilterChipGroup({
+    required List<String> items,
+    required String selectedValue,
+    required ValueChanged<String> onSelected,
+  }) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    return Wrap(
+      spacing: 8,
+      runSpacing: 8,
+      children: items.map((item) {
+        final isSelected = item == selectedValue;
+        return ChoiceChip(
+          label: Text(
+            item,
+            style: TextStyle(
+              fontSize: 12.5,
+              fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+              color: isSelected
+                  ? AppColors.primaryGreen
+                  : (isDark
+                      ? AppColors.darkTextPrimary
+                      : AppColors.textPrimary),
+            ),
+          ),
+          selected: isSelected,
+          onSelected: (selected) {
+            if (selected) {
+              onSelected(item);
+            }
+          },
+          selectedColor: AppColors.primaryGreen.withValues(alpha: 0.12),
+          backgroundColor:
+              isDark ? AppColors.darkSurface2 : Colors.grey.shade100,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+            side: BorderSide(
+              color: isSelected
+                  ? AppColors.primaryGreen
+                  : (isDark ? AppColors.darkBorder : Colors.grey.shade300),
+              width: 1,
+            ),
+          ),
+          showCheckmark: false,
+        );
+      }).toList(),
+    );
+  }
+
   Widget _buildFilterSection({
     required String label,
     required VoidCallback onReset,
     required Widget child,
+    bool hasActiveFilter = false,
   }) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -1159,21 +1314,30 @@ class _ArchivesScreenState extends ConsumerState<ArchivesScreen>
                 style: TextStyle(
                   fontSize: 13,
                   fontWeight: FontWeight.w600,
-                  color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
+                  color: isDark
+                      ? AppColors.darkTextPrimary
+                      : AppColors.textPrimary,
                 ),
               ),
-              InkWell(
-                onTap: onReset,
-                borderRadius: BorderRadius.circular(4),
-                child: Text(
-                  'Reset',
-                  style: TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w500,
-                    color: isDark ? AppColors.darkTextMuted : AppColors.textMuted,
+              if (hasActiveFilter)
+                GestureDetector(
+                  onTap: onReset,
+                  behavior: HitTestBehavior.opaque,
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 4,
+                      vertical: 2,
+                    ),
+                    child: const Text(
+                      'Reset',
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.primaryGreen,
+                      ),
+                    ),
                   ),
                 ),
-              ),
             ],
           ),
           const SizedBox(height: 8),
@@ -1186,38 +1350,86 @@ class _ArchivesScreenState extends ConsumerState<ArchivesScreen>
   Widget _buildFilterDropdown({
     required String value,
     required List<String> items,
-    required ValueChanged<String?> onChanged,
+    String Function(String)? labelBuilder,
+    ValueChanged<String?>? onChanged,
+    String? hint,
+    bool enabled = true,
   }) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final safeValue = items.contains(value) ? value : items.first;
+    final safeValue = items.contains(value) ? value : items.firstOrNull;
+
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 2),
       decoration: BoxDecoration(
-        color: isDark ? AppColors.darkSurfaceCard : AppColors.surfaceWhite,
-        border: Border.all(color: isDark ? AppColors.darkBorder : Colors.grey.shade300),
-        borderRadius: BorderRadius.circular(8),
+        color: enabled
+            ? (isDark ? AppColors.darkSurface2 : AppColors.surfaceWhite)
+            : (isDark ? AppColors.darkSurfaceCard : Colors.grey.shade100),
+        border: Border.all(
+          color: enabled
+              ? (isDark ? AppColors.darkBorder : Colors.grey.shade300)
+              : (isDark
+                  ? AppColors.darkBorder.withValues(alpha: 0.5)
+                  : Colors.grey.shade200),
+        ),
+        borderRadius: BorderRadius.circular(10),
       ),
       child: DropdownButtonHideUnderline(
         child: DropdownButton<String>(
           value: safeValue,
           isExpanded: true,
-          isDense: true,
-          style: TextStyle(fontSize: 14, color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary),
+          menuMaxHeight: 260,
+          borderRadius: BorderRadius.circular(12),
+          dropdownColor: isDark ? AppColors.darkSurfaceCard : Colors.white,
+          elevation: 4,
           icon: Icon(
-            Icons.keyboard_arrow_down,
-            color: isDark ? AppColors.darkTextMuted : AppColors.textMuted,
-            size: 20,
+            Icons.keyboard_arrow_down_rounded,
+            color: enabled
+                ? (isDark
+                    ? AppColors.darkTextSecondary
+                    : AppColors.textSecondary)
+                : (isDark ? AppColors.darkTextMuted : AppColors.textMuted),
+            size: 22,
           ),
-          items: items
-              .map(
-                (i) => DropdownMenuItem(
-                  value: i,
-                  child: Text(i, style: const TextStyle(fontSize: 14)),
+          hint: hint != null
+              ? Text(
+                  hint,
+                  style: TextStyle(
+                    fontSize: 13.5,
+                    color: isDark ? AppColors.darkTextMuted : AppColors.textMuted,
+                  ),
+                )
+              : null,
+          style: TextStyle(
+            fontSize: 13.5,
+            fontWeight: FontWeight.w500,
+            color: enabled
+                ? (isDark ? AppColors.darkTextPrimary : AppColors.textPrimary)
+                : (isDark ? AppColors.darkTextMuted : AppColors.textMuted),
+          ),
+          items: items.map((item) {
+            final displayLabel =
+                labelBuilder != null ? labelBuilder(item) : item;
+            final isItemActive = item == safeValue;
+            return DropdownMenuItem<String>(
+              value: item,
+              child: Text(
+                displayLabel,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  fontSize: 13.5,
+                  fontWeight:
+                      isItemActive ? FontWeight.w600 : FontWeight.w400,
+                  color: isItemActive
+                      ? AppColors.primaryGreen
+                      : (isDark
+                          ? AppColors.darkTextPrimary
+                          : AppColors.textPrimary),
                 ),
-              )
-              .toList(),
-          onChanged: onChanged,
+              ),
+            );
+          }).toList(),
+          onChanged: enabled ? onChanged : null,
         ),
       ),
     );
