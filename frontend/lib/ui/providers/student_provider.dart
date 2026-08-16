@@ -174,6 +174,29 @@ class StudentQueryNotifier extends Notifier<StudentQueryParams> {
     page: 1,
   );
 
+  void setFilters({
+    String? schoolYear,
+    String? gradeLevel,
+    String? section,
+    String? status,
+    String? is4Ps,
+    String? sortBy,
+    String? sortOrder,
+    int? limit,
+  }) {
+    state = state.copyWith(
+      schoolYear: schoolYear ?? state.schoolYear,
+      gradeLevel: gradeLevel ?? state.gradeLevel,
+      section: section ?? state.section,
+      status: status ?? state.status,
+      is4Ps: is4Ps ?? state.is4Ps,
+      sortBy: sortBy ?? state.sortBy,
+      sortOrder: sortOrder ?? state.sortOrder,
+      limit: limit ?? state.limit,
+      page: 1,
+    );
+  }
+
   void reset() => state = const StudentQueryParams();
 }
 
