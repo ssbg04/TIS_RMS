@@ -14,6 +14,7 @@ import '../../layouts/android_bottom_nav_layout.dart';
 import '../../providers/auth_provider.dart';
 import '../../../core/services/foreground_sync_service.dart';
 import '../../shared/widgets/abstract_background.dart';
+import '../../shared/widgets/app_button_loader.dart';
 
 class SplashScreen extends ConsumerStatefulWidget {
   const SplashScreen({super.key});
@@ -324,15 +325,10 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
                       const SizedBox(height: 40),
 
                       // Smooth Loading Spinner
-                      const SizedBox(
-                        width: 28,
-                        height: 28,
-                        child: CircularProgressIndicator(
-                          valueColor: AlwaysStoppedAnimation<Color>(
-                            AppColors.primaryGreen,
-                          ),
-                          strokeWidth: 2.6,
-                        ),
+                      const AppButtonLoader(
+                        size: 28,
+                        strokeWidth: 2.6,
+                        color: AppColors.primaryGreen,
                       ),
                       const SizedBox(height: 18),
 

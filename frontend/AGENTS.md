@@ -179,10 +179,40 @@ Files backup/restore - mirror mode or zip -->
 
 <!-- # VIBRATION FEATURE
 - android: add haptic feedback for android, add dynamic vibrate/normal vibrate for all success, error, info dialogs, dynamic vibrate depends what dialog it is -->
+<!-- 
+# DOCUMENTS SCREEN
+- filter modal: remove status filter for verified, draft and pending
 
-# REPORTS SCREEN
-- DEPED TRANSPARENCY BOARD -> 
-- Compliance & Analytics -> use basic words, simple and easy to understand, not professional -> make the design not AI slop -> make the tables responsive for all devices
+# SETTINGS SCREEN
+- Academic year ...  -> font color for "Check/Run Auto... now" white in dark theme and black in light theme -->
+<!-- 
+# DASHBOARD SCREEN
+- recent activites:
+  - update: enrollment description -> [year] - [grade level] - [section] - student [full name] - [LRN last 4 digits then first as bullet point]
+  - add: filter modal -> entity type of enrollments and user -->
+
+<!-- # STUDENT SCREEN
+- rename: filter modal 'Item per page' to 'Students per Page'
+- student profile -> add fixed margin for modal so the loading makes the loading modal smaller then bigger
+- ADD/EDIT STUDENT -> update the date of birth dont add automatic year only automatic hyphen, make deletable too
+- add margin bellow of 4Ps toggle
+--->
+
+<!-- # STUDENT SCREEN
+- Add new student modal -> Academic year fix need to reselect before selecting a section (done) -> grade level need to reselect to select section  -->
+
+<!-- # SPLASH ANIMATION
+- use the backdrop and detects landscape/portrait and device theme (light or dark)
+- remove the server connection loading, instead show entertaining loading words -->
+
+<!-- # LOGIN SCREEN
+- Login section background color -> add animation transparency but not too transparent its like blur after the full screen animation -->
+
+<!-- # ALL CIRCULAR LOADING IN BUTTON
+- make loading not oblong render it fully circle  -->
+
+# NATIVE SPLASH SCREEN IN ANDROID APP
+- use 
 
 ---
 
