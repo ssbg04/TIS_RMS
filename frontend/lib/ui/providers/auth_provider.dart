@@ -9,6 +9,7 @@ import 'navigation_provider.dart';
 import 'reports_provider.dart';
 import 'connected_users_provider.dart';
 import '../../core/services/foreground_sync_service.dart';
+import '../../core/services/fcm_service.dart';
 
 final authRepositoryProvider = Provider<AuthRepository>(
   (ref) => AuthRepository(),
@@ -40,6 +41,7 @@ class AuthNotifier extends AsyncNotifier<UserModel?> {
       state = AsyncData(user);
       ref.read(heartbeatServiceProvider).start(user);
       ForegroundSyncService.start();
+      FcmService.registerToken();
       return true;
     } catch (e, st) {
       state = AsyncError(e, st);
@@ -56,6 +58,7 @@ class AuthNotifier extends AsyncNotifier<UserModel?> {
         state = AsyncData(user);
         ref.read(heartbeatServiceProvider).start(user);
         ForegroundSyncService.start();
+        FcmService.registerToken();
       }
       return user;
     } catch (_) {

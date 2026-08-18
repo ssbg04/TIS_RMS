@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'dart:io' show Platform;
 import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:firebase_core/firebase_core.dart';
 import 'package:window_manager/window_manager.dart';
 
 // UI Imports
@@ -14,6 +15,7 @@ import 'core/constants/app_colors.dart';
 import 'core/services/notification_service.dart';
 import 'core/services/background_sync_service.dart';
 import 'core/services/foreground_sync_service.dart';
+import 'core/services/fcm_service.dart';
 import 'ui/providers/theme_provider.dart';
 import 'ui/shared/widgets/inactivity_wrapper.dart';
 import 'package:workmanager/workmanager.dart';
@@ -69,6 +71,12 @@ void main() async {
 
   await NotificationService().initialize();
   await ForegroundSyncService.init();
+
+  // Firebase / FCM — graceful no-op if google-services.json not yet added
+  try {
+    await Firebase.initializeApp();
+    await FcmService.initialize();
+  } catch (_) {}
 
   if (!kIsWeb && (Platform.isAndroid || Platform.isIOS)) {
     Workmanager().initialize(callbackDispatcher);
