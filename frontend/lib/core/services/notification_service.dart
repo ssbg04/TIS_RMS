@@ -14,8 +14,8 @@ class NotificationService {
   Future<void> initialize() async {
     if (_initialized) return;
 
-    // We skip initialization on Web
-    if (kIsWeb) {
+    // Skip on Web and Windows (flutter_local_notifications does not support Windows platform interface)
+    if (kIsWeb || Platform.isWindows) {
       _initialized = true;
       return;
     }
@@ -23,9 +23,6 @@ class NotificationService {
     const AndroidInitializationSettings initializationSettingsAndroid =
         AndroidInitializationSettings('@mipmap/ic_launcher');
 
-    // For Windows, initialization settings can be empty if not required by specific windows plugin,
-    // flutter_local_notifications natively supports windows.
-    // We will just use the default initialization settings for other platforms.
     const DarwinInitializationSettings initializationSettingsDarwin =
         DarwinInitializationSettings(
           requestAlertPermission: true,
@@ -43,32 +40,34 @@ class NotificationService {
           linux: initializationSettingsLinux,
         );
 
-    await _flutterLocalNotificationsPlugin.initialize(
-      initializationSettings,
-      onDidReceiveNotificationResponse:
-          (NotificationResponse notificationResponse) {
-            // Handle notification tapped logic here if needed
-          },
-    );
-
-    if (!kIsWeb && Platform.isAndroid) {
-      final AndroidFlutterLocalNotificationsPlugin? androidImplementation =
-          _flutterLocalNotificationsPlugin
-              .resolvePlatformSpecificImplementation<
-                AndroidFlutterLocalNotificationsPlugin
-              >();
-      await androidImplementation?.requestNotificationsPermission();
-
-      const AndroidNotificationChannel channel = AndroidNotificationChannel(
-        'tis_rms_activities_channel',
-        'Recent Activities',
-        description: 'Notifications for recent activities and system events',
-        importance: Importance.max,
-        playSound: true,
-        enableVibration: true,
+    try {
+      await _flutterLocalNotificationsPlugin.initialize(
+        initializationSettings,
+        onDidReceiveNotificationResponse:
+            (NotificationResponse notificationResponse) {
+              // Handle notification tapped logic here if needed
+            },
       );
-      await androidImplementation?.createNotificationChannel(channel);
-    }
+
+      if (Platform.isAndroid) {
+        final AndroidFlutterLocalNotificationsPlugin? androidImplementation =
+            _flutterLocalNotificationsPlugin
+                .resolvePlatformSpecificImplementation<
+                  AndroidFlutterLocalNotificationsPlugin
+                >();
+        await androidImplementation?.requestNotificationsPermission();
+
+        const AndroidNotificationChannel channel = AndroidNotificationChannel(
+          'tis_rms_activities_channel',
+          'Recent Activities',
+          description: 'Notifications for recent activities and system events',
+          importance: Importance.max,
+          playSound: true,
+          enableVibration: true,
+        );
+        await androidImplementation?.createNotificationChannel(channel);
+      }
+    } catch (_) {}
 
     _initialized = true;
   }
@@ -80,10 +79,10 @@ class NotificationService {
     required String title,
     required String body,
   }) async {
-    if (!_initialized) await initialize();
+    // Skip on Web and Windows
+    if (kIsWeb || Platform.isWindows) return;
 
-    // Do nothing on web
-    if (kIsWeb) return;
+    if (!_initialized) await initialize();
 
     // Deduplication check (prevents duplicate triggers from FCM + Polling + Stream)
     final dedupeKey = '${id ?? ''}_${title.trim()}_${body.trim()}';
