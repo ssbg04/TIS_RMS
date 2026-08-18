@@ -230,7 +230,7 @@ exports.getAllStudents = (req, res) => {
             ${enrollmentJoin}
             ${whereClause}
         `;
-        const total = db.prepare(countSql).get(...buildParams());
+        const total = db.prepare(countSql).get(buildParams()).total;
 
         const orderDir = (sortOrder || '').toLowerCase() === 'desc' ? 'DESC' : 'ASC';
         let orderByClause = `ORDER BY s.last_name ASC, s.first_name ASC`;
@@ -268,7 +268,7 @@ exports.getAllStudents = (req, res) => {
             LIMIT ? OFFSET ?
         `;
 
-        const students = db.prepare(fetchSql).all(...buildParams(limitNum, offset));
+        const students = db.prepare(fetchSql).all(buildParams(limitNum, offset));
 
         // ---- Attach missingDocumentsCount badge ----
         const studentsWithBadges = students.map(student => {
