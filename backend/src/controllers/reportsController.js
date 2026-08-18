@@ -84,9 +84,9 @@ exports.getStats = (req, res) => {
                 )
             WHERE r.is_enabled = 1
               AND r.is_mandatory = 1
-              AND (
-                  (r.category = 'JHS' AND e.grade_level BETWEEN 7 AND 10)
-                  OR (r.category = 'SHS' AND e.grade_level BETWEEN 11 AND 12)
+              AND r.category IN (
+                  SELECT DISTINCT CASE WHEN grade_level <= 10 THEN 'JHS' ELSE 'SHS' END
+                  FROM enrollments WHERE student_id = s.id
               )
               ${whereSql}
               AND NOT EXISTS (
@@ -117,9 +117,9 @@ exports.getStats = (req, res) => {
                        FROM document_requirements r
                        WHERE r.is_enabled = 1
                          AND r.is_mandatory = 1
-                         AND (
-                             (r.category = 'JHS' AND e_latest.grade_level BETWEEN 7 AND 10)
-                             OR (r.category = 'SHS' AND e_latest.grade_level BETWEEN 11 AND 12)
+                         AND r.category IN (
+                             SELECT DISTINCT CASE WHEN grade_level <= 10 THEN 'JHS' ELSE 'SHS' END
+                             FROM enrollments WHERE student_id = s.id
                          )
                          AND NOT EXISTS (
                              SELECT 1 FROM documents d 
@@ -134,9 +134,9 @@ exports.getStats = (req, res) => {
                        FROM document_requirements r
                        WHERE r.is_enabled = 1
                          AND r.is_mandatory = 1
-                         AND (
-                             (r.category = 'JHS' AND e_latest.grade_level BETWEEN 7 AND 10)
-                             OR (r.category = 'SHS' AND e_latest.grade_level BETWEEN 11 AND 12)
+                         AND r.category IN (
+                             SELECT DISTINCT CASE WHEN grade_level <= 10 THEN 'JHS' ELSE 'SHS' END
+                             FROM enrollments WHERE student_id = s.id
                          )
                          AND NOT EXISTS (
                              SELECT 1 FROM documents d 
