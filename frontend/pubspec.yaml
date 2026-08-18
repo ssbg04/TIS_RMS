@@ -104,6 +104,7 @@ flutter:
     - assets/images/
     - assets/images/logo.png
     - assets/images/backdrop.png
+    - assets/images/backdrop-2.png
     - assets/images/backdrop_light_landscape.png
     - assets/images/backdrop_light_portrait.png
     - assets/images/backdrop_dark_landscape.png
