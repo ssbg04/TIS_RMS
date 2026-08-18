@@ -72,11 +72,13 @@ void main() async {
   await NotificationService().initialize();
   await ForegroundSyncService.init();
 
-  // Firebase / FCM — graceful no-op if google-services.json not yet added
-  try {
-    await Firebase.initializeApp();
-    await FcmService.initialize();
-  } catch (_) {}
+  // Firebase / FCM — only on Android/iOS mobile devices
+  if (!kIsWeb && (Platform.isAndroid || Platform.isIOS)) {
+    try {
+      await Firebase.initializeApp();
+      await FcmService.initialize();
+    } catch (_) {}
+  }
 
   if (!kIsWeb && (Platform.isAndroid || Platform.isIOS)) {
     Workmanager().initialize(callbackDispatcher);
