@@ -237,6 +237,15 @@ class _EditStudentModalState extends ConsumerState<EditStudentModal> {
     return grade == 10 || grade == 12;
   }
 
+  List<String> get _availableStatuses {
+    if (_hasGraduationEligibleGrade() ||
+        _selectedStatus == 'Graduated' ||
+        _initialStudent.status == 'Graduated') {
+      return _statuses;
+    }
+    return _statuses.where((s) => s != 'Graduated').toList();
+  }
+
   int? _getLatestGradeLevel() {
     if (_loadedEnrollments != null && _loadedEnrollments!.isNotEmpty) {
       final latestEnrollment = _loadedEnrollments!.reduce((a, b) {
@@ -279,6 +288,11 @@ class _EditStudentModalState extends ConsumerState<EditStudentModal> {
         );
         return;
       }
+    }
+
+    if (!_hasChanges) {
+      Navigator.of(context).pop(false);
+      return;
     }
 
     setState(() => _isLoading = true);
@@ -375,14 +389,22 @@ class _EditStudentModalState extends ConsumerState<EditStudentModal> {
                   },
                 );
 
+                final isEligibleForGraduation =
+                    _hasGraduationEligibleGrade() ||
+                    _initialStudent.status == 'Graduated';
+                final currentGrade = _getLatestGradeLevel();
+
                 final statusDropdown = DropdownButtonFormField<String>(
                   key: ValueKey('edit_status_dropdown_${_selectedStatus}_$_statusDropdownKey'),
                   initialValue: _selectedStatus,
-                  decoration: const InputDecoration(
+                  decoration: InputDecoration(
                     labelText: 'STATUS',
-                    prefixIcon: Icon(Icons.info_outline),
+                    prefixIcon: const Icon(Icons.info_outline),
+                    helperText: !isEligibleForGraduation
+                        ? 'Graduation requires Grade 10 or 12 (${currentGrade != null ? 'Grade $currentGrade' : 'No Grade 10/12'})'
+                        : null,
                   ),
-                  items: _statuses
+                  items: _availableStatuses
                       .map((s) => DropdownMenuItem(value: s, child: Text(s)))
                       .toList(),
                   onChanged: (v) {

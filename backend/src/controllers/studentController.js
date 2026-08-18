@@ -758,6 +758,19 @@ exports.bulkStatusStudents = (req, res) => {
     if (!status || !['Enrolled', 'Graduated', 'Transferred', 'Dropped', 'Inactive'].includes(status)) {
         return res.status(400).json({ message: 'Invalid status value' });
     }
+    if (status === 'Graduated') {
+        const eligibleStudents = db.prepare(`
+            SELECT DISTINCT s.id
+            FROM students s
+            JOIN enrollments e ON s.id = e.student_id
+            WHERE s.id IN (${studentIds.map(() => '?').join(',')})
+              AND e.grade_level IN (10, 12)
+        `).all(...studentIds);
+        const eligibleIds = eligibleStudents.map(s => s.id);
+        if (eligibleIds.length === 0) {
+            return res.status(400).json({ message: 'None of the selected students are enrolled in Grade 10 or Grade 12 to be marked as Graduated.' });
+        }
+    }
     try {
         db.transaction(() => {
             const stmt = db.prepare('UPDATE students SET status = ? WHERE id = ?');
