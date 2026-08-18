@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_sizes.dart';
+import '../../../core/services/haptic_service.dart';
 
 /// Shows a reusable success dialog.
 ///
@@ -21,6 +22,7 @@ Future<void> showSuccessDialog(
   VoidCallback? onDismissed,
   String? filePath,
 }) {
+  HapticService.success();
   return showDialog<void>(
     context: context,
     barrierDismissible: false,

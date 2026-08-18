@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../../core/constants/app_colors.dart';
+import '../../../core/services/haptic_service.dart';
 
 class CustomModal extends StatelessWidget {
   final String title;
@@ -28,6 +29,7 @@ class CustomModal extends StatelessWidget {
     double maxWidth = 620,
     VoidCallback? onClose,
   }) {
+    HapticService.medium();
     return showDialog<T>(
       context: context,
       barrierColor: Colors.black.withValues(alpha: 0.45),

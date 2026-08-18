@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_sizes.dart';
+import '../../../core/services/haptic_service.dart';
 
 /// Shows a reusable error dialog.
 ///
@@ -17,6 +18,7 @@ void showErrorDialog(
   String buttonLabel = 'OK',
   VoidCallback? onDismissed,
 }) {
+  HapticService.error();
   showDialog(
     context: context,
     barrierDismissible: false,

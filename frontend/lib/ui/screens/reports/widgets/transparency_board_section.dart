@@ -36,6 +36,7 @@ class _TransparencyBoardSectionState
     final asyncData = ref.watch(transparencyBoardProvider);
 
     return asyncData.when(
+      skipLoadingOnReload: true,
       loading:
           () => const Center(
             child: Padding(

@@ -502,6 +502,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
 
                 if (_selectedViewMode == 1 || _selectedViewMode == 2) ...[
                   statsAsync.when(
+                    skipLoadingOnReload: true,
                     loading: () => const Center(
                       child: Padding(
                         padding: EdgeInsets.all(100),
@@ -959,6 +960,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                           final filterWidgets = [
                             // Dropdown 1: Academic Year
                             yearsAsync.when(
+                              skipLoadingOnReload: true,
                               loading: () => const SizedBox(
                                 height: 48,
                                 child: Center(
@@ -3017,6 +3019,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
 
           // ── Underline Filter Dropdown Row ─────────────────────────────────
           yearlyAsync.when(
+            skipLoadingOnReload: true,
             loading: () => const SizedBox.shrink(),
             error: (_, e) => const SizedBox.shrink(),
             data: (allData) {
@@ -3075,6 +3078,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
 
           // ── Chart ─────────────────────────────────────────────────────────
           yearlyAsync.when(
+            skipLoadingOnReload: true,
             loading: () => const Center(
               child: Padding(
                 padding: EdgeInsets.all(32),

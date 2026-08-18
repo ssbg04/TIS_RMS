@@ -174,6 +174,12 @@ Files backup/restore - mirror mode or zip -->
 <!-- # ANDROID APP PUSH NOTIFICATION
 - notication only works when the app is open, make it work even the app is not opened -->
 
+<!-- # REPORTS SCREEN
+- fix all data in compliance sections not fetched from the backend realtime -->
+
+<!-- # VIBRATION FEATURE
+- android: add haptic feedback for android, add dynamic vibrate/normal vibrate for all success, error, info dialogs, dynamic vibrate depends what dialog it is -->
+
 ---
 
 # TIS_RMS Server Manager (dont do)

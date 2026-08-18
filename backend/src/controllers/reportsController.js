@@ -50,7 +50,14 @@ exports.getStats = (req, res) => {
                 COUNT(DISTINCT CASE WHEN s.status = 'Graduated' THEN s.id END) as graduated,
                 COUNT(DISTINCT CASE WHEN s.is_4ps = 1 THEN s.id END) as fourPs
             FROM students s
-            LEFT JOIN enrollments e ON s.id = e.student_id
+            JOIN enrollments e ON s.id = e.student_id
+                AND e.id = (
+                    SELECT e2.id FROM enrollments e2
+                    JOIN academic_years ay ON e2.academic_year_id = ay.id
+                    WHERE e2.student_id = s.id
+                      ${academicYearId ? 'AND e2.academic_year_id = ' + Number(academicYearId) : ''}
+                    ORDER BY ay.year_range DESC, e2.grade_level DESC, e2.id DESC LIMIT 1
+                )
             WHERE 1=1 ${enrollWhereSql}
         `;
         const studentCounts = db.prepare(countsQuery).get(enrollParams);
@@ -61,6 +68,13 @@ exports.getStats = (req, res) => {
             FROM document_requirements r
             CROSS JOIN students s
             JOIN enrollments e ON s.id = e.student_id
+                AND e.id = (
+                    SELECT e2.id FROM enrollments e2
+                    JOIN academic_years ay ON e2.academic_year_id = ay.id
+                    WHERE e2.student_id = s.id
+                      ${academicYearId ? 'AND e2.academic_year_id = ' + Number(academicYearId) : ''}
+                    ORDER BY ay.year_range DESC, e2.grade_level DESC, e2.id DESC LIMIT 1
+                )
             WHERE r.is_enabled = 1
               AND (
                   (r.category = 'JHS' AND e.grade_level BETWEEN 7 AND 10)
@@ -72,6 +86,7 @@ exports.getStats = (req, res) => {
                   WHERE d.student_id = s.id 
                     AND d.requirement_id = r.id 
                     AND d.status IN ('Completed', 'Archived')
+                    AND d.deleted_at IS NULL
               )
             GROUP BY r.id, r.category, r.name
             ORDER BY count DESC
@@ -94,14 +109,15 @@ exports.getStats = (req, res) => {
                        FROM document_requirements r
                        WHERE r.is_enabled = 1
                          AND (
-                             (r.category = 'JHS' AND EXISTS (SELECT 1 FROM enrollments WHERE student_id = s.id AND grade_level <= 10))
-                             OR (r.category = 'SHS' AND EXISTS (SELECT 1 FROM enrollments WHERE student_id = s.id AND grade_level > 10))
+                             (r.category = 'JHS' AND e_latest.grade_level BETWEEN 7 AND 10)
+                             OR (r.category = 'SHS' AND e_latest.grade_level BETWEEN 11 AND 12)
                          )
                          AND NOT EXISTS (
                              SELECT 1 FROM documents d 
                              WHERE d.student_id = s.id 
                                AND d.requirement_id = r.id 
                                AND d.status IN ('Completed', 'Archived')
+                               AND d.deleted_at IS NULL
                          )
                    ) as missing_count,
                    (
@@ -109,14 +125,15 @@ exports.getStats = (req, res) => {
                        FROM document_requirements r
                        WHERE r.is_enabled = 1
                          AND (
-                             (r.category = 'JHS' AND EXISTS (SELECT 1 FROM enrollments WHERE student_id = s.id AND grade_level <= 10))
-                             OR (r.category = 'SHS' AND EXISTS (SELECT 1 FROM enrollments WHERE student_id = s.id AND grade_level > 10))
+                             (r.category = 'JHS' AND e_latest.grade_level BETWEEN 7 AND 10)
+                             OR (r.category = 'SHS' AND e_latest.grade_level BETWEEN 11 AND 12)
                          )
                          AND NOT EXISTS (
                              SELECT 1 FROM documents d 
                              WHERE d.student_id = s.id 
                                AND d.requirement_id = r.id 
                                AND d.status IN ('Completed', 'Archived')
+                               AND d.deleted_at IS NULL
                          )
                    ) as missing_requirements
             FROM students s
@@ -125,6 +142,7 @@ exports.getStats = (req, res) => {
                     SELECT e2.id FROM enrollments e2
                     JOIN academic_years ay ON e2.academic_year_id = ay.id
                     WHERE e2.student_id = s.id
+                      ${academicYearId ? 'AND e2.academic_year_id = ' + Number(academicYearId) : ''}
                     ORDER BY ay.year_range DESC, e2.grade_level DESC, e2.id DESC LIMIT 1
                 )
             LEFT JOIN sections sec ON e_latest.section_id = sec.id
@@ -227,7 +245,7 @@ exports.getExportData = (req, res) => {
                        COUNT(CASE WHEN d.status = 'Archived' THEN 1 END) as archived_docs
                 FROM students s
                 JOIN enrollments e ON s.id = e.student_id AND e.academic_year_id = ?
-                LEFT JOIN documents d ON s.id = d.student_id
+                LEFT JOIN documents d ON s.id = d.student_id AND d.deleted_at IS NULL
                 GROUP BY s.id
                 ORDER BY s.last_name ASC
                 LIMIT 500
@@ -246,7 +264,7 @@ exports.getExportData = (req, res) => {
                         WHERE e2.student_id = s.id
                         ORDER BY ay.year_range DESC, e2.grade_level DESC, e2.id DESC LIMIT 1
                     )
-                LEFT JOIN documents d ON s.id = d.student_id
+                LEFT JOIN documents d ON s.id = d.student_id AND d.deleted_at IS NULL
                 GROUP BY s.id
                 ORDER BY s.last_name ASC
                 LIMIT 500

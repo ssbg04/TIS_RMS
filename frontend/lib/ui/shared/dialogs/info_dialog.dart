@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_sizes.dart';
+import '../../../core/services/haptic_service.dart';
 
 /// Shows a reusable informational / warning dialog.
 ///
@@ -24,6 +25,16 @@ void showInfoDialog(
   VoidCallback? onDismissed,
 }) {
   final btnColor = buttonColor ?? iconColor;
+
+  if (iconColor == AppColors.error ||
+      iconColor == Colors.red ||
+      iconColor == Colors.orange ||
+      title.toLowerCase().contains('warning') ||
+      title.toLowerCase().contains('alert')) {
+    HapticService.warning();
+  } else {
+    HapticService.info();
+  }
 
   showDialog(
     context: context,
