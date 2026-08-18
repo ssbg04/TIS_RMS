@@ -4,26 +4,25 @@ This guide provides instructions for installing, building, and running the **TIS
 
 ---
 
-## 1. Android Installation (APK)
+## 1. Android Installation (Universal APK)
 
-The Android application is distributed as size-optimized APKs supporting both 32-bit and 64-bit architectures.
+The Android application is distributed as a single universal APK supporting both **32-bit (armeabi-v7a)** and **64-bit (arm64-v8a, x86_64)** devices.
 
-### Choosing the Right APK:
+### Universal APK:
 
 | APK File | Architecture | Description |
 | :--- | :--- | :--- |
-| **`app-arm64-v8a-release.apk`** | **64-bit ARM** | **Recommended** for modern Android smartphones and tablets (Android 7.0+). Smallest download (~27MB). |
-| **`app-armeabi-v7a-release.apk`** | **32-bit ARM** | For older smartphones or 32-bit budget Android devices (~25MB). |
-| **`app-release.apk`** | **Universal** | Contains all architectures in a single APK (~72MB). Use if unsure of device CPU architecture. |
+| **`TIS_RMS_Android_Universal.apk`** | **Universal (32-bit & 64-bit)** | Single standalone installer compatible with all modern and legacy Android devices (Android 7.0+). |
 
 ### Build Command (Flutter):
 ```bash
 cd frontend
-flutter build apk --split-per-abi --release --obfuscate --split-debug-info=build/app/outputs/symbols
+flutter build apk --release --obfuscate --split-debug-info=build/app/outputs/symbols
 ```
+*Output APK located in `frontend/build/app/outputs/flutter-apk/app-release.apk`.*
 
 ### Installation Steps:
-1. Transfer the selected `.apk` file to your Android phone/tablet (via USB, local network share, or download).
+1. Transfer `TIS_RMS_Android_Universal.apk` to your Android device (via USB, local network share, or download).
 2. Tap the `.apk` file in your file manager.
 3. If prompted, enable **"Install unknown apps"** or **"Allow from this source"** in Android Settings.
 4. Tap **Install** and open the app.
@@ -37,13 +36,11 @@ The Windows client runs natively on Windows 10 and Windows 11 (64-bit).
 
 ### Prerequisites:
 - **Microsoft Visual C++ 2015–2022 Redistributable (x64)** (usually pre-installed on Windows).
-- **Microsoft .NET Desktop Runtime 6.0/8.0+ (x64)** (for background services and desktop interop).
+- **Microsoft .NET Desktop Runtime 6.0/8.0+ (x64)** (automatically detected and installed by setup if missing).
 
 ---
 
 ### A. Building the Size-Optimized Windows Release
-
-To produce the smallest binary footprint while bundling the necessary engine dependencies:
 
 ```powershell
 cd frontend
@@ -62,15 +59,15 @@ flutter build windows --release --obfuscate --split-debug-info=build/windows/sym
 
 ### B. Compiling the Windows Inno Setup Installer (`TIS_RMS_Client.iss`)
 
-The installer script [`frontend/TIS_RMS_Client.iss`](file:///f:/SumbrerongBato/tis_rms_server/frontend/TIS_RMS_Client.iss) packages the app into a compact standalone setup file (`TIS_RMS_Client_Setup.exe`).
+The installer script [`frontend/TIS_RMS_Client.iss`](file:///f:/SumbrerongBato/tis_rms_server/frontend/TIS_RMS_Client.iss) packages the app into an ultra-compact standalone setup file (`TIS_RMS_Client_Setup.exe` ~**16.7 MB**).
 
 #### Features:
-- **Small File Size**: Uses `lzma2/ultra64` solid compression to exclude unneeded development debug `.lib` and `.exp` files.
+- **Small File Size (16.7 MB)**: Uses `lzma2/ultra64` solid 64MB dictionary compression.
+- **Automated .NET Runtime Setup**: Automatically checks for and installs Microsoft .NET Desktop Runtime silently if missing.
 - **Selectable Destination Path**: Lets the user choose where to install (defaults to `C:\Program Files\TIS RMS Client`).
 - **Desktop Shortcut Checkbox**: Optional checkbox on the tasks page to create a desktop shortcut with the official school icon logo.
 - **Start Menu & Uninstaller**: Registers a Start Menu program group and includes a clean uninstaller in Windows *Apps & Features* / *Settings*.
-- **No Auto-Start**: Does not create unwanted startup registry keys or background launch on boot.
-- **Dependency Checks**: Verifies system presence of Visual C++ Redistributable and .NET Desktop Runtime.
+- **No Auto-Start**: Does not create startup registry keys or background launch on boot.
 
 #### Compiling with Inno Setup CLI:
 ```powershell
