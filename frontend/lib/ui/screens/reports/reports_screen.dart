@@ -66,6 +66,12 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
           if (_scrollController.hasClients) {
             _scrollController.jumpTo(0.0);
           }
+          setState(() {
+            _rowsPerPage = 10;
+            _currentPage = 0;
+            _searchQuery = '';
+            _searchController.clear();
+          });
         }
       });
 
@@ -664,7 +670,11 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final isSelected = _selectedViewMode == index;
     return InkWell(
-        onTap: () => setState(() => _selectedViewMode = index),
+        onTap: () => setState(() {
+          _selectedViewMode = index;
+          _rowsPerPage = 10;
+          _currentPage = 0;
+        }),
         borderRadius: BorderRadius.circular(AppSizes.radiusMedium),
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 200),
