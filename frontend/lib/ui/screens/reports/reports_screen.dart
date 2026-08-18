@@ -36,7 +36,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
   Timer? _pollingTimer;
 
   int _currentPage = 0;
-  final int _rowsPerPage = 10;
+  int _rowsPerPage = 10;
   int _lastTotalRows = -1;
   int _selectedViewMode = 0; // 0: DepEd Transparency Board, 1: Compliance & Analytics, 2: Combined
 
@@ -2506,7 +2506,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
               },
             ),
           ),
-          if (totalPages > 1) ...[
+          if (totalRows > 0) ...[
             Divider(
               height: 1,
               color: isDark ? AppColors.darkBorder : null,
@@ -2519,74 +2519,125 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
               child: Wrap(
                 alignment: WrapAlignment.spaceBetween,
                 crossAxisAlignment: WrapCrossAlignment.center,
-                runSpacing: 8,
+                runSpacing: 10,
                 children: [
-                  Text(
-                    'Showing ${safeStartIndex + 1} - $safeEndIndex / $totalRows',
-                    style: TextStyle(
-                      color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
-                      fontSize: 11,
-                    ),
-                  ),
                   Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      IconButton(
-                        icon: const Icon(Icons.chevron_left, size: 20),
-                        onPressed: _currentPage > 0
-                            ? () => setState(() => _currentPage--)
-                            : null,
+                      Text(
+                        'Rows per page:',
+                        style: TextStyle(
+                          color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
+                          fontSize: 12,
+                        ),
                       ),
-                      ...List.generate(
-                        totalPages,
-                        (i) => i,
-                      ).where((p) => (p - _currentPage).abs() <= 2).map((p) {
-                        final isActive = p == _currentPage;
-                        return GestureDetector(
-                          onTap: () => setState(() => _currentPage = p),
-                          child: Container(
-                            width: 32,
-                            height: 32,
-                            margin:
-                                const EdgeInsets.symmetric(horizontal: 2),
-                            decoration: BoxDecoration(
-                              color: isActive
-                                  ? AppColors.primaryGreen
-                                  : Colors.transparent,
-                              borderRadius: BorderRadius.circular(6),
-                              border: isActive
-                                  ? null
-                                  : Border.all(
-                                      color: isDark
-                                          ? AppColors.darkBorder
-                                          : Colors.grey.shade300,
-                                    ),
-                            ),
-                            child: Center(
-                              child: Text(
-                                '${p + 1}',
-                                style: TextStyle(
-                                  fontSize: 13,
-                                  fontWeight: FontWeight.w600,
-                                  color: isActive
-                                      ? Colors.white
-                                      : (isDark
-                                          ? AppColors.darkTextSecondary
-                                          : AppColors.textSecondary),
-                                ),
-                              ),
-                            ),
+                      const SizedBox(width: 8),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: isDark ? AppColors.darkSurface2 : Colors.grey.shade100,
+                          borderRadius: BorderRadius.circular(6),
+                          border: Border.all(
+                            color: isDark ? AppColors.darkBorder : Colors.grey.shade300,
                           ),
-                        );
-                      }),
-                      IconButton(
-                        icon: const Icon(Icons.chevron_right, size: 20),
-                        onPressed: _currentPage < totalPages - 1
-                            ? () => setState(() => _currentPage++)
-                            : null,
+                        ),
+                        child: DropdownButtonHideUnderline(
+                          child: DropdownButton<int>(
+                            value: _rowsPerPage,
+                            isDense: true,
+                            dropdownColor: isDark ? AppColors.darkSurfaceCard : Colors.white,
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                              color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
+                            ),
+                            items: const [10, 25, 50, 100].map((count) {
+                              return DropdownMenuItem<int>(
+                                value: count,
+                                child: Text('$count'),
+                              );
+                            }).toList(),
+                            onChanged: (newCount) {
+                              if (newCount != null) {
+                                setState(() {
+                                  _rowsPerPage = newCount;
+                                  _currentPage = 0;
+                                });
+                              }
+                            },
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 16),
+                      Text(
+                        'Showing ${safeStartIndex + 1} - $safeEndIndex of $totalRows',
+                        style: TextStyle(
+                          color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
+                          fontSize: 12,
+                        ),
                       ),
                     ],
                   ),
+                  if (totalPages > 1)
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        IconButton(
+                          icon: const Icon(Icons.chevron_left, size: 20),
+                          onPressed: _currentPage > 0
+                              ? () => setState(() => _currentPage--)
+                              : null,
+                        ),
+                        ...List.generate(
+                          totalPages,
+                          (i) => i,
+                        ).where((p) => (p - _currentPage).abs() <= 2).map((p) {
+                          final isActive = p == _currentPage;
+                          return GestureDetector(
+                            onTap: () => setState(() => _currentPage = p),
+                            child: Container(
+                              width: 32,
+                              height: 32,
+                              margin:
+                                  const EdgeInsets.symmetric(horizontal: 2),
+                              decoration: BoxDecoration(
+                                color: isActive
+                                    ? AppColors.primaryGreen
+                                    : Colors.transparent,
+                                borderRadius: BorderRadius.circular(6),
+                                border: isActive
+                                    ? null
+                                    : Border.all(
+                                        color: isDark
+                                            ? AppColors.darkBorder
+                                            : Colors.grey.shade300,
+                                      ),
+                              ),
+                              child: Center(
+                                child: Text(
+                                  '${p + 1}',
+                                  style: TextStyle(
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w600,
+                                    color: isActive
+                                        ? Colors.white
+                                        : (isDark
+                                            ? AppColors.darkTextSecondary
+                                            : AppColors.textSecondary),
+                                  ),
+                                ),
+                              ),
+                            ),
+                          );
+                        }),
+                        IconButton(
+                          icon: const Icon(Icons.chevron_right, size: 20),
+                          onPressed: _currentPage < totalPages - 1
+                              ? () => setState(() => _currentPage++)
+                              : null,
+                        ),
+                      ],
+                    ),
                 ],
               ),
             ),
@@ -3010,8 +3061,8 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
             spacing: 16,
             runSpacing: 6,
             children: [
-              _buildLegendItem(AppColors.primaryGreen, 'â‰¥ 80% Good'),
-              _buildLegendItem(Colors.orange, '50â€“79% Moderate'),
+              _buildLegendItem(AppColors.primaryGreen, '≥ 80% Good'),
+              _buildLegendItem(Colors.orange, '50–79% Moderate'),
               _buildLegendItem(Colors.red, '< 50% Critical'),
             ],
           ),

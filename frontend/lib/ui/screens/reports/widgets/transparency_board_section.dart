@@ -163,11 +163,11 @@ class _TransparencyBoardContent extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // â”€â”€ Section 1: ACCESS â€” Enrollment â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+                // ── Section 1: ACCESS — Enrollment ──────────────────────────
                 _buildSectionHeader(
                   context,
                   icon: Icons.bar_chart,
-                  label: '1. ACCESS â€” Enrollment by Sex & Year',
+                  label: '1. ACCESS — Enrollment by Sex & Year',
                   color: AppColors.primaryGreen,
                 ),
                 const SizedBox(height: AppSizes.p16),
@@ -182,11 +182,11 @@ class _TransparencyBoardContent extends StatelessWidget {
                 ),
                 const SizedBox(height: AppSizes.p24),
 
-                // â”€â”€ Section 2: ACCESS â€” Dropouts & Transferees â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+                // ── Section 2: ACCESS — Dropouts & Transferees ───────────────
                 _buildSectionHeader(
                   context,
                   icon: Icons.trending_down,
-                  label: '2. ACCESS â€” Dropouts & Transferees',
+                  label: '2. ACCESS — Dropouts & Transferees',
                   color: Colors.redAccent,
                 ),
                 const SizedBox(height: AppSizes.p16),
@@ -201,11 +201,11 @@ class _TransparencyBoardContent extends StatelessWidget {
                 ),
                 const SizedBox(height: AppSizes.p24),
 
-                // â”€â”€ Section 3: EQUITY â€” 4Ps Beneficiaries â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+                // ── Section 3: EQUITY — 4Ps Beneficiaries ────────────────────
                 _buildSectionHeader(
                   context,
                   icon: Icons.family_restroom,
-                  label: '3. EQUITY â€” 4Ps Beneficiaries',
+                  label: '3. EQUITY — 4Ps Beneficiaries',
                   color: Colors.deepPurple,
                 ),
                 const SizedBox(height: AppSizes.p16),

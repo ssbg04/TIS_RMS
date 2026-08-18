@@ -49,6 +49,7 @@ class _EditStudentModalState extends ConsumerState<EditStudentModal> {
 
   // Cache of all enrollments loaded for the student being edited
   List<dynamic>? _loadedEnrollments;
+  int _statusDropdownKey = 0;
 
   static const _statuses = ['Enrolled', 'Graduated', 'Transferred', 'Dropped', 'Inactive'];
   static const _extSuggestions = [
@@ -354,8 +355,8 @@ class _EditStudentModalState extends ConsumerState<EditStudentModal> {
                 );
 
                 final statusDropdown = DropdownButtonFormField<String>(
-                  key: ValueKey('edit_status_dropdown_$_selectedStatus'),
-                  value: _selectedStatus,
+                  key: ValueKey('edit_status_dropdown_${_selectedStatus}_$_statusDropdownKey'),
+                  initialValue: _selectedStatus,
                   decoration: const InputDecoration(
                     labelText: 'STATUS',
                     prefixIcon: Icon(Icons.info_outline),
@@ -372,10 +373,16 @@ class _EditStudentModalState extends ConsumerState<EditStudentModal> {
                           'Graduation status is only applicable for Grade 10 and Grade 12 students.\n\n'
                           'This student is currently ${grade != null ? 'in Grade $grade' : 'not enrolled in Grade 10 or 12'}.',
                         );
+                        // Force dropdown to re-render back to previous valid status
+                        setState(() {
+                          _statusDropdownKey++;
+                        });
                         return;
                       }
                     }
-                    setState(() => _selectedStatus = v);
+                    setState(() {
+                      _selectedStatus = v;
+                    });
                   },
                 );
 
