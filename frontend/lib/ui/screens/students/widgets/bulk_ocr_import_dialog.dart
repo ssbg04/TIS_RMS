@@ -1177,9 +1177,8 @@ class _BulkOcrImportDialogState extends ConsumerState<BulkOcrImportDialog> {
           ElevatedButton.icon(
             onPressed: _isProcessing ? null : _processAll,
             icon: _isProcessing
-                ? SizedBox(
-                    width: 16,
-                    height: 16,
+                ? SizedBox.square(
+                    dimension: 16,
                     child: CircularProgressIndicator(
                         strokeWidth: 2,
                         color: isDark ? Colors.white : Colors.black))
@@ -1217,9 +1216,8 @@ class _BulkOcrImportDialogState extends ConsumerState<BulkOcrImportDialog> {
           ElevatedButton.icon(
             onPressed: _isImporting ? null : _importAll,
             icon: _isImporting
-                ? SizedBox(
-                    width: 16,
-                    height: 16,
+                ? SizedBox.square(
+                    dimension: 16,
                     child: CircularProgressIndicator(
                         strokeWidth: 2,
                         color: isDark ? Colors.white : Colors.black))

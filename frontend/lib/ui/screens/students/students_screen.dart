@@ -643,10 +643,11 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
                         },
                   style: TextButton.styleFrom(foregroundColor: AppColors.error),
                   child: isLoading
-                      ? const SizedBox(
-                          width: 16,
-                          height: 16,
-                          child: CircularProgressIndicator(strokeWidth: 2),
+                      ? const Center(
+                          child: SizedBox.square(
+                            dimension: 16,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          ),
                         )
                       : const Text('DELETE'),
                 ),

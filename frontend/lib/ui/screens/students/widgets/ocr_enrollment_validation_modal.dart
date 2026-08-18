@@ -406,9 +406,8 @@ class _OcrEnrollmentValidationModalState
                 padding: EdgeInsets.zero,
                 constraints: const BoxConstraints(),
                 icon: _acceptingIndex == index
-                    ? const SizedBox(
-                        width: 18,
-                        height: 18,
+                    ? const SizedBox.square(
+                        dimension: 18,
                         child: CircularProgressIndicator(strokeWidth: 2),
                       )
                     : const Icon(

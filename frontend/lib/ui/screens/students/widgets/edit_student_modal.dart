@@ -708,9 +708,8 @@ class _EditStudentModalState extends ConsumerState<EditStudentModal> {
           final ocrButton = OutlinedButton.icon(
             onPressed: _isOcrScanning ? null : _handleScanEnrollmentFromSF,
             icon: _isOcrScanning
-                ? const SizedBox(
-                    width: 16,
-                    height: 16,
+                ? const SizedBox.square(
+                    dimension: 16,
                     child: CircularProgressIndicator(strokeWidth: 2),
                   )
                 : const Icon(Icons.document_scanner, size: 18),

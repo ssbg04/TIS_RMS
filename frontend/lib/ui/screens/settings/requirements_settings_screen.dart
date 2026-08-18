@@ -1640,12 +1640,13 @@ class _BulkEditModalState extends ConsumerState<_BulkEditModal> {
                                 ? null
                                 : _handleBulkSave,
                             child: _isLoading
-                                ? const SizedBox(
-                                    width: 16,
-                                    height: 16,
-                                    child: CircularProgressIndicator(
-                                      strokeWidth: 2,
-                                      color: Colors.white,
+                                ? const Center(
+                                    child: SizedBox.square(
+                                      dimension: 16,
+                                      child: CircularProgressIndicator(
+                                        strokeWidth: 2,
+                                        color: Colors.white,
+                                      ),
                                     ),
                                   )
                                 : const Text('APPLY'),

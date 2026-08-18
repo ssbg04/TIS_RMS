@@ -666,9 +666,8 @@ class _FileSavePreviewDialogState extends State<_FileSavePreviewDialog> {
                 child: ElevatedButton.icon(
                   onPressed: _isSaving ? null : _save,
                   icon: _isSaving
-                      ? const SizedBox(
-                          width: 16,
-                          height: 16,
+                      ? const SizedBox.square(
+                          dimension: 16,
                           child: CircularProgressIndicator(
                             strokeWidth: 2,
                             color: Colors.white,

@@ -1245,12 +1245,13 @@ class _AddStudentModalState extends ConsumerState<AddStudentModal> {
                                       elevation: 0,
                                     ),
                                     child: _isLoading && isLastStep
-                                        ? const SizedBox(
-                                            height: 20,
-                                            width: 20,
-                                            child: CircularProgressIndicator(
-                                              color: Colors.white,
-                                              strokeWidth: 2,
+                                        ? const Center(
+                                            child: SizedBox.square(
+                                              dimension: 20,
+                                              child: CircularProgressIndicator(
+                                                color: Colors.white,
+                                                strokeWidth: 2,
+                                              ),
                                             ),
                                           )
                                         : Text(
@@ -1428,12 +1429,13 @@ class _AddStudentModalState extends ConsumerState<AddStudentModal> {
                                         elevation: 0,
                                       ),
                                       child: _isLoading && isLastStep
-                                          ? const SizedBox(
-                                              height: 20,
-                                              width: 20,
-                                              child: CircularProgressIndicator(
-                                                color: Colors.white,
-                                                strokeWidth: 2,
+                                          ? const Center(
+                                              child: SizedBox.square(
+                                                dimension: 20,
+                                                child: CircularProgressIndicator(
+                                                  color: Colors.white,
+                                                  strokeWidth: 2,
+                                                ),
                                               ),
                                             )
                                           : Text(

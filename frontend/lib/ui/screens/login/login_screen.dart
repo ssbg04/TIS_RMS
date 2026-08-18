@@ -971,7 +971,10 @@ class _NetworkScanDialogState extends State<_NetworkScanDialog> {
       title: const Text('Local Network Scan'),
       content: Row(
         children: [
-          const CircularProgressIndicator(),
+          const SizedBox.square(
+            dimension: 24,
+            child: CircularProgressIndicator(strokeWidth: 2.5),
+          ),
           const SizedBox(width: 20),
           Expanded(child: Text(_status)),
         ],
