@@ -635,37 +635,46 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                                     AppValidators.validateRequired(v, 'Last Name'),
                               ),
                               const SizedBox(height: AppSizes.p16),
-                              CustomTextField(
-                                hintText: 'Suffix (Optional)',
-                                prefixIcon: Icons.text_format,
-                                controller: _extCtrl,
-                                textCapitalization: TextCapitalization.characters,
-                                inputFormatters: [UpperCaseTextFormatter()],
-                              ),
-                              ValueListenableBuilder<TextEditingValue>(
-                                valueListenable: _extCtrl,
-                                builder: (context, value, child) {
-                                  final text = value.text.toLowerCase();
-                                  final suggestions = ['Jr.', 'Sr.', 'II', 'III', 'IV'];
-                                  final filtered = suggestions.where((s) => s.toLowerCase().startsWith(text) && s.toLowerCase() != text).toList();
-                                  
-                                  if (filtered.isEmpty) return const SizedBox.shrink();
-
-                                  return Padding(
-                                    padding: const EdgeInsets.only(top: 8.0),
-                                    child: Wrap(
-                                      spacing: 8.0,
-                                      children: filtered.map((suffix) => ActionChip(
-                                        visualDensity: VisualDensity.compact,
-                                        label: Text(suffix, style: const TextStyle(fontSize: 12)),
-                                        onPressed: () {
-                                          _extCtrl.text = suffix;
-                                          _extCtrl.selection = TextSelection.collapsed(offset: suffix.length);
-                                        },
-                                      )).toList(),
-                                    ),
+                              Autocomplete<String>(
+                                optionsBuilder: (TextEditingValue textEditingValue) {
+                                  const commonExts = ['Jr.', 'Sr.', 'II', 'III', 'IV'];
+                                  if (textEditingValue.text.isEmpty) {
+                                    return commonExts;
+                                  }
+                                  return commonExts.where(
+                                    (ext) => ext
+                                        .toLowerCase()
+                                        .contains(textEditingValue.text.toLowerCase()),
                                   );
-                                }
+                                },
+                                onSelected: (String selection) {
+                                  _extCtrl.text = selection;
+                                },
+                                fieldViewBuilder: (
+                                  context,
+                                  controller,
+                                  focusNode,
+                                  onEditingComplete,
+                                ) {
+                                  controller.addListener(() {
+                                    if (_extCtrl.text != controller.text) {
+                                      _extCtrl.text = controller.text;
+                                    }
+                                  });
+                                  if (controller.text.isEmpty &&
+                                      _extCtrl.text.isNotEmpty) {
+                                    controller.text = _extCtrl.text;
+                                  }
+                                  return CustomTextField(
+                                    hintText: 'Suffix (Optional)',
+                                    prefixIcon: Icons.text_format,
+                                    controller: controller,
+                                    focusNode: focusNode,
+                                    textCapitalization:
+                                        TextCapitalization.characters,
+                                    inputFormatters: [UpperCaseTextFormatter()],
+                                  );
+                                },
                               ),
                               const SizedBox(height: AppSizes.p16),
                               CustomTextField(

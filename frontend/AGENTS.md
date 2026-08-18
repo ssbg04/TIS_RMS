@@ -162,8 +162,14 @@ Files backup/restore - mirror mode or zip -->
 - From "DOCUMENTS SCREEN", add hold feature for android and right click for windows to see more menu, add multi select and its multi select menu, and FAB print list for android, button print list for windows
 - fix grid view in all archived docs tab -->
 
-# DOCUMENTS SCREEN
-- document preview modal -> use sheetifye package for excel viewer
+<!-- # SETTINGS SCREEN
+- remove the extension name buttons make it only shows in dropdown
+
+# USERS SCREEN
+- add new user wolt modal -> do not make the stepper clickable -> email address when tpyed '@' shows all common email domains -->
+
+# ARCHIVES SCREEN
+- add more options icon button and download guide from the "DOCUMENTS SCREEN"
 
 ---
 

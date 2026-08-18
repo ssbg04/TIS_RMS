@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'dart:ui';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/constants/app_colors.dart';
@@ -1407,7 +1406,7 @@ class _AddEditUserModalState extends ConsumerState<AddEditUserModal> {
             Stepper(
               currentStep: _currentStep,
               type: StepperType.vertical,
-              onStepTapped: (step) => setState(() => _currentStep = step),
+              onStepTapped: null,
               onStepContinue: () {
                 if (_stepKeys[_currentStep].currentState?.validate() ?? false) {
                   if (_currentStep < 2) {
@@ -1804,20 +1803,21 @@ class _AddEditUserModalState extends ConsumerState<AddEditUserModal> {
     return Autocomplete<String>(
       optionsBuilder: (TextEditingValue textEditingValue) {
         final text = textEditingValue.text;
-        if (!text.contains('@') || text.endsWith('@')) {
+        if (!text.contains('@')) {
           return const Iterable<String>.empty();
         }
         final parts = text.split('@');
         final prefix = parts[0];
-        final query = parts.length > 1 ? parts[1] : '';
+        final query = parts.length > 1 ? parts[1].toLowerCase() : '';
         const domains = [
           'gmail.com',
           'yahoo.com',
           'outlook.com',
+          'hotmail.com',
           'deped.gov.ph',
         ];
         return domains
-            .where((domain) => domain.startsWith(query))
+            .where((domain) => domain.toLowerCase().startsWith(query))
             .map((domain) => '$prefix@$domain');
       },
       onSelected: (String selection) {

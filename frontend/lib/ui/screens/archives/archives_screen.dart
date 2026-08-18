@@ -24,6 +24,8 @@ import '../documents/widgets/document_preview_modal.dart';
 import '../documents/widgets/file_folder_card.dart';
 import '../documents/widgets/print_queue_modal.dart';
 import '../documents/widgets/student_profile_modal.dart';
+import '../documents/widgets/download_guide_dialog.dart';
+import '../documents/widgets/recycle_bin_modal.dart';
 import '../../../core/utils/download_service.dart';
 import '../../../core/network/api_constants.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
@@ -1223,28 +1225,14 @@ class _ArchivesScreenState extends ConsumerState<ArchivesScreen>
 
           // Screen title
           Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  _openedFolderName ?? 'System Archive',
-                  style: TextStyle(
-                    fontSize: isMobile ? 17 : 21,
-                    fontWeight: FontWeight.bold,
-                    color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
-                  ),
-                  overflow: TextOverflow.ellipsis,
-                ),
-                if (!isFolderOpened)
-                  Text(
-                    'Graduated · Transferred · Dropped · Inactive · Enrolled Archived Docs',
-                    style: TextStyle(
-                      fontSize: 11,
-                      color: isDark ? AppColors.darkTextMuted : AppColors.textMuted,
-                    ),
-                  ),
-              ],
+            child: Text(
+              _openedFolderName ?? 'System Archive',
+              style: TextStyle(
+                fontSize: isMobile ? 17 : 21,
+                fontWeight: FontWeight.bold,
+                color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
+              ),
+              overflow: TextOverflow.ellipsis,
             ),
           ),
           
@@ -1333,14 +1321,25 @@ class _ArchivesScreenState extends ConsumerState<ArchivesScreen>
             const SizedBox(width: 8),
           ],
 
-          // View toggle
-          _buildIconToggle(
-            icon: _isGridView
-                ? Icons.view_list_rounded
-                : Icons.grid_view_rounded,
-            isActive: false,
-            tooltip: _isGridView ? 'Switch to List' : 'Switch to Grid',
-            onTap: () => setState(() => _isGridView = !_isGridView),
+          // Dropdown Menu
+          SizedBox(height: 38, child: _buildMoreOptionsDropdown(isMobile)),
+
+          const SizedBox(width: 4),
+
+          // Info Button for Download Guide (Moved to right end)
+          IconButton(
+            icon: const Icon(
+              Icons.info_outline,
+              color: AppColors.primaryGreen,
+              size: 20,
+            ),
+            tooltip: 'Download Guide',
+            onPressed: () {
+              showDialog(
+                context: context,
+                builder: (_) => const DownloadGuideDialog(),
+              );
+            },
           ),
         ],
       ),
@@ -1904,38 +1903,100 @@ class _ArchivesScreenState extends ConsumerState<ArchivesScreen>
   }
 
   // ════════════════════════════════════════════════════════════════
-  // ICON TOGGLE (matches Documents screen style)
+  // MORE OPTIONS DROPDOWN (matches Documents screen style)
   // ════════════════════════════════════════════════════════════════
-  Widget _buildIconToggle({
-    required IconData icon,
-    required bool isActive,
-    required String tooltip,
-    required VoidCallback onTap,
-  }) {
+  Widget _buildMoreOptionsDropdown(bool isMobile) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    return Tooltip(
-      message: tooltip,
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(8),
-        child: Container(
-          padding: const EdgeInsets.all(10),
-          decoration: BoxDecoration(
-            color: isActive
-                ? AppColors.primaryGreen.withValues(alpha: 0.1)
-                : (isDark ? AppColors.darkSurfaceCard : AppColors.surfaceWhite),
-            borderRadius: BorderRadius.circular(8),
-            border: Border.all(
-              color: isActive ? AppColors.primaryGreen : (isDark ? AppColors.darkBorder : Colors.grey.shade300),
+    return PopupMenuButton<String>(
+      icon: Icon(
+        Icons.more_vert,
+        color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
+      ),
+      tooltip: 'More Options',
+      position: PopupMenuPosition.under,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+      onSelected: (value) {
+        if (value == 'multi_select') {
+          setState(() {
+            _isMultiSelectMode = !_isMultiSelectMode;
+            if (!_isMultiSelectMode) {
+              _selectedDocumentIds.clear();
+            }
+          });
+        } else if (value == 'grid_list') {
+          setState(() => _isGridView = !_isGridView);
+        } else if (value == 'recycle_bin') {
+          showDialog(
+            context: context,
+            builder: (_) => const RecycleBinModal(),
+          );
+        }
+      },
+      itemBuilder: (context) => [
+        if (widget.userRole != 'teacher' &&
+            (_tabController.index == 1 || _openedFolderStudentId != null)) ...[
+          PopupMenuItem(
+            value: 'multi_select',
+            child: Row(
+              children: [
+                Icon(
+                  Icons.checklist_rounded,
+                  size: 20,
+                  color: isDark
+                      ? AppColors.darkTextSecondary
+                      : AppColors.textSecondary,
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  _isMultiSelectMode
+                      ? 'Exit Multi-Select'
+                      : 'Select Multiple',
+                  style: const TextStyle(fontSize: 14),
+                ),
+              ],
             ),
           ),
-          child: Icon(
-            icon,
-            size: 20,
-            color: isActive ? AppColors.primaryGreen : (isDark ? AppColors.darkTextSecondary : AppColors.textSecondary),
+          const PopupMenuDivider(),
+        ],
+        PopupMenuItem(
+          value: 'grid_list',
+          child: Row(
+            children: [
+              Icon(
+                _isGridView
+                    ? Icons.view_list_rounded
+                    : Icons.grid_view_rounded,
+                size: 20,
+                color: isDark
+                    ? AppColors.darkTextSecondary
+                    : AppColors.textSecondary,
+              ),
+              const SizedBox(width: 8),
+              Text(
+                _isGridView ? 'Switch to List' : 'Switch to Grid',
+                style: const TextStyle(fontSize: 14),
+              ),
+            ],
           ),
         ),
-      ),
+        const PopupMenuDivider(),
+        PopupMenuItem(
+          value: 'recycle_bin',
+          child: Row(
+            children: [
+              Icon(
+                Icons.delete_sweep,
+                size: 20,
+                color: isDark
+                    ? AppColors.darkTextSecondary
+                    : AppColors.textSecondary,
+              ),
+              const SizedBox(width: 8),
+              const Text('Recycle Bin', style: TextStyle(fontSize: 14)),
+            ],
+          ),
+        ),
+      ],
     );
   }
 
