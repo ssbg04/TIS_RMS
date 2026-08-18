@@ -6,6 +6,7 @@
 backend_build
 
 backend/node_modules
+backend/bin/cloudflared.exe
 requirements
 TIS*
 
