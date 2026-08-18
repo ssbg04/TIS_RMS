@@ -168,8 +168,8 @@ Files backup/restore - mirror mode or zip -->
 # USERS SCREEN
 - add new user wolt modal -> do not make the stepper clickable -> email address when tpyed '@' shows all common email domains -->
 
-# ARCHIVES SCREEN
-- add more options icon button and download guide from the "DOCUMENTS SCREEN"
+<!-- # ARCHIVES SCREEN
+- remove background color and border of the filter icon button -->
 
 ---
 

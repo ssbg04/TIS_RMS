@@ -1260,57 +1260,22 @@ class _ArchivesScreenState extends ConsumerState<ArchivesScreen>
           ],
 
           if (_tabController.index == 1 || isFolderOpened) ...[
-            // Filter button
-            SizedBox(
-              height: 42,
-              child: Tooltip(
-                message: 'Filter Documents',
-                child: InkWell(
-                  onTap: _openFilterDialog,
-                  borderRadius: BorderRadius.circular(8),
-                  child: Container(
-                    padding: EdgeInsets.symmetric(
-                      horizontal: isMobile ? 12 : 14,
-                      vertical: 8,
-                    ),
-                    decoration: BoxDecoration(
-                      color: isDark ? AppColors.darkSurface2 : AppColors.surfaceWhite,
-                      border: Border.all(
-                        color: isDark ? AppColors.darkBorder : Colors.grey.shade300,
-                        width: 1.2,
-                      ),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Badge(
-                          isLabelVisible: _getActiveFilterCount() > 0,
-                          label: Text(_getActiveFilterCount().toString()),
-                          child: const Icon(
-                            Icons.tune_rounded,
-                            size: 18,
-                            color: AppColors.primaryGreen,
-                          ),
-                        ),
-                        if (!isMobile) ...[
-                          const SizedBox(width: 6),
-                          const Text(
-                            'Filter',
-                            style: TextStyle(
-                              fontSize: 13,
-                              fontWeight: FontWeight.w600,
-                              color: AppColors.primaryGreen,
-                            ),
-                          ),
-                        ],
-                      ],
-                    ),
+            Tooltip(
+              message: 'Filter Documents',
+              child: IconButton(
+                onPressed: _openFilterDialog,
+                icon: Badge(
+                  isLabelVisible: _getActiveFilterCount() > 0,
+                  label: Text(_getActiveFilterCount().toString()),
+                  child: const Icon(
+                    Icons.tune_rounded,
+                    size: 20,
+                    color: AppColors.primaryGreen,
                   ),
                 ),
               ),
             ),
-            const SizedBox(width: 8),
+            const SizedBox(width: 4),
           ],
 
           if (defaultTargetPlatform != TargetPlatform.android && !isMobile && widget.userRole != 'teacher') ...[
