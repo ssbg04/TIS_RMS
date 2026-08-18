@@ -33,18 +33,30 @@ class ServerDiscoveryService {
 
   static Future<bool> ping(String baseUrl) async {
     try {
-      final rootUrl = baseUrl
-          .replaceAll(RegExp(r'/+$'), '')
-          .replaceAll(RegExp(r'/api$'), '');
+      final clean = baseUrl.replaceAll(RegExp(r'/+$'), '');
       final dio = Dio(
         BaseOptions(
-          baseUrl: rootUrl,
           connectTimeout: _pingTimeout,
           receiveTimeout: _pingTimeout,
+          sendTimeout: _pingTimeout,
         ),
       );
-      final response = await dio.get('/');
-      return response.headers.value('x-tis-rms') == 'true';
+      final response = await dio.get(clean);
+      if (response.headers.value('x-tis-rms') == 'true' ||
+          (response.statusCode == 200 &&
+              response.data is Map &&
+              response.data['message']?.toString().contains('TIS RMS') == true)) {
+        return true;
+      }
+      final rootUrl = clean.replaceAll(RegExp(r'/api$'), '');
+      if (rootUrl.isNotEmpty && rootUrl != clean) {
+        final rootResponse = await dio.get(rootUrl);
+        return rootResponse.headers.value('x-tis-rms') == 'true' ||
+            (rootResponse.statusCode == 200 &&
+                rootResponse.data is Map &&
+                rootResponse.data['message']?.toString().contains('TIS RMS') == true);
+      }
+      return response.statusCode == 200;
     } catch (_) {
       return false;
     }

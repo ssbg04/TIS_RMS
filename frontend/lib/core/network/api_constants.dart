@@ -4,12 +4,13 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 class ApiConstants {
   static const int port = 18484;
+  static const String tunnelUrl = 'https://tis-rms.cc.cd/api';
   static const String vpsUrl = 'http://198.252.107.197:$port/api';
   static const String localhostUrl = 'http://127.0.0.1:$port/api';
 
   // Runtime-mutable base URL — set by ServerDiscoveryService before first use.
-  // Default: remote internet/configured VPS server IP or domain.
-  static String _baseUrl = vpsUrl;
+  // Default: tunnel domain or discovered local server.
+  static String _baseUrl = tunnelUrl;
 
   static String get baseUrl => _baseUrl;
 
@@ -38,7 +39,6 @@ class ApiConstants {
       InterceptorsWrapper(
         onRequest: (options, handler) {
           options.baseUrl = _baseUrl;
-          options.headers['Bypass-Tunnel-Reminder'] = 'true';
 
           // Prevent unauthenticated or malformed token requests from hitting the server
           final authHeader = options.headers['Authorization']?.toString() ?? '';

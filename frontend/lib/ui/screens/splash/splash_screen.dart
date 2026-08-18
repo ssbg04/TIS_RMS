@@ -1,5 +1,6 @@
-import 'dart:io' show Platform;
+import 'dart:io' show Platform, exit;
 import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:flutter/services.dart' show SystemNavigator;
 import 'package:window_manager/window_manager.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -85,7 +86,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
   // ── Server resolution logic ────────────────────────────────────────────────
 
   Future<void> _resolveServer() async {
-    // 1. Check saved URL first (if user explicitly selected/saved a VPS or LAN IP)
+    // 1. Check saved URL first (if user explicitly selected/saved a VPS, LAN IP, or Tunnel URL)
     final saved = await ServerDiscoveryService.getSaved();
     if (saved != null) {
       setState(() => _statusText = 'Connecting to saved server…');
@@ -94,8 +95,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
         ApiConstants.setBaseUrl(saved);
         return;
       }
-      // Saved server is unreachable — clear it and continue discovery
-      await ServerDiscoveryService.clear();
+      // Saved server is unreachable — don't wipe credentials, continue to LAN scan & tunnel fallback
     }
 
     // 2. Automatically scan local network first by default (LAN Discovery)
@@ -103,7 +103,6 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
   }
 
   Future<void> _runScan() async {
-    // Get own IP / subnet prefixes first
     setState(() {
       _statusText = 'Detecting network…';
       _scanProgress = null;
@@ -111,51 +110,64 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
 
     final prefixes = await ServerDiscoveryService.getSubnetPrefixes();
 
-    if (prefixes.isEmpty) {
-      // No LAN interface found — go straight to manual entry
-      await _showManualEntryDialog(
-        reason: 'No Wi-Fi or LAN connection detected.',
+    if (prefixes.isNotEmpty) {
+      final subnetLabel = prefixes.map((p) => '${p}0/24').join(', ');
+      setState(() {
+        _statusText = 'Scanning LAN ($subnetLabel)…';
+        _scanProgress = 0.0;
+      });
+
+      final found = await ServerDiscoveryService.discover(
+        onProgress: (subnet, scanned, total) {
+          if (!mounted) return;
+          setState(() {
+            _statusText = 'Scanning ${subnet}x … ($scanned/$total)';
+            _scanProgress = scanned / total;
+          });
+        },
       );
-      return;
+
+      if (found != null) {
+        await ServerDiscoveryService.save(found);
+        ApiConstants.setBaseUrl(found);
+        if (mounted) {
+          setState(() {
+            _statusText = 'Local server found: $found';
+            _scanProgress = 1.0;
+          });
+        }
+        await Future.delayed(const Duration(milliseconds: 500));
+        return;
+      }
     }
 
-    final subnetLabel = prefixes.map((p) => '${p}0/24').join(', ');
+    // 3. If local server was not found on LAN, connect to tunnel domain fallback
     setState(() {
-      _statusText = 'Scanning $subnetLabel…';
-      _scanProgress = 0.0;
+      _statusText = 'Connecting to tunnel domain…';
+      _scanProgress = null;
     });
 
-    final found = await ServerDiscoveryService.discover(
-      onProgress: (subnet, scanned, total) {
-        if (!mounted) return;
-        setState(() {
-          _statusText = 'Scanning ${subnet}x … ($scanned/$total)';
-          _scanProgress = scanned / total;
-        });
-      },
-    );
-
-    if (found != null) {
-      await ServerDiscoveryService.save(found);
-      ApiConstants.setBaseUrl(found);
+    final tunnelAlive =
+        await ServerDiscoveryService.ping(ApiConstants.tunnelUrl);
+    if (tunnelAlive) {
+      await ServerDiscoveryService.save(ApiConstants.tunnelUrl);
+      ApiConstants.setBaseUrl(ApiConstants.tunnelUrl);
       if (mounted) {
         setState(() {
-          _statusText = 'Server found: $found';
+          _statusText = 'Connected to tunnel server';
           _scanProgress = 1.0;
         });
       }
-      await Future.delayed(const Duration(milliseconds: 600));
-    } else {
-      await _showManualEntryDialog(
-        reason: 'No TIS RMS server was found on your network.',
-      );
+      await Future.delayed(const Duration(milliseconds: 500));
+      return;
     }
+
+    // 4. If the tunnel domain is ALSO not working, show error dialog with Close App (without clearing remember me credentials)
+    if (!mounted) return;
+    await _showConnectionFailedDialog();
   }
 
-  // ── Manual entry dialog ────────────────────────────────────────────────────
-
-  Future<void> _showManualEntryDialog({required String reason}) async {
-    final controller = TextEditingController();
+  Future<void> _showConnectionFailedDialog() async {
     if (!mounted) return;
 
     await showDialog<void>(
@@ -164,68 +176,47 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
       builder: (ctx) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         icon: const Icon(
-          Icons.wifi_find,
-          color: AppColors.primaryGreen,
-          size: 36,
+          Icons.cloud_off_rounded,
+          color: Colors.redAccent,
+          size: 40,
         ),
         title: const Text(
-          'Server Not Found',
+          'Server Connection Failed',
           textAlign: TextAlign.center,
           style: TextStyle(fontWeight: FontWeight.bold),
         ),
-        content: Column(
+        content: const Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             Text(
-              reason,
+              'No local TIS RMS server was detected on your network and the tunnel domain (${ApiConstants.tunnelUrl}) is currently unreachable.\n\nPlease check your network connection or ensure the server is online.',
               textAlign: TextAlign.center,
-              style: const TextStyle(
+              style: TextStyle(
                 color: AppColors.textSecondary,
                 fontSize: 13,
+                height: 1.4,
               ),
             ),
-            const SizedBox(height: 16),
-            TextField(
-              controller: controller,
-              keyboardType: TextInputType.url,
-              decoration: InputDecoration(
-                labelText: 'Server IP / Domain',
-                hintText: '198.252.107.197 or domain.com',
-                prefixIcon: const Icon(Icons.dns_outlined),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(10),
-                ),
+            SizedBox(height: 12),
+            Text(
+              'Your saved credentials remain safe.',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                color: AppColors.primaryGreen,
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
               ),
             ),
           ],
         ),
         actions: [
           TextButton(
-            onPressed: () async {
-              ServerDiscoveryService.save(ApiConstants.vpsUrl);
-              ApiConstants.setBaseUrl(ApiConstants.vpsUrl);
+            onPressed: () {
               Navigator.of(ctx).pop();
-            },
-            child: const Text('Use VPS (Testing)'),
-          ),
-          if (!kIsWeb &&
-              (Platform.isWindows || Platform.isLinux || Platform.isMacOS))
-            TextButton(
-              onPressed: () async {
-                ServerDiscoveryService.save(ApiConstants.localhostUrl);
-                ApiConstants.setBaseUrl(ApiConstants.localhostUrl);
-                Navigator.of(ctx).pop();
-              },
-              child: const Text('Use Localhost'),
-            ),
-          TextButton(
-            onPressed: () async {
-              Navigator.of(ctx).pop();
-              // Re-run scan
-              await _runScan();
+              _initializeApp();
             },
             child: const Text(
-              'Retry Scan',
+              'Retry Connection',
               style: TextStyle(
                 color: AppColors.primaryGreen,
                 fontWeight: FontWeight.bold,
@@ -234,26 +225,26 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
           ),
           FilledButton(
             style: FilledButton.styleFrom(
-              backgroundColor: AppColors.primaryGreen,
+              backgroundColor: Colors.redAccent,
             ),
             onPressed: () {
-              final ip = controller.text.trim();
-              if (ip.isNotEmpty) {
-                final url = ip.startsWith('http')
-                    ? ip
-                    : ip.contains(':')
-                        ? 'http://$ip'
-                        : 'http://$ip:${ApiConstants.port}';
-                ServerDiscoveryService.save(url);
-                ApiConstants.setBaseUrl(url);
-              }
-              Navigator.of(ctx).pop();
+              // Close app without clearing remember me credentials
+              _closeApp();
             },
-            child: const Text('Connect'),
+            child: const Text('Close App'),
           ),
         ],
       ),
     );
+  }
+
+  void _closeApp() {
+    if (!kIsWeb && (Platform.isAndroid || Platform.isIOS)) {
+      SystemNavigator.pop();
+    } else if (!kIsWeb &&
+        (Platform.isWindows || Platform.isLinux || Platform.isMacOS)) {
+      exit(0);
+    }
   }
 
   // ── Build ──────────────────────────────────────────────────────────────────

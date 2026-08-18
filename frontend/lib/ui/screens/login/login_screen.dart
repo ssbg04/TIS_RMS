@@ -184,6 +184,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> with SingleTickerProv
         await prefs.remove('saved_password');
       }
 
+      if (!mounted) return;
       final user = ref.read(authProvider).value;
       final isDesktop = MediaQuery.of(context).size.width >= 800;
 
@@ -517,15 +518,24 @@ class _LoginScreenState extends ConsumerState<LoginScreen> with SingleTickerProv
         actions: [
           TextButton(
             onPressed: () async {
+              ApiConstants.setBaseUrl(ApiConstants.tunnelUrl);
+              await ServerDiscoveryService.save(ApiConstants.baseUrl);
+              if (mounted) setState(() {});
+              if (ctx.mounted) Navigator.pop(ctx);
+            },
+            child: const Text('Use Tunnel'),
+          ),
+          TextButton(
+            onPressed: () async {
               ApiConstants.setBaseUrl(ApiConstants.vpsUrl);
               await ServerDiscoveryService.save(ApiConstants.baseUrl);
               if (mounted) setState(() {});
-              Navigator.pop(ctx);
+              if (ctx.mounted) Navigator.pop(ctx);
             },
             child: const Text('Use VPS'),
           ),
           TextButton(
-            onPressed: () async {
+            onPressed: () {
               Navigator.pop(ctx);
               showDialog(
                 context: context,
@@ -550,7 +560,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> with SingleTickerProv
                 await ServerDiscoveryService.save(ApiConstants.baseUrl);
                 if (mounted) setState(() {});
               }
-              Navigator.pop(ctx);
+              if (ctx.mounted) Navigator.pop(ctx);
             },
             child: const Text('Save'),
           ),
@@ -623,7 +633,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> with SingleTickerProv
                     'Remember Me',
                     style: TextStyle(
                       fontSize: 13,
-                      color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+                      color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
                     ),
                   ),
                 ],
@@ -889,12 +899,26 @@ class _NetworkScanDialogState extends State<_NetworkScanDialog> {
         message: 'Connected to local server: $found',
       );
     } else {
-      if (!mounted) return;
-      showErrorDialog(
-        context,
-        'Server Not Found',
-        'No TIS RMS server found on local network.',
-      );
+      final tunnelAlive =
+          await ServerDiscoveryService.ping(ApiConstants.tunnelUrl);
+      if (tunnelAlive) {
+        ApiConstants.setBaseUrl(ApiConstants.tunnelUrl);
+        await ServerDiscoveryService.save(ApiConstants.baseUrl);
+        if (!mounted) return;
+        showSuccessDialog(
+          context,
+          title: 'Connected to Tunnel',
+          message:
+              'Local server not found. Connected to tunnel domain: ${ApiConstants.tunnelUrl}',
+        );
+      } else {
+        if (!mounted) return;
+        showErrorDialog(
+          context,
+          'Server Not Found',
+          'No TIS RMS server found on local network and tunnel domain (${ApiConstants.tunnelUrl}) is unreachable.',
+        );
+      }
     }
   }
 
