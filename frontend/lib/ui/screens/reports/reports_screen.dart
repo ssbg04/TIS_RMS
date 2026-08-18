@@ -1,4 +1,4 @@
-import 'dart:async';
+﻿import 'dart:async';
 import 'dart:io';
 import 'package:excel/excel.dart' hide Border, TextSpan;
 import 'package:file_picker/file_picker.dart';
@@ -97,7 +97,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
     super.dispose();
   }
 
-  // ── Excel Export ─────────────────────────────────────────────────────────────
+  // â”€â”€ Excel Export â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   Future<void> _handleExportExcel(ReportStats data) async {
     setState(() => _isExporting = true);
     try {
@@ -318,9 +318,9 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
   List<int> _buildExcel(ReportStats data, String yearLabel) {
     final excel = Excel.createExcel();
 
-    // ── Sheet 1: Summary ────────────────────────────────────────────────────
+    // â”€â”€ Sheet 1: Summary â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     final summary = excel['Summary'];
-    _excelTitle(summary, 'A1', 'TIAONG INTEGRATED SCHOOL — TIS RMS', 7);
+    _excelTitle(summary, 'A1', 'TIAONG INTEGRATED SCHOOL â€” TIS RMS', 7);
     _excelTitle(summary, 'A2', 'Annual Report Summary: $yearLabel', 7);
     _excelTitle(
       summary,
@@ -369,9 +369,9 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
     summary.setColumnWidth(0, 36);
     summary.setColumnWidth(1, 20);
 
-    // ── Sheet 2: Student Compliance List ─────────────────────────────────────
+    // â”€â”€ Sheet 2: Student Compliance List â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     final students = excel['Student Compliance List'];
-    _excelTitle(students, 'A1', 'STUDENT COMPLIANCE REPORT — $yearLabel', 7);
+    _excelTitle(students, 'A1', 'STUDENT COMPLIANCE REPORT â€” $yearLabel', 7);
     final headers = [
       '#',
       'LRN',
@@ -465,7 +465,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
     );
   }
 
-  // ── Print Compliance Report Dialog ─────────────────────────────────────────
+  // â”€â”€ Print Compliance Report Dialog â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   @override
   Widget build(BuildContext context) {
@@ -733,7 +733,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
   }
 
 
-  // ── Header + Export Actions ───────────────────────────────────────────────
+  // â”€â”€ Header + Export Actions â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   Widget _buildTitleAndExportActions(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final statsAsync = ref.watch(reportStatsProvider);
@@ -759,7 +759,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                   ),
                   const SizedBox(height: AppSizes.p8),
                   Text(
-                    'Document Compliance & Statistics Dashboard • Tiaong Integrated School',
+                    'Document Compliance & Statistics Dashboard â€¢ Tiaong Integrated School',
                     style: TextStyle(
                       fontSize: 15,
                       color: isDark ? AppColors.darkTextSecondary : Colors.grey.shade600,
@@ -799,7 +799,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
     );
   }
 
-  // ── Filter Panel (collapsible) ────────────────────────────────────────────
+  // â”€â”€ Filter Panel (collapsible) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   Widget _buildFilterPanel(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final yearsAsync = ref.watch(academicYearsProvider);
@@ -849,7 +849,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // ── Collapsible Header ─────────────────────────────────────────────
+          // â”€â”€ Collapsible Header â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
           InkWell(
             borderRadius: isExpanded
                 ? const BorderRadius.vertical(
@@ -872,7 +872,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                   ),
                   const SizedBox(width: 8),
                   Text(
-                    'Filter Status & Statistics',
+                    'Filter',
                     style: TextStyle(
                       fontWeight: FontWeight.bold,
                       color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
@@ -916,7 +916,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                     ),
                   ] else if (!isExpanded && activeFilters.isEmpty) ...[
                     Text(
-                      'No active filters',
+                      'No filters set',
                       style: TextStyle(
                         fontSize: 12,
                         color: isDark ? AppColors.darkTextSecondary : Colors.grey.shade500,
@@ -937,7 +937,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
             ),
           ),
 
-          // ── Expandable Body ────────────────────────────────────────────────
+          // â”€â”€ Expandable Body â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
           AnimatedCrossFade(
             firstChild: const SizedBox.shrink(),
             secondChild: Column(
@@ -1063,7 +1063,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                               isExpanded: true,
                               initialValue: selectedSection,
                               decoration: _filterDecoration('Section'),
-                              disabledHint: const Text('Select a Year first'),
+                              disabledHint: const Text('Pick a year first'),
                               items: selectedYearId == null
                                   ? null
                                   : [
@@ -1188,7 +1188,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                           const SizedBox(width: 8),
                           Expanded(
                             child: Text(
-                              'Show only students with missing documents',
+                              'Show only students who have missing documents',
                               style: TextStyle(
                                 fontWeight: FontWeight.w600,
                                 color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
@@ -1237,7 +1237,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
     );
   }
 
-  // ── KPI Cards: Compliance + Student status grid ───────────────────────────
+  // â”€â”€ KPI Cards: Compliance + Student status grid â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   Widget _buildMetricsGrid(ReportStats reportData, int? storageBytes) {
     final counts = reportData.studentCounts;
     final students = reportData.students;
@@ -1276,7 +1276,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // ── Primary KPI Row (3 cards) ────────────────────────────────────
+        // â”€â”€ Primary KPI Row (3 cards) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
         LayoutBuilder(
           builder: (ctx, constraints) {
             final cols = constraints.maxWidth >= 700
@@ -1329,7 +1329,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
 
         const SizedBox(height: 16),
 
-        // ── Secondary Status Row (5 cards) ───────────────────────────────
+        // â”€â”€ Secondary Status Row (5 cards) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
         LayoutBuilder(
           builder: (ctx, constraints) {
             final cols = constraints.maxWidth >= 900
@@ -1385,7 +1385,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
           },
         ),
 
-        // ── Storage chip (small, right-aligned) ──────────────────────────
+        // â”€â”€ Storage chip (small, right-aligned) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
         if (storageBytes != null) ...[
           const SizedBox(height: 8),
           Align(
@@ -1516,7 +1516,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
     );
   }
 
-  // ── Missing Documents Breakdown Card ──────────────────────────────────────
+  // â”€â”€ Missing Documents Breakdown Card â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   Widget _buildMissingDocsChart(
     List<MissingDocBreakdown> breakdown, {
     required bool isDesktop,
@@ -1525,7 +1525,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
     final isFilterExpanded = ref.watch(missingDocsFilterExpandedProvider);
 
     // Categorize by SHS (grade 11-12) vs JHS (grade 7-10)
-    // The requirement name may contain grade info – we rely on the name for best-effort.
+    // The requirement name may contain grade info â€“ we rely on the name for best-effort.
     // Since the backend doesn't yet return grade_level per requirement, we detect via
     // common keywords or a "SHS"/"JHS" prefix approach. Fall back to showing both tags.
     Widget levelBadge(String level, Color bg, Color fg) => Container(
@@ -1540,7 +1540,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
       ),
     );
 
-    // Heuristic: if name contains 'Grade 11' or 'Grade 12' or 'SHS' → SHS; 'Grade 7–10' or 'JHS' → JHS; else both
+    // Heuristic: if name contains 'Grade 11' or 'Grade 12' or 'SHS' â†’ SHS; 'Grade 7â€“10' or 'JHS' â†’ JHS; else both
     String detectLevel(String name) {
       final upper = name.toUpperCase();
       if (upper.contains('SHS') ||
@@ -1566,7 +1566,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // ── Section Header with show/hide ──────────────────────────────────
+          // â”€â”€ Section Header with show/hide â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
           Row(
             children: [
               Expanded(
@@ -1574,7 +1574,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Missing Documents by Requirement Type',
+                      'Missing Documents',
                       style: TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.bold,
@@ -1583,7 +1583,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      'Count of active student compliance requirements currently unsubmitted/unverified.',
+                      'How many documents are missing from each requirement type.',
                       style: TextStyle(
                         color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
                         fontSize: 13,
@@ -1634,7 +1634,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
 
           if (isDesktop) const SizedBox(height: AppSizes.p24),
 
-          // ── Expandable content ──────────────────────────────────────────────
+          // â”€â”€ Expandable content â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
           if (isDesktop)
             Expanded(
               child: breakdown.isEmpty
@@ -1881,7 +1881,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
     );
   }
 
-  // ── Interactive Compliance Table ──────────────────────────────────────────
+  // â”€â”€ Interactive Compliance Table â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   Widget _buildComplianceTable(ReportStats data) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final showOnlyMissing = ref.watch(showOnlyMissingDocsProvider);
@@ -2010,7 +2010,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            'Student Document Status List',
+                            'Student List',
                             style: TextStyle(
                               fontSize: 18,
                               fontWeight: FontWeight.bold,
@@ -2019,7 +2019,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                           ),
                           const SizedBox(height: 4),
                           Text(
-                            'Tap a student row to view their full profile. Columns LRN, Name, and Missing are sortable.',
+                            'Tap a student to see their full profile. You can sort by LRN, Name, or missing count.',
                             style: TextStyle(
                               color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
                               fontSize: 13,
@@ -2050,7 +2050,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                   ],
                 ),
                 const SizedBox(height: 12),
-                // ── Search Field ─────────────────────────────────────────
+                // â”€â”€ Search Field â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
                 TextField(
                   controller: _searchController,
                   onChanged: (val) => setState(() {
@@ -2113,12 +2113,12 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                     ),
                   ),
                 ),
-                // ── Clear All Chip ─────────────────────────────────────────
+                // â”€â”€ Clear All Chip â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
                 if (hasActiveFilters || _searchQuery.isNotEmpty) ...[
                   const SizedBox(height: 8),
                   ActionChip(
                     label: const Text(
-                      'Clear all filters & search',
+                      'Clear filters & search',
                       style: TextStyle(fontSize: 12),
                     ),
                     avatar: Icon(
@@ -2164,62 +2164,65 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
             borderRadius: const BorderRadius.vertical(
               bottom: Radius.circular(AppSizes.radiusLarge),
             ),
-            child: SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              child: DataTable(
-                showCheckboxColumn: false,
-                headingRowColor: WidgetStateProperty.all(
-                  AppColors.primaryGreen.withValues(alpha: 0.04),
-                ),
-                columnSpacing: 24,
-                columns: [
-                  DataColumn(label: sortableHeader('LRN', 'lrn')),
-                  DataColumn(label: sortableHeader('Student Name', 'name')),
-                  const DataColumn(
-                    label: Text(
-                      'Sex',
-                      style: TextStyle(fontWeight: FontWeight.bold),
-                    ),
+            child: LayoutBuilder(
+              builder: (context, tableConstraints) {
+                // On wide screens let the table fill naturally.
+                // On narrow screens allow horizontal scroll.
+                final isWideTable = tableConstraints.maxWidth >= 700;
+                Widget tableWidget = DataTable(
+                  showCheckboxColumn: false,
+                  headingRowColor: WidgetStateProperty.all(
+                    AppColors.primaryGreen.withValues(alpha: 0.04),
                   ),
-                  const DataColumn(
-                    label: Text(
-                      'Status',
-                      style: TextStyle(fontWeight: FontWeight.bold),
+                  columnSpacing: isWideTable ? 24 : 16,
+                  columns: [
+                    DataColumn(label: sortableHeader('LRN', 'lrn')),
+                    DataColumn(label: sortableHeader('Name', 'name')),
+                    const DataColumn(
+                      label: Text(
+                        'Sex',
+                        style: TextStyle(fontWeight: FontWeight.bold),
+                      ),
                     ),
-                  ),
-                  const DataColumn(
-                    label: Text(
-                      'Grade/Sec',
-                      style: TextStyle(fontWeight: FontWeight.bold),
+                    const DataColumn(
+                      label: Text(
+                        'Status',
+                        style: TextStyle(fontWeight: FontWeight.bold),
+                      ),
                     ),
-                  ),
-                  DataColumn(label: sortableHeader('Missing', 'missing')),
-                  const DataColumn(
-                    label: Text(
-                      'Missing Requirements',
-                      style: TextStyle(fontWeight: FontWeight.bold),
+                    const DataColumn(
+                      label: Text(
+                        'Grade/Sec',
+                        style: TextStyle(fontWeight: FontWeight.bold),
+                      ),
                     ),
-                  ),
-                ],
-                rows: paginatedStudents.isEmpty
-                    ? [
-                        const DataRow(
-                          cells: [
-                            DataCell(
-                              Text(
-                                'No students match the selected filters.',
+                    DataColumn(label: sortableHeader('Missing', 'missing')),
+                    const DataColumn(
+                      label: Text(
+                        'Missing Requirements',
+                        style: TextStyle(fontWeight: FontWeight.bold),
+                      ),
+                    ),
+                  ],
+                  rows: paginatedStudents.isEmpty
+                      ? <DataRow>[
+                          const DataRow(
+                            cells: [
+                              DataCell(
+                                Text(
+                                  'No students found for these filters.',
+                                ),
                               ),
-                            ),
-                            DataCell(Text('')),
-                            DataCell(Text('')),
-                            DataCell(Text('')),
-                            DataCell(Text('')),
-                            DataCell(Text('')),
-                            DataCell(Text('')),
-                          ],
-                        ),
-                      ]
-                    : paginatedStudents.map((student) {
+                              DataCell(Text('')),
+                              DataCell(Text('')),
+                              DataCell(Text('')),
+                              DataCell(Text('')),
+                              DataCell(Text('')),
+                              DataCell(Text('')),
+                            ],
+                          ),
+                        ]
+                      : paginatedStudents.map((student) {
                         Color? rowBg;
                         if (student.missingCount == 0) {
                           rowBg = isDark
@@ -2347,7 +2350,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                             DataCell(
                               Text(
                                 student.missingRequirements ??
-                                    'None — Complete',
+                                    'None â€” Complete',
                                 style: TextStyle(
                                   color: student.missingCount > 0
                                       ? (isDark
@@ -2366,7 +2369,15 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                           ],
                         );
                       }).toList(),
-              ),
+                );
+                if (isWideTable) {
+                  return tableWidget;
+                }
+                return SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  child: tableWidget,
+                );
+              },
             ),
           ),
           if (totalPages > 1) ...[
@@ -2460,7 +2471,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
   }
 
 
-  // ── Summary Banner ────────────────────────────────────────────────────────
+  // â”€â”€ Summary Banner â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   Widget _buildSummaryBanner(ReportStats data) {
     final total = data.students.length;
     final compliant = data.students.where((s) => s.missingCount == 0).length;
@@ -2498,11 +2509,11 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
             _summaryItem(Icons.check_circle_outline, '$compliant', 'Complete',
                 AppColors.primaryGreen),
             _summaryItem(Icons.warning_amber_outlined, '$withIssues',
-                'With Issues', Colors.orange.shade700),
+                'Need Docs', Colors.orange.shade700),
             _summaryItem(Icons.description_outlined, '$totalMissing',
-                'Missing Docs', Colors.red.shade400),
+                'Missing', Colors.red.shade400),
             _summaryItem(Icons.analytics_outlined,
-                '${complianceRate.toStringAsFixed(1)}%', 'Compliance',
+                '${complianceRate.toStringAsFixed(1)}%', 'Complete Rate',
                 rateColor),
           ];
           if (constraints.maxWidth < 600) {
@@ -2558,7 +2569,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
     );
   }
 
-  // ── Status Donut Chart ────────────────────────────────────────────────────
+  // â”€â”€ Status Donut Chart â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   Widget _buildStatusDonutChart(StudentCounts counts) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final total = counts.active +
@@ -2574,7 +2585,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Student Status Distribution',
+            'Student Status Breakdown',
             style: TextStyle(
               fontSize: 18,
               fontWeight: FontWeight.bold,
@@ -2583,7 +2594,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
           ),
           const SizedBox(height: 4),
           Text(
-            'Breakdown of all students by enrollment status.',
+            'How students are grouped by their current status.',
             style: TextStyle(
               color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
               fontSize: 13,
@@ -2702,7 +2713,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
     );
   }
 
-  // ── Grade Compliance Chart ────────────────────────────────────────────────
+  // â”€â”€ Grade Compliance Chart â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   Widget _buildGradeComplianceChart(List<ReportStudent> students) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final gradeMap = <int, _GradeCompliance>{};
@@ -2724,7 +2735,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Compliance Rate by Grade Level',
+            'Document Completion by Grade',
             style: TextStyle(
               fontSize: 18,
               fontWeight: FontWeight.bold,
@@ -2733,7 +2744,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
           ),
           const SizedBox(height: 4),
           Text(
-            'Percentage of students with complete documents per grade.',
+            'How many students per grade have all their documents.',
             style: TextStyle(
               color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
               fontSize: 13,
@@ -2873,8 +2884,8 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
             spacing: 16,
             runSpacing: 6,
             children: [
-              _buildLegendItem(AppColors.primaryGreen, '≥ 80% Good'),
-              _buildLegendItem(Colors.orange, '50–79% Moderate'),
+              _buildLegendItem(AppColors.primaryGreen, 'â‰¥ 80% Good'),
+              _buildLegendItem(Colors.orange, '50â€“79% Moderate'),
               _buildLegendItem(Colors.red, '< 50% Critical'),
             ],
           ),
@@ -2883,7 +2894,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
     );
   }
 
-  // ── Helpers ──────────────────────────────────────────────────────────────
+  // â”€â”€ Helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   Widget _errorWidget(String msg) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
@@ -2952,7 +2963,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
     );
   }
 
-  // ── Yearly Comparison Chart ───────────────────────────────────────────────
+  // â”€â”€ Yearly Comparison Chart â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   Widget _buildYearlyComparisonChart({required bool isDesktop}) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final yearlyAsync = ref.watch(yearlyComparisonProvider);
@@ -2985,7 +2996,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // ── Chart Title & Filter Row ──────────────────────────────────────
+          // â”€â”€ Chart Title & Filter Row â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -2994,7 +3005,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Yearly Comparison by Status',
+                      'Students Per Year',
                       style: TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.bold,
@@ -3003,7 +3014,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      'Trend of student statuses across academic years (ascending).',
+                      'How student numbers changed each school year.',
                       style: TextStyle(
                         color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
                         fontSize: 13,
@@ -3017,7 +3028,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
 
           const SizedBox(height: 16),
 
-          // ── Underline Filter Dropdown Row ─────────────────────────────────
+          // â”€â”€ Underline Filter Dropdown Row â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
           yearlyAsync.when(
             skipLoadingOnReload: true,
             loading: () => const SizedBox.shrink(),
@@ -3076,7 +3087,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
 
           const SizedBox(height: AppSizes.p24),
 
-          // ── Chart ─────────────────────────────────────────────────────────
+          // â”€â”€ Chart â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
           yearlyAsync.when(
             skipLoadingOnReload: true,
             loading: () => const Center(
@@ -3265,7 +3276,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
             },
           ),
           const SizedBox(height: 24),
-          // ── Legend (dynamic based on selected statuses) ───────────────────
+          // â”€â”€ Legend (dynamic based on selected statuses) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
           Consumer(
             builder: (context, ref, _) {
               final statuses = ref.watch(
@@ -3594,7 +3605,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
   }
 }
 
-// ── Helper data class for grade compliance ─────────────────────────────────
+// â”€â”€ Helper data class for grade compliance â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 class _GradeCompliance {
   final int grade;
   int total = 0;
@@ -3602,7 +3613,7 @@ class _GradeCompliance {
   _GradeCompliance(this.grade);
 }
 
-// ── Helper data class for status options ─────────────────────────────────────
+// â”€â”€ Helper data class for status options â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 class _StatusOption {
   final String key;
   final String label;

@@ -1,4 +1,4 @@
-import 'package:fl_chart/fl_chart.dart';
+﻿import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/constants/app_colors.dart';
@@ -6,78 +6,58 @@ import '../../../../core/constants/app_sizes.dart';
 import '../../../../domain/entities/report_models.dart';
 import '../../../providers/reports_provider.dart';
 
-class TransparencyBoardSection extends ConsumerStatefulWidget {
+class TransparencyBoardSection extends ConsumerWidget {
   const TransparencyBoardSection({super.key});
 
   @override
-  ConsumerState<TransparencyBoardSection> createState() =>
-      _TransparencyBoardSectionState();
-}
-
-class _TransparencyBoardSectionState
-    extends ConsumerState<TransparencyBoardSection>
-    with SingleTickerProviderStateMixin {
-  late TabController _tabController;
-
-  @override
-  void initState() {
-    super.initState();
-    _tabController = TabController(length: 3, vsync: this);
-  }
-
-  @override
-  void dispose() {
-    _tabController.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final asyncData = ref.watch(transparencyBoardProvider);
 
     return asyncData.when(
       skipLoadingOnReload: true,
-      loading:
-          () => const Center(
-            child: Padding(
-              padding: EdgeInsets.all(40),
-              child: CircularProgressIndicator(),
-            ),
-          ),
-      error:
-          (err, _) => Container(
-            padding: const EdgeInsets.all(AppSizes.p20),
-            decoration: BoxDecoration(
-              color: Colors.red.withOpacity(0.05),
-              borderRadius: BorderRadius.circular(AppSizes.radiusLarge),
-              border: Border.all(color: Colors.red.withOpacity(0.3)),
-            ),
-            child: Text(
-              'Error loading DepEd Transparency Board: $err',
-              style: const TextStyle(color: Colors.red),
-            ),
-          ),
-      data: (data) => _buildBoardContent(context, data),
+      loading: () => const Center(
+        child: Padding(
+          padding: EdgeInsets.all(40),
+          child: CircularProgressIndicator(),
+        ),
+      ),
+      error: (err, _) => Container(
+        padding: const EdgeInsets.all(AppSizes.p20),
+        decoration: BoxDecoration(
+          color: Colors.red.withValues(alpha: 0.05),
+          borderRadius: BorderRadius.circular(AppSizes.radiusLarge),
+          border: Border.all(color: Colors.red.withValues(alpha: 0.3)),
+        ),
+        child: Text(
+          'Error loading DepEd Transparency Board: $err',
+          style: const TextStyle(color: Colors.red),
+        ),
+      ),
+      data: (data) => _TransparencyBoardContent(data: data),
     );
   }
+}
 
-  Widget _buildBoardContent(
-    BuildContext context,
-    TransparencyBoardData data,
-  ) {
+class _TransparencyBoardContent extends StatelessWidget {
+  final TransparencyBoardData data;
+  const _TransparencyBoardContent({required this.data});
+
+  @override
+  Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return Container(
       decoration: BoxDecoration(
         color: isDark ? AppColors.darkSurfaceCard : AppColors.surfaceWhite,
         borderRadius: BorderRadius.circular(AppSizes.radiusLarge),
         border: Border.all(
-          color: isDark ? AppColors.darkBorder : Colors.grey.withOpacity(0.2),
+          color: isDark ? AppColors.darkBorder : Colors.grey.withValues(alpha: 0.2),
         ),
         boxShadow: [
           BoxShadow(
             color: isDark
                 ? Colors.black.withValues(alpha: 0.3)
-                : Colors.black.withOpacity(0.04),
+                : Colors.black.withValues(alpha: 0.04),
             blurRadius: 12,
             offset: const Offset(0, 4),
           ),
@@ -86,7 +66,7 @@ class _TransparencyBoardSectionState
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          // ── Header Banner ──────────────────────────────────────────────────
+          // â”€â”€ Header Banner â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
           Container(
             padding: const EdgeInsets.all(AppSizes.p20),
             decoration: BoxDecoration(
@@ -177,48 +157,59 @@ class _TransparencyBoardSectionState
             ),
           ),
 
-          // ── Tab Bar ────────────────────────────────────────────────────────
-          Container(
-            color: isDark
-                ? AppColors.darkSurface2
-                : Colors.grey.withOpacity(0.05),
-            child: TabBar(
-              controller: _tabController,
-              isScrollable: true,
-              tabAlignment: TabAlignment.start,
-              labelColor: AppColors.primaryGreen,
-              unselectedLabelColor: isDark
-                  ? AppColors.darkTextSecondary
-                  : AppColors.textSecondary,
-              indicatorColor: AppColors.primaryGreen,
-              indicatorWeight: 3,
-              labelStyle: const TextStyle(fontWeight: FontWeight.w600),
-              tabs: const [
-                Tab(
-                  icon: Icon(Icons.bar_chart),
-                  text: '1. ACCESS - ENROLLMENT BY SEX & YEAR',
-                ),
-                Tab(
-                  icon: Icon(Icons.trending_down),
-                  text: '2. ACCESS - DROPOUTS & TRANSFEREES',
-                ),
-                Tab(
-                  icon: Icon(Icons.family_restroom),
-                  text: '3. EQUITY - 4Ps BENEFICIARIES',
-                ),
-              ],
-            ),
-          ),
-
-          // ── Tab Views ──────────────────────────────────────────────────────
-          SizedBox(
-            height: 600,
-            child: TabBarView(
-              controller: _tabController,
+          // â”€â”€ Sections stacked vertically â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+          Padding(
+            padding: const EdgeInsets.all(AppSizes.p20),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                _buildEnrollmentTab(data.years),
-                _buildDropoutTransfereeTab(data.years),
-                _buildEquity4PsTab(data.equity4Ps),
+                // â”€â”€ Section 1: ACCESS â€” Enrollment â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+                _buildSectionHeader(
+                  context,
+                  icon: Icons.bar_chart,
+                  label: '1. ACCESS â€” Enrollment by Sex & Year',
+                  color: AppColors.primaryGreen,
+                ),
+                const SizedBox(height: AppSizes.p16),
+                _buildEnrollmentSection(context, data.years),
+
+                const SizedBox(height: AppSizes.p32),
+                Divider(
+                  color: (Theme.of(context).brightness == Brightness.dark
+                          ? AppColors.darkBorder
+                          : Colors.grey)
+                      .withValues(alpha: 0.25),
+                ),
+                const SizedBox(height: AppSizes.p24),
+
+                // â”€â”€ Section 2: ACCESS â€” Dropouts & Transferees â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+                _buildSectionHeader(
+                  context,
+                  icon: Icons.trending_down,
+                  label: '2. ACCESS â€” Dropouts & Transferees',
+                  color: Colors.redAccent,
+                ),
+                const SizedBox(height: AppSizes.p16),
+                _buildDropoutTransfereeSection(context, data.years),
+
+                const SizedBox(height: AppSizes.p32),
+                Divider(
+                  color: (Theme.of(context).brightness == Brightness.dark
+                          ? AppColors.darkBorder
+                          : Colors.grey)
+                      .withValues(alpha: 0.25),
+                ),
+                const SizedBox(height: AppSizes.p24),
+
+                // â”€â”€ Section 3: EQUITY â€” 4Ps Beneficiaries â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+                _buildSectionHeader(
+                  context,
+                  icon: Icons.family_restroom,
+                  label: '3. EQUITY â€” 4Ps Beneficiaries',
+                  color: Colors.deepPurple,
+                ),
+                const SizedBox(height: AppSizes.p16),
+                _buildEquity4PsSection(context, data.equity4Ps),
               ],
             ),
           ),
@@ -227,7 +218,9 @@ class _TransparencyBoardSectionState
     );
   }
 
-  Widget _buildThemeChip(String label, Color color) {
+  // â”€â”€ Shared Helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+
+  static Widget _buildThemeChip(String label, Color color) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
       decoration: BoxDecoration(
@@ -245,71 +238,122 @@ class _TransparencyBoardSectionState
     );
   }
 
-  // ── TAB 1: Enrollment Comparative & Table ──────────────────────────────────
-  Widget _buildEnrollmentTab(List<YearlyTransparencyItem> years) {
-    if (years.isEmpty) {
-      return const Center(
-        child: Text('No comparative academic years found.'),
-      );
-    }
+  static Widget _buildSectionHeader(
+    BuildContext context, {
+    required IconData icon,
+    required String label,
+    required Color color,
+  }) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-
-    // Latest year for detailed JHS/SHS sex breakdown table
-    final latestYear = years.last;
-
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(AppSizes.p20),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            'Comparative Enrollment Data for Consecutive Years',
+    return Row(
+      children: [
+        Container(
+          padding: const EdgeInsets.all(6),
+          decoration: BoxDecoration(
+            color: color.withValues(alpha: 0.12),
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Icon(icon, size: 18, color: color),
+        ),
+        const SizedBox(width: 10),
+        Expanded(
+          child: Text(
+            label,
             style: TextStyle(
               fontSize: 15,
               fontWeight: FontWeight.bold,
               color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
             ),
           ),
-          const SizedBox(height: AppSizes.p12),
-          SizedBox(
-            height: 240,
-            child: _buildEnrollmentGroupedBarChart(years, isDark: isDark),
+        ),
+      ],
+    );
+  }
+
+  /// Responsive table wrapper â€” on wide screens it fills width naturally;
+  /// on narrow screens it allows horizontal scroll with a minimum width.
+  static Widget _responsiveTable({
+    required Widget child,
+    double minWidth = 550,
+  }) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        if (constraints.maxWidth >= minWidth) {
+          return child;
+        }
+        return SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          child: ConstrainedBox(
+            constraints: BoxConstraints(minWidth: minWidth),
+            child: child,
           ),
-          const SizedBox(height: AppSizes.p24),
-          const Divider(),
-          const SizedBox(height: AppSizes.p16),
-          Wrap(
-            alignment: WrapAlignment.spaceBetween,
-            crossAxisAlignment: WrapCrossAlignment.center,
-            spacing: 12,
-            runSpacing: 8,
-            children: [
-              Text(
-                'Key Stage 3 (JHS) & Key Stage 4 (SHS) Enrollment Breakdown (${latestYear.yearRange})',
-                style: TextStyle(
-                  fontSize: 15,
-                  fontWeight: FontWeight.bold,
-                  color:
-                      isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
-                ),
-              ),
-              Text(
-                'Overall Total: ${latestYear.enrollment.overallTotal.total}',
-                style: const TextStyle(
-                  fontWeight: FontWeight.bold,
-                  color: AppColors.primaryGreen,
-                ),
-              ),
-            ],
+        );
+      },
+    );
+  }
+
+  // â”€â”€ Section 1: Enrollment â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+
+  Widget _buildEnrollmentSection(
+    BuildContext context,
+    List<YearlyTransparencyItem> years,
+  ) {
+    if (years.isEmpty) {
+      return const Center(child: Text('No comparative academic years found.'));
+    }
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final latestYear = years.last;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Comparative Enrollment Data for Consecutive Years',
+          style: TextStyle(
+            fontSize: 14,
+            fontWeight: FontWeight.w600,
+            color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
           ),
-          const SizedBox(height: AppSizes.p12),
-          _buildEnrollmentTable(latestYear.enrollment, isDark: isDark),
-        ],
-      ),
+        ),
+        const SizedBox(height: AppSizes.p12),
+        SizedBox(
+          height: 220,
+          child: _buildEnrollmentGroupedBarChart(context, years, isDark: isDark),
+        ),
+        const SizedBox(height: AppSizes.p24),
+        const Divider(height: 1),
+        const SizedBox(height: AppSizes.p16),
+        Wrap(
+          alignment: WrapAlignment.spaceBetween,
+          crossAxisAlignment: WrapCrossAlignment.center,
+          spacing: 12,
+          runSpacing: 8,
+          children: [
+            Text(
+              'JHS (Key Stage 3) & SHS (Key Stage 4) Enrollment Breakdown (${latestYear.yearRange})',
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+                color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
+              ),
+            ),
+            Text(
+              'Overall Total: ${latestYear.enrollment.overallTotal.total}',
+              style: const TextStyle(
+                fontWeight: FontWeight.bold,
+                color: AppColors.primaryGreen,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: AppSizes.p12),
+        _buildEnrollmentTable(context, latestYear.enrollment, isDark: isDark),
+      ],
     );
   }
 
   Widget _buildEnrollmentGroupedBarChart(
+    BuildContext context,
     List<YearlyTransparencyItem> years, {
     required bool isDark,
   }) {
@@ -329,7 +373,6 @@ class _TransparencyBoardSectionState
 
     return Column(
       children: [
-        // Legend
         Wrap(
           alignment: WrapAlignment.end,
           spacing: 16,
@@ -400,9 +443,9 @@ class _TransparencyBoardSectionState
                       return Padding(
                         padding: const EdgeInsets.only(top: 6),
                         child: Text(
-                          'Grade ${gradeLevels[idx]}',
+                          'G${gradeLevels[idx]}',
                           style: const TextStyle(
-                            fontSize: 12,
+                            fontSize: 11,
                             fontWeight: FontWeight.w600,
                           ),
                         ),
@@ -413,7 +456,7 @@ class _TransparencyBoardSectionState
                 leftTitles: AxisTitles(
                   sideTitles: SideTitles(
                     showTitles: true,
-                    reservedSize: 40,
+                    reservedSize: 36,
                     getTitlesWidget: (val, meta) {
                       if (val == 0) return const SizedBox.shrink();
                       return Text(
@@ -441,7 +484,7 @@ class _TransparencyBoardSectionState
                 getDrawingHorizontalLine: (value) => FlLine(
                   color: isDark
                       ? AppColors.darkBorder
-                      : Colors.grey.withOpacity(0.15),
+                      : Colors.grey.withValues(alpha: 0.15),
                   strokeWidth: 1,
                 ),
               ),
@@ -484,20 +527,17 @@ class _TransparencyBoardSectionState
   }
 
   Widget _buildEnrollmentTable(
+    BuildContext context,
     YearlyEnrollmentSummary summary, {
     required bool isDark,
   }) {
-    return SingleChildScrollView(
-      scrollDirection: Axis.horizontal,
-      child: ConstrainedBox(
-        constraints: const BoxConstraints(minWidth: 550),
-        child: Container(
-          decoration: BoxDecoration(
-            border: Border.all(
-              color: isDark ? AppColors.darkBorder : Colors.grey.withOpacity(0.3),
-            ),
-            borderRadius: BorderRadius.circular(AppSizes.radiusMedium),
-          ),
+    Widget tableWidget = Container(
+      decoration: BoxDecoration(
+        border: Border.all(
+          color: isDark ? AppColors.darkBorder : Colors.grey.withValues(alpha: 0.3),
+        ),
+        borderRadius: BorderRadius.circular(AppSizes.radiusMedium),
+      ),
       child: Table(
         columnWidths: const {
           0: FlexColumnWidth(2.5),
@@ -509,14 +549,17 @@ class _TransparencyBoardSectionState
           inside: BorderSide(
             color: isDark
                 ? AppColors.darkBorder
-                : Colors.grey.withOpacity(0.2),
+                : Colors.grey.withValues(alpha: 0.2),
           ),
         ),
         children: [
           // Header
           TableRow(
             decoration: BoxDecoration(
-              color: AppColors.primaryGreen.withOpacity(0.1),
+              color: AppColors.primaryGreen.withValues(alpha: 0.1),
+              borderRadius: const BorderRadius.vertical(
+                top: Radius.circular(AppSizes.radiusMedium),
+              ),
             ),
             children: const [
               Padding(
@@ -554,7 +597,7 @@ class _TransparencyBoardSectionState
             decoration: BoxDecoration(
               color: isDark
                   ? AppColors.darkSurface2
-                  : Colors.grey.withOpacity(0.08),
+                  : Colors.grey.withValues(alpha: 0.08),
             ),
             children: const [
               Padding(
@@ -601,7 +644,7 @@ class _TransparencyBoardSectionState
           // JHS Subtotal Row
           TableRow(
             decoration: BoxDecoration(
-              color: AppColors.primaryGreen.withOpacity(0.05),
+              color: AppColors.primaryGreen.withValues(alpha: 0.05),
             ),
             children: [
               const Padding(
@@ -642,7 +685,7 @@ class _TransparencyBoardSectionState
             decoration: BoxDecoration(
               color: isDark
                   ? AppColors.darkSurface2
-                  : Colors.grey.withOpacity(0.08),
+                  : Colors.grey.withValues(alpha: 0.08),
             ),
             children: const [
               Padding(
@@ -689,7 +732,7 @@ class _TransparencyBoardSectionState
           // SHS Subtotal Row
           TableRow(
             decoration: BoxDecoration(
-              color: AppColors.primaryGreen.withOpacity(0.05),
+              color: AppColors.primaryGreen.withValues(alpha: 0.05),
             ),
             children: [
               const Padding(
@@ -727,126 +770,115 @@ class _TransparencyBoardSectionState
           ),
         ],
       ),
-    ),
-  ),
-);
+    );
+
+    return _responsiveTable(child: tableWidget, minWidth: 500);
   }
 
-  // ── TAB 2: Dropout & Transferee Mobility ──────────────────────────────────
-  Widget _buildDropoutTransfereeTab(List<YearlyTransparencyItem> years) {
+  // â”€â”€ Section 2: Dropouts & Transferees â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+
+  Widget _buildDropoutTransfereeSection(
+    BuildContext context,
+    List<YearlyTransparencyItem> years,
+  ) {
     if (years.isEmpty) {
-      return const Center(
-        child: Text('No comparative data found.'),
-      );
+      return const Center(child: Text('No comparative data found.'));
     }
     final isDark = Theme.of(context).brightness == Brightness.dark;
-
     final grades = [7, 8, 9, 10, 11, 12];
 
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(AppSizes.p20),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              const Icon(
-                Icons.error_outline,
-                color: Colors.redAccent,
-                size: 20,
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Dropouts sub-section
+        Row(
+          children: [
+            const Icon(Icons.error_outline, color: Colors.redAccent, size: 18),
+            const SizedBox(width: 8),
+            Text(
+              'Data on Dropout (3 Consecutive Years)',
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+                color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
               ),
-              const SizedBox(width: 8),
-              Text(
-                'DATA ON DROPOUT (For 3 Consecutive Years)',
-                style: TextStyle(
-                  fontSize: 15,
-                  fontWeight: FontWeight.bold,
-                  color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
-                ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 12),
+        _buildMultiYearGradeTable(
+          context,
+          years: years,
+          grades: grades,
+          isDark: isDark,
+          getValue: (y, g) {
+            final row = y.dropouts.grades.firstWhere(
+              (item) => item.gradeLevel == g,
+              orElse: () => GradeDropoutCount(gradeLevel: g, droppedCount: 0),
+            );
+            return row.droppedCount;
+          },
+          getTotal: (y) => y.dropouts.totalDropped,
+          headerColor: Colors.red.withValues(alpha: 0.08),
+          totalColor: Colors.redAccent,
+        ),
+        const SizedBox(height: 28),
+        // Transferees sub-section
+        Row(
+          children: [
+            const Icon(Icons.swap_horiz_outlined, color: Colors.orange, size: 18),
+            const SizedBox(width: 8),
+            Text(
+              'Data on Transferees (3 Consecutive Years)',
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+                color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
               ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          _buildMultiYearGradeTable(
-            years: years,
-            grades: grades,
-            isDark: isDark,
-            getValue: (y, g) {
-              final row = y.dropouts.grades.firstWhere(
-                (item) => item.gradeLevel == g,
-                orElse: () =>
-                    GradeDropoutCount(gradeLevel: g, droppedCount: 0),
-              );
-              return row.droppedCount;
-            },
-            getTotal: (y) => y.dropouts.totalDropped,
-            headerColor: Colors.red.withOpacity(0.08),
-            totalColor: Colors.redAccent,
-          ),
-          const SizedBox(height: 28),
-          Row(
-            children: [
-              const Icon(
-                Icons.swap_horiz_outlined,
-                color: Colors.orange,
-                size: 20,
+            ),
+          ],
+        ),
+        const SizedBox(height: 12),
+        _buildMultiYearGradeTable(
+          context,
+          years: years,
+          grades: grades,
+          isDark: isDark,
+          getValue: (y, g) {
+            final row = y.transferees.grades.firstWhere(
+              (item) => item.gradeLevel == g,
+              orElse: () => GradeTransfereeCount(
+                gradeLevel: g,
+                transferredCount: 0,
               ),
-              const SizedBox(width: 8),
-              Text(
-                'DATA ON TRANSFEREES (For 3 Consecutive Years)',
-                style: TextStyle(
-                  fontSize: 15,
-                  fontWeight: FontWeight.bold,
-                  color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          _buildMultiYearGradeTable(
-            years: years,
-            grades: grades,
-            isDark: isDark,
-            getValue: (y, g) {
-              final row = y.transferees.grades.firstWhere(
-                (item) => item.gradeLevel == g,
-                orElse: () => GradeTransfereeCount(
-                  gradeLevel: g,
-                  transferredCount: 0,
-                ),
-              );
-              return row.transferredCount;
-            },
-            getTotal: (y) => y.transferees.totalTransferred,
-            headerColor: Colors.orange.withOpacity(0.1),
-            totalColor: Colors.orange.shade800,
-          ),
-        ],
-      ),
+            );
+            return row.transferredCount;
+          },
+          getTotal: (y) => y.transferees.totalTransferred,
+          headerColor: Colors.orange.withValues(alpha: 0.1),
+          totalColor: Colors.orange.shade800,
+        ),
+      ],
     );
   }
 
-  Widget _buildMultiYearGradeTable({
+  Widget _buildMultiYearGradeTable(
+    BuildContext context, {
     required List<YearlyTransparencyItem> years,
     required List<int> grades,
     required bool isDark,
-    required int Function(YearlyTransparencyItem year, int grade)
-    getValue,
+    required int Function(YearlyTransparencyItem year, int grade) getValue,
     required int Function(YearlyTransparencyItem year) getTotal,
     required Color headerColor,
     required Color totalColor,
   }) {
-    return SingleChildScrollView(
-      scrollDirection: Axis.horizontal,
-      child: ConstrainedBox(
-        constraints: const BoxConstraints(minWidth: 550),
-        child: Container(
-          decoration: BoxDecoration(
-            border: Border.all(
-              color: isDark ? AppColors.darkBorder : Colors.grey.withOpacity(0.3),
-            ),
-            borderRadius: BorderRadius.circular(AppSizes.radiusMedium),
-          ),
+    Widget tableWidget = Container(
+      decoration: BoxDecoration(
+        border: Border.all(
+          color: isDark ? AppColors.darkBorder : Colors.grey.withValues(alpha: 0.3),
+        ),
+        borderRadius: BorderRadius.circular(AppSizes.radiusMedium),
+      ),
       child: Table(
         columnWidths: {
           0: const FlexColumnWidth(2),
@@ -857,7 +889,7 @@ class _TransparencyBoardSectionState
           inside: BorderSide(
             color: isDark
                 ? AppColors.darkBorder
-                : Colors.grey.withOpacity(0.2),
+                : Colors.grey.withValues(alpha: 0.2),
           ),
         ),
         children: [
@@ -909,7 +941,7 @@ class _TransparencyBoardSectionState
             decoration: BoxDecoration(
               color: isDark
                   ? AppColors.darkSurface2
-                  : Colors.grey.withOpacity(0.08),
+                  : Colors.grey.withValues(alpha: 0.08),
             ),
             children: [
               const Padding(
@@ -936,79 +968,77 @@ class _TransparencyBoardSectionState
           ),
         ],
       ),
-    ),
-  ),
-);
+    );
+
+    return _responsiveTable(child: tableWidget, minWidth: 500);
   }
 
-  // ── TAB 3: Equity (4Ps Beneficiaries) ──────────────────────────────────────
-  Widget _buildEquity4PsTab(Equity4PsSummary equity) {
+  // â”€â”€ Section 3: 4Ps Equity â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+
+  Widget _buildEquity4PsSection(
+    BuildContext context,
+    Equity4PsSummary equity,
+  ) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(AppSizes.p20),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Wrap(
-            alignment: WrapAlignment.spaceBetween,
-            crossAxisAlignment: WrapCrossAlignment.center,
-            spacing: 12,
-            runSpacing: 8,
-            children: [
-              Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const Icon(
-                    Icons.family_restroom,
-                    color: Colors.deepPurple,
-                    size: 22,
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Wrap(
+          alignment: WrapAlignment.spaceBetween,
+          crossAxisAlignment: WrapCrossAlignment.center,
+          spacing: 12,
+          runSpacing: 8,
+          children: [
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(
+                  Icons.family_restroom,
+                  color: Colors.deepPurple,
+                  size: 20,
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  '4Ps Beneficiaries Distribution',
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                    color:
+                        isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
                   ),
-                  const SizedBox(width: 8),
-                  Text(
-                    'EQUITY - 4Ps BENEFICIARIES DISTRIBUTION',
-                    style: TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.bold,
-                      color:
-                          isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
-                    ),
-                  ),
-                ],
+                ),
+              ],
+            ),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              decoration: BoxDecoration(
+                color: Colors.deepPurple.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(20),
               ),
-              Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 12,
-                  vertical: 6,
-                ),
-                decoration: BoxDecoration(
-                  color: Colors.deepPurple.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                child: Text(
-                  'Overall: ${equity.total4Ps} of ${equity.totalStudents} (${equity.overallPercentage}%)',
-                  style: const TextStyle(
-                    color: Colors.deepPurple,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 13,
-                  ),
+              child: Text(
+                'Overall: ${equity.total4Ps} of ${equity.totalStudents} (${equity.overallPercentage}%)',
+                style: const TextStyle(
+                  color: Colors.deepPurple,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 13,
                 ),
               ),
-            ],
-          ),
-          const SizedBox(height: 16),
-          SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(minWidth: 550),
-              child: Container(
-                decoration: BoxDecoration(
-                  border: Border.all(
-                    color: isDark
-                        ? AppColors.darkBorder
-                        : Colors.grey.withOpacity(0.3),
-                  ),
-                  borderRadius: BorderRadius.circular(AppSizes.radiusMedium),
-                ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 16),
+        _responsiveTable(
+          minWidth: 500,
+          child: Container(
+            decoration: BoxDecoration(
+              border: Border.all(
+                color: isDark
+                    ? AppColors.darkBorder
+                    : Colors.grey.withValues(alpha: 0.3),
+              ),
+              borderRadius: BorderRadius.circular(AppSizes.radiusMedium),
+            ),
             child: Table(
               columnWidths: const {
                 0: FlexColumnWidth(2),
@@ -1020,13 +1050,13 @@ class _TransparencyBoardSectionState
                 inside: BorderSide(
                   color: isDark
                       ? AppColors.darkBorder
-                      : Colors.grey.withOpacity(0.2),
+                      : Colors.grey.withValues(alpha: 0.2),
                 ),
               ),
               children: [
                 TableRow(
                   decoration: BoxDecoration(
-                    color: Colors.deepPurple.withOpacity(0.08),
+                    color: Colors.deepPurple.withValues(alpha: 0.08),
                   ),
                   children: const [
                     Padding(
@@ -1053,7 +1083,7 @@ class _TransparencyBoardSectionState
                     Padding(
                       padding: EdgeInsets.all(10),
                       child: Text(
-                        'Equity Percentage',
+                        'Percentage',
                         style: TextStyle(fontWeight: FontWeight.bold),
                       ),
                     ),
@@ -1066,9 +1096,7 @@ class _TransparencyBoardSectionState
                         padding: const EdgeInsets.all(10),
                         child: Text(
                           'Grade ${g.gradeLevel}',
-                          style: const TextStyle(
-                            fontWeight: FontWeight.w600,
-                          ),
+                          style: const TextStyle(fontWeight: FontWeight.w600),
                         ),
                       ),
                       Padding(
@@ -1088,7 +1116,7 @@ class _TransparencyBoardSectionState
                                 value: (g.percentage / 100).clamp(0.0, 1.0),
                                 backgroundColor: isDark
                                     ? AppColors.darkSurface2
-                                    : Colors.grey.withOpacity(0.15),
+                                    : Colors.grey.withValues(alpha: 0.15),
                                 color: Colors.deepPurple,
                                 minHeight: 8,
                                 borderRadius: BorderRadius.circular(4),
@@ -1117,13 +1145,13 @@ class _TransparencyBoardSectionState
                   decoration: BoxDecoration(
                     color: isDark
                         ? AppColors.darkSurface2
-                        : Colors.grey.withOpacity(0.06),
+                        : Colors.grey.withValues(alpha: 0.06),
                   ),
                   children: [
                     const Padding(
                       padding: EdgeInsets.all(10),
                       child: Text(
-                        'OVERALL EQUITY TOTAL',
+                        'TOTAL',
                         style: TextStyle(fontWeight: FontWeight.bold),
                       ),
                     ),
@@ -1141,15 +1169,13 @@ class _TransparencyBoardSectionState
                       padding: const EdgeInsets.all(10),
                       child: Text(
                         equity.totalStudents.toString(),
-                        style: const TextStyle(
-                          fontWeight: FontWeight.bold,
-                        ),
+                        style: const TextStyle(fontWeight: FontWeight.bold),
                       ),
                     ),
                     Padding(
                       padding: const EdgeInsets.all(10),
                       child: Text(
-                        '${equity.overallPercentage}% of Total Population',
+                        '${equity.overallPercentage}% of total',
                         style: const TextStyle(
                           fontWeight: FontWeight.bold,
                           color: Colors.deepPurple,
@@ -1162,9 +1188,7 @@ class _TransparencyBoardSectionState
             ),
           ),
         ),
-      ),
-    ],
-  ),
-);
+      ],
+    );
   }
 }

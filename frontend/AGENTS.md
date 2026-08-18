@@ -180,6 +180,10 @@ Files backup/restore - mirror mode or zip -->
 <!-- # VIBRATION FEATURE
 - android: add haptic feedback for android, add dynamic vibrate/normal vibrate for all success, error, info dialogs, dynamic vibrate depends what dialog it is -->
 
+# REPORTS SCREEN
+- DEPED TRANSPARENCY BOARD -> 
+- Compliance & Analytics -> use basic words, simple and easy to understand, not professional -> make the design not AI slop -> make the tables responsive for all devices
+
 ---
 
 # TIS_RMS Server Manager (dont do)
