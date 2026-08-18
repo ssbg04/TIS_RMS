@@ -48,7 +48,7 @@ class _EditStudentModalState extends ConsumerState<EditStudentModal> {
   bool _isFetchingDetails = true;
 
   // Cache of all enrollments loaded for the student being edited
-  List<dynamic>? _loadedEnrollments;
+  List<EnrollmentModel>? _loadedEnrollments;
   int _statusDropdownKey = 0;
 
   static const _statuses = ['Enrolled', 'Graduated', 'Transferred', 'Dropped', 'Inactive'];
@@ -219,16 +219,7 @@ class _EditStudentModalState extends ConsumerState<EditStudentModal> {
 
   bool _hasGraduationEligibleGrade() {
     if (_loadedEnrollments != null && _loadedEnrollments!.isNotEmpty) {
-      for (final e in _loadedEnrollments!) {
-        int? g;
-        if (e is EnrollmentModel) {
-          g = e.gradeLevel;
-        } else if (e is Map) {
-          g = (e['grade_level'] as num?)?.toInt();
-        }
-        if (g == 10 || g == 12) return true;
-      }
-      return false;
+      return _loadedEnrollments!.any((e) => e.gradeLevel == 10 || e.gradeLevel == 12);
     }
     if (_initialStudent.enrollments != null && _initialStudent.enrollments!.isNotEmpty) {
       return _initialStudent.enrollments!.any((e) => e.gradeLevel == 10 || e.gradeLevel == 12);
@@ -248,14 +239,22 @@ class _EditStudentModalState extends ConsumerState<EditStudentModal> {
 
   int? _getLatestGradeLevel() {
     if (_loadedEnrollments != null && _loadedEnrollments!.isNotEmpty) {
-      final latestEnrollment = _loadedEnrollments!.reduce((a, b) {
-        final ya = a.yearRange ?? '';
-        final yb = b.yearRange ?? '';
+      EnrollmentModel? best;
+      for (final e in _loadedEnrollments!) {
+        if (best == null) {
+          best = e;
+          continue;
+        }
+        final ya = e.yearRange ?? '';
+        final yb = best.yearRange ?? '';
         final cmp = ya.compareTo(yb);
-        if (cmp != 0) return cmp > 0 ? a : b;
-        return (a.gradeLevel ?? 0) > (b.gradeLevel ?? 0) ? a : b;
-      });
-      return latestEnrollment.gradeLevel;
+        if (cmp > 0) {
+          best = e;
+        } else if (cmp == 0 && e.gradeLevel > best.gradeLevel) {
+          best = e;
+        }
+      }
+      return best?.gradeLevel;
     }
     return widget.student.latestGradeLevel;
   }
