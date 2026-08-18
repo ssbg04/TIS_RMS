@@ -171,8 +171,8 @@ Files backup/restore - mirror mode or zip -->
 <!-- # ARCHIVES SCREEN
 - remove background color and border of the filter icon button -->
 
-<!-- # ANDROID APP PUSH NOTIFICATION
-- notication only works when the app is open, make it work even the app is not opened -->
+# ANDROID APP PUSH NOTIFICATION
+- notication only works when the app is open, make it work even the app is not opened
 
 <!-- # REPORTS SCREEN
 - fix all data in compliance sections not fetched from the backend realtime -->
