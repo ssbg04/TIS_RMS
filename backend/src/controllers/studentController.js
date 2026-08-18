@@ -555,6 +555,7 @@ exports.updateStudent = (req, res) => {
         const dob = new Date(birthDate);
         if (isNaN(dob.getTime()))            errors.push('Invalid date of birth format.');
         else if (dob > new Date())           errors.push('Date of birth cannot be in the future.');
+    }
     if (status && !['Enrolled', 'Graduated', 'Transferred', 'Dropped', 'Inactive'].includes(status)) {
         errors.push('Invalid status value.');
     }
