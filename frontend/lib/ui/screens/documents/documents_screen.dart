@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:io';
 import 'package:flutter/foundation.dart'
     show defaultTargetPlatform, TargetPlatform;
 import 'package:flutter/material.dart';
@@ -27,7 +26,6 @@ import '../../../core/network/api_constants.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'widgets/recycle_bin_modal.dart';
 import 'widgets/bulk_operations_bar.dart';
-import 'widgets/documents_header.dart';
 import '../../../domain/entities/document_model.dart';
 
 class DocumentsScreen extends ConsumerStatefulWidget {
@@ -1348,13 +1346,18 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
     final isDark = Theme.of(context).brightness == Brightness.dark;
     const defaultStatuses = [
       'All Statuses',
-      'Pending',
-      'Verified',
-      'Draft',
+      'Completed',
       'Archived',
     ];
     final statusItems = statusesAsync.when(
-      data: (s) => (defaultStatuses.toSet()..addAll(s)).toList(),
+      data: (s) => (defaultStatuses.toSet()
+            ..addAll(s.where((item) {
+              final lower = item.toLowerCase();
+              return lower != 'verified' &&
+                  lower != 'draft' &&
+                  lower != 'pending';
+            })))
+          .toList(),
       loading: () => defaultStatuses,
       error: (_, st) => defaultStatuses,
     );

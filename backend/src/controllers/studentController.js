@@ -17,16 +17,37 @@ const logActivity = (userId, action, entityType, entityId, description) => {
     }
 };
 
-const getEnrollmentLogDesc = (academicYearId, gradeLevel, sectionId, lrn) => {
+function maskLrn(lrn) {
+    if (!lrn) return '';
+    const str = String(lrn).trim();
+    if (str.length <= 4) return str;
+    const bullets = '•'.repeat(str.length - 4);
+    return `${bullets}${str.slice(-4)}`;
+}
+
+const getEnrollmentLogDesc = (academicYearId, gradeLevel, sectionId, lrn, studentName = '') => {
     try {
         const ay = db.prepare('SELECT year_range FROM academic_years WHERE id = ?').get(academicYearId);
         const sec = db.prepare('SELECT name FROM sections WHERE id = ?').get(sectionId);
         const year = ay?.year_range || '';
         const secName = sec?.name || '';
         const gradeStr = String(gradeLevel).toLowerCase().startsWith('grade') ? gradeLevel : `Grade ${gradeLevel}`;
-        return `CREATE enrollment ${year} - ${gradeStr} - ${secName} student ${lrn}`;
+
+        let name = studentName;
+        if (!name && lrn) {
+            const student = db.prepare('SELECT first_name, last_name, extension FROM students WHERE lrn = ?').get(String(lrn).trim());
+            if (student) {
+                name = `${student.first_name} ${student.last_name}${student.extension ? ' ' + student.extension : ''}`.trim();
+            }
+        }
+
+        const masked = maskLrn(lrn);
+        const studentPart = name ? `student ${name} - ${masked}` : (masked ? `student ${masked}` : '');
+
+        const parts = [year, gradeStr, secName, studentPart].filter(Boolean);
+        return parts.join(' - ');
     } catch (err) {
-        return `CREATE enrollment student ${lrn}`;
+        return `Enrollment - ${maskLrn(lrn)}`;
     }
 };
 
@@ -875,7 +896,7 @@ exports.updateEnrollment = (req, res) => {
 
         const studentRow = db.prepare('SELECT lrn FROM students WHERE id = ?').get(existing.student_id);
         const lrn = studentRow?.lrn || existing.student_id;
-        logActivity(req.user?.id, 'UPDATE', 'enrollment', enrollmentId, `UPDATE enrollment ${enrollmentId} student ${lrn}`);
+        logActivity(req.user?.id, 'UPDATE', 'enrollment', enrollmentId, getEnrollmentLogDesc(academicYearId, gradeLevel, sectionId, lrn));
         res.json({ message: 'Enrollment updated successfully' });
     } catch (error) {
         console.error('updateEnrollment error:', error);
@@ -896,7 +917,7 @@ exports.deleteEnrollment = (req, res) => {
         db.prepare('DELETE FROM enrollments WHERE id = ?').run(enrollmentId);
         const studentRow = db.prepare('SELECT lrn FROM students WHERE id = ?').get(existing.student_id);
         const lrn = studentRow?.lrn || existing.student_id;
-        logActivity(req.user?.id, 'DELETE', 'enrollment', enrollmentId, `DELETE enrollment ${enrollmentId} student ${lrn}`);
+        logActivity(req.user?.id, 'DELETE', 'enrollment', enrollmentId, getEnrollmentLogDesc(existing.academic_year_id, existing.grade_level, existing.section_id, lrn));
         res.json({ message: 'Enrollment deleted successfully' });
     } catch (error) {
         console.error('deleteEnrollment error:', error);

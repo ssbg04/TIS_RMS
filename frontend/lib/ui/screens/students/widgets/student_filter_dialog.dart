@@ -437,9 +437,9 @@ class _StudentFilterDialogState extends ConsumerState<StudentFilterDialog> {
 
                   _buildDivider(isDark),
 
-                  // 8. Items per Page
+                  // 8. Students per Page
                   _buildFilterSection(
-                    label: 'Items per Page',
+                    label: 'Students per Page',
                     hasActiveFilter: _pendingLimit != 20,
                     onReset: () => setState(() => _pendingLimit = 20),
                     child: _buildFilterChipGroup(

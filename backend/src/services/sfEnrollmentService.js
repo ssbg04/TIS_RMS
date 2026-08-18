@@ -14,6 +14,22 @@ const logActivity = (userId, action, entityType, entityId, description) => {
     }
 };
 
+function maskLrn(lrn) {
+    if (!lrn) return '';
+    const str = String(lrn).trim();
+    if (str.length <= 4) return str;
+    const bullets = '•'.repeat(str.length - 4);
+    return `${bullets}${str.slice(-4)}`;
+}
+
+function getEnrollmentLogDesc(year, gradeLevel, secName, lrn, studentName = '') {
+    const gradeStr = String(gradeLevel).toLowerCase().startsWith('grade') ? gradeLevel : `Grade ${gradeLevel}`;
+    const masked = maskLrn(lrn);
+    const studentPart = studentName ? `student ${studentName} - ${masked}` : (masked ? `student ${masked}` : '');
+    const parts = [year, gradeStr, secName, studentPart].filter(Boolean);
+    return parts.join(' - ');
+}
+
 const findTeacherUser = (db, adviserName) => {
     if (!adviserName || typeof adviserName !== 'string') return null;
     const clean = adviserName.trim().toLowerCase();
@@ -226,7 +242,9 @@ exports.autoEnrollFromSF = async ({ studentId, file, documentType = '', userId =
                     WHERE id = ?
                 `).run(secRow.id, cleanTrackStrand || existingEnrollment.track_strand || null, existingEnrollment.id);
                 lastAction = 'updated';
-                logActivity(userId, 'UPDATE', 'enrollment', existingEnrollment.id, `UPDATE enrollment ${existingEnrollment.id} student ${lrn}`);
+                const studentRow = db.prepare('SELECT first_name, last_name FROM students WHERE id = ?').get(studentId);
+                const sName = studentRow ? `${studentRow.first_name} ${studentRow.last_name}`.trim() : '';
+                logActivity(userId, 'UPDATE', 'enrollment', existingEnrollment.id, getEnrollmentLogDesc(ayRow.year_range, gradeNum, sectionName, lrn, sName));
             } else {
                 lastAction = 'already_up_to_date';
             }
@@ -236,7 +254,9 @@ exports.autoEnrollFromSF = async ({ studentId, file, documentType = '', userId =
                 VALUES (?, ?, ?, ?, ?)
             `).run(studentId, ayRow.id, secRow.id, gradeNum, cleanTrackStrand);
             lastAction = 'added';
-            logActivity(userId, 'CREATE', 'enrollment', resEnr.lastInsertRowid, `CREATE enrollment ${resEnr.lastInsertRowid} student ${lrn}`);
+            const studentRow = db.prepare('SELECT first_name, last_name FROM students WHERE id = ?').get(studentId);
+            const sName = studentRow ? `${studentRow.first_name} ${studentRow.last_name}`.trim() : '';
+            logActivity(userId, 'CREATE', 'enrollment', resEnr.lastInsertRowid, getEnrollmentLogDesc(ayRow.year_range, gradeNum, sectionName, lrn, sName));
         }
 
         processedRecords.push({

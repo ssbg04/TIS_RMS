@@ -218,7 +218,7 @@ class _ExtensionNameFieldState extends State<ExtensionNameField> {
                 shrinkWrap: true,
                 padding: EdgeInsets.zero,
                 itemCount: options.length,
-                separatorBuilder: (_, __) => const Divider(height: 1),
+                separatorBuilder: (_, _) => const Divider(height: 1),
                 itemBuilder: (ctx, index) {
                   final opt = options.elementAt(index);
                   final isNa = opt == 'N/A';
@@ -259,43 +259,47 @@ class DobInputFormatter extends TextInputFormatter {
     TextEditingValue oldValue,
     TextEditingValue newValue,
   ) {
-    String text = newValue.text.trim();
-    final isoMatch = RegExp(r'^(\d{4})[\/\-\.](\d{1,2})[\/\-\.](\d{1,2})$').firstMatch(text);
-    if (isoMatch != null) {
-      final yyyy = isoMatch.group(1)!;
-      final mm = isoMatch.group(2)!.padLeft(2, '0');
-      final dd = isoMatch.group(3)!.padLeft(2, '0');
-      text = '$mm$dd$yyyy';
-    } else {
-      final sepMatch = RegExp(r'^(\d{1,2})[\/\-\.](\d{1,2})[\/\-\.](\d{2,4})$').firstMatch(text);
-      if (sepMatch != null) {
-        int m = int.parse(sepMatch.group(1)!);
-        int d = int.parse(sepMatch.group(2)!);
-        int y = int.parse(sepMatch.group(3)!);
-        if (y < 100) y += (y <= 30 ? 2000 : 1900);
-        if (m > 12 && d <= 12) {
-          final tmp = m;
-          m = d;
-          d = tmp;
-        }
-        final mm = m.toString().padLeft(2, '0');
-        final dd = d.toString().padLeft(2, '0');
-        text = '$mm$dd$y';
+    if (newValue.text.isEmpty) {
+      return newValue;
+    }
+
+    // Handle backspace / deletion
+    if (newValue.text.length < oldValue.text.length) {
+      // If user hit backspace on a hyphen, step back one more character
+      if (oldValue.selection.baseOffset > 1 &&
+          oldValue.text[oldValue.selection.baseOffset - 1] == '-' &&
+          newValue.selection.baseOffset == oldValue.selection.baseOffset - 1) {
+        final cursor = oldValue.selection.baseOffset - 1;
+        final digitsBefore = oldValue.text.substring(0, cursor).replaceAll(RegExp(r'[^\d]'), '');
+        final truncatedDigitsBefore = digitsBefore.isNotEmpty ? digitsBefore.substring(0, digitsBefore.length - 1) : '';
+        final digitsAfter = oldValue.text.substring(cursor + 1).replaceAll(RegExp(r'[^\d]'), '');
+        final newDigits = truncatedDigitsBefore + digitsAfter;
+        return _formatDigits(newDigits, cursor - 1);
       }
+      final digits = newValue.text.replaceAll(RegExp(r'[^\d]'), '');
+      return _formatDigits(digits, newValue.selection.baseOffset);
     }
 
-    final digits = text.replaceAll(RegExp(r'[^\d]'), '');
-    final d = digits.length > 8 ? digits.substring(0, 8) : digits;
+    final digits = newValue.text.replaceAll(RegExp(r'[^\d]'), '');
+    final cleanDigits = digits.length > 8 ? digits.substring(0, 8) : digits;
+    return _formatDigits(cleanDigits, null);
+  }
 
+  static TextEditingValue _formatDigits(String digits, int? desiredOffset) {
     final buf = StringBuffer();
-    for (int i = 0; i < d.length; i++) {
-      buf.write(d[i]);
-      if (i == 1 || i == 3) buf.write('-');
+    for (int i = 0; i < digits.length; i++) {
+      if (i == 2 || i == 4) {
+        buf.write('-');
+      }
+      buf.write(digits[i]);
     }
-    final result = buf.toString();
+    final text = buf.toString();
+    final offset = desiredOffset != null
+        ? desiredOffset.clamp(0, text.length)
+        : text.length;
     return TextEditingValue(
-      text: result,
-      selection: TextSelection.collapsed(offset: result.length),
+      text: text,
+      selection: TextSelection.collapsed(offset: offset),
     );
   }
 }

@@ -98,7 +98,11 @@ class _StudentProfileDialogShellState
       child: ClipRRect(
         borderRadius: BorderRadius.circular(12),
         child: Container(
-          constraints: const BoxConstraints(maxWidth: 620),
+          constraints: BoxConstraints(
+            maxWidth: 620,
+            minWidth: widget.isMobile ? 0 : 540,
+            minHeight: 460,
+          ),
           color: isDark ? AppColors.darkPageBackground : AppColors.pageBackground,
           child: Column(
             mainAxisSize: MainAxisSize.min,
@@ -314,7 +318,7 @@ class StudentProfileModalBody extends ConsumerWidget {
 
     return studentAsync.when(
       loading: () => const SizedBox(
-        height: 200,
+        height: 400,
         child: Center(
           child: CircularProgressIndicator(color: AppColors.primaryGreen),
         ),

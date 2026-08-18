@@ -563,51 +563,114 @@ class _EditEnrollmentModalState extends ConsumerState<EditEnrollmentModal> {
             ],
 
             Padding(
-              padding: const EdgeInsets.only(top: 16, bottom: 8),
-              child: Wrap(
-                alignment: WrapAlignment.end,
-                crossAxisAlignment: WrapCrossAlignment.center,
-                spacing: AppSizes.p12,
-                runSpacing: AppSizes.p8,
-                children: [
-                  TextButton(
-                    onPressed: _isLoading
-                        ? null
-                        : () => Navigator.of(context).pop(),
-                    child: const Text(
-                      'CANCEL',
-                      style: TextStyle(
-                        color: AppColors.textSecondary,
-                        fontWeight: FontWeight.bold,
+              padding: const EdgeInsets.only(top: 20, bottom: 8),
+              child: LayoutBuilder(
+                builder: (context, constraints) {
+                  final isMobile = constraints.maxWidth < 450;
+                  if (isMobile) {
+                    return Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        if (_currentEnrollment == null) ...[
+                          OutlinedButton.icon(
+                            key: const ValueKey('add_more_enrollment_button'),
+                            onPressed: _isLoading ? null : _handleAddMoreEnrollment,
+                            icon: const Icon(Icons.add_circle_outline, size: 16),
+                            label: const Text(
+                              'Add More Enrollment',
+                              style: TextStyle(fontWeight: FontWeight.bold),
+                            ),
+                            style: OutlinedButton.styleFrom(
+                              foregroundColor: AppColors.primaryGreen,
+                              side: const BorderSide(color: AppColors.primaryGreen),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 14,
+                                vertical: 12,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 10),
+                        ],
+                        Row(
+                          children: [
+                            Expanded(
+                              child: OutlinedButton(
+                                onPressed: _isLoading
+                                    ? null
+                                    : () => Navigator.of(context).pop(),
+                                style: OutlinedButton.styleFrom(
+                                  padding: const EdgeInsets.symmetric(vertical: 12),
+                                ),
+                                child: const Text(
+                                  'CANCEL',
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: PrimaryButton(
+                                label: 'SAVE',
+                                isLoading: _isLoading,
+                                onPressed: _handleSave,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    );
+                  }
+
+                  return Row(
+                    mainAxisAlignment: MainAxisAlignment.end,
+                    children: [
+                      TextButton(
+                        onPressed: _isLoading
+                            ? null
+                            : () => Navigator.of(context).pop(),
+                        child: const Text(
+                          'CANCEL',
+                          style: TextStyle(
+                            color: AppColors.textSecondary,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
                       ),
-                    ),
-                  ),
-                  OutlinedButton.icon(
-                    key: const ValueKey('add_more_enrollment_button'),
-                    onPressed: _isLoading ? null : _handleAddMoreEnrollment,
-                    icon: const Icon(Icons.add_circle_outline, size: 16),
-                    label: const Text(
-                      'Add More Enrollment',
-                      style: TextStyle(fontWeight: FontWeight.bold),
-                    ),
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: AppColors.primaryGreen,
-                      side: const BorderSide(color: AppColors.primaryGreen),
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 14,
-                        vertical: 12,
+                      const SizedBox(width: 12),
+                      if (_currentEnrollment == null) ...[
+                        OutlinedButton.icon(
+                          key: const ValueKey('add_more_enrollment_button'),
+                          onPressed: _isLoading ? null : _handleAddMoreEnrollment,
+                          icon: const Icon(Icons.add_circle_outline, size: 16),
+                          label: const Text(
+                            'Add More Enrollment',
+                            style: TextStyle(fontWeight: FontWeight.bold),
+                          ),
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: AppColors.primaryGreen,
+                            side: const BorderSide(color: AppColors.primaryGreen),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 14,
+                              vertical: 12,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                      ],
+                      SizedBox(
+                        width: 130,
+                        child: PrimaryButton(
+                          label: 'SAVE',
+                          isLoading: _isLoading,
+                          onPressed: _handleSave,
+                        ),
                       ),
-                    ),
-                  ),
-                  SizedBox(
-                    width: 140,
-                    child: PrimaryButton(
-                      label: 'SAVE',
-                      isLoading: _isLoading,
-                      onPressed: _handleSave,
-                    ),
-                  ),
-                ],
+                    ],
+                  );
+                },
               ),
             ),
           ],

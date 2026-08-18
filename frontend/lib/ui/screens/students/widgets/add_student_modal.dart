@@ -800,9 +800,10 @@ class _AddStudentModalState extends ConsumerState<AddStudentModal> {
                   const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
             ),
           ),
+          const SizedBox(height: AppSizes.p16),
           if (_errorMessage != null) ...[
-            const SizedBox(height: AppSizes.p16),
             ErrorBanner(message: _errorMessage!),
+            const SizedBox(height: AppSizes.p16),
           ],
         ],
       ),
@@ -897,8 +898,16 @@ class _AddStudentModalState extends ConsumerState<AddStudentModal> {
                   .where((y) => y.status.toLowerCase() == 'active')
                   .toList();
               final defaultYearId = (active.isNotEmpty ? active.last : (years.isNotEmpty ? years.last : null))?.id;
-              final currentYearId = _selectedAcademicYearId ?? defaultYearId;
 
+              if (_selectedAcademicYearId == null && defaultYearId != null) {
+                WidgetsBinding.instance.addPostFrameCallback((_) {
+                  if (mounted && _selectedAcademicYearId == null) {
+                    setState(() => _selectedAcademicYearId = defaultYearId);
+                  }
+                });
+              }
+
+              final currentYearId = _selectedAcademicYearId ?? defaultYearId;
               final selectedYearExists = years.any((y) => y.id == currentYearId);
               final effectiveValue = selectedYearExists ? currentYearId : null;
 
@@ -915,11 +924,11 @@ class _AddStudentModalState extends ConsumerState<AddStudentModal> {
                     .toList(),
                 onChanged: (val) => setState(() {
                   _selectedAcademicYearId = val;
-                  _selectedGradeLevel = 7;
+                  _selectedGradeLevel = _selectedGradeLevel ?? 7;
                   _selectedSectionId = null;
                   _trackStrand = null;
                 }),
-                validator: (v) => v == null ? 'Academic year is required.' : null,
+                validator: (v) => (v == null && effectiveValue == null) ? 'Academic year is required.' : null,
               );
             },
             loading: () => const Center(child: CircularProgressIndicator()),
@@ -968,11 +977,12 @@ class _AddStudentModalState extends ConsumerState<AddStudentModal> {
               final activeYears = yearsAsync.value?.where((y) => y.status.toLowerCase() == 'active').toList();
               final defaultYearId = (activeYears != null && activeYears.isNotEmpty ? activeYears.last : (yearsAsync.value != null && yearsAsync.value!.isNotEmpty ? yearsAsync.value!.last : null))?.id;
               final effectiveYearId = _selectedAcademicYearId ?? defaultYearId;
+              final effectiveGrade = _selectedGradeLevel ?? 7;
 
               final filtered = sections
                   .where((sec) =>
                       sec.academicYearId == effectiveYearId &&
-                      sec.gradeLevel == _selectedGradeLevel)
+                      sec.gradeLevel == effectiveGrade)
                   .toList();
               final matches = filtered.where((s) => s.id == _selectedSectionId);
               final initialSectionName =

@@ -607,9 +607,10 @@ class _EditStudentModalState extends ConsumerState<EditStudentModal> {
                     const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
               ),
             ),
+            const SizedBox(height: AppSizes.p16),
             if (_errorMessage != null) ...[
-              const SizedBox(height: AppSizes.p16),
               ErrorBanner(message: _errorMessage!),
+              const SizedBox(height: AppSizes.p16),
             ],
             Builder(
               builder: (ctx) {

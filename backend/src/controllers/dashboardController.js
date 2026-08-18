@@ -213,10 +213,16 @@ exports.getRecentActivities = (req, res) => {
                         )
                     ))
                     OR
+                    (a.entity_type = 'enrollment' AND a.entity_id IN (
+                        SELECT e.id FROM enrollments e
+                        JOIN teacher_sections ts ON e.section_id = ts.section_id
+                        WHERE ts.teacher_id = ?
+                    ))
+                    OR
                     (a.user_id = ?)
                 )
             `);
-            params.push(teacherId, teacherId, teacherId);
+            params.push(teacherId, teacherId, teacherId, teacherId);
         }
 
         const where = conditions.length ? `WHERE ${conditions.join(' AND ')}` : '';

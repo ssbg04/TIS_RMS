@@ -39,7 +39,7 @@ class _RecentActivitiesScreenState
         selectedDayHighlightColor: AppColors.primaryGreen,
       ),
       dialogSize: const Size(325, 400),
-      value: [if (_fromDate != null) _fromDate!, if (_toDate != null) _toDate!],
+      value: [_fromDate, _toDate].whereType<DateTime>().toList(),
       borderRadius: BorderRadius.circular(15),
     );
     if (values != null && values.isNotEmpty) {
@@ -223,7 +223,7 @@ class _RecentActivitiesScreenState
                             Wrap(
                               spacing: 8,
                               runSpacing: 8,
-                              children: ['All Entities', 'student', 'document']
+                              children: ['All Entities', 'student', 'enrollment', 'document', 'user']
                                   .map((v) {
                                     final isSelected = pendingEntity == v;
                                     return ChoiceChip(
@@ -421,7 +421,7 @@ class _RecentActivitiesScreenState
         child: ListView.separated(
           padding: const EdgeInsets.all(16),
           itemCount: activities.length,
-          separatorBuilder: (_, _s) => const SizedBox(height: 12),
+          separatorBuilder: (context, index) => const SizedBox(height: 12),
           itemBuilder: (context, i) {
             final a = activities[i];
 
@@ -623,6 +623,4 @@ class _RecentActivitiesScreenState
         return Icons.description;
     }
   }
-
-  String _formatDate(String raw) => pht.formatDateTime(raw);
 }
