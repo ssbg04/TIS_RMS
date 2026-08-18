@@ -19,6 +19,13 @@ exports.getStats = (req, res) => {
         let whereClauses = [];
         let enrollWhereClauses = [];
 
+        if (req.user?.role === 'teacher') {
+            whereClauses.push('e.section_id IN (SELECT section_id FROM teacher_sections WHERE teacher_id = ?)');
+            enrollWhereClauses.push('e.section_id IN (SELECT section_id FROM teacher_sections WHERE teacher_id = ?)');
+            params.push(req.user.id);
+            enrollParams.push(req.user.id);
+        }
+
         if (academicYearId) {
             whereClauses.push('e.academic_year_id = ?');
             enrollWhereClauses.push('e.academic_year_id = ?');
@@ -76,6 +83,7 @@ exports.getStats = (req, res) => {
                     ORDER BY ay.year_range DESC, e2.grade_level DESC, e2.id DESC LIMIT 1
                 )
             WHERE r.is_enabled = 1
+              AND r.is_mandatory = 1
               AND (
                   (r.category = 'JHS' AND e.grade_level BETWEEN 7 AND 10)
                   OR (r.category = 'SHS' AND e.grade_level BETWEEN 11 AND 12)
@@ -108,6 +116,7 @@ exports.getStats = (req, res) => {
                        SELECT COUNT(*) 
                        FROM document_requirements r
                        WHERE r.is_enabled = 1
+                         AND r.is_mandatory = 1
                          AND (
                              (r.category = 'JHS' AND e_latest.grade_level BETWEEN 7 AND 10)
                              OR (r.category = 'SHS' AND e_latest.grade_level BETWEEN 11 AND 12)
@@ -124,6 +133,7 @@ exports.getStats = (req, res) => {
                        SELECT group_concat('[' || r.category || '] ' || r.name, ', ')
                        FROM document_requirements r
                        WHERE r.is_enabled = 1
+                         AND r.is_mandatory = 1
                          AND (
                              (r.category = 'JHS' AND e_latest.grade_level BETWEEN 7 AND 10)
                              OR (r.category = 'SHS' AND e_latest.grade_level BETWEEN 11 AND 12)

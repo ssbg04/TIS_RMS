@@ -1276,7 +1276,70 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // â”€â”€ Primary KPI Row (3 cards) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+        // ── Card Color Guide Tip Banner ──────────────────────────────
+        Builder(
+          builder: (ctx) {
+            final isDark = Theme.of(ctx).brightness == Brightness.dark;
+            return Container(
+              margin: const EdgeInsets.only(bottom: 12),
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+              decoration: BoxDecoration(
+                color: isDark ? AppColors.darkSurfaceCard : Colors.white,
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(
+                  color: isDark ? AppColors.darkBorder : Colors.grey.shade200,
+                ),
+              ),
+              child: Row(
+                children: [
+                  Icon(
+                    Icons.lightbulb_outline_rounded,
+                    size: 16,
+                    color: isDark ? const Color(0xFFE5A663) : Colors.amber.shade700,
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Wrap(
+                      crossAxisAlignment: WrapCrossAlignment.center,
+                      spacing: 16,
+                      runSpacing: 4,
+                      children: [
+                        Text(
+                          'Color Guide:',
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                            color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
+                          ),
+                        ),
+                        _buildColorTipItem(
+                          dotColor: isDark ? const Color(0xFF76BA8A) : AppColors.primaryGreen,
+                          label: 'Green',
+                          meaning: 'Good (≥80% compliance, 0 issues)',
+                          isDark: isDark,
+                        ),
+                        _buildColorTipItem(
+                          dotColor: isDark ? const Color(0xFFE5A663) : Colors.orange.shade700,
+                          label: 'Orange',
+                          meaning: 'Warning (50–79% compliance or missing docs)',
+                          isDark: isDark,
+                        ),
+                        _buildColorTipItem(
+                          dotColor: isDark ? const Color(0xFFD67878) : Colors.red.shade600,
+                          label: 'Red',
+                          meaning: 'Needs Action (<50% compliance or student issues)',
+                          isDark: isDark,
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            );
+          },
+        ),
+
+        // ── Primary KPI Row (3 cards) ────────────────────────────────
         LayoutBuilder(
           builder: (ctx, constraints) {
             final cols = constraints.maxWidth >= 700
@@ -1329,7 +1392,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
 
         const SizedBox(height: 16),
 
-        // â”€â”€ Secondary Status Row (5 cards) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+        // ── Secondary Status Row (5 cards) ───────────────────────────
         LayoutBuilder(
           builder: (ctx, constraints) {
             final cols = constraints.maxWidth >= 900
@@ -1385,7 +1448,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
           },
         ),
 
-        // â”€â”€ Storage chip (small, right-aligned) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+        // ── Storage chip (small, right-aligned) ───────────────────────
         if (storageBytes != null) ...[
           const SizedBox(height: 8),
           Align(
@@ -1427,6 +1490,46 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
             ),
           ),
         ],
+      ],
+    );
+  }
+
+  Widget _buildColorTipItem({
+    required Color dotColor,
+    required String label,
+    required String meaning,
+    required bool isDark,
+  }) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Container(
+          width: 8,
+          height: 8,
+          decoration: BoxDecoration(
+            color: dotColor,
+            shape: BoxShape.circle,
+          ),
+        ),
+        const SizedBox(width: 5),
+        RichText(
+          text: TextSpan(
+            style: TextStyle(
+              fontSize: 11,
+              color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
+            ),
+            children: [
+              TextSpan(
+                text: '$label: ',
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  color: dotColor,
+                ),
+              ),
+              TextSpan(text: meaning),
+            ],
+          ),
+        ),
       ],
     );
   }
