@@ -153,19 +153,49 @@ exports.getAllStudents = (req, res) => {
             conditions.push(`s.is_4ps = 0`);
         }
 
-        // grade_level lives in enrollments (latest)
+        // grade_level lives in enrollments.
+        // When schoolYear is specified we must join on the enrollment IN that year
+        // (not just the globally-latest enrollment), otherwise students whose newest
+        // enrollment is in a different year are silently excluded.
         const needsEnrollmentJoin = gradeLevel.trim() || section.trim() || schoolYear.trim();
-        const enrollmentJoin = needsEnrollmentJoin
-            ? `JOIN enrollments e_latest ON e_latest.student_id = s.id
-               AND e_latest.id = (
-                   SELECT e.id FROM enrollments e
-                   JOIN academic_years ay_inner ON e.academic_year_id = ay_inner.id
-                   WHERE e.student_id = s.id
-                   ORDER BY ay_inner.year_range DESC, e.grade_level DESC, e.id DESC LIMIT 1
-               )
-               JOIN sections sec ON sec.id = e_latest.section_id
-               JOIN academic_years ay ON ay.id = e_latest.academic_year_id`
-            : '';
+
+        let enrollmentJoin = '';
+        if (needsEnrollmentJoin) {
+            if (schoolYear.trim()) {
+                // ── Year-scoped join ──────────────────────────────────────────────
+                // Pick the best enrollment the student has IN the requested year.
+                // "Best" = highest grade_level then newest id (handles edge case of
+                // a student enrolled twice in the same year, e.g. re-enrollment).
+                enrollmentJoin = `
+                   JOIN enrollments e_latest ON e_latest.student_id = s.id
+                   AND e_latest.id = (
+                       SELECT e.id FROM enrollments e
+                       JOIN academic_years ay_inner ON e.academic_year_id = ay_inner.id
+                       WHERE e.student_id = s.id
+                         AND ay_inner.year_range = ?
+                       ORDER BY e.grade_level DESC, e.id DESC LIMIT 1
+                   )
+                   JOIN sections sec ON sec.id = e_latest.section_id
+                   JOIN academic_years ay ON ay.id = e_latest.academic_year_id`;
+                // The schoolYear value is consumed inside the subquery — prepend it
+                // before other params so it aligns with the JOIN's ? placeholder.
+                params.unshift(schoolYear.trim());
+            } else {
+                // ── No year filter: use globally latest enrollment ────────────────
+                enrollmentJoin = `
+                   JOIN enrollments e_latest ON e_latest.student_id = s.id
+                   AND e_latest.id = (
+                       SELECT e.id FROM enrollments e
+                       JOIN academic_years ay_inner ON e.academic_year_id = ay_inner.id
+                       WHERE e.student_id = s.id
+                       ORDER BY ay_inner.year_range DESC, e.grade_level DESC, e.id DESC LIMIT 1
+                   )
+                   JOIN sections sec ON sec.id = e_latest.section_id
+                   JOIN academic_years ay ON ay.id = e_latest.academic_year_id`;
+            }
+        }
+
+
 
         if (gradeLevel.trim()) {
             conditions.push(`e_latest.grade_level = ?`);
@@ -175,10 +205,9 @@ exports.getAllStudents = (req, res) => {
             conditions.push(`sec.name = ?`);
             params.push(section.trim());
         }
-        if (schoolYear.trim()) {
-            conditions.push(`ay.year_range = ?`);
-            params.push(schoolYear.trim());
-        }
+        // NOTE: schoolYear filtering is handled inside the JOIN subquery above,
+        // not in the WHERE clause, to avoid double-param and to correctly scope
+        // which enrollment row is joined rather than just filtering the joined row.
 
         // ---- Teacher section scoping ----
         // Restrict to students whose LATEST enrollment is in one of this teacher's sections.
