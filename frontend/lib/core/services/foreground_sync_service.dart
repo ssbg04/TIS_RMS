@@ -2,7 +2,8 @@ import 'dart:async';
 import 'dart:io' show Platform;
 import 'dart:math' as math;
 import 'package:dio/dio.dart';
-import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:flutter/foundation.dart' show kIsWeb, debugPrint;
+import 'package:flutter/widgets.dart';
 import 'package:flutter_foreground_task/flutter_foreground_task.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -20,6 +21,7 @@ class ForegroundSyncHandler extends TaskHandler {
 
   @override
   Future<void> onStart(DateTime timestamp, TaskStarter starter) async {
+    WidgetsFlutterBinding.ensureInitialized();
     await _notificationService.initialize();
   }
 
@@ -27,11 +29,16 @@ class ForegroundSyncHandler extends TaskHandler {
   Future<void> onRepeatEvent(DateTime timestamp) async {
     try {
       final prefs = await SharedPreferences.getInstance();
+      await prefs.reload(); // Refresh memory cache from disk across background isolates
+
       String rawUrl = prefs.getString('server_url') ?? ApiConstants.baseUrl;
       final clean = rawUrl.replaceAll(RegExp(r'/+$'), '');
       final baseUrl = clean.endsWith('/api') ? clean : '$clean/api';
 
-      final token = await _storage.read(key: 'jwt_token');
+      String? token = prefs.getString('jwt_token');
+      if (token == null || token.isEmpty) {
+        token = await _storage.read(key: 'jwt_token');
+      }
       if (token == null || token.isEmpty) {
         return;
       }
@@ -39,8 +46,8 @@ class ForegroundSyncHandler extends TaskHandler {
       final dio = Dio(
         BaseOptions(
           baseUrl: baseUrl,
-          connectTimeout: const Duration(seconds: 5),
-          receiveTimeout: const Duration(seconds: 5),
+          connectTimeout: const Duration(seconds: 4),
+          receiveTimeout: const Duration(seconds: 4),
           headers: {'Authorization': 'Bearer $token'},
         ),
       );
@@ -64,10 +71,18 @@ class ForegroundSyncHandler extends TaskHandler {
             final id = note['id'] as int?;
             final title = note['title']?.toString() ?? 'TIS RMS Notification';
             final message = note['message']?.toString() ?? '';
+            
+            // 1. Fire pop-up banner notification
             await _notificationService.showNotification(
               id: id,
               title: title,
               body: message,
+            );
+
+            // 2. Update persistent status notification text
+            await FlutterForegroundTask.updateService(
+              notificationTitle: title,
+              notificationText: message,
             );
           }
         }
@@ -81,8 +96,8 @@ class ForegroundSyncHandler extends TaskHandler {
           );
         }
       }
-    } catch (_) {
-      // Ignore transient network errors
+    } catch (e) {
+      debugPrint('Foreground repeat event error: $e');
     }
   }
 
@@ -108,6 +123,8 @@ class ForegroundSyncService {
   static Future<void> init() async {
     if (kIsWeb || !Platform.isAndroid) return;
 
+    FlutterForegroundTask.initCommunicationPort();
+
     FlutterForegroundTask.init(
       androidNotificationOptions: AndroidNotificationOptions(
         channelId: 'tis_rms_foreground_sync',
@@ -122,7 +139,7 @@ class ForegroundSyncService {
         playSound: false,
       ),
       foregroundTaskOptions: ForegroundTaskOptions(
-        eventAction: ForegroundTaskEventAction.repeat(10000), // Check every 10 seconds
+        eventAction: ForegroundTaskEventAction.repeat(5000), // Check every 5 seconds for instant push
         autoRunOnBoot: true,
         autoRunOnMyPackageReplaced: true,
         allowWakeLock: true,
@@ -131,10 +148,24 @@ class ForegroundSyncService {
     );
   }
 
+  static Future<void> requestPermissions() async {
+    if (kIsWeb || !Platform.isAndroid) return;
+    try {
+      final NotificationPermission notificationPermission =
+          await FlutterForegroundTask.checkNotificationPermission();
+      if (notificationPermission != NotificationPermission.granted) {
+        await FlutterForegroundTask.requestNotificationPermission();
+      }
+    } catch (_) {}
+  }
+
   static Future<void> start() async {
     if (kIsWeb || !Platform.isAndroid) return;
 
+    await requestPermissions();
+
     if (await FlutterForegroundTask.isRunningService) {
+      await FlutterForegroundTask.restartService();
       return;
     }
 
@@ -142,7 +173,9 @@ class ForegroundSyncService {
       serviceId: 256,
       notificationTitle: 'TIS RMS Sync Active',
       notificationText: 'Connected to local server for real-time notifications',
-      notificationIcon: null,
+      notificationIcon: const NotificationIcon(
+        metaDataName: 'com.pravera.flutter_foreground_task.notification_icon',
+      ),
       callback: startForegroundCallback,
     );
   }
