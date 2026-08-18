@@ -5,13 +5,8 @@ import '../../domain/entities/user_model.dart';
 import 'document_provider.dart';
 import 'archives_provider.dart';
 import 'student_provider.dart' hide academicYearsProvider;
-import 'users_provider.dart';
-import 'notification_provider.dart';
 import 'navigation_provider.dart';
-import 'dashboard_provider.dart';
-import 'setup_provider.dart';
 import 'reports_provider.dart';
-import 'ocr_provider.dart';
 import 'connected_users_provider.dart';
 
 final authRepositoryProvider = Provider<AuthRepository>(
@@ -102,7 +97,7 @@ class AuthNotifier extends AsyncNotifier<UserModel?> {
       final repository = ref.read(authRepositoryProvider);
       final updatedUser = await repository.getProfile();
       state = AsyncData(updatedUser);
-    } catch (e, stack) {
+    } catch (e) {
       // Don't emit error state to prevent UI disruptions on background refresh failures
       print('Background refresh failed: $e');
     }

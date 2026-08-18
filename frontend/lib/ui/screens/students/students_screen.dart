@@ -51,16 +51,15 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
   void initState() {
     super.initState();
 
-    // Sync initial search text if it was set externally (e.g. from Dashboard)
-    final initialQuery = ref.read(studentQueryProvider).search;
-    if (initialQuery.isNotEmpty) {
-      _searchController.text = initialQuery;
-    }
-
     _searchController.addListener(_onSearchChanged);
     _searchFocusNode.addListener(_onSearchFocusChanged);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
+      // Sync initial search text if it was set externally (e.g. from Dashboard)
+      final initialQuery = ref.read(studentQueryProvider).search;
+      if (initialQuery.isNotEmpty) {
+        _searchController.text = initialQuery;
+      }
       if (ref.read(activeTabProvider) == 'Students') {
         _shortcutFocusNode.requestFocus();
       }

@@ -49,7 +49,8 @@ final userHistoryQueryProvider =
       UserHistoryQueryParams
     >(UserHistoryQueryNotifier.new);
 
-class UserHistoryQueryNotifier extends Notifier<UserHistoryQueryParams> {
+class UserHistoryQueryNotifier
+    extends AutoDisposeNotifier<UserHistoryQueryParams> {
   @override
   UserHistoryQueryParams build() => const UserHistoryQueryParams();
 

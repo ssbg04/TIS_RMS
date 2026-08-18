@@ -94,7 +94,7 @@ final activityQueryProvider =
       ActivityQueryNotifier.new,
     );
 
-class ActivityQueryNotifier extends Notifier<ActivityQueryParams> {
+class ActivityQueryNotifier extends AutoDisposeNotifier<ActivityQueryParams> {
   @override
   ActivityQueryParams build() => const ActivityQueryParams();
 

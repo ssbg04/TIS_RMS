@@ -62,10 +62,9 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
       if (mounted) setState(() {});
     });
 
-    ref.invalidate(dashboardDataProvider);
-
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
+      ref.invalidate(dashboardDataProvider);
       ref.read(notificationsProvider.notifier).refreshNotifications();
 
       if (ref.read(activeTabProvider) == 'Dashboard') {

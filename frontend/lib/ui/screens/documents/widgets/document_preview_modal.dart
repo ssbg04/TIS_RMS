@@ -61,7 +61,6 @@ class _DocumentPreviewDialog extends ConsumerStatefulWidget {
 class _DocumentPreviewDialogState
     extends ConsumerState<_DocumentPreviewDialog> {
   bool _imageError = false;
-  bool _imageLoaded = false;
   String? _token;
   bool _isOpeningExternal = false;
 
@@ -71,13 +70,13 @@ class _DocumentPreviewDialogState
 
   void _zoomImageIn() {
     final matrix = _imageTransformationController.value.clone();
-    matrix.scale(1.25, 1.25, 1.0);
+    matrix.scaleByDouble(1.25, 1.25, 1.0, 1.0);
     _imageTransformationController.value = matrix;
   }
 
   void _zoomImageOut() {
     final matrix = _imageTransformationController.value.clone();
-    matrix.scale(1 / 1.25, 1 / 1.25, 1.0);
+    matrix.scaleByDouble(1 / 1.25, 1 / 1.25, 1.0, 1.0);
     _imageTransformationController.value = matrix;
   }
 
@@ -93,9 +92,6 @@ class _DocumentPreviewDialogState
   @override
   void initState() {
     super.initState();
-    if (widget.localFile != null) {
-      _imageLoaded = true;
-    }
     _loadToken();
   }
 
@@ -447,16 +443,7 @@ class _DocumentPreviewDialogState
                               _fileUrl,
                               fit: BoxFit.contain,
                               loadingBuilder: (ctx, child, progress) {
-                                if (progress == null) {
-                                  WidgetsBinding.instance.addPostFrameCallback((
-                                    _,
-                                  ) {
-                                    if (mounted) {
-                                      setState(() => _imageLoaded = true);
-                                    }
-                                  });
-                                  return child;
-                                }
+                                if (progress == null) return child;
                                 return Center(
                                   child: Column(
                                     mainAxisSize: MainAxisSize.min,
@@ -480,7 +467,7 @@ class _DocumentPreviewDialogState
                                   ),
                                 );
                               },
-                              errorBuilder: (_, __, ___) {
+                              errorBuilder: (context, error, stackTrace) {
                                 WidgetsBinding.instance.addPostFrameCallback((_) {
                                   if (mounted) setState(() => _imageError = true);
                                 });

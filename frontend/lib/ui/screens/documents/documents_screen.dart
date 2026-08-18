@@ -107,23 +107,26 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
       }
     });
 
-    // If a specific student was passed, jump to Folders tab and open that folder
-    final initialFolder = ref.read(openedFolderProvider);
-    if (initialFolder != null) {
-      _openedFolderStudentId = initialFolder.id;
-      _openedFolderName = initialFolder.name;
-      WidgetsBinding.instance.addPostFrameCallback((_) {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      // If a specific student was passed, jump to Folders tab and open that folder
+      final initialFolder = ref.read(openedFolderProvider);
+      if (initialFolder != null) {
+        setState(() {
+          _openedFolderStudentId = initialFolder.id;
+          _openedFolderName = initialFolder.name;
+        });
         ref.read(documentQueryProvider.notifier).setStudentId(initialFolder.id);
-      });
-    } else if (widget.initialStudentId != null) {
-      _openedFolderStudentId = widget.initialStudentId;
-      _openedFolderName = 'Student Documents';
-      WidgetsBinding.instance.addPostFrameCallback((_) {
+      } else if (widget.initialStudentId != null) {
+        setState(() {
+          _openedFolderStudentId = widget.initialStudentId;
+          _openedFolderName = 'Student Documents';
+        });
         ref
             .read(documentQueryProvider.notifier)
             .setStudentId(widget.initialStudentId);
-      });
-    }
+      }
+    });
 
     _tabController.addListener(() {
       setState(() {}); // Ensure header title updates immediately on tab change

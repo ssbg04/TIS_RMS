@@ -158,9 +158,12 @@ Files backup/restore - mirror mode or zip -->
 - Document preveiew modal -> make it fullscreen modal -> add "add to print list" icon button -> move the zoom in/out inside of the pdf or image viewer -> add "open with" icon button for excel files to open external excel viewer
 - hold feature to see more menu in android add "view student profile"  -->
 
-# ARCHVES SCREEN
+<!-- # ARCHVES SCREEN
 - From "DOCUMENTS SCREEN", add hold feature for android and right click for windows to see more menu, add multi select and its multi select menu, and FAB print list for android, button print list for windows
-- fix grid view in all archived docs tab
+- fix grid view in all archived docs tab -->
+
+# DOCUMENTS SCREEN
+- document preview modal -> use sheetifye package for excel viewer
 
 ---
 
