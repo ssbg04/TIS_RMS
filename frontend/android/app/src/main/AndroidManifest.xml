@@ -42,6 +42,9 @@
                 <category android:name="android.intent.category.DEFAULT"/>
             </intent-filter>
         </receiver>
+        <receiver
+            android:name=".AlarmReceiver"
+            android:exported="false"/>
         <activity
             android:name=".SplashActivity"
             android:exported="true"

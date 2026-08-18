@@ -13,6 +13,7 @@ class BootReceiver : BroadcastReceiver() {
         ) {
             val serviceIntent = Intent(context, ForegroundService::class.java)
             context.startForegroundService(serviceIntent)
+            AlarmScheduler.schedule(context)
         }
     }
 }
