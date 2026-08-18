@@ -1,5 +1,6 @@
 import 'package:dio/dio.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class ApiConstants {
   static const int port = 18484;
@@ -18,6 +19,10 @@ class ApiConstants {
     final newUrl = clean.endsWith('/api') ? clean : '$clean/api';
     if (_baseUrl != newUrl) {
       _baseUrl = newUrl;
+      SharedPreferences.getInstance().then((prefs) {
+        prefs.setString('server_url', newUrl);
+      }).catchError((_) {});
+
       if (clearAuth) {
         // Clear stored JWT token whenever user explicitly switches to a different server
         const FlutterSecureStorage().delete(key: 'jwt_token');

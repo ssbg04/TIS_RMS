@@ -58,12 +58,21 @@ class NotificationService {
                 AndroidFlutterLocalNotificationsPlugin
               >();
       await androidImplementation?.requestNotificationsPermission();
+
+      const AndroidNotificationChannel channel = AndroidNotificationChannel(
+        'tis_rms_activities_channel',
+        'Recent Activities',
+        description: 'Notifications for recent activities and system events',
+        importance: Importance.max,
+      );
+      await androidImplementation?.createNotificationChannel(channel);
     }
 
     _initialized = true;
   }
 
   Future<void> showNotification({
+    int? id,
     required String title,
     required String body,
   }) async {
@@ -87,9 +96,11 @@ class NotificationService {
       android: androidPlatformChannelSpecifics,
     );
 
+    final notificationId =
+        id ?? (DateTime.now().millisecondsSinceEpoch.remainder(100000));
+
     await _flutterLocalNotificationsPlugin.show(
-      DateTime.now()
-          .millisecond, // use millisecond as unique ID for multiple notifications
+      notificationId,
       title,
       body,
       platformChannelSpecifics,

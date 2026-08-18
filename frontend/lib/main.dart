@@ -13,6 +13,7 @@ import 'core/theme/app_theme.dart'; // Add this import
 import 'core/constants/app_colors.dart';
 import 'core/services/notification_service.dart';
 import 'core/services/background_sync_service.dart';
+import 'core/services/foreground_sync_service.dart';
 import 'ui/providers/theme_provider.dart';
 import 'ui/shared/widgets/inactivity_wrapper.dart';
 import 'package:workmanager/workmanager.dart';
@@ -67,15 +68,17 @@ void main() async {
   }
 
   await NotificationService().initialize();
+  await ForegroundSyncService.init();
 
   if (!kIsWeb && (Platform.isAndroid || Platform.isIOS)) {
-    Workmanager().initialize(callbackDispatcher, isInDebugMode: false);
-    // Register periodic task
+    Workmanager().initialize(callbackDispatcher);
+    // Register periodic background sync task
     Workmanager().registerPeriodicTask(
-      "1",
+      "tis_rms_background_sync",
       "background_sync_task",
       frequency: const Duration(minutes: 15),
       constraints: Constraints(networkType: NetworkType.connected),
+      existingWorkPolicy: ExistingPeriodicWorkPolicy.keep,
     );
   }
 

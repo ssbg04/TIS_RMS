@@ -8,6 +8,7 @@ import 'student_provider.dart' hide academicYearsProvider;
 import 'navigation_provider.dart';
 import 'reports_provider.dart';
 import 'connected_users_provider.dart';
+import '../../core/services/foreground_sync_service.dart';
 
 final authRepositoryProvider = Provider<AuthRepository>(
   (ref) => AuthRepository(),
@@ -38,6 +39,7 @@ class AuthNotifier extends AsyncNotifier<UserModel?> {
       );
       state = AsyncData(user);
       ref.read(heartbeatServiceProvider).start(user);
+      ForegroundSyncService.start();
       return true;
     } catch (e, st) {
       state = AsyncError(e, st);
@@ -53,6 +55,7 @@ class AuthNotifier extends AsyncNotifier<UserModel?> {
       if (user != null) {
         state = AsyncData(user);
         ref.read(heartbeatServiceProvider).start(user);
+        ForegroundSyncService.start();
       }
       return user;
     } catch (_) {
@@ -62,6 +65,7 @@ class AuthNotifier extends AsyncNotifier<UserModel?> {
 
   Future<void> logout() async {
     ref.read(heartbeatServiceProvider).stop();
+    ForegroundSyncService.stop();
     final repository = ref.read(authRepositoryProvider);
     await repository.logout();
     state = const AsyncData(null);

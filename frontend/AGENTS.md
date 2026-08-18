@@ -171,6 +171,9 @@ Files backup/restore - mirror mode or zip -->
 <!-- # ARCHIVES SCREEN
 - remove background color and border of the filter icon button -->
 
+<!-- # ANDROID APP PUSH NOTIFICATION
+- notication only works when the app is open, make it work even the app is not opened -->
+
 ---
 
 # TIS_RMS Server Manager (dont do)
