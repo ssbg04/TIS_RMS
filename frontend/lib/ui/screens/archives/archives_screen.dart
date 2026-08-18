@@ -19,6 +19,7 @@ import '../../providers/auth_provider.dart';
 import '../../providers/navigation_provider.dart';
 import '../documents/widgets/document_preview_modal.dart';
 import '../documents/widgets/print_queue_modal.dart';
+import '../documents/widgets/student_profile_modal.dart';
 import '../../../core/utils/download_service.dart';
 import '../../../core/network/api_constants.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
@@ -486,12 +487,19 @@ class _ArchivesScreenState extends ConsumerState<ArchivesScreen>
         if (!context.mounted) return;
         showErrorDialog(context, 'Download Failed', e.toString());
       }
+    } else if (action == 'view_profile' && doc.studentId != null) {
+      showStudentProfileModal(
+        context,
+        studentId: doc.studentId!,
+        userRole: widget.userRole,
+        hideEnrollmentActions: true,
+      );
     }
   }
 
-  List<PopupMenuEntry<String>> _buildDocumentMenuItems() {
-    return const [
-      PopupMenuItem(
+  List<PopupMenuEntry<String>> _buildDocumentMenuItems([DocumentModel? doc]) {
+    return [
+      const PopupMenuItem(
         value: 'preview',
         child: Row(
           children: [
@@ -501,7 +509,7 @@ class _ArchivesScreenState extends ConsumerState<ArchivesScreen>
           ],
         ),
       ),
-      PopupMenuItem(
+      const PopupMenuItem(
         value: 'print',
         child: Row(
           children: [
@@ -511,7 +519,7 @@ class _ArchivesScreenState extends ConsumerState<ArchivesScreen>
           ],
         ),
       ),
-      PopupMenuItem(
+      const PopupMenuItem(
         value: 'download',
         child: Row(
           children: [
@@ -521,6 +529,19 @@ class _ArchivesScreenState extends ConsumerState<ArchivesScreen>
           ],
         ),
       ),
+      if (doc?.studentId != null) ...[
+        const PopupMenuDivider(),
+        const PopupMenuItem(
+          value: 'view_profile',
+          child: Row(
+            children: [
+              Icon(Icons.person, size: 18, color: AppColors.primaryGreen),
+              SizedBox(width: 12),
+              Text('View Student Profile', style: TextStyle(fontSize: 14)),
+            ],
+          ),
+        ),
+      ],
     ];
   }
 
@@ -539,7 +560,7 @@ class _ArchivesScreenState extends ConsumerState<ArchivesScreen>
         position & const Size(40, 40),
         Offset.zero & overlay.size,
       ),
-      items: _buildDocumentMenuItems(),
+      items: _buildDocumentMenuItems(doc),
     ).then((value) {
       if (value != null) _handleDocumentAction(value, doc);
     });
@@ -643,11 +664,9 @@ class _ArchivesScreenState extends ConsumerState<ArchivesScreen>
                   ),
                   tabs: const [
                     Tab(
-                      icon: Icon(Icons.folder_special_rounded, size: 18),
                       text: 'Student Folders',
                     ),
                     Tab(
-                      icon: Icon(Icons.inventory_2_outlined, size: 18),
                       text: 'All Archived Docs',
                     ),
                   ],
@@ -2413,7 +2432,7 @@ class _ArchivesScreenState extends ConsumerState<ArchivesScreen>
                               padding: EdgeInsets.zero,
                               constraints: const BoxConstraints(),
                               onSelected: (a) => _handleDocumentAction(a, doc),
-                              itemBuilder: (_) => _buildDocumentMenuItems(),
+                              itemBuilder: (_) => _buildDocumentMenuItems(doc),
                             ),
                           ),
                       ],

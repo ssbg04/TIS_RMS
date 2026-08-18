@@ -566,7 +566,9 @@ class _BulkOcrImportDialogState extends ConsumerState<BulkOcrImportDialog> {
               backgroundColor: AppColors.primaryGreen,
               foregroundColor: Colors.white,
               padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-              shape: const StadiumBorder(),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
             ),
           ),
         ]),
@@ -1160,7 +1162,9 @@ class _BulkOcrImportDialogState extends ConsumerState<BulkOcrImportDialog> {
             style: OutlinedButton.styleFrom(
                 foregroundColor: isDark ? Colors.white : Colors.black,
                 side: BorderSide(color: isDark ? Colors.white : Colors.black),
-                shape: const StadiumBorder(),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
                 padding: const EdgeInsets.symmetric(
                     horizontal: 20, vertical: 12)),
             child: const Text('Cancel'),
@@ -1186,7 +1190,9 @@ class _BulkOcrImportDialogState extends ConsumerState<BulkOcrImportDialog> {
             style: ElevatedButton.styleFrom(
               backgroundColor: AppColors.primaryGreen,
               foregroundColor: isDark ? Colors.white : Colors.black,
-              shape: const StadiumBorder(),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
               padding:
                   const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
             ),
@@ -1201,7 +1207,9 @@ class _BulkOcrImportDialogState extends ConsumerState<BulkOcrImportDialog> {
             style: OutlinedButton.styleFrom(
                 foregroundColor: isDark ? Colors.white : Colors.black,
                 side: BorderSide(color: isDark ? Colors.white : Colors.black),
-                shape: const StadiumBorder(),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
                 padding: const EdgeInsets.symmetric(
                     horizontal: 20, vertical: 12)),
           ),
@@ -1222,7 +1230,9 @@ class _BulkOcrImportDialogState extends ConsumerState<BulkOcrImportDialog> {
             style: ElevatedButton.styleFrom(
               backgroundColor: AppColors.primaryGreen,
               foregroundColor: isDark ? Colors.white : Colors.black,
-              shape: const StadiumBorder(),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
               padding:
                   const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
             ),
@@ -1238,7 +1248,9 @@ class _BulkOcrImportDialogState extends ConsumerState<BulkOcrImportDialog> {
             style: ElevatedButton.styleFrom(
               backgroundColor: AppColors.primaryGreen,
               foregroundColor: isDark ? Colors.white : Colors.black,
-              shape: const StadiumBorder(),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
               padding:
                   const EdgeInsets.symmetric(horizontal: 28, vertical: 12),
             ),

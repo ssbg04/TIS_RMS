@@ -147,8 +147,20 @@ Files backup/restore - mirror mode or zip -->
 - SF9 is equal to report card, Form 138, School Form 9, Student Report Card, SF1 for JHS/SF9 for SHS
 - SF10 is equal to School Form 10, Form 137, Form 137-A, Student Permanent Record -->
 
-# ARCHIVES SCREEN
-- make the 3-5 dropdown selection into chip in filter modal 
+# DASHBOARD SCREEN
+- notification bell open -> in windows app disable slide feature its for android only
+
+# STUDENTS SCREEN
+- Add new student screen -> back button and next button in the bottom make the same size
+- Bulk add student screen -> make the button not full rounded same from "add new student screen"
+
+# DOCUMENTS SCREEN
+- Document preveiew modal -> make it fullscreen modal -> add "add to print list" icon button -> move the zoom in/out inside of the pdf or image viewer -> add "open with" icon button for excel files to open external excel viewer
+- hold feature to see more menu in android add "view student profile" 
+
+# ARCHVES SCREEN
+- Same from DOCUMENT SCREEN; Document preveiew modal -> make it fullscreen modal -> add "add to print list" icon button -> move the zoom in/out inside of the pdf or image viewer -> add "open with" icon button for excel files to open external excel viewer
+- remove the icons in tab labels
 
 ---
 

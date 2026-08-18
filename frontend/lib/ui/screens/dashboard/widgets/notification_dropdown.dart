@@ -1,13 +1,13 @@
+import 'dart:io';
 import 'dart:math' as math;
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../providers/notification_provider.dart';
 import '../../../providers/auth_provider.dart';
 import '../../../../domain/entities/notification_model.dart';
 import '../../../../core/utils/date_utils.dart' as pht;
-import '../../../shared/modals/view_activity_modal.dart';
 import '../../../shared/modals/reset_requests_modal.dart';
-import '../../settings/requirements_settings_screen.dart';
 
 class NotificationDropdownWidget extends ConsumerStatefulWidget {
   final List<NotificationModel> notifications;
@@ -101,31 +101,11 @@ class _NotificationDropdownWidgetState
           final icon = widget.getIcon(note.title) as IconData;
           final color = widget.getColor(note.title) as Color;
 
-          return Dismissible(
-            key: ValueKey(note.id),
-            direction: DismissDirection.horizontal,
-            onDismissed: (_) {
-              ref
-                  .read(notificationsProvider.notifier)
-                  .deleteNotification(note.id);
-            },
-            background: Container(
-              color: Colors.redAccent,
-              alignment: Alignment.centerLeft,
-              padding: const EdgeInsets.symmetric(horizontal: 20),
-              child: const Icon(Icons.delete, color: Colors.white),
-            ),
-            secondaryBackground: Container(
-              color: Colors.redAccent,
-              alignment: Alignment.centerRight,
-              padding: const EdgeInsets.symmetric(horizontal: 20),
-              child: const Icon(Icons.delete, color: Colors.white),
-            ),
-            child: MouseRegion(
-              onEnter: (_) => setState(() => _hoveredId = note.id),
-              onExit: (_) => setState(() => _hoveredId = null),
-              child: InkWell(
-                onTap: () {
+          final itemWidget = MouseRegion(
+            onEnter: (_) => setState(() => _hoveredId = note.id),
+            onExit: (_) => setState(() => _hoveredId = null),
+            child: InkWell(
+              onTap: () {
                   ref.read(notificationsProvider.notifier).markAsRead(note.id);
                   Future.delayed(const Duration(milliseconds: 100), () {
                     if (context.mounted) {
@@ -200,7 +180,7 @@ class _NotificationDropdownWidgetState
                               style: TextStyle(
                                 fontSize: 12,
                                 color: note.isRead
-                                    ? Theme.of(context).colorScheme.onSurface.withOpacity(0.6)
+                                    ? Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6)
                                     : Theme.of(context).colorScheme.onSurface,
                                 fontWeight: note.isRead
                                     ? FontWeight.normal
@@ -214,7 +194,7 @@ class _NotificationDropdownWidgetState
                               pht.formatRelative(note.createdAt),
                               style: TextStyle(
                                 fontSize: 10,
-                                color: Theme.of(context).colorScheme.onSurface.withOpacity(0.38),
+                                color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.38),
                               ),
                             ),
                           ],
@@ -240,8 +220,34 @@ class _NotificationDropdownWidgetState
                   ),
                 ),
               ),
-            ),
-          );
+            );
+
+          if (!kIsWeb && Platform.isAndroid) {
+            return Dismissible(
+              key: ValueKey(note.id),
+              direction: DismissDirection.horizontal,
+              onDismissed: (_) {
+                ref
+                    .read(notificationsProvider.notifier)
+                    .deleteNotification(note.id);
+              },
+              background: Container(
+                color: Colors.redAccent,
+                alignment: Alignment.centerLeft,
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                child: const Icon(Icons.delete, color: Colors.white),
+              ),
+              secondaryBackground: Container(
+                color: Colors.redAccent,
+                alignment: Alignment.centerRight,
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                child: const Icon(Icons.delete, color: Colors.white),
+              ),
+              child: itemWidget,
+            );
+          }
+
+          return itemWidget;
         },
       ),
     );

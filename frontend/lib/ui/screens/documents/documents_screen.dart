@@ -3123,6 +3123,19 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
           ],
         ),
       ),
+      if (doc.studentId != null) ...[
+        const PopupMenuDivider(),
+        const PopupMenuItem(
+          value: 'view_profile',
+          child: Row(
+            children: [
+              Icon(Icons.person, size: 18, color: AppColors.primaryGreen),
+              SizedBox(width: 12),
+              Text('View Student Profile', style: TextStyle(fontSize: 14)),
+            ],
+          ),
+        ),
+      ],
     ];
 
     if (widget.userRole != 'teacher') {

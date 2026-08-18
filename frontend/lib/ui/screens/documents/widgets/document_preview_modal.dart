@@ -1,21 +1,26 @@
 import 'dart:io';
-import 'dart:math' as math;
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
-import 'package:url_launcher/url_launcher.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:syncfusion_flutter_pdfviewer/pdfviewer.dart';
+import 'package:url_launcher/url_launcher.dart';
+
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/network/api_constants.dart';
+import '../../../../core/utils/download_service.dart';
 import '../../../../domain/entities/document_model.dart';
+import '../../../providers/document_provider.dart';
 import '../../../shared/dialogs/error_dialog.dart';
 import '../../../shared/dialogs/success_dialog.dart';
-import '../../../shared/modals/custom_modal.dart';
-import 'package:syncfusion_flutter_pdfviewer/pdfviewer.dart';
-import '../../../../core/utils/download_service.dart';
 import 'excel_viewer_widget.dart';
 
-/// Shows a rich preview dialog for any document type:
-/// • Images (jpg/jpeg/png/gif/webp/bmp) → inline network image
-/// • PDF / DOCX / XLSX / others        → file info + "Open in Browser" CTA
+/// Shows a fullscreen rich preview dialog for any document type:
+/// • Images (jpg/jpeg/png/gif/webp/bmp) → inline image with in-viewer zoom
+/// • PDF                               → inline PDF viewer with in-viewer zoom
+/// • Excel / CSV                       → inline grid viewer + "Open with" external app CTA
+/// • DOCX / others                     → file info + "Open in Browser" CTA
 void showDocumentPreview({
   required BuildContext context,
   DocumentModel? document,
@@ -25,7 +30,7 @@ void showDocumentPreview({
   assert(document != null || (localFile != null && localFileName != null));
   showDialog(
     context: context,
-    barrierColor: Colors.black.withValues(alpha: 0.6),
+    useSafeArea: false,
     builder: (ctx) => _DocumentPreviewDialog(
       document: document,
       localFile: localFile,
@@ -37,10 +42,11 @@ void showDocumentPreview({
 // ──────────────────────────────────────────────────────────────
 // Internal dialog widget
 // ──────────────────────────────────────────────────────────────
-class _DocumentPreviewDialog extends StatefulWidget {
+class _DocumentPreviewDialog extends ConsumerStatefulWidget {
   final DocumentModel? document;
   final File? localFile;
   final String? localFileName;
+
   const _DocumentPreviewDialog({
     this.document,
     this.localFile,
@@ -48,13 +54,16 @@ class _DocumentPreviewDialog extends StatefulWidget {
   });
 
   @override
-  State<_DocumentPreviewDialog> createState() => _DocumentPreviewDialogState();
+  ConsumerState<_DocumentPreviewDialog> createState() =>
+      _DocumentPreviewDialogState();
 }
 
-class _DocumentPreviewDialogState extends State<_DocumentPreviewDialog> {
+class _DocumentPreviewDialogState
+    extends ConsumerState<_DocumentPreviewDialog> {
   bool _imageError = false;
   bool _imageLoaded = false;
   String? _token;
+  bool _isOpeningExternal = false;
 
   final PdfViewerController _pdfViewerController = PdfViewerController();
   final TransformationController _imageTransformationController =
@@ -62,13 +71,13 @@ class _DocumentPreviewDialogState extends State<_DocumentPreviewDialog> {
 
   void _zoomImageIn() {
     final matrix = _imageTransformationController.value.clone();
-    matrix.scale(1.2, 1.2, 1.0);
+    matrix.scale(1.25, 1.25, 1.0);
     _imageTransformationController.value = matrix;
   }
 
   void _zoomImageOut() {
     final matrix = _imageTransformationController.value.clone();
-    matrix.scale(1 / 1.2, 1 / 1.2, 1.0);
+    matrix.scale(1 / 1.25, 1 / 1.25, 1.0);
     _imageTransformationController.value = matrix;
   }
 
@@ -170,6 +179,66 @@ class _DocumentPreviewDialogState extends State<_DocumentPreviewDialog> {
     }
   }
 
+  Future<void> _addToPrintList() async {
+    if (widget.document == null) return;
+    try {
+      await ref
+          .read(printQueueMutationProvider.notifier)
+          .addToQueue(widget.document!.id);
+      if (!mounted) return;
+      showSuccessDialog(context, message: 'Added to Print List.');
+    } catch (e) {
+      if (!mounted) return;
+      final msg = e.toString().replaceFirst('Exception: ', '');
+      showErrorDialog(context, 'Failed to Add', msg);
+    }
+  }
+
+  Future<void> _openExternalExcel() async {
+    if (_isOpeningExternal) return;
+    setState(() => _isOpeningExternal = true);
+    try {
+      if (widget.localFile != null) {
+        final path = widget.localFile!.path;
+        if (Platform.isWindows) {
+          await Process.run('cmd', ['/c', 'start', '""', path], runInShell: true);
+        } else {
+          final uri = Uri.file(path);
+          if (!await launchUrl(uri)) {
+            await launchUrl(uri, mode: LaunchMode.externalApplication);
+          }
+        }
+        return;
+      }
+
+      if (_token == null || widget.document == null) return;
+
+      final tempDir = await getTemporaryDirectory();
+      final tempFilePath = '${tempDir.path}${Platform.pathSeparator}$_fileName';
+      final file = File(tempFilePath);
+      
+      if (!await file.exists()) {
+        final dio = Dio();
+        await dio.download(_downloadUrl, tempFilePath);
+      }
+
+      if (Platform.isWindows) {
+        await Process.run('cmd', ['/c', 'start', '""', tempFilePath], runInShell: true);
+      } else {
+        final uri = Uri.file(tempFilePath);
+        if (!await launchUrl(uri)) {
+          await launchUrl(uri, mode: LaunchMode.externalApplication);
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        showErrorDialog(context, 'Launch Failed', 'Could not open external viewer: $e');
+      }
+    } finally {
+      if (mounted) setState(() => _isOpeningExternal = false);
+    }
+  }
+
   Future<void> _openInGoogleDocs() async {
     final encodedUrl = Uri.encodeComponent(_fileUrl);
     final gdocUrl =
@@ -191,36 +260,78 @@ class _DocumentPreviewDialogState extends State<_DocumentPreviewDialog> {
   Widget build(BuildContext context) {
     final screenW = MediaQuery.of(context).size.width;
     final isMobile = screenW < 700;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     if (widget.document != null && _token == null) {
-      return const Center(child: CircularProgressIndicator());
+      return const Dialog.fullscreen(
+        child: Center(child: CircularProgressIndicator()),
+      );
     }
 
-    return CustomModal(
-      title: _fileName,
-      icon: _typeIcon,
-      maxWidth: 800,
-      headerActions: [
-        if (_isImage || _isPdf) ...[
-          IconButton(
-            icon: const Icon(Icons.zoom_out, color: Colors.white, size: 22),
-            padding: EdgeInsets.zero,
-            constraints: const BoxConstraints(),
-            onPressed: _isImage ? _zoomImageOut : _zoomPdfOut,
-            tooltip: 'Zoom Out',
+    return Dialog.fullscreen(
+      child: Scaffold(
+        backgroundColor: isDark ? AppColors.darkSurfaceCard : AppColors.pageBackground,
+        appBar: AppBar(
+          backgroundColor: AppColors.primaryGreen,
+          foregroundColor: Colors.white,
+          elevation: 0,
+          leading: IconButton(
+            icon: const Icon(Icons.close, color: Colors.white),
+            onPressed: () => Navigator.of(context).pop(),
+            tooltip: 'Close',
           ),
-          const SizedBox(width: 12),
-          IconButton(
-            icon: const Icon(Icons.zoom_in, color: Colors.white, size: 22),
-            padding: EdgeInsets.zero,
-            constraints: const BoxConstraints(),
-            onPressed: _isImage ? _zoomImageIn : _zoomPdfIn,
-            tooltip: 'Zoom In',
+          titleSpacing: 0,
+          title: Row(
+            children: [
+              Icon(_typeIcon, color: Colors.white, size: 20),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  _fileName,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.white,
+                  ),
+                ),
+              ),
+            ],
           ),
-          const SizedBox(width: 12),
-        ],
-      ],
-      content: _buildContent(isMobile),
+          actions: [
+            if (_isExcel)
+              IconButton(
+                icon: _isOpeningExternal
+                    ? const SizedBox(
+                        width: 18,
+                        height: 18,
+                        child: CircularProgressIndicator(
+                          color: Colors.white,
+                          strokeWidth: 2,
+                        ),
+                      )
+                    : const Icon(Icons.open_in_new, color: Colors.white),
+                tooltip: 'Open in External Viewer',
+                onPressed: _isOpeningExternal ? null : _openExternalExcel,
+              ),
+            if (widget.document != null)
+              IconButton(
+                icon: const Icon(Icons.print_outlined, color: Colors.white),
+                tooltip: 'Add to Print List',
+                onPressed: _addToPrintList,
+              ),
+            if (widget.document != null)
+              IconButton(
+                icon: const Icon(Icons.download_rounded, color: Colors.white),
+                tooltip: 'Download File',
+                onPressed: _downloadFile,
+              ),
+            const SizedBox(width: 8),
+          ],
+        ),
+        body: _buildContent(isMobile),
+      ),
     );
   }
 
@@ -241,22 +352,70 @@ class _DocumentPreviewDialogState extends State<_DocumentPreviewDialog> {
     return content;
   }
 
+  // ── Floating Zoom Overlay Controls ────────────────────────
+  Widget _buildZoomControls({
+    required VoidCallback onZoomIn,
+    required VoidCallback onZoomOut,
+    VoidCallback? onReset,
+  }) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+      decoration: BoxDecoration(
+        color: Colors.black.withValues(alpha: 0.7),
+        borderRadius: BorderRadius.circular(24),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.25),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          IconButton(
+            icon: const Icon(Icons.zoom_out, color: Colors.white, size: 20),
+            onPressed: onZoomOut,
+            tooltip: 'Zoom Out',
+            splashRadius: 18,
+            padding: const EdgeInsets.all(8),
+            constraints: const BoxConstraints(),
+          ),
+          if (onReset != null)
+            IconButton(
+              icon: const Icon(Icons.restart_alt, color: Colors.white, size: 18),
+              onPressed: onReset,
+              tooltip: 'Reset Zoom',
+              splashRadius: 18,
+              padding: const EdgeInsets.all(8),
+              constraints: const BoxConstraints(),
+            ),
+          IconButton(
+            icon: const Icon(Icons.zoom_in, color: Colors.white, size: 20),
+            onPressed: onZoomIn,
+            tooltip: 'Zoom In',
+            splashRadius: 18,
+            padding: const EdgeInsets.all(8),
+            constraints: const BoxConstraints(),
+          ),
+        ],
+      ),
+    );
+  }
+
   // ── Excel viewer panel ────────────────────────────────────
   Widget _buildExcelViewer(bool isMobile) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final screenH = MediaQuery.of(context).size.height;
-    final double viewerHeight =
-        isMobile ? math.min(420.0, screenH * 0.55) : 620.0;
-    return SizedBox(
-      height: viewerHeight,
-      child: Container(
-        color: isDark ? AppColors.darkSurface2 : Colors.grey.shade100,
-        child: ExcelViewerWidget(
-          localFile: widget.localFile,
-          networkUrl: widget.localFile != null ? null : _fileUrl,
-          fileName: _fileName,
-          isMobile: isMobile,
-        ),
+    return Container(
+      width: double.infinity,
+      height: double.infinity,
+      color: isDark ? AppColors.darkSurface2 : Colors.grey.shade100,
+      child: ExcelViewerWidget(
+        localFile: widget.localFile,
+        networkUrl: widget.localFile != null ? null : _fileUrl,
+        fileName: _fileName,
+        isMobile: isMobile,
       ),
     );
   }
@@ -265,6 +424,8 @@ class _DocumentPreviewDialogState extends State<_DocumentPreviewDialog> {
   Widget _buildImagePreview() {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     return Container(
+      width: double.infinity,
+      height: double.infinity,
       color: isDark ? AppColors.darkSurface2 : Colors.grey.shade100,
       child: _imageError
           ? _buildImageError()
@@ -277,74 +438,70 @@ class _DocumentPreviewDialogState extends State<_DocumentPreviewDialog> {
                   minScale: 0.5,
                   maxScale: 5.0,
                   constrained: true,
-                  child: Padding(
-                    padding: const EdgeInsets.all(16),
-                    child: widget.localFile != null
-                        ? Image.file(widget.localFile!, fit: BoxFit.contain)
-                        : Image.network(
-                            _fileUrl,
-                            fit: BoxFit.contain,
-                            loadingBuilder: (ctx, child, progress) {
-                              if (progress == null) {
-                                WidgetsBinding.instance.addPostFrameCallback((
-                                  _,
-                                ) {
-                                  if (mounted)
-                                    setState(() => _imageLoaded = true);
-                                });
-                                return child;
-                              }
-                              return Center(
-                                child: Column(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    CircularProgressIndicator(
-                                      value: progress.expectedTotalBytes != null
-                                          ? progress.cumulativeBytesLoaded /
-                                                progress.expectedTotalBytes!
-                                          : null,
-                                      color: AppColors.primaryGreen,
-                                    ),
-                                    const SizedBox(height: 12),
-                                    Text(
-                                      'Loading image…',
-                                      style: TextStyle(
-                                        color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
-                                        fontSize: 13,
+                  child: Center(
+                    child: Padding(
+                      padding: const EdgeInsets.all(16),
+                      child: widget.localFile != null
+                          ? Image.file(widget.localFile!, fit: BoxFit.contain)
+                          : Image.network(
+                              _fileUrl,
+                              fit: BoxFit.contain,
+                              loadingBuilder: (ctx, child, progress) {
+                                if (progress == null) {
+                                  WidgetsBinding.instance.addPostFrameCallback((
+                                    _,
+                                  ) {
+                                    if (mounted) {
+                                      setState(() => _imageLoaded = true);
+                                    }
+                                  });
+                                  return child;
+                                }
+                                return Center(
+                                  child: Column(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      CircularProgressIndicator(
+                                        value: progress.expectedTotalBytes != null
+                                            ? progress.cumulativeBytesLoaded /
+                                                  progress.expectedTotalBytes!
+                                            : null,
+                                        color: AppColors.primaryGreen,
                                       ),
-                                    ),
-                                  ],
-                                ),
-                              );
-                            },
-                            errorBuilder: (_, __, ___) {
-                              WidgetsBinding.instance.addPostFrameCallback((_) {
-                                if (mounted) setState(() => _imageError = true);
-                              });
-                              return _buildImageError();
-                            },
-                          ),
-                  ),
-                ),
-                // Pinch-to-zoom hint
-                if (_imageLoaded)
-                  Positioned(
-                    bottom: 12,
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 12,
-                        vertical: 5,
-                      ),
-                      decoration: BoxDecoration(
-                        color: Colors.black.withValues(alpha: 0.6),
-                        borderRadius: BorderRadius.circular(20),
-                      ),
-                      child: const Text(
-                        'Pinch or scroll to zoom',
-                        style: TextStyle(color: Colors.white, fontSize: 11),
-                      ),
+                                      const SizedBox(height: 12),
+                                      Text(
+                                        'Loading image…',
+                                        style: TextStyle(
+                                          color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
+                                          fontSize: 13,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                );
+                              },
+                              errorBuilder: (_, __, ___) {
+                                WidgetsBinding.instance.addPostFrameCallback((_) {
+                                  if (mounted) setState(() => _imageError = true);
+                                });
+                                return _buildImageError();
+                              },
+                            ),
                     ),
                   ),
+                ),
+                // Floating Zoom Controls
+                Positioned(
+                  bottom: 24,
+                  right: 24,
+                  child: _buildZoomControls(
+                    onZoomIn: _zoomImageIn,
+                    onZoomOut: _zoomImageOut,
+                    onReset: () {
+                      _imageTransformationController.value = Matrix4.identity();
+                    },
+                  ),
+                ),
               ],
             ),
     );
@@ -384,22 +541,40 @@ class _DocumentPreviewDialogState extends State<_DocumentPreviewDialog> {
   Widget _buildPdfInfo(bool isMobile) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     return Container(
+      width: double.infinity,
+      height: double.infinity,
       color: isDark ? AppColors.darkSurface2 : Colors.grey.shade100,
-      child: widget.localFile != null
-          ? SfPdfViewer.file(
-              widget.localFile!,
-              controller: _pdfViewerController,
-              canShowScrollHead: false,
-              canShowScrollStatus: false,
-              interactionMode: PdfInteractionMode.pan,
-            )
-          : SfPdfViewer.network(
-              _fileUrl,
-              controller: _pdfViewerController,
-              canShowScrollHead: false,
-              canShowScrollStatus: false,
-              interactionMode: PdfInteractionMode.pan,
+      child: Stack(
+        children: [
+          widget.localFile != null
+              ? SfPdfViewer.file(
+                  widget.localFile!,
+                  controller: _pdfViewerController,
+                  canShowScrollHead: false,
+                  canShowScrollStatus: false,
+                  interactionMode: PdfInteractionMode.pan,
+                )
+              : SfPdfViewer.network(
+                  _fileUrl,
+                  controller: _pdfViewerController,
+                  canShowScrollHead: false,
+                  canShowScrollStatus: false,
+                  interactionMode: PdfInteractionMode.pan,
+                ),
+          // Floating Zoom Controls
+          Positioned(
+            bottom: 24,
+            right: 24,
+            child: _buildZoomControls(
+              onZoomIn: _zoomPdfIn,
+              onZoomOut: _zoomPdfOut,
+              onReset: () {
+                _pdfViewerController.zoomLevel = 1.0;
+              },
             ),
+          ),
+        ],
+      ),
     );
   }
 

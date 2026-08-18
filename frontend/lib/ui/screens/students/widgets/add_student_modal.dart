@@ -1210,32 +1210,36 @@ class _AddStudentModalState extends ConsumerState<AddStudentModal> {
                             children: [
                               if (_currentStep > 0) ...[
                                 Expanded(
-                                  child: OutlinedButton.icon(
-                                    onPressed: () => setState(() {
-                                      _errorMessage = null;
-                                      _currentStep -= 1;
-                                    }),
-                                    style: OutlinedButton.styleFrom(
-                                      padding: const EdgeInsets.symmetric(
-                                        vertical: 14,
-                                      ),
-                                      side: BorderSide(color: isDark ? Colors.white : Colors.black),
-                                      shape: RoundedRectangleBorder(
-                                        borderRadius: BorderRadius.circular(
-                                          AppSizes.radiusMedium,
+                                  child: SizedBox(
+                                    height: 48,
+                                    child: OutlinedButton.icon(
+                                      onPressed: () => setState(() {
+                                        _errorMessage = null;
+                                        _currentStep -= 1;
+                                      }),
+                                      style: OutlinedButton.styleFrom(
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 16,
+                                          vertical: 12,
+                                        ),
+                                        side: BorderSide(color: isDark ? Colors.white : Colors.black),
+                                        shape: RoundedRectangleBorder(
+                                          borderRadius: BorderRadius.circular(
+                                            AppSizes.radiusMedium,
+                                          ),
                                         ),
                                       ),
-                                    ),
-                                    icon: Icon(
-                                      Icons.arrow_back,
-                                      size: 16,
-                                      color: isDark ? Colors.white : Colors.black,
-                                    ),
-                                    label: Text(
-                                      'BACK',
-                                      style: TextStyle(
+                                      icon: Icon(
+                                        Icons.arrow_back,
+                                        size: 16,
                                         color: isDark ? Colors.white : Colors.black,
-                                        fontWeight: FontWeight.w600,
+                                      ),
+                                      label: Text(
+                                        'BACK',
+                                        style: TextStyle(
+                                          color: isDark ? Colors.white : Colors.black,
+                                          fontWeight: FontWeight.w600,
+                                        ),
                                       ),
                                     ),
                                   ),
@@ -1243,29 +1247,57 @@ class _AddStudentModalState extends ConsumerState<AddStudentModal> {
                                 const SizedBox(width: 12),
                               ],
                               Expanded(
-                                child: PrimaryButton(
-                                  label: isLastStep ? 'ADD' : 'NEXT',
-                                  isLoading: _isLoading && isLastStep,
-                                  onPressed: () {
-                                    if (_currentStep == 1) {
-                                      final isValid = _studentFormKey.currentState?.validate() ?? false;
-                                      if (!isValid) {
-                                        setState(() {
-                                          _errorMessage =
-                                              'Please complete all required fields in red before proceeding to Enrollment.';
-                                        });
-                                        return;
+                                child: SizedBox(
+                                  height: 48,
+                                  child: ElevatedButton(
+                                    onPressed: () {
+                                      if (_currentStep == 1) {
+                                        final isValid = _studentFormKey.currentState?.validate() ?? false;
+                                        if (!isValid) {
+                                          setState(() {
+                                            _errorMessage =
+                                                'Please complete all required fields in red before proceeding to Enrollment.';
+                                          });
+                                          return;
+                                        }
                                       }
-                                    }
-                                    if (isLastStep) {
-                                      _handleSave();
-                                    } else {
-                                      setState(() {
-                                        _errorMessage = null;
-                                        _currentStep += 1;
-                                      });
-                                    }
-                                  },
+                                      if (isLastStep) {
+                                        _handleSave();
+                                      } else {
+                                        setState(() {
+                                          _errorMessage = null;
+                                          _currentStep += 1;
+                                        });
+                                      }
+                                    },
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: const Color(0xFF1C8248),
+                                      foregroundColor: isDark ? Colors.white : Colors.black,
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(
+                                          AppSizes.radiusMedium,
+                                        ),
+                                      ),
+                                      elevation: 0,
+                                    ),
+                                    child: _isLoading && isLastStep
+                                        ? const SizedBox(
+                                            height: 20,
+                                            width: 20,
+                                            child: CircularProgressIndicator(
+                                              color: Colors.white,
+                                              strokeWidth: 2,
+                                            ),
+                                          )
+                                        : Text(
+                                            isLastStep ? 'ADD' : 'NEXT',
+                                            style: const TextStyle(
+                                              fontSize: 14,
+                                              fontWeight: FontWeight.bold,
+                                              letterSpacing: 0.5,
+                                            ),
+                                          ),
+                                  ),
                                 ),
                               ),
                             ],
@@ -1363,59 +1395,92 @@ class _AddStudentModalState extends ConsumerState<AddStudentModal> {
                                   ),
                                 ] else ...[
                                   if (_currentStep > 0)
-                                    OutlinedButton.icon(
-                                      onPressed: () => setState(() {
-                                        _errorMessage = null;
-                                        _currentStep -= 1;
-                                      }),
-                                      style: OutlinedButton.styleFrom(
-                                        padding: const EdgeInsets.symmetric(
-                                          horizontal: 16,
-                                          vertical: 12,
+                                    SizedBox(
+                                      height: 44,
+                                      width: 120,
+                                      child: OutlinedButton.icon(
+                                        onPressed: () => setState(() {
+                                          _errorMessage = null;
+                                          _currentStep -= 1;
+                                        }),
+                                        style: OutlinedButton.styleFrom(
+                                          padding: const EdgeInsets.symmetric(
+                                            horizontal: 16,
+                                            vertical: 10,
+                                          ),
+                                          side: BorderSide(color: isDark ? Colors.white : Colors.black),
+                                          shape: RoundedRectangleBorder(
+                                            borderRadius: BorderRadius.circular(
+                                              AppSizes.radiusMedium,
+                                            ),
+                                          ),
                                         ),
-                                        side: BorderSide(color: isDark ? Colors.white : Colors.black),
+                                        icon: Icon(
+                                          Icons.arrow_back,
+                                          size: 16,
+                                          color: isDark ? Colors.white : Colors.black,
+                                        ),
+                                        label: Text(
+                                          'BACK',
+                                          style: TextStyle(
+                                            color: isDark ? Colors.white : Colors.black,
+                                            fontWeight: FontWeight.w600,
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                  SizedBox(
+                                    height: 44,
+                                    width: 120,
+                                    child: ElevatedButton(
+                                      onPressed: () {
+                                        if (_currentStep == 1) {
+                                          final isValid = _studentFormKey.currentState?.validate() ?? false;
+                                          if (!isValid) {
+                                            setState(() {
+                                              _errorMessage =
+                                                  'Please complete all required fields in red before proceeding to Enrollment.';
+                                            });
+                                            return;
+                                          }
+                                        }
+                                        if (isLastStep) {
+                                          _handleSave();
+                                        } else {
+                                          setState(() {
+                                            _errorMessage = null;
+                                            _currentStep += 1;
+                                          });
+                                        }
+                                      },
+                                      style: ElevatedButton.styleFrom(
+                                        backgroundColor: const Color(0xFF1C8248),
+                                        foregroundColor: isDark ? Colors.white : Colors.black,
                                         shape: RoundedRectangleBorder(
                                           borderRadius: BorderRadius.circular(
                                             AppSizes.radiusMedium,
                                           ),
                                         ),
+                                        elevation: 0,
                                       ),
-                                      icon: Icon(
-                                        Icons.arrow_back,
-                                        size: 16,
-                                        color: isDark ? Colors.white : Colors.black,
-                                      ),
-                                      label: Text(
-                                        'BACK',
-                                        style: TextStyle(
-                                          color: isDark ? Colors.white : Colors.black,
-                                          fontWeight: FontWeight.w600,
-                                        ),
-                                      ),
+                                      child: _isLoading && isLastStep
+                                          ? const SizedBox(
+                                              height: 20,
+                                              width: 20,
+                                              child: CircularProgressIndicator(
+                                                color: Colors.white,
+                                                strokeWidth: 2,
+                                              ),
+                                            )
+                                          : Text(
+                                              isLastStep ? 'ADD' : 'NEXT',
+                                              style: const TextStyle(
+                                                fontSize: 14,
+                                                fontWeight: FontWeight.bold,
+                                                letterSpacing: 0.5,
+                                              ),
+                                            ),
                                     ),
-                                  PrimaryButton(
-                                    label: isLastStep ? 'ADD' : 'NEXT',
-                                    isLoading: _isLoading && isLastStep,
-                                    onPressed: () {
-                                      if (_currentStep == 1) {
-                                        final isValid = _studentFormKey.currentState?.validate() ?? false;
-                                        if (!isValid) {
-                                          setState(() {
-                                            _errorMessage =
-                                                'Please complete all required fields in red before proceeding to Enrollment.';
-                                          });
-                                          return;
-                                        }
-                                      }
-                                      if (isLastStep) {
-                                        _handleSave();
-                                      } else {
-                                        setState(() {
-                                          _errorMessage = null;
-                                          _currentStep += 1;
-                                        });
-                                      }
-                                    },
                                   ),
                                 ],
                               ],
