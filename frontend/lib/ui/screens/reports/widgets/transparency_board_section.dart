@@ -317,7 +317,7 @@ class _TransparencyBoardContent extends StatelessWidget {
         ),
         const SizedBox(height: AppSizes.p12),
         SizedBox(
-          height: 270,
+          height: 320,
           child: _buildEnrollmentGroupedBarChart(context, years, isDark: isDark),
         ),
         const SizedBox(height: AppSizes.p24),
@@ -374,7 +374,7 @@ class _TransparencyBoardContent extends StatelessWidget {
     return LayoutBuilder(
       builder: (context, constraints) {
         final isMobile = constraints.maxWidth < 600;
-        final chartContentWidth = isMobile ? 580.0 : constraints.maxWidth;
+        final chartContentWidth = isMobile ? 620.0 : constraints.maxWidth;
 
         final chartWidget = SizedBox(
           width: chartContentWidth,
@@ -382,12 +382,21 @@ class _TransparencyBoardContent extends StatelessWidget {
             BarChartData(
               alignment: BarChartAlignment.spaceAround,
               groupsSpace: 24,
-              maxY: maxVal * 1.15,
+              maxY: (maxVal * 1.30).ceilToDouble(),
               barTouchData: BarTouchData(
                 enabled: true,
+                handleBuiltInTouches: true,
                 touchTooltipData: BarTouchTooltipData(
-                  getTooltipColor: (group) =>
-                      isDark ? AppColors.darkSurface2 : Colors.black87,
+                  fitInsideHorizontally: true,
+                  fitInsideVertically: true,
+                  tooltipMargin: 8,
+                  tooltipPadding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 8,
+                  ),
+                  getTooltipColor: (group) => isDark
+                      ? AppColors.darkSurface2
+                      : const Color(0xFF1E293B),
                   getTooltipItem: (group, groupIndex, rod, rodIndex) {
                     final yr = years[rodIndex % years.length].yearRange;
                     return BarTooltipItem(
@@ -408,6 +417,7 @@ class _TransparencyBoardContent extends StatelessWidget {
                 bottomTitles: AxisTitles(
                   sideTitles: SideTitles(
                     showTitles: true,
+                    reservedSize: 32,
                     getTitlesWidget: (val, meta) {
                       final idx = val.toInt();
                       if (idx < 0 || idx >= gradeLevels.length) {
@@ -432,16 +442,21 @@ class _TransparencyBoardContent extends StatelessWidget {
                 leftTitles: AxisTitles(
                   sideTitles: SideTitles(
                     showTitles: true,
-                    reservedSize: 36,
+                    reservedSize: 46,
                     getTitlesWidget: (val, meta) {
                       if (val == 0) return const SizedBox.shrink();
-                      return Text(
-                        val.toInt().toString(),
-                        style: TextStyle(
-                          fontSize: 11,
-                          color: isDark
-                              ? AppColors.darkTextSecondary
-                              : AppColors.textSecondary,
+                      return Padding(
+                        padding: const EdgeInsets.only(right: 6),
+                        child: Text(
+                          val.toInt().toString(),
+                          textAlign: TextAlign.right,
+                          style: TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.bold,
+                            color: isDark
+                                ? AppColors.darkTextSecondary
+                                : AppColors.textSecondary,
+                          ),
                         ),
                       );
                     },
@@ -537,7 +552,29 @@ class _TransparencyBoardContent extends StatelessWidget {
                 );
               }).toList(),
             ),
-            const SizedBox(height: 14),
+            if (isMobile) ...[
+              const SizedBox(height: 6),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  Icon(
+                    Icons.swipe_outlined,
+                    size: 14,
+                    color: isDark ? AppColors.darkTextMuted : Colors.grey.shade500,
+                  ),
+                  const SizedBox(width: 4),
+                  Text(
+                    'Scroll horizontally to view all grades',
+                    style: TextStyle(
+                      fontSize: 11,
+                      color: isDark ? AppColors.darkTextMuted : Colors.grey.shade500,
+                      fontStyle: FontStyle.italic,
+                    ),
+                  ),
+                ],
+              ),
+            ],
+            const SizedBox(height: 10),
             Expanded(
               child: isMobile
                   ? SingleChildScrollView(

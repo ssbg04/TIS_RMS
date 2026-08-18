@@ -1362,7 +1362,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                 crossAxisCount: cols,
                 crossAxisSpacing: 16,
                 mainAxisSpacing: 16,
-                mainAxisExtent: 160,
+                mainAxisExtent: constraints.maxWidth < 480 ? 150 : 165,
               ),
               children: [
                 _buildPrimaryKpiCard(
@@ -1415,7 +1415,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                 crossAxisCount: cols,
                 crossAxisSpacing: 16,
                 mainAxisSpacing: 16,
-                mainAxisExtent: 120,
+                mainAxisExtent: constraints.maxWidth < 480 ? 125 : 135,
               ),
               children: [
                 StatCard(
@@ -1619,17 +1619,19 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                 child: Text(
                   value,
                   style: TextStyle(
-                    fontSize: 26,
-                    fontWeight: FontWeight.bold,
+                    fontSize: 32,
+                    fontWeight: FontWeight.w800,
                     color: effectiveColor,
+                    letterSpacing: -0.5,
                   ),
                 ),
               ),
-              const SizedBox(height: 2),
+              const SizedBox(height: 3),
               Text(
                 subtitle,
                 style: TextStyle(
-                  fontSize: 11,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w500,
                   color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
                 ),
                 maxLines: 1,
@@ -2729,8 +2731,8 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Icon(icon, size: 15, color: color),
-        const SizedBox(width: 7),
+        Icon(icon, size: 16, color: color),
+        const SizedBox(width: 8),
         Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           mainAxisSize: MainAxisSize.min,
@@ -2738,15 +2740,16 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
             Text(
               value,
               style: TextStyle(
-                fontSize: 15,
-                fontWeight: FontWeight.bold,
+                fontSize: 17,
+                fontWeight: FontWeight.w800,
                 color: color,
               ),
             ),
             Text(
               label,
               style: TextStyle(
-                fontSize: 11,
+                fontSize: 11.5,
+                fontWeight: FontWeight.w500,
                 color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
               ),
             ),

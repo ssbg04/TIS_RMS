@@ -26,9 +26,10 @@ class StatCard extends StatelessWidget {
     return LayoutBuilder(
       builder: (context, constraints) {
         final isSmall = constraints.maxWidth < 220;
-        final iconSize = isSmall ? 24.0 : 28.0;
-        final titleFontSize = isSmall ? 11.0 : 13.0;
-        final valueFontSize = isSmall ? 20.0 : 24.0;
+        final iconSize = isSmall ? 22.0 : 26.0;
+        final titleFontSize = isSmall ? 11.5 : 13.0;
+        final valueFontSize = isSmall ? 22.0 : 26.0;
+        final subtitleFontSize = isSmall ? 11.0 : 12.5;
         final padding = isSmall ? 10.0 : 14.0;
 
         final isDark = Theme.of(context).brightness == Brightness.dark;
@@ -77,7 +78,9 @@ class StatCard extends StatelessWidget {
                               if (onTap != null)
                                 Icon(
                                   Icons.chevron_right_rounded,
-                                  color: Theme.of(context).colorScheme.onSurface.withOpacity(0.38),
+                                  color: isDark
+                                      ? AppColors.darkTextSecondary
+                                      : Colors.grey.shade400,
                                   size: 16,
                                 ),
                             ],
@@ -93,8 +96,10 @@ class StatCard extends StatelessWidget {
                                   value,
                                   style: TextStyle(
                                     fontSize: valueFontSize,
-                                    fontWeight: FontWeight.bold,
-                                    color: Theme.of(context).colorScheme.onSurface,
+                                    fontWeight: FontWeight.w800,
+                                    color: isDark
+                                        ? AppColors.darkTextPrimary
+                                        : AppColors.textPrimary,
                                   ),
                                 ),
                               ),
@@ -105,18 +110,22 @@ class StatCard extends StatelessWidget {
                                 overflow: TextOverflow.ellipsis,
                                 style: TextStyle(
                                   fontSize: titleFontSize,
-                                  color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
-                                  fontWeight: FontWeight.w500,
+                                  color: isDark
+                                      ? AppColors.darkTextSecondary
+                                      : AppColors.textSecondary,
+                                  fontWeight: FontWeight.w600,
                                 ),
                               ),
                               if (subtitle != null) ...[
-                                const SizedBox(height: 2),
+                                const SizedBox(height: 3),
                                 Text(
                                   subtitle!,
                                   style: TextStyle(
-                                    fontSize: isSmall ? 9.0 : 11.0,
-                                    color: Theme.of(context).colorScheme.onSurface.withOpacity(0.38),
-                                    fontWeight: FontWeight.w500,
+                                    fontSize: subtitleFontSize,
+                                    color: isDark
+                                        ? AppColors.darkTextSecondary
+                                        : Colors.grey.shade700,
+                                    fontWeight: FontWeight.w600,
                                   ),
                                 ),
                               ],
@@ -130,7 +139,7 @@ class StatCard extends StatelessWidget {
                           Container(
                             padding: const EdgeInsets.all(8),
                             decoration: BoxDecoration(
-                                borderRadius: BorderRadius.circular(8),
+                              borderRadius: BorderRadius.circular(8),
                             ),
                             child: Icon(
                               icon,
@@ -151,8 +160,10 @@ class StatCard extends StatelessWidget {
                                   overflow: TextOverflow.visible,
                                   style: TextStyle(
                                     fontSize: titleFontSize,
-                                    color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
-                                    fontWeight: FontWeight.w500,
+                                    color: isDark
+                                        ? AppColors.darkTextSecondary
+                                        : AppColors.textSecondary,
+                                    fontWeight: FontWeight.w600,
                                   ),
                                 ),
                                 const SizedBox(height: 2),
@@ -163,19 +174,23 @@ class StatCard extends StatelessWidget {
                                     value,
                                     style: TextStyle(
                                       fontSize: valueFontSize,
-                                      fontWeight: FontWeight.bold,
-                                      color: Theme.of(context).colorScheme.onSurface,
+                                      fontWeight: FontWeight.w800,
+                                      color: isDark
+                                          ? AppColors.darkTextPrimary
+                                          : AppColors.textPrimary,
                                     ),
                                   ),
                                 ),
                                 if (subtitle != null) ...[
-                                  const SizedBox(height: 2),
+                                  const SizedBox(height: 3),
                                   Text(
                                     subtitle!,
                                     style: TextStyle(
-                                      fontSize: isSmall ? 9.0 : 11.0,
-                                      color: Theme.of(context).colorScheme.onSurface.withOpacity(0.38),
-                                      fontWeight: FontWeight.w500,
+                                      fontSize: subtitleFontSize,
+                                      color: isDark
+                                          ? AppColors.darkTextSecondary
+                                          : Colors.grey.shade700,
+                                      fontWeight: FontWeight.w600,
                                     ),
                                   ),
                                 ],
@@ -187,7 +202,9 @@ class StatCard extends StatelessWidget {
                               padding: const EdgeInsets.only(left: 8.0),
                               child: Icon(
                                 Icons.chevron_right_rounded,
-                                color: Theme.of(context).colorScheme.onSurface.withOpacity(0.38),
+                                color: isDark
+                                    ? AppColors.darkTextSecondary
+                                    : Colors.grey.shade400,
                                 size: 18,
                               ),
                             ),
