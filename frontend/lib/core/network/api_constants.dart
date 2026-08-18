@@ -38,6 +38,7 @@ class ApiConstants {
       InterceptorsWrapper(
         onRequest: (options, handler) {
           options.baseUrl = _baseUrl;
+          options.headers['Bypass-Tunnel-Reminder'] = 'true';
 
           // Prevent unauthenticated or malformed token requests from hitting the server
           final authHeader = options.headers['Authorization']?.toString() ?? '';
