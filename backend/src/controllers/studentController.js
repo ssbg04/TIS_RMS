@@ -608,26 +608,27 @@ exports.updateStudent = (req, res) => {
             );
 
             if (academicYearId > 0 && gradeLevel > 0 && sectionId > 0) {
-                // Get existing enrollment for the specific academic year and grade level
+                // Get existing enrollment for the specific academic year
                 const existingEnrollment = db.prepare(`
                     SELECT e.* FROM enrollments e
-                    WHERE e.student_id = ? AND e.academic_year_id = ? AND e.grade_level = ?
+                    WHERE e.student_id = ? AND e.academic_year_id = ?
                     LIMIT 1
-                `).get(id, academicYearId, gradeLevel);
+                `).get(id, academicYearId);
 
                 if (existingEnrollment) {
-                    // Update section and track_strand if they differ
-                    if (existingEnrollment.section_id !== parseInt(sectionId) ||
+                    // Update grade_level, section, and track_strand if they differ
+                    if (existingEnrollment.grade_level !== parseInt(gradeLevel) ||
+                        existingEnrollment.section_id !== parseInt(sectionId) ||
                         existingEnrollment.track_strand !== (trackStrand || null)) {
                         db.prepare(`
                             UPDATE enrollments
-                            SET section_id = ?, track_strand = ?
+                            SET grade_level = ?, section_id = ?, track_strand = ?
                             WHERE id = ?
-                        `).run(sectionId, trackStrand || null, existingEnrollment.id);
+                        `).run(parseInt(gradeLevel), sectionId, trackStrand || null, existingEnrollment.id);
                         logActivity(req.user?.id, 'UPDATE', 'enrollment', existingEnrollment.id, `UPDATE enrollment ${existingEnrollment.id} student ${lrn.trim()}`);
                     }
                 } else {
-                    // No enrollment for this year and grade, create a new one
+                    // No enrollment for this year, create a new one
                     const resEnr = db.prepare(`
                         INSERT INTO enrollments (student_id, academic_year_id, section_id, grade_level, track_strand)
                         VALUES (?, ?, ?, ?, ?)
@@ -653,15 +654,11 @@ exports.updateStudent = (req, res) => {
             }
         })();
 
-        logActivity(req.user?.id, 'UPDATE', 'student', id, `Updated student details (LRN: ${lrn.trim()})`);
-
-        res.json({ message: 'Student updated successfully' });
+        logActivity(req.user?.id, 'UPDATE', 'student', id, `UPDATE student ${lrn.trim()}`);
+        res.json({ message: 'Student updated successfully.' });
     } catch (error) {
         console.error('updateStudent error:', error);
-        if (error.message && error.message.includes('UNIQUE')) {
-            return res.status(409).json({ message: `Another student already has LRN ${lrn}.` });
-        }
-        res.status(500).json({ message: 'Failed to update student', error: error.message });
+        res.status(500).json({ message: 'Failed to update student.', error: error.message });
     }
 };
 
@@ -671,16 +668,25 @@ exports.updateStudent = (req, res) => {
 exports.deleteStudent = (req, res) => {
     const { id } = req.params;
 
-    const existing = db.prepare('SELECT id, first_name, last_name, lrn FROM students WHERE id = ?').get(id);
-    if (!existing) return res.status(404).json({ message: 'Student not found.' });
+    const student = db.prepare('SELECT * FROM students WHERE id = ?').get(id);
+    if (!student) return res.status(404).json({ message: 'Student not found.' });
 
     try {
-        db.prepare('DELETE FROM students WHERE id = ?').run(id);
-        logActivity(req.user?.id, 'DELETE', 'student', id, `Deleted student ${existing.first_name} ${existing.last_name} (LRN: ${existing.lrn})`);
-        res.json({ message: 'Student deleted successfully' });
+        db.transaction(() => {
+            const folder = db.prepare('SELECT id FROM document_folders WHERE student_id = ?').get(id);
+            if (folder) {
+                db.prepare('DELETE FROM documents WHERE folder_id = ?').run(folder.id);
+                db.prepare('DELETE FROM document_folders WHERE id = ?').run(folder.id);
+            }
+            db.prepare('DELETE FROM enrollments WHERE student_id = ?').run(id);
+            db.prepare('DELETE FROM students WHERE id = ?').run(id);
+        })();
+
+        logActivity(req.user?.id, 'DELETE', 'student', id, `DELETE student ${student.lrn} (${student.first_name} ${student.last_name})`);
+        res.json({ message: 'Student deleted successfully.' });
     } catch (error) {
         console.error('deleteStudent error:', error);
-        res.status(500).json({ message: 'Failed to delete student', error: error.message });
+        res.status(500).json({ message: 'Failed to delete student.', error: error.message });
     }
 };
 
@@ -699,10 +705,10 @@ exports.bulkEnrollStudents = (req, res) => {
         db.transaction(() => {
             const getExistingEnrollment = db.prepare(`
                 SELECT e.* FROM enrollments e
-                WHERE e.student_id = ? AND e.academic_year_id = ? AND e.grade_level = ?
+                WHERE e.student_id = ? AND e.academic_year_id = ?
                 LIMIT 1
             `);
-            const updateEnrollment = db.prepare('UPDATE enrollments SET section_id = ?, track_strand = ? WHERE id = ?');
+            const updateEnrollment = db.prepare('UPDATE enrollments SET grade_level = ?, section_id = ?, track_strand = ? WHERE id = ?');
             const insertEnrollment = db.prepare('INSERT INTO enrollments (student_id, academic_year_id, section_id, grade_level, track_strand) VALUES (?, ?, ?, ?, ?)');
             const updateStudentStatus = db.prepare('UPDATE students SET status = ? WHERE id = ?');
             
@@ -710,11 +716,12 @@ exports.bulkEnrollStudents = (req, res) => {
             for (const studentId of studentIds) {
                 const st = getLrn.get(studentId);
                 const lrn = st?.lrn || studentId;
-                const existing = getExistingEnrollment.get(studentId, academicYearId, gradeLevel);
+                const existing = getExistingEnrollment.get(studentId, academicYearId);
                 if (existing) {
-                    if (existing.section_id !== parseInt(sectionId) ||
+                    if (existing.grade_level !== parseInt(gradeLevel) ||
+                        existing.section_id !== parseInt(sectionId) ||
                         existing.track_strand !== (trackStrand || null)) {
-                        updateEnrollment.run(sectionId, trackStrand || null, existing.id);
+                        updateEnrollment.run(parseInt(gradeLevel), sectionId, trackStrand || null, existing.id);
                         logActivity(req.user?.id, 'UPDATE', 'enrollment', existing.id, `UPDATE enrollment ${existing.id} student ${lrn}`);
                     }
                 } else {
@@ -740,41 +747,25 @@ exports.bulkStatusStudents = (req, res) => {
     if (!Array.isArray(studentIds) || studentIds.length === 0) {
         return res.status(400).json({ message: 'studentIds must be a non-empty array' });
     }
-    if (!status) {
-        return res.status(400).json({ message: 'status is required' });
+    if (!status || !['Enrolled', 'Graduated', 'Transferred', 'Dropped', 'Inactive'].includes(status)) {
+        return res.status(400).json({ message: 'Invalid status value' });
     }
-    
     try {
-        let studentDetails = [];
         db.transaction(() => {
-            const updateStudentStatus = db.prepare('UPDATE students SET status = ? WHERE id = ?');
-            const archiveDocuments = db.prepare('UPDATE documents SET status = ? WHERE student_id = ? AND deleted_at IS NULL');
-            const getStudent = db.prepare('SELECT lrn, last_name FROM students WHERE id = ?');
-            
-            for (const studentId of studentIds) {
-                updateStudentStatus.run(status, studentId);
-                
-                // Auto-archive documents if status is non-enrolled
+            const stmt = db.prepare('UPDATE students SET status = ? WHERE id = ?');
+            const archiveDocs = db.prepare('UPDATE documents SET status = \'Archived\' WHERE student_id = ? AND deleted_at IS NULL');
+            for (const id of studentIds) {
+                stmt.run(status, id);
                 if (['Graduated', 'Transferred', 'Dropped', 'Inactive'].includes(status)) {
-                    archiveDocuments.run('Archived', studentId);
-                } else if (status === 'Enrolled') {
-                    archiveDocuments.run('Completed', studentId); // We use archiveDocuments query which updates documents based on student_id
-                }
-                
-                const student = getStudent.get(studentId);
-                if (student) {
-                    studentDetails.push(`${student.lrn} ${student.last_name}`);
+                    archiveDocs.run(id);
                 }
             }
         })();
-        
-        const detailsString = studentDetails.join(', ');
-        logActivity(req.user?.id, 'UPDATE', 'student', null, `Bulk changed status to ${status} for: ${detailsString}`);
-        
-        res.json({ message: `Successfully changed status for ${studentIds.length} students.` });
+        logActivity(req.user?.id, 'UPDATE', 'student', null, `Bulk updated status to "${status}" for ${studentIds.length} students`);
+        res.json({ message: `Successfully updated status to "${status}" for ${studentIds.length} students.` });
     } catch (error) {
         console.error('bulkStatusStudents error:', error);
-        res.status(500).json({ message: 'Failed to bulk change status', error: error.message });
+        res.status(500).json({ message: 'Failed to bulk update status', error: error.message });
     }
 };
 
@@ -792,17 +783,19 @@ exports.addEnrollment = (req, res) => {
     const student = db.prepare('SELECT id FROM students WHERE id = ?').get(studentId);
     if (!student) return res.status(404).json({ message: 'Student not found.' });
 
-    // ---- Enrollment downgrade restriction ----
-    const existingGradeRow = db.prepare(`
-        SELECT MAX(grade_level) as max_grade
-        FROM enrollments
-        WHERE student_id = ? AND academic_year_id = ?
+    // ---- Check if student is already enrolled in this academic year ----
+    const existingEnrollment = db.prepare(`
+        SELECT e.grade_level, sec.name as section_name, ay.year_range
+        FROM enrollments e
+        JOIN academic_years ay ON e.academic_year_id = ay.id
+        LEFT JOIN sections sec ON e.section_id = sec.id
+        WHERE e.student_id = ? AND e.academic_year_id = ?
+        LIMIT 1
     `).get(studentId, academicYearId);
-    
-    const existingMaxGrade = existingGradeRow?.max_grade ?? null;
-    if (existingMaxGrade !== null && gradeLevel < existingMaxGrade) {
+
+    if (existingEnrollment) {
         return res.status(400).json({
-            message: `Cannot add enrollment. This student is already in Grade ${existingMaxGrade} for this academic year. You cannot add them to Grade ${gradeLevel} in the same academic year.`,
+            message: `Cannot add enrollment. This student is already enrolled in Grade ${existingEnrollment.grade_level}${existingEnrollment.section_name ? ` - ${existingEnrollment.section_name}` : ''} for S.Y. ${existingEnrollment.year_range}.`,
         });
     }
 
@@ -836,17 +829,19 @@ exports.updateEnrollment = (req, res) => {
     const existing = db.prepare('SELECT * FROM enrollments WHERE id = ?').get(enrollmentId);
     if (!existing) return res.status(404).json({ message: 'Enrollment not found.' });
 
-    // ---- Enrollment downgrade restriction ----
-    const existingGradeRow = db.prepare(`
-        SELECT MAX(grade_level) as max_grade
-        FROM enrollments
-        WHERE student_id = ? AND academic_year_id = ? AND id != ?
+    // ---- Prevent multiple enrollments in the same academic year ----
+    const duplicateInYear = db.prepare(`
+        SELECT e.grade_level, sec.name as section_name, ay.year_range
+        FROM enrollments e
+        JOIN academic_years ay ON e.academic_year_id = ay.id
+        LEFT JOIN sections sec ON e.section_id = sec.id
+        WHERE e.student_id = ? AND e.academic_year_id = ? AND e.id != ?
+        LIMIT 1
     `).get(existing.student_id, academicYearId, enrollmentId);
-    
-    const existingMaxGrade = existingGradeRow?.max_grade ?? null;
-    if (existingMaxGrade !== null && gradeLevel < existingMaxGrade) {
+
+    if (duplicateInYear) {
         return res.status(400).json({
-            message: `Cannot downgrade enrollment. This student is already in Grade ${existingMaxGrade} for this academic year. You cannot change it to Grade ${gradeLevel} in the same academic year.`,
+            message: `Cannot update enrollment. This student already has an enrollment in Grade ${duplicateInYear.grade_level}${duplicateInYear.section_name ? ` - ${duplicateInYear.section_name}` : ''} for S.Y. ${duplicateInYear.year_range}.`,
         });
     }
 
