@@ -9,6 +9,7 @@ backend/node_modules
 backend/bin/cloudflared.exe
 requirements
 TIS*
+!*.iss
 
 # Environment secrets
 backend/.env
@@ -35,6 +36,7 @@ backend/test_*.js
 # Flutter build artifacts
 frontend/.dart_tool/
 frontend/build/
+frontend/android/build/
 frontend/.flutter-plugins
 frontend/.flutter-plugins-dependencies
 # Backup logs
