@@ -275,7 +275,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> with SingleTickerProv
                       animation: _revealAnimation,
                       builder: (context, child) {
                         return Container(
-                          color: AppColors.darkGreen,
+                          color: Colors.transparent,
                           child: Row(
                             children: [
                               if (_revealAnimation.value > 0)
@@ -298,40 +298,40 @@ class _LoginScreenState extends ConsumerState<LoginScreen> with SingleTickerProv
                                               ),
                                             ),
                                             const SizedBox(height: AppSizes.p24),
-                                            const Text(
+                                            Text(
                                               'Talisay Integrated School',
                                               style: TextStyle(
                                                 fontSize: 42,
                                                 fontWeight: FontWeight.bold,
-                                                color: Colors.white,
+                                                color: isDark ? Colors.white : AppColors.textPrimary,
                                                 letterSpacing: 2.0,
                                               ),
                                               textAlign: TextAlign.center,
                                             ),
-                                            const Text(
+                                            Text(
                                               'Tiaong, Quezon',
                                               style: TextStyle(
                                                 fontSize: 18,
-                                                color: Colors.white70,
+                                                color: isDark ? Colors.white70 : AppColors.textSecondary,
                                                 letterSpacing: 1.0,
                                               ),
                                             ),
                                             const SizedBox(height: AppSizes.p32),
-                                            const Text(
+                                            Text(
                                               'Record Management System',
                                               style: TextStyle(
                                                 fontSize: 20,
-                                                color: Colors.white,
+                                                color: isDark ? Colors.white : AppColors.primaryGreen,
                                                 fontWeight: FontWeight.w600,
                                               ),
                                             ),
                                             const SizedBox(height: AppSizes.p8),
-                                            const Text(
+                                            Text(
                                               'Secure Academic Records Database System',
                                               textAlign: TextAlign.center,
                                               style: TextStyle(
                                                 fontSize: 15,
-                                                color: Colors.white70,
+                                                color: isDark ? Colors.white70 : AppColors.textSecondary,
                                               ),
                                             ),
                                           ],
@@ -375,7 +375,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> with SingleTickerProv
                       animation: _revealAnimation,
                       builder: (context, child) {
                         return Container(
-                          color: AppColors.darkGreen,
+                          color: Colors.transparent,
                           child: Column(
                             children: [
                               if (_revealAnimation.value > 0)
@@ -405,40 +405,40 @@ class _LoginScreenState extends ConsumerState<LoginScreen> with SingleTickerProv
                                                 ),
                                               ),
                                               const SizedBox(height: AppSizes.p16),
-                                              const Text(
+                                              Text(
                                                 'Talisay Integrated School',
                                                 style: TextStyle(
                                                   fontSize: 28,
                                                   fontWeight: FontWeight.bold,
-                                                  color: Colors.white,
+                                                  color: isDark ? Colors.white : AppColors.textPrimary,
                                                   letterSpacing: 1.5,
                                                 ),
                                                 textAlign: TextAlign.center,
                                               ),
-                                              const Text(
+                                              Text(
                                                 'Tiaong, Quezon',
                                                 style: TextStyle(
                                                   fontSize: 14,
-                                                  color: Colors.white70,
+                                                  color: isDark ? Colors.white70 : AppColors.textSecondary,
                                                   letterSpacing: 1.0,
                                                 ),
                                               ),
                                               const SizedBox(height: AppSizes.p16),
-                                              const Text(
+                                              Text(
                                                 'Record Management System',
                                                 style: TextStyle(
                                                   fontSize: 16,
-                                                  color: Colors.white,
+                                                  color: isDark ? Colors.white : AppColors.primaryGreen,
                                                   fontWeight: FontWeight.w600,
                                                 ),
                                               ),
                                               const SizedBox(height: AppSizes.p4),
-                                              const Text(
+                                              Text(
                                                 'Secure Academic Records Database System',
                                                 textAlign: TextAlign.center,
                                                 style: TextStyle(
                                                   fontSize: 12,
-                                                  color: Colors.white70,
+                                                  color: isDark ? Colors.white70 : AppColors.textSecondary,
                                                 ),
                                               ),
                                             ],
