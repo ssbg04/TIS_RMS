@@ -34,29 +34,10 @@ class NotificationNotifier extends AsyncNotifier<List<NotificationModel>> {
     final repo = ref.read(notificationRepositoryProvider);
     final list = await repo.getNotifications();
 
-    // Check if there are any unread notifications on initial load
+    // On initial app load, sync last_seen_notification_id to latest without re-popping banners for past items
     if (list.isNotEmpty) {
       final prefs = await SharedPreferences.getInstance();
       final highestOldId = prefs.getInt('last_seen_notification_id') ?? 0;
-
-      final newNotes = list.where((e) {
-        if (!e.isRead) {
-          if (highestOldId == 0) return true;
-          return e.id > highestOldId;
-        }
-        return false;
-      }).toList();
-
-      if (newNotes.isNotEmpty) {
-        for (var note in newNotes) {
-          await NotificationService().showNotification(
-            id: note.id,
-            title: note.title,
-            body: note.message,
-          );
-        }
-      }
-
       final highestId = list.map((e) => e.id).reduce(math.max);
       await prefs.setInt('last_seen_notification_id', math.max(highestOldId, highestId));
     }
@@ -74,8 +55,7 @@ class NotificationNotifier extends AsyncNotifier<List<NotificationModel>> {
 
       if (list.isNotEmpty) {
         final newNotes = list.where((e) {
-          if (!e.isRead) {
-            if (highestOldId == 0) return true;
+          if (!e.isRead && highestOldId > 0) {
             return e.id > highestOldId;
           }
           return false;
