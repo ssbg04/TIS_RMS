@@ -317,7 +317,7 @@ class _TransparencyBoardContent extends StatelessWidget {
         ),
         const SizedBox(height: AppSizes.p12),
         SizedBox(
-          height: 320,
+          height: 360,
           child: _buildEnrollmentGroupedBarChart(context, years, isDark: isDark),
         ),
         const SizedBox(height: AppSizes.p24),
@@ -374,101 +374,106 @@ class _TransparencyBoardContent extends StatelessWidget {
     return LayoutBuilder(
       builder: (context, constraints) {
         final isMobile = constraints.maxWidth < 600;
-        final chartContentWidth = isMobile ? 620.0 : constraints.maxWidth;
+        final chartContentWidth = isMobile ? 640.0 : constraints.maxWidth;
 
-        final chartWidget = SizedBox(
-          width: chartContentWidth,
-          child: BarChart(
-            BarChartData(
-              alignment: BarChartAlignment.spaceAround,
-              groupsSpace: 24,
-              maxY: (maxVal * 1.30).ceilToDouble(),
-              barTouchData: BarTouchData(
-                enabled: true,
-                handleBuiltInTouches: true,
-                touchTooltipData: BarTouchTooltipData(
-                  fitInsideHorizontally: true,
-                  fitInsideVertically: true,
-                  tooltipMargin: 8,
-                  tooltipPadding: const EdgeInsets.symmetric(
-                    horizontal: 12,
-                    vertical: 8,
-                  ),
-                  getTooltipColor: (group) => isDark
-                      ? AppColors.darkSurface2
-                      : const Color(0xFF1E293B),
-                  getTooltipItem: (group, groupIndex, rod, rodIndex) {
-                    final yr = years[rodIndex % years.length].yearRange;
-                    return BarTooltipItem(
-                      '$yr\nGrade ${gradeLevels[group.x.toInt()]}: ${rod.toY.toInt()} enrolled',
-                      TextStyle(
-                        color: isDark
-                            ? AppColors.darkTextPrimary
-                            : Colors.white,
-                        fontSize: 12,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    );
-                  },
-                ),
-              ),
-              titlesData: FlTitlesData(
-                show: true,
-                bottomTitles: AxisTitles(
-                  sideTitles: SideTitles(
-                    showTitles: true,
-                    reservedSize: 32,
-                    getTitlesWidget: (val, meta) {
-                      final idx = val.toInt();
-                      if (idx < 0 || idx >= gradeLevels.length) {
-                        return const SizedBox.shrink();
-                      }
-                      return Padding(
-                        padding: const EdgeInsets.only(top: 8),
-                        child: Text(
-                          'Grade ${gradeLevels[idx]}',
-                          style: TextStyle(
-                            fontSize: 11,
-                            fontWeight: FontWeight.w600,
-                            color: isDark
-                                ? AppColors.darkTextSecondary
-                                : AppColors.textPrimary,
-                          ),
+        final chartWidget = Padding(
+          padding: const EdgeInsets.only(top: 16, right: 14, left: 4),
+          child: SizedBox(
+            width: chartContentWidth,
+            child: BarChart(
+              BarChartData(
+                alignment: BarChartAlignment.spaceAround,
+                groupsSpace: 24,
+                maxY: (maxVal * 1.45).ceilToDouble(),
+                barTouchData: BarTouchData(
+                  enabled: true,
+                  handleBuiltInTouches: true,
+                  touchTooltipData: BarTouchTooltipData(
+                    fitInsideHorizontally: true,
+                    fitInsideVertically: true,
+                    tooltipMargin: 12,
+                    tooltipPadding: const EdgeInsets.symmetric(
+                      horizontal: 14,
+                      vertical: 8,
+                    ),
+                    getTooltipColor: (group) => isDark
+                        ? AppColors.darkSurface2
+                        : const Color(0xFF1E293B),
+                    getTooltipItem: (group, groupIndex, rod, rodIndex) {
+                      final yr = years[rodIndex % years.length].yearRange;
+                      return BarTooltipItem(
+                        '$yr\nGrade ${gradeLevels[group.x.toInt()]}: ${rod.toY.toInt()} enrolled',
+                        TextStyle(
+                          color: isDark
+                              ? AppColors.darkTextPrimary
+                              : Colors.white,
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold,
                         ),
                       );
                     },
                   ),
                 ),
-                leftTitles: AxisTitles(
-                  sideTitles: SideTitles(
-                    showTitles: true,
-                    reservedSize: 46,
-                    getTitlesWidget: (val, meta) {
-                      if (val == 0) return const SizedBox.shrink();
-                      return Padding(
-                        padding: const EdgeInsets.only(right: 6),
-                        child: Text(
-                          val.toInt().toString(),
-                          textAlign: TextAlign.right,
-                          style: TextStyle(
-                            fontSize: 11,
-                            fontWeight: FontWeight.bold,
-                            color: isDark
-                                ? AppColors.darkTextSecondary
-                                : AppColors.textSecondary,
+                titlesData: FlTitlesData(
+                  show: true,
+                  bottomTitles: AxisTitles(
+                    sideTitles: SideTitles(
+                      showTitles: true,
+                      reservedSize: 34,
+                      getTitlesWidget: (val, meta) {
+                        final idx = val.toInt();
+                        if (idx < 0 || idx >= gradeLevels.length) {
+                          return const SizedBox.shrink();
+                        }
+                        return Padding(
+                          padding: const EdgeInsets.only(top: 8),
+                          child: Text(
+                            'Grade ${gradeLevels[idx]}',
+                            style: TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w600,
+                              color: isDark
+                                  ? AppColors.darkTextSecondary
+                                  : AppColors.textPrimary,
+                            ),
                           ),
-                        ),
-                      );
-                    },
+                        );
+                      },
+                    ),
+                  ),
+                  leftTitles: AxisTitles(
+                    sideTitles: SideTitles(
+                      showTitles: true,
+                      reservedSize: 52,
+                      getTitlesWidget: (val, meta) {
+                        if (val == 0) return const SizedBox.shrink();
+                        return Padding(
+                          padding: const EdgeInsets.only(right: 8),
+                          child: Text(
+                            val.toInt().toString(),
+                            textAlign: TextAlign.right,
+                            style: TextStyle(
+                              fontSize: 11.5,
+                              fontWeight: FontWeight.bold,
+                              color: isDark
+                                  ? AppColors.darkTextSecondary
+                                  : AppColors.textSecondary,
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                  topTitles: const AxisTitles(
+                    sideTitles: SideTitles(
+                      showTitles: false,
+                      reservedSize: 20,
+                    ),
+                  ),
+                  rightTitles: const AxisTitles(
+                    sideTitles: SideTitles(showTitles: false),
                   ),
                 ),
-                topTitles: const AxisTitles(
-                  sideTitles: SideTitles(showTitles: false),
-                ),
-                rightTitles: const AxisTitles(
-                  sideTitles: SideTitles(showTitles: false),
-                ),
-              ),
               gridData: FlGridData(
                 show: true,
                 drawVerticalLine: false,
@@ -516,7 +521,8 @@ class _TransparencyBoardContent extends StatelessWidget {
               }).toList(),
             ),
           ),
-        );
+        ),
+      );
 
         return Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
