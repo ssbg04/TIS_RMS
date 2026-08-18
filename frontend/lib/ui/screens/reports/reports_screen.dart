@@ -1411,17 +1411,22 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
         // ── Secondary Status Row (6 cards) ───────────────────────────
         LayoutBuilder(
           builder: (ctx, constraints) {
-            final cols = constraints.maxWidth >= 1050
+            final isDesktop = Theme.of(ctx).platform == TargetPlatform.windows ||
+                Theme.of(ctx).platform == TargetPlatform.macOS ||
+                Theme.of(ctx).platform == TargetPlatform.linux;
+            final isWide = constraints.maxWidth >= 750 || isDesktop;
+            final cols = isWide
                 ? 6
-                : (constraints.maxWidth >= 750 ? 3 : 2);
+                : (constraints.maxWidth >= 480 ? 3 : 2);
+            final spacing = isWide ? 10.0 : 12.0;
             return GridView(
               shrinkWrap: true,
               physics: const NeverScrollableScrollPhysics(),
               gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
                 crossAxisCount: cols,
-                crossAxisSpacing: 16,
-                mainAxisSpacing: 16,
-                mainAxisExtent: constraints.maxWidth < 480 ? 125 : 135,
+                crossAxisSpacing: spacing,
+                mainAxisSpacing: 10,
+                mainAxisExtent: cols == 6 ? 94 : (constraints.maxWidth < 480 ? 115 : 125),
               ),
               children: [
                 StatCard(
