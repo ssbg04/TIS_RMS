@@ -10,8 +10,6 @@ if not exist "%~dp0bin\cloudflared.exe" (
     curl.exe -L -o "%~dp0bin\cloudflared.exe" "https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-windows-amd64.exe"
 )
 
-echo [INFO] Connecting to Cloudflare global network...
-echo [INFO] Look for the 'https://*.trycloudflare.com' URL below:
-echo.
-"%~dp0bin\cloudflared.exe" tunnel --url http://localhost:18484
+echo [INFO] Connecting to Cloudflare Tunnel...
+"%~dp0bin\cloudflared.exe" tunnel run --token eyJhIjoiZWRhMWQ4ZTc1MzNjMjBiMDcyNmM0ZGU1OWE5YTMxYzgiLCJ0IjoiZjJhOGYyYmMtMWE1YS00MmNmLWJjZTUtZWMzYzAxNzY4M2IyIiwicyI6Ik9EUXpZMkUyT0RNdE0yVmxNaTAwTjJVMUxXRmlZVFl0TkRKak1HSmpOR0l4WTJReSJ9
 pause
