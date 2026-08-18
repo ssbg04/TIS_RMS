@@ -1,4 +1,6 @@
 const db = require('../config/db');
+const fcmService = require('../services/fcmService');
+fcmService.init();
 
 // Programmatic helper to create notifications (can be called from other controllers)
 // category: 'student' | 'document' | 'user' | 'system'
@@ -14,6 +16,30 @@ exports.createNotification = (userId, title, message, category = 'system', entit
         } catch (err2) {
             console.error('Error creating notification:', err2.message);
         }
+    }
+    // Fire-and-forget FCM push
+    if (userId === null || userId === undefined) {
+        fcmService.sendToAll(title, message).catch(() => {});
+    } else {
+        fcmService.sendToUser(userId, title, message).catch(() => {});
+    }
+};
+
+// POST /api/notifications/fcm-token
+exports.registerFcmToken = (req, res) => {
+    const { token } = req.body;
+    if (!token) return res.status(400).json({ message: 'Token required' });
+    try {
+        db.prepare(`
+            INSERT INTO fcm_tokens (user_id, token, updated_at)
+            VALUES (?, ?, strftime('%Y-%m-%dT%H:%M:%SZ', 'now'))
+            ON CONFLICT(token) DO UPDATE
+              SET user_id = excluded.user_id,
+                  updated_at = excluded.updated_at
+        `).run(req.user.id, token);
+        res.json({ message: 'FCM token registered' });
+    } catch (error) {
+        res.status(500).json({ message: 'Failed to register FCM token', error: error.message });
     }
 };
 

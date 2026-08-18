@@ -603,6 +603,16 @@ const initSchema = () => {
             )
         `).run();
 
+        db.prepare(`
+            CREATE TABLE IF NOT EXISTS fcm_tokens (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id INTEGER NOT NULL,
+                token TEXT NOT NULL UNIQUE,
+                updated_at DATETIME DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ', 'now')),
+                FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+            )
+        `).run();
+
         // Migration: add category, entity_type, entity_id column to notifications if missing
         const notifCols = db.prepare("PRAGMA table_info(notifications)").all();
         if (!notifCols.some(c => c.name === 'category')) {
