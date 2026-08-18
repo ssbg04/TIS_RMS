@@ -1,4 +1,4 @@
-﻿import 'package:fl_chart/fl_chart.dart';
+import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/constants/app_colors.dart';
@@ -317,7 +317,7 @@ class _TransparencyBoardContent extends StatelessWidget {
         ),
         const SizedBox(height: AppSizes.p12),
         SizedBox(
-          height: 220,
+          height: 270,
           child: _buildEnrollmentGroupedBarChart(context, years, isDark: isDark),
         ),
         const SizedBox(height: AppSizes.p24),
@@ -359,7 +359,7 @@ class _TransparencyBoardContent extends StatelessWidget {
   }) {
     final gradeLevels = [7, 8, 9, 10, 11, 12];
     final yearColors = [
-      Colors.blueGrey.shade300,
+      Colors.blueGrey.shade400,
       Colors.teal.shade400,
       AppColors.primaryGreen,
     ];
@@ -371,44 +371,17 @@ class _TransparencyBoardContent extends StatelessWidget {
       }
     }
 
-    return Column(
-      children: [
-        Wrap(
-          alignment: WrapAlignment.end,
-          spacing: 16,
-          runSpacing: 6,
-          children: years.asMap().entries.map((entry) {
-            final idx = entry.key;
-            final item = entry.value;
-            final color = yearColors[idx % yearColors.length];
-            return Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Container(
-                  width: 12,
-                  height: 12,
-                  decoration: BoxDecoration(
-                    color: color,
-                    borderRadius: BorderRadius.circular(3),
-                  ),
-                ),
-                const SizedBox(width: 6),
-                Text(
-                  item.yearRange,
-                  style: const TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ],
-            );
-          }).toList(),
-        ),
-        const SizedBox(height: 12),
-        Expanded(
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final isMobile = constraints.maxWidth < 600;
+        final chartContentWidth = isMobile ? 580.0 : constraints.maxWidth;
+
+        final chartWidget = SizedBox(
+          width: chartContentWidth,
           child: BarChart(
             BarChartData(
               alignment: BarChartAlignment.spaceAround,
+              groupsSpace: 24,
               maxY: maxVal * 1.15,
               barTouchData: BarTouchData(
                 enabled: true,
@@ -441,12 +414,15 @@ class _TransparencyBoardContent extends StatelessWidget {
                         return const SizedBox.shrink();
                       }
                       return Padding(
-                        padding: const EdgeInsets.only(top: 6),
+                        padding: const EdgeInsets.only(top: 8),
                         child: Text(
-                          'G${gradeLevels[idx]}',
-                          style: const TextStyle(
+                          'Grade ${gradeLevels[idx]}',
+                          style: TextStyle(
                             fontSize: 11,
                             fontWeight: FontWeight.w600,
+                            color: isDark
+                                ? AppColors.darkTextSecondary
+                                : AppColors.textPrimary,
                           ),
                         ),
                       );
@@ -509,20 +485,70 @@ class _TransparencyBoardContent extends StatelessWidget {
                   return BarChartRodData(
                     toY: gData.total.toDouble(),
                     color: yearColors[yIdx % yearColors.length],
-                    width: 14,
+                    width: 12,
                     borderRadius: const BorderRadius.only(
-                      topLeft: Radius.circular(4),
-                      topRight: Radius.circular(4),
+                      topLeft: Radius.circular(3),
+                      topRight: Radius.circular(3),
                     ),
                   );
                 }).toList();
 
-                return BarChartGroupData(x: xIdx, barRods: rods);
+                return BarChartGroupData(
+                  x: xIdx,
+                  barsSpace: 4,
+                  barRods: rods,
+                );
               }).toList(),
             ),
           ),
-        ),
-      ],
+        );
+
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Wrap(
+              alignment: WrapAlignment.end,
+              spacing: 16,
+              runSpacing: 6,
+              children: years.asMap().entries.map((entry) {
+                final idx = entry.key;
+                final item = entry.value;
+                final color = yearColors[idx % yearColors.length];
+                return Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Container(
+                      width: 12,
+                      height: 12,
+                      decoration: BoxDecoration(
+                        color: color,
+                        borderRadius: BorderRadius.circular(3),
+                      ),
+                    ),
+                    const SizedBox(width: 6),
+                    Text(
+                      item.yearRange,
+                      style: const TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
+                );
+              }).toList(),
+            ),
+            const SizedBox(height: 14),
+            Expanded(
+              child: isMobile
+                  ? SingleChildScrollView(
+                      scrollDirection: Axis.horizontal,
+                      child: chartWidget,
+                    )
+                  : chartWidget,
+            ),
+          ],
+        );
+      },
     );
   }
 

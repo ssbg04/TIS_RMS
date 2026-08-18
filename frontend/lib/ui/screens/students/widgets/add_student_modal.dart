@@ -1,6 +1,5 @@
 import 'dart:io';
 import 'package:desktop_drop/desktop_drop.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -9,7 +8,6 @@ import '../../../../core/constants/app_sizes.dart';
 import '../../../../domain/entities/setup_models.dart';
 import '../../../../domain/entities/ocr_result_model.dart';
 import '../../../../domain/repositories/student_repository.dart';
-import '../../../shared/buttons/primary_button.dart';
 import '../../../providers/setup_provider.dart';
 import '../../../providers/ocr_provider.dart';
 import '../../../providers/student_provider.dart';
@@ -361,6 +359,7 @@ class _AddStudentModalState extends ConsumerState<AddStudentModal> {
     if (!mounted || accepted.isEmpty) return;
 
     setState(() {
+      _ocrSavedEnrollments.clear();
       _ocrSavedEnrollments.addAll(accepted);
       final last = accepted.last;
       _selectedAcademicYearId = last.academicYearId;
@@ -385,37 +384,6 @@ class _AddStudentModalState extends ConsumerState<AddStudentModal> {
       return '$fieldName is required.';
     }
     return null;
-  }
-
-  void _showValidationDialog(String message) {
-    showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(AppSizes.radiusMedium),
-        ),
-        title: const Row(
-          children: [
-            Icon(Icons.warning_amber_rounded, color: Colors.amber, size: 28),
-            SizedBox(width: 8),
-            Text('Missing Information'),
-          ],
-        ),
-        content: Text(message),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop(),
-            child: const Text(
-              'OK',
-              style: TextStyle(
-                color: AppColors.primaryGreen,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
   }
 
   Future<void> _handleSave() async {
@@ -457,22 +425,6 @@ class _AddStudentModalState extends ConsumerState<AddStudentModal> {
         trackStrand: _trackStrand,
         is4ps: _is4ps,
       );
-
-      // Additional enrollments accepted from OCR scans (the primary one
-      // was already created with the student).
-      for (final e in _ocrSavedEnrollments) {
-        if (e.academicYearId == _selectedAcademicYearId &&
-            e.gradeLevel == _selectedGradeLevel &&
-            e.sectionId == _selectedSectionId) {
-          continue;
-        }
-        await notifier.addEnrollment(
-          studentId: studentId,
-          academicYearId: e.academicYearId,
-          gradeLevel: e.gradeLevel,
-          sectionId: e.sectionId!,
-        );
-      }
 
       // After the student's directory is created, upload the scanned
       // SF9/SF10 document into it.

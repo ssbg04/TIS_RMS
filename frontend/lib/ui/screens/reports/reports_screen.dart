@@ -1,4 +1,4 @@
-﻿import 'dart:async';
+import 'dart:async';
 import 'dart:io';
 import 'package:excel/excel.dart' hide Border, TextSpan;
 import 'package:file_picker/file_picker.dart';
@@ -1440,15 +1440,28 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
     required Color color,
   }) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    // In dark mode, slightly desaturate bright accents for a softer, eye-friendly look
+    final effectiveColor = isDark
+        ? (color == AppColors.primaryGreen
+            ? const Color(0xFF76BA8A)
+            : color == Colors.orange
+                ? const Color(0xFFE5A663)
+                : color == Colors.redAccent || color == Colors.red
+                    ? const Color(0xFFD67878)
+                    : color == Colors.blue
+                        ? const Color(0xFF7EAAD8)
+                        : color)
+        : color;
+
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: isDark ? AppColors.darkSurfaceCard : Colors.white,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: color.withValues(alpha: 0.25)),
+        border: Border.all(color: effectiveColor.withValues(alpha: 0.25)),
         boxShadow: [
           BoxShadow(
-            color: color.withValues(alpha: 0.07),
+            color: effectiveColor.withValues(alpha: 0.07),
             blurRadius: 10,
             offset: const Offset(0, 3),
           ),
@@ -1463,10 +1476,10 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
               Container(
                 padding: const EdgeInsets.all(6),
                 decoration: BoxDecoration(
-                  color: color.withValues(alpha: 0.1),
+                  color: effectiveColor.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(8),
                 ),
-                child: Icon(icon, size: 18, color: color),
+                child: Icon(icon, size: 18, color: effectiveColor),
               ),
               const SizedBox(width: 8),
               Expanded(
@@ -1495,7 +1508,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                   style: TextStyle(
                     fontSize: 26,
                     fontWeight: FontWeight.bold,
-                    color: color,
+                    color: effectiveColor,
                   ),
                 ),
               ),
@@ -1662,14 +1675,14 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                               child: level == 'SHS'
                                   ? levelBadge(
                                       'SHS',
-                                      isDark ? AppColors.darkSurface2 : Colors.purple.shade50,
-                                      isDark ? Colors.purple.shade300 : Colors.purple.shade700,
+                                      isDark ? const Color(0xFFB39DDB).withValues(alpha: 0.14) : Colors.purple.shade50,
+                                      isDark ? const Color(0xFFB39DDB) : Colors.purple.shade700,
                                     )
                                   : level == 'JHS'
                                   ? levelBadge(
                                       'JHS',
-                                      isDark ? AppColors.darkSurface2 : Colors.teal.shade50,
-                                      isDark ? Colors.teal.shade300 : Colors.teal.shade700,
+                                      isDark ? const Color(0xFF80CBC4).withValues(alpha: 0.14) : Colors.teal.shade50,
+                                      isDark ? const Color(0xFF80CBC4) : Colors.teal.shade700,
                                     )
                                   : levelBadge(
                                       'ALL',
@@ -1713,11 +1726,16 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                                         0.45 *
                                         pct,
                                     decoration: BoxDecoration(
-                                      gradient: const LinearGradient(
-                                        colors: [
-                                          Colors.orange,
-                                          Colors.redAccent,
-                                        ],
+                                      gradient: LinearGradient(
+                                        colors: isDark
+                                            ? const [
+                                                Color(0xFFE5A663),
+                                                Color(0xFFD67878),
+                                              ]
+                                            : const [
+                                                Colors.orange,
+                                                Colors.redAccent,
+                                              ],
                                       ),
                                       borderRadius: BorderRadius.circular(5),
                                     ),
@@ -1733,13 +1751,13 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                                 vertical: 2,
                               ),
                               decoration: BoxDecoration(
-                                color: isDark ? Colors.red.withValues(alpha: 0.15) : Colors.red.shade50,
+                                color: isDark ? const Color(0xFFD67878).withValues(alpha: 0.14) : Colors.red.shade50,
                                 borderRadius: BorderRadius.circular(8),
                               ),
                               child: Text(
                                 '${item.count}',
                                 style: TextStyle(
-                                  color: isDark ? Colors.red.shade300 : Colors.red.shade700,
+                                  color: isDark ? const Color(0xFFD67878) : Colors.red.shade700,
                                   fontWeight: FontWeight.bold,
                                   fontSize: 11,
                                 ),
@@ -1783,14 +1801,14 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                               child: level == 'SHS'
                                   ? levelBadge(
                                       'SHS',
-                                      isDark ? AppColors.darkSurface2 : Colors.purple.shade50,
-                                      isDark ? Colors.purple.shade300 : Colors.purple.shade700,
+                                      isDark ? const Color(0xFFB39DDB).withValues(alpha: 0.14) : Colors.purple.shade50,
+                                      isDark ? const Color(0xFFB39DDB) : Colors.purple.shade700,
                                     )
                                   : level == 'JHS'
                                   ? levelBadge(
                                       'JHS',
-                                      isDark ? AppColors.darkSurface2 : Colors.teal.shade50,
-                                      isDark ? Colors.teal.shade300 : Colors.teal.shade700,
+                                      isDark ? const Color(0xFF80CBC4).withValues(alpha: 0.14) : Colors.teal.shade50,
+                                      isDark ? const Color(0xFF80CBC4) : Colors.teal.shade700,
                                     )
                                   : levelBadge(
                                       'ALL',
@@ -1832,11 +1850,16 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                                       height: 10,
                                       width: bc.maxWidth * pct,
                                       decoration: BoxDecoration(
-                                        gradient: const LinearGradient(
-                                          colors: [
-                                            Colors.orange,
-                                            Colors.redAccent,
-                                          ],
+                                        gradient: LinearGradient(
+                                          colors: isDark
+                                              ? const [
+                                                  Color(0xFFE5A663),
+                                                  Color(0xFFD67878),
+                                                ]
+                                              : const [
+                                                  Colors.orange,
+                                                  Colors.redAccent,
+                                                ],
                                         ),
                                         borderRadius: BorderRadius.circular(5),
                                       ),
@@ -1853,13 +1876,13 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                                 vertical: 2,
                               ),
                               decoration: BoxDecoration(
-                                color: isDark ? Colors.red.withValues(alpha: 0.15) : Colors.red.shade50,
+                                color: isDark ? const Color(0xFFD67878).withValues(alpha: 0.14) : Colors.red.shade50,
                                 borderRadius: BorderRadius.circular(8),
                               ),
                               child: Text(
                                 '${item.count}',
                                 style: TextStyle(
-                                  color: isDark ? Colors.red.shade300 : Colors.red.shade700,
+                                  color: isDark ? const Color(0xFFD67878) : Colors.red.shade700,
                                   fontWeight: FontWeight.bold,
                                   fontSize: 11,
                                 ),
@@ -2226,11 +2249,11 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                         Color? rowBg;
                         if (student.missingCount == 0) {
                           rowBg = isDark
-                              ? AppColors.primaryGreen.withValues(alpha: 0.1)
+                              ? const Color(0xFF76BA8A).withValues(alpha: 0.08)
                               : Colors.green.shade50;
                         } else if (student.missingCount >= 3) {
                           rowBg = isDark
-                              ? Colors.red.withValues(alpha: 0.1)
+                              ? const Color(0xFFD67878).withValues(alpha: 0.08)
                               : Colors.red.shade50;
                         }
                         return DataRow(
@@ -2276,14 +2299,14 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                                 decoration: BoxDecoration(
                                   color: student.status == 'Enrolled'
                                       ? (isDark
-                                          ? Colors.green.withValues(alpha: 0.15)
+                                          ? const Color(0xFF76BA8A).withValues(alpha: 0.14)
                                           : Colors.green.shade50)
                                       : student.status == 'Graduated'
                                       ? (isDark
-                                          ? Colors.blue.withValues(alpha: 0.15)
+                                          ? const Color(0xFF7EAAD8).withValues(alpha: 0.14)
                                           : Colors.blue.shade50)
                                       : (isDark
-                                          ? Colors.orange.withValues(alpha: 0.15)
+                                          ? const Color(0xFFE5A663).withValues(alpha: 0.14)
                                           : Colors.orange.shade50),
                                   borderRadius: BorderRadius.circular(12),
                                 ),
@@ -2294,14 +2317,14 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                                   style: TextStyle(
                                     color: student.status == 'Enrolled'
                                         ? (isDark
-                                            ? Colors.green.shade300
+                                            ? const Color(0xFF76BA8A)
                                             : Colors.green.shade700)
                                         : student.status == 'Graduated'
                                         ? (isDark
-                                            ? Colors.blue.shade300
+                                            ? const Color(0xFF7EAAD8)
                                             : Colors.blue.shade700)
                                         : (isDark
-                                            ? Colors.orange.shade300
+                                            ? const Color(0xFFE5A663)
                                             : Colors.orange.shade700),
                                     fontWeight: FontWeight.bold,
                                     fontSize: 11,
@@ -2324,10 +2347,10 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                                 decoration: BoxDecoration(
                                   color: student.missingCount > 0
                                       ? (isDark
-                                          ? Colors.red.withValues(alpha: 0.15)
+                                          ? const Color(0xFFD67878).withValues(alpha: 0.14)
                                           : Colors.red.shade50)
                                       : (isDark
-                                          ? Colors.green.withValues(alpha: 0.15)
+                                          ? const Color(0xFF76BA8A).withValues(alpha: 0.14)
                                           : Colors.green.shade50),
                                   borderRadius: BorderRadius.circular(12),
                                 ),
@@ -2336,10 +2359,10 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                                   style: TextStyle(
                                     color: student.missingCount > 0
                                         ? (isDark
-                                            ? Colors.red.shade300
+                                            ? const Color(0xFFD67878)
                                             : Colors.red.shade700)
                                         : (isDark
-                                            ? Colors.green.shade300
+                                            ? const Color(0xFF76BA8A)
                                             : Colors.green.shade700),
                                     fontWeight: FontWeight.bold,
                                     fontSize: 12,
@@ -2350,14 +2373,14 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                             DataCell(
                               Text(
                                 student.missingRequirements ??
-                                    'None â€” Complete',
+                                    'None — Complete',
                                 style: TextStyle(
                                   color: student.missingCount > 0
                                       ? (isDark
                                           ? AppColors.darkTextSecondary
                                           : Colors.grey.shade700)
                                       : (isDark
-                                          ? Colors.green.shade300
+                                          ? const Color(0xFF76BA8A)
                                           : Colors.green.shade700),
                                   fontSize: 12,
                                   fontStyle: student.missingCount > 0

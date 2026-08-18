@@ -555,12 +555,24 @@ exports.updateStudent = (req, res) => {
         const dob = new Date(birthDate);
         if (isNaN(dob.getTime()))            errors.push('Invalid date of birth format.');
         else if (dob > new Date())           errors.push('Date of birth cannot be in the future.');
-    }
     if (status && !['Enrolled', 'Graduated', 'Transferred', 'Dropped', 'Inactive'].includes(status)) {
         errors.push('Invalid status value.');
     }
-    if (status === 'Graduated' && gradeLevel && gradeLevel !== 10 && gradeLevel !== 12) {
-        errors.push('Graduation status is only applicable for Grade 10 and Grade 12 students.');
+    if (status === 'Graduated') {
+        let effGrade = gradeLevel ? parseInt(gradeLevel) : null;
+        if (!effGrade) {
+            const latestEnr = db.prepare(`
+                SELECT e.grade_level FROM enrollments e
+                JOIN academic_years ay ON e.academic_year_id = ay.id
+                WHERE e.student_id = ?
+                ORDER BY ay.year_range DESC, e.grade_level DESC, e.id DESC
+                LIMIT 1
+            `).get(id);
+            effGrade = latestEnr?.grade_level ?? null;
+        }
+        if (effGrade !== 10 && effGrade !== 12) {
+            errors.push('Graduation status is only applicable for Grade 10 and Grade 12 students.');
+        }
     }
     if (academicYearId > 0 || sectionId > 0) {
         if (!academicYearId)                     errors.push('Academic year is required.');

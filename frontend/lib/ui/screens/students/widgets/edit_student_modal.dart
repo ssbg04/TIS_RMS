@@ -216,6 +216,20 @@ class _EditStudentModalState extends ConsumerState<EditStudentModal> {
     );
   }
 
+  int? _getLatestGradeLevel() {
+    if (_loadedEnrollments != null && _loadedEnrollments!.isNotEmpty) {
+      final latestEnrollment = _loadedEnrollments!.reduce((a, b) {
+        final ya = a.yearRange ?? '';
+        final yb = b.yearRange ?? '';
+        final cmp = ya.compareTo(yb);
+        if (cmp != 0) return cmp > 0 ? a : b;
+        return (a.gradeLevel ?? 0) > (b.gradeLevel ?? 0) ? a : b;
+      });
+      return latestEnrollment.gradeLevel;
+    }
+    return widget.student.latestGradeLevel;
+  }
+
   Future<void> _handleSaveDetails() async {
     setState(() => _errorMessage = null);
 
@@ -236,20 +250,11 @@ class _EditStudentModalState extends ConsumerState<EditStudentModal> {
     }
 
     if (_selectedStatus == 'Graduated') {
-      int? latestGrade;
-      if (_loadedEnrollments != null && _loadedEnrollments!.isNotEmpty) {
-        final latestEnrollment = _loadedEnrollments!.reduce((a, b) {
-          final ya = a.yearRange ?? '';
-          final yb = b.yearRange ?? '';
-          final cmp = ya.compareTo(yb);
-          if (cmp != 0) return cmp > 0 ? a : b;
-          return (a.gradeLevel ?? 0) > (b.gradeLevel ?? 0) ? a : b;
-        });
-        latestGrade = latestEnrollment.gradeLevel;
-      }
+      final latestGrade = _getLatestGradeLevel();
       if (latestGrade != 10 && latestGrade != 12) {
         _showValidationDialog(
-          'Graduation status is only applicable for Grade 10 and Grade 12 students.',
+          'Graduation status is only applicable for Grade 10 and Grade 12 students.\n\n'
+          'This student is currently ${latestGrade != null ? 'in Grade $latestGrade' : 'not enrolled in Grade 10 or 12'}.',
         );
         return;
       }
@@ -349,8 +354,8 @@ class _EditStudentModalState extends ConsumerState<EditStudentModal> {
                 );
 
                 final statusDropdown = DropdownButtonFormField<String>(
-                  key: const ValueKey('edit_status_dropdown'),
-                  initialValue: _selectedStatus,
+                  key: ValueKey('edit_status_dropdown_$_selectedStatus'),
+                  value: _selectedStatus,
                   decoration: const InputDecoration(
                     labelText: 'STATUS',
                     prefixIcon: Icon(Icons.info_outline),
@@ -359,9 +364,18 @@ class _EditStudentModalState extends ConsumerState<EditStudentModal> {
                       .map((s) => DropdownMenuItem(value: s, child: Text(s)))
                       .toList(),
                   onChanged: (v) {
-                    if (v != null) {
-                      setState(() => _selectedStatus = v);
+                    if (v == null) return;
+                    if (v == 'Graduated') {
+                      final grade = _getLatestGradeLevel();
+                      if (grade != 10 && grade != 12) {
+                        _showValidationDialog(
+                          'Graduation status is only applicable for Grade 10 and Grade 12 students.\n\n'
+                          'This student is currently ${grade != null ? 'in Grade $grade' : 'not enrolled in Grade 10 or 12'}.',
+                        );
+                        return;
+                      }
                     }
+                    setState(() => _selectedStatus = v);
                   },
                 );
 
