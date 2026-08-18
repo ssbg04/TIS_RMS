@@ -1,4 +1,5 @@
 import 'dart:io' show Platform;
+import 'dart:ui' show ImageFilter;
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:window_manager/window_manager.dart';
 import 'package:flutter/material.dart';
@@ -342,26 +343,47 @@ class _LoginScreenState extends ConsumerState<LoginScreen> with SingleTickerProv
                                 ),
                               Expanded(
                                 flex: 4000,
-                                child: Container(
-                                  decoration: BoxDecoration(
-                                    color: isDark ? AppColors.darkSurfaceCard : AppColors.pageBackground,
-                                    borderRadius: BorderRadius.only(
-                                      topLeft: Radius.circular(24.0 * _revealAnimation.value),
-                                      bottomLeft: Radius.circular(24.0 * _revealAnimation.value),
+                                child: ClipRRect(
+                                  borderRadius: BorderRadius.only(
+                                    topLeft: Radius.circular(24.0 * _revealAnimation.value),
+                                    bottomLeft: Radius.circular(24.0 * _revealAnimation.value),
+                                  ),
+                                  child: BackdropFilter(
+                                    filter: ImageFilter.blur(
+                                      sigmaX: 18.0,
+                                      sigmaY: 18.0,
+                                    ),
+                                    child: Container(
+                                      decoration: BoxDecoration(
+                                        color: isDark
+                                            ? AppColors.darkSurfaceCard.withValues(alpha: 0.85)
+                                            : Colors.white.withValues(alpha: 0.86),
+                                        borderRadius: BorderRadius.only(
+                                          topLeft: Radius.circular(24.0 * _revealAnimation.value),
+                                          bottomLeft: Radius.circular(24.0 * _revealAnimation.value),
+                                        ),
+                                        border: Border(
+                                          left: BorderSide(
+                                            color: (isDark ? Colors.white : AppColors.primaryGreen)
+                                                .withValues(alpha: 0.12 * _revealAnimation.value),
+                                            width: 1.5,
+                                          ),
+                                        ),
+                                      ),
+                                      child: Align(
+                                        alignment: Alignment.topCenter,
+                                        child: SingleChildScrollView(
+                                          padding: const EdgeInsets.only(top: 80, left: 24, right: 24, bottom: 24),
+                                          child: ConstrainedBox(
+                                            constraints: const BoxConstraints(
+                                              maxWidth: 400,
+                                            ),
+                                            child: _buildLoginForm(),
+                                          ),
+                                        ),
+                                      ),
                                     ),
                                   ),
-                                   child: Align(
-                                     alignment: Alignment.topCenter,
-                                     child: SingleChildScrollView(
-                                       padding: const EdgeInsets.only(top: 80, left: 24, right: 24, bottom: 24),
-                                       child: ConstrainedBox(
-                                         constraints: const BoxConstraints(
-                                           maxWidth: 400,
-                                         ),
-                                         child: _buildLoginForm(),
-                                       ),
-                                     ),
-                                   ),
                                 ),
                               ),
                             ],
@@ -452,23 +474,44 @@ class _LoginScreenState extends ConsumerState<LoginScreen> with SingleTickerProv
                                 child: SafeArea(
                                   top: false,
                                   bottom: true,
-                                  child: Container(
-                                    decoration: BoxDecoration(
-                                      color: isDark ? AppColors.darkSurfaceCard : AppColors.pageBackground,
-                                      borderRadius: BorderRadius.only(
-                                        topLeft: Radius.circular(24.0 * _revealAnimation.value),
-                                        topRight: Radius.circular(24.0 * _revealAnimation.value),
-                                      ),
+                                  child: ClipRRect(
+                                    borderRadius: BorderRadius.only(
+                                      topLeft: Radius.circular(24.0 * _revealAnimation.value),
+                                      topRight: Radius.circular(24.0 * _revealAnimation.value),
                                     ),
-                                    child: Align(
-                                      alignment: Alignment.topCenter,
-                                      child: SingleChildScrollView(
-                                        padding: const EdgeInsets.only(top: 40, left: 24, right: 24, bottom: 24),
-                                        child: ConstrainedBox(
-                                          constraints: const BoxConstraints(
-                                            maxWidth: 400,
+                                    child: BackdropFilter(
+                                      filter: ImageFilter.blur(
+                                        sigmaX: 18.0,
+                                        sigmaY: 18.0,
+                                      ),
+                                      child: Container(
+                                        decoration: BoxDecoration(
+                                          color: isDark
+                                              ? AppColors.darkSurfaceCard.withValues(alpha: 0.85)
+                                              : Colors.white.withValues(alpha: 0.86),
+                                          borderRadius: BorderRadius.only(
+                                            topLeft: Radius.circular(24.0 * _revealAnimation.value),
+                                            topRight: Radius.circular(24.0 * _revealAnimation.value),
                                           ),
-                                          child: _buildLoginForm(),
+                                          border: Border(
+                                            top: BorderSide(
+                                              color: (isDark ? Colors.white : AppColors.primaryGreen)
+                                                  .withValues(alpha: 0.12 * _revealAnimation.value),
+                                              width: 1.5,
+                                            ),
+                                          ),
+                                        ),
+                                        child: Align(
+                                          alignment: Alignment.topCenter,
+                                          child: SingleChildScrollView(
+                                            padding: const EdgeInsets.only(top: 40, left: 24, right: 24, bottom: 24),
+                                            child: ConstrainedBox(
+                                              constraints: const BoxConstraints(
+                                                maxWidth: 400,
+                                              ),
+                                              child: _buildLoginForm(),
+                                            ),
+                                          ),
                                         ),
                                       ),
                                     ),
