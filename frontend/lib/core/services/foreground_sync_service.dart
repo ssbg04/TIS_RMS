@@ -160,31 +160,17 @@ class ForegroundSyncService {
   }
 
   static Future<void> start() async {
-    if (kIsWeb || !Platform.isAndroid) return;
-
-    await requestPermissions();
-
-    if (await FlutterForegroundTask.isRunningService) {
-      await FlutterForegroundTask.restartService();
-      return;
-    }
-
-    await FlutterForegroundTask.startService(
-      serviceId: 256,
-      notificationTitle: 'TIS RMS Sync Active',
-      notificationText: 'Connected to local server for real-time notifications',
-      notificationIcon: const NotificationIcon(
-        metaDataName: 'com.pravera.flutter_foreground_task.notification_icon',
-      ),
-      callback: startForegroundCallback,
-    );
+    // When FCM / AlarmManager is active, avoid running persistent foreground tasks
+    // to remove the 'TIS RMS Sync Active' persistent status notification.
+    await stop();
   }
 
   static Future<void> stop() async {
     if (kIsWeb || !Platform.isAndroid) return;
-
-    if (await FlutterForegroundTask.isRunningService) {
-      await FlutterForegroundTask.stopService();
-    }
+    try {
+      if (await FlutterForegroundTask.isRunningService) {
+        await FlutterForegroundTask.stopService();
+      }
+    } catch (_) {}
   }
 }

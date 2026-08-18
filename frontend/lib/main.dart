@@ -70,7 +70,7 @@ void main() async {
   }
 
   await NotificationService().initialize();
-  await ForegroundSyncService.init();
+  await ForegroundSyncService.stop();
 
   // Firebase / FCM — only on Android/iOS mobile devices
   if (!kIsWeb && (Platform.isAndroid || Platform.isIOS)) {

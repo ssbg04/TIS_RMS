@@ -73,6 +73,8 @@ class NotificationService {
     _initialized = true;
   }
 
+  final Set<String> _recentlyShown = <String>{};
+
   Future<void> showNotification({
     int? id,
     required String title,
@@ -82,6 +84,17 @@ class NotificationService {
 
     // Do nothing on web
     if (kIsWeb) return;
+
+    // Deduplication check (prevents duplicate triggers from FCM + Polling + Stream)
+    final dedupeKey = '${id ?? ''}_${title.trim()}_${body.trim()}';
+    if (_recentlyShown.contains(dedupeKey)) {
+      return;
+    }
+    _recentlyShown.add(dedupeKey);
+    // Evict after 15 seconds
+    Future.delayed(const Duration(seconds: 15), () {
+      _recentlyShown.remove(dedupeKey);
+    });
 
     const AndroidNotificationDetails androidPlatformChannelSpecifics =
         AndroidNotificationDetails(

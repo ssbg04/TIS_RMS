@@ -57,7 +57,7 @@ const _cleanInvalidTokens = (tokens, responses) => {
     });
 };
 
-const _sendMulticast = async (tokens, title, body, category = 'system') => {
+const _sendMulticast = async (tokens, title, body, category = 'system', notificationId = null) => {
     if (!messaging || !tokens || tokens.length === 0) return;
     
     // Deduplicate tokens
@@ -74,6 +74,7 @@ const _sendMulticast = async (tokens, title, body, category = 'system') => {
                     body: body || ''
                 },
                 data: {
+                    id: String(notificationId || ''),
                     title: String(title || 'TIS RMS'),
                     body: String(body || ''),
                     category: String(category || 'system'),
@@ -103,7 +104,7 @@ const _sendMulticast = async (tokens, title, body, category = 'system') => {
  * - Direct: user_id provided
  * - Broadcast / Scoped: all admins + relevant section teachers (for student/document) or all users
  */
-const sendNotification = async ({ userId = null, title, body, category = 'system', entityType = null, entityId = null }) => {
+const sendNotification = async ({ userId = null, title, body, category = 'system', entityType = null, entityId = null, notificationId = null }) => {
     if (!messaging) return;
     const db = require('../config/db');
 
@@ -160,7 +161,7 @@ const sendNotification = async ({ userId = null, title, body, category = 'system
             }
         }
 
-        await _sendMulticast(tokens, title, body, category);
+        await _sendMulticast(tokens, title, body, category, notificationId);
     } catch (err) {
         console.error('[FCM] sendNotification error:', err.message);
     }

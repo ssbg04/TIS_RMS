@@ -5,14 +5,17 @@ fcmService.init();
 // Programmatic helper to create notifications (can be called from other controllers)
 // category: 'student' | 'document' | 'user' | 'system'
 exports.createNotification = (userId, title, message, category = 'system', entityType = null, entityId = null) => {
+    let notifId = null;
     try {
-        db.prepare('INSERT INTO notifications (user_id, title, message, is_read, category, entity_type, entity_id) VALUES (?, ?, ?, 0, ?, ?, ?)')
+        const result = db.prepare('INSERT INTO notifications (user_id, title, message, is_read, category, entity_type, entity_id) VALUES (?, ?, ?, 0, ?, ?, ?)')
             .run(userId || null, title, message, category, entityType, entityId);
+        notifId = result.lastInsertRowid;
     } catch (err) {
         // Gracefully fall back if category column doesn't exist yet (before migration)
         try {
-            db.prepare('INSERT INTO notifications (user_id, title, message, is_read) VALUES (?, ?, ?, 0)')
+            const result2 = db.prepare('INSERT INTO notifications (user_id, title, message, is_read) VALUES (?, ?, ?, 0)')
                 .run(userId || null, title, message);
+            notifId = result2.lastInsertRowid;
         } catch (err2) {
             console.error('Error creating notification:', err2.message);
         }
@@ -24,7 +27,8 @@ exports.createNotification = (userId, title, message, category = 'system', entit
         body: message,
         category,
         entityType,
-        entityId
+        entityId,
+        notificationId: notifId
     }).catch(() => {});
 };
 

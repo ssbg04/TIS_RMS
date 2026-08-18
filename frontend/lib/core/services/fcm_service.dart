@@ -27,7 +27,7 @@ class FcmService {
       registerToken();
     });
 
-    // Foreground: show local notification banner
+    // Foreground: show local notification banner (with deduplication)
     FirebaseMessaging.onMessage.listen((RemoteMessage message) async {
       final title = message.notification?.title ??
           message.data['title']?.toString() ??
@@ -35,8 +35,16 @@ class FcmService {
       final body = message.notification?.body ??
           message.data['body']?.toString() ??
           '';
+      int? notifId;
+      if (message.data['id'] != null && message.data['id'].toString().isNotEmpty) {
+        notifId = int.tryParse(message.data['id'].toString());
+      }
       if (body.isNotEmpty) {
-        await NotificationService().showNotification(title: title, body: body);
+        await NotificationService().showNotification(
+          id: notifId,
+          title: title,
+          body: body,
+        );
       }
     });
   }
