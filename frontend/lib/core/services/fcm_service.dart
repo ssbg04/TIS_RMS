@@ -22,6 +22,11 @@ class FcmService {
 
     FirebaseMessaging.onBackgroundMessage(firebaseMessagingBackgroundHandler);
 
+    // Auto-refresh token with backend whenever FCM rotates the token
+    _messaging.onTokenRefresh.listen((newToken) {
+      registerToken();
+    });
+
     // Foreground: show local notification banner
     FirebaseMessaging.onMessage.listen((RemoteMessage message) async {
       final title = message.notification?.title ??

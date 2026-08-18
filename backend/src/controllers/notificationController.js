@@ -17,12 +17,15 @@ exports.createNotification = (userId, title, message, category = 'system', entit
             console.error('Error creating notification:', err2.message);
         }
     }
-    // Fire-and-forget FCM push
-    if (userId === null || userId === undefined) {
-        fcmService.sendToAll(title, message).catch(() => {});
-    } else {
-        fcmService.sendToUser(userId, title, message).catch(() => {});
-    }
+    // Fire-and-forget real-time FCM push to target audience
+    fcmService.sendNotification({
+        userId: userId || null,
+        title,
+        body: message,
+        category,
+        entityType,
+        entityId
+    }).catch(() => {});
 };
 
 // POST /api/notifications/fcm-token
