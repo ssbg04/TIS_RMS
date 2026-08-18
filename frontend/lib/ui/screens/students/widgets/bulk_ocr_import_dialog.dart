@@ -12,6 +12,7 @@ import '../../../providers/ocr_provider.dart';
 import '../../../providers/student_provider.dart';
 import '../../../providers/setup_provider.dart';
 import '../../../shared/dialogs/error_dialog.dart';
+import '../../../shared/widgets/app_button_loader.dart';
 import 'package:flutter/services.dart';
 
 class _UpperCaseAllTextFormatter extends TextInputFormatter {
@@ -1177,11 +1178,10 @@ class _BulkOcrImportDialogState extends ConsumerState<BulkOcrImportDialog> {
           ElevatedButton.icon(
             onPressed: _isProcessing ? null : _processAll,
             icon: _isProcessing
-                ? SizedBox.square(
-                    dimension: 16,
-                    child: CircularProgressIndicator(
-                        strokeWidth: 2,
-                        color: isDark ? Colors.white : Colors.black))
+                ? AppButtonLoader(
+                    size: 16,
+                    color: isDark ? Colors.white : Colors.black,
+                  )
                 : const Icon(Icons.play_arrow_rounded, size: 20),
             label: Text(_isProcessing
                 ? 'Processing…'
@@ -1216,11 +1216,10 @@ class _BulkOcrImportDialogState extends ConsumerState<BulkOcrImportDialog> {
           ElevatedButton.icon(
             onPressed: _isImporting ? null : _importAll,
             icon: _isImporting
-                ? SizedBox.square(
-                    dimension: 16,
-                    child: CircularProgressIndicator(
-                        strokeWidth: 2,
-                        color: isDark ? Colors.white : Colors.black))
+                ? AppButtonLoader(
+                    size: 16,
+                    color: isDark ? Colors.white : Colors.black,
+                  )
                 : const Icon(Icons.upload_rounded, size: 20),
             label: Text(_isImporting
                 ? 'Importing…'

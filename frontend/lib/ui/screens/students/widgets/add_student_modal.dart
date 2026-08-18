@@ -15,6 +15,7 @@ import '../../documents/widgets/document_preview_modal.dart';
 import '../../../shared/inputs/document_source_picker.dart';
 import 'ocr_enrollment_validation_modal.dart';
 import 'student_form_helpers.dart';
+import '../../../shared/widgets/app_button_loader.dart';
 
 class AddStudentModal extends ConsumerStatefulWidget {
   const AddStudentModal({super.key});
@@ -1236,7 +1237,8 @@ class _AddStudentModalState extends ConsumerState<AddStudentModal> {
                                     },
                                     style: ElevatedButton.styleFrom(
                                       backgroundColor: const Color(0xFF1C8248),
-                                      foregroundColor: isDark ? Colors.white : Colors.black,
+                                      foregroundColor: Colors.white,
+                                      padding: EdgeInsets.zero,
                                       shape: RoundedRectangleBorder(
                                         borderRadius: BorderRadius.circular(
                                           AppSizes.radiusMedium,
@@ -1245,14 +1247,10 @@ class _AddStudentModalState extends ConsumerState<AddStudentModal> {
                                       elevation: 0,
                                     ),
                                     child: _isLoading && isLastStep
-                                        ? const Center(
-                                            child: SizedBox.square(
-                                              dimension: 20,
-                                              child: CircularProgressIndicator(
-                                                color: Colors.white,
-                                                strokeWidth: 2,
-                                              ),
-                                            ),
+                                        ? const AppButtonLoader(
+                                            color: Colors.white,
+                                            size: 18,
+                                            strokeWidth: 2,
                                           )
                                         : Text(
                                             isLastStep ? 'ADD' : 'NEXT',
@@ -1360,9 +1358,8 @@ class _AddStudentModalState extends ConsumerState<AddStudentModal> {
                                   ),
                                 ] else ...[
                                   if (_currentStep > 0)
-                                    SizedBox(
-                                      height: 44,
-                                      width: 120,
+                                    ConstrainedBox(
+                                      constraints: const BoxConstraints(minWidth: 110, minHeight: 44),
                                       child: OutlinedButton.icon(
                                         onPressed: () => setState(() {
                                           _errorMessage = null;
@@ -1370,7 +1367,7 @@ class _AddStudentModalState extends ConsumerState<AddStudentModal> {
                                         }),
                                         style: OutlinedButton.styleFrom(
                                           padding: const EdgeInsets.symmetric(
-                                            horizontal: 16,
+                                            horizontal: 14,
                                             vertical: 10,
                                           ),
                                           side: BorderSide(color: isDark ? Colors.white : Colors.black),
@@ -1394,9 +1391,8 @@ class _AddStudentModalState extends ConsumerState<AddStudentModal> {
                                         ),
                                       ),
                                     ),
-                                  SizedBox(
-                                    height: 44,
-                                    width: 120,
+                                  ConstrainedBox(
+                                    constraints: const BoxConstraints(minWidth: 110, minHeight: 44),
                                     child: ElevatedButton(
                                       onPressed: () {
                                         if (_currentStep == 1) {
@@ -1420,7 +1416,8 @@ class _AddStudentModalState extends ConsumerState<AddStudentModal> {
                                       },
                                       style: ElevatedButton.styleFrom(
                                         backgroundColor: const Color(0xFF1C8248),
-                                        foregroundColor: isDark ? Colors.white : Colors.black,
+                                        foregroundColor: Colors.white,
+                                        padding: EdgeInsets.zero,
                                         shape: RoundedRectangleBorder(
                                           borderRadius: BorderRadius.circular(
                                             AppSizes.radiusMedium,
@@ -1429,14 +1426,10 @@ class _AddStudentModalState extends ConsumerState<AddStudentModal> {
                                         elevation: 0,
                                       ),
                                       child: _isLoading && isLastStep
-                                          ? const Center(
-                                              child: SizedBox.square(
-                                                dimension: 20,
-                                                child: CircularProgressIndicator(
-                                                  color: Colors.white,
-                                                  strokeWidth: 2,
-                                                ),
-                                              ),
+                                          ? const AppButtonLoader(
+                                              color: Colors.white,
+                                              size: 18,
+                                              strokeWidth: 2,
                                             )
                                           : Text(
                                               isLastStep ? 'ADD' : 'NEXT',

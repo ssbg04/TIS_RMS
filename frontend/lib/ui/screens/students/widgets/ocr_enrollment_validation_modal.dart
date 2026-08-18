@@ -6,6 +6,7 @@ import '../../../../domain/repositories/student_repository.dart';
 import '../../../providers/setup_provider.dart';
 import '../../../providers/student_provider.dart';
 import '../../../shared/dialogs/error_dialog.dart';
+import '../../../shared/widgets/app_button_loader.dart';
 
 /// Accepted enrollment chosen in add-student (prefill) mode.
 class OcrEnrollmentPrefill {
@@ -406,9 +407,10 @@ class _OcrEnrollmentValidationModalState
                 padding: EdgeInsets.zero,
                 constraints: const BoxConstraints(),
                 icon: _acceptingIndex == index
-                    ? const SizedBox.square(
-                        dimension: 18,
-                        child: CircularProgressIndicator(strokeWidth: 2),
+                    ? const AppButtonLoader(
+                        color: AppColors.primaryGreen,
+                        size: 18,
+                        strokeWidth: 2,
                       )
                     : const Icon(
                         Icons.check_circle_outline,

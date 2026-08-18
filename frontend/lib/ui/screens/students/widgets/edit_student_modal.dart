@@ -13,6 +13,7 @@ import '../../../providers/student_provider.dart';
 import 'edit_enrollment_modal.dart';
 import 'ocr_enrollment_validation_modal.dart';
 import 'student_form_helpers.dart';
+import '../../../shared/widgets/app_button_loader.dart';
 
 class EditStudentModal extends ConsumerStatefulWidget {
   final StudentModel student;
@@ -708,9 +709,10 @@ class _EditStudentModalState extends ConsumerState<EditStudentModal> {
           final ocrButton = OutlinedButton.icon(
             onPressed: _isOcrScanning ? null : _handleScanEnrollmentFromSF,
             icon: _isOcrScanning
-                ? const SizedBox.square(
-                    dimension: 16,
-                    child: CircularProgressIndicator(strokeWidth: 2),
+                ? const AppButtonLoader(
+                    color: AppColors.primaryGreen,
+                    size: 16,
+                    strokeWidth: 2,
                   )
                 : const Icon(Icons.document_scanner, size: 18),
             label: Text(

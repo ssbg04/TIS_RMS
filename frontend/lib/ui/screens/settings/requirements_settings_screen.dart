@@ -5,6 +5,7 @@ import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_sizes.dart';
 import '../../shared/inputs/custom_text_field.dart';
 import '../../shared/buttons/primary_button.dart';
+import '../../shared/widgets/app_button_loader.dart';
 import '../../shared/dialogs/success_dialog.dart';
 import '../../shared/dialogs/error_dialog.dart';
 import '../../providers/document_provider.dart';
@@ -1640,14 +1641,9 @@ class _BulkEditModalState extends ConsumerState<_BulkEditModal> {
                                 ? null
                                 : _handleBulkSave,
                             child: _isLoading
-                                ? const Center(
-                                    child: SizedBox.square(
-                                      dimension: 16,
-                                      child: CircularProgressIndicator(
-                                        strokeWidth: 2,
-                                        color: Colors.white,
-                                      ),
-                                    ),
+                                ? const AppButtonLoader(
+                                    size: 16,
+                                    color: Colors.white,
                                   )
                                 : const Text('APPLY'),
                           ),

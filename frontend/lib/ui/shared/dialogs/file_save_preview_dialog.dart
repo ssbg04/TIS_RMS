@@ -2,6 +2,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_sizes.dart';
+import '../widgets/app_button_loader.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // FILE TYPE
@@ -666,12 +667,9 @@ class _FileSavePreviewDialogState extends State<_FileSavePreviewDialog> {
                 child: ElevatedButton.icon(
                   onPressed: _isSaving ? null : _save,
                   icon: _isSaving
-                      ? const SizedBox.square(
-                          dimension: 16,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2,
-                            color: Colors.white,
-                          ),
+                      ? const AppButtonLoader(
+                          size: 16,
+                          color: Colors.white,
                         )
                       : const Icon(Icons.save_alt_outlined, size: 18),
                   label: Text(

@@ -9,6 +9,7 @@ import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_sizes.dart';
 import '../../../domain/entities/student_model.dart';
 import '../../shared/buttons/primary_button.dart';
+import '../../shared/widgets/app_button_loader.dart';
 import '../../providers/student_provider.dart';
 import '../documents/widgets/student_profile_modal.dart';
 import 'widgets/add_student_modal.dart';
@@ -643,11 +644,9 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
                         },
                   style: TextButton.styleFrom(foregroundColor: AppColors.error),
                   child: isLoading
-                      ? const Center(
-                          child: SizedBox.square(
-                            dimension: 16,
-                            child: CircularProgressIndicator(strokeWidth: 2),
-                          ),
+                      ? const AppButtonLoader(
+                          size: 16,
+                          color: AppColors.error,
                         )
                       : const Text('DELETE'),
                 ),
