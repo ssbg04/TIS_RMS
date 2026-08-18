@@ -19,12 +19,9 @@ frontend/android/app/google-services.json
 backend/brain
 frontend/brain
 
-# Database (runtime data — never commit)
+# Database and runtime data folder (never commit)
 backend/*.db
-backend/data/tis_rms.db
-
-# Student file uploads (runtime data)
-backend/data/students/
+backend/data/
 backend/uploads/
 
 # Temporary debug / scratch scripts
