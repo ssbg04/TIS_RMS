@@ -128,23 +128,23 @@ exports.getAllStudents = (req, res) => {
 
     try {
         // ---- Build WHERE clauses ----
-        const conditions = [];
-        const params     = [];
+        const conditions  = [];
+        const whereParams = [];  // binds for WHERE clause only
 
         if (search.trim()) {
             const like = `%${search.trim().split('').join('%' )}%`;
             conditions.push(`(s.lrn LIKE ? OR s.first_name LIKE ? OR s.last_name LIKE ? OR s.middle_name LIKE ?)`);
-            params.push(like, like, like, like);
+            whereParams.push(like, like, like, like);
         }
 
         if (status.trim()) {
             conditions.push(`s.status = ?`);
-            params.push(status.trim());
+            whereParams.push(status.trim());
         }
 
         if (lrn.trim()) {
             conditions.push(`s.lrn LIKE ?`);
-            params.push(`%${lrn.trim()}%`);
+            whereParams.push(`%${lrn.trim()}%`);
         }
 
         if (is4ps === 'true') {
@@ -159,13 +159,13 @@ exports.getAllStudents = (req, res) => {
         // enrollment is in a different year are silently excluded.
         const needsEnrollmentJoin = gradeLevel.trim() || section.trim() || schoolYear.trim();
 
-        let enrollmentJoin = '';
+        let enrollmentJoin  = '';
+        const enrollJoinParams = []; // binds consumed by the enrollment JOIN subquery
+
         if (needsEnrollmentJoin) {
             if (schoolYear.trim()) {
-                // ── Year-scoped join ──────────────────────────────────────────────
+                // ── Year-scoped join ──────────────────────────────────────────
                 // Pick the best enrollment the student has IN the requested year.
-                // "Best" = highest grade_level then newest id (handles edge case of
-                // a student enrolled twice in the same year, e.g. re-enrollment).
                 enrollmentJoin = `
                    JOIN enrollments e_latest ON e_latest.student_id = s.id
                    AND e_latest.id = (
@@ -177,11 +177,9 @@ exports.getAllStudents = (req, res) => {
                    )
                    JOIN sections sec ON sec.id = e_latest.section_id
                    JOIN academic_years ay ON ay.id = e_latest.academic_year_id`;
-                // The schoolYear value is consumed inside the subquery — prepend it
-                // before other params so it aligns with the JOIN's ? placeholder.
-                params.unshift(schoolYear.trim());
+                enrollJoinParams.push(schoolYear.trim());
             } else {
-                // ── No year filter: use globally latest enrollment ────────────────
+                // ── No year filter: use globally latest enrollment ─────────────
                 enrollmentJoin = `
                    JOIN enrollments e_latest ON e_latest.student_id = s.id
                    AND e_latest.id = (
@@ -195,23 +193,18 @@ exports.getAllStudents = (req, res) => {
             }
         }
 
-
-
         if (gradeLevel.trim()) {
             conditions.push(`e_latest.grade_level = ?`);
-            params.push(parseInt(gradeLevel));
+            whereParams.push(parseInt(gradeLevel));
         }
         if (section.trim()) {
             conditions.push(`sec.name = ?`);
-            params.push(section.trim());
+            whereParams.push(section.trim());
         }
-        // NOTE: schoolYear filtering is handled inside the JOIN subquery above,
-        // not in the WHERE clause, to avoid double-param and to correctly scope
-        // which enrollment row is joined rather than just filtering the joined row.
+        // schoolYear is handled inside the JOIN subquery (enrollJoinParams), not WHERE.
 
         // ---- Teacher section scoping ----
-        // Restrict to students whose LATEST enrollment is in one of this teacher's sections.
-        const teacherJoin = isTeacher
+        const teacherJoin       = isTeacher
             ? `JOIN enrollments e_teacher ON e_teacher.student_id = s.id
                AND e_teacher.id = (
                    SELECT e.id FROM enrollments e
@@ -221,9 +214,13 @@ exports.getAllStudents = (req, res) => {
                )
                JOIN teacher_sections ts ON ts.section_id = e_teacher.section_id AND ts.teacher_id = ?`
             : '';
-        if (isTeacher) params.unshift(teacherId);
+        const teacherJoinParams = isTeacher ? [teacherId] : [];
 
         const whereClause = conditions.length ? `WHERE ${conditions.join(' AND ')}` : '';
+
+        // SQL param order: teacherJoinParams → enrollJoinParams → whereParams
+        const buildParams = (...extras) =>
+            [...teacherJoinParams, ...enrollJoinParams, ...whereParams, ...extras];
 
         // ---- Count query ----
         const countSql = `
@@ -233,7 +230,7 @@ exports.getAllStudents = (req, res) => {
             ${enrollmentJoin}
             ${whereClause}
         `;
-        const total = db.prepare(countSql).get(params).total;
+        const total = db.prepare(countSql).get(...buildParams());
 
         const orderDir = (sortOrder || '').toLowerCase() === 'desc' ? 'DESC' : 'ASC';
         let orderByClause = `ORDER BY s.last_name ASC, s.first_name ASC`;
@@ -271,7 +268,7 @@ exports.getAllStudents = (req, res) => {
             LIMIT ? OFFSET ?
         `;
 
-        const students = db.prepare(fetchSql).all([...params, limitNum, offset]);
+        const students = db.prepare(fetchSql).all(...buildParams(limitNum, offset));
 
         // ---- Attach missingDocumentsCount badge ----
         const studentsWithBadges = students.map(student => {

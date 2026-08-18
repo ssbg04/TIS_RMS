@@ -370,13 +370,14 @@ exports.getTransparencyBoardData = (req, res) => {
         `).all().reverse();
 
         const yearsData = academicYears.map(ay => {
-            // Enrollment breakdown by sex & grade
+            // Enrollment breakdown by sex & grade — COUNT DISTINCT students
+            // to avoid double-counting students with multiple enrollment rows.
             const enrollRows = db.prepare(`
                 SELECT 
                     e.grade_level,
-                    SUM(CASE WHEN s.sex = 'Male' THEN 1 ELSE 0 END) as male,
-                    SUM(CASE WHEN s.sex = 'Female' THEN 1 ELSE 0 END) as female,
-                    COUNT(*) as total
+                    COUNT(DISTINCT CASE WHEN s.sex = 'Male' THEN s.id END) as male,
+                    COUNT(DISTINCT CASE WHEN s.sex = 'Female' THEN s.id END) as female,
+                    COUNT(DISTINCT s.id) as total
                 FROM enrollments e
                 JOIN students s ON e.student_id = s.id
                 WHERE e.academic_year_id = ?
@@ -493,7 +494,7 @@ exports.getTransparencyBoardData = (req, res) => {
             fourPsRows = db.prepare(`
                 SELECT 
                     e.grade_level,
-                    SUM(CASE WHEN s.is_4ps = 1 THEN 1 ELSE 0 END) as fourPsCount,
+                    COUNT(DISTINCT CASE WHEN s.is_4ps = 1 THEN s.id END) as fourPsCount,
                     COUNT(DISTINCT s.id) as totalStudents
                 FROM enrollments e
                 JOIN students s ON e.student_id = s.id
