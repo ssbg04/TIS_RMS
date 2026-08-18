@@ -217,6 +217,26 @@ class _EditStudentModalState extends ConsumerState<EditStudentModal> {
     );
   }
 
+  bool _hasGraduationEligibleGrade() {
+    if (_loadedEnrollments != null && _loadedEnrollments!.isNotEmpty) {
+      for (final e in _loadedEnrollments!) {
+        int? g;
+        if (e is EnrollmentModel) {
+          g = e.gradeLevel;
+        } else if (e is Map) {
+          g = (e['grade_level'] as num?)?.toInt();
+        }
+        if (g == 10 || g == 12) return true;
+      }
+      return false;
+    }
+    if (_initialStudent.enrollments != null && _initialStudent.enrollments!.isNotEmpty) {
+      return _initialStudent.enrollments!.any((e) => e.gradeLevel == 10 || e.gradeLevel == 12);
+    }
+    final grade = widget.student.latestGradeLevel;
+    return grade == 10 || grade == 12;
+  }
+
   int? _getLatestGradeLevel() {
     if (_loadedEnrollments != null && _loadedEnrollments!.isNotEmpty) {
       final latestEnrollment = _loadedEnrollments!.reduce((a, b) {
@@ -251,8 +271,8 @@ class _EditStudentModalState extends ConsumerState<EditStudentModal> {
     }
 
     if (_selectedStatus == 'Graduated') {
-      final latestGrade = _getLatestGradeLevel();
-      if (latestGrade != 10 && latestGrade != 12) {
+      if (!_hasGraduationEligibleGrade()) {
+        final latestGrade = _getLatestGradeLevel();
         _showValidationDialog(
           'Graduation status is only applicable for Grade 10 and Grade 12 students.\n\n'
           'This student is currently ${latestGrade != null ? 'in Grade $latestGrade' : 'not enrolled in Grade 10 or 12'}.',
@@ -297,6 +317,7 @@ class _EditStudentModalState extends ConsumerState<EditStudentModal> {
         _isLoading = false;
         _errorMessage = msg;
       });
+      showErrorDialog(context, 'Update Failed', msg);
     }
   }
 
@@ -367,8 +388,8 @@ class _EditStudentModalState extends ConsumerState<EditStudentModal> {
                   onChanged: (v) {
                     if (v == null) return;
                     if (v == 'Graduated') {
-                      final grade = _getLatestGradeLevel();
-                      if (grade != 10 && grade != 12) {
+                      if (!_hasGraduationEligibleGrade()) {
+                        final grade = _getLatestGradeLevel();
                         _showValidationDialog(
                           'Graduation status is only applicable for Grade 10 and Grade 12 students.\n\n'
                           'This student is currently ${grade != null ? 'in Grade $grade' : 'not enrolled in Grade 10 or 12'}.',

@@ -560,19 +560,14 @@ exports.updateStudent = (req, res) => {
         errors.push('Invalid status value.');
     }
     if (status === 'Graduated') {
-        let effGrade = gradeLevel ? parseInt(gradeLevel) : null;
-        if (!effGrade) {
-            const latestEnr = db.prepare(`
-                SELECT e.grade_level FROM enrollments e
-                JOIN academic_years ay ON e.academic_year_id = ay.id
-                WHERE e.student_id = ?
-                ORDER BY ay.year_range DESC, e.grade_level DESC, e.id DESC
-                LIMIT 1
-            `).get(id);
-            effGrade = latestEnr?.grade_level ?? null;
-        }
-        if (effGrade !== 10 && effGrade !== 12) {
-            errors.push('Graduation status is only applicable for Grade 10 and Grade 12 students.');
+        const hasGradGrade = db.prepare(`
+            SELECT 1 FROM enrollments
+            WHERE student_id = ? AND grade_level IN (10, 12)
+            LIMIT 1
+        `).get(id);
+        const effGrade = gradeLevel ? parseInt(gradeLevel) : null;
+        if (!hasGradGrade && effGrade !== 10 && effGrade !== 12) {
+            errors.push('Graduation status is only applicable for students with Grade 10 or Grade 12 enrollments.');
         }
     }
     if (academicYearId > 0 || sectionId > 0) {
