@@ -1,4 +1,6 @@
 import 'dart:async';
+import 'package:flutter/foundation.dart'
+    show defaultTargetPlatform, TargetPlatform;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -17,7 +19,9 @@ import '../../shared/dialogs/error_dialog.dart';
 import '../../shared/inputs/custom_text_field.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/navigation_provider.dart';
+import '../documents/widgets/bulk_operations_bar.dart';
 import '../documents/widgets/document_preview_modal.dart';
+import '../documents/widgets/file_folder_card.dart';
 import '../documents/widgets/print_queue_modal.dart';
 import '../documents/widgets/student_profile_modal.dart';
 import '../../../core/utils/download_service.dart';
@@ -42,7 +46,6 @@ class _ArchivesScreenState extends ConsumerState<ArchivesScreen>
   Timer? _pollingTimer;
   late final TabController _tabController;
   bool _isGridView = false;
-  bool _showFilters = false;
 
   // Folder open state
   int? _openedFolderStudentId;
@@ -408,13 +411,17 @@ class _ArchivesScreenState extends ConsumerState<ArchivesScreen>
                   final isVerified = await ref
                       .read(authProvider.notifier)
                       .verifyPassword(pwd);
-                  if (isVerified) {
-                    Navigator.pop(ctx, true);
-                  } else {
-                    setState(() => errorMessage = 'Incorrect password');
+                  if (ctx.mounted) {
+                    if (isVerified) {
+                      Navigator.pop(ctx, true);
+                    } else {
+                      setState(() => errorMessage = 'Incorrect password');
+                    }
                   }
                 } catch (e) {
-                  setState(() => errorMessage = 'Error verifying password');
+                  if (ctx.mounted) {
+                    setState(() => errorMessage = 'Error verifying password');
+                  }
                 }
               },
               child: const Text('CONFIRM PURGE'),
@@ -458,7 +465,12 @@ class _ArchivesScreenState extends ConsumerState<ArchivesScreen>
   Future<void> _handleDocumentAction(String action, DocumentModel doc) async {
     if (action == 'preview') {
       _handlePreview(doc);
-    } else if (action == 'print') {
+    } else if (action == 'select') {
+      setState(() {
+        _isMultiSelectMode = true;
+        _selectedDocumentIds.add(doc.id);
+      });
+    } else if (action == 'queue' || action == 'print') {
       try {
         await ref.read(printQueueMutationProvider.notifier).addToQueue(doc.id);
       } catch (_) {
@@ -466,6 +478,16 @@ class _ArchivesScreenState extends ConsumerState<ArchivesScreen>
       }
       if (!mounted) return;
       PrintQueueModal.show(context);
+    } else if (action == 'copy') {
+      try {
+        await ref.read(documentMutationProvider.notifier).copyDocument(doc.id);
+        if (!mounted) return;
+        showSuccessDialog(context, message: 'Document copied successfully.');
+        ref.invalidate(archiveDocumentPageProvider);
+      } catch (e) {
+        if (!mounted) return;
+        showErrorDialog(context, 'Copy Failed', e.toString());
+      }
     } else if (action == 'download') {
       try {
         final token =
@@ -478,13 +500,13 @@ class _ArchivesScreenState extends ConsumerState<ArchivesScreen>
           url: url,
           fileName: doc.fileName,
         );
-        if (!context.mounted) return;
+        if (!mounted) return;
         showSuccessDialog(
           context,
           message: 'Document downloaded successfully.',
         );
       } catch (e) {
-        if (!context.mounted) return;
+        if (!mounted) return;
         showErrorDialog(context, 'Download Failed', e.toString());
       }
     } else if (action == 'view_profile' && doc.studentId != null) {
@@ -494,11 +516,312 @@ class _ArchivesScreenState extends ConsumerState<ArchivesScreen>
         userRole: widget.userRole,
         hideEnrollmentActions: true,
       );
+    } else if (action == 'delete') {
+      _handleDeleteDocument(doc);
     }
   }
 
+  Future<void> _handleDeleteDocument(DocumentModel doc) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Row(
+          children: [
+            Icon(Icons.warning_amber_rounded, color: AppColors.error),
+            SizedBox(width: 8),
+            Text('Delete Document', style: TextStyle(color: AppColors.error)),
+          ],
+        ),
+        content: const Text(
+          'Are you sure you want to permanently delete this document?',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('CANCEL'),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.error,
+              foregroundColor: Colors.white,
+            ),
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('DELETE'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true) return;
+    try {
+      await ref
+          .read(documentMutationProvider.notifier)
+          .deleteDocument(doc.id);
+      if (!mounted) return;
+      showSuccessDialog(
+        context,
+        message: 'Document deleted.',
+      );
+      ref.invalidate(archiveDocumentPageProvider);
+    } catch (e) {
+      if (!mounted) return;
+      showErrorDialog(context, 'Delete Failed', e.toString());
+    }
+  }
+
+  Future<void> _handleBatchPrint() async {
+    try {
+      await ref
+          .read(documentMutationProvider.notifier)
+          .bulkAddToPrintQueue(_selectedDocumentIds.toList());
+      setState(() {
+        _selectedDocumentIds.clear();
+        _isMultiSelectMode = false;
+      });
+      if (!mounted) return;
+      showSuccessDialog(
+        context,
+        message: 'Selected documents added to Print List.',
+      );
+    } catch (e) {
+      if (!mounted) return;
+      showErrorDialog(
+        context,
+        'Print Queue Failed',
+        e.toString().replaceFirst('Exception: ', ''),
+      );
+    }
+  }
+
+  Future<void> _handleBatchCopy() async {
+    try {
+      await ref
+          .read(documentMutationProvider.notifier)
+          .bulkCopy(_selectedDocumentIds.toList());
+      setState(() {
+        _selectedDocumentIds.clear();
+        _isMultiSelectMode = false;
+      });
+      if (!mounted) return;
+      showSuccessDialog(
+        context,
+        message: 'Selected documents copied successfully.',
+      );
+      ref.invalidate(archiveDocumentPageProvider);
+    } catch (e) {
+      if (!mounted) return;
+      showErrorDialog(
+        context,
+        'Copy Failed',
+        e.toString().replaceFirst('Exception: ', ''),
+      );
+    }
+  }
+
+  Future<void> _handleBatchDownload() async {
+    try {
+      final token = await const FlutterSecureStorage().read(key: 'jwt_token');
+      if (token == null) return;
+
+      final docs = ref.read(archiveDocumentPageProvider).value?.documents ?? [];
+      int successCount = 0;
+
+      for (final docId in _selectedDocumentIds) {
+        final doc = docs.firstWhere((d) => d.id == docId);
+        final url =
+            '${ApiConstants.baseUrl}/documents/${doc.id}/view?token=$token&download=true';
+        await DownloadService.downloadFile(url: url, fileName: doc.fileName);
+        successCount++;
+      }
+
+      setState(() {
+        _selectedDocumentIds.clear();
+        _isMultiSelectMode = false;
+      });
+      if (!mounted) return;
+      showSuccessDialog(
+        context,
+        message: 'Successfully downloaded $successCount documents.',
+      );
+    } catch (e) {
+      if (!mounted) return;
+      showErrorDialog(
+        context,
+        'Download Failed',
+        e.toString().replaceFirst('Exception: ', ''),
+      );
+    }
+  }
+
+  Future<void> _handleBatchStatus(String status) async {
+    try {
+      await ref
+          .read(documentMutationProvider.notifier)
+          .bulkUpdateStatus(_selectedDocumentIds.toList(), status);
+      setState(() {
+        _selectedDocumentIds.clear();
+        _isMultiSelectMode = false;
+      });
+      if (!mounted) return;
+      showSuccessDialog(
+        context,
+        message: 'Status updated to "$status" for selected documents.',
+      );
+      ref.invalidate(archiveDocumentPageProvider);
+    } catch (e) {
+      if (!mounted) return;
+      showErrorDialog(
+        context,
+        'Status Update Failed',
+        e.toString().replaceFirst('Exception: ', ''),
+      );
+    }
+  }
+
+  Future<void> _handleBatchDelete() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Row(
+          children: [
+            Icon(Icons.warning_amber_rounded, color: AppColors.error),
+            SizedBox(width: 8),
+            Flexible(
+              child: Text(
+                'Delete Selected Documents',
+                style: TextStyle(color: AppColors.error, fontSize: 17),
+              ),
+            ),
+          ],
+        ),
+        content: Text(
+          'Are you sure you want to permanently delete these ${_selectedDocumentIds.length} documents?',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('CANCEL'),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.error,
+              foregroundColor: Colors.white,
+            ),
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('DELETE'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true) return;
+    try {
+      await ref
+          .read(documentMutationProvider.notifier)
+          .bulkDelete(_selectedDocumentIds.toList());
+      setState(() {
+        _selectedDocumentIds.clear();
+        _isMultiSelectMode = false;
+      });
+      if (!mounted) return;
+      showSuccessDialog(
+        context,
+        message: 'Selected documents deleted successfully.',
+      );
+      ref.invalidate(archiveDocumentPageProvider);
+    } catch (e) {
+      if (!mounted) return;
+      showErrorDialog(
+        context,
+        'Delete Failed',
+        e.toString().replaceFirst('Exception: ', ''),
+      );
+    }
+  }
+
+  Widget _buildInlineMultiSelectHeader() {
+    final pageDocs = ref.watch(archiveDocumentPageProvider).value?.documents ?? [];
+    final pageIds = pageDocs.map((d) => d.id).toSet();
+    final bool allSelected = pageIds.isNotEmpty && pageIds.every((id) => _selectedDocumentIds.contains(id));
+
+    return BulkOperationsBar(
+      selectedCount: _selectedDocumentIds.length,
+      allSelected: allSelected,
+      isAdmin: widget.userRole != 'teacher',
+      onCancel: () => setState(() {
+        _selectedDocumentIds.clear();
+        _isMultiSelectMode = false;
+      }),
+      onToggleSelectAll: pageDocs.isEmpty
+          ? () {}
+          : () {
+              setState(() {
+                if (allSelected) {
+                  _selectedDocumentIds.clear();
+                } else {
+                  _selectedDocumentIds.addAll(pageIds);
+                }
+              });
+            },
+      onBatchPrint: _handleBatchPrint,
+      onBatchCopy: _handleBatchCopy,
+      onBatchDownload: _handleBatchDownload,
+      onBatchStatus: _handleBatchStatus,
+      onBatchArchive: () => _handleBatchStatus('Archived'),
+      onBatchDelete: _handleBatchDelete,
+    );
+  }
+
+  Widget _buildPrintQueueButton({bool compact = false}) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final queueAsync = ref.watch(printQueueProvider);
+    final count = queueAsync.maybeWhen(
+      data: (items) => items.length,
+      orElse: () => 0,
+    );
+
+    return Tooltip(
+      message: 'Print List',
+      child: OutlinedButton.icon(
+        onPressed: () => PrintQueueModal.show(context),
+        icon: Badge(
+          isLabelVisible: count > 0,
+          label: Text(count.toString()),
+          child: const Icon(Icons.print_outlined, size: 16),
+        ),
+        label: compact
+            ? const SizedBox.shrink()
+            : Text(
+                count > 0 ? 'Print List ($count)' : 'Print List',
+                style: const TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+        style: OutlinedButton.styleFrom(
+          foregroundColor: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
+          side: BorderSide(color: isDark ? AppColors.darkBorder : Colors.grey.shade300),
+          padding: compact
+              ? const EdgeInsets.all(10)
+              : const EdgeInsets.symmetric(horizontal: 14),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+        ),
+      ),
+    );
+  }
+
   List<PopupMenuEntry<String>> _buildDocumentMenuItems([DocumentModel? doc]) {
-    return [
+    final items = <PopupMenuEntry<String>>[
+      const PopupMenuItem(
+        value: 'select',
+        child: Row(
+          children: [
+            Icon(Icons.check_box_outlined, size: 18),
+            SizedBox(width: 12),
+            Text('Select', style: TextStyle(fontSize: 14)),
+          ],
+        ),
+      ),
       const PopupMenuItem(
         value: 'preview',
         child: Row(
@@ -515,7 +838,17 @@ class _ArchivesScreenState extends ConsumerState<ArchivesScreen>
           children: [
             Icon(Icons.print, size: 18),
             SizedBox(width: 12),
-            Text('Print', style: TextStyle(fontSize: 14)),
+            Text('Add to Print List', style: TextStyle(fontSize: 14)),
+          ],
+        ),
+      ),
+      const PopupMenuItem(
+        value: 'copy',
+        child: Row(
+          children: [
+            Icon(Icons.copy, size: 18),
+            SizedBox(width: 12),
+            Text('Copy', style: TextStyle(fontSize: 14)),
           ],
         ),
       ),
@@ -529,8 +862,11 @@ class _ArchivesScreenState extends ConsumerState<ArchivesScreen>
           ],
         ),
       ),
-      if (doc?.studentId != null) ...[
-        const PopupMenuDivider(),
+    ];
+
+    if (doc?.studentId != null) {
+      items.add(const PopupMenuDivider());
+      items.add(
         const PopupMenuItem(
           value: 'view_profile',
           child: Row(
@@ -541,8 +877,29 @@ class _ArchivesScreenState extends ConsumerState<ArchivesScreen>
             ],
           ),
         ),
-      ],
-    ];
+      );
+    }
+
+    if (widget.userRole != 'teacher') {
+      items.add(const PopupMenuDivider());
+      items.add(
+        const PopupMenuItem(
+          value: 'delete',
+          child: Row(
+            children: [
+              Icon(Icons.delete, size: 18, color: AppColors.error),
+              SizedBox(width: 12),
+              Text(
+                'Delete',
+                style: TextStyle(fontSize: 14, color: AppColors.error),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    return items;
   }
 
   void _showDocumentContextMenu(
@@ -563,6 +920,57 @@ class _ArchivesScreenState extends ConsumerState<ArchivesScreen>
       items: _buildDocumentMenuItems(doc),
     ).then((value) {
       if (value != null) _handleDocumentAction(value, doc);
+    });
+  }
+
+  void _showFolderContextMenu(
+    BuildContext context,
+    Offset position,
+    dynamic folder,
+  ) {
+    if (!_isAdmin) return;
+    final RenderBox overlay =
+        Overlay.of(context).context.findRenderObject() as RenderBox;
+    final studentName =
+        '${folder.studentLastName ?? ''}, ${folder.studentFirstName ?? ''}';
+
+    showMenu<String>(
+      context: context,
+      position: RelativeRect.fromRect(
+        position & const Size(40, 40),
+        Offset.zero & overlay.size,
+      ),
+      items: [
+        const PopupMenuItem(
+          value: 'restore',
+          child: Row(
+            children: [
+              Icon(Icons.restore, color: AppColors.primaryGreen, size: 18),
+              SizedBox(width: 8),
+              Text(
+                'Restore to Active',
+                style: TextStyle(color: AppColors.primaryGreen),
+              ),
+            ],
+          ),
+        ),
+        const PopupMenuItem(
+          value: 'purge',
+          child: Row(
+            children: [
+              Icon(Icons.delete_forever, color: AppColors.error, size: 18),
+              SizedBox(width: 8),
+              Text(
+                'Permanently Purge',
+                style: TextStyle(color: AppColors.error),
+              ),
+            ],
+          ),
+        ),
+      ],
+    ).then((val) {
+      if (val == 'restore') _handleRestoreStudent(folder.studentId!, studentName);
+      if (val == 'purge') _handlePurgeStudent(folder.studentId!, studentName);
     });
   }
 
@@ -623,15 +1031,48 @@ class _ArchivesScreenState extends ConsumerState<ArchivesScreen>
         onTap: () => FocusScope.of(context).unfocus(),
         child: Scaffold(
         backgroundColor: Colors.transparent,
-        bottomNavigationBar: _isMultiSelectMode
-            ? _buildBatchActionsBar(isMobile)
+        floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
+        floatingActionButton: (!_isMultiSelectMode &&
+                !_searchFocusNode.hasFocus &&
+                isMobile &&
+                widget.userRole != 'teacher')
+            ? Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Badge(
+                      label: Text(
+                        '${ref.watch(printQueueProvider).value?.length ?? 0}',
+                      ),
+                      isLabelVisible:
+                          (ref.watch(printQueueProvider).value?.length ?? 0) >
+                          0,
+                      backgroundColor: AppColors.error,
+                      offset: const Offset(4, -4),
+                      child: FloatingActionButton(
+                        heroTag: 'fab-print-list-archives',
+                        backgroundColor: AppColors.primaryGreen,
+                        shape: const CircleBorder(),
+                        onPressed: () {
+                          PrintQueueModal.show(context);
+                        },
+                        child: const Icon(Icons.print, color: Colors.white),
+                      ),
+                    ),
+                  ],
+                ),
+              )
             : null,
         body: SafeArea(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // ── Top Header ──
-              _buildTopHeader(isMobile, isFolderOpened, query),
+              // ── Top Header or Inline Multi-Select Header ──
+              if (_isMultiSelectMode)
+                _buildInlineMultiSelectHeader()
+              else
+                _buildTopHeader(isMobile, isFolderOpened, query),
 
               // ── TabBar ──
               Container(
@@ -884,6 +1325,14 @@ class _ArchivesScreenState extends ConsumerState<ArchivesScreen>
             const SizedBox(width: 8),
           ],
 
+          if (defaultTargetPlatform != TargetPlatform.android && !isMobile && widget.userRole != 'teacher') ...[
+            SizedBox(
+              height: 36,
+              child: _buildPrintQueueButton(compact: false),
+            ),
+            const SizedBox(width: 8),
+          ],
+
           // View toggle
           _buildIconToggle(
             icon: _isGridView
@@ -949,7 +1398,7 @@ class _ArchivesScreenState extends ConsumerState<ArchivesScreen>
       data: (reqs) =>
           reqs
               .where((r) => r.category == 'JHS')
-              .map((r) => r.name as String)
+              .map((r) => r.name)
               .toSet()
               .toList()
             ..sort(),
@@ -961,7 +1410,7 @@ class _ArchivesScreenState extends ConsumerState<ArchivesScreen>
       data: (reqs) =>
           reqs
               .where((r) => r.category == 'SHS')
-              .map((r) => r.name as String)
+              .map((r) => r.name)
               .toSet()
               .toList()
             ..sort(),
@@ -1641,7 +2090,22 @@ class _ArchivesScreenState extends ConsumerState<ArchivesScreen>
                       final studentName =
                           '${folder.studentLastName ?? ''}, ${folder.studentFirstName ?? ''}';
 
-                      return InkWell(
+                      return GestureDetector(
+                        onSecondaryTapDown: widget.userRole == 'teacher'
+                            ? null
+                            : (details) => _showFolderContextMenu(
+                                context,
+                                details.globalPosition,
+                                folder,
+                              ),
+                        onLongPressStart: widget.userRole == 'teacher'
+                            ? null
+                            : (details) => _showFolderContextMenu(
+                                context,
+                                details.globalPosition,
+                                folder,
+                              ),
+                        child: InkWell(
                         onTap: () {
                           if (folder.studentId != null) {
                             setState(() {
@@ -1719,6 +2183,7 @@ class _ArchivesScreenState extends ConsumerState<ArchivesScreen>
                             ],
                           ),
                         ),
+                      ),
                       );
                     },
                   ),
@@ -1749,7 +2214,22 @@ class _ArchivesScreenState extends ConsumerState<ArchivesScreen>
                 final folder = paginatedFolders[i];
                 final studentName =
                     '${folder.studentLastName ?? ''}, ${folder.studentFirstName ?? ''}';
-                return InkWell(
+                return GestureDetector(
+                  onSecondaryTapDown: widget.userRole == 'teacher'
+                      ? null
+                      : (details) => _showFolderContextMenu(
+                          context,
+                          details.globalPosition,
+                          folder,
+                        ),
+                  onLongPressStart: widget.userRole == 'teacher'
+                      ? null
+                      : (details) => _showFolderContextMenu(
+                          context,
+                          details.globalPosition,
+                          folder,
+                        ),
+                  child: InkWell(
                   onTap: () {
                     if (folder.studentId != null) {
                       setState(() {
@@ -1820,6 +2300,7 @@ class _ArchivesScreenState extends ConsumerState<ArchivesScreen>
                       ],
                     ),
                   ),
+                ),
                 );
               },
             );
@@ -2048,6 +2529,8 @@ class _ArchivesScreenState extends ConsumerState<ArchivesScreen>
     return GestureDetector(
       onSecondaryTapDown: (details) =>
           _showDocumentContextMenu(context, details.globalPosition, doc),
+      onLongPressStart: (details) =>
+          _showDocumentContextMenu(context, details.globalPosition, doc),
       child: InkWell(
         onTap: () {
           if (_isMultiSelectMode) {
@@ -2159,7 +2642,7 @@ class _ArchivesScreenState extends ConsumerState<ArchivesScreen>
                       : AppColors.textSecondary,
                   padding: EdgeInsets.zero,
                   onSelected: (a) => _handleDocumentAction(a, doc),
-                  itemBuilder: (_) => _buildDocumentMenuItems(),
+                  itemBuilder: (_) => _buildDocumentMenuItems(doc),
                 ),
               ),
           ],
@@ -2280,7 +2763,7 @@ class _ArchivesScreenState extends ConsumerState<ArchivesScreen>
                     padding: EdgeInsets.zero,
                     constraints: const BoxConstraints(),
                     onSelected: (a) => _handleDocumentAction(a, doc),
-                    itemBuilder: (_) => _buildDocumentMenuItems(),
+                    itemBuilder: (_) => _buildDocumentMenuItems(doc),
                   ),
               ],
             ),
@@ -2300,149 +2783,63 @@ class _ArchivesScreenState extends ConsumerState<ArchivesScreen>
     int totalPages,
     int currentPage,
   ) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
     return LayoutBuilder(
       builder: (ctx, c) {
-        final cols = isMobile ? 2 : (c.maxWidth / 180).floor().clamp(2, 6);
+        final screenW = MediaQuery.of(context).size.width;
+        final isMobileGrid = screenW < 700;
+        final cols = isMobileGrid ? 2 : (c.maxWidth / 180).floor().clamp(2, 6);
+        final aspect = isMobileGrid ? 0.80 : 1.0;
         return Column(
           children: [
             Expanded(
               child: GridView.builder(
-                padding: EdgeInsets.all(isMobile ? 10 : 16),
+                padding: EdgeInsets.all(isMobileGrid ? 10 : 16),
                 gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
                   crossAxisCount: cols,
-                  crossAxisSpacing: isMobile ? 10 : 12,
-                  mainAxisSpacing: isMobile ? 10 : 12,
-                  childAspectRatio: isMobile ? 0.85 : 1.0,
+                  crossAxisSpacing: isMobileGrid ? 10 : 12,
+                  mainAxisSpacing: isMobileGrid ? 10 : 12,
+                  childAspectRatio: aspect,
                 ),
                 itemCount: documents.length,
-                itemBuilder: (ctx, i) {
-                  final doc = documents[i];
-                  final isSelected = _selectedDocumentIds.contains(doc.id);
-                  return GestureDetector(
-                    onSecondaryTapDown: (details) =>
-                        _showDocumentContextMenu(ctx, details.globalPosition, doc),
-                    onLongPressStart: (details) =>
-                        _showDocumentContextMenu(ctx, details.globalPosition, doc),
-                    child: InkWell(
-                    onTap: () {
-                      if (_isMultiSelectMode) {
-                        setState(() {
-                          if (isSelected) {
-                            _selectedDocumentIds.remove(doc.id);
-                          } else {
-                            _selectedDocumentIds.add(doc.id);
-                          }
-                        });
+                itemBuilder: (ctx, i) => FileFolderCard(
+                  document: documents[i],
+                  isGrid: true,
+                  userRole: widget.userRole,
+                  isMultiSelectMode: _isMultiSelectMode,
+                  isSelected: _selectedDocumentIds.contains(documents[i].id),
+                  onSelectedChanged: (val) {
+                    setState(() {
+                      if (val == true) {
+                        _selectedDocumentIds.add(documents[i].id);
                       } else {
-                        _handlePreview(doc);
+                        _selectedDocumentIds.remove(documents[i].id);
                       }
-                    },
-                    borderRadius: BorderRadius.circular(12),
-                    child: Stack(
-                      children: [
-                        Container(
-                      decoration: BoxDecoration(
-                        color: isSelected
-                            ? AppColors.primaryGreen.withValues(alpha: 0.08)
-                            : (isDark ? AppColors.darkSurfaceCard : AppColors.surfaceWhite),
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(
-                          color: isSelected
-                              ? AppColors.primaryGreen
-                              : (isDark ? AppColors.darkBorder : Colors.grey.shade200),
-                        ),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withValues(alpha: 0.03),
-                            blurRadius: 6,
-                            offset: const Offset(0, 2),
-                          ),
-                        ],
-                      ),
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          if (_isMultiSelectMode)
-                            Checkbox(
-                              value: isSelected,
-                              activeColor: AppColors.primaryGreen,
-                              onChanged: (val) {
-                                setState(() {
-                                  if (val == true) {
-                                    _selectedDocumentIds.add(doc.id);
-                                  } else {
-                                    _selectedDocumentIds.remove(doc.id);
-                                  }
-                                });
-                              },
-                            )
-                          else
-                            _buildFileIcon(
-                              doc.documentType,
-                              size: isMobile ? 32 : 40,
-                            ),
-                          const SizedBox(height: 8),
-                          Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 8),
-                            child: Text(
-                              doc.fileName,
-                              textAlign: TextAlign.center,
-                              maxLines: 2,
-                              overflow: TextOverflow.ellipsis,
-                              style: TextStyle(
-                                fontWeight: FontWeight.bold,
-                                fontSize: isMobile ? 10 : 12,
-                                color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
-                              ),
-                            ),
-                          ),
-                          const SizedBox(height: 4),
-                          _buildStatusChip(doc.status),
-                          if (doc.studentName != null) ...[
-                            const SizedBox(height: 2),
-                            Padding(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 6,
-                              ),
-                              child: Text(
-                                doc.studentName!,
-                                textAlign: TextAlign.center,
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: TextStyle(
-                                  fontSize: 10,
-                                  color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ],
-                      ),
-                        ),
-                        if (!_isMultiSelectMode)
-                          Positioned(
-                            top: 4,
-                            right: 4,
-                            child: PopupMenuButton<String>(
-                              icon: const Icon(Icons.more_vert, size: 16),
-                              iconColor: isDark
-                                  ? AppColors.darkTextSecondary
-                                  : AppColors.textSecondary,
-                              padding: EdgeInsets.zero,
-                              constraints: const BoxConstraints(),
-                              onSelected: (a) => _handleDocumentAction(a, doc),
-                              itemBuilder: (_) => _buildDocumentMenuItems(doc),
-                            ),
-                          ),
-                      ],
-                    ),
-                    ),
-                  );
-                },
+                    });
+                  },
+                  onTap: () {
+                    if (_isMultiSelectMode) {
+                      setState(() {
+                        if (_selectedDocumentIds.contains(documents[i].id)) {
+                          _selectedDocumentIds.remove(documents[i].id);
+                        } else {
+                          _selectedDocumentIds.add(documents[i].id);
+                        }
+                      });
+                    } else {
+                      _handlePreview(documents[i]);
+                    }
+                  },
+                  onActionSelected: (a) => _handleDocumentAction(a, documents[i]),
+                  onViewProfile: (sid) => showStudentProfileModal(
+                    context,
+                    studentId: sid,
+                    userRole: widget.userRole,
+                    hideEnrollmentActions: true,
+                  ),
+                ),
               ),
             ),
-            if (totalPages > 1)
+            if (totalPages > 1 && !_searchFocusNode.hasFocus)
               Padding(
                 padding: const EdgeInsets.only(top: 8.0, bottom: 16.0),
                 child: _buildPagination(totalPages, currentPage),
@@ -2452,105 +2849,6 @@ class _ArchivesScreenState extends ConsumerState<ArchivesScreen>
       },
     );
   }
-
-  // ════════════════════════════════════════════════════════════════
-  // BATCH ACTIONS BAR (multi-select)
-  // ════════════════════════════════════════════════════════════════
-  Widget _buildBatchActionsBar(bool isMobile) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final count = _selectedDocumentIds.length;
-
-    if (isMobile) {
-      return Container(
-        decoration: BoxDecoration(
-          color: isDark ? AppColors.darkSurfaceCard : AppColors.surfaceWhite,
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.12),
-              blurRadius: 12,
-              offset: const Offset(0, -3),
-            ),
-          ],
-          border: Border(top: BorderSide(color: isDark ? AppColors.darkBorder : Colors.grey.shade200)),
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              child: Row(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 10,
-                      vertical: 4,
-                    ),
-                    decoration: BoxDecoration(
-                      color: AppColors.primaryGreen.withValues(alpha: 0.1),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Text(
-                      '$count selected',
-                      style: const TextStyle(
-                        fontWeight: FontWeight.bold,
-                        color: AppColors.primaryGreen,
-                        fontSize: 13,
-                      ),
-                    ),
-                  ),
-                  const Spacer(),
-                  TextButton(
-                    onPressed: () {
-                      setState(() {
-                        _isMultiSelectMode = false;
-                        _selectedDocumentIds.clear();
-                      });
-                    },
-                    child: const Text('Cancel'),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-      );
-    }
-
-    // Desktop bar
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-      color: isDark ? AppColors.darkSurfaceCard : AppColors.surfaceWhite,
-      child: Row(
-        children: [
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-            decoration: BoxDecoration(
-              color: AppColors.primaryGreen.withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Text(
-              '$count selected',
-              style: const TextStyle(
-                fontWeight: FontWeight.bold,
-                color: AppColors.primaryGreen,
-              ),
-            ),
-          ),
-          const Spacer(),
-          TextButton(
-            onPressed: () {
-              setState(() {
-                _isMultiSelectMode = false;
-                _selectedDocumentIds.clear();
-              });
-            },
-            child: const Text('Cancel'),
-          ),
-        ],
-      ),
-    );
-  }
-
   // ════════════════════════════════════════════════════════════════
   // PAGINATION
   // ════════════════════════════════════════════════════════════════

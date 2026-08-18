@@ -146,7 +146,7 @@ Files backup/restore - mirror mode or zip -->
 - currently supports only SF9 and SF10
 - SF9 is equal to report card, Form 138, School Form 9, Student Report Card, SF1 for JHS/SF9 for SHS
 - SF10 is equal to School Form 10, Form 137, Form 137-A, Student Permanent Record -->
-
+<!-- 
 # DASHBOARD SCREEN
 - notification bell open -> in windows app disable slide feature its for android only
 
@@ -156,11 +156,11 @@ Files backup/restore - mirror mode or zip -->
 
 # DOCUMENTS SCREEN
 - Document preveiew modal -> make it fullscreen modal -> add "add to print list" icon button -> move the zoom in/out inside of the pdf or image viewer -> add "open with" icon button for excel files to open external excel viewer
-- hold feature to see more menu in android add "view student profile" 
+- hold feature to see more menu in android add "view student profile"  -->
 
 # ARCHVES SCREEN
-- Same from DOCUMENT SCREEN; Document preveiew modal -> make it fullscreen modal -> add "add to print list" icon button -> move the zoom in/out inside of the pdf or image viewer -> add "open with" icon button for excel files to open external excel viewer
-- remove the icons in tab labels
+- From "DOCUMENTS SCREEN", add hold feature for android and right click for windows to see more menu, add multi select and its multi select menu, and FAB print list for android, button print list for windows
+- fix grid view in all archived docs tab
 
 ---
 
