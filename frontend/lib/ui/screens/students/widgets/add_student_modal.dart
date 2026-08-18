@@ -67,6 +67,7 @@ class _AddStudentModalState extends ConsumerState<AddStudentModal> {
   @override
   void initState() {
     super.initState();
+    _selectedGradeLevel = 7;
     _lrnController = TextEditingController();
     _firstNameController = TextEditingController();
     _middleNameController = TextEditingController();
@@ -938,10 +939,23 @@ class _AddStudentModalState extends ConsumerState<AddStudentModal> {
           const SizedBox(height: AppSizes.p12),
           gradeLevelsAsync.when(
             data: (grades) {
+              final defaultGrade = grades.any((g) => g.level == 7)
+                  ? 7
+                  : (grades.isNotEmpty ? grades.first.level : 7);
+
+              if (_selectedGradeLevel == null) {
+                WidgetsBinding.instance.addPostFrameCallback((_) {
+                  if (mounted && _selectedGradeLevel == null) {
+                    setState(() => _selectedGradeLevel = defaultGrade);
+                  }
+                });
+              }
+
+              final currentGrade = _selectedGradeLevel ?? defaultGrade;
               final selectedGradeExists =
-                  grades.any((g) => g.level == _selectedGradeLevel);
+                  grades.any((g) => g.level == currentGrade);
               final effectiveGradeValue = selectedGradeExists
-                  ? _selectedGradeLevel
+                  ? currentGrade
                   : (grades.any((g) => g.level == 7)
                       ? 7
                       : (grades.isNotEmpty ? grades.first.level : null));
@@ -964,7 +978,7 @@ class _AddStudentModalState extends ConsumerState<AddStudentModal> {
                     _trackStrand = null;
                   }
                 }),
-                validator: (v) => v == null ? 'Grade level is required.' : null,
+                validator: (v) => (v == null && effectiveGradeValue == null) ? 'Grade level is required.' : null,
               );
             },
             loading: () => const Center(child: CircularProgressIndicator()),
@@ -988,7 +1002,7 @@ class _AddStudentModalState extends ConsumerState<AddStudentModal> {
               final initialSectionName =
                   matches.isNotEmpty ? matches.first.name : '';
               return Autocomplete<SectionModel>(
-                key: ValueKey('section_autocomplete_${effectiveYearId}_$_selectedGradeLevel'),
+                key: ValueKey('section_autocomplete_${effectiveYearId}_$effectiveGrade'),
                 initialValue: TextEditingValue(text: initialSectionName),
                 displayStringForOption: (sec) => sec.name,
                 optionsBuilder: (textEditingValue) {
