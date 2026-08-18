@@ -13,46 +13,51 @@ import 'notification_service.dart';
 Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {}
 
 class FcmService {
-  static final FirebaseMessaging _messaging = FirebaseMessaging.instance;
+  static bool get _isMobile => !kIsWeb && (Platform.isAndroid || Platform.isIOS);
 
   static Future<void> initialize() async {
-    if (kIsWeb || !Platform.isAndroid) return;
+    if (!_isMobile) return;
 
-    await _messaging.requestPermission(alert: true, badge: true, sound: true);
+    try {
+      final messaging = FirebaseMessaging.instance;
+      await messaging.requestPermission(alert: true, badge: true, sound: true);
 
-    FirebaseMessaging.onBackgroundMessage(firebaseMessagingBackgroundHandler);
+      FirebaseMessaging.onBackgroundMessage(firebaseMessagingBackgroundHandler);
 
-    // Auto-refresh token with backend whenever FCM rotates the token
-    _messaging.onTokenRefresh.listen((newToken) {
-      registerToken();
-    });
+      // Auto-refresh token with backend whenever FCM rotates the token
+      messaging.onTokenRefresh.listen((newToken) {
+        registerToken();
+      });
 
-    // Foreground: show local notification banner (with deduplication)
-    FirebaseMessaging.onMessage.listen((RemoteMessage message) async {
-      final title = message.notification?.title ??
-          message.data['title']?.toString() ??
-          'TIS RMS';
-      final body = message.notification?.body ??
-          message.data['body']?.toString() ??
-          '';
-      int? notifId;
-      if (message.data['id'] != null && message.data['id'].toString().isNotEmpty) {
-        notifId = int.tryParse(message.data['id'].toString());
-      }
-      if (body.isNotEmpty) {
-        await NotificationService().showNotification(
-          id: notifId,
-          title: title,
-          body: body,
-        );
-      }
-    });
+      // Foreground: show local notification banner (with deduplication)
+      FirebaseMessaging.onMessage.listen((RemoteMessage message) async {
+        final title = message.notification?.title ??
+            message.data['title']?.toString() ??
+            'TIS RMS';
+        final body = message.notification?.body ??
+            message.data['body']?.toString() ??
+            '';
+        int? notifId;
+        if (message.data['id'] != null && message.data['id'].toString().isNotEmpty) {
+          notifId = int.tryParse(message.data['id'].toString());
+        }
+        if (body.isNotEmpty) {
+          await NotificationService().showNotification(
+            id: notifId,
+            title: title,
+            body: body,
+          );
+        }
+      });
+    } catch (e) {
+      debugPrint('[FcmService] Init error: $e');
+    }
   }
 
   static Future<void> registerToken() async {
-    if (kIsWeb || !Platform.isAndroid) return;
+    if (!_isMobile) return;
     try {
-      final token = await _messaging.getToken();
+      final token = await FirebaseMessaging.instance.getToken();
       if (token == null || token.isEmpty) return;
 
       final prefs = await SharedPreferences.getInstance();
