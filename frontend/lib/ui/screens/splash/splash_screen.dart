@@ -10,6 +10,7 @@ import '../login/login_screen.dart';
 import '../../layouts/windows_sidebar_layout.dart';
 import '../../layouts/android_bottom_nav_layout.dart';
 import '../../providers/auth_provider.dart';
+import '../../../core/services/foreground_sync_service.dart';
 
 class SplashScreen extends ConsumerStatefulWidget {
   const SplashScreen({super.key});
@@ -48,6 +49,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
   }
 
   Future<void> _initializeApp() async {
+    await ForegroundSyncService.requestPermissions();
     await Future.delayed(const Duration(milliseconds: 800));
     if (!mounted) return;
 

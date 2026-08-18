@@ -15,12 +15,16 @@ void callbackDispatcher() {
 
       // 1. Retrieve the saved base URL and Auth Token
       final prefs = await SharedPreferences.getInstance();
+      await prefs.reload();
       String rawUrl = prefs.getString('server_url') ?? ApiConstants.baseUrl;
       final clean = rawUrl.replaceAll(RegExp(r'/+$'), '');
       final baseUrl = clean.endsWith('/api') ? clean : '$clean/api';
 
-      const storage = FlutterSecureStorage();
-      final token = await storage.read(key: 'jwt_token');
+      String? token = prefs.getString('jwt_token');
+      if (token == null || token.isEmpty) {
+        const storage = FlutterSecureStorage();
+        token = await storage.read(key: 'jwt_token');
+      }
       if (token == null || token.isEmpty) {
         return Future.value(true); // Not logged in
       }

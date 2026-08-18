@@ -13,6 +13,7 @@ TIS*
 backend/.env
 backend/.env.*
 !backend/.example.env
+backend/*firebase*.json
 backend/brain
 frontend/brain
 

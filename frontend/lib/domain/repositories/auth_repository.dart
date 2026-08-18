@@ -29,6 +29,8 @@ class AuthRepository {
         key: _rememberMeKey,
         value: rememberMe ? 'true' : 'false',
       );
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString(_tokenKey, token);
 
       final userData = response.data['user'];
       return UserModel(
@@ -60,6 +62,9 @@ class AuthRepository {
     if (token == null) return null;
 
     try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString(_tokenKey, token);
+
       final options = Options(headers: {'Authorization': 'Bearer $token'});
       final response = await _dio.get('/auth/profile', options: options);
       return UserModel.fromJson(response.data);
@@ -80,6 +85,9 @@ class AuthRepository {
   Future<void> logout() async {
     await _storage.delete(key: _tokenKey);
     await _storage.delete(key: _rememberMeKey);
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove(_tokenKey);
+    await prefs.remove(_rememberMeKey);
   }
 
   Future<Options> _getAuthOptions() async {

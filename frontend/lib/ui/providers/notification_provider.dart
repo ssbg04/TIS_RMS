@@ -20,9 +20,9 @@ class NotificationNotifier extends AsyncNotifier<List<NotificationModel>> {
 
   @override
   FutureOr<List<NotificationModel>> build() async {
-    // Start real-time polling every 30 seconds
+    // Start real-time polling every 10 seconds while app is open
     _pollingTimer?.cancel();
-    _pollingTimer = Timer.periodic(const Duration(seconds: 30), (_) {
+    _pollingTimer = Timer.periodic(const Duration(seconds: 10), (_) {
       refreshNotifications();
     });
 
@@ -32,32 +32,67 @@ class NotificationNotifier extends AsyncNotifier<List<NotificationModel>> {
     });
 
     final repo = ref.read(notificationRepositoryProvider);
-    return await repo.getNotifications();
-  }
+    final list = await repo.getNotifications();
 
-  Future<void> refreshNotifications() async {
-    try {
-      final oldList = state.value ?? [];
-      final repo = ref.read(notificationRepositoryProvider);
-      final list = await repo.getNotifications();
+    // Check if there are any unread notifications on initial load
+    if (list.isNotEmpty) {
+      final prefs = await SharedPreferences.getInstance();
+      final highestOldId = prefs.getInt('last_seen_notification_id') ?? 0;
 
-      // Trigger native notification for newly fetched items
-      if (oldList.isNotEmpty && list.isNotEmpty) {
-        final highestOldId = oldList.map((e) => e.id).reduce(math.max);
-        final newNotes = list.where((e) => e.id > highestOldId).toList();
+      final newNotes = list.where((e) {
+        if (!e.isRead) {
+          if (highestOldId == 0) return true;
+          return e.id > highestOldId;
+        }
+        return false;
+      }).toList();
 
+      if (newNotes.isNotEmpty) {
         for (var note in newNotes) {
-          NotificationService().showNotification(
+          await NotificationService().showNotification(
+            id: note.id,
             title: note.title,
             body: note.message,
           );
         }
       }
 
+      final highestId = list.map((e) => e.id).reduce(math.max);
+      await prefs.setInt('last_seen_notification_id', math.max(highestOldId, highestId));
+    }
+
+    return list;
+  }
+
+  Future<void> refreshNotifications() async {
+    try {
+      final repo = ref.read(notificationRepositoryProvider);
+      final list = await repo.getNotifications();
+
+      final prefs = await SharedPreferences.getInstance();
+      final highestOldId = prefs.getInt('last_seen_notification_id') ?? 0;
+
       if (list.isNotEmpty) {
+        final newNotes = list.where((e) {
+          if (!e.isRead) {
+            if (highestOldId == 0) return true;
+            return e.id > highestOldId;
+          }
+          return false;
+        }).toList();
+
+        if (newNotes.isNotEmpty) {
+          for (var note in newNotes) {
+            await NotificationService().showNotification(
+              id: note.id,
+              title: note.title,
+              body: note.message,
+            );
+          }
+        }
+
         final highestId = list.map((e) => e.id).reduce(math.max);
-        final prefs = await SharedPreferences.getInstance();
-        await prefs.setInt('last_seen_notification_id', highestId);
+        await prefs.setInt('last_seen_notification_id', math.max(highestOldId, highestId));
       }
 
       state = AsyncData(list);

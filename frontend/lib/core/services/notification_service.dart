@@ -64,6 +64,8 @@ class NotificationService {
         'Recent Activities',
         description: 'Notifications for recent activities and system events',
         importance: Importance.max,
+        playSound: true,
+        enableVibration: true,
       );
       await androidImplementation?.createNotificationChannel(channel);
     }
@@ -88,7 +90,10 @@ class NotificationService {
           channelDescription:
               'Notifications for recent activities and system events',
           importance: Importance.max,
-          priority: Priority.high,
+          priority: Priority.max,
+          playSound: true,
+          enableVibration: true,
+          visibility: NotificationVisibility.public,
           showWhen: true,
         );
 

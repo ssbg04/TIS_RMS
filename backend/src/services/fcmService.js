@@ -1,5 +1,8 @@
 'use strict';
 const path = require('path');
+const fs = require('fs');
+const { initializeApp, getApps, cert } = require('firebase-admin/app');
+const { getMessaging } = require('firebase-admin/messaging');
 
 let messaging = null;
 let initialized = false;
@@ -15,13 +18,22 @@ const init = () => {
     }
 
     try {
-        const admin = require('firebase-admin');
-        if (!admin.apps.length) {
-            const serviceAccount = require(path.resolve(serviceAccountPath));
-            admin.initializeApp({ credential: admin.credential.cert(serviceAccount) });
+        const resolvedPath = path.isAbsolute(serviceAccountPath)
+            ? serviceAccountPath
+            : path.resolve(process.cwd(), serviceAccountPath);
+
+        if (!fs.existsSync(resolvedPath)) {
+            console.error('[FCM] Service account file not found at:', resolvedPath);
+            return;
         }
-        messaging = admin.messaging();
-        console.log('[FCM] Firebase Admin initialized');
+
+        const serviceAccount = JSON.parse(fs.readFileSync(resolvedPath, 'utf8'));
+
+        if (!getApps().length) {
+            initializeApp({ credential: cert(serviceAccount) });
+        }
+        messaging = getMessaging();
+        console.log('[FCM] Firebase Admin initialized successfully');
     } catch (err) {
         console.error('[FCM] Init failed:', err.message);
         messaging = null;

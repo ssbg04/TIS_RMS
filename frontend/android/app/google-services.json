@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "893519269983",
+    "project_id": "tis-rms-e05b9",
+    "storage_bucket": "tis-rms-e05b9.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:893519269983:android:dc7f51f83b890700390bea",
+        "android_client_info": {
+          "package_name": "com.teamsb.tis_rms"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCrT0WQVyVYyELlw0qN0IT48R_aJMqQBKI"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
