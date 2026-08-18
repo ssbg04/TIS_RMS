@@ -20,6 +20,7 @@ class AcademicYear {
 /// KPI summary numbers for the Reports screen.
 class StudentCounts {
   final int active;
+  final int inactive;
   final int dropped;
   final int transferee;
   final int graduated;
@@ -27,6 +28,7 @@ class StudentCounts {
 
   const StudentCounts({
     required this.active,
+    this.inactive = 0,
     required this.dropped,
     required this.transferee,
     required this.graduated,
@@ -35,6 +37,7 @@ class StudentCounts {
 
   factory StudentCounts.fromJson(Map<String, dynamic> j) => StudentCounts(
     active: (j['active'] as num?)?.toInt() ?? 0,
+    inactive: (j['inactive'] as num?)?.toInt() ?? 0,
     dropped: (j['dropped'] as num?)?.toInt() ?? 0,
     transferee: (j['transferee'] as num?)?.toInt() ?? 0,
     graduated: (j['graduated'] as num?)?.toInt() ?? 0,

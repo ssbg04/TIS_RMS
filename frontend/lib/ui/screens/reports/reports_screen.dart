@@ -1253,14 +1253,20 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
     final students = reportData.students;
     final breakdown = reportData.missingDocsBreakdown;
 
-    final total =
-        counts.active + counts.dropped + counts.transferee + counts.graduated;
+    final total = counts.active +
+        counts.inactive +
+        counts.dropped +
+        counts.transferee +
+        counts.graduated;
     final compliantCount = students.where((s) => s.missingCount == 0).length;
     final withIssuesCount = students.where((s) => s.missingCount > 0).length;
     final totalMissing = breakdown.fold<int>(0, (a, b) => a + b.count);
     final complianceRate =
         students.isNotEmpty ? (compliantCount / students.length * 100) : 0.0;
 
+    final inactiveRate = total > 0
+        ? (counts.inactive / total * 100).toStringAsFixed(1)
+        : '0.0';
     final gradRate = total > 0
         ? (counts.graduated / total * 100).toStringAsFixed(1)
         : '0.0';
@@ -1402,12 +1408,12 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
 
         const SizedBox(height: 16),
 
-        // ── Secondary Status Row (5 cards) ───────────────────────────
+        // ── Secondary Status Row (6 cards) ───────────────────────────
         LayoutBuilder(
           builder: (ctx, constraints) {
-            final cols = constraints.maxWidth >= 900
-                ? 5
-                : (constraints.maxWidth >= 600 ? 3 : 2);
+            final cols = constraints.maxWidth >= 1050
+                ? 6
+                : (constraints.maxWidth >= 750 ? 3 : 2);
             return GridView(
               shrinkWrap: true,
               physics: const NeverScrollableScrollPhysics(),
@@ -1424,6 +1430,13 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                   subtitle: 'Total: $total',
                   icon: Icons.check_circle_outline,
                   iconColor: AppColors.primaryGreen,
+                ),
+                StatCard(
+                  title: 'Inactive',
+                  value: counts.inactive.toString(),
+                  subtitle: 'Rate: $inactiveRate%',
+                  icon: Icons.pause_circle_outline,
+                  iconColor: Colors.blueGrey,
                 ),
                 StatCard(
                   title: 'Dropouts',
@@ -2660,7 +2673,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
   }
 
 
-  // â”€â”€ Summary Banner â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Summary Banner ────────────────────────────────────────────────────────
   Widget _buildSummaryBanner(ReportStats data) {
     final total = data.students.length;
     final compliant = data.students.where((s) => s.missingCount == 0).length;
@@ -2677,6 +2690,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
         : Colors.red;
 
     return Container(
+      width: double.infinity,
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
       decoration: BoxDecoration(
         gradient: LinearGradient(
@@ -2685,7 +2699,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
             AppColors.primaryGreen.withValues(alpha: 0.02),
           ],
         ),
-        borderRadius: BorderRadius.circular(AppSizes.radiusMedium),
+        borderRadius: BorderRadius.circular(AppSizes.radiusLarge),
         border: Border.all(
           color: AppColors.primaryGreen.withValues(alpha: 0.2),
         ),
@@ -2705,8 +2719,13 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                 '${complianceRate.toStringAsFixed(1)}%', 'Complete Rate',
                 rateColor),
           ];
-          if (constraints.maxWidth < 600) {
-            return Wrap(spacing: 20, runSpacing: 12, children: items);
+          if (constraints.maxWidth < 750) {
+            return Wrap(
+              spacing: 20,
+              runSpacing: 12,
+              alignment: WrapAlignment.spaceAround,
+              children: items,
+            );
           }
           final row = <Widget>[];
           for (int i = 0; i < items.length; i++) {
@@ -2759,10 +2778,11 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
     );
   }
 
-  // â”€â”€ Status Donut Chart â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Status Donut Chart ───────────────────────────────────────────────────
   Widget _buildStatusDonutChart(StudentCounts counts) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final total = counts.active +
+        counts.inactive +
         counts.dropped +
         counts.transferee +
         counts.graduated;
@@ -2808,6 +2828,19 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                             value: counts.active.toDouble(),
                             title:
                                 '${(counts.active / total * 100).toStringAsFixed(0)}%',
+                            radius: 55,
+                            titleStyle: const TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.white,
+                            ),
+                          ),
+                        if (counts.inactive > 0)
+                          PieChartSectionData(
+                            color: Colors.blueGrey,
+                            value: counts.inactive.toDouble(),
+                            title:
+                                '${(counts.inactive / total * 100).toStringAsFixed(0)}%',
                             radius: 55,
                             titleStyle: const TextStyle(
                               fontSize: 11,
@@ -2890,6 +2923,9 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
               children: [
                 _buildLegendItem(
                     AppColors.primaryGreen, 'Active (${counts.active})'),
+                if (counts.inactive > 0)
+                  _buildLegendItem(
+                      Colors.blueGrey, 'Inactive (${counts.inactive})'),
                 _buildLegendItem(Colors.red, 'Dropped (${counts.dropped})'),
                 _buildLegendItem(
                     Colors.blue, 'Graduated (${counts.graduated})'),
