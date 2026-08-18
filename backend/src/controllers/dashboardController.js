@@ -12,7 +12,7 @@ exports.getStats = (req, res) => {
         let totalStudents;
         let completedDocuments;
         let missingDocuments;
-        const activeUsers = db.prepare('SELECT COUNT(*) as count FROM users').get().count;
+        const activeUsers = db.prepare('SELECT COUNT(*) as count FROM users WHERE is_active = 1').get().count;
 
         if (isTeacher) {
             // Count of students whose latest enrollment is in teacher's assigned sections
