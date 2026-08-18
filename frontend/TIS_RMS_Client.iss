@@ -1,6 +1,6 @@
 ; Script generated for Inno Setup 6
 ; TIS RMS Windows Desktop Client Installer
-; Features: Ultra-compressed release, .NET & VC++ dependency checks, custom install directory selection, desktop shortcut checkbox, uninstaller, no auto-start.
+; Features: Ultra-compressed release, automated silent .NET & VC++ runtime installer, selectable install directory, desktop shortcut checkbox, uninstaller, no auto-start.
 
 #define MyAppName "TIS RMS Client"
 #define MyAppVersion "1.0.0"
@@ -36,6 +36,9 @@ UninstallDisplayName={#MyAppName}
 ; Ultra compression for the smallest release file size
 Compression=lzma2/ultra64
 SolidCompression=yes
+LZMAUseSeparateProcess=yes
+LZMADictionarySize=65536
+LZMANumBlockThreads=6
 WizardStyle=modern
 
 ; Architecture constraints (64-bit Windows 10/11)
@@ -85,6 +88,20 @@ begin
   Result := RegKeyExists(HKLM64, 'SOFTWARE\dotnet\Setup\InstalledVersions\x64\sharedfx\Microsoft.WindowsDesktop.App') or
             RegKeyExists(HKLM64, 'SOFTWARE\dotnet\Setup\InstalledVersions\x64\sharedhost') or
             RegKeyExists(HKLM, 'SOFTWARE\dotnet\Setup\InstalledVersions\x64\sharedfx\Microsoft.WindowsDesktop.App');
+end;
+
+procedure CurStepChanged(CurStep: TSetupStep);
+var
+  ResultCode: Integer;
+begin
+  if CurStep = ssPostInstall then
+  begin
+    // If .NET Desktop Runtime is not installed, automatically install it silently
+    if not IsDotNetRuntimeInstalled then
+    begin
+      Exec('powershell.exe', '-NoProfile -ExecutionPolicy Bypass -Command "$ProgressPreference = ''SilentlyContinue''; try { if (Get-Command winget -ErrorAction SilentlyContinue) { winget install --id Microsoft.DotNet.DesktopRuntime.8 --silent --accept-package-agreements --accept-source-agreements } else { $url = ''https://aka.ms/dotnet/8.0/windowsdesktop-runtime-win-x64.exe''; $out = ''$env:TEMP\dotnet8_desktop.exe''; Invoke-WebRequest -Uri $url -OutFile $out; Start-Process -FilePath $out -ArgumentList ''/install /quiet /norestart'' -Wait } } catch {}"', '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
+    end;
+  end;
 end;
 
 function InitializeSetup: Boolean;
