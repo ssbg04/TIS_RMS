@@ -1,5 +1,6 @@
 import 'dart:io' show Platform;
 import 'package:dio/dio.dart';
+import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart' show kIsWeb, debugPrint;
 import 'package:shared_preferences/shared_preferences.dart';
@@ -16,9 +17,8 @@ class FcmService {
   static bool get _isMobile => !kIsWeb && (Platform.isAndroid || Platform.isIOS);
 
   static Future<void> initialize() async {
-    if (!_isMobile) return;
-
     try {
+      if (!_isMobile || Firebase.apps.isEmpty) return;
       final messaging = FirebaseMessaging.instance;
       await messaging.requestPermission(alert: true, badge: true, sound: true);
 
@@ -55,8 +55,8 @@ class FcmService {
   }
 
   static Future<void> registerToken() async {
-    if (!_isMobile) return;
     try {
+      if (!_isMobile || Firebase.apps.isEmpty) return;
       final token = await FirebaseMessaging.instance.getToken();
       if (token == null || token.isEmpty) return;
 
