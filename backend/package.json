@@ -12,7 +12,8 @@
     "service:manage": "scripts\\manage_service.bat",
     "service:start": "net start TIS_RMSServer",
     "service:stop": "net stop TIS_RMSServer",
-    "service:status": "sc query TIS_RMSServer"
+    "service:status": "sc query TIS_RMSServer",
+    "tunnel": "lt --port 18484 --subdomain tis-rms-school"
   },
   "keywords": [],
   "author": "",
@@ -31,6 +32,7 @@
     "multer": "^2.1.1"
   },
   "devDependencies": {
+    "localtunnel": "^2.0.2",
     "nodemon": "^3.1.14"
   }
 }
