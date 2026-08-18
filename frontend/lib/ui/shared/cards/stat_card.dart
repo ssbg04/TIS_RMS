@@ -55,7 +55,10 @@ class StatCard extends StatelessWidget {
               onTap: onTap,
               borderRadius: BorderRadius.circular(12.0),
               child: Padding(
-                padding: EdgeInsets.all(padding),
+                padding: EdgeInsets.symmetric(
+                  horizontal: padding,
+                  vertical: isSmall ? 8.0 : 10.0,
+                ),
                 child: isSquare
                     ? Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -85,51 +88,55 @@ class StatCard extends StatelessWidget {
                                 ),
                             ],
                           ),
-                          Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              FittedBox(
-                                fit: BoxFit.scaleDown,
-                                alignment: Alignment.centerLeft,
-                                child: Text(
-                                  value,
-                                  style: TextStyle(
-                                    fontSize: valueFontSize,
-                                    fontWeight: FontWeight.w800,
-                                    color: isDark
-                                        ? AppColors.darkTextPrimary
-                                        : AppColors.textPrimary,
+                          Flexible(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                FittedBox(
+                                  fit: BoxFit.scaleDown,
+                                  alignment: Alignment.centerLeft,
+                                  child: Text(
+                                    value,
+                                    style: TextStyle(
+                                      fontSize: valueFontSize,
+                                      fontWeight: FontWeight.w800,
+                                      color: isDark
+                                          ? AppColors.darkTextPrimary
+                                          : AppColors.textPrimary,
+                                    ),
                                   ),
                                 ),
-                              ),
-                              const SizedBox(height: 2),
-                              Text(
-                                title,
-                                maxLines: 2,
-                                overflow: TextOverflow.ellipsis,
-                                style: TextStyle(
-                                  fontSize: titleFontSize,
-                                  color: isDark
-                                      ? AppColors.darkTextSecondary
-                                      : AppColors.textSecondary,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                              if (subtitle != null) ...[
-                                const SizedBox(height: 3),
+                                const SizedBox(height: 2),
                                 Text(
-                                  subtitle!,
+                                  title,
+                                  maxLines: 2,
+                                  overflow: TextOverflow.ellipsis,
                                   style: TextStyle(
-                                    fontSize: subtitleFontSize,
+                                    fontSize: titleFontSize,
                                     color: isDark
                                         ? AppColors.darkTextSecondary
-                                        : Colors.grey.shade700,
+                                        : AppColors.textSecondary,
                                     fontWeight: FontWeight.w600,
                                   ),
                                 ),
+                                if (subtitle != null) ...[
+                                  const SizedBox(height: 2),
+                                  Text(
+                                    subtitle!,
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: TextStyle(
+                                      fontSize: subtitleFontSize,
+                                      color: isDark
+                                          ? AppColors.darkTextSecondary
+                                          : Colors.grey.shade700,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                ],
                               ],
-                            ],
+                            ),
                           ),
                         ],
                       )
@@ -153,11 +160,12 @@ class StatCard extends StatelessWidget {
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               mainAxisAlignment: MainAxisAlignment.center,
+                              mainAxisSize: MainAxisSize.min,
                               children: [
                                 Text(
                                   title,
-                                  maxLines: 2,
-                                  overflow: TextOverflow.visible,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
                                   style: TextStyle(
                                     fontSize: titleFontSize,
                                     color: isDark
@@ -182,9 +190,11 @@ class StatCard extends StatelessWidget {
                                   ),
                                 ),
                                 if (subtitle != null) ...[
-                                  const SizedBox(height: 3),
+                                  const SizedBox(height: 2),
                                   Text(
                                     subtitle!,
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
                                     style: TextStyle(
                                       fontSize: subtitleFontSize,
                                       color: isDark

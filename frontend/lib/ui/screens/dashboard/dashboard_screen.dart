@@ -20,12 +20,10 @@ import 'recent_activities_screen.dart';
 import 'user_history_screen.dart';
 import '../../shared/menus/profile_dropdown_menu.dart';
 import '../../shared/inputs/app_search_bar.dart';
-import '../../shared/dialogs/error_dialog.dart';
 import '../settings/requirements_settings_screen.dart';
 import '../settings/teacher_management_screen.dart';
 import 'widgets/notification_dropdown.dart';
 import '../../shared/modals/view_activity_modal.dart';
-import '../../shared/modals/reset_requests_modal.dart';
 import 'widgets/dashboard_kpis.dart';
 
 class DashboardScreen extends ConsumerStatefulWidget {
@@ -358,7 +356,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                           'Welcome back, ${user?.firstName ?? 'Admin'}. Here is what is happening today.',
                           style: TextStyle(
                             fontSize: 16,
-                            color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+                            color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
                           ),
                         ),
                         const SizedBox(height: 24),
@@ -410,8 +408,8 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                                     AppColors.darkPageBackground.withValues(alpha: 0.85),
                                   ]
                                 : [
-                                    Colors.white.withOpacity(0.0),
-                                    Colors.white.withOpacity(0.85),
+                                    Colors.white.withValues(alpha: 0.0),
+                                    Colors.white.withValues(alpha: 0.85),
                                   ],
                           ),
                         ),
@@ -465,12 +463,10 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                     Row(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Container(
-                          child: const Icon(
-                            Icons.settings_suggest_rounded,
-                            color: AppColors.primaryGreen,
-                            size: 22,
-                          ),
+                        const Icon(
+                          Icons.settings_suggest_rounded,
+                          color: AppColors.primaryGreen,
+                          size: 22,
                         ),
                         const SizedBox(width: 14),
                         Expanded(
@@ -491,7 +487,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                                   'Before using the system, please configure the following sections to get started:',
                                   style: TextStyle(
                                     fontSize: 13,
-                                    color: Theme.of(context).colorScheme.onSurface.withOpacity(0.7),
+                                    color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7),
                                   ),
                                 ),
                               ],
@@ -508,7 +504,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                                 ? Icons.keyboard_arrow_down
                                 : Icons.keyboard_arrow_up,
                             size: 18,
-                            color: Theme.of(context).colorScheme.onSurface.withOpacity(0.38),
+                            color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.38),
                           ),
                           padding: EdgeInsets.zero,
                           constraints: const BoxConstraints(),
@@ -519,7 +515,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                           icon: Icon(
                             Icons.close,
                             size: 18,
-                            color: Theme.of(context).colorScheme.onSurface.withOpacity(0.38),
+                            color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.38),
                           ),
                           padding: EdgeInsets.zero,
                           constraints: const BoxConstraints(),
@@ -554,12 +550,10 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
               : Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Container(
-                      child: const Icon(
-                        Icons.settings_suggest_rounded,
-                        color: AppColors.primaryGreen,
-                        size: 22,
-                      ),
+                    const Icon(
+                      Icons.settings_suggest_rounded,
+                      color: AppColors.primaryGreen,
+                      size: 22,
                     ),
                     const SizedBox(width: 14),
                     Expanded(
@@ -580,7 +574,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                               'Before using the system, please configure the following sections to get started:',
                               style: TextStyle(
                                 fontSize: 13,
-                                color: Theme.of(context).colorScheme.onSurface.withOpacity(0.7),
+                                color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7),
                               ),
                             ),
                             const SizedBox(height: 12),
@@ -621,7 +615,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                                 ? Icons.keyboard_arrow_down
                                 : Icons.keyboard_arrow_up,
                             size: 18,
-                            color: Theme.of(context).colorScheme.onSurface.withOpacity(0.38),
+                            color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.38),
                           ),
                           padding: EdgeInsets.zero,
                           constraints: const BoxConstraints(),
@@ -633,7 +627,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                           icon: Icon(
                             Icons.close,
                             size: 18,
-                            color: Theme.of(context).colorScheme.onSurface.withOpacity(0.38),
+                            color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.38),
                           ),
                           padding: EdgeInsets.zero,
                           constraints: const BoxConstraints(),
@@ -664,7 +658,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
           color: Theme.of(context).brightness == Brightness.dark ? AppColors.darkSurface2 : Colors.white,
           borderRadius: BorderRadius.circular(8),
           border: Border.all(
-            color: AppColors.primaryGreen.withOpacity(0.4),
+            color: AppColors.primaryGreen.withValues(alpha: 0.4),
           ),
           boxShadow: [
             BoxShadow(
@@ -785,8 +779,8 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                         AppColors.darkPageBackground.withValues(alpha: 0.15),
                       ]
                     : [
-                        Colors.white.withOpacity(0.85),
-                        Colors.white.withOpacity(0.15),
+                        Colors.white.withValues(alpha: 0.85),
+                        Colors.white.withValues(alpha: 0.15),
                       ],
               ),
             ),
@@ -928,7 +922,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
             crossAxisCount: crossAxisCount,
             crossAxisSpacing: 16,
             mainAxisSpacing: 16,
-            mainAxisExtent: isSquare ? 135 : 85,
+            mainAxisExtent: isSquare ? 135 : 94,
           ),
           children: [
             StatCard(
@@ -1093,9 +1087,6 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
       );
     }
 
-    final width = MediaQuery.of(context).size.width;
-    final isMobile = width < 600;
-
     return Container(
       decoration: BoxDecoration(
         color: isDark ? AppColors.darkSurfaceCard : Colors.white,
@@ -1112,7 +1103,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
         shrinkWrap: true,
         physics: const NeverScrollableScrollPhysics(),
         itemCount: activities.length,
-        separatorBuilder: (_, _s) =>
+        separatorBuilder: (_, _) =>
             Divider(height: 1, color: Theme.of(context).dividerColor),
         itemBuilder: (context, index) {
           final a = activities[index];
@@ -1164,7 +1155,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                       '${a.performedBy ?? a.username ?? 'System'} · ${_formatDate(a.createdAt)}',
                       style: TextStyle(
                         fontSize: 12,
-                        color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+                        color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
                       ),
                     ),
                   ],
@@ -1172,7 +1163,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                 trailing: Icon(
                   Icons.chevron_right_rounded,
                   size: 20,
-                  color: Theme.of(context).colorScheme.onSurface.withOpacity(0.38),
+                  color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.38),
                 ),
               ),
             ),
@@ -1207,9 +1198,6 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
       );
     }
 
-    final width = MediaQuery.of(context).size.width;
-    final isMobile = width < 600;
-
     return Container(
       decoration: BoxDecoration(
         color: isDark ? AppColors.darkSurfaceCard : Colors.white,
@@ -1226,7 +1214,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
         shrinkWrap: true,
         physics: const NeverScrollableScrollPhysics(),
         itemCount: history.length,
-        separatorBuilder: (_, _s) =>
+        separatorBuilder: (_, _) =>
             Divider(height: 1, color: Theme.of(context).dividerColor),
         itemBuilder: (context, index) {
           final h = history[index];
@@ -1290,7 +1278,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                       '${h.performedByName ?? h.performedByUsername ?? 'System'} · ${_formatDate(h.createdAt)}',
                       style: TextStyle(
                         fontSize: 12,
-                        color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+                        color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
                       ),
                     ),
                   ],
@@ -1298,7 +1286,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                 trailing: Icon(
                   Icons.chevron_right_rounded,
                   size: 20,
-                  color: Theme.of(context).colorScheme.onSurface.withOpacity(0.38),
+                  color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.38),
                 ),
               ),
             ),
