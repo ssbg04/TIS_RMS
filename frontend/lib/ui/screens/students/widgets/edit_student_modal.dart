@@ -341,336 +341,345 @@ class _EditStudentModalState extends ConsumerState<EditStudentModal> {
       return const Center(child: CircularProgressIndicator());
     }
 
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(24),
-      child: Form(
-        key: _studentFormKey,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const SectionLabel(label: 'LEARNER REFERENCE INFORMATION'),
-            const SizedBox(height: AppSizes.p8),
-            TextFormField(
-              controller: _lrnController,
-              keyboardType: TextInputType.number,
-              maxLength: 12,
-              inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-              validator: _validateLRN,
-              decoration: const InputDecoration(
-                labelText: 'LRN (Learner Reference Number)',
-                hintText: '12-digit number',
-                prefixIcon: Icon(Icons.pin_outlined),
-                counterText: '',
-              ),
-            ),
-            const SizedBox(height: AppSizes.p16),
-            const SectionLabel(label: 'NAME'),
-            const SizedBox(height: AppSizes.p8),
-            LayoutBuilder(
-              builder: (ctx, c) {
-                final wide = c.maxWidth > 480;
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final wide = constraints.maxWidth > 500;
 
-                final sexDropdown = DropdownButtonFormField<String>(
-                  key: const ValueKey('edit_sex_dropdown'),
-                  initialValue: _selectedSex,
-                  validator: (v) => v == null ? 'Please select sex.' : null,
-                  isExpanded: true,
+        final isEligibleForGraduation =
+            _hasGraduationEligibleGrade() ||
+            _initialStudent.status == 'Graduated';
+        final currentGrade = _getLatestGradeLevel();
+
+        final sexDropdown = DropdownButtonFormField<String>(
+          key: const ValueKey('edit_sex_dropdown'),
+          initialValue: _selectedSex,
+          validator: (v) => v == null ? 'Please select sex.' : null,
+          isExpanded: true,
+          decoration: const InputDecoration(
+            labelText: 'SEX',
+            prefixIcon: Icon(Icons.wc),
+          ),
+          items: ['Male', 'Female']
+              .map((s) => DropdownMenuItem(value: s, child: Text(s)))
+              .toList(),
+          onChanged: (v) {
+            if (v != null) {
+              setState(() => _selectedSex = v);
+            }
+          },
+        );
+
+        final statusDropdown = DropdownButtonFormField<String>(
+          key: ValueKey('edit_status_dropdown_${_selectedStatus}_$_statusDropdownKey'),
+          initialValue: _selectedStatus,
+          decoration: InputDecoration(
+            labelText: 'STATUS',
+            prefixIcon: const Icon(Icons.info_outline),
+            helperText: !isEligibleForGraduation
+                ? 'Graduation requires Grade 10 or 12 (${currentGrade != null ? 'Grade $currentGrade' : 'No Grade 10/12'})'
+                : null,
+          ),
+          items: _availableStatuses
+              .map((s) => DropdownMenuItem(value: s, child: Text(s)))
+              .toList(),
+          onChanged: (v) {
+            if (v == null) return;
+            if (v == 'Graduated') {
+              if (!_hasGraduationEligibleGrade()) {
+                final grade = _getLatestGradeLevel();
+                _showValidationDialog(
+                  'Graduation status is only applicable for Grade 10 and Grade 12 students.\n\n'
+                  'This student is currently ${grade != null ? 'in Grade $grade' : 'not enrolled in Grade 10 or 12'}.',
+                );
+                setState(() {
+                  _statusDropdownKey++;
+                });
+                return;
+              }
+            }
+            setState(() {
+              _selectedStatus = v;
+            });
+          },
+        );
+
+        return SingleChildScrollView(
+          padding: const EdgeInsets.all(24),
+          child: Form(
+            key: _studentFormKey,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const SectionLabel(label: 'LEARNER REFERENCE INFORMATION'),
+                const SizedBox(height: AppSizes.p8),
+                TextFormField(
+                  controller: _lrnController,
+                  keyboardType: TextInputType.number,
+                  maxLength: 12,
+                  inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                  validator: _validateLRN,
                   decoration: const InputDecoration(
-                    labelText: 'SEX',
-                    prefixIcon: Icon(Icons.wc),
-                  ),
-                  items: ['Male', 'Female']
-                      .map((s) => DropdownMenuItem(value: s, child: Text(s)))
-                      .toList(),
-                  onChanged: (v) {
-                    if (v != null) {
-                      setState(() => _selectedSex = v);
-                    }
-                  },
-                );
-
-                final isEligibleForGraduation =
-                    _hasGraduationEligibleGrade() ||
-                    _initialStudent.status == 'Graduated';
-                final currentGrade = _getLatestGradeLevel();
-
-                final statusDropdown = DropdownButtonFormField<String>(
-                  key: ValueKey('edit_status_dropdown_${_selectedStatus}_$_statusDropdownKey'),
-                  initialValue: _selectedStatus,
-                  decoration: InputDecoration(
-                    labelText: 'STATUS',
-                    prefixIcon: const Icon(Icons.info_outline),
-                    helperText: !isEligibleForGraduation
-                        ? 'Graduation requires Grade 10 or 12 (${currentGrade != null ? 'Grade $currentGrade' : 'No Grade 10/12'})'
-                        : null,
-                  ),
-                  items: _availableStatuses
-                      .map((s) => DropdownMenuItem(value: s, child: Text(s)))
-                      .toList(),
-                  onChanged: (v) {
-                    if (v == null) return;
-                    if (v == 'Graduated') {
-                      if (!_hasGraduationEligibleGrade()) {
-                        final grade = _getLatestGradeLevel();
-                        _showValidationDialog(
-                          'Graduation status is only applicable for Grade 10 and Grade 12 students.\n\n'
-                          'This student is currently ${grade != null ? 'in Grade $grade' : 'not enrolled in Grade 10 or 12'}.',
-                        );
-                        // Force dropdown to re-render back to previous valid status
-                        setState(() {
-                          _statusDropdownKey++;
-                        });
-                        return;
-                      }
-                    }
-                    setState(() {
-                      _selectedStatus = v;
-                    });
-                  },
-                );
-
-                return Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    if (wide)
-                      Column(
-                        children: [
-                          Row(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Expanded(
-                                child: TextFormField(
-                                  controller: _firstNameController,
-                                  textCapitalization: TextCapitalization.characters,
-                                  inputFormatters: [
-                                    UpperCaseWordsFormatter(),
-                                    FilteringTextInputFormatter.deny(RegExp(r'[0-9]')),
-                                  ],
-                                  validator: (v) => _validateRequired(v, 'First name'),
-                                  decoration: const InputDecoration(
-                                    labelText: 'FIRST NAME',
-                                    prefixIcon: Icon(Icons.badge_outlined),
-                                  ),
-                                ),
-                              ),
-                              const SizedBox(width: AppSizes.p12),
-                              Expanded(
-                                child: TextFormField(
-                                  controller: _middleNameController,
-                                  textCapitalization: TextCapitalization.characters,
-                                  inputFormatters: [
-                                    UpperCaseWordsFormatter(),
-                                    FilteringTextInputFormatter.deny(RegExp(r'[0-9]')),
-                                  ],
-                                  decoration: const InputDecoration(
-                                    labelText: 'MIDDLE NAME (Optional)',
-                                    prefixIcon: Icon(Icons.badge_outlined),
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: AppSizes.p12),
-                          Row(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Expanded(
-                                child: TextFormField(
-                                  controller: _lastNameController,
-                                  textCapitalization: TextCapitalization.characters,
-                                  inputFormatters: [
-                                    UpperCaseWordsFormatter(),
-                                    FilteringTextInputFormatter.deny(RegExp(r'[0-9]')),
-                                  ],
-                                  validator: (v) => _validateRequired(v, 'Last name'),
-                                  decoration: const InputDecoration(
-                                    labelText: 'LAST NAME',
-                                    prefixIcon: Icon(Icons.badge_outlined),
-                                  ),
-                                ),
-                              ),
-                              const SizedBox(width: AppSizes.p12),
-                              Expanded(
-                                child: ExtensionNameField(
-                                  controller: _extController,
-                                  suggestions: _extSuggestions,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ],
-                      )
-                    else
-                      Column(
-                        children: [
-                          TextFormField(
-                            controller: _firstNameController,
-                            textCapitalization: TextCapitalization.characters,
-                            inputFormatters: [
-                              UpperCaseWordsFormatter(),
-                              FilteringTextInputFormatter.deny(RegExp(r'[0-9]')),
-                            ],
-                            validator: (v) => _validateRequired(v, 'First name'),
-                            decoration: const InputDecoration(labelText: 'FIRST NAME'),
-                          ),
-                          const SizedBox(height: AppSizes.p12),
-                          TextFormField(
-                            controller: _middleNameController,
-                            textCapitalization: TextCapitalization.characters,
-                            inputFormatters: [
-                              UpperCaseWordsFormatter(),
-                              FilteringTextInputFormatter.deny(RegExp(r'[0-9]')),
-                            ],
-                            decoration: const InputDecoration(labelText: 'MIDDLE NAME (Optional)'),
-                          ),
-                          const SizedBox(height: AppSizes.p12),
-                          TextFormField(
-                            controller: _lastNameController,
-                            textCapitalization: TextCapitalization.characters,
-                            inputFormatters: [
-                              UpperCaseWordsFormatter(),
-                              FilteringTextInputFormatter.deny(RegExp(r'[0-9]')),
-                            ],
-                            validator: (v) => _validateRequired(v, 'Last name'),
-                            decoration: const InputDecoration(labelText: 'LAST NAME'),
-                          ),
-                          const SizedBox(height: AppSizes.p12),
-                          ExtensionNameField(
-                            controller: _extController,
-                            suggestions: _extSuggestions,
-                          ),
-                        ],
-                      ),
-                    const SizedBox(height: AppSizes.p16),
-                    const SectionLabel(label: 'PERSONAL INFORMATION'),
-                    const SizedBox(height: AppSizes.p8),
-                    if (wide)
-                      Row(
-                        children: [
-                          Expanded(child: sexDropdown),
-                          const SizedBox(width: AppSizes.p12),
-                          Expanded(child: statusDropdown),
-                        ],
-                      )
-                    else
-                      Column(
-                        children: [
-                          sexDropdown,
-                          const SizedBox(height: AppSizes.p12),
-                          statusDropdown,
-                        ],
-                      ),
-                  ],
-                );
-              },
-            ),
-            const SizedBox(height: AppSizes.p12),
-            DobPicker(
-              initialDate: _selectedDob,
-              onChanged: (val) {
-                setState(() => _selectedDob = val);
-              },
-            ),
-            const SizedBox(height: AppSizes.p16),
-            const SectionLabel(label: 'GOVERNMENT AID STATUS'),
-            const SizedBox(height: AppSizes.p8),
-            Container(
-              decoration: BoxDecoration(
-                color: _is4ps
-                    ? AppColors.fourPs.withValues(alpha: 0.06)
-                    : (isDark ? AppColors.darkSurfaceCard : Colors.grey.shade50),
-                borderRadius: BorderRadius.circular(AppSizes.radiusMedium),
-                border: Border.all(
-                  color: _is4ps
-                      ? AppColors.fourPs.withValues(alpha: 0.3)
-                      : (isDark ? AppColors.darkBorder : Colors.grey.shade200),
-                ),
-              ),
-              child: SwitchListTile(
-                value: _is4ps,
-                onChanged: (val) {
-                  setState(() => _is4ps = val);
-                },
-                activeColor: AppColors.fourPs,
-                title: const Text('4Ps Beneficiary',
-                    style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
-                subtitle: Text(
-                  _is4ps
-                      ? 'Student is a 4Ps (Pantawid Pamilyang Pilipino Program) beneficiary'
-                      : 'Student is NOT a 4Ps beneficiary',
-                  style: TextStyle(
-                    fontSize: 11,
-                    color: _is4ps
-                        ? (isDark ? const Color(0xFF8B8ED8) : AppColors.fourPs)
-                        : (isDark ? AppColors.darkTextSecondary : AppColors.textSecondary),
+                    labelText: 'LRN (Learner Reference Number)',
+                    hintText: '12-digit number',
+                    prefixIcon: Icon(Icons.pin_outlined),
+                    counterText: '',
                   ),
                 ),
-                secondary: Icon(Icons.family_restroom,
-                    color: _is4ps ? AppColors.fourPs : Colors.grey.shade400),
-                dense: true,
-                contentPadding:
-                    const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-              ),
-            ),
-            const SizedBox(height: AppSizes.p16),
-            if (_errorMessage != null) ...[
-              ErrorBanner(message: _errorMessage!),
-              const SizedBox(height: AppSizes.p16),
-            ],
-            Builder(
-              builder: (ctx) {
-                final isKeyboardOpen = MediaQuery.of(ctx).viewInsets.bottom > 50;
-                if (isKeyboardOpen) return const SizedBox.shrink();
-                final isNarrow = MediaQuery.of(ctx).size.width < 500;
-                if (isNarrow) {
-                  return Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                const SizedBox(height: AppSizes.p16),
+                const SectionLabel(label: 'NAME'),
+                const SizedBox(height: AppSizes.p8),
+                if (wide)
+                  Column(
                     children: [
-                      PrimaryButton(
-                        label: 'UPDATE',
-                        isLoading: _isLoading,
-                        onPressed: _handleSaveDetails,
-                      ),
-                      const SizedBox(height: 10),
-                      OutlinedButton(
-                        onPressed: _confirmClose,
-                        style: OutlinedButton.styleFrom(
-                          padding: const EdgeInsets.symmetric(vertical: 14),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(AppSizes.radiusMedium),
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Expanded(
+                            child: TextFormField(
+                              controller: _firstNameController,
+                              textCapitalization: TextCapitalization.characters,
+                              inputFormatters: [
+                                UpperCaseWordsFormatter(),
+                                FilteringTextInputFormatter.deny(RegExp(r'[0-9]')),
+                              ],
+                              validator: (v) => _validateRequired(v, 'First name'),
+                              decoration: const InputDecoration(
+                                labelText: 'FIRST NAME',
+                              ),
+                            ),
                           ),
-                        ),
-                        child: const Text('CANCEL'),
+                          const SizedBox(width: AppSizes.p12),
+                          Expanded(
+                            child: TextFormField(
+                              controller: _middleNameController,
+                              textCapitalization: TextCapitalization.characters,
+                              inputFormatters: [
+                                UpperCaseWordsFormatter(),
+                                FilteringTextInputFormatter.deny(RegExp(r'[0-9]')),
+                              ],
+                              decoration: const InputDecoration(
+                                labelText: 'MIDDLE NAME (Optional)',
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: AppSizes.p12),
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Expanded(
+                            child: TextFormField(
+                              controller: _lastNameController,
+                              textCapitalization: TextCapitalization.characters,
+                              inputFormatters: [
+                                UpperCaseWordsFormatter(),
+                                FilteringTextInputFormatter.deny(RegExp(r'[0-9]')),
+                              ],
+                              validator: (v) => _validateRequired(v, 'Last name'),
+                              decoration: const InputDecoration(
+                                labelText: 'LAST NAME',
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: AppSizes.p12),
+                          Expanded(
+                            child: ExtensionNameField(
+                              controller: _extController,
+                              suggestions: _extSuggestions,
+                            ),
+                          ),
+                        ],
                       ),
                     ],
-                  );
-                }
-                return Row(
-                  mainAxisAlignment: MainAxisAlignment.end,
-                  children: [
-                    OutlinedButton(
-                      onPressed: _confirmClose,
-                      style: OutlinedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(AppSizes.radiusMedium),
-                        ),
+                  )
+                else
+                  Column(
+                    children: [
+                      TextFormField(
+                        controller: _firstNameController,
+                        textCapitalization: TextCapitalization.characters,
+                        inputFormatters: [
+                          UpperCaseWordsFormatter(),
+                          FilteringTextInputFormatter.deny(RegExp(r'[0-9]')),
+                        ],
+                        validator: (v) => _validateRequired(v, 'First name'),
+                        decoration: const InputDecoration(labelText: 'FIRST NAME'),
                       ),
-                      child: const Text('CANCEL'),
+                      const SizedBox(height: AppSizes.p12),
+                      TextFormField(
+                        controller: _middleNameController,
+                        textCapitalization: TextCapitalization.characters,
+                        inputFormatters: [
+                          UpperCaseWordsFormatter(),
+                          FilteringTextInputFormatter.deny(RegExp(r'[0-9]')),
+                        ],
+                        decoration: const InputDecoration(labelText: 'MIDDLE NAME (Optional)'),
+                      ),
+                      const SizedBox(height: AppSizes.p12),
+                      TextFormField(
+                        controller: _lastNameController,
+                        textCapitalization: TextCapitalization.characters,
+                        inputFormatters: [
+                          UpperCaseWordsFormatter(),
+                          FilteringTextInputFormatter.deny(RegExp(r'[0-9]')),
+                        ],
+                        validator: (v) => _validateRequired(v, 'Last name'),
+                        decoration: const InputDecoration(labelText: 'LAST NAME'),
+                      ),
+                      const SizedBox(height: AppSizes.p12),
+                      ExtensionNameField(
+                        controller: _extController,
+                        suggestions: _extSuggestions,
+                      ),
+                    ],
+                  ),
+                const SizedBox(height: AppSizes.p16),
+                const SectionLabel(label: 'PERSONAL INFORMATION'),
+                const SizedBox(height: AppSizes.p8),
+                if (wide)
+                  Row(
+                    children: [
+                      Expanded(child: sexDropdown),
+                      const SizedBox(width: AppSizes.p12),
+                      Expanded(child: statusDropdown),
+                    ],
+                  )
+                else
+                  Column(
+                    children: [
+                      sexDropdown,
+                      const SizedBox(height: AppSizes.p12),
+                      statusDropdown,
+                    ],
+                  ),
+                const SizedBox(height: AppSizes.p12),
+                DobPicker(
+                  initialDate: _selectedDob,
+                  onChanged: (val) {
+                    setState(() => _selectedDob = val);
+                  },
+                ),
+                const SizedBox(height: AppSizes.p16),
+                const SectionLabel(label: 'GOVERNMENT AID STATUS'),
+                const SizedBox(height: AppSizes.p8),
+                Container(
+                  decoration: BoxDecoration(
+                    color: _is4ps
+                        ? AppColors.fourPs.withValues(alpha: 0.06)
+                        : (isDark ? AppColors.darkSurfaceCard : Colors.grey.shade50),
+                    borderRadius: BorderRadius.circular(AppSizes.radiusMedium),
+                    border: Border.all(
+                      color: _is4ps
+                          ? AppColors.fourPs.withValues(alpha: 0.3)
+                          : (isDark ? AppColors.darkBorder : Colors.grey.shade200),
                     ),
-                    const SizedBox(width: 12),
-                    PrimaryButton(
-                      label: 'UPDATE',
-                      isLoading: _isLoading,
-                      onPressed: _handleSaveDetails,
+                  ),
+                  child: SwitchListTile(
+                    value: _is4ps,
+                    onChanged: (val) {
+                      setState(() => _is4ps = val);
+                    },
+                    activeColor: AppColors.fourPs,
+                    title: const Text('4Ps Beneficiary',
+                        style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
+                    subtitle: Text(
+                      _is4ps
+                          ? 'Student is a 4Ps (Pantawid Pamilyang Pilipino Program) beneficiary'
+                          : 'Student is NOT a 4Ps beneficiary',
+                      style: TextStyle(
+                        fontSize: 11,
+                        color: _is4ps
+                            ? (isDark ? const Color(0xFF8B8ED8) : AppColors.fourPs)
+                            : (isDark ? AppColors.darkTextSecondary : AppColors.textSecondary),
+                      ),
                     ),
-                  ],
-                );
-              },
+                    secondary: Icon(Icons.family_restroom,
+                        color: _is4ps ? AppColors.fourPs : Colors.grey.shade400),
+                    dense: true,
+                    contentPadding:
+                        const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                  ),
+                ),
+                const SizedBox(height: AppSizes.p16),
+                if (_errorMessage != null) ...[
+                  ErrorBanner(message: _errorMessage!),
+                  const SizedBox(height: AppSizes.p16),
+                ],
+                Builder(
+                  builder: (ctx) {
+                    final isKeyboardOpen = MediaQuery.of(ctx).viewInsets.bottom > 50;
+                    if (isKeyboardOpen) return const SizedBox.shrink();
+                    if (!wide) {
+                      return Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          PrimaryButton(
+                            label: 'UPDATE',
+                            isLoading: _isLoading,
+                            onPressed: _handleSaveDetails,
+                          ),
+                          const SizedBox(height: 10),
+                          OutlinedButton(
+                            onPressed: _confirmClose,
+                            style: OutlinedButton.styleFrom(
+                              padding: const EdgeInsets.symmetric(vertical: 14),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(AppSizes.radiusMedium),
+                              ),
+                            ),
+                            child: const Text('CANCEL'),
+                          ),
+                        ],
+                      );
+                    }
+                    return Row(
+                      mainAxisAlignment: MainAxisAlignment.end,
+                      children: [
+                        OutlinedButton(
+                          onPressed: _confirmClose,
+                          style: OutlinedButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(AppSizes.radiusMedium),
+                            ),
+                          ),
+                          child: const Text('CANCEL'),
+                        ),
+                        const SizedBox(width: 12),
+                        ElevatedButton(
+                          onPressed: _isLoading ? null : _handleSaveDetails,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: AppColors.primaryGreen,
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(AppSizes.radiusMedium),
+                            ),
+                          ),
+                          child: _isLoading
+                              ? const AppButtonLoader(
+                                  color: Colors.white,
+                                  size: 18,
+                                  strokeWidth: 2,
+                                )
+                              : const Text(
+                                  'UPDATE',
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    letterSpacing: 0.5,
+                                  ),
+                                ),
+                        ),
+                      ],
+                    );
+                  },
+                ),
+              ],
             ),
-          ],
-        ),
-      ),
+          ),
+        );
+      },
     );
   }
 

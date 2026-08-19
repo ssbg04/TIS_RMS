@@ -570,63 +570,63 @@ class _AddStudentModalState extends ConsumerState<AddStudentModal> {
 
   Widget _buildStudentDetailsStep() {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    return Form(
-      key: _studentFormKey,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          if (_ocrScannedFile != null) ...[
-            Container(
-              padding: const EdgeInsets.all(AppSizes.p12),
-              decoration: BoxDecoration(
-                color: AppColors.info.withValues(alpha: 0.08),
-                border: Border.all(color: AppColors.info.withValues(alpha: 0.3)),
-                borderRadius: BorderRadius.circular(AppSizes.radiusMedium),
-              ),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Icon(Icons.check_circle_outline, color: AppColors.info, size: 20),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      'Scan complete! OCR extracted data from your document. Please review and verify all auto-filled fields before proceeding.',
-                      style: TextStyle(
-                        color: isDark
-                            ? AppColors.darkTextPrimary
-                            : AppColors.textPrimary,
-                        fontSize: 13,
-                      ),
-                    ),
+    return LayoutBuilder(
+      builder: (ctx, c) {
+        final wide = c.maxWidth > 480;
+        return Form(
+          key: _studentFormKey,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              if (_ocrScannedFile != null) ...[
+                Container(
+                  padding: const EdgeInsets.all(AppSizes.p12),
+                  decoration: BoxDecoration(
+                    color: AppColors.info.withValues(alpha: 0.08),
+                    border: Border.all(color: AppColors.info.withValues(alpha: 0.3)),
+                    borderRadius: BorderRadius.circular(AppSizes.radiusMedium),
                   ),
-                ],
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Icon(Icons.check_circle_outline, color: AppColors.info, size: 20),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          'Scan complete! OCR extracted data from your document. Please review and verify all auto-filled fields before proceeding.',
+                          style: TextStyle(
+                            color: isDark
+                                ? AppColors.darkTextPrimary
+                                : AppColors.textPrimary,
+                            fontSize: 13,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: AppSizes.p16),
+              ],
+              const SectionLabel(label: 'LEARNER REFERENCE INFORMATION'),
+              const SizedBox(height: AppSizes.p8),
+              TextFormField(
+                controller: _lrnController,
+                keyboardType: TextInputType.number,
+                maxLength: 12,
+                inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                validator: _validateLRN,
+                decoration: const InputDecoration(
+                  labelText: 'LRN (Learner Reference Number)',
+                  hintText: '12-digit number',
+                  prefixIcon: Icon(Icons.pin_outlined),
+                  counterText: '',
+                ),
               ),
-            ),
-            const SizedBox(height: AppSizes.p16),
-          ],
-          const SectionLabel(label: 'LEARNER REFERENCE INFORMATION'),
-          const SizedBox(height: AppSizes.p8),
-          TextFormField(
-            controller: _lrnController,
-            keyboardType: TextInputType.number,
-            maxLength: 12,
-            inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-            validator: _validateLRN,
-            decoration: const InputDecoration(
-              labelText: 'LRN (Learner Reference Number)',
-              hintText: '12-digit number',
-              prefixIcon: Icon(Icons.pin_outlined),
-              counterText: '',
-            ),
-          ),
-          const SizedBox(height: AppSizes.p16),
-          const SectionLabel(label: 'NAME'),
-          const SizedBox(height: AppSizes.p8),
-          LayoutBuilder(
-            builder: (ctx, c) {
-              final wide = c.maxWidth > 480;
-              if (wide) {
-                return Column(
+              const SizedBox(height: AppSizes.p16),
+              const SectionLabel(label: 'NAME'),
+              const SizedBox(height: AppSizes.p8),
+              if (wide)
+                Column(
                   children: [
                     Row(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -642,7 +642,6 @@ class _AddStudentModalState extends ConsumerState<AddStudentModal> {
                             validator: (v) => _validateRequired(v, 'First name'),
                             decoration: const InputDecoration(
                               labelText: 'FIRST NAME',
-                              prefixIcon: Icon(Icons.badge_outlined),
                             ),
                           ),
                         ),
@@ -657,7 +656,6 @@ class _AddStudentModalState extends ConsumerState<AddStudentModal> {
                             ],
                             decoration: const InputDecoration(
                               labelText: 'MIDDLE NAME (Optional)',
-                              prefixIcon: Icon(Icons.badge_outlined),
                             ),
                           ),
                         ),
@@ -678,7 +676,6 @@ class _AddStudentModalState extends ConsumerState<AddStudentModal> {
                             validator: (v) => _validateRequired(v, 'Last name'),
                             decoration: const InputDecoration(
                               labelText: 'LAST NAME',
-                              prefixIcon: Icon(Icons.badge_outlined),
                             ),
                           ),
                         ),
@@ -692,9 +689,9 @@ class _AddStudentModalState extends ConsumerState<AddStudentModal> {
                       ],
                     ),
                   ],
-                );
-              } else {
-                return Column(
+                )
+              else
+                Column(
                   children: [
                     TextFormField(
                       controller: _firstNameController,
@@ -733,86 +730,85 @@ class _AddStudentModalState extends ConsumerState<AddStudentModal> {
                       suggestions: _extSuggestions,
                     ),
                   ],
-                );
-              }
-            },
-          ),
-          const SizedBox(height: AppSizes.p16),
-          const SectionLabel(label: 'PERSONAL INFORMATION'),
-          const SizedBox(height: AppSizes.p8),
-          DropdownButtonFormField<String>(
-            key: const ValueKey('sex_dropdown'),
-            initialValue: _selectedSex,
-            validator: (v) => v == null ? 'Please select sex.' : null,
-            isExpanded: true,
-            decoration: const InputDecoration(
-              labelText: 'SEX',
-              prefixIcon: Icon(Icons.wc),
-            ),
-            items: ['Male', 'Female']
-                .map((s) => DropdownMenuItem(value: s, child: Text(s)))
-                .toList(),
-            onChanged: (v) {
-              if (v != null) {
-                setState(() => _selectedSex = v);
-              }
-            },
-          ),
-          const SizedBox(height: AppSizes.p12),
-          DobPicker(
-            initialDate: _selectedDob,
-            onChanged: (val) {
-              setState(() => _selectedDob = val);
-            },
-          ),
-          const SizedBox(height: AppSizes.p16),
-          const SectionLabel(label: 'GOVERNMENT AID STATUS'),
-          const SizedBox(height: AppSizes.p8),
-          Container(
-            decoration: BoxDecoration(
-              color: _is4ps
-                  ? AppColors.fourPs.withValues(alpha: 0.06)
-                  : (isDark ? AppColors.darkSurfaceCard : Colors.grey.shade50),
-              borderRadius: BorderRadius.circular(AppSizes.radiusMedium),
-              border: Border.all(
-                color: _is4ps
-                    ? AppColors.fourPs.withValues(alpha: 0.3)
-                    : (isDark ? AppColors.darkBorder : Colors.grey.shade200),
+                ),
+              const SizedBox(height: AppSizes.p16),
+              const SectionLabel(label: 'PERSONAL INFORMATION'),
+              const SizedBox(height: AppSizes.p8),
+              DropdownButtonFormField<String>(
+                key: const ValueKey('sex_dropdown'),
+                initialValue: _selectedSex,
+                validator: (v) => v == null ? 'Please select sex.' : null,
+                isExpanded: true,
+                decoration: const InputDecoration(
+                  labelText: 'SEX',
+                  prefixIcon: Icon(Icons.wc),
+                ),
+                items: ['Male', 'Female']
+                    .map((s) => DropdownMenuItem(value: s, child: Text(s)))
+                    .toList(),
+                onChanged: (v) {
+                  if (v != null) {
+                    setState(() => _selectedSex = v);
+                  }
+                },
               ),
-            ),
-            child: SwitchListTile(
-              value: _is4ps,
-              onChanged: (val) {
-                setState(() => _is4ps = val);
-              },
-              activeColor: AppColors.fourPs,
-              title: const Text('4Ps Beneficiary',
-                  style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
-              subtitle: Text(
-                _is4ps
-                    ? 'Student is a 4Ps (Pantawid Pamilyang Pilipino Program) beneficiary'
-                    : 'Student is NOT a 4Ps beneficiary',
-                style: TextStyle(
-                  fontSize: 11,
+              const SizedBox(height: AppSizes.p12),
+              DobPicker(
+                initialDate: _selectedDob,
+                onChanged: (val) {
+                  setState(() => _selectedDob = val);
+                },
+              ),
+              const SizedBox(height: AppSizes.p16),
+              const SectionLabel(label: 'GOVERNMENT AID STATUS'),
+              const SizedBox(height: AppSizes.p8),
+              Container(
+                decoration: BoxDecoration(
                   color: _is4ps
-                      ? (isDark ? const Color(0xFF8B8ED8) : AppColors.fourPs)
-                      : (isDark ? AppColors.darkTextSecondary : AppColors.textSecondary),
+                      ? AppColors.fourPs.withValues(alpha: 0.06)
+                      : (isDark ? AppColors.darkSurfaceCard : Colors.grey.shade50),
+                  borderRadius: BorderRadius.circular(AppSizes.radiusMedium),
+                  border: Border.all(
+                    color: _is4ps
+                        ? AppColors.fourPs.withValues(alpha: 0.3)
+                        : (isDark ? AppColors.darkBorder : Colors.grey.shade200),
+                  ),
+                ),
+                child: SwitchListTile(
+                  value: _is4ps,
+                  onChanged: (val) {
+                    setState(() => _is4ps = val);
+                  },
+                  activeColor: AppColors.fourPs,
+                  title: const Text('4Ps Beneficiary',
+                      style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
+                  subtitle: Text(
+                    _is4ps
+                        ? 'Student is a 4Ps (Pantawid Pamilyang Pilipino Program) beneficiary'
+                        : 'Student is NOT a 4Ps beneficiary',
+                    style: TextStyle(
+                      fontSize: 11,
+                      color: _is4ps
+                          ? (isDark ? const Color(0xFF8B8ED8) : AppColors.fourPs)
+                          : (isDark ? AppColors.darkTextSecondary : AppColors.textSecondary),
+                    ),
+                  ),
+                  secondary: Icon(Icons.family_restroom,
+                      color: _is4ps ? AppColors.fourPs : Colors.grey.shade400),
+                  dense: true,
+                  contentPadding:
+                      const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
                 ),
               ),
-              secondary: Icon(Icons.family_restroom,
-                  color: _is4ps ? AppColors.fourPs : Colors.grey.shade400),
-              dense: true,
-              contentPadding:
-                  const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-            ),
+              const SizedBox(height: AppSizes.p16),
+              if (_errorMessage != null) ...[
+                ErrorBanner(message: _errorMessage!),
+                const SizedBox(height: AppSizes.p16),
+              ],
+            ],
           ),
-          const SizedBox(height: AppSizes.p16),
-          if (_errorMessage != null) ...[
-            ErrorBanner(message: _errorMessage!),
-            const SizedBox(height: AppSizes.p16),
-          ],
-        ],
-      ),
+        );
+      },
     );
   }
 
