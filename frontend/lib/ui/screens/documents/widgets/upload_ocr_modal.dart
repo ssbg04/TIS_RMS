@@ -7,6 +7,7 @@ import 'package:desktop_drop/desktop_drop.dart';
 import 'package:dio/dio.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:flutter/services.dart';
 import 'package:google_mlkit_document_scanner/google_mlkit_document_scanner.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_sizes.dart';
@@ -345,6 +346,18 @@ class _UploadOcrModalState extends ConsumerState<UploadOcrModal> {
         });
       }
     } catch (e) {
+      if (e is PlatformException) {
+        final msg = e.message?.toLowerCase() ?? '';
+        final code = e.code.toLowerCase();
+        final details = e.details?.toString().toLowerCase() ?? '';
+        if (msg.contains('cancel') || code.contains('cancel') || details.contains('cancel') || msg.contains('operation cancelled')) {
+          return;
+        }
+      }
+      final str = e.toString().toLowerCase();
+      if (str.contains('operation cancelled') || str.contains('cancelled') || str.contains('canceled')) {
+        return;
+      }
       if (mounted) {
         showErrorDialog(context, 'Scanner Error', 'Failed to scan document: $e');
       }

@@ -11,6 +11,7 @@ import '../../providers/document_provider.dart';
 import '../../providers/student_provider.dart';
 import '../../providers/auth_provider.dart';
 import '../../shared/widgets/app_pagination.dart';
+import '../../shared/widgets/app_error_state.dart';
 import '../../providers/navigation_provider.dart';
 
 import '../../shared/dialogs/success_dialog.dart';
@@ -2968,32 +2969,12 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
   }
 
   Widget _buildErrorState(String message) {
-    final clean = message.startsWith('Exception: ')
-        ? message.substring(11)
-        : message;
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          const Icon(Icons.wifi_off_rounded, size: 56, color: AppColors.error),
-          const SizedBox(height: 16),
-          Text(
-            clean,
-            textAlign: TextAlign.center,
-            style: const TextStyle(color: AppColors.error),
-          ),
-          const SizedBox(height: 16),
-          ElevatedButton.icon(
-            icon: const Icon(Icons.refresh),
-            label: const Text('Retry'),
-            onPressed: () => ref.invalidate(documentPageProvider),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.primaryGreen,
-              foregroundColor: Colors.white,
-            ),
-          ),
-        ],
-      ),
+    return AppErrorState.fromError(
+      error: message,
+      onRetry: () {
+        ref.invalidate(documentPageProvider);
+        ref.invalidate(foldersProvider);
+      },
     );
   }
 

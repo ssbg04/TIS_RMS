@@ -25,6 +25,7 @@ import '../../providers/archives_provider.dart';
 import '../../shared/dialogs/error_dialog.dart';
 import '../../shared/dialogs/success_dialog.dart';
 import '../../shared/widgets/app_pagination.dart';
+import '../../shared/widgets/app_error_state.dart';
 import 'package:data_table_2/data_table_2.dart';
 
 class StudentsScreen extends ConsumerStatefulWidget {
@@ -1898,32 +1899,9 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
   }
 
   Widget _buildError(String message) {
-    final clean = message.startsWith('Exception: ')
-        ? message.substring(11)
-        : message;
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          const Icon(Icons.wifi_off_rounded, size: 56, color: AppColors.error),
-          const SizedBox(height: 16),
-          Text(
-            clean,
-            textAlign: TextAlign.center,
-            style: const TextStyle(color: AppColors.error),
-          ),
-          const SizedBox(height: 16),
-          ElevatedButton.icon(
-            icon: const Icon(Icons.refresh),
-            label: const Text('Retry'),
-            onPressed: () => ref.invalidate(studentPageProvider),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.primaryGreen,
-              foregroundColor: Colors.white,
-            ),
-          ),
-        ],
-      ),
+    return AppErrorState.fromError(
+      error: message,
+      onRetry: () => ref.invalidate(studentPageProvider),
     );
   }
 }

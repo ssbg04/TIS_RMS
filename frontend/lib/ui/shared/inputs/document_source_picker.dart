@@ -3,11 +3,11 @@ import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:file_picker/file_picker.dart';
-import 'package:image_picker/image_picker.dart';
 import 'package:google_mlkit_document_scanner/google_mlkit_document_scanner.dart';
 import 'package:desktop_drop/desktop_drop.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_sizes.dart';
+import 'package:flutter/services.dart';
 
 class DocumentSourcePicker extends StatefulWidget {
   // Callbacks to pass data back to whatever screen is using this widget
@@ -27,7 +27,6 @@ class DocumentSourcePicker extends StatefulWidget {
 }
 
 class _DocumentSourcePickerState extends State<DocumentSourcePicker> {
-  final ImagePicker _imagePicker = ImagePicker();
   bool _isDragOver = false;
   Timer? _dragResetTimer;
 
@@ -73,18 +72,28 @@ class _DocumentSourcePickerState extends State<DocumentSourcePicker> {
       final result = await scanner.scanDocument();
       scanner.close();
 
-      if (result != null) {
-        final images = result.images;
-        if (images != null && images.isNotEmpty) {
-          final file = File(images.first);
-          final size = (file.lengthSync() / (1024 * 1024)).toStringAsFixed(2);
-          final name =
-              'Scanned_Doc_${DateTime.now().millisecondsSinceEpoch}.jpg';
+      final images = result.images;
+      if (images != null && images.isNotEmpty) {
+        final file = File(images.first);
+        final size = (file.lengthSync() / (1024 * 1024)).toStringAsFixed(2);
+        final name =
+            'Scanned_Doc_${DateTime.now().millisecondsSinceEpoch}.jpg';
 
-          widget.onFileSelected(file, name, '$size MB');
-        }
+        widget.onFileSelected(file, name, '$size MB');
       }
     } catch (e) {
+      if (e is PlatformException) {
+        final msg = e.message?.toLowerCase() ?? '';
+        final code = e.code.toLowerCase();
+        final details = e.details?.toString().toLowerCase() ?? '';
+        if (msg.contains('cancel') || code.contains('cancel') || details.contains('cancel') || msg.contains('operation cancelled')) {
+          return;
+        }
+      }
+      final str = e.toString().toLowerCase();
+      if (str.contains('operation cancelled') || str.contains('cancelled') || str.contains('canceled')) {
+        return;
+      }
       widget.onError?.call('Failed to scan document: $e');
     }
   }

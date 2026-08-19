@@ -12,6 +12,7 @@ import '../../providers/auth_provider.dart';
 import '../../providers/navigation_provider.dart';
 import '../../../core/utils/validators.dart';
 import 'requirements_settings_screen.dart';
+import '../../shared/widgets/app_error_state.dart';
 import 'package:dio/dio.dart';
 import '../../providers/setup_provider.dart';
 import '../../shared/dialogs/info_dialog.dart';
@@ -502,7 +503,10 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         body: SafeArea(
         child: profileAsync.when(
           loading: () => const Center(child: CircularProgressIndicator()),
-          error: (err, _) => Center(child: Text('Error: $err')),
+          error: (err, _) => AppErrorState.fromError(
+            error: err,
+            onRetry: () => ref.invalidate(profileProvider),
+          ),
           data: (user) {
             if (_lastUserId != user.id) {
               Future.microtask(() {

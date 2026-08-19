@@ -71,7 +71,7 @@ exports.createUser = (req, res) => {
         const newUser = db.prepare('SELECT id FROM users WHERE username = ?').get(username);
         const uid = newUser?.id ?? result.lastInsertRowid;
         const fullName = [firstName, lastName].filter(Boolean).join(' ');
-        logActivity(req.user?.id, 'CREATE', 'user', uid, `Created user "${username}" (${role})`);
+        logActivity(req.user?.id, 'CREATE', 'user', uid, `Added user: ${username} as ${role}`);
         logUserHistory(req.user?.id, uid, 'created', username, fullName, role);
         createNotification(null, 'User Registered', `New ${role} user "${username}" (${fullName}) was registered.`, 'user');
 
@@ -97,7 +97,7 @@ exports.updateUser = (req, res) => {
     }
 
     try {
-        const user = db.prepare('SELECT id, role FROM users WHERE id = ?').get(id);
+        const user = db.prepare('SELECT id, username, role, first_name, middle_name, last_name, extension, email, phone FROM users WHERE id = ?').get(id);
         if (!user) return res.status(404).json({ message: 'User not found.' });
 
         // Prevent self-demotion (locked role for self)
@@ -110,11 +110,22 @@ exports.updateUser = (req, res) => {
         `).run(firstName, middleName || null, lastName, extension || null, effectiveRole, email || null, phone || null, id);
 
         const updatedUser = db.prepare('SELECT username FROM users WHERE id = ?').get(id);
-        const updatedUsername = updatedUser?.username ?? `#${id}`;
+        const updatedUsername = updatedUser?.username ?? user.username ?? `#${id}`;
         const fullName = [firstName, lastName].filter(Boolean).join(' ');
-        logActivity(req.user?.id, 'UPDATE', 'user', id, `Updated user "${updatedUsername}" (${effectiveRole})`);
+
+        const changes = [];
+        if (firstName !== undefined && firstName !== user.first_name) changes.push(`First Name: "${user.first_name || ''}" → "${firstName}"`);
+        if (middleName !== undefined && middleName !== (user.middle_name || '')) changes.push(`Middle Name: "${user.middle_name || ''}" → "${middleName || ''}"`);
+        if (lastName !== undefined && lastName !== user.last_name) changes.push(`Last Name: "${user.last_name || ''}" → "${lastName}"`);
+        if (extension !== undefined && extension !== (user.extension || '')) changes.push(`Extension: "${user.extension || ''}" → "${extension || ''}"`);
+        if (role !== undefined && effectiveRole !== user.role) changes.push(`Role: "${user.role}" → "${effectiveRole}"`);
+        if (email !== undefined && email !== (user.email || '')) changes.push(`Email: "${user.email || ''}" → "${email || ''}"`);
+        if (phone !== undefined && phone !== (user.phone || '')) changes.push(`Phone: "${user.phone || ''}" → "${phone || ''}"`);
+
+        const changesText = changes.length ? `\n• ${changes.join('\n• ')}` : '';
+        logActivity(req.user?.id, 'UPDATE', 'user', id, `Updated user: ${updatedUsername}${changesText}`);
         logUserHistory(req.user?.id, id, 'updated',
-            db.prepare('SELECT username FROM users WHERE id = ?').get(id)?.username ?? '',
+            updatedUsername,
             fullName, effectiveRole);
 
         res.json({ message: 'User updated successfully' });
@@ -140,7 +151,7 @@ exports.resetPassword = (req, res) => {
         if (!adminUser || !bcrypt.compareSync(adminPassword, adminUser.password)) {
             return res.status(401).json({ message: 'Incorrect Admin Password.' });
         }
-        const user = db.prepare('SELECT id, role FROM users WHERE id = ?').get(id);
+        const user = db.prepare('SELECT id, username, first_name, last_name, role FROM users WHERE id = ?').get(id);
         if (!user) return res.status(404).json({ message: 'User not found.' });
         if (user.id === req.user.id) {
             return res.status(403).json({ message: 'Cannot reset your own password via this route. Use the Change Password profile setting.' });
@@ -148,6 +159,10 @@ exports.resetPassword = (req, res) => {
 
         const hashed = bcrypt.hashSync(newPassword, 10);
         db.prepare("UPDATE users SET password = ?, updated_at = (strftime('%Y-%m-%dT%H:%M:%SZ', 'now')) WHERE id = ?").run(hashed, id);
+
+        const fullName = [user.first_name, user.last_name].filter(Boolean).join(' ');
+        logActivity(adminId, 'UPDATE', 'user', id, `Reset password for user: ${user.username}`);
+        logUserHistory(adminId, id, 'reset_password', user.username, fullName, user.role);
 
         res.json({ message: `Password has been reset to "${newPassword}".` });
     } catch (error) {
@@ -217,17 +232,19 @@ exports.toggleUserStatus = (req, res) => {
     }
 
     try {
-        const user = db.prepare('SELECT id, username, is_active FROM users WHERE id = ?').get(id);
+        const user = db.prepare('SELECT id, username, first_name, last_name, role, is_active FROM users WHERE id = ?').get(id);
         if (!user) return res.status(404).json({ message: 'User not found.' });
 
         const newStatus = user.is_active === 1 ? 0 : 1;
         db.prepare("UPDATE users SET is_active = ?, updated_at = (strftime('%Y-%m-%dT%H:%M:%SZ', 'now')) WHERE id = ?")
             .run(newStatus, id);
 
-        const statusLabel = newStatus === 1 ? 'activated' : 'deactivated';
-        logActivity(adminId, 'UPDATE', 'user', id, `${statusLabel.charAt(0).toUpperCase() + statusLabel.slice(1)} user "${user.username}"`);
+        const statusLabel = newStatus === 1 ? 'Activated' : 'Deactivated';
+        const fullName = [user.first_name, user.last_name].filter(Boolean).join(' ');
+        logActivity(adminId, 'UPDATE', 'user', id, `${statusLabel} user: ${user.username}`);
+        logUserHistory(adminId, id, statusLabel.toLowerCase(), user.username, fullName, user.role);
 
-        res.json({ message: `User "${user.username}" has been ${statusLabel}.`, is_active: newStatus });
+        res.json({ message: `User "${user.username}" has been ${statusLabel.toLowerCase()}.`, is_active: newStatus });
     } catch (error) {
         res.status(500).json({ message: 'Failed to update user status', error: error.message });
     }

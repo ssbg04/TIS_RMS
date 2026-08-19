@@ -632,7 +632,6 @@ class _AddStudentModalState extends ConsumerState<AddStudentModal> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Expanded(
-                          flex: 3,
                           child: TextFormField(
                             controller: _firstNameController,
                             textCapitalization: TextCapitalization.characters,
@@ -649,15 +648,6 @@ class _AddStudentModalState extends ConsumerState<AddStudentModal> {
                         ),
                         const SizedBox(width: AppSizes.p12),
                         Expanded(
-                          flex: 2,
-                          child: ExtensionNameField(
-                            controller: _extController,
-                            suggestions: _extSuggestions,
-                          ),
-                        ),
-                        const SizedBox(width: AppSizes.p12),
-                        Expanded(
-                          flex: 3,
                           child: TextFormField(
                             controller: _middleNameController,
                             textCapitalization: TextCapitalization.characters,
@@ -674,18 +664,32 @@ class _AddStudentModalState extends ConsumerState<AddStudentModal> {
                       ],
                     ),
                     const SizedBox(height: AppSizes.p12),
-                    TextFormField(
-                      controller: _lastNameController,
-                      textCapitalization: TextCapitalization.characters,
-                      inputFormatters: [
-                        UpperCaseWordsFormatter(),
-                        FilteringTextInputFormatter.deny(RegExp(r'[0-9]')),
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Expanded(
+                          child: TextFormField(
+                            controller: _lastNameController,
+                            textCapitalization: TextCapitalization.characters,
+                            inputFormatters: [
+                              UpperCaseWordsFormatter(),
+                              FilteringTextInputFormatter.deny(RegExp(r'[0-9]')),
+                            ],
+                            validator: (v) => _validateRequired(v, 'Last name'),
+                            decoration: const InputDecoration(
+                              labelText: 'LAST NAME',
+                              prefixIcon: Icon(Icons.badge_outlined),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: AppSizes.p12),
+                        Expanded(
+                          child: ExtensionNameField(
+                            controller: _extController,
+                            suggestions: _extSuggestions,
+                          ),
+                        ),
                       ],
-                      validator: (v) => _validateRequired(v, 'Last name'),
-                      decoration: const InputDecoration(
-                        labelText: 'LAST NAME',
-                        prefixIcon: Icon(Icons.badge_outlined),
-                      ),
                     ),
                   ],
                 );
@@ -701,11 +705,6 @@ class _AddStudentModalState extends ConsumerState<AddStudentModal> {
                       ],
                       validator: (v) => _validateRequired(v, 'First name'),
                       decoration: const InputDecoration(labelText: 'FIRST NAME'),
-                    ),
-                    const SizedBox(height: AppSizes.p12),
-                    ExtensionNameField(
-                      controller: _extController,
-                      suggestions: _extSuggestions,
                     ),
                     const SizedBox(height: AppSizes.p12),
                     TextFormField(
@@ -727,6 +726,11 @@ class _AddStudentModalState extends ConsumerState<AddStudentModal> {
                       ],
                       validator: (v) => _validateRequired(v, 'Last name'),
                       decoration: const InputDecoration(labelText: 'LAST NAME'),
+                    ),
+                    const SizedBox(height: AppSizes.p12),
+                    ExtensionNameField(
+                      controller: _extController,
+                      suggestions: _extSuggestions,
                     ),
                   ],
                 );
@@ -1147,7 +1151,7 @@ class _AddStudentModalState extends ConsumerState<AddStudentModal> {
               ),
               Builder(
                 builder: (ctx) {
-                  final isKeyboardOpen = MediaQuery.of(ctx).viewInsets.bottom > 100;
+                  final isKeyboardOpen = MediaQuery.of(ctx).viewInsets.bottom > 50;
                   if (isKeyboardOpen) return const SizedBox.shrink();
                   final isDark = Theme.of(ctx).brightness == Brightness.dark;
                   return Container(
@@ -1448,13 +1452,13 @@ class _AddStudentModalState extends ConsumerState<AddStudentModal> {
                         );
                       },
                     ),
-                );
+                  );
                 },
               ),
             ],
           ),
-          ),
         ),
+      ),
       ),
     );
   }

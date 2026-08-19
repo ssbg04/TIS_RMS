@@ -9,6 +9,7 @@ import '../../shared/inputs/custom_text_field.dart';
 import '../../shared/inputs/app_search_bar.dart';
 import '../../shared/buttons/primary_button.dart';
 import '../../shared/widgets/app_pagination.dart';
+import '../../shared/widgets/app_error_state.dart';
 import '../../providers/users_provider.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/navigation_provider.dart';
@@ -523,25 +524,9 @@ class _UsersScreenState extends ConsumerState<UsersScreen> {
                 child: usersAsync.when(
                   loading: () =>
                       const Center(child: CircularProgressIndicator()),
-                  error: (err, _) => Center(
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        const Icon(
-                          Icons.error_outline,
-                          color: Colors.red,
-                          size: 48,
-                        ),
-                        const SizedBox(height: 16),
-                        Text('$err', style: const TextStyle(color: Colors.red)),
-                        const SizedBox(height: 16),
-                        ElevatedButton.icon(
-                          onPressed: _handleRefresh,
-                          icon: const Icon(Icons.refresh),
-                          label: const Text('Retry'),
-                        ),
-                      ],
-                    ),
+                  error: (err, _) => AppErrorState.fromError(
+                    error: err,
+                    onRetry: _handleRefresh,
                   ),
                   data: (users) {
                     final filtered = _filter(users);

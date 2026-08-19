@@ -211,8 +211,50 @@ Files backup/restore - mirror mode or zip -->
 <!-- # ALL CIRCULAR LOADING IN BUTTON
 - make loading not oblong render it fully circle  -->
 
-# NATIVE SPLASH SCREEN IN ANDROID APP
-- use 
+<!-- # NATIVE SPLASH SCREEN IN ANDROID APP
+- use  -->
+
+<!-- # DOCUMENTS SCREEN -> Upload Files, STUDENT SCREEN -> Add new student screen
+- "use camera" fix error after back shows error "failed to scan document: PlatformException (Document Scanner, Operation Cancelled, null, null)", use appropriate error message -->
+
+<!-- # DASHBOARD LOGS
+- recent activites:
+  - update: enrollment description -> "Enrolled student [LRN last 4 digits then first as bullet point] in [year] - [grade level] - [section]"
+  - update: description update student -> "Updated student [LRN last 4 digits then first as bullet point]"
+  - update: bulk description -> "Updated [number] students [last name] - [LRN last 4 digit then first as bullet point]", use unlisted list for multiple students
+  - UI UX:
+    - use the dashboard list design inside the screen
+    - use dashboard activity details modal inside the screen
+    - use filter modal design in students screen
+    - fix the color and layout of filter button and clear, theme responsive
+- user account history:
+  - update: description of created user -> "Added user: [username] as [user role]"
+  - update: description of updated user -> "Updated user: [username] [what changes in bullet point]"
+  - add: log for users deactivate/activate user -> "[Deactivated/Activated] user: [username]"
+  - add: log for reset user password -> "Reset password for user: [username]"
+  - UI UX:
+    - use the dashboard list design inside the screen
+    - use dashboard activity details modal inside the screen
+    - use filter modal design in students screen
+    - fix the color and layout of filter button and clear, theme responsive -->
+
+<!-- # STUDENT SCREEN
+- Add new student screen:
+  - Android app:
+    - change the layout in name section in stock each other -> first name -> middle name -> last name -> suffix
+    - hide the back button and next button, when typing
+  - Windows app:
+    - change the layout in name section -> 2 rows -> first name -> middle name, last name -> suffix
+
+- Responsive layout edit student screen: text boxes same from new "add new student screen layout" and buttons responsive
+
+- student profile modal: error exception: no enrollment, add appropriate message -->
+
+<!-- # ALL SCREEN NO CONNECTION TO SERVER OR NO DATA RETRIEVED
+- make a single widget for all no server fetch/no connection retrieve data
+- no internet or no server fetch message on all screen: use appropriate message -->
+
+# recycle bin modal (dont do)
 
 ---
 

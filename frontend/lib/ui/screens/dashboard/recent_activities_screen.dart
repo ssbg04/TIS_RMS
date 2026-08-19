@@ -4,8 +4,6 @@ import 'package:calendar_date_picker2/calendar_date_picker2.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/utils/date_utils.dart' as pht;
 import '../../shared/widgets/app_pagination.dart';
-import 'package:intl/intl.dart' as intl;
-
 import '../../../domain/entities/dashboard_models.dart';
 import '../../providers/dashboard_provider.dart';
 import '../../providers/auth_provider.dart';
@@ -24,46 +22,6 @@ class _RecentActivitiesScreenState
   DateTime? _fromDate;
   DateTime? _toDate;
 
-  @override
-  void dispose() {
-    super.dispose();
-  }
-
-  Future<void> _pickDateRange({StateSetter? setDialogState}) async {
-    final values = await showCalendarDatePicker2Dialog(
-      context: context,
-      config: CalendarDatePicker2WithActionButtonsConfig(
-        calendarType: CalendarDatePicker2Type.range,
-        firstDate: DateTime(2020),
-        lastDate: DateTime.now(),
-        selectedDayHighlightColor: AppColors.primaryGreen,
-      ),
-      dialogSize: const Size(325, 400),
-      value: [_fromDate, _toDate].whereType<DateTime>().toList(),
-      borderRadius: BorderRadius.circular(15),
-    );
-    if (values != null && values.isNotEmpty) {
-      setState(() {
-        _fromDate = values[0];
-        _toDate = values.length > 1 ? values[1] : values[0];
-      });
-      if (setDialogState != null) setDialogState(() {});
-      final notifier = ref.read(activityQueryProvider.notifier);
-      if (_fromDate != null) {
-        final f = _fromDate!;
-        notifier.setDateFrom(
-          '${f.year}-${f.month.toString().padLeft(2, '0')}-${f.day.toString().padLeft(2, '0')}',
-        );
-      }
-      if (_toDate != null) {
-        final t = _toDate!;
-        notifier.setDateTo(
-          '${t.year}-${t.month.toString().padLeft(2, '0')}-${t.day.toString().padLeft(2, '0')}',
-        );
-      }
-    }
-  }
-
   void _clearFilters() {
     setState(() {
       _fromDate = null;
@@ -74,219 +32,441 @@ class _RecentActivitiesScreenState
 
   void _showFilterDialog(ActivityQueryParams query, bool isTeacher) {
     String pendingAction = query.action.isEmpty ? 'All Actions' : query.action;
-    String pendingEntity = query.entityTypes.isEmpty
-        ? 'All Entities'
-        : query.entityTypes;
+    String pendingEntity =
+        query.entityTypes.isEmpty ? 'All Entities' : query.entityTypes;
+    DateTime? tempFrom = _fromDate;
+    DateTime? tempTo = _toDate;
+    int pendingLimit = query.limit;
+
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     showDialog(
       context: context,
-      barrierColor: Colors.black.withValues(alpha: 0.25),
+      barrierColor: Colors.black.withValues(alpha: 0.35),
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setDialogState) {
-          final isDark = Theme.of(ctx).brightness == Brightness.dark;
+          Future<void> pickDateRange() async {
+            final values = await showCalendarDatePicker2Dialog(
+              context: ctx,
+              config: CalendarDatePicker2WithActionButtonsConfig(
+                calendarType: CalendarDatePicker2Type.range,
+                firstDate: DateTime(2020),
+                lastDate: DateTime.now(),
+                selectedDayHighlightColor: AppColors.primaryGreen,
+              ),
+              dialogSize: const Size(325, 400),
+              value: [
+                ?tempFrom,
+                ?tempTo,
+              ],
+              borderRadius: BorderRadius.circular(15),
+            );
+            if (values != null && values.isNotEmpty) {
+              setDialogState(() {
+                tempFrom = values[0];
+                tempTo = values.length > 1 ? values[1] : values[0];
+              });
+            }
+          }
+
+          String dateRangeLabel = 'All Dates (No filter)';
+          if (tempFrom != null && tempTo != null) {
+            if (tempFrom!.year == tempTo!.year &&
+                tempFrom!.month == tempTo!.month &&
+                tempFrom!.day == tempTo!.day) {
+              dateRangeLabel =
+                  '${tempFrom!.day}/${tempFrom!.month}/${tempFrom!.year}';
+            } else {
+              dateRangeLabel =
+                  '${tempFrom!.day}/${tempFrom!.month}/${tempFrom!.year} – ${tempTo!.day}/${tempTo!.month}/${tempTo!.year}';
+            }
+          } else if (tempFrom != null) {
+            dateRangeLabel =
+                'From ${tempFrom!.day}/${tempFrom!.month}/${tempFrom!.year}';
+          } else if (tempTo != null) {
+            dateRangeLabel =
+                'To ${tempTo!.day}/${tempTo!.month}/${tempTo!.year}';
+          }
+
           return Dialog(
             backgroundColor: Colors.transparent,
-            insetPadding: const EdgeInsets.symmetric(
+            insetPadding: EdgeInsets.symmetric(
               horizontal: 20,
-              vertical: 40,
+              vertical: MediaQuery.of(context).size.height < 600 ? 16 : 40,
             ),
             child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 440),
+              constraints: BoxConstraints(
+                maxWidth: 460,
+                maxHeight: MediaQuery.of(context).size.height * 0.88,
+              ),
               child: Container(
-                margin: const EdgeInsets.only(top: 10),
                 decoration: BoxDecoration(
                   color: isDark ? AppColors.darkSurfaceCard : Colors.white,
-                  borderRadius: BorderRadius.circular(14),
-                  border: Border.all(color: isDark ? AppColors.darkBorder : Colors.grey.shade200),
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(
+                    color: isDark ? AppColors.darkBorder : Colors.grey.shade200,
+                  ),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.07),
-                      blurRadius: 16,
-                      offset: const Offset(0, 4),
+                      color: Colors.black.withValues(alpha: 0.15),
+                      blurRadius: 20,
+                      offset: const Offset(0, 8),
                     ),
                   ],
                 ),
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
+                    // ── Header ──
                     Padding(
-                      padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
+                      padding: const EdgeInsets.fromLTRB(20, 18, 16, 14),
                       child: Row(
                         children: [
-                          const Icon(
-                            Icons.tune_rounded,
-                            size: 18,
-                            color: AppColors.primaryGreen,
-                          ),
-                          const SizedBox(width: 8),
-                          Text(
-                            'Filter Activities',
-                            style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
-                              color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
+                          Container(
+                            padding: const EdgeInsets.all(8),
+                            decoration: BoxDecoration(
+                              color: AppColors.primaryGreen.withValues(
+                                alpha: 0.1,
+                              ),
+                              borderRadius: BorderRadius.circular(8),
                             ),
+                            child: const Icon(
+                              Icons.tune_rounded,
+                              size: 20,
+                              color: AppColors.primaryGreen,
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'Filter Recent Activities',
+                                  style: TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.bold,
+                                    color: isDark
+                                        ? AppColors.darkTextPrimary
+                                        : AppColors.textPrimary,
+                                  ),
+                                ),
+                                const SizedBox(height: 2),
+                                Text(
+                                  'Narrow down activity logs',
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    color: isDark
+                                        ? AppColors.darkTextSecondary
+                                        : AppColors.textSecondary,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          IconButton(
+                            icon: const Icon(Icons.close_rounded, size: 20),
+                            onPressed: () => Navigator.of(ctx).pop(),
+                            color: isDark
+                                ? AppColors.darkTextSecondary
+                                : Colors.grey.shade500,
                           ),
                         ],
                       ),
                     ),
-                    Divider(height: 20, color: isDark ? AppColors.darkBorder : Colors.grey.shade200),
-                    Padding(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 20,
-                        vertical: 8,
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'Date Range',
-                            style: TextStyle(
-                              fontWeight: FontWeight.w600,
-                              fontSize: 13,
-                              color: isDark ? AppColors.darkTextSecondary : Colors.grey,
+
+                    Divider(
+                      height: 1,
+                      thickness: 1,
+                      color: isDark
+                          ? AppColors.darkBorder
+                          : Colors.grey.shade200,
+                    ),
+
+                    // ── Scrollable Body ──
+                    Flexible(
+                      child: SingleChildScrollView(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 20,
+                          vertical: 16,
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            // 1. Date Range Section
+                            _buildSectionHeader(
+                              context,
+                              label: 'Date Range',
+                              hasActiveFilter:
+                                  tempFrom != null || tempTo != null,
+                              onReset: () => setDialogState(() {
+                                tempFrom = null;
+                                tempTo = null;
+                              }),
                             ),
-                          ),
-                          const SizedBox(height: 8),
-                          SizedBox(
-                            width: double.infinity,
-                            child: OutlinedButton.icon(
-                              onPressed: () => _pickDateRange(
-                                setDialogState: setDialogState,
-                              ),
-                              icon: const Icon(Icons.calendar_today, size: 16),
-                              label: Text(_getDateRangeText()),
-                              style: OutlinedButton.styleFrom(
-                                alignment: Alignment.centerLeft,
+                            const SizedBox(height: 8),
+                            InkWell(
+                              onTap: pickDateRange,
+                              borderRadius: BorderRadius.circular(10),
+                              child: Container(
                                 padding: const EdgeInsets.symmetric(
-                                  horizontal: 12,
+                                  horizontal: 14,
                                   vertical: 12,
                                 ),
-                                foregroundColor:
-                                    (_fromDate != null || _toDate != null)
-                                    ? AppColors.primaryGreen
-                                    : (isDark ? AppColors.darkTextPrimary : Colors.black87),
-                                side: BorderSide(
-                                  color: (_fromDate != null || _toDate != null)
-                                      ? AppColors.primaryGreen
-                                      : (isDark ? AppColors.darkBorder : Colors.grey.shade300),
+                                decoration: BoxDecoration(
+                                  color: isDark
+                                      ? AppColors.darkSurface2
+                                      : Colors.grey.shade50,
+                                  borderRadius: BorderRadius.circular(10),
+                                  border: Border.all(
+                                    color: (tempFrom != null || tempTo != null)
+                                        ? AppColors.primaryGreen
+                                        : (isDark
+                                            ? AppColors.darkBorder
+                                            : Colors.grey.shade300),
+                                    width: (tempFrom != null || tempTo != null)
+                                        ? 1.5
+                                        : 1,
+                                  ),
                                 ),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(8),
+                                child: Row(
+                                  children: [
+                                    Icon(
+                                      Icons.calendar_today_rounded,
+                                      size: 18,
+                                      color: (tempFrom != null || tempTo != null)
+                                          ? AppColors.primaryGreen
+                                          : (isDark
+                                              ? AppColors.darkTextSecondary
+                                              : AppColors.textSecondary),
+                                    ),
+                                    const SizedBox(width: 10),
+                                    Expanded(
+                                      child: Text(
+                                        dateRangeLabel,
+                                        style: TextStyle(
+                                          fontSize: 13,
+                                          fontWeight: (tempFrom != null || tempTo != null)
+                                              ? FontWeight.w600
+                                              : FontWeight.normal,
+                                          color: (tempFrom != null || tempTo != null)
+                                              ? (isDark
+                                                  ? AppColors.darkTextPrimary
+                                                  : AppColors.textPrimary)
+                                              : (isDark
+                                                  ? AppColors.darkTextSecondary
+                                                  : AppColors.textSecondary),
+                                        ),
+                                      ),
+                                    ),
+                                    if (tempFrom != null || tempTo != null)
+                                      GestureDetector(
+                                        onTap: () => setDialogState(() {
+                                          tempFrom = null;
+                                          tempTo = null;
+                                        }),
+                                        child: Icon(
+                                          Icons.close_rounded,
+                                          size: 18,
+                                          color: isDark
+                                              ? AppColors.darkTextSecondary
+                                              : Colors.grey.shade600,
+                                        ),
+                                      ),
+                                  ],
                                 ),
                               ),
                             ),
-                          ),
-                          const SizedBox(height: 16),
-                          Text(
-                            'Action',
-                            style: TextStyle(
-                              fontWeight: FontWeight.w600,
-                              fontSize: 13,
-                              color: isDark ? AppColors.darkTextSecondary : Colors.grey,
-                            ),
-                          ),
-                          const SizedBox(height: 8),
-                          Wrap(
-                            spacing: 8,
-                            runSpacing: 8,
-                            children:
-                                [
-                                  'All Actions',
-                                  'CREATE',
-                                  'UPDATE',
-                                  'DELETE',
-                                ].map((v) {
-                                  final isSelected = pendingAction == v;
-                                  return ChoiceChip(
-                                    label: Text(v),
-                                    selected: isSelected,
-                                    selectedColor: AppColors.primaryGreen
-                                        .withValues(alpha: 0.2),
-                                    onSelected: (_) =>
-                                        setDialogState(() => pendingAction = v),
-                                  );
-                                }).toList(),
-                          ),
-                          if (!isTeacher) ...[
-                            const SizedBox(height: 16),
-                            Text(
-                              'Entity Type',
-                              style: TextStyle(
-                                fontWeight: FontWeight.w600,
-                                fontSize: 13,
-                                color: isDark ? AppColors.darkTextSecondary : Colors.grey,
+
+                            _buildDivider(isDark),
+
+                            // 2. Action Filter
+                            _buildSectionHeader(
+                              context,
+                              label: 'Action',
+                              hasActiveFilter: pendingAction != 'All Actions',
+                              onReset: () => setDialogState(
+                                () => pendingAction = 'All Actions',
                               ),
                             ),
                             const SizedBox(height: 8),
-                            Wrap(
-                              spacing: 8,
-                              runSpacing: 8,
-                              children: ['All Entities', 'student', 'enrollment', 'document', 'user']
-                                  .map((v) {
-                                    final isSelected = pendingEntity == v;
-                                    return ChoiceChip(
-                                      label: Text(v.toUpperCase()),
-                                      selected: isSelected,
-                                      selectedColor: AppColors.primaryGreen
-                                          .withValues(alpha: 0.2),
-                                      onSelected: (_) => setDialogState(
-                                        () => pendingEntity = v,
-                                      ),
-                                    );
-                                  })
-                                  .toList(),
+                            _buildChipGroup(
+                              context,
+                              items: const [
+                                'All Actions',
+                                'CREATE',
+                                'UPDATE',
+                                'DELETE',
+                              ],
+                              selectedValue: pendingAction,
+                              onSelected: (v) =>
+                                  setDialogState(() => pendingAction = v),
+                            ),
+
+                            if (!isTeacher) ...[
+                              _buildDivider(isDark),
+
+                              // 3. Entity Type Filter
+                              _buildSectionHeader(
+                                context,
+                                label: 'Entity Type',
+                                hasActiveFilter:
+                                    pendingEntity != 'All Entities',
+                                onReset: () => setDialogState(
+                                  () => pendingEntity = 'All Entities',
+                                ),
+                              ),
+                              const SizedBox(height: 8),
+                              _buildChipGroup(
+                                context,
+                                items: const [
+                                  'All Entities',
+                                  'student',
+                                  'enrollment',
+                                  'document',
+                                  'user',
+                                ],
+                                labelBuilder: (s) => s == 'All Entities'
+                                    ? 'All Entities'
+                                    : s.toUpperCase(),
+                                selectedValue: pendingEntity,
+                                onSelected: (v) =>
+                                    setDialogState(() => pendingEntity = v),
+                              ),
+                            ],
+
+                            _buildDivider(isDark),
+
+                            // 4. Page Size
+                            _buildSectionHeader(
+                              context,
+                              label: 'Activities per Page',
+                              hasActiveFilter: pendingLimit != 15,
+                              onReset: () =>
+                                  setDialogState(() => pendingLimit = 15),
+                            ),
+                            const SizedBox(height: 8),
+                            _buildChipGroup(
+                              context,
+                              items: const ['10', '15', '20', '50'],
+                              labelBuilder: (s) => '$s per page',
+                              selectedValue: pendingLimit.toString(),
+                              onSelected: (v) => setDialogState(
+                                () => pendingLimit = int.tryParse(v) ?? 15,
+                              ),
                             ),
                           ],
-                        ],
-                      ),
-                    ),
-                    Divider(height: 20, color: isDark ? AppColors.darkBorder : Colors.grey.shade200),
-                    Container(
-                      padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
-                      decoration: BoxDecoration(
-                        color: isDark ? AppColors.darkSurfaceCard : Colors.white,
-                        borderRadius: const BorderRadius.vertical(
-                          bottom: Radius.circular(14),
                         ),
                       ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                    ),
+
+                    Divider(
+                      height: 1,
+                      thickness: 1,
+                      color: isDark
+                          ? AppColors.darkBorder
+                          : Colors.grey.shade200,
+                    ),
+
+                    // ── Footer Buttons ──
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(20, 14, 20, 16),
+                      child: Row(
                         children: [
-                          ElevatedButton(
-                            onPressed: () {
-                              final actionToSet = pendingAction == 'All Actions'
-                                  ? ''
-                                  : pendingAction;
-                              final entityToSet =
-                                  pendingEntity == 'All Entities'
-                                  ? ''
-                                  : pendingEntity;
-                              ref
-                                  .read(activityQueryProvider.notifier)
-                                  .setAction(actionToSet);
-                              ref
-                                  .read(activityQueryProvider.notifier)
-                                  .setEntityTypes(entityToSet);
-                              Navigator.pop(ctx);
-                            },
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: AppColors.primaryGreen,
-                              foregroundColor: Colors.white,
-                              padding: const EdgeInsets.symmetric(vertical: 12),
+                          Expanded(
+                            flex: 1,
+                            child: OutlinedButton(
+                              style: OutlinedButton.styleFrom(
+                                foregroundColor: isDark
+                                    ? AppColors.darkTextSecondary
+                                    : AppColors.textSecondary,
+                                side: BorderSide(
+                                  color: isDark
+                                      ? AppColors.darkBorder
+                                      : Colors.grey.shade300,
+                                ),
+                                padding:
+                                    const EdgeInsets.symmetric(vertical: 12),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(10),
+                                ),
+                              ),
+                              onPressed: () {
+                                setDialogState(() {
+                                  tempFrom = null;
+                                  tempTo = null;
+                                  pendingAction = 'All Actions';
+                                  pendingEntity = 'All Entities';
+                                  pendingLimit = 15;
+                                });
+                              },
+                              child: const Text(
+                                'Reset all',
+                                style: TextStyle(
+                                  fontWeight: FontWeight.w600,
+                                  fontSize: 13.5,
+                                ),
+                              ),
                             ),
-                            child: const Text('Apply Filters'),
                           ),
-                          const SizedBox(height: 8),
-                          OutlinedButton(
-                            onPressed: () => Navigator.pop(ctx),
-                            style: OutlinedButton.styleFrom(
-                              side: BorderSide(color: isDark ? AppColors.darkBorder : Colors.grey.shade300),
-                              foregroundColor: isDark ? AppColors.darkTextSecondary : Colors.grey.shade700,
-                              padding: const EdgeInsets.symmetric(vertical: 12),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            flex: 2,
+                            child: ElevatedButton(
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: AppColors.primaryGreen,
+                                foregroundColor: Colors.white,
+                                padding:
+                                    const EdgeInsets.symmetric(vertical: 12),
+                                elevation: 0,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(10),
+                                ),
+                              ),
+                              onPressed: () {
+                                setState(() {
+                                  _fromDate = tempFrom;
+                                  _toDate = tempTo;
+                                });
+                                final notifier = ref.read(
+                                  activityQueryProvider.notifier,
+                                );
+                                if (tempFrom != null) {
+                                  notifier.setDateFrom(
+                                    '${tempFrom!.year}-${tempFrom!.month.toString().padLeft(2, '0')}-${tempFrom!.day.toString().padLeft(2, '0')}',
+                                  );
+                                } else {
+                                  notifier.setDateFrom('');
+                                }
+                                if (tempTo != null) {
+                                  notifier.setDateTo(
+                                    '${tempTo!.year}-${tempTo!.month.toString().padLeft(2, '0')}-${tempTo!.day.toString().padLeft(2, '0')}',
+                                  );
+                                } else {
+                                  notifier.setDateTo('');
+                                }
+                                notifier.setAction(
+                                  pendingAction == 'All Actions'
+                                      ? ''
+                                      : pendingAction,
+                                );
+                                notifier.setEntityTypes(
+                                  pendingEntity == 'All Entities'
+                                      ? ''
+                                      : pendingEntity,
+                                );
+                                notifier.setLimit(pendingLimit);
+                                Navigator.of(ctx).pop();
+                              },
+                              child: const Text(
+                                'Apply Filters',
+                                style: TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 13.5,
+                                ),
+                              ),
                             ),
-                            child: const Text('Cancel'),
                           ),
                         ],
                       ),
@@ -301,12 +481,120 @@ class _RecentActivitiesScreenState
     );
   }
 
+  Widget _buildSectionHeader(
+    BuildContext context, {
+    required String label,
+    required bool hasActiveFilter,
+    required VoidCallback onReset,
+  }) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Text(
+          label,
+          style: TextStyle(
+            fontSize: 12.5,
+            fontWeight: FontWeight.w600,
+            color: isDark
+                ? AppColors.darkTextSecondary
+                : AppColors.textSecondary,
+          ),
+        ),
+        if (hasActiveFilter)
+          InkWell(
+            onTap: onReset,
+            borderRadius: BorderRadius.circular(4),
+            child: const Padding(
+              padding: EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+              child: Text(
+                'Clear',
+                style: TextStyle(
+                  fontSize: 11.5,
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.primaryGreen,
+                ),
+              ),
+            ),
+          ),
+      ],
+    );
+  }
+
+  Widget _buildDivider(bool isDark) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 14),
+      child: Divider(
+        height: 1,
+        thickness: 1,
+        color: isDark ? AppColors.darkBorder : Colors.grey.shade200,
+      ),
+    );
+  }
+
+  Widget _buildChipGroup(
+    BuildContext context, {
+    required List<String> items,
+    required String selectedValue,
+    required ValueChanged<String> onSelected,
+    String Function(String)? labelBuilder,
+  }) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    return Wrap(
+      spacing: 8,
+      runSpacing: 8,
+      children: items.map((item) {
+        final isSelected = item == selectedValue;
+        final display = labelBuilder != null ? labelBuilder(item) : item;
+        return ChoiceChip(
+          label: Text(
+            display,
+            style: TextStyle(
+              fontSize: 12.5,
+              fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+              color: isSelected
+                  ? AppColors.primaryGreen
+                  : (isDark
+                      ? AppColors.darkTextPrimary
+                      : AppColors.textPrimary),
+            ),
+          ),
+          selected: isSelected,
+          onSelected: (selected) {
+            if (selected) {
+              onSelected(item);
+            }
+          },
+          selectedColor: AppColors.primaryGreen.withValues(alpha: 0.12),
+          backgroundColor:
+              isDark ? AppColors.darkSurface2 : Colors.grey.shade100,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+            side: BorderSide(
+              color: isSelected
+                  ? AppColors.primaryGreen
+                  : (isDark ? AppColors.darkBorder : Colors.grey.shade300),
+              width: 1,
+            ),
+          ),
+          showCheckmark: false,
+        );
+      }).toList(),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final activitiesAsync = ref.watch(recentActivitiesPageProvider);
     final query = ref.watch(activityQueryProvider);
     final isTeacher = ref.watch(authProvider).value?.role == 'teacher';
     final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    final hasActiveFilter =
+        _fromDate != null ||
+        _toDate != null ||
+        query.action.isNotEmpty ||
+        query.entityTypes.isNotEmpty;
 
     return Scaffold(
       appBar: AppBar(
@@ -320,64 +608,123 @@ class _RecentActivitiesScreenState
       ),
       body: Column(
         children: [
-          // ── Filter Bar ───────────────────────────────────────────────────
+          // ── Filter Top Bar ───────────────────────────────────────────────
           Container(
             width: double.infinity,
-            color: isDark ? AppColors.darkSurfaceCard : Colors.white,
-            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
-            child: Wrap(
-              spacing: 12,
-              runSpacing: 8,
-              crossAxisAlignment: WrapCrossAlignment.center,
+            decoration: BoxDecoration(
+              color: isDark ? AppColors.darkSurfaceCard : Colors.white,
+              border: Border(
+                bottom: BorderSide(
+                  color: isDark ? AppColors.darkBorder : Colors.grey.shade200,
+                ),
+              ),
+            ),
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+            child: Row(
               children: [
-                ActionChip(
-                  avatar: const Icon(
+                OutlinedButton.icon(
+                  onPressed: () => _showFilterDialog(query, isTeacher),
+                  icon: const Icon(
                     Icons.tune_rounded,
                     size: 16,
-                    color: Colors.white,
                   ),
-                  label: const Text(
-                    'Filters',
-                    style: TextStyle(
-                      color: Colors.white,
+                  label: Text(
+                    hasActiveFilter ? 'Filtered' : 'Filter',
+                    style: const TextStyle(
                       fontWeight: FontWeight.w600,
+                      fontSize: 13,
                     ),
                   ),
-                  backgroundColor: AppColors.primaryGreen,
-                  onPressed: () => _showFilterDialog(query, isTeacher),
-                  side: BorderSide.none,
-                ),
-                if (_fromDate != null ||
-                    _toDate != null ||
-                    query.action.isNotEmpty ||
-                    query.entityTypes.isNotEmpty)
-                  ActionChip(
-                    avatar: const Icon(Icons.clear, size: 16),
-                    label: const Text('Clear'),
-                    onPressed: _clearFilters,
-                    backgroundColor: isDark ? Colors.red.withValues(alpha: 0.15) : Colors.red.shade50,
-                    labelStyle: TextStyle(color: isDark ? Colors.redAccent : Colors.red.shade700),
+                  style: OutlinedButton.styleFrom(
+                    backgroundColor: hasActiveFilter
+                        ? AppColors.primaryGreen.withValues(alpha: 0.1)
+                        : (isDark ? AppColors.darkSurface2 : Colors.grey.shade50),
+                    foregroundColor: hasActiveFilter
+                        ? AppColors.primaryGreen
+                        : (isDark
+                            ? AppColors.darkTextPrimary
+                            : AppColors.textPrimary),
+                    side: BorderSide(
+                      color: hasActiveFilter
+                          ? AppColors.primaryGreen
+                          : (isDark
+                              ? AppColors.darkBorder
+                              : Colors.grey.shade300),
+                    ),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 14,
+                      vertical: 10,
+                    ),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
                   ),
+                ),
+                if (hasActiveFilter) ...[
+                  const SizedBox(width: 10),
+                  TextButton.icon(
+                    onPressed: _clearFilters,
+                    icon: const Icon(Icons.clear_rounded, size: 16),
+                    label: const Text(
+                      'Clear Filters',
+                      style: TextStyle(
+                        fontWeight: FontWeight.w600,
+                        fontSize: 13,
+                      ),
+                    ),
+                    style: TextButton.styleFrom(
+                      foregroundColor: isDark ? Colors.red.shade300 : Colors.red.shade700,
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 10,
+                      ),
+                    ),
+                  ),
+                ],
               ],
             ),
           ),
-          Divider(height: 1, color: isDark ? AppColors.darkBorder : Colors.grey.shade200),
 
           // ── Content ──────────────────────────────────────────────────────
           Expanded(
             child: activitiesAsync.when(
               loading: () => const Center(child: CircularProgressIndicator()),
               error: (e, _) => Center(
-                child: Text(
-                  'Error: $e',
-                  style: const TextStyle(color: Colors.red),
+                child: Padding(
+                  padding: const EdgeInsets.all(24.0),
+                  child: Text(
+                    'Failed to load activities: $e',
+                    style: TextStyle(
+                      color: isDark ? Colors.red.shade300 : Colors.red,
+                    ),
+                  ),
                 ),
               ),
               data: (data) => data.activities.isEmpty
-                  ? const Center(
-                      child: Text(
-                        'No activities found.',
-                        style: TextStyle(color: Colors.grey),
+                  ? Center(
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            Icons.history_rounded,
+                            size: 48,
+                            color: isDark
+                                ? AppColors.darkTextSecondary.withValues(
+                                    alpha: 0.5,
+                                  )
+                                : Colors.grey.shade400,
+                          ),
+                          const SizedBox(height: 12),
+                          Text(
+                            'No recent activities found.',
+                            style: TextStyle(
+                              fontSize: 14,
+                              color: isDark
+                                  ? AppColors.darkTextSecondary
+                                  : Colors.grey.shade600,
+                            ),
+                          ),
+                        ],
                       ),
                     )
                   : Column(
@@ -394,165 +741,122 @@ class _RecentActivitiesScreenState
     );
   }
 
-  String _getDateRangeText() {
-    String text = 'Select Date Range';
-    if (_fromDate != null && _toDate != null) {
-      if (_fromDate!.year == _toDate!.year &&
-          _fromDate!.month == _toDate!.month &&
-          _fromDate!.day == _toDate!.day) {
-        text = '${_fromDate!.day}/${_fromDate!.month}/${_fromDate!.year}';
-      } else {
-        text =
-            '${_fromDate!.day}/${_fromDate!.month}/${_fromDate!.year} - ${_toDate!.day}/${_toDate!.month}/${_toDate!.year}';
-      }
-    } else if (_fromDate != null) {
-      text = 'From ${_fromDate!.day}/${_fromDate!.month}/${_fromDate!.year}';
-    } else if (_toDate != null) {
-      text = 'To ${_toDate!.day}/${_toDate!.month}/${_toDate!.year}';
-    }
-    return text;
-  }
-
   Widget _buildList(List<RecentActivity> activities) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return Center(
       child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 800),
-        child: ListView.separated(
-          padding: const EdgeInsets.all(16),
-          itemCount: activities.length,
-          separatorBuilder: (context, index) => const SizedBox(height: 12),
-          itemBuilder: (context, i) {
-            final a = activities[i];
-
-            final DateTime parsedDate = pht.parseToPht(a.createdAt);
-            final dateStr = intl.DateFormat('MMM d, yyyy').format(parsedDate);
-            final timeStr = intl.DateFormat('hh:mm a').format(parsedDate);
-
-            return InkWell(
-              onTap: () {
-                ViewActivityModal.show(
-                  context: context,
-                  title: a.entityType.toUpperCase(),
-                  description: a.description,
-                  date: pht.formatModalDate(a.createdAt),
-                  performedBy: a.performedBy ?? a.username ?? 'System',
-                  action: a.action,
-                  actionColor: _actionColor(a.action),
-                  icon: _actionIcon(a.action, a.entityType),
-                );
-              },
-              child: Container(
-                decoration: BoxDecoration(
-                  color: isDark ? AppColors.darkSurfaceCard : Colors.white,
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: isDark ? AppColors.darkBorder : Colors.grey.shade200),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.03),
-                      blurRadius: 10,
-                      offset: const Offset(0, 4),
-                    ),
-                  ],
+        constraints: const BoxConstraints(maxWidth: 900),
+        child: ListView.builder(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+          itemCount: 1,
+          itemBuilder: (context, _) {
+            return Container(
+              decoration: BoxDecoration(
+                color: isDark ? AppColors.darkSurfaceCard : Colors.white,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                  color: isDark ? AppColors.darkBorder : Colors.grey.shade200,
                 ),
-                child: Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Icon(
-                                _actionIcon(a.action, a.entityType),
-                                color: _actionColor(a.action),
-                                size: 22,
-                              ),
-                              const SizedBox(width: 8),
-                              _actionChip(a.action),
-                            ],
-                          ),
-                          Text(
-                            '$dateStr • $timeStr',
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: isDark ? AppColors.darkTextSecondary : Colors.grey,
-                            ),
-                          ),
-                        ],
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.03),
+                    blurRadius: 10,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
+              ),
+              child: ListView.separated(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                itemCount: activities.length,
+                separatorBuilder: (_, _) => Divider(
+                  height: 1,
+                  color: isDark ? AppColors.darkBorder : Colors.grey.shade200,
+                ),
+                itemBuilder: (context, index) {
+                  final a = activities[index];
+
+                  return Material(
+                    color: Colors.transparent,
+                    child: InkWell(
+                      mouseCursor: SystemMouseCursors.click,
+                      onTap: () => ViewActivityModal.show(
+                        context: context,
+                        title: a.entityType.toUpperCase(),
+                        description: a.description,
+                        date: pht.formatModalDate(a.createdAt),
+                        performedBy: a.performedBy ?? a.username ?? 'System',
+                        action: a.action,
+                        actionColor: _actionColor(a.action),
+                        icon: _actionIcon(a.action, a.entityType),
                       ),
-                      const SizedBox(height: 14),
-                      Text(
-                        a.description,
-                        style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 15,
-                          color: isDark ? AppColors.darkTextPrimary : Colors.black87,
+                      child: ListTile(
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 12,
                         ),
-                      ),
-                      const SizedBox(height: 14),
-                      Container(
-                        padding: const EdgeInsets.all(12),
-                        decoration: BoxDecoration(
-                          color: isDark ? AppColors.darkSurface2 : Colors.grey.shade50,
-                          borderRadius: BorderRadius.circular(8),
-                          border: Border.all(color: isDark ? AppColors.darkBorder : Colors.grey.shade100),
+                        leading: Icon(
+                          _actionIcon(a.action, a.entityType),
+                          color: _actionColor(a.action),
+                          size: 26,
                         ),
-                        child: Column(
+                        title: Padding(
+                          padding: const EdgeInsets.only(bottom: 6.0),
+                          child: Align(
+                            alignment: Alignment.centerLeft,
+                            child: _buildActionChip(a.action),
+                          ),
+                        ),
+                        subtitle: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
+                            Text(
+                              a.description,
+                              style: TextStyle(
+                                fontWeight: FontWeight.w500,
+                                fontSize: 13,
+                                color: Theme.of(context).colorScheme.onSurface,
+                              ),
+                            ),
+                            const SizedBox(height: 8),
                             Row(
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
                                 Text(
-                                  'Entity Type',
+                                  pht.formatRelative(a.createdAt),
                                   style: TextStyle(
-                                    fontSize: 13,
-                                    color: isDark ? AppColors.darkTextSecondary : Colors.grey,
-                                  ),
-                                ),
-                                 Text(
-                                   a.entityType.toUpperCase(),
-                                   style: TextStyle(
-                                     fontSize: 11,
-                                     fontWeight: FontWeight.bold,
-                                     color: isDark ? AppColors.darkTextPrimary : Colors.grey.shade800,
-                                   ),
-                                 ),
-                              ],
-                            ),
-                            Padding(
-                              padding: const EdgeInsets.symmetric(vertical: 8),
-                              child: Divider(height: 1, color: isDark ? AppColors.darkBorder : Colors.grey.shade200),
-                            ),
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                Text(
-                                  'Performed By',
-                                  style: TextStyle(
-                                    fontSize: 13,
-                                    color: isDark ? AppColors.darkTextSecondary : Colors.grey,
+                                    fontSize: 12,
+                                    color: isDark
+                                        ? AppColors.darkTextSecondary
+                                        : Colors.grey.shade600,
                                   ),
                                 ),
                                 Text(
-                                    a.performedBy ?? a.username ?? 'System',
-                                    style: TextStyle(
-                                      fontSize: 13,
-                                      fontWeight: FontWeight.w600,
-                                      color: isDark ? AppColors.darkTextPrimary : Colors.black87,
-                                    ),
+                                  'by ${a.performedBy ?? a.username ?? 'System'}',
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    color: isDark
+                                        ? AppColors.darkTextSecondary
+                                        : Colors.grey.shade600,
+                                    fontWeight: FontWeight.w500,
                                   ),
+                                ),
                               ],
                             ),
                           ],
                         ),
+                        trailing: Icon(
+                          Icons.chevron_right_rounded,
+                          size: 20,
+                          color: isDark
+                              ? AppColors.darkTextSecondary.withValues(alpha: 0.5)
+                              : Colors.grey.shade400,
+                        ),
                       ),
-                    ],
-                  ),
-                ),
+                    ),
+                  );
+                },
               ),
             );
           },
@@ -565,18 +869,26 @@ class _RecentActivitiesScreenState
     return AppPagination(
       currentPage: current,
       totalPages: data.totalPages,
-      onPageChanged: (p) => ref.read(activityQueryProvider.notifier).setPage(p),
+      onPageChanged: (p) =>
+          ref.read(activityQueryProvider.notifier).setPage(p),
     );
   }
 
-  Widget _actionChip(String action) {
+  Widget _buildActionChip(String action) {
     final color = _actionColor(action);
-    return Text(
-      action.toUpperCase(),
-      style: TextStyle(
-        fontSize: 12,
-        fontWeight: FontWeight.bold,
-        color: color,
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(4),
+      ),
+      child: Text(
+        action.toUpperCase(),
+        style: TextStyle(
+          fontSize: 10,
+          fontWeight: FontWeight.bold,
+          color: color,
+        ),
       ),
     );
   }
@@ -588,39 +900,25 @@ class _RecentActivitiesScreenState
         return isDark ? Colors.green.shade300 : AppColors.primaryGreen;
       case 'DELETE':
         return isDark ? Colors.red.shade300 : Colors.red;
+      case 'UPDATE':
+        return isDark ? Colors.orange.shade300 : Colors.orange;
       default:
         return isDark ? Colors.blue.shade300 : Colors.blue;
     }
   }
 
   IconData _actionIcon(String action, String entityType) {
-    if (entityType == 'user') {
-      switch (action.toUpperCase()) {
-        case 'CREATE':
-          return Icons.person_add;
-        case 'DELETE':
-          return Icons.person_off;
-        default:
-          return Icons.manage_accounts;
-      }
-    }
-    if (entityType == 'student') {
-      switch (action.toUpperCase()) {
-        case 'CREATE':
-          return Icons.school;
-        case 'DELETE':
-          return Icons.delete_forever;
-        default:
-          return Icons.edit;
-      }
-    }
-    switch (action.toUpperCase()) {
-      case 'CREATE':
-        return Icons.upload_file;
-      case 'DELETE':
-        return Icons.delete;
+    switch (entityType.toLowerCase()) {
+      case 'student':
+        return Icons.person_rounded;
+      case 'document':
+        return Icons.description_rounded;
+      case 'user':
+        return Icons.manage_accounts_rounded;
+      case 'enrollment':
+        return Icons.school_rounded;
       default:
-        return Icons.description;
+        return Icons.history_rounded;
     }
   }
 }

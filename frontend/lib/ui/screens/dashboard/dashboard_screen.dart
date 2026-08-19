@@ -25,6 +25,7 @@ import '../settings/teacher_management_screen.dart';
 import 'widgets/notification_dropdown.dart';
 import '../../shared/modals/view_activity_modal.dart';
 import 'widgets/dashboard_kpis.dart';
+import '../../shared/widgets/app_error_state.dart';
 
 class DashboardScreen extends ConsumerStatefulWidget {
   const DashboardScreen({super.key});
@@ -309,21 +310,9 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
         child: dashboardAsync.when(
           skipLoadingOnReload: true,
           loading: () => const Center(child: CircularProgressIndicator()),
-          error: (error, _) => Center(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const Icon(Icons.error_outline, color: Colors.red, size: 48),
-                const SizedBox(height: 12),
-                Text('$error', style: const TextStyle(color: Colors.red)),
-                const SizedBox(height: 16),
-                ElevatedButton.icon(
-                  onPressed: _handleRefresh,
-                  icon: const Icon(Icons.refresh),
-                  label: const Text('Retry'),
-                ),
-              ],
-            ),
+          error: (error, _) => AppErrorState.fromError(
+            error: error,
+            onRetry: _handleRefresh,
           ),
           data: (data) => Stack(
             children: [

@@ -334,13 +334,15 @@ class StudentProfileModalBody extends ConsumerWidget {
           ],
         ),
       ),
-      data: (student) => SingleChildScrollView(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            _buildInfoCard(context, student),
-            const SizedBox(height: 20),
+      data: (student) {
+        final isDark = Theme.of(context).brightness == Brightness.dark;
+        return SingleChildScrollView(
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _buildInfoCard(context, student),
+              const SizedBox(height: 20),
 
             const SizedBox(height: 20),
             const Text(
@@ -375,6 +377,38 @@ class StudentProfileModalBody extends ConsumerWidget {
                     .toList();
               })(),
               const SizedBox(height: 20),
+            ] else ...[
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(14),
+                decoration: BoxDecoration(
+                  color: isDark ? AppColors.darkSurface2 : Colors.grey.shade50,
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(
+                    color: isDark ? AppColors.darkBorder : Colors.grey.shade200,
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    Icon(
+                      Icons.info_outline_rounded,
+                      size: 20,
+                      color: isDark ? AppColors.darkTextSecondary : Colors.grey.shade600,
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Text(
+                        'No enrollment records found for this student.',
+                        style: TextStyle(
+                          fontSize: 13,
+                          color: isDark ? AppColors.darkTextSecondary : Colors.grey.shade700,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 20),
             ],
 
             const Text(
@@ -400,7 +434,8 @@ class StudentProfileModalBody extends ConsumerWidget {
             const SizedBox(height: 8),
           ],
         ),
-      ),
+      );
+      },
     );
   }
 

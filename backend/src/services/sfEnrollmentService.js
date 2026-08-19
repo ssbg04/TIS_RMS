@@ -25,9 +25,11 @@ function maskLrn(lrn) {
 function getEnrollmentLogDesc(year, gradeLevel, secName, lrn, studentName = '') {
     const gradeStr = String(gradeLevel).toLowerCase().startsWith('grade') ? gradeLevel : `Grade ${gradeLevel}`;
     const masked = maskLrn(lrn);
-    const studentPart = studentName ? `student ${studentName} - ${masked}` : (masked ? `student ${masked}` : '');
-    const parts = [year, gradeStr, secName, studentPart].filter(Boolean);
-    return parts.join(' - ');
+    const details = [year, gradeStr, secName].filter(Boolean).join(' - ');
+    if (details) {
+        return `Enrolled student ${masked} in ${details}`;
+    }
+    return `Enrolled student ${masked}`;
 }
 
 const findTeacherUser = (db, adviserName) => {

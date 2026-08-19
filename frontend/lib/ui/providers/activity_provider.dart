@@ -55,6 +55,7 @@ class UserHistoryQueryNotifier
   UserHistoryQueryParams build() => const UserHistoryQueryParams();
 
   void setPage(int page) => state = state.copyWith(page: page);
+  void setLimit(int limit) => state = state.copyWith(limit: limit, page: 1);
   void setDateFrom(String v) => state = state.copyWith(dateFrom: v, page: 1);
   void setDateTo(String v) => state = state.copyWith(dateTo: v, page: 1);
   void setAction(String v) => state = state.copyWith(action: v, page: 1);

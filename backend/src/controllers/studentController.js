@@ -33,21 +33,15 @@ const getEnrollmentLogDesc = (academicYearId, gradeLevel, sectionId, lrn, studen
         const secName = sec?.name || '';
         const gradeStr = String(gradeLevel).toLowerCase().startsWith('grade') ? gradeLevel : `Grade ${gradeLevel}`;
 
-        let name = studentName;
-        if (!name && lrn) {
-            const student = db.prepare('SELECT first_name, last_name, extension FROM students WHERE lrn = ?').get(String(lrn).trim());
-            if (student) {
-                name = `${student.first_name} ${student.last_name}${student.extension ? ' ' + student.extension : ''}`.trim();
-            }
-        }
-
         const masked = maskLrn(lrn);
-        const studentPart = name ? `student ${name} - ${masked}` : (masked ? `student ${masked}` : '');
+        const details = [year, gradeStr, secName].filter(Boolean).join(' - ');
 
-        const parts = [year, gradeStr, secName, studentPart].filter(Boolean);
-        return parts.join(' - ');
+        if (details) {
+            return `Enrolled student ${masked} in ${details}`;
+        }
+        return `Enrolled student ${masked}`;
     } catch (err) {
-        return `Enrollment - ${maskLrn(lrn)}`;
+        return `Enrolled student ${maskLrn(lrn)}`;
     }
 };
 
@@ -683,7 +677,7 @@ exports.updateStudent = (req, res) => {
             }
         })();
 
-        logActivity(req.user?.id, 'UPDATE', 'student', id, `UPDATE student ${lrn.trim()}`);
+        logActivity(req.user?.id, 'UPDATE', 'student', id, `Updated student ${maskLrn(lrn)}`);
         res.json({ message: 'Student updated successfully.' });
     } catch (error) {
         console.error('updateStudent error:', error);
@@ -731,6 +725,7 @@ exports.bulkEnrollStudents = (req, res) => {
         return res.status(400).json({ message: 'academicYearId, sectionId, and gradeLevel are required' });
     }
     try {
+        let studentRows = [];
         db.transaction(() => {
             const getExistingEnrollment = db.prepare(`
                 SELECT e.* FROM enrollments e
@@ -741,9 +736,10 @@ exports.bulkEnrollStudents = (req, res) => {
             const insertEnrollment = db.prepare('INSERT INTO enrollments (student_id, academic_year_id, section_id, grade_level, track_strand) VALUES (?, ?, ?, ?, ?)');
             const updateStudentStatus = db.prepare('UPDATE students SET status = ? WHERE id = ?');
             
-            const getLrn = db.prepare('SELECT lrn FROM students WHERE id = ?');
+            const getStudentInfo = db.prepare('SELECT id, last_name, lrn FROM students WHERE id = ?');
             for (const studentId of studentIds) {
-                const st = getLrn.get(studentId);
+                const st = getStudentInfo.get(studentId);
+                if (st) studentRows.push(st);
                 const lrn = st?.lrn || studentId;
                 const existing = getExistingEnrollment.get(studentId, academicYearId);
                 if (existing) {
@@ -751,7 +747,7 @@ exports.bulkEnrollStudents = (req, res) => {
                         existing.section_id !== parseInt(sectionId) ||
                         existing.track_strand !== (trackStrand || null)) {
                         updateEnrollment.run(parseInt(gradeLevel), sectionId, trackStrand || null, existing.id);
-                        logActivity(req.user?.id, 'UPDATE', 'enrollment', existing.id, `UPDATE enrollment ${existing.id} student ${lrn}`);
+                        logActivity(req.user?.id, 'UPDATE', 'enrollment', existing.id, getEnrollmentLogDesc(academicYearId, gradeLevel, sectionId, lrn));
                     }
                 } else {
                     const resIns = insertEnrollment.run(studentId, academicYearId, sectionId, gradeLevel, trackStrand || null);
@@ -760,7 +756,12 @@ exports.bulkEnrollStudents = (req, res) => {
                 updateStudentStatus.run('Enrolled', studentId);
             }
         })();
-        logActivity(req.user?.id, 'UPDATE', 'student', null, `Bulk enrolled ${studentIds.length} students`);
+
+        const studentListText = studentRows.map(s => `• ${s.last_name || 'Student'} - ${maskLrn(s.lrn)}`).join('\n');
+        const bulkDesc = studentRows.length > 1
+            ? `Updated ${studentRows.length} students\n${studentListText}`
+            : (studentRows.length === 1 ? `Updated 1 student ${studentRows[0].last_name || ''} - ${maskLrn(studentRows[0].lrn)}` : `Bulk enrolled ${studentIds.length} students`);
+        logActivity(req.user?.id, 'UPDATE', 'student', null, bulkDesc);
         res.json({ message: `Successfully enrolled ${studentIds.length} students.` });
     } catch (error) {
         console.error('bulkEnrollStudents error:', error);
@@ -793,17 +794,26 @@ exports.bulkStatusStudents = (req, res) => {
         }
     }
     try {
+        let studentRows = [];
         db.transaction(() => {
             const stmt = db.prepare('UPDATE students SET status = ? WHERE id = ?');
             const archiveDocs = db.prepare('UPDATE documents SET status = \'Archived\' WHERE student_id = ? AND deleted_at IS NULL');
+            const getStudentInfo = db.prepare('SELECT id, last_name, lrn FROM students WHERE id = ?');
             for (const id of studentIds) {
+                const st = getStudentInfo.get(id);
+                if (st) studentRows.push(st);
                 stmt.run(status, id);
                 if (['Graduated', 'Transferred', 'Dropped', 'Inactive'].includes(status)) {
                     archiveDocs.run(id);
                 }
             }
         })();
-        logActivity(req.user?.id, 'UPDATE', 'student', null, `Bulk updated status to "${status}" for ${studentIds.length} students`);
+
+        const studentListText = studentRows.map(s => `• ${s.last_name || 'Student'} - ${maskLrn(s.lrn)}`).join('\n');
+        const bulkDesc = studentRows.length > 1
+            ? `Updated ${studentRows.length} students\n${studentListText}`
+            : (studentRows.length === 1 ? `Updated 1 student ${studentRows[0].last_name || ''} - ${maskLrn(studentRows[0].lrn)}` : `Bulk updated status to "${status}" for ${studentIds.length} students`);
+        logActivity(req.user?.id, 'UPDATE', 'student', null, bulkDesc);
         res.json({ message: `Successfully updated status to "${status}" for ${studentIds.length} students.` });
     } catch (error) {
         console.error('bulkStatusStudents error:', error);

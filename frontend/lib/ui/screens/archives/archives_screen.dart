@@ -11,6 +11,7 @@ import '../../../domain/repositories/document_repository.dart'
     show DocumentPage;
 import '../../shared/inputs/app_search_bar.dart';
 import '../../shared/widgets/app_pagination.dart';
+import '../../shared/widgets/app_error_state.dart';
 import '../../providers/archives_provider.dart';
 import '../../providers/document_provider.dart';
 import '../../providers/student_provider.dart';
@@ -2920,19 +2921,12 @@ class _ArchivesScreenState extends ConsumerState<ArchivesScreen>
   }
 
   Widget _buildErrorState(String error) {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          const Icon(Icons.error_outline, size: 48, color: AppColors.error),
-          const SizedBox(height: 12),
-          Text(
-            'Error: $error',
-            style: const TextStyle(color: AppColors.error),
-            textAlign: TextAlign.center,
-          ),
-        ],
-      ),
+    return AppErrorState.fromError(
+      error: error,
+      onRetry: () {
+        ref.invalidate(archiveDocumentPageProvider);
+        ref.invalidate(archiveStudentFoldersProvider);
+      },
     );
   }
 
