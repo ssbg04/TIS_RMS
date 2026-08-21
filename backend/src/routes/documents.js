@@ -31,6 +31,7 @@ router.post('/bulk-print', authenticateToken, authorizeRoles('admin'), documentC
 router.post('/bulk-copy', authenticateToken, authorizeRoles('admin'), documentController.bulkCopy);
 
 router.get('/:id/view', authenticateToken, documentController.viewDocument);
+router.post('/:id/convert-to-pdf', authenticateToken, documentController.convertToPdf);
 router.post('/:id/copy', authenticateToken, authorizeRoles('admin'), documentController.copyDocument);
 router.patch('/:id/status', authenticateToken, authorizeRoles('admin'), documentController.updateStatus);
 router.post('/:id/restore', authenticateToken, authorizeRoles('admin'), documentController.restoreDocument);

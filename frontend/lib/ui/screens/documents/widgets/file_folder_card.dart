@@ -37,10 +37,12 @@ class FileFolderCard extends StatefulWidget {
 
 class _FileFolderCardState extends State<FileFolderCard> {
   // True on Android/iOS — long press is the context menu trigger.
-  // Desktop uses the ⋮ icon + right-click.
-  static bool get _isMobile =>
-      defaultTargetPlatform == TargetPlatform.android ||
-      defaultTargetPlatform == TargetPlatform.iOS;
+  bool get _isExcel {
+    final name = widget.document.fileName.toLowerCase();
+    return name.endsWith('.xlsx') ||
+        name.endsWith('.xls') ||
+        name.endsWith('.csv');
+  }
 
   IconData get _fileIcon {
     final name = widget.document.fileName.toLowerCase();
@@ -49,6 +51,9 @@ class _FileFolderCardState extends State<FileFolderCard> {
         name.endsWith('.jpg') ||
         name.endsWith('.jpeg')) {
       return Icons.image;
+    }
+    if (_isExcel) {
+      return Icons.table_chart;
     }
     return Icons.insert_drive_file;
   }
@@ -60,6 +65,9 @@ class _FileFolderCardState extends State<FileFolderCard> {
         name.endsWith('.jpg') ||
         name.endsWith('.jpeg')) {
       return Colors.blueAccent;
+    }
+    if (_isExcel) {
+      return Colors.green;
     }
     return AppColors.primaryGreen;
   }
@@ -87,6 +95,21 @@ class _FileFolderCardState extends State<FileFolderCard> {
           ],
         ),
       ),
+      if (_isExcel)
+        const PopupMenuItem(
+          value: 'convert_pdf',
+          child: Row(
+            children: [
+              Icon(
+                Icons.picture_as_pdf_outlined,
+                size: 18,
+                color: Colors.deepOrangeAccent,
+              ),
+              SizedBox(width: 12),
+              Text('Convert to PDF', style: TextStyle(fontSize: 14)),
+            ],
+          ),
+        ),
       const PopupMenuItem(
         value: 'queue',
         child: Row(
@@ -180,14 +203,12 @@ class _FileFolderCardState extends State<FileFolderCard> {
   // ════════════════════════════════════════
   Widget _buildGridCard(BuildContext context) {
     return GestureDetector(
-      // Desktop: right-click opens context menu (disabled for teachers)
-      onSecondaryTapDown: widget.userRole == 'teacher'
-          ? null
-          : (details) => _showContextMenu(context, details.globalPosition),
-      // Mobile: long press opens context menu (disabled for teachers)
-      onLongPressStart: (widget.userRole == 'teacher' || !_isMobile)
-          ? null
-          : (details) => _showContextMenu(context, details.globalPosition),
+      // Desktop: right-click opens context menu
+      onSecondaryTapDown: (details) =>
+          _showContextMenu(context, details.globalPosition),
+      // Mobile: long press opens context menu
+      onLongPressStart: (details) =>
+          _showContextMenu(context, details.globalPosition),
       child: InkWell(
         onTap: widget.isMultiSelectMode
             ? () => widget.onSelectedChanged?.call(!widget.isSelected)
@@ -262,8 +283,8 @@ class _FileFolderCardState extends State<FileFolderCard> {
                   ],
                 ),
               ),
-              // ⋮ button only on desktop and not for teachers — on mobile, long press triggers the menu
-              if (!widget.isMultiSelectMode && !_isMobile && widget.userRole != 'teacher')
+              // ⋮ button visible on both mobile and desktop
+              if (!widget.isMultiSelectMode)
                 Positioned(
                   top: 2,
                   right: 2,
@@ -289,12 +310,10 @@ class _FileFolderCardState extends State<FileFolderCard> {
   // ════════════════════════════════════════
   Widget _buildListRow(BuildContext context) {
     return GestureDetector(
-      onSecondaryTapDown: widget.userRole == 'teacher'
-          ? null
-          : (details) => _showContextMenu(context, details.globalPosition),
-      onLongPressStart: (widget.userRole == 'teacher' || !_isMobile)
-          ? null
-          : (details) => _showContextMenu(context, details.globalPosition),
+      onSecondaryTapDown: (details) =>
+          _showContextMenu(context, details.globalPosition),
+      onLongPressStart: (details) =>
+          _showContextMenu(context, details.globalPosition),
       child: InkWell(
         onTap: widget.isMultiSelectMode
             ? () => widget.onSelectedChanged?.call(!widget.isSelected)
@@ -378,10 +397,10 @@ class _FileFolderCardState extends State<FileFolderCard> {
                 // Status
                 Expanded(child: _buildStatusBadge()),
 
-                // ⋮ Actions — desktop only; on mobile use long press; hidden for teachers
+                // ⋮ Actions — visible on desktop & mobile
                 SizedBox(
                   width: 40,
-                  child: (widget.isMultiSelectMode || _isMobile || widget.userRole == 'teacher')
+                  child: widget.isMultiSelectMode
                       ? const SizedBox.shrink()
                       : PopupMenuButton<String>(
                           icon: Icon(

@@ -1,4 +1,3 @@
-import 'dart:io';
 import 'dart:convert';
 import 'dart:typed_data';
 import 'package:dio/dio.dart';
@@ -318,6 +317,21 @@ class DocumentRepository {
       await _dio.post('/documents/$id/copy', options: options);
     } on DioException catch (e) {
       final msg = e.response?.data?['message'] ?? 'Failed to copy document.';
+      throw Exception(msg);
+    }
+  }
+
+  Future<DocumentModel> convertExcelToPdf(int id) async {
+    try {
+      final options = await _getAuthOptions();
+      final response = await _dio.post('/documents/$id/convert-to-pdf', options: options);
+      final docData = response.data['document'] as Map<String, dynamic>?;
+      if (docData != null) {
+        return DocumentModel.fromJson(docData);
+      }
+      throw Exception(response.data['message'] ?? 'Failed to convert document.');
+    } on DioException catch (e) {
+      final msg = e.response?.data?['message'] ?? 'Failed to convert Excel to PDF.';
       throw Exception(msg);
     }
   }

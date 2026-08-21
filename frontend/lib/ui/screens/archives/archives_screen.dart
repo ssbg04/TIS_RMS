@@ -20,6 +20,7 @@ import '../../shared/dialogs/error_dialog.dart';
 import '../../shared/inputs/custom_text_field.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/navigation_provider.dart';
+import '../../providers/conversion_provider.dart';
 import '../documents/widgets/bulk_operations_bar.dart';
 import '../documents/widgets/document_preview_modal.dart';
 import '../documents/widgets/file_folder_card.dart';
@@ -511,6 +512,24 @@ class _ArchivesScreenState extends ConsumerState<ArchivesScreen>
       } catch (e) {
         if (!mounted) return;
         showErrorDialog(context, 'Download Failed', e.toString());
+      }
+    } else if (action == 'convert_pdf') {
+      try {
+        final converted = await ref
+            .read(conversionProvider.notifier)
+            .convertToPdf(doc.id);
+        if (!mounted) return;
+        showSuccessDialog(
+          context,
+          message: 'Excel converted to PDF successfully as "${converted.fileName}".',
+        );
+      } catch (e) {
+        if (!mounted) return;
+        showErrorDialog(
+          context,
+          'Conversion Failed',
+          e.toString().replaceFirst('Exception: ', ''),
+        );
       }
     } else if (action == 'view_profile' && doc.studentId != null) {
       showStudentProfileModal(

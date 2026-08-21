@@ -12,6 +12,7 @@ import '../../../../core/network/api_constants.dart';
 import '../../../../core/utils/download_service.dart';
 import '../../../../domain/entities/document_model.dart';
 import '../../../providers/document_provider.dart';
+import '../../../providers/conversion_provider.dart';
 import '../../../shared/dialogs/error_dialog.dart';
 import '../../../shared/dialogs/success_dialog.dart';
 import 'excel_viewer_widget.dart';
@@ -252,6 +253,32 @@ class _DocumentPreviewDialogState
     }
   }
 
+  bool _isConverting = false;
+
+  Future<void> _convertToPdf() async {
+    if (widget.document == null || _isConverting) return;
+    setState(() => _isConverting = true);
+    try {
+      final converted = await ref
+          .read(conversionProvider.notifier)
+          .convertToPdf(widget.document!.id);
+      if (!mounted) return;
+      showSuccessDialog(
+        context,
+        message: 'Excel converted to PDF successfully as "${converted.fileName}".',
+      );
+    } catch (e) {
+      if (!mounted) return;
+      showErrorDialog(
+        context,
+        'Conversion Failed',
+        e.toString().replaceFirst('Exception: ', ''),
+      );
+    } finally {
+      if (mounted) setState(() => _isConverting = false);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final screenW = MediaQuery.of(context).size.width;
@@ -296,6 +323,21 @@ class _DocumentPreviewDialogState
             ],
           ),
           actions: [
+            if (_isExcel && widget.document != null)
+              IconButton(
+                icon: _isConverting
+                    ? const SizedBox(
+                        width: 18,
+                        height: 18,
+                        child: CircularProgressIndicator(
+                          color: Colors.white,
+                          strokeWidth: 2,
+                        ),
+                      )
+                    : const Icon(Icons.picture_as_pdf_outlined, color: Colors.white),
+                tooltip: 'Convert to PDF',
+                onPressed: _isConverting ? null : _convertToPdf,
+              ),
             if (_isExcel)
               IconButton(
                 icon: _isOpeningExternal
