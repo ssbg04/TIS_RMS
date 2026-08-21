@@ -884,6 +884,20 @@ class _ArchivesScreenState extends ConsumerState<ArchivesScreen>
           ],
         ),
       ),
+      if (doc != null &&
+          (doc.fileName.toLowerCase().endsWith('.xlsx') ||
+              doc.fileName.toLowerCase().endsWith('.xls') ||
+              doc.fileName.toLowerCase().endsWith('.csv')))
+        const PopupMenuItem(
+          value: 'convert_pdf',
+          child: Row(
+            children: [
+              Icon(Icons.picture_as_pdf, size: 18, color: Colors.green),
+              SizedBox(width: 12),
+              Text('Convert to PDF', style: TextStyle(fontSize: 14)),
+            ],
+          ),
+        ),
     ];
 
     if (doc?.studentId != null) {

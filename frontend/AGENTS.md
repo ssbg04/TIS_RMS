@@ -254,6 +254,13 @@ Files backup/restore - mirror mode or zip -->
 - make a single widget for all no server fetch/no connection retrieve data
 - no internet or no server fetch message on all screen: use appropriate message -->
 
+<!-- # ARCHIVE SCREEN
+- add in show menu icon convert to pdf only for excel files
+
+# DOCUMENTS SCREEN ANDROID APP
+- add in show menu icon convert to pdf only for excel files -->
+
+
 # recycle bin modal (dont do)
 
 ---

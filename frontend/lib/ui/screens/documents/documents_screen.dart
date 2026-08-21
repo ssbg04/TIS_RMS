@@ -2848,6 +2848,26 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
                           ],
                         ),
                       ),
+                      if (name.endsWith('.xlsx') ||
+                          name.endsWith('.xls') ||
+                          name.endsWith('.csv'))
+                        const PopupMenuItem(
+                          value: 'convert_pdf',
+                          child: Row(
+                            children: [
+                              Icon(
+                                Icons.picture_as_pdf,
+                                size: 16,
+                                color: Colors.green,
+                              ),
+                              SizedBox(width: 10),
+                              Text(
+                                'Convert to PDF',
+                                style: TextStyle(fontSize: 13),
+                              ),
+                            ],
+                          ),
+                        ),
                       const PopupMenuDivider(),
                       const PopupMenuItem(
                         value: 'view_profile',
@@ -3129,6 +3149,19 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
           ],
         ),
       ),
+      if (doc.fileName.toLowerCase().endsWith('.xlsx') ||
+          doc.fileName.toLowerCase().endsWith('.xls') ||
+          doc.fileName.toLowerCase().endsWith('.csv'))
+        const PopupMenuItem(
+          value: 'convert_pdf',
+          child: Row(
+            children: [
+              Icon(Icons.picture_as_pdf, size: 18, color: Colors.green),
+              SizedBox(width: 12),
+              Text('Convert to PDF', style: TextStyle(fontSize: 14)),
+            ],
+          ),
+        ),
       if (doc.studentId != null) ...[
         const PopupMenuDivider(),
         const PopupMenuItem(
