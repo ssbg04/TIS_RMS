@@ -260,6 +260,11 @@ Files backup/restore - mirror mode or zip -->
 # DOCUMENTS SCREEN ANDROID APP
 - add in show menu icon convert to pdf only for excel files -->
 
+<!-- # DOCUMENTS SCREEN AND ARCHIVE SCREEN -> opened stundent folder
+- add space for table in bottom for pagination and buttons
+
+# ARCHIVES SCREEN
+- copy the table from the sudent folders tab to all archived docs, the pagination is inside of the table section -->
 
 # recycle bin modal (dont do)
 

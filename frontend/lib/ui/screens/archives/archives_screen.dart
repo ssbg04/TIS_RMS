@@ -2036,6 +2036,7 @@ class _ArchivesScreenState extends ConsumerState<ArchivesScreen>
                     ),
             ),
           ),
+          if (isMobile) const SizedBox(height: 76),
         ],
       );
     }
@@ -2370,8 +2371,12 @@ class _ArchivesScreenState extends ConsumerState<ArchivesScreen>
         return Column(
           children: [
             Expanded(child: !_isGridView ? containerList : gridView),
-            if (totalPages > 1)
-              _buildFoldersPagination(totalPages, _foldersPage),
+            if (totalPages > 1 && !_searchFocusNode.hasFocus)
+              Padding(
+                padding: const EdgeInsets.only(top: 8.0, bottom: 16.0),
+                child: _buildFoldersPagination(totalPages, _foldersPage),
+              ),
+            if (isMobile) const SizedBox(height: 16),
           ],
         );
       },
@@ -2465,6 +2470,10 @@ class _ArchivesScreenState extends ConsumerState<ArchivesScreen>
                   ),
           ),
         ),
+        if (isMobile && _openedFolderStudentId != null)
+          const SizedBox(height: 76)
+        else if (isMobile)
+          const SizedBox(height: 16),
       ],
     );
   }
@@ -2479,107 +2488,112 @@ class _ArchivesScreenState extends ConsumerState<ArchivesScreen>
     int currentPage,
   ) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    return Container(
-      margin: EdgeInsets.all(isMobile ? 8 : 16),
-      decoration: BoxDecoration(
-        color: isDark ? AppColors.darkSurfaceCard : AppColors.surfaceWhite,
-        borderRadius: BorderRadius.circular(12),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.04),
-            blurRadius: 10,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(12),
-        child: Column(
-          children: [
-            // Table header
-            Container(
-              padding: EdgeInsets.symmetric(
-                horizontal: isMobile ? 12 : 16,
-                vertical: 10,
-              ),
-              color: AppColors.primaryGreen.withValues(alpha: 0.06),
-              child: Row(
+    return Column(
+      children: [
+        Expanded(
+          child: Container(
+            margin: EdgeInsets.all(isMobile ? 8 : 16),
+            decoration: BoxDecoration(
+              color: isDark ? AppColors.darkSurfaceCard : AppColors.surfaceWhite,
+              borderRadius: BorderRadius.circular(12),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.04),
+                  blurRadius: 10,
+                  offset: const Offset(0, 2),
+                ),
+              ],
+            ),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(12),
+              child: Column(
                 children: [
-                  const SizedBox(width: 40),
-                  const SizedBox(width: 8),
+                  // Table header
+                  Container(
+                    padding: EdgeInsets.symmetric(
+                      horizontal: isMobile ? 12 : 16,
+                      vertical: 10,
+                    ),
+                    color: AppColors.primaryGreen.withValues(alpha: 0.06),
+                    child: Row(
+                      children: [
+                        const SizedBox(width: 40),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          flex: 3,
+                          child: Text(
+                            'File Name',
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 12,
+                              color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
+                            ),
+                          ),
+                        ),
+                        if (!isMobile) ...[
+                          Expanded(
+                            flex: 2,
+                            child: Text(
+                              'Student',
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 12,
+                                color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
+                              ),
+                            ),
+                          ),
+                          Expanded(
+                            flex: 2,
+                            child: Text(
+                              'Doc Type',
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 12,
+                                color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
+                              ),
+                            ),
+                          ),
+                        ],
+                        Expanded(
+                          child: Text(
+                            'Status',
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 12,
+                              color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 40),
+                      ],
+                    ),
+                  ),
                   Expanded(
-                    flex: 3,
-                    child: Text(
-                      'File Name',
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 12,
-                        color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
+                    child: RefreshIndicator(
+                      onRefresh: () async {
+                        ref.invalidate(archiveDocumentPageProvider);
+                      },
+                      child: ListView.separated(
+                        itemCount: documents.length,
+                        separatorBuilder: (_, _) =>
+                            Divider(height: 1, color: isDark ? AppColors.darkBorder : Colors.grey.shade100),
+                        itemBuilder: (ctx, i) => isMobile
+                            ? _buildMobileListRow(documents[i])
+                            : _buildDesktopListRow(documents[i]),
                       ),
                     ),
                   ),
-                  if (!isMobile) ...[
-                    Expanded(
-                      flex: 2,
-                      child: Text(
-                        'Student',
-                        style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 12,
-                          color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
-                        ),
-                      ),
-                    ),
-                    Expanded(
-                      flex: 2,
-                      child: Text(
-                        'Doc Type',
-                        style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 12,
-                          color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
-                        ),
-                      ),
-                    ),
-                  ],
-                  Expanded(
-                    child: Text(
-                      'Status',
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 12,
-                        color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 40),
                 ],
               ),
             ),
-            Expanded(
-              child: RefreshIndicator(
-                onRefresh: () async {
-                  ref.invalidate(archiveDocumentPageProvider);
-                },
-                child: ListView.separated(
-                  itemCount: documents.length,
-                  separatorBuilder: (_, _) =>
-                      Divider(height: 1, color: isDark ? AppColors.darkBorder : Colors.grey.shade100),
-                  itemBuilder: (ctx, i) => isMobile
-                      ? _buildMobileListRow(documents[i])
-                      : _buildDesktopListRow(documents[i]),
-                ),
-              ),
-            ),
-            if (totalPages > 1)
-              Container(
-                color: isDark ? AppColors.darkSurfaceCard : Colors.white,
-                padding: const EdgeInsets.symmetric(vertical: 12),
-                child: _buildPagination(totalPages, currentPage),
-              ),
-          ],
+          ),
         ),
-      ),
+        if (totalPages > 1 && !_searchFocusNode.hasFocus)
+          Padding(
+            padding: const EdgeInsets.only(top: 8.0, bottom: 16.0),
+            child: _buildPagination(totalPages, currentPage),
+          ),
+      ],
     );
   }
 
