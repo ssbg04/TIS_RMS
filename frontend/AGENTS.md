@@ -266,7 +266,12 @@ Files backup/restore - mirror mode or zip -->
 # ARCHIVES SCREEN
 - copy the table from the sudent folders tab to all archived docs, the pagination is inside of the table section -->
 
-# recycle bin modal (dont do)
+<!-- # recycle bin modal 
+- apply dark theme responsive
+- copy the multi select menu from the documents screen to this modal
+- add delete all/ restore all when the multi select menu active -->
+
+
 
 ---
 
