@@ -14,6 +14,7 @@ import '../../../providers/setup_provider.dart';
 import '../../../shared/dialogs/error_dialog.dart';
 import '../../../shared/widgets/app_button_loader.dart';
 import 'package:flutter/services.dart';
+import 'student_form_helpers.dart';
 
 class _UpperCaseAllTextFormatter extends TextInputFormatter {
   @override
@@ -61,7 +62,7 @@ class _OcrItem {
     required this.fileName,
     this.status = _FileStatus.pending,
     this.errorMsg,
-    this.lrn = '',
+    this.lrn = '308035',
     this.firstName = '',
     this.middleName = '',
     this.lastName = '',
@@ -322,7 +323,10 @@ class _BulkOcrImportDialogState extends ConsumerState<BulkOcrImportDialog> {
               item.sex = result.sex;
             }
             if (result.dob != null && result.dob!.isNotEmpty) {
-              item.dob = result.dob!;
+              final parsed = _parseFlexibleDob(result.dob);
+              item.dob = parsed != null
+                  ? '${parsed.year.toString().padLeft(4, '0')}-${parsed.month.toString().padLeft(2, '0')}-${parsed.day.toString().padLeft(2, '0')}'
+                  : result.dob!;
             }
             // Apply shared enrollment defaults
             item.academicYearId ??= _sharedAcademicYearId;
@@ -934,8 +938,7 @@ class _BulkOcrImportDialogState extends ConsumerState<BulkOcrImportDialog> {
         spacing: 12,
         runSpacing: 10,
         children: [
-          _editField('LRN', item.lrn, (v) => item.lrn = v,
-              width: 160, keyboardType: TextInputType.number),
+          _editLrnField(item),
           _editField('Last Name', item.lastName, (v) => item.lastName = v,
               width: 160, toUpperCase: true),
           _editField('First Name', item.firstName,
@@ -945,11 +948,115 @@ class _BulkOcrImportDialogState extends ConsumerState<BulkOcrImportDialog> {
           _editField('Extension', item.extension,
               (v) => item.extension = v, width: 90, toUpperCase: true),
           _sexDropdown(item),
-          _editField('Date of Birth', item.dob, (v) => item.dob = v,
-              width: 130, hint: 'YYYY-MM-DD'),
+          _editDobField(item),
           _is4psCheckbox(item),
         ],
       );
+
+  Widget _editLrnField(_OcrItem item) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    return SizedBox(
+      width: 160,
+      child: TextFormField(
+        initialValue: item.lrn.isNotEmpty ? item.lrn : '308035',
+        keyboardType: TextInputType.number,
+        maxLength: 12,
+        inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+        decoration: InputDecoration(
+          labelText: 'LRN',
+          hintText: '12-digit number',
+          counterText: '',
+          isDense: true,
+          contentPadding:
+              const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+          border:
+              OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+          filled: true,
+          fillColor: isDark ? AppColors.darkSurface2 : const Color(0xFFF8F9FA),
+        ),
+        style: TextStyle(
+          fontSize: 13,
+          color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
+        ),
+        onChanged: (v) {
+          setState(() {
+            item.lrn = v.trim();
+          });
+        },
+      ),
+    );
+  }
+
+  DateTime? _parseFlexibleDob(String? input) {
+    if (input == null || input.trim().isEmpty) return null;
+    final str = input.trim();
+    try {
+      return DateTime.parse(str);
+    } catch (_) {}
+    final slash = RegExp(r'^(\d{1,2})[\/\-\.](\d{1,2})[\/\-\.](\d{2,4})$').firstMatch(str);
+    if (slash != null) {
+      int m = int.parse(slash.group(1)!);
+      int d = int.parse(slash.group(2)!);
+      int y = int.parse(slash.group(3)!);
+      if (y < 100) y += (y <= 30 ? 2000 : 1900);
+      if (m > 12 && d <= 12) {
+        final tmp = m;
+        m = d;
+        d = tmp;
+      }
+      return DateTime(y, m, d);
+    }
+    return null;
+  }
+
+  Widget _editDobField(_OcrItem item) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    // Convert any existing 'YYYY-MM-DD' or parsed date to 'MM-DD-YYYY' for display
+    String initialDisplay = '';
+    if (item.dob.isNotEmpty) {
+      final parsed = _parseFlexibleDob(item.dob);
+      if (parsed != null) {
+        initialDisplay =
+            '${parsed.month.toString().padLeft(2, '0')}-${parsed.day.toString().padLeft(2, '0')}-${parsed.year.toString().padLeft(4, '0')}';
+      } else {
+        initialDisplay = item.dob;
+      }
+    }
+
+    return SizedBox(
+      width: 140,
+      child: TextFormField(
+        initialValue: initialDisplay,
+        keyboardType: TextInputType.number,
+        inputFormatters: [DobInputFormatter()],
+        decoration: InputDecoration(
+          labelText: 'Date of Birth',
+          hintText: 'MM-DD-YYYY',
+          isDense: true,
+          contentPadding:
+              const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+          border:
+              OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+          filled: true,
+          fillColor: isDark ? AppColors.darkSurface2 : const Color(0xFFF8F9FA),
+        ),
+        style: TextStyle(
+          fontSize: 13,
+          color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
+        ),
+        onChanged: (v) {
+          final parsed = _parseFlexibleDob(v);
+          if (parsed != null) {
+            item.dob =
+                '${parsed.year.toString().padLeft(4, '0')}-${parsed.month.toString().padLeft(2, '0')}-${parsed.day.toString().padLeft(2, '0')}';
+          } else {
+            item.dob = v.trim();
+          }
+        },
+      ),
+    );
+  }
 
   Widget _editField(
     String label,

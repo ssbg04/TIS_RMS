@@ -318,8 +318,15 @@ Files backup/restore - mirror mode or zip -->
 - move the multi select menu to the menu FAB
 - if only PRINT LIST need only to show, hide/remove the UPLOAD DOCUMENTS in menu FAB -->
 
-# DOCUMENT SCREEN AND ARCHIVES SCREEN
-- make 
+<!-- # DOCUMENT SCREEN AND ARCHIVES SCREEN
+- make  -->
+
+<!-- # STUDENT SCREEN -> BULK ADD STUDENT -> APPLY ENROLLMENT STEP
+- use LRN text field from ADD STUDENT SCREEN, do not edit the design and other text fields only the LRN text field -->
+
+<!-- # STUDENT SCREEN
+- use icon for multi select, no background color and border -->
+
 
 ---
 

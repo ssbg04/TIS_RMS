@@ -1038,12 +1038,11 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
               ),
             ),
             ...[
-              if (widget.userRole != 'teacher' &&
-                  defaultTargetPlatform != TargetPlatform.android) ...[
-                const SizedBox(width: 8),
+              if (widget.userRole != 'teacher') ...[
+                const SizedBox(width: 4),
                 _buildMultiSelectToggle(true),
               ],
-              const SizedBox(width: 8),
+              const SizedBox(width: 4),
               // "Add" + "Bulk Add" buttons for Windows (replaces FAB)
               if (defaultTargetPlatform == TargetPlatform.windows &&
                   widget.userRole != 'teacher') ...[
@@ -1074,7 +1073,7 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
                     ),
                   ),
                 ),
-                const SizedBox(width: 8),
+                const SizedBox(width: 4),
               ],
               // Filter icon (icon only, no background)
               IconButton(
@@ -1100,9 +1099,15 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
   // MULTI-SELECT TOGGLE
   // ================================================================
   Widget _buildMultiSelectToggle(bool isIconOnly) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Tooltip(
-      message: 'Multi-Select',
+      message: _showMultiSelect ? 'Exit Multi-Select' : 'Multi-Select',
       child: IconButton(
+        style: IconButton.styleFrom(
+          backgroundColor: Colors.transparent,
+          side: BorderSide.none,
+          shadowColor: Colors.transparent,
+        ),
         onPressed: () {
           setState(() {
             _showMultiSelect = !_showMultiSelect;
@@ -1110,12 +1115,11 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
           });
         },
         icon: Icon(
-          _showMultiSelect
-              ? Icons.check_box_rounded
-              : Icons.check_box_outline_blank_rounded,
+          Icons.checklist_rounded,
+          size: 24,
           color: _showMultiSelect
               ? AppColors.primaryGreen
-              : AppColors.textSecondary,
+              : (isDark ? AppColors.darkTextPrimary : AppColors.textSecondary),
         ),
       ),
     );
