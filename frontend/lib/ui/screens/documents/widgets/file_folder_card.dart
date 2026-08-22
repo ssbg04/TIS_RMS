@@ -3,6 +3,7 @@ import 'package:flutter/foundation.dart'
 import 'package:flutter/material.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_sizes.dart';
+import '../../../../core/utils/file_icon_helper.dart';
 import '../../../../domain/entities/document_model.dart';
 
 class FileFolderCard extends StatefulWidget {
@@ -37,40 +38,20 @@ class FileFolderCard extends StatefulWidget {
 
 class _FileFolderCardState extends State<FileFolderCard> {
   // True on Android/iOS — long press is the context menu trigger.
-  bool get _isExcel {
-    final name = widget.document.fileName.toLowerCase();
-    return name.endsWith('.xlsx') ||
-        name.endsWith('.xls') ||
-        name.endsWith('.csv');
-  }
+  bool get _isExcel => FileIconHelper.isExcel(
+        widget.document.fileName,
+        docType: widget.document.documentType,
+      );
 
-  IconData get _fileIcon {
-    final name = widget.document.fileName.toLowerCase();
-    if (name.endsWith('.pdf')) return Icons.picture_as_pdf;
-    if (name.endsWith('.png') ||
-        name.endsWith('.jpg') ||
-        name.endsWith('.jpeg')) {
-      return Icons.image;
-    }
-    if (_isExcel) {
-      return Icons.table_chart;
-    }
-    return Icons.insert_drive_file;
-  }
+  IconData get _fileIcon => FileIconHelper.getIcon(
+        widget.document.fileName,
+        docType: widget.document.documentType,
+      );
 
-  Color get _fileColor {
-    final name = widget.document.fileName.toLowerCase();
-    if (name.endsWith('.pdf')) return Colors.redAccent;
-    if (name.endsWith('.png') ||
-        name.endsWith('.jpg') ||
-        name.endsWith('.jpeg')) {
-      return Colors.blueAccent;
-    }
-    if (_isExcel) {
-      return Colors.green;
-    }
-    return AppColors.primaryGreen;
-  }
+  Color get _fileColor => FileIconHelper.getColor(
+        widget.document.fileName,
+        docType: widget.document.documentType,
+      );
 
   Color get _statusColor {
     switch (widget.document.status) {

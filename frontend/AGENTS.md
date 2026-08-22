@@ -271,7 +271,15 @@ Files backup/restore - mirror mode or zip -->
 - copy the multi select menu from the documents screen to this modal
 - add delete all/ restore all when the multi select menu active -->
 
+<!-- # TEACHERS ACADEMIC SETUP SCREEN
+- Teachers tab: change the font color in dark theme acad year and section text
+- Years tab: add validation cant add next two years for example this year is 2026 you cannot add acad year 2027-2028 upwards
+- Years tab: fix automatic add years -> only add example this year is 2026 only add acad year 2026-2027
+- Sections tab: filter dropdown -> tabs filtering by grades -->
 
+<!-- # DOCUMENTS SCREEN AND ARCHIVES SCREEN
+- apply excel icon for the documents in mobile
+- add icons for all documents based on their file extension -->
 
 ---
 

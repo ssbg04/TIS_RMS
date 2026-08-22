@@ -13,6 +13,7 @@ import '../../../shared/buttons/primary_button.dart';
 import '../../../shared/dialogs/success_dialog.dart';
 import '../../../shared/dialogs/error_dialog.dart';
 import '../../../providers/document_provider.dart';
+import '../../../../core/utils/file_icon_helper.dart';
 
 class PrintQueueModal extends ConsumerStatefulWidget {
   const PrintQueueModal({super.key});
@@ -379,7 +380,8 @@ class _PrintQueueModalState extends ConsumerState<PrintQueueModal> {
           Divider(height: 1, color: isDark ? AppColors.darkBorder : Colors.grey.shade100),
       itemBuilder: (ctx, i) {
         final item = items[i];
-        final isPdf = item.fileName.toLowerCase().endsWith('.pdf');
+        final fileColor = FileIconHelper.getColor(item.fileName, docType: item.documentType);
+        final fileIcon = FileIconHelper.getIcon(item.fileName, docType: item.documentType);
         return ListTile(
           contentPadding:
               const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
@@ -387,13 +389,12 @@ class _PrintQueueModalState extends ConsumerState<PrintQueueModal> {
             width: 40,
             height: 40,
             decoration: BoxDecoration(
-              color: (isPdf ? Colors.red : Colors.blue)
-                  .withValues(alpha: 0.1),
+              color: fileColor.withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(8),
             ),
             child: Icon(
-              isPdf ? Icons.picture_as_pdf : Icons.image,
-              color: isPdf ? Colors.redAccent : Colors.blueAccent,
+              fileIcon,
+              color: fileColor,
               size: 20,
             ),
           ),
@@ -556,7 +557,9 @@ class _PrintQueueModalState extends ConsumerState<PrintQueueModal> {
           Divider(height: 1, color: isDark ? AppColors.darkBorder : Colors.grey.shade100),
       itemBuilder: (ctx, i) {
         final item = items[i];
-        final isPdf = (item.fileName ?? '').toLowerCase().endsWith('.pdf');
+        final name = item.fileName ?? item.documentName;
+        final fileColor = FileIconHelper.getColor(name, docType: item.documentType);
+        final fileIcon = FileIconHelper.getIcon(name, docType: item.documentType);
         return ListTile(
           contentPadding:
               const EdgeInsets.symmetric(horizontal: 4, vertical: 6),
@@ -564,13 +567,12 @@ class _PrintQueueModalState extends ConsumerState<PrintQueueModal> {
             width: 40,
             height: 40,
             decoration: BoxDecoration(
-              color: (isPdf ? Colors.red : Colors.blue)
-                  .withValues(alpha: 0.1),
+              color: fileColor.withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(8),
             ),
             child: Icon(
-              isPdf ? Icons.picture_as_pdf : Icons.history,
-              color: isPdf ? Colors.redAccent : Colors.blueAccent,
+              fileIcon,
+              color: fileColor,
               size: 20,
             ),
           ),

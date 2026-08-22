@@ -29,6 +29,7 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'widgets/recycle_bin_modal.dart';
 import 'widgets/bulk_operations_bar.dart';
 import '../../../domain/entities/document_model.dart';
+import '../../../core/utils/file_icon_helper.dart';
 
 class DocumentsScreen extends ConsumerStatefulWidget {
   final String userRole;
@@ -2651,21 +2652,14 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
   /// Compact card row for mobile list view – stacks info vertically.
   Widget _buildMobileListRow(dynamic doc, int i) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    Color fileColor;
-    IconData fileIcon;
-    final name = doc.fileName.toLowerCase() as String;
-    if (name.endsWith('.pdf')) {
-      fileColor = Colors.redAccent;
-      fileIcon = Icons.picture_as_pdf;
-    } else if (name.endsWith('.png') ||
-        name.endsWith('.jpg') ||
-        name.endsWith('.jpeg')) {
-      fileColor = Colors.blueAccent;
-      fileIcon = Icons.image;
-    } else {
-      fileColor = AppColors.primaryGreen;
-      fileIcon = Icons.insert_drive_file;
-    }
+    final fileColor = FileIconHelper.getColor(
+      doc.fileName as String?,
+      docType: doc.documentType as String?,
+    );
+    final fileIcon = FileIconHelper.getIcon(
+      doc.fileName as String?,
+      docType: doc.documentType as String?,
+    );
 
     Color statusColor;
     switch (doc.status as String) {
@@ -2860,9 +2854,10 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
                           ],
                         ),
                       ),
-                      if (name.endsWith('.xlsx') ||
-                          name.endsWith('.xls') ||
-                          name.endsWith('.csv'))
+                      if (FileIconHelper.isExcel(
+                        (doc as DocumentModel).fileName,
+                        docType: (doc as DocumentModel).documentType,
+                      ))
                         const PopupMenuItem(
                           value: 'convert_pdf',
                           child: Row(
@@ -3161,9 +3156,10 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
           ],
         ),
       ),
-      if (doc.fileName.toLowerCase().endsWith('.xlsx') ||
-          doc.fileName.toLowerCase().endsWith('.xls') ||
-          doc.fileName.toLowerCase().endsWith('.csv'))
+      if (FileIconHelper.isExcel(
+        doc.fileName,
+        docType: doc.documentType,
+      ))
         const PopupMenuItem(
           value: 'convert_pdf',
           child: Row(

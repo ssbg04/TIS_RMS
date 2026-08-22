@@ -31,6 +31,7 @@ import '../documents/widgets/recycle_bin_modal.dart';
 import '../../../core/utils/download_service.dart';
 import '../../../core/network/api_constants.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import '../../../core/utils/file_icon_helper.dart';
 
 class ArchivesScreen extends ConsumerStatefulWidget {
   final String userRole;
@@ -885,9 +886,7 @@ class _ArchivesScreenState extends ConsumerState<ArchivesScreen>
         ),
       ),
       if (doc != null &&
-          (doc.fileName.toLowerCase().endsWith('.xlsx') ||
-              doc.fileName.toLowerCase().endsWith('.xls') ||
-              doc.fileName.toLowerCase().endsWith('.csv')))
+          FileIconHelper.isExcel(doc.fileName, docType: doc.documentType))
         const PopupMenuItem(
           value: 'convert_pdf',
           child: Row(
@@ -2641,7 +2640,7 @@ class _ArchivesScreenState extends ConsumerState<ArchivesScreen>
                 },
               )
             else
-              _buildFileIcon(doc.documentType),
+              _buildFileIcon(doc.fileName, docType: doc.documentType),
             const SizedBox(width: 8),
             Expanded(
               flex: 3,
@@ -2777,7 +2776,7 @@ class _ArchivesScreenState extends ConsumerState<ArchivesScreen>
             ],
 
             // File icon always visible
-            _buildFileIcon(doc.documentType),
+            _buildFileIcon(doc.fileName, docType: doc.documentType),
             const SizedBox(width: 10),
 
             // Stacked info: file name + student + doc type
@@ -2977,31 +2976,8 @@ class _ArchivesScreenState extends ConsumerState<ArchivesScreen>
     );
   }
 
-  Widget _buildFileIcon(String? docType, {double size = 28}) {
-    final ext = (docType ?? '').toLowerCase();
-    IconData icon;
-    Color color;
-    if (ext.contains('pdf')) {
-      icon = Icons.picture_as_pdf;
-      color = Colors.red;
-    } else if (ext.contains('image') ||
-        ext.contains('jpg') ||
-        ext.contains('png')) {
-      icon = Icons.image;
-      color = Colors.purple;
-    } else if (ext.contains('word') || ext.contains('doc')) {
-      icon = Icons.description;
-      color = Colors.blue;
-    } else if (ext.contains('excel') ||
-        ext.contains('sheet') ||
-        ext.contains('xls')) {
-      icon = Icons.table_chart;
-      color = Colors.green;
-    } else {
-      icon = Icons.insert_drive_file;
-      color = Colors.blueGrey;
-    }
-    return Icon(icon, size: size, color: color);
+  Widget _buildFileIcon(String? fileName, {String? docType, double size = 28}) {
+    return FileIconHelper.buildIcon(fileName, docType: docType, size: size);
   }
 
   Widget _buildStatusChip(String status) {

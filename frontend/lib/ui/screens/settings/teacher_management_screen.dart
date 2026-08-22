@@ -421,10 +421,10 @@ class TeacherDetailModal extends ConsumerWidget {
                             children: [
                               Text(
                                 entry.key,
-                                style: const TextStyle(
+                                style: TextStyle(
                                   fontSize: 12,
                                   fontWeight: FontWeight.w600,
-                                  color: AppColors.primaryGreen,
+                                  color: isDark ? AppColors.darkTextPrimary : AppColors.primaryGreen,
                                 ),
                               ),
                               const SizedBox(height: 6),
@@ -438,20 +438,21 @@ class TeacherDetailModal extends ConsumerWidget {
                                       vertical: 4,
                                     ),
                                     decoration: BoxDecoration(
-                                      color: AppColors.primaryGreen.withValues(
-                                        alpha: 0.1,
-                                      ),
+                                      color: isDark
+                                          ? AppColors.primaryGreen.withValues(alpha: 0.2)
+                                          : AppColors.primaryGreen.withValues(alpha: 0.1),
                                       borderRadius: BorderRadius.circular(20),
                                       border: Border.all(
-                                        color: AppColors.primaryGreen
-                                            .withValues(alpha: 0.25),
+                                        color: isDark
+                                            ? AppColors.primaryGreen.withValues(alpha: 0.45)
+                                            : AppColors.primaryGreen.withValues(alpha: 0.25),
                                       ),
                                     ),
                                     child: Text(
                                       'G${sec.gradeLevel} – ${sec.name}',
-                                      style: const TextStyle(
+                                      style: TextStyle(
                                         fontSize: 12,
-                                        color: AppColors.primaryGreen,
+                                        color: isDark ? AppColors.darkTextPrimary : AppColors.primaryGreen,
                                         fontWeight: FontWeight.w500,
                                       ),
                                     ),
@@ -736,20 +737,26 @@ class _AcademicYearsTab extends ConsumerWidget {
     WidgetRef ref,
     AcademicYearModel year,
   ) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
+        backgroundColor: isDark ? AppColors.darkSurfaceCard : Colors.white,
         title: const Text(
           'Delete Academic Year',
           style: TextStyle(color: AppColors.error),
         ),
         content: Text(
           'Delete "${year.yearRange}"? This will also delete all sections in it.',
+          style: TextStyle(color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: const Text('CANCEL'),
+            child: Text(
+              'CANCEL',
+              style: TextStyle(color: isDark ? AppColors.darkTextSecondary : Colors.grey.shade600),
+            ),
           ),
           ElevatedButton(
             style: ElevatedButton.styleFrom(
@@ -786,17 +793,46 @@ class _AcademicYearsTab extends ConsumerWidget {
 }
 
 // ============================================================
-// SECTIONS TAB (with Academic Year + Grade Level filters)
+// SECTIONS TAB (with Academic Year filter + Grade Level tabs)
 // ============================================================
 class _SectionsTab extends ConsumerStatefulWidget {
   @override
   ConsumerState<_SectionsTab> createState() => _SectionsTabState();
 }
 
-class _SectionsTabState extends ConsumerState<_SectionsTab> {
+class _SectionsTabState extends ConsumerState<_SectionsTab>
+    with SingleTickerProviderStateMixin {
   int? _filterYearId;
   int? _filterGradeLevel;
   bool _filtersInitialized = false;
+  late TabController _gradeTabController;
+
+  @override
+  void initState() {
+    super.initState();
+    // 0 = All Grades, 1..6 = Grade 7..12
+    _gradeTabController = TabController(length: kGradeLevels.length + 1, vsync: this);
+    _gradeTabController.addListener(_onGradeTabChanged);
+  }
+
+  void _onGradeTabChanged() {
+    if (!_gradeTabController.indexIsChanging) {
+      setState(() {
+        if (_gradeTabController.index == 0) {
+          _filterGradeLevel = null;
+        } else {
+          _filterGradeLevel = kGradeLevels[_gradeTabController.index - 1];
+        }
+      });
+    }
+  }
+
+  @override
+  void dispose() {
+    _gradeTabController.removeListener(_onGradeTabChanged);
+    _gradeTabController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -824,19 +860,18 @@ class _SectionsTabState extends ConsumerState<_SectionsTab> {
 
         return Column(
           children: [
-            // Filter row
+            // Top Controls Row: Academic Year Dropdown + Add Section Button
             Padding(
               padding: const EdgeInsets.fromLTRB(
                 AppSizes.p16,
                 AppSizes.p12,
                 AppSizes.p16,
-                0,
+                AppSizes.p8,
               ),
               child: Row(
                 children: [
                   // Academic year filter
                   Expanded(
-                    flex: 3,
                     child: _FilterDropdown<int>(
                       hint: 'All Years',
                       icon: Icons.calendar_today,
@@ -846,7 +881,7 @@ class _SectionsTabState extends ConsumerState<_SectionsTab> {
                             (y) => DropdownMenuItem<int>(
                               value: y.id,
                               child: Text(
-                                y.yearRange,
+                                y.yearRange + (y.status == 'active' ? ' (Active)' : ''),
                                 overflow: TextOverflow.ellipsis,
                               ),
                             ),
@@ -858,41 +893,19 @@ class _SectionsTabState extends ConsumerState<_SectionsTab> {
                     ),
                   ),
                   const SizedBox(width: 8),
-                  // Grade level filter
-                  Expanded(
-                    flex: 2,
-                    child: _FilterDropdown<int>(
-                      hint: 'All Grades',
-                      icon: Icons.grade,
-                      value: _filterGradeLevel,
-                      items: kGradeLevels
-                          .map(
-                            (g) => DropdownMenuItem<int>(
-                              value: g,
-                              child: Text('Grade $g'),
-                            ),
-                          )
-                          .toList(),
-                      onChanged: (v) => setState(() => _filterGradeLevel = v),
-                      showClear: _filterGradeLevel != null,
-                      onClear: () => setState(() => _filterGradeLevel = null),
-                    ),
-                  ),
-                  const SizedBox(width: 8),
                   SizedBox(
                     height: 42,
-                    child: ElevatedButton(
+                    child: ElevatedButton.icon(
                       style: ElevatedButton.styleFrom(
                         backgroundColor: AppColors.primaryGreen,
                         foregroundColor: Colors.white,
                         padding: const EdgeInsets.symmetric(
-                          horizontal: 12,
+                          horizontal: 14,
                           vertical: 0,
                         ),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(8),
                         ),
-                        minimumSize: Size.zero,
                       ),
                       onPressed: () => showDialog(
                         context: context,
@@ -901,13 +914,59 @@ class _SectionsTabState extends ConsumerState<_SectionsTab> {
                           defaultGradeLevel: _filterGradeLevel,
                         ),
                       ),
-                      child: const Icon(Icons.add, size: 20),
+                      icon: const Icon(Icons.add, size: 18),
+                      label: const Text(
+                        'ADD SECTION',
+                        style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
+                      ),
                     ),
                   ),
                 ],
               ),
             ),
+
+            // Grade Tabs Filtering
+            Container(
+              width: double.infinity,
+              decoration: BoxDecoration(
+                color: isDark ? AppColors.darkSurfaceCard : Colors.grey.shade50,
+                border: Border(
+                  top: BorderSide(
+                    color: isDark ? AppColors.darkBorder : Colors.grey.shade200,
+                  ),
+                  bottom: BorderSide(
+                    color: isDark ? AppColors.darkBorder : Colors.grey.shade200,
+                  ),
+                ),
+              ),
+              child: TabBar(
+                controller: _gradeTabController,
+                isScrollable: true,
+                tabAlignment: TabAlignment.start,
+                labelColor: AppColors.primaryGreen,
+                unselectedLabelColor: isDark
+                    ? AppColors.darkTextSecondary
+                    : AppColors.textSecondary,
+                indicatorColor: AppColors.primaryGreen,
+                indicatorWeight: 2.5,
+                labelStyle: const TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                ),
+                unselectedLabelStyle: const TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.normal,
+                ),
+                tabs: [
+                  const Tab(text: 'All Grades'),
+                  ...kGradeLevels.map((g) => Tab(text: 'Grade $g')),
+                ],
+              ),
+            ),
+
             const SizedBox(height: 8),
+
+            // Sections List
             Expanded(
               child: sectionsAsync.when(
                 data: (sections) {
@@ -934,7 +993,9 @@ class _SectionsTabState extends ConsumerState<_SectionsTab> {
                           ),
                           const SizedBox(height: 12),
                           Text(
-                            'No sections found.',
+                            _filterGradeLevel != null
+                                ? 'No sections found for Grade $_filterGradeLevel.'
+                                : 'No sections found.',
                             style: TextStyle(
                               color: isDark ? AppColors.darkTextSecondary : Colors.grey.shade500,
                               fontSize: 15,
@@ -942,7 +1003,7 @@ class _SectionsTabState extends ConsumerState<_SectionsTab> {
                           ),
                           const SizedBox(height: 6),
                           Text(
-                            'Try adjusting the filters or add a new section.',
+                            'Try adjusting the academic year or add a new section.',
                             style: TextStyle(
                               color: isDark ? AppColors.darkTextMuted : Colors.grey.shade400,
                               fontSize: 12,
@@ -955,11 +1016,11 @@ class _SectionsTabState extends ConsumerState<_SectionsTab> {
                   return ListView.builder(
                     padding: const EdgeInsets.symmetric(
                       horizontal: AppSizes.p16,
+                      vertical: AppSizes.p4,
                     ),
                     itemCount: filtered.length,
                     itemBuilder: (context, index) {
                       final section = filtered[index];
-                      final isDark = Theme.of(context).brightness == Brightness.dark;
                       return Container(
                         margin: const EdgeInsets.only(bottom: AppSizes.p8),
                         padding: const EdgeInsets.symmetric(
@@ -1004,7 +1065,7 @@ class _SectionsTabState extends ConsumerState<_SectionsTab> {
                                     style: TextStyle(
                                       fontWeight: FontWeight.bold,
                                       fontSize: 14,
-                                      color: isDark ? AppColors.darkTextPrimary : null,
+                                      color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
                                     ),
                                   ),
                                   Text(
@@ -1077,20 +1138,26 @@ class _SectionsTabState extends ConsumerState<_SectionsTab> {
     WidgetRef ref,
     SectionModel section,
   ) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
+        backgroundColor: isDark ? AppColors.darkSurfaceCard : Colors.white,
         title: const Text(
           'Delete Section',
           style: TextStyle(color: AppColors.error),
         ),
         content: Text(
           'Are you sure you want to delete section "${section.name}"?',
+          style: TextStyle(color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: const Text('CANCEL'),
+            child: Text(
+              'CANCEL',
+              style: TextStyle(color: isDark ? AppColors.darkTextSecondary : Colors.grey.shade600),
+            ),
           ),
           ElevatedButton(
             style: ElevatedButton.styleFrom(
@@ -1295,11 +1362,31 @@ class _AcademicYearFormModalState extends ConsumerState<AcademicYearFormModal> {
                   ),
                 ),
               CustomTextField(
-                hintText: 'Year Range (e.g. 2023-2024)',
+                hintText: 'Year Range (e.g. 2025-2026)',
                 controller: _yearRangeController,
                 prefixIcon: Icons.calendar_today,
-                validator: (v) =>
-                    v?.trim().isEmpty == true ? 'Year range is required' : null,
+                validator: (v) {
+                  final val = v?.trim() ?? '';
+                  if (val.isEmpty) return 'Year range is required';
+                  final regex = RegExp(r'^(\d{4})\s*-\s*(\d{4})$');
+                  final match = regex.firstMatch(val);
+                  if (match == null) {
+                    return 'Invalid format. Use YYYY-YYYY (e.g. 2025-2026)';
+                  }
+                  final startYear = int.tryParse(match.group(1)!);
+                  final endYear = int.tryParse(match.group(2)!);
+                  if (startYear == null || endYear == null) {
+                    return 'Invalid year format';
+                  }
+                  if (endYear != startYear + 1) {
+                    return 'End year must be start year + 1 ($startYear-${startYear + 1})';
+                  }
+                  final currentYear = DateTime.now().year;
+                  if (startYear > currentYear) {
+                    return 'Cannot add future academic year beyond $currentYear-${currentYear + 1}';
+                  }
+                  return null;
+                },
               ),
               const SizedBox(height: AppSizes.p16),
               DropdownButtonFormField<String>(
@@ -1527,121 +1614,151 @@ class _SectionFormModalState extends ConsumerState<SectionFormModal> {
   Widget build(BuildContext context) {
     final isEditing = widget.section != null;
     final yearsAsync = ref.watch(academicYearsListProvider);
+    final isNarrow =
+        MediaQuery.of(context).size.width < 600 ||
+        Theme.of(context).platform == TargetPlatform.android;
 
-    return AlertDialog(
-      title: Text(isEditing ? 'Edit Section' : 'Add Section'),
-      content: SizedBox(
-        width: 400,
-        child: Form(
-          key: _formKey,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              CustomTextField(
-                hintText: 'Section Name',
-                controller: _nameController,
-                prefixIcon: Icons.segment,
-                validator: (v) => v?.trim().isEmpty == true
-                    ? 'Section name is required'
-                    : null,
-              ),
-              const SizedBox(height: AppSizes.p16),
-              // Fixed grade levels 7-12
-              DropdownButtonFormField<int>(
-                initialValue: _selectedGradeLevel,
-                decoration: const InputDecoration(
-                  labelText: 'Grade Level',
-                  prefixIcon: Icon(Icons.grade),
-                  border: OutlineInputBorder(),
-                ),
-                items: kGradeLevels.map((g) {
-                  return DropdownMenuItem<int>(
-                    value: g,
-                    child: Text('Grade $g'),
-                  );
-                }).toList(),
-                onChanged: (v) => setState(() => _selectedGradeLevel = v),
-                validator: (v) => v == null ? 'Grade level is required' : null,
-              ),
-              const SizedBox(height: AppSizes.p16),
-              yearsAsync.when(
-                data: (years) {
-                  // Auto-select active year if none selected
-                  if (_selectedAcademicYearId == null && years.isNotEmpty) {
-                    final active = years.firstWhere(
-                      (y) => y.status == 'active',
-                      orElse: () => years.first,
-                    );
-                    _selectedAcademicYearId = active.id;
-                  }
-                  final validIds = years.map((y) => y.id).toList();
-                  final safeYear = validIds.contains(_selectedAcademicYearId)
-                      ? _selectedAcademicYearId
-                      : null;
-                  return DropdownButtonFormField<int>(
-                    initialValue: safeYear,
+    return CustomModal(
+      title: isEditing ? 'Edit Section' : 'Add Section',
+      icon: Icons.segment,
+      maxWidth: 480,
+      content: Container(
+        constraints: BoxConstraints(
+          maxHeight: MediaQuery.of(context).size.height * 0.8,
+        ),
+        child: SingleChildScrollView(
+          child: Padding(
+            padding: EdgeInsets.all(isNarrow ? 12 : AppSizes.p20),
+            child: Form(
+              key: _formKey,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  CustomTextField(
+                    hintText: 'Section Name',
+                    controller: _nameController,
+                    prefixIcon: Icons.segment,
+                    validator: (v) => v?.trim().isEmpty == true
+                        ? 'Section name is required'
+                        : null,
+                  ),
+                  const SizedBox(height: AppSizes.p16),
+                  // Fixed grade levels 7-12
+                  DropdownButtonFormField<int>(
+                    initialValue: _selectedGradeLevel,
                     decoration: const InputDecoration(
-                      labelText: 'Academic Year',
-                      prefixIcon: Icon(Icons.calendar_today),
+                      labelText: 'Grade Level',
+                      prefixIcon: Icon(Icons.grade),
                       border: OutlineInputBorder(),
                     ),
-                    items: years.map((y) {
+                    items: kGradeLevels.map((g) {
                       return DropdownMenuItem<int>(
-                        value: y.id,
-                        child: Row(
-                          children: [
-                            Text(y.yearRange),
-                            if (y.status == 'active') ...[
-                              const SizedBox(width: 6),
-                              Container(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 6,
-                                  vertical: 1,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: AppColors.success.withValues(
-                                    alpha: 0.15,
-                                  ),
-                                  borderRadius: BorderRadius.circular(10),
-                                ),
-                                child: const Text(
-                                  'Active',
-                                  style: TextStyle(
-                                    fontSize: 10,
-                                    color: AppColors.success,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ],
-                        ),
+                        value: g,
+                        child: Text('Grade $g'),
                       );
                     }).toList(),
-                    onChanged: (v) =>
-                        setState(() => _selectedAcademicYearId = v),
-                    validator: (v) =>
-                        v == null ? 'Academic year is required' : null,
-                  );
-                },
-                loading: () => const Center(child: CircularProgressIndicator()),
-                error: (e, _) => Text('Error loading academic years: $e'),
+                    onChanged: (v) => setState(() => _selectedGradeLevel = v),
+                    validator: (v) => v == null ? 'Grade level is required' : null,
+                  ),
+                  const SizedBox(height: AppSizes.p16),
+                  yearsAsync.when(
+                    data: (years) {
+                      // Auto-select active year if none selected
+                      if (_selectedAcademicYearId == null && years.isNotEmpty) {
+                        final active = years.firstWhere(
+                          (y) => y.status == 'active',
+                          orElse: () => years.first,
+                        );
+                        _selectedAcademicYearId = active.id;
+                      }
+                      final validIds = years.map((y) => y.id).toList();
+                      final safeYear = validIds.contains(_selectedAcademicYearId)
+                          ? _selectedAcademicYearId
+                          : null;
+                      return DropdownButtonFormField<int>(
+                        initialValue: safeYear,
+                        decoration: const InputDecoration(
+                          labelText: 'Academic Year',
+                          prefixIcon: Icon(Icons.calendar_today),
+                          border: OutlineInputBorder(),
+                        ),
+                        items: years.map((y) {
+                          return DropdownMenuItem<int>(
+                            value: y.id,
+                            child: Row(
+                              children: [
+                                Text(y.yearRange),
+                                if (y.status == 'active') ...[
+                                  const SizedBox(width: 6),
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 6,
+                                      vertical: 1,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: AppColors.success.withValues(
+                                        alpha: 0.15,
+                                      ),
+                                      borderRadius: BorderRadius.circular(10),
+                                    ),
+                                    child: const Text(
+                                      'Active',
+                                      style: TextStyle(
+                                        fontSize: 10,
+                                        color: AppColors.success,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ],
+                            ),
+                          );
+                        }).toList(),
+                        onChanged: (v) =>
+                            setState(() => _selectedAcademicYearId = v),
+                        validator: (v) =>
+                            v == null ? 'Academic year is required' : null,
+                      );
+                    },
+                    loading: () => const Center(child: CircularProgressIndicator()),
+                    error: (e, _) => Text('Error loading academic years: $e'),
+                  ),
+                  const SizedBox(height: 24),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: OutlinedButton(
+                          onPressed: () => Navigator.pop(context),
+                          style: OutlinedButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(vertical: 16),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(
+                                AppSizes.radiusMedium,
+                              ),
+                            ),
+                          ),
+                          child: const Text('CANCEL'),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        flex: 2,
+                        child: PrimaryButton(
+                          label: isEditing ? 'UPDATE' : 'CREATE',
+                          isLoading: _isLoading,
+                          onPressed: _handleSubmit,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
               ),
-            ],
+            ),
           ),
         ),
       ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.pop(context),
-          child: const Text('CANCEL'),
-        ),
-        PrimaryButton(
-          label: isEditing ? 'UPDATE' : 'CREATE',
-          isLoading: _isLoading,
-          onPressed: _handleSubmit,
-        ),
-      ],
     );
   }
 

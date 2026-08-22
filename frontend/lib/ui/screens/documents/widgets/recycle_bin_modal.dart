@@ -9,6 +9,7 @@ import 'package:frontend/ui/shared/inputs/app_search_bar.dart';
 import 'package:frontend/ui/shared/modals/custom_modal.dart';
 import 'package:frontend/domain/repositories/document_repository.dart'
     show TrashDocumentModel;
+import 'package:frontend/core/utils/file_icon_helper.dart';
 
 class RecycleBinModal extends ConsumerStatefulWidget {
   const RecycleBinModal({super.key});
@@ -206,7 +207,28 @@ class _RecycleBinModalState extends ConsumerState<RecycleBinModal> {
                                       });
                                     },
                                   )
-                                : null,
+                                : Container(
+                                    width: 38,
+                                    height: 38,
+                                    decoration: BoxDecoration(
+                                      color: FileIconHelper.getColor(
+                                        item.fileName,
+                                        docType: item.documentType,
+                                      ).withValues(alpha: 0.1),
+                                      borderRadius: BorderRadius.circular(8),
+                                    ),
+                                    child: Icon(
+                                      FileIconHelper.getIcon(
+                                        item.fileName,
+                                        docType: item.documentType,
+                                      ),
+                                      color: FileIconHelper.getColor(
+                                        item.fileName,
+                                        docType: item.documentType,
+                                      ),
+                                      size: 22,
+                                    ),
+                                  ),
                             title: Text(
                               item.fileName,
                               style: TextStyle(
