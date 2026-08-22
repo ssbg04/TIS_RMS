@@ -1808,7 +1808,8 @@ class _ArchivesScreenState extends ConsumerState<ArchivesScreen>
         }
       },
       itemBuilder: (context) => [
-        if (widget.userRole != 'teacher' &&
+        if (!isMobile &&
+            widget.userRole != 'teacher' &&
             (_tabController.index == 1 || _openedFolderStudentId != null)) ...[
           PopupMenuItem(
             value: 'multi_select',

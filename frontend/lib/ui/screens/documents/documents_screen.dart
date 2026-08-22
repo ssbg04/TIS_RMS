@@ -1078,8 +1078,8 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
 
           const SizedBox(width: 4),
 
-          // Multi-Select Toggle (Icon only, no background, no border)
-          if (widget.userRole != 'teacher' && (_tabController.index == 1 || isFolderOpened)) ...[
+          // Multi-Select Toggle (Desktop only, icon only, no background, no border)
+          if (!isMobile && widget.userRole != 'teacher' && (_tabController.index == 1 || isFolderOpened)) ...[
             Tooltip(
               message: _isMultiSelectMode ? 'Exit Multi-Select' : 'Multi-Select',
               child: IconButton(
@@ -1225,7 +1225,7 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
         }
       },
       itemBuilder: (context) => [
-        if (widget.userRole != 'teacher' && (_tabController.index == 1 || _openedFolderStudentId != null)) ...[
+        if (!isMobile && widget.userRole != 'teacher' && (_tabController.index == 1 || _openedFolderStudentId != null)) ...[
           PopupMenuItem(
             value: 'multi_select',
             child: Row(

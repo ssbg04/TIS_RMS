@@ -345,6 +345,15 @@ Files backup/restore - mirror mode or zip -->
 - Android app:
   - make the history renders half of the screen, dont modify other code, only the design -->
 
+<!-- # DOCUMENT SCREEN
+- Android app:
+  - remove the multi select icon and in the more option icon also
+  - keep only multi select icon in the menu FAB
+
+# ARCHIVE SCREEN
+- Android app:
+  - remove the multi select icon in the more option
+  - keep only multi select icon in the menu FAB -->
 ---
 
 # TIS_RMS Server Manager (dont do)
