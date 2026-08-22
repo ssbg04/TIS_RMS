@@ -359,6 +359,11 @@ Files backup/restore - mirror mode or zip -->
 - Student Folders:
   - remove the title column in DOCUMENT SCREEN, but keep the count items and chip requirements progress
   - remove the title column in ARCHIVES SCREEN -> remove the LRN -> add right click/hold feature and actions a view student profile ->  show only Student name, under the student name the item count status chip next before the action button -->
+
+
+<!-- # STUDENT SCREEN
+- Filter modal: Doc status attention selections to "Low-High Attention" to "Low Attention" and "High-Low Attention" to "High Attention" -->
+
 ---
 
 # TIS_RMS Server Manager (dont do)

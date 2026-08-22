@@ -255,6 +255,8 @@ exports.getAllStudents = (req, res) => {
             orderByClause = `ORDER BY s.last_name ${orderDir}, s.first_name ${orderDir}`;
         } else if (sortBy === 'grade_section') {
             orderByClause = `ORDER BY latest_grade_level ${orderDir}, latest_section ${orderDir}, s.last_name ASC, s.first_name ASC`;
+        } else if (sortBy === 'doc_status') {
+            orderByClause = `ORDER BY missing_count ${orderDir}, s.last_name ASC, s.first_name ASC`;
         }
 
         // ---- Fetch query ----
@@ -274,7 +276,21 @@ exports.getAllStudents = (req, res) => {
                     JOIN academic_years ay_inner ON enr.academic_year_id = ay_inner.id
                     WHERE enr.student_id = s.id
                     ORDER BY ay_inner.year_range DESC, enr.grade_level DESC, enr.id DESC LIMIT 1
-                ) as latest_section
+                ) as latest_section,
+                (
+                    SELECT COUNT(*)
+                    FROM document_requirements dr
+                    WHERE dr.is_mandatory = 1
+                      AND dr.is_enabled = 1
+                      AND dr.category IN (
+                          SELECT DISTINCT CASE WHEN grade_level <= 10 THEN 'JHS' ELSE 'SHS' END
+                          FROM enrollments WHERE student_id = s.id
+                      )
+                      AND dr.id NOT IN (
+                          SELECT requirement_id FROM documents
+                          WHERE student_id = s.id AND status IN ('Completed', 'Archived') AND requirement_id IS NOT NULL
+                      )
+                ) as missing_count
             FROM students s
             ${teacherJoin}
             ${enrollmentJoin}

@@ -55,8 +55,8 @@ class _StudentFilterDialogState extends ConsumerState<StudentFilterDialog> {
   static const _lrnSortItems = ['Default LRN Order', 'ASC', 'DESC'];
   static const _docStatusSortItems = [
     'Default Doc Status Order',
-    'Low-High Attention',
-    'High-Low Attention',
+    'Low Attention',
+    'High Attention',
   ];
   static const _statusItems = [
     'All Status',
@@ -421,16 +421,16 @@ class _StudentFilterDialogState extends ConsumerState<StudentFilterDialog> {
                       items: _docStatusSortItems,
                       selectedValue: (_pendingSortBy == 'doc_status' &&
                               _pendingSortOrder == 'asc')
-                          ? 'Low-High Attention'
+                          ? 'Low Attention'
                           : ((_pendingSortBy == 'doc_status' &&
                                   _pendingSortOrder == 'desc')
-                              ? 'High-Low Attention'
+                              ? 'High Attention'
                               : 'Default Doc Status Order'),
                       onSelected: (v) => setState(() {
-                        if (v == 'Low-High Attention') {
+                        if (v == 'Low Attention') {
                           _pendingSortBy = 'doc_status';
                           _pendingSortOrder = 'asc';
-                        } else if (v == 'High-Low Attention') {
+                        } else if (v == 'High Attention') {
                           _pendingSortBy = 'doc_status';
                           _pendingSortOrder = 'desc';
                         } else {

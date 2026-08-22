@@ -1480,12 +1480,12 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
                             CheckedPopupMenuItem(
                               value: 'asc',
                               checked: query.sortBy == 'doc_status' && query.sortOrder == 'asc',
-                              child: const Text('Low-High Attention'),
+                              child: const Text('Low Attention'),
                             ),
                             CheckedPopupMenuItem(
                               value: 'desc',
                               checked: query.sortBy == 'doc_status' && query.sortOrder == 'desc',
-                              child: const Text('High-Low Attention'),
+                              child: const Text('High Attention'),
                             ),
                           ],
                         ),
