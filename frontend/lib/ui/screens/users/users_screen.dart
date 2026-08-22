@@ -911,8 +911,9 @@ class _UsersScreenState extends ConsumerState<UsersScreen> {
       );
     }
     return ListView.separated(
+      padding: const EdgeInsets.only(bottom: 88),
       itemCount: users.length,
-      separatorBuilder: (_, __) => const SizedBox(height: AppSizes.p12),
+      separatorBuilder: (_, _) => const SizedBox(height: AppSizes.p12),
       itemBuilder: (context, index) {
         final user = users[index];
         return InkWell(
