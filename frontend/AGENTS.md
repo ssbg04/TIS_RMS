@@ -261,9 +261,12 @@ Files backup/restore - mirror mode or zip -->
 - add in show menu icon convert to pdf only for excel files -->
 
 <!-- # DOCUMENTS SCREEN AND ARCHIVE SCREEN -> opened stundent folder
-- add space for table in bottom for pagination and buttons
+- add space for table in bottom if no pagination 
+- remove the space for table in bottom if it has pagination --> 
 
-# ARCHIVES SCREEN
+
+
+<!-- # ARCHIVES SCREEN
 - copy the table from the sudent folders tab to all archived docs, the pagination is inside of the table section -->
 
 <!-- # recycle bin modal 
@@ -304,7 +307,6 @@ Files backup/restore - mirror mode or zip -->
 # SEARCH BAR (ANDROID APP)
 - add left and right margin for search bar
 - dont make the backdrop image resize when the search bar is active -->
-
 
 
 ---

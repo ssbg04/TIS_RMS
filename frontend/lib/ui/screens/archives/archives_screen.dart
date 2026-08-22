@@ -2036,7 +2036,6 @@ class _ArchivesScreenState extends ConsumerState<ArchivesScreen>
                     ),
             ),
           ),
-          if (isMobile) const SizedBox(height: 76),
         ],
       );
     }
@@ -2470,10 +2469,6 @@ class _ArchivesScreenState extends ConsumerState<ArchivesScreen>
                   ),
           ),
         ),
-        if (isMobile && _openedFolderStudentId != null)
-          const SizedBox(height: 76)
-        else if (isMobile)
-          const SizedBox(height: 16),
       ],
     );
   }
@@ -2590,9 +2585,11 @@ class _ArchivesScreenState extends ConsumerState<ArchivesScreen>
         ),
         if (totalPages > 1 && !_searchFocusNode.hasFocus)
           Padding(
-            padding: const EdgeInsets.only(top: 8.0, bottom: 16.0),
+            padding: const EdgeInsets.only(top: 8.0, bottom: 8.0),
             child: _buildPagination(totalPages, currentPage),
-          ),
+          )
+        else
+          SizedBox(height: (isMobile && _openedFolderStudentId != null) ? 76 : 16),
       ],
     );
   }
@@ -2915,9 +2912,11 @@ class _ArchivesScreenState extends ConsumerState<ArchivesScreen>
             ),
             if (totalPages > 1 && !_searchFocusNode.hasFocus)
               Padding(
-                padding: const EdgeInsets.only(top: 8.0, bottom: 16.0),
+                padding: const EdgeInsets.only(top: 8.0, bottom: 8.0),
                 child: _buildPagination(totalPages, currentPage),
-              ),
+              )
+            else
+              SizedBox(height: (isMobileGrid && _openedFolderStudentId != null) ? 76 : 16),
           ],
         );
       },

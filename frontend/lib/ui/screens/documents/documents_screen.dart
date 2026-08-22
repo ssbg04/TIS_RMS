@@ -2463,11 +2463,9 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
               ),
             ),
             if (totalPages > 1 && !_searchFocusNode.hasFocus)
-              Container(child: _buildPagination(totalPages, currentPage)),
-            if (isMobileGrid && _openedFolderStudentId != null)
-              const SizedBox(height: 76)
-            else if (isMobileGrid)
-              const SizedBox(height: 16),
+              Container(child: _buildPagination(totalPages, currentPage))
+            else
+              SizedBox(height: (isMobileGrid && _openedFolderStudentId != null) ? 76 : 16),
           ],
         );
       },
@@ -2641,11 +2639,9 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
           Container(
             padding: const EdgeInsets.only(top: 8.0, bottom: 8.0),
             child: _buildPagination(totalPages, currentPage),
-          ),
-        if (isMobileList && _openedFolderStudentId != null)
-          const SizedBox(height: 76)
-        else if (isMobileList)
-          const SizedBox(height: 16),
+          )
+        else
+          SizedBox(height: (isMobileList && _openedFolderStudentId != null) ? 76 : 16),
       ],
     );
   }
