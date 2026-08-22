@@ -116,9 +116,23 @@ class TisRmsApp extends ConsumerWidget {
         themeMode: themeMode,
 
         builder: (context, child) {
-          return ColoredBox(
-            color: AppColors.primaryGreen,
-            child: SafeArea(child: child!),
+          final isDark = Theme.of(context).brightness == Brightness.dark;
+          return AnnotatedRegion<SystemUiOverlayStyle>(
+            value: SystemUiOverlayStyle(
+              statusBarColor: Colors.transparent,
+              statusBarIconBrightness:
+                  isDark ? Brightness.light : Brightness.dark,
+              systemNavigationBarColor: Colors.transparent,
+              systemNavigationBarIconBrightness:
+                  isDark ? Brightness.light : Brightness.dark,
+              systemNavigationBarDividerColor: Colors.transparent,
+            ),
+            child: ColoredBox(
+              color: isDark
+                  ? AppColors.darkPageBackground
+                  : AppColors.pageBackground,
+              child: SafeArea(child: child!),
+            ),
           );
         },
 

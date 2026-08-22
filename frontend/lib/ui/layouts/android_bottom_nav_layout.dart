@@ -271,26 +271,39 @@ class _AndroidBottomNavLayoutState extends ConsumerState<AndroidBottomNavLayout>
             viewInsets: EdgeInsets.zero,
             padding: mediaQuery.viewPadding,
           );
-          return MediaQuery(
-            data: lockedMediaQuery,
-            child: Scaffold(
-              key: _scaffoldKey,
-              resizeToAvoidBottomInset: false,
-              backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-              appBar: AppBar(
-            backgroundColor: Theme.of(context).appBarTheme.backgroundColor,
-            foregroundColor: Theme.of(context).colorScheme.onSurface,
-            iconTheme: IconThemeData(color: Theme.of(context).colorScheme.onSurface),
-            title: Text(
-              activeTab,
-              style: TextStyle(
-                fontWeight: FontWeight.bold,
-                color: Theme.of(context).colorScheme.onSurface,
-              ),
-            ),
-            elevation: 0,
-            surfaceTintColor: Colors.transparent,
-          ),
+          final isDark = Theme.of(context).brightness == Brightness.dark;
+          final overlayStyle = SystemUiOverlayStyle(
+            statusBarColor: Colors.transparent,
+            statusBarIconBrightness:
+                isDark ? Brightness.light : Brightness.dark,
+            systemNavigationBarColor: Colors.transparent,
+            systemNavigationBarIconBrightness:
+                isDark ? Brightness.light : Brightness.dark,
+            systemNavigationBarDividerColor: Colors.transparent,
+          );
+          return AnnotatedRegion<SystemUiOverlayStyle>(
+            value: overlayStyle,
+            child: MediaQuery(
+              data: lockedMediaQuery,
+              child: Scaffold(
+                key: _scaffoldKey,
+                resizeToAvoidBottomInset: false,
+                backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+                appBar: AppBar(
+                  systemOverlayStyle: overlayStyle,
+                  backgroundColor: Theme.of(context).appBarTheme.backgroundColor,
+                  foregroundColor: Theme.of(context).colorScheme.onSurface,
+                  iconTheme: IconThemeData(color: Theme.of(context).colorScheme.onSurface),
+                  title: Text(
+                    activeTab,
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      color: Theme.of(context).colorScheme.onSurface,
+                    ),
+                  ),
+                  elevation: 0,
+                  surfaceTintColor: Colors.transparent,
+                ),
           drawer: Drawer(
             backgroundColor: Theme.of(context).colorScheme.surface,
             surfaceTintColor: Colors.transparent,
@@ -532,9 +545,10 @@ class _AndroidBottomNavLayoutState extends ConsumerState<AndroidBottomNavLayout>
             ),
           ),
         ),
-      );
-    },
-  ),
+      ),
+    );
+  },
+),
 );
 }
 
