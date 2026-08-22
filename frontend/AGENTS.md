@@ -362,7 +362,11 @@ Files backup/restore - mirror mode or zip -->
 
 
 <!-- # STUDENT SCREEN
-- Filter modal: Doc status attention selections to "Low-High Attention" to "Low Attention" and "High-Low Attention" to "High Attention" -->
+- move the filter icon between the multi select icon and bulk add icon in windows app
+- Filter modal: 
+  - Doc status attention rename selections from "Default Doc Status Order, Low, High" to "Default, Completed, Pending"
+  - remove the LRN Sort Order -->
+
 
 ---
 

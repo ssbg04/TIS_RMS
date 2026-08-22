@@ -52,11 +52,10 @@ class _StudentFilterDialogState extends ConsumerState<StudentFilterDialog> {
   late String _pendingSortOrder;
   late int _pendingLimit;
 
-  static const _lrnSortItems = ['Default LRN Order', 'ASC', 'DESC'];
   static const _docStatusSortItems = [
-    'Default Doc Status Order',
-    'Low Attention',
-    'High Attention',
+    'Default',
+    'Completed',
+    'Pending',
   ];
   static const _statusItems = [
     'All Status',
@@ -369,45 +368,7 @@ class _StudentFilterDialogState extends ConsumerState<StudentFilterDialog> {
 
                   _buildDivider(isDark),
 
-                  // 6. LRN Sort Order
-                  _buildFilterSection(
-                    label: 'LRN Sort Order',
-                    hasActiveFilter: _pendingSortBy == 'lrn',
-                    onReset: () => setState(() {
-                      if (_pendingSortBy == 'lrn') {
-                        _pendingSortBy = '';
-                        _pendingSortOrder = '';
-                      }
-                    }),
-                    child: _buildFilterChipGroup(
-                      items: _lrnSortItems,
-                      selectedValue: (_pendingSortBy == 'lrn' &&
-                              _pendingSortOrder == 'asc')
-                          ? 'ASC'
-                          : ((_pendingSortBy == 'lrn' &&
-                                  _pendingSortOrder == 'desc')
-                              ? 'DESC'
-                              : 'Default LRN Order'),
-                      onSelected: (v) => setState(() {
-                        if (v == 'ASC') {
-                          _pendingSortBy = 'lrn';
-                          _pendingSortOrder = 'asc';
-                        } else if (v == 'DESC') {
-                          _pendingSortBy = 'lrn';
-                          _pendingSortOrder = 'desc';
-                        } else {
-                          if (_pendingSortBy == 'lrn') {
-                            _pendingSortBy = '';
-                            _pendingSortOrder = '';
-                          }
-                        }
-                      }),
-                    ),
-                  ),
-
-                  _buildDivider(isDark),
-
-                  // 7. Document Status Attention Sort
+                  // 6. Document Status Attention Sort
                   _buildFilterSection(
                     label: 'Doc Status Attention',
                     hasActiveFilter: _pendingSortBy == 'doc_status',
@@ -421,16 +382,16 @@ class _StudentFilterDialogState extends ConsumerState<StudentFilterDialog> {
                       items: _docStatusSortItems,
                       selectedValue: (_pendingSortBy == 'doc_status' &&
                               _pendingSortOrder == 'asc')
-                          ? 'Low Attention'
+                          ? 'Completed'
                           : ((_pendingSortBy == 'doc_status' &&
                                   _pendingSortOrder == 'desc')
-                              ? 'High Attention'
-                              : 'Default Doc Status Order'),
+                              ? 'Pending'
+                              : 'Default'),
                       onSelected: (v) => setState(() {
-                        if (v == 'Low Attention') {
+                        if (v == 'Completed') {
                           _pendingSortBy = 'doc_status';
                           _pendingSortOrder = 'asc';
-                        } else if (v == 'High Attention') {
+                        } else if (v == 'Pending') {
                           _pendingSortBy = 'doc_status';
                           _pendingSortOrder = 'desc';
                         } else {
@@ -445,7 +406,7 @@ class _StudentFilterDialogState extends ConsumerState<StudentFilterDialog> {
 
                   _buildDivider(isDark),
 
-                  // 8. Students per Page
+                  // 7. Students per Page
                   _buildFilterSection(
                     label: 'Students per Page',
                     hasActiveFilter: _pendingLimit != 20,

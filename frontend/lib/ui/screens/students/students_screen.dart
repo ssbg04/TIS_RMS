@@ -1043,6 +1043,20 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
                 _buildMultiSelectToggle(true),
               ],
               const SizedBox(width: 4),
+              // Filter icon (icon only, no background)
+              IconButton(
+                onPressed: () =>
+                    StudentFilterDialog.show(context, query: query),
+                icon: Badge(
+                  isLabelVisible: activeCount > 0,
+                  label: Text(activeCount.toString()),
+                  child: const Icon(
+                    Icons.tune_rounded,
+                    color: AppColors.primaryGreen,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 4),
               // "Add" + "Bulk Add" buttons for Windows (replaces FAB)
               if (defaultTargetPlatform == TargetPlatform.windows &&
                   widget.userRole != 'teacher') ...[
@@ -1075,19 +1089,6 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
                 ),
                 const SizedBox(width: 4),
               ],
-              // Filter icon (icon only, no background)
-              IconButton(
-                onPressed: () =>
-                    StudentFilterDialog.show(context, query: query),
-                icon: Badge(
-                  isLabelVisible: activeCount > 0,
-                  label: Text(activeCount.toString()),
-                  child: const Icon(
-                    Icons.tune_rounded,
-                    color: AppColors.primaryGreen,
-                  ),
-                ),
-              ),
             ],
           ],
         );
@@ -1475,17 +1476,17 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
                             CheckedPopupMenuItem(
                               value: '',
                               checked: query.sortBy == 'doc_status' && query.sortOrder == '',
-                              child: const Text('None'),
+                              child: const Text('Default'),
                             ),
                             CheckedPopupMenuItem(
                               value: 'asc',
                               checked: query.sortBy == 'doc_status' && query.sortOrder == 'asc',
-                              child: const Text('Low Attention'),
+                              child: const Text('Completed'),
                             ),
                             CheckedPopupMenuItem(
                               value: 'desc',
                               checked: query.sortBy == 'doc_status' && query.sortOrder == 'desc',
-                              child: const Text('High Attention'),
+                              child: const Text('Pending'),
                             ),
                           ],
                         ),
