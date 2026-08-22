@@ -2577,7 +2577,9 @@ class _ArchivesScreenState extends ConsumerState<ArchivesScreen>
           ),
         ),
         if (totalPages > 1 && !_searchFocusNode.hasFocus)
-          _buildPagination(totalPages, currentPage),
+          _buildPagination(totalPages, currentPage)
+        else if (_openedFolderStudentId != null)
+          SizedBox(height: isMobile ? 76 : 16),
       ],
     );
   }
@@ -2899,7 +2901,9 @@ class _ArchivesScreenState extends ConsumerState<ArchivesScreen>
               ),
             ),
             if (totalPages > 1 && !_searchFocusNode.hasFocus)
-              _buildPagination(totalPages, currentPage),
+              _buildPagination(totalPages, currentPage)
+            else if (_openedFolderStudentId != null)
+              SizedBox(height: isMobileGrid ? 76 : 16),
           ],
         );
       },

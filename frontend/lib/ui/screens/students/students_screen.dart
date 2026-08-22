@@ -915,7 +915,15 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
 
                 // ── Pagination ──
                 pageAsync.maybeWhen(
-                  data: (page) => _buildPagination(query, page),
+                  data: (page) => page.totalPages > 1
+                      ? _buildPagination(query, page)
+                      : SizedBox(
+                          height: (MediaQuery.of(context).size.width < 700 ||
+                                  defaultTargetPlatform ==
+                                      TargetPlatform.android)
+                              ? 76
+                              : 16,
+                        ),
                   orElse: () => const SizedBox.shrink(),
                 ),
               ],

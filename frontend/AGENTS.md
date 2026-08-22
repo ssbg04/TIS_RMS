@@ -264,7 +264,9 @@ Files backup/restore - mirror mode or zip -->
 - add space for table in bottom if no pagination 
 - remove the space for table in bottom if it has pagination --> 
 
-
+<!-- # STUDENT SCREEN
+- add space for table in bottom if no pagination 
+- remove the space for table in bottom if it has pagination --> 
 
 <!-- # ARCHIVES SCREEN
 - copy the table from the sudent folders tab to all archived docs, the pagination is inside of the table section -->
@@ -315,6 +317,9 @@ Files backup/restore - mirror mode or zip -->
 - make a menu FAB -> horizontal menu animation
 - move the multi select menu to the menu FAB
 - if only PRINT LIST need only to show, hide/remove the UPLOAD DOCUMENTS in menu FAB -->
+
+# DOCUMENT SCREEN AND ARCHIVES SCREEN
+- make 
 
 ---
 
