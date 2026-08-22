@@ -321,9 +321,9 @@ Files backup/restore - mirror mode or zip -->
 <!-- # DOCUMENT SCREEN
 - move filter icon between multi select and bulk add  -->
 
-# DOCUMENT SCREEN AND ARCHIVES SCREEN
+<!-- # DOCUMENT SCREEN AND ARCHIVES SCREEN
 - Properties modal: add who uploads
-- add in backend data for file size to get the accurate file size
+- add in backend data for file size to get the accurate file size -->
 
 <!-- - list view -> documents only keep the folder design -> Only file name, under the file name is size of file ex. [2MB], then right side the date ex. [Dec 20, 2024] then 3 dots for menu
 - list view -> Folder only -> add count files inside ex. [3 items] -> keep the chips for JHS SHS just add, do not modify the chips code, only add under the file name

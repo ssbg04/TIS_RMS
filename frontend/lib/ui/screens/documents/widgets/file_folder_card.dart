@@ -325,7 +325,9 @@ class _FileFolderCardState extends State<FileFolderCard> {
                       ),
                       const SizedBox(height: 2),
                       Text(
-                        widget.document.size ?? '—',
+                        FileIconHelper.formatFileSize(
+                          widget.document.fileSize ?? widget.document.size,
+                        ),
                         style: TextStyle(
                           fontSize: 11,
                           color: isDark

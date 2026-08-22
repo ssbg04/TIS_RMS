@@ -11,6 +11,9 @@ class DocumentModel {
   // Extra fields for UI display
   final String? studentLrn;
   final String? studentName;
+  final int? uploadedBy;
+  final String? uploadedByName;
+  final int? fileSize;
   final String? size;
 
   DocumentModel({
@@ -24,6 +27,9 @@ class DocumentModel {
     required this.createdAt,
     this.studentLrn,
     this.studentName,
+    this.uploadedBy,
+    this.uploadedByName,
+    this.fileSize,
     this.size,
   });
 
@@ -43,7 +49,10 @@ class DocumentModel {
                 : DateTime.now()),
       studentLrn: json['studentLrn'] ?? json['student_lrn'],
       studentName: json['studentName'] ?? json['student_name'],
-      size: json['size'],
+      uploadedBy: json['uploadedBy'] ?? json['uploaded_by'] as int?,
+      uploadedByName: json['uploadedByName'] ?? json['uploaded_by_name'] as String?,
+      fileSize: json['fileSize'] ?? json['file_size'] as int?,
+      size: json['size'] as String?,
     );
   }
 
@@ -56,6 +65,9 @@ class DocumentModel {
       'file_path': filePath,
       'document_type': documentType,
       'status': status,
+      'uploaded_by': uploadedBy,
+      'uploaded_by_name': uploadedByName,
+      'file_size': fileSize,
       'created_at': createdAt.toIso8601String(),
     };
   }

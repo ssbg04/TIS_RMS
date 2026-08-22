@@ -173,8 +173,19 @@ class DocumentPropertiesDialog extends StatelessWidget {
                 ),
                 _buildPropertyRow(
                   context,
+                  label: 'Uploaded By',
+                  value: document.uploadedByName ??
+                      (document.uploadedBy != null
+                          ? 'User #${document.uploadedBy}'
+                          : '—'),
+                  icon: Icons.person_add_alt_1_outlined,
+                ),
+                _buildPropertyRow(
+                  context,
                   label: 'File Size',
-                  value: document.size ?? '—',
+                  value: FileIconHelper.formatFileSize(
+                    document.fileSize ?? document.size,
+                  ),
                   icon: Icons.data_usage_rounded,
                 ),
                 _buildPropertyRow(

@@ -16,6 +16,28 @@ const logActivity = (userId, action, entityType, entityId, description) => {
     }
 };
 
+// ── Helper: format file size in human-readable string ─────────────────────────
+const formatBytes = (bytes) => {
+    if (bytes === null || bytes === undefined || isNaN(bytes) || bytes < 0) return 'Unknown';
+    if (bytes === 0) return '0 B';
+    const k = 1024;
+    const sizes = ['B', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
+};
+
+const getDocSize = (d) => {
+    if (d.file_size !== null && d.file_size !== undefined && d.file_size > 0) {
+        return d.file_size;
+    }
+    if (d.file_path && fs.existsSync(d.file_path)) {
+        try {
+            const stat = fs.statSync(d.file_path);
+            return stat.size;
+        } catch (_) {}
+    }
+    return null;
+};
 
 const STUDENT_DIR_ROOT = process.env.STUDENT_DIR_ROOT
     ? path.resolve(process.env.STUDENT_DIR_ROOT)
@@ -147,11 +169,12 @@ exports.uploadDocument = (req, res) => {
 
     try {
         const reqId = requirementId && requirementId !== 'null' ? requirementId : null;
+        const fileSize = file.size || (file.path && fs.existsSync(file.path) ? fs.statSync(file.path).size : null);
 
         const result = db.prepare(`
-            INSERT INTO documents (student_id, requirement_id, file_name, file_path, document_type, status, uploaded_by)
-            VALUES (?, ?, ?, ?, ?, 'Completed', ?)
-        `).run(studentId, reqId, file.originalname, file.path, documentType, req.user.id);
+            INSERT INTO documents (student_id, requirement_id, file_name, file_path, document_type, status, uploaded_by, file_size)
+            VALUES (?, ?, ?, ?, ?, 'Completed', ?, ?)
+        `).run(studentId, reqId, file.originalname, file.path, documentType, req.user.id, fileSize);
 
         // Log activity
         const student = db.prepare('SELECT first_name, last_name FROM students WHERE id = ?').get(studentId);
@@ -326,10 +349,13 @@ exports.getAllDocuments = (req, res) => {
 
         const fetchSql = `
             SELECT DISTINCT
-                d.id, d.student_id, d.file_name, d.document_type, d.status, d.created_at, d.file_path,
+                d.id, d.student_id, d.requirement_id, d.file_name, d.document_type, d.status, d.created_at, d.file_path, d.uploaded_by, d.file_size,
                 s.lrn as student_lrn,
-                s.first_name || ' ' || s.last_name as student_name
+                s.first_name || ' ' || s.last_name as student_name,
+                TRIM(COALESCE(u.first_name, '') || ' ' || COALESCE(u.last_name, '')) as uploaded_by_name,
+                u.username as uploaded_by_username
             FROM documents d
+            LEFT JOIN users u ON d.uploaded_by = u.id
             ${joins}
             ${whereClause}
             ORDER BY d.created_at DESC
@@ -338,18 +364,28 @@ exports.getAllDocuments = (req, res) => {
 
         const documents = db.prepare(fetchSql).all([...params, limitNum, offset]);
 
-        const mappedDocs = documents.map(d => ({
-            id: d.id,
-            studentId: d.student_id,
-            fileName: d.file_name,
-            documentType: d.document_type,
-            status: d.status,
-            createdAt: d.created_at,
-            studentLrn: d.student_lrn,
-            studentName: d.student_name,
-            size: 'Unknown', // Not storing size in DB right now
-            filePath: d.file_path
-        }));
+        const mappedDocs = documents.map(d => {
+            const rawSize = getDocSize(d);
+            const uploaderName = d.uploaded_by_name && d.uploaded_by_name.trim().length > 0
+                ? d.uploaded_by_name.trim()
+                : (d.uploaded_by_username || (d.uploaded_by ? `User #${d.uploaded_by}` : null));
+            return {
+                id: d.id,
+                studentId: d.student_id,
+                requirementId: d.requirement_id,
+                fileName: d.file_name,
+                documentType: d.document_type,
+                status: d.status,
+                createdAt: d.created_at,
+                studentLrn: d.student_lrn,
+                studentName: d.student_name,
+                uploadedBy: d.uploaded_by,
+                uploadedByName: uploaderName,
+                fileSize: rawSize,
+                size: rawSize !== null ? formatBytes(rawSize) : 'Unknown',
+                filePath: d.file_path
+            };
+        });
 
         res.json({
             documents: mappedDocs,
@@ -388,9 +424,12 @@ exports.getStatuses = (req, res) => {
     }
 };
 
-exports.getDocumentsByStudent = (req, res) => {
+// ============================================================
+// GET /api/documents/student/:studentId — get single student's documents
+// ============================================================
+exports.getDocumentsByStudent = exports.getDocumentById = (req, res) => {
+    const studentId = req.params.studentId || req.params.id;
     try {
-        const studentId = req.params.studentId;
         const isTeacher = req.user?.role?.toLowerCase() === 'teacher';
         if (isTeacher) {
             const hasAccess = db.prepare(`
@@ -412,26 +451,39 @@ exports.getDocumentsByStudent = (req, res) => {
         const documents = db.prepare(`
             SELECT d.*, dr.name as requirement_name,
                    s.lrn as student_lrn,
-                   s.first_name || ' ' || s.last_name as student_name
+                   s.first_name || ' ' || s.last_name as student_name,
+                   TRIM(COALESCE(u.first_name, '') || ' ' || COALESCE(u.last_name, '')) as uploaded_by_name,
+                   u.username as uploaded_by_username
             FROM documents d
+            LEFT JOIN users u ON d.uploaded_by = u.id
             LEFT JOIN document_requirements dr ON d.requirement_id = dr.id
             LEFT JOIN students s ON d.student_id = s.id
             WHERE d.student_id = ? AND d.deleted_at IS NULL
         `).all(studentId);
 
-        const mappedDocs = documents.map(d => ({
-            id: d.id,
-            studentId: d.student_id,
-            fileName: d.file_name,
-            documentType: d.document_type,
-            status: d.status,
-            createdAt: d.created_at,
-            studentLrn: d.student_lrn,
-            studentName: d.student_name,
-            size: 'Unknown',
-            filePath: d.file_path,
-            requirementName: d.requirement_name
-        }));
+        const mappedDocs = documents.map(d => {
+            const rawSize = getDocSize(d);
+            const uploaderName = d.uploaded_by_name && d.uploaded_by_name.trim().length > 0
+                ? d.uploaded_by_name.trim()
+                : (d.uploaded_by_username || (d.uploaded_by ? `User #${d.uploaded_by}` : null));
+            return {
+                id: d.id,
+                studentId: d.student_id,
+                requirementId: d.requirement_id,
+                fileName: d.file_name,
+                documentType: d.document_type,
+                status: d.status,
+                createdAt: d.created_at,
+                studentLrn: d.student_lrn,
+                studentName: d.student_name,
+                uploadedBy: d.uploaded_by,
+                uploadedByName: uploaderName,
+                fileSize: rawSize,
+                size: rawSize !== null ? formatBytes(rawSize) : 'Unknown',
+                filePath: d.file_path,
+                requirementName: d.requirement_name
+            };
+        });
 
         res.json(mappedDocs);
     } catch (error) {
@@ -662,10 +714,11 @@ exports.copyDocument = (req, res) => {
         fs.copyFileSync(originalPath, newFilePath);
 
         // Insert into DB
+        const fileSize = doc.file_size || (fs.existsSync(newFilePath) ? fs.statSync(newFilePath).size : null);
         const result = db.prepare(`
-            INSERT INTO documents (student_id, requirement_id, file_name, file_path, document_type, status, uploaded_by)
-            VALUES (?, ?, ?, ?, ?, ?, ?)
-        `).run(doc.student_id, doc.requirement_id, newFileName, newFilePath, doc.document_type, doc.status, req.user.id);
+            INSERT INTO documents (student_id, requirement_id, file_name, file_path, document_type, status, uploaded_by, file_size)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        `).run(doc.student_id, doc.requirement_id, newFileName, newFilePath, doc.document_type, doc.status, req.user.id, fileSize);
 
         // Log activity
         const student = db.prepare('SELECT first_name, last_name FROM students WHERE id = ?').get(doc.student_id);
@@ -740,10 +793,11 @@ exports.convertToPdf = async (req, res) => {
         fs.renameSync(tempPdfPath, finalPdfPath);
 
         // Insert new PDF document row into database
+        const convertedFileSize = fs.existsSync(finalPdfPath) ? fs.statSync(finalPdfPath).size : null;
         const result = db.prepare(`
-            INSERT INTO documents (student_id, requirement_id, file_name, file_path, document_type, status, uploaded_by)
-            VALUES (?, ?, ?, ?, ?, ?, ?)
-        `).run(doc.student_id, doc.requirement_id, newFileName, finalPdfPath, doc.document_type, doc.status, req.user.id);
+            INSERT INTO documents (student_id, requirement_id, file_name, file_path, document_type, status, uploaded_by, file_size)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        `).run(doc.student_id, doc.requirement_id, newFileName, finalPdfPath, doc.document_type, doc.status, req.user.id, convertedFileSize);
 
         const newDoc = db.prepare('SELECT * FROM documents WHERE id = ?').get(result.lastInsertRowid);
 
@@ -774,31 +828,45 @@ exports.bulkDelete = (req, res) => {
         return res.status(400).json({ message: 'No document IDs provided' });
     }
     try {
-        const deletedNames = [];
+        const isTeacher = req.user?.role?.toLowerCase() === 'teacher';
+        const teacherId = req.user?.id;
+        let deletedCount = 0;
+
         const getStmt = db.prepare('SELECT file_name, student_id, file_path, document_type FROM documents WHERE id = ?');
-        const softDeleteStmt = db.prepare("UPDATE documents SET deleted_at = strftime('%Y-%m-%dT%H:%M:%SZ', 'now') WHERE id = ?");
-        const insertTrashStmt = db.prepare(`
+        const insertRecentStmt = db.prepare(`
             INSERT INTO recent_deleted (document_id, student_id, file_name, file_path, document_type, deleted_by)
             VALUES (?, ?, ?, ?, ?, ?)
         `);
+        const softDeleteStmt = db.prepare('UPDATE documents SET deleted_at = CURRENT_TIMESTAMP WHERE id = ?');
 
         const transaction = db.transaction(() => {
             for (const id of ids) {
                 const doc = getStmt.get(id);
                 if (doc) {
-                    insertTrashStmt.run(id, doc.student_id, doc.file_name, doc.file_path, doc.document_type, req.user?.id);
+                    if (isTeacher) {
+                        const hasAccess = db.prepare(`
+                            SELECT 1 FROM enrollments e
+                            JOIN teacher_sections ts ON e.section_id = ts.section_id
+                            WHERE e.student_id = ? AND ts.teacher_id = ?
+                              AND e.id = (
+                                  SELECT e2.id FROM enrollments e2
+                                  JOIN academic_years ay ON e2.academic_year_id = ay.id
+                                  WHERE e2.student_id = ?
+                                  ORDER BY ay.year_range DESC, e2.grade_level DESC, e2.id DESC LIMIT 1
+                              )
+                        `).get(doc.student_id, teacherId, doc.student_id);
+                        if (!hasAccess) continue;
+                    }
+                    insertRecentStmt.run(id, doc.student_id, doc.file_name, doc.file_path, doc.document_type, req.user?.id);
                     softDeleteStmt.run(id);
-                    deletedNames.push(doc.file_name);
+                    deletedCount++;
                 }
             }
         });
 
         transaction();
 
-        logActivity(req.user?.id, 'DELETE', 'document', null,
-            `Moved ${deletedNames.length} documents to Recycle Bin: ${deletedNames.join(', ')}`);
-
-        res.json({ message: `Successfully moved ${deletedNames.length} documents to Recycle Bin` });
+        res.json({ message: `Successfully moved ${deletedCount} documents to recycle bin` });
     } catch (error) {
         console.error('bulkDelete error:', error);
         res.status(500).json({ message: 'Failed to bulk delete documents', error: error.message });
@@ -849,21 +917,24 @@ exports.bulkStatus = (req, res) => {
 exports.bulkAddToPrintQueue = (req, res) => {
     const { ids } = req.body;
     const userId = req.user.id;
-    const isTeacher = req.user?.role?.toLowerCase() === 'teacher';
     if (!ids || !Array.isArray(ids) || !ids.length) {
         return res.status(400).json({ message: 'No document IDs provided' });
     }
     try {
+        const isTeacher = req.user?.role?.toLowerCase() === 'teacher';
         let addedCount = 0;
+
         const checkStmt = db.prepare('SELECT id FROM print_queue WHERE document_id = ? AND user_id = ?');
-        const insertStmt = db.prepare('INSERT INTO print_queue (document_id, user_id) VALUES (?, ?)');
         const getDocStudentStmt = db.prepare('SELECT student_id FROM documents WHERE id = ?');
+        const insertStmt = db.prepare('INSERT INTO print_queue (document_id, user_id) VALUES (?, ?)');
 
         const transaction = db.transaction(() => {
             for (const id of ids) {
-                const doc = getDocStudentStmt.get(id);
-                if (doc) {
+                const existing = checkStmt.get(id, userId);
+                if (!existing) {
                     if (isTeacher) {
+                        const docStudent = getDocStudentStmt.get(id);
+                        if (!docStudent) continue;
                         const hasAccess = db.prepare(`
                             SELECT 1 FROM enrollments e
                             JOIN teacher_sections ts ON e.section_id = ts.section_id
@@ -874,16 +945,11 @@ exports.bulkAddToPrintQueue = (req, res) => {
                                   WHERE e2.student_id = ?
                                   ORDER BY ay.year_range DESC, e2.grade_level DESC, e2.id DESC LIMIT 1
                               )
-                        `).get(doc.student_id, userId, doc.student_id);
-                        if (!hasAccess) {
-                            continue;
-                        }
+                        `).get(docStudent.student_id, userId, docStudent.student_id);
+                        if (!hasAccess) continue;
                     }
-                    const existing = checkStmt.get(id, userId);
-                    if (!existing) {
-                        insertStmt.run(id, userId);
-                        addedCount++;
-                    }
+                    insertStmt.run(id, userId);
+                    addedCount++;
                 }
             }
         });
@@ -910,8 +976,8 @@ exports.bulkCopy = (req, res) => {
         let copiedCount = 0;
         const getStmt = db.prepare('SELECT * FROM documents WHERE id = ?');
         const insertStmt = db.prepare(`
-            INSERT INTO documents (student_id, requirement_id, file_name, file_path, document_type, status, uploaded_by)
-            VALUES (?, ?, ?, ?, ?, ?, ?)
+            INSERT INTO documents (student_id, requirement_id, file_name, file_path, document_type, status, uploaded_by, file_size)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
         `);
         const usedNames = new Set();
 
@@ -952,7 +1018,8 @@ exports.bulkCopy = (req, res) => {
                     const newFilePath = path.join(dir, `${Date.now()}-${newFileName.replace(/[^a-zA-Z0-9.-]/g, '_')}`);
 
                     fs.copyFileSync(originalPath, newFilePath);
-                    insertStmt.run(doc.student_id, doc.requirement_id, newFileName, newFilePath, doc.document_type, doc.status, req.user.id);
+                    const copiedFileSize = doc.file_size || (fs.existsSync(newFilePath) ? fs.statSync(newFilePath).size : null);
+                    insertStmt.run(doc.student_id, doc.requirement_id, newFileName, newFilePath, doc.document_type, doc.status, req.user.id, copiedFileSize);
                     copiedCount++;
                 }
             }
@@ -989,9 +1056,11 @@ exports.getTrashDocuments = (req, res) => {
         const rows = db.prepare(`
             SELECT rd.document_id as id, rd.student_id, rd.file_name, rd.document_type, rd.file_path, rd.deleted_at,
                    s.lrn as student_lrn,
-                   s.first_name || ' ' || s.last_name as student_name
+                   s.first_name || ' ' || s.last_name as student_name,
+                   d.file_size
             FROM recent_deleted rd
             LEFT JOIN students s ON rd.student_id = s.id
+            LEFT JOIN documents d ON rd.document_id = d.id
             ${teacherJoin}
             WHERE rd.document_id IS NOT NULL
             ORDER BY rd.deleted_at DESC
@@ -1003,6 +1072,7 @@ exports.getTrashDocuments = (req, res) => {
             const diffMs = now - deletedTime;
             const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
             const daysRemaining = Math.max(0, 30 - diffDays);
+            const rawSize = d.file_size;
 
             return {
                 id: d.id,
@@ -1015,7 +1085,8 @@ exports.getTrashDocuments = (req, res) => {
                 studentName: d.student_name,
                 deletedAt: d.deleted_at,
                 daysRemaining,
-                size: 'Unknown',
+                fileSize: rawSize,
+                size: rawSize !== null ? formatBytes(rawSize) : 'Unknown',
                 filePath: d.file_path
             };
         });

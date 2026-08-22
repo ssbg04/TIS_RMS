@@ -1,5 +1,6 @@
 const db = require('../config/db');
 const bcrypt = require('bcrypt');
+const fs = require('fs');
 
 const initSchema = () => {
     // ── Migration: Document status rename ──────────────────────────────────
@@ -492,6 +493,7 @@ const initSchema = () => {
                 status TEXT CHECK(status IN ('Completed','Archived')) DEFAULT 'Completed',
                 retention_date DATE,
                 uploaded_by INTEGER,
+                file_size INTEGER DEFAULT NULL,
                 created_at DATETIME DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ', 'now')),
                 deleted_at DATETIME DEFAULT NULL,
                 FOREIGN KEY (student_id) REFERENCES students(id) ON DELETE CASCADE,
@@ -630,6 +632,32 @@ const initSchema = () => {
         if (!docCols.some(c => c.name === 'deleted_at')) {
             db.prepare("ALTER TABLE documents ADD COLUMN deleted_at DATETIME DEFAULT NULL").run();
             console.log('Migration: added deleted_at column to documents table');
+        }
+
+        // Migration: add file_size column to documents if missing & backfill from disk
+        if (!docCols.some(c => c.name === 'file_size')) {
+            db.prepare("ALTER TABLE documents ADD COLUMN file_size INTEGER DEFAULT NULL").run();
+            console.log('Migration: added file_size column to documents table');
+        }
+
+        try {
+            const docsWithoutSize = db.prepare("SELECT id, file_path FROM documents WHERE file_size IS NULL OR file_size = 0").all();
+            if (docsWithoutSize.length > 0) {
+                const updateSizeStmt = db.prepare("UPDATE documents SET file_size = ? WHERE id = ?");
+                db.transaction(() => {
+                    for (const doc of docsWithoutSize) {
+                        if (doc.file_path && fs.existsSync(doc.file_path)) {
+                            try {
+                                const stats = fs.statSync(doc.file_path);
+                                updateSizeStmt.run(stats.size, doc.id);
+                            } catch (_) {}
+                        }
+                    }
+                })();
+                console.log(`[Migration] Backfilled file_size for ${docsWithoutSize.length} documents from disk.`);
+            }
+        } catch (sizeErr) {
+            console.error('[Migration Error] Failed to backfill file_size:', sizeErr.message);
         }
 
         // Migration: Backfill any documents that are soft-deleted but missing from recent_deleted

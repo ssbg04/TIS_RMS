@@ -77,7 +77,10 @@ class FileIconHelper {
         name.endsWith('.rar') ||
         name.endsWith('.7z') ||
         name.endsWith('.tar') ||
-        name.endsWith('.gz');
+        name.endsWith('.gz') ||
+        type.contains('zip') ||
+        type.contains('archive') ||
+        type.contains('compressed');
   }
 
   /// Returns the appropriate [IconData] for a given file name and optional document type.
@@ -186,5 +189,26 @@ class FileIconHelper {
     final icon = getIcon(fileName, docType: docType);
     final color = overrideColor ?? getColor(fileName, docType: docType);
     return Icon(icon, size: size, color: color);
+  }
+
+  /// Formats file size bytes or string into a human readable format (e.g. 2.4 MB, 500 KB)
+  static String formatFileSize(dynamic size) {
+    if (size == null) return '—';
+    if (size is num) {
+      if (size <= 0) return '0 B';
+      if (size < 1024) return '$size B';
+      if (size < 1024 * 1024) {
+        return '${(size / 1024).toStringAsFixed(1)} KB';
+      }
+      if (size < 1024 * 1024 * 1024) {
+        return '${(size / (1024 * 1024)).toStringAsFixed(1)} MB';
+      }
+      return '${(size / (1024 * 1024 * 1024)).toStringAsFixed(1)} GB';
+    }
+    final s = size.toString().trim();
+    if (s.isEmpty || s == 'Unknown' || s == '—') return '—';
+    final parsed = num.tryParse(s);
+    if (parsed != null) return formatFileSize(parsed);
+    return s;
   }
 }

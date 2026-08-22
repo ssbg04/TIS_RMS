@@ -1,5 +1,29 @@
 const db = require('../config/db');
 const path = require('path');
+const fs = require('fs');
+
+// ── Helper: format file size in human-readable string ─────────────────────────
+const formatBytes = (bytes) => {
+    if (bytes === null || bytes === undefined || isNaN(bytes) || bytes < 0) return 'Unknown';
+    if (bytes === 0) return '0 B';
+    const k = 1024;
+    const sizes = ['B', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
+};
+
+const getDocSize = (d) => {
+    if (d.file_size !== null && d.file_size !== undefined && d.file_size > 0) {
+        return d.file_size;
+    }
+    if (d.file_path && fs.existsSync(d.file_path)) {
+        try {
+            const stat = fs.statSync(d.file_path);
+            return stat.size;
+        } catch (_) {}
+    }
+    return null;
+};
 
 
 exports.getArchivedStudents = (req, res) => {
@@ -263,31 +287,44 @@ exports.getArchivedDocuments = (req, res) => {
 
         const rows = db.prepare(`
             SELECT DISTINCT
-                d.id, d.student_id, d.file_name, d.document_type, d.status,
-                d.created_at, d.file_path,
+                d.id, d.student_id, d.requirement_id, d.file_name, d.document_type, d.status,
+                d.created_at, d.file_path, d.uploaded_by, d.file_size,
                 s.lrn as student_lrn,
                 s.status as student_status,
-                s.first_name || ' ' || s.last_name as student_name
+                s.first_name || ' ' || s.last_name as student_name,
+                TRIM(COALESCE(u.first_name, '') || ' ' || COALESCE(u.last_name, '')) as uploaded_by_name,
+                u.username as uploaded_by_username
             FROM documents d
+            LEFT JOIN users u ON d.uploaded_by = u.id
             ${joins}
             ${whereClause}
             ORDER BY d.created_at DESC
             LIMIT ? OFFSET ?
         `).all([...params, limitNum, offset]);
 
-        const documents = rows.map(d => ({
-            id: d.id,
-            studentId: d.student_id,
-            fileName: d.file_name,
-            documentType: d.document_type,
-            status: d.status,
-            createdAt: d.created_at,
-            studentLrn: d.student_lrn,
-            studentName: d.student_name,
-            studentStatus: d.student_status,
-            size: 'Unknown',
-            filePath: d.file_path,
-        }));
+        const documents = rows.map(d => {
+            const rawSize = getDocSize(d);
+            const uploaderName = d.uploaded_by_name && d.uploaded_by_name.trim().length > 0
+                ? d.uploaded_by_name.trim()
+                : (d.uploaded_by_username || (d.uploaded_by ? `User #${d.uploaded_by}` : null));
+            return {
+                id: d.id,
+                studentId: d.student_id,
+                requirementId: d.requirement_id,
+                fileName: d.file_name,
+                documentType: d.document_type,
+                status: d.status,
+                createdAt: d.created_at,
+                studentLrn: d.student_lrn,
+                studentName: d.student_name,
+                studentStatus: d.student_status,
+                uploadedBy: d.uploaded_by,
+                uploadedByName: uploaderName,
+                fileSize: rawSize,
+                size: rawSize !== null ? formatBytes(rawSize) : 'Unknown',
+                filePath: d.file_path,
+            };
+        });
 
         res.json({
             documents,
