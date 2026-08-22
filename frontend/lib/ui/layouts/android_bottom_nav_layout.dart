@@ -2,7 +2,6 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../../core/constants/app_colors.dart';
-import '../../core/constants/app_sizes.dart';
 import '../screens/dashboard/dashboard_screen.dart';
 import '../screens/settings/settings_screen.dart';
 import '../screens/students/students_screen.dart';
@@ -265,11 +264,20 @@ class _AndroidBottomNavLayoutState extends ConsumerState<AndroidBottomNavLayout>
           SystemNavigator.pop();
         }
       },
-      child: SafeArea(
-        child: Scaffold(
-          key: _scaffoldKey,
-          backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-          appBar: AppBar(
+      child: Builder(
+        builder: (context) {
+          final mediaQuery = MediaQuery.of(context);
+          final lockedMediaQuery = mediaQuery.copyWith(
+            viewInsets: EdgeInsets.zero,
+            padding: mediaQuery.viewPadding,
+          );
+          return MediaQuery(
+            data: lockedMediaQuery,
+            child: Scaffold(
+              key: _scaffoldKey,
+              resizeToAvoidBottomInset: false,
+              backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+              appBar: AppBar(
             backgroundColor: Theme.of(context).appBarTheme.backgroundColor,
             foregroundColor: Theme.of(context).colorScheme.onSurface,
             iconTheme: IconThemeData(color: Theme.of(context).colorScheme.onSurface),
@@ -524,9 +532,11 @@ class _AndroidBottomNavLayoutState extends ConsumerState<AndroidBottomNavLayout>
             ),
           ),
         ),
-      ),
-    );
-  }
+      );
+    },
+  ),
+);
+}
 
   Widget _buildDrawerItem(
     Map<String, dynamic> tab,

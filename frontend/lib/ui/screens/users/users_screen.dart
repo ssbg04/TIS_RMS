@@ -478,7 +478,8 @@ class _UsersScreenState extends ConsumerState<UsersScreen> {
         focusNode: _shortcutFocusNode,
         autofocus: true,
         child: Scaffold(
-      backgroundColor: Colors.transparent,
+          resizeToAvoidBottomInset: false,
+          backgroundColor: Colors.transparent,
       floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
       floatingActionButton: (MediaQuery.of(context).size.width > 800 ||
               _searchFocusNode.hasFocus ||
@@ -736,7 +737,7 @@ class _UsersScreenState extends ConsumerState<UsersScreen> {
         return Align(
           alignment: Alignment.topCenter,
           child: Padding(
-            padding: const EdgeInsets.only(top: kToolbarHeight + 24),
+            padding: const EdgeInsets.fromLTRB(16, kToolbarHeight + 24, 16, 0),
             child: Material(
               color: isDark ? AppColors.darkSurfaceCard : Colors.white,
               elevation: 4,

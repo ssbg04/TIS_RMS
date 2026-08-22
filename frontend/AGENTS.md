@@ -295,6 +295,17 @@ Files backup/restore - mirror mode or zip -->
 # DOCUMENT SCREEN
 - upload document -> review & upload step -> STUDENT LRN text field only number can input -->
 
+<!-- # WINDOWS APP
+- remove the logo in custom title bar (only for windows app) -->
+
+<!-- # BACKDROP IMAGE
+- add some overlay mini blur
+
+# SEARCH BAR (ANDROID APP)
+- add left and right margin for search bar
+- dont make the backdrop image resize when the search bar is active -->
+ 
+
 ---
 
 # TIS_RMS Server Manager (dont do)

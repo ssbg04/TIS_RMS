@@ -1,3 +1,4 @@
+import 'dart:ui' show ImageFilter;
 import 'package:flutter/material.dart';
 
 /// An adaptive backdrop widget that displays the appropriate high-resolution
@@ -12,12 +13,14 @@ class AbstractBackground extends StatelessWidget {
   final Widget child;
   final bool withOverlay;
   final double overlayOpacity;
+  final double blurSigma;
 
   const AbstractBackground({
     super.key,
     required this.child,
     this.withOverlay = false,
     this.overlayOpacity = 0.0,
+    this.blurSigma = 2.5,
   });
 
   /// Helper to get the correct asset path based on brightness and orientation
@@ -40,8 +43,7 @@ class AbstractBackground extends StatelessWidget {
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final mediaQuery = MediaQuery.of(context);
-    final isLandscape = mediaQuery.orientation == Orientation.landscape ||
-        mediaQuery.size.width >= mediaQuery.size.height;
+    final isLandscape = mediaQuery.orientation == Orientation.landscape;
 
     final assetPath = getBackdropAsset(
       isDark: isDark,
@@ -51,13 +53,26 @@ class AbstractBackground extends StatelessWidget {
     return Stack(
       fit: StackFit.expand,
       children: [
-        // Background image matching orientation and theme
+        // Background image with original normal positioning and overlay mini blur
         Positioned.fill(
-          child: Image.asset(
-            assetPath,
-            fit: BoxFit.cover,
-            alignment: Alignment.center,
-          ),
+          child: blurSigma > 0
+              ? ImageFiltered(
+                  imageFilter: ImageFilter.blur(
+                    sigmaX: blurSigma,
+                    sigmaY: blurSigma,
+                    tileMode: TileMode.clamp,
+                  ),
+                  child: Image.asset(
+                    assetPath,
+                    fit: BoxFit.cover,
+                    alignment: Alignment.center,
+                  ),
+                )
+              : Image.asset(
+                  assetPath,
+                  fit: BoxFit.cover,
+                  alignment: Alignment.center,
+                ),
         ),
         if (withOverlay && overlayOpacity > 0)
           Positioned.fill(

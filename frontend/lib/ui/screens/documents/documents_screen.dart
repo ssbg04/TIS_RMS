@@ -679,7 +679,8 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
         onTap: () => FocusScope.of(context).unfocus(),
         behavior: HitTestBehavior.translucent,
         child: Scaffold(
-        backgroundColor: Colors.transparent,
+          resizeToAvoidBottomInset: false,
+          backgroundColor: Colors.transparent,
         floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
         floatingActionButton:
             (_tabController.index != 2 &&
@@ -884,7 +885,7 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
         return Align(
           alignment: Alignment.topCenter,
           child: Padding(
-            padding: const EdgeInsets.only(top: kToolbarHeight + 24),
+            padding: const EdgeInsets.fromLTRB(16, kToolbarHeight + 24, 16, 0),
             child: Material(
               color: isDark ? AppColors.darkSurfaceCard : Colors.white,
               elevation: 4,

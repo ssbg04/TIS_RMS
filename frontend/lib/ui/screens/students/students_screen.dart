@@ -810,7 +810,8 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
       child: _buildDragDropWrapper(
         context,
         child: Scaffold(
-      backgroundColor: Colors.transparent,
+          resizeToAvoidBottomInset: false,
+          backgroundColor: Colors.transparent,
       floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
       floatingActionButton:
           (widget.userRole == 'teacher' ||
@@ -944,7 +945,7 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
         return Align(
           alignment: Alignment.topCenter,
           child: Padding(
-            padding: const EdgeInsets.only(top: kToolbarHeight + 24),
+            padding: const EdgeInsets.fromLTRB(16, kToolbarHeight + 24, 16, 0),
             child: Material(
               color: isDark ? AppColors.darkSurfaceCard : Colors.white,
               elevation: 4,

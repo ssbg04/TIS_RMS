@@ -305,6 +305,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
         focusNode: _shortcutFocusNode,
         autofocus: true,
         child: Scaffold(
+          resizeToAvoidBottomInset: false,
           backgroundColor: Colors.transparent,
           body: SafeArea(
         child: dashboardAsync.when(
@@ -703,7 +704,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
         return Align(
           alignment: Alignment.topCenter,
           child: Padding(
-            padding: const EdgeInsets.only(top: kToolbarHeight + 24),
+            padding: const EdgeInsets.fromLTRB(16, kToolbarHeight + 24, 16, 0),
             child: Material(
               color: isDark ? AppColors.darkSurfaceCard : Colors.white,
               elevation: 4,

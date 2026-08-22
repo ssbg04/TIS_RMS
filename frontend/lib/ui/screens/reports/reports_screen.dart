@@ -479,6 +479,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
     final storageAsync = ref.watch(storageStatsProvider);
 
     return Scaffold(
+      resizeToAvoidBottomInset: false,
       backgroundColor: Colors.transparent,
       body: SafeArea(
         child: RefreshIndicator(
