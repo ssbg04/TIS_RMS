@@ -308,6 +308,8 @@ Files backup/restore - mirror mode or zip -->
 - add left and right margin for search bar
 - dont make the backdrop image resize when the search bar is active -->
 
+<!-- # DOCUMENT SCREEN AND ARCHIVE SCREEN
+- copy from STUDENT SCREEN the table bottom spaces for pagination to the screen to these screen DOCUMENT AND ARCHIVES SCREEN -->
 
 ---
 

@@ -2371,11 +2371,7 @@ class _ArchivesScreenState extends ConsumerState<ArchivesScreen>
           children: [
             Expanded(child: !_isGridView ? containerList : gridView),
             if (totalPages > 1 && !_searchFocusNode.hasFocus)
-              Padding(
-                padding: const EdgeInsets.only(top: 8.0, bottom: 16.0),
-                child: _buildFoldersPagination(totalPages, _foldersPage),
-              ),
-            if (isMobile) const SizedBox(height: 16),
+              _buildFoldersPagination(totalPages, _foldersPage),
           ],
         );
       },
@@ -2384,13 +2380,10 @@ class _ArchivesScreenState extends ConsumerState<ArchivesScreen>
 
   Widget _buildFoldersPagination(int totalPages, int currentPage) {
     if (_searchFocusNode.hasFocus) return const SizedBox.shrink();
-    return SafeArea(
-      top: false,
-      child: AppPagination(
-        currentPage: currentPage,
-        totalPages: totalPages,
-        onPageChanged: (p) => setState(() => _foldersPage = p),
-      ),
+    return AppPagination(
+      currentPage: currentPage,
+      totalPages: totalPages,
+      onPageChanged: (p) => setState(() => _foldersPage = p),
     );
   }
 
@@ -2584,12 +2577,7 @@ class _ArchivesScreenState extends ConsumerState<ArchivesScreen>
           ),
         ),
         if (totalPages > 1 && !_searchFocusNode.hasFocus)
-          Padding(
-            padding: const EdgeInsets.only(top: 8.0, bottom: 8.0),
-            child: _buildPagination(totalPages, currentPage),
-          )
-        else
-          SizedBox(height: (isMobile && _openedFolderStudentId != null) ? 76 : 16),
+          _buildPagination(totalPages, currentPage),
       ],
     );
   }
@@ -2911,12 +2899,7 @@ class _ArchivesScreenState extends ConsumerState<ArchivesScreen>
               ),
             ),
             if (totalPages > 1 && !_searchFocusNode.hasFocus)
-              Padding(
-                padding: const EdgeInsets.only(top: 8.0, bottom: 8.0),
-                child: _buildPagination(totalPages, currentPage),
-              )
-            else
-              SizedBox(height: (isMobileGrid && _openedFolderStudentId != null) ? 76 : 16),
+              _buildPagination(totalPages, currentPage),
           ],
         );
       },
@@ -2927,14 +2910,11 @@ class _ArchivesScreenState extends ConsumerState<ArchivesScreen>
   // ════════════════════════════════════════════════════════════════
   Widget _buildPagination(int totalPages, int currentPage) {
     if (_searchFocusNode.hasFocus) return const SizedBox.shrink();
-    return SafeArea(
-      top: false,
-      child: AppPagination(
-        currentPage: currentPage,
-        totalPages: totalPages,
-        onPageChanged: (p) =>
-            ref.read(archiveDocumentQueryProvider.notifier).setPage(p),
-      ),
+    return AppPagination(
+      currentPage: currentPage,
+      totalPages: totalPages,
+      onPageChanged: (p) =>
+          ref.read(archiveDocumentQueryProvider.notifier).setPage(p),
     );
   }
 

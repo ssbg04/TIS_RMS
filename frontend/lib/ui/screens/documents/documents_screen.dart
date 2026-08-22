@@ -2223,7 +2223,6 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
               ),
               if (totalPages > 1 && !_searchFocusNode.hasFocus)
                 _buildFoldersPagination(totalPages, _foldersPage),
-              if (isMobile) const SizedBox(height: 16),
             ],
           );
         }
@@ -2463,9 +2462,7 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
               ),
             ),
             if (totalPages > 1 && !_searchFocusNode.hasFocus)
-              Container(child: _buildPagination(totalPages, currentPage))
-            else
-              SizedBox(height: (isMobileGrid && _openedFolderStudentId != null) ? 76 : 16),
+              _buildPagination(totalPages, currentPage),
           ],
         );
       },
@@ -2636,12 +2633,7 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
           ),
         ),
         if (totalPages > 1 && !_searchFocusNode.hasFocus)
-          Container(
-            padding: const EdgeInsets.only(top: 8.0, bottom: 8.0),
-            child: _buildPagination(totalPages, currentPage),
-          )
-        else
-          SizedBox(height: (isMobileList && _openedFolderStudentId != null) ? 76 : 16),
+          _buildPagination(totalPages, currentPage),
       ],
     );
   }
@@ -3025,25 +3017,21 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
   // PAGINATION
   // ══════════════════════════════════════════════════════════════
   Widget _buildPagination(int totalPages, int currentPage) {
-    return SafeArea(
-      top: false,
-      child: AppPagination(
-        currentPage: currentPage,
-        totalPages: totalPages,
-        onPageChanged: (p) =>
-            ref.read(documentQueryProvider.notifier).setPage(p),
-      ),
+    if (_searchFocusNode.hasFocus) return const SizedBox.shrink();
+    return AppPagination(
+      currentPage: currentPage,
+      totalPages: totalPages,
+      onPageChanged: (p) =>
+          ref.read(documentQueryProvider.notifier).setPage(p),
     );
   }
 
   Widget _buildFoldersPagination(int totalPages, int currentPage) {
-    return SafeArea(
-      top: false,
-      child: AppPagination(
-        currentPage: currentPage,
-        totalPages: totalPages,
-        onPageChanged: (p) => setState(() => _foldersPage = p),
-      ),
+    if (_searchFocusNode.hasFocus) return const SizedBox.shrink();
+    return AppPagination(
+      currentPage: currentPage,
+      totalPages: totalPages,
+      onPageChanged: (p) => setState(() => _foldersPage = p),
     );
   }
 
