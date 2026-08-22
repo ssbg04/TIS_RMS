@@ -83,6 +83,14 @@ class _StudentFilterDialogState extends ConsumerState<StudentFilterDialog> {
     _pendingSortBy = q.sortBy;
     _pendingSortOrder = q.sortOrder;
     _pendingLimit = q.limit;
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        ref.invalidate(academicYearsListProvider);
+        ref.invalidate(gradeLevelsListProvider);
+        ref.invalidate(sectionsListProvider);
+      }
+    });
   }
 
   String _formatGradeDisplay(String grade) {

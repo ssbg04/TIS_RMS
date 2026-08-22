@@ -74,6 +74,14 @@ class _AddStudentModalState extends ConsumerState<AddStudentModal> {
     _middleNameController = TextEditingController();
     _lastNameController = TextEditingController();
     _extController = TextEditingController();
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        ref.invalidate(academicYearsListProvider);
+        ref.invalidate(gradeLevelsListProvider);
+        ref.invalidate(sectionsListProvider);
+      }
+    });
   }
 
   @override
@@ -779,7 +787,7 @@ class _AddStudentModalState extends ConsumerState<AddStudentModal> {
                   onChanged: (val) {
                     setState(() => _is4ps = val);
                   },
-                  activeColor: AppColors.fourPs,
+                  activeThumbColor: AppColors.fourPs,
                   title: const Text('4Ps Beneficiary',
                       style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
                   subtitle: Text(
@@ -788,16 +796,11 @@ class _AddStudentModalState extends ConsumerState<AddStudentModal> {
                         : 'Student is NOT a 4Ps beneficiary',
                     style: TextStyle(
                       fontSize: 11,
-                      color: _is4ps
-                          ? (isDark ? const Color(0xFF8B8ED8) : AppColors.fourPs)
-                          : (isDark ? AppColors.darkTextSecondary : AppColors.textSecondary),
+                      color: isDark
+                          ? AppColors.darkTextSecondary
+                          : AppColors.textSecondary,
                     ),
                   ),
-                  secondary: Icon(Icons.family_restroom,
-                      color: _is4ps ? AppColors.fourPs : Colors.grey.shade400),
-                  dense: true,
-                  contentPadding:
-                      const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
                 ),
               ),
               const SizedBox(height: AppSizes.p16),
@@ -817,6 +820,105 @@ class _AddStudentModalState extends ConsumerState<AddStudentModal> {
     AsyncValue<List<GradeLevelModel>> gradeLevelsAsync,
     AsyncValue<List<SectionModel>> sectionsAsync,
   ) {
+    if (yearsAsync.isLoading ||
+        gradeLevelsAsync.isLoading ||
+        sectionsAsync.isLoading) {
+      return const Padding(
+        padding: EdgeInsets.all(AppSizes.p32),
+        child: Center(child: CircularProgressIndicator()),
+      );
+    }
+
+    if (yearsAsync.hasError) {
+      return ErrorBanner(
+        message: 'Error loading academic years: ${yearsAsync.error}',
+      );
+    }
+    if (gradeLevelsAsync.hasError) {
+      return ErrorBanner(
+        message: 'Error loading grade levels: ${gradeLevelsAsync.error}',
+      );
+    }
+    if (sectionsAsync.hasError) {
+      return ErrorBanner(
+        message: 'Error loading sections: ${sectionsAsync.error}',
+      );
+    }
+
+    final years = yearsAsync.value ?? [];
+    final allGrades =
+        List<GradeLevelModel>.from(gradeLevelsAsync.value ?? [])
+          ..sort((a, b) => a.level.compareTo(b.level));
+    final allSections = sectionsAsync.value ?? [];
+
+    // 1. Determine active/effective Academic Year
+    final activeYears =
+        years.where((y) => y.status.toLowerCase() == 'active').toList();
+    final defaultYearId = (activeYears.isNotEmpty
+        ? activeYears.last
+        : (years.isNotEmpty ? years.last : null))?.id;
+
+    final effectiveYearId = _selectedAcademicYearId != null &&
+            years.any((y) => y.id == _selectedAcademicYearId)
+        ? _selectedAcademicYearId
+        : defaultYearId;
+
+    if (_selectedAcademicYearId != effectiveYearId && effectiveYearId != null) {
+      _selectedAcademicYearId = effectiveYearId;
+    }
+
+    // 2. Determine available Grade Levels for the selected Academic Year based on sections in DB
+    final sectionsInYear = effectiveYearId != null
+        ? allSections.where((s) => s.academicYearId == effectiveYearId).toList()
+        : <SectionModel>[];
+
+    List<GradeLevelModel> availableGrades;
+    if (sectionsInYear.isNotEmpty) {
+      final gradesInYear = sectionsInYear.map((s) => s.gradeLevel).toSet();
+      availableGrades =
+          allGrades.where((g) => gradesInYear.contains(g.level)).toList();
+      if (availableGrades.isEmpty) {
+        availableGrades = allGrades;
+      }
+    } else {
+      availableGrades = allGrades;
+    }
+
+    // 3. Determine effective Grade Level
+    int? effectiveGradeLevel;
+    if (_selectedGradeLevel != null &&
+        availableGrades.any((g) => g.level == _selectedGradeLevel)) {
+      effectiveGradeLevel = _selectedGradeLevel;
+    } else {
+      effectiveGradeLevel = availableGrades.any((g) => g.level == 7)
+          ? 7
+          : (availableGrades.isNotEmpty ? availableGrades.first.level : null);
+      _selectedGradeLevel = effectiveGradeLevel;
+    }
+
+    // 4. Determine available Sections for (effectiveYearId, effectiveGradeLevel)
+    final filteredSections =
+        (effectiveYearId != null && effectiveGradeLevel != null)
+            ? allSections
+                .where((sec) =>
+                    sec.academicYearId == effectiveYearId &&
+                    sec.gradeLevel == effectiveGradeLevel)
+                .toList()
+            : <SectionModel>[];
+    filteredSections.sort(
+      (a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()),
+    );
+
+    // 5. Determine effective Section
+    int? effectiveSectionId;
+    if (_selectedSectionId != null &&
+        filteredSections.any((s) => s.id == _selectedSectionId)) {
+      effectiveSectionId = _selectedSectionId;
+    } else {
+      effectiveSectionId = null;
+      _selectedSectionId = null;
+    }
+
     return Form(
       key: _enrollmentFormKey,
       child: Column(
@@ -894,168 +996,115 @@ class _AddStudentModalState extends ConsumerState<AddStudentModal> {
           ],
           const SectionLabel(label: 'ENROLLMENT DETAILS'),
           const SizedBox(height: AppSizes.p16),
-          yearsAsync.when(
-            data: (years) {
-              final active = years
-                  .where((y) => y.status.toLowerCase() == 'active')
-                  .toList();
-              final defaultYearId = (active.isNotEmpty ? active.last : (years.isNotEmpty ? years.last : null))?.id;
 
-              if (_selectedAcademicYearId == null && defaultYearId != null) {
-                WidgetsBinding.instance.addPostFrameCallback((_) {
-                  if (mounted && _selectedAcademicYearId == null) {
-                    setState(() => _selectedAcademicYearId = defaultYearId);
-                  }
-                });
-              }
-
-              final currentYearId = _selectedAcademicYearId ?? defaultYearId;
-              final selectedYearExists = years.any((y) => y.id == currentYearId);
-              final effectiveValue = selectedYearExists ? currentYearId : null;
-
-              return DropdownButtonFormField<int>(
-                key: const ValueKey('academic_year_dropdown'),
-                value: effectiveValue,
-                decoration: const InputDecoration(
-                  labelText: 'Academic Year',
-                  prefixIcon: Icon(Icons.calendar_today),
-                ),
-                items: years
-                    .map((y) => DropdownMenuItem<int>(
-                        value: y.id, child: Text(y.yearRange)))
-                    .toList(),
-                onChanged: (val) => setState(() {
-                  _selectedAcademicYearId = val;
-                  _selectedGradeLevel = _selectedGradeLevel ?? 7;
-                  _selectedSectionId = null;
-                  _trackStrand = null;
-                }),
-                validator: (v) => (v == null && effectiveValue == null) ? 'Academic year is required.' : null,
-              );
-            },
-            loading: () => const Center(child: CircularProgressIndicator()),
-            error: (err, _) =>
-                Text('Error: $err', style: const TextStyle(color: Colors.red)),
-          ),
-          const SizedBox(height: AppSizes.p12),
-          gradeLevelsAsync.when(
-            data: (grades) {
-              final defaultGrade = grades.any((g) => g.level == 7)
-                  ? 7
-                  : (grades.isNotEmpty ? grades.first.level : 7);
-
-              if (_selectedGradeLevel == null) {
-                WidgetsBinding.instance.addPostFrameCallback((_) {
-                  if (mounted && _selectedGradeLevel == null) {
-                    setState(() => _selectedGradeLevel = defaultGrade);
-                  }
-                });
-              }
-
-              final currentGrade = _selectedGradeLevel ?? defaultGrade;
-              final selectedGradeExists =
-                  grades.any((g) => g.level == currentGrade);
-              final effectiveGradeValue = selectedGradeExists
-                  ? currentGrade
-                  : (grades.any((g) => g.level == 7)
+          // Academic Year
+          DropdownButtonFormField<int>(
+            key: ValueKey('academic_year_dropdown_$effectiveYearId'),
+            initialValue: effectiveYearId,
+            isExpanded: true,
+            decoration: const InputDecoration(
+              labelText: 'Academic Year',
+              prefixIcon: Icon(Icons.calendar_today),
+            ),
+            items: years
+                .map((y) => DropdownMenuItem<int>(
+                    value: y.id, child: Text(y.yearRange)))
+                .toList(),
+            onChanged: (val) {
+              ref.invalidate(academicYearsListProvider);
+              ref.invalidate(sectionsListProvider);
+              ref.invalidate(gradeLevelsListProvider);
+              setState(() {
+                _selectedAcademicYearId = val;
+                // Realtime refresh available grade levels for the new academic year
+                final yearSecs = val != null
+                    ? allSections.where((s) => s.academicYearId == val).toList()
+                    : <SectionModel>[];
+                final validGrades = yearSecs.isNotEmpty
+                    ? allGrades
+                        .where((g) => yearSecs.any((s) => s.gradeLevel == g.level))
+                        .toList()
+                    : allGrades;
+                if (!validGrades.any((g) => g.level == _selectedGradeLevel)) {
+                  _selectedGradeLevel = validGrades.any((g) => g.level == 7)
                       ? 7
-                      : (grades.isNotEmpty ? grades.first.level : null));
-
-              return DropdownButtonFormField<int>(
-                key: const ValueKey('grade_level_dropdown'),
-                value: effectiveGradeValue,
-                decoration: const InputDecoration(
-                  labelText: 'Grade Level',
-                  prefixIcon: Icon(Icons.grade),
-                ),
-                items: grades
-                    .map((g) => DropdownMenuItem<int>(
-                        value: g.level, child: Text(g.name)))
-                    .toList(),
-                onChanged: (val) => setState(() {
-                  _selectedGradeLevel = val;
-                  _selectedSectionId = null;
-                  if (val != null && val < 11) {
-                    _trackStrand = null;
-                  }
-                }),
-                validator: (v) => (v == null && effectiveGradeValue == null) ? 'Grade level is required.' : null,
-              );
+                      : (validGrades.isNotEmpty ? validGrades.first.level : null);
+                }
+                _selectedSectionId = null;
+                if (_selectedGradeLevel != null && _selectedGradeLevel! < 11) {
+                  _trackStrand = null;
+                }
+                _errorMessage = null;
+              });
             },
-            loading: () => const Center(child: CircularProgressIndicator()),
-            error: (err, _) =>
-                Text('Error: $err', style: const TextStyle(color: Colors.red)),
+            validator: (v) => (v == null && effectiveYearId == null)
+                ? 'Academic year is required.'
+                : null,
           ),
           const SizedBox(height: AppSizes.p12),
-          sectionsAsync.when(
-            data: (sections) {
-              final activeYears = yearsAsync.value?.where((y) => y.status.toLowerCase() == 'active').toList();
-              final defaultYearId = (activeYears != null && activeYears.isNotEmpty ? activeYears.last : (yearsAsync.value != null && yearsAsync.value!.isNotEmpty ? yearsAsync.value!.last : null))?.id;
-              final effectiveYearId = _selectedAcademicYearId ?? defaultYearId;
-              final effectiveGrade = _selectedGradeLevel ?? 7;
 
-              final filtered = sections
-                  .where((sec) =>
-                      sec.academicYearId == effectiveYearId &&
-                      sec.gradeLevel == effectiveGrade)
-                  .toList();
-              final matches = filtered.where((s) => s.id == _selectedSectionId);
-              final initialSectionName =
-                  matches.isNotEmpty ? matches.first.name : '';
-              return Autocomplete<SectionModel>(
-                key: ValueKey('section_autocomplete_${effectiveYearId}_$effectiveGrade'),
-                initialValue: TextEditingValue(text: initialSectionName),
-                displayStringForOption: (sec) => sec.name,
-                optionsBuilder: (textEditingValue) {
-                  if (textEditingValue.text.isEmpty) return filtered;
-                  return filtered.where(
-                    (sec) => sec.name
-                        .toLowerCase()
-                        .contains(textEditingValue.text.toLowerCase()),
-                  );
-                },
-                onSelected: (sec) => setState(() => _selectedSectionId = sec.id),
-                fieldViewBuilder:
-                    (context, controller, focusNode, onFieldSubmitted) {
-                  return TextFormField(
-                    controller: controller,
-                    focusNode: focusNode,
-                    decoration: InputDecoration(
-                      labelText: 'Section (Type or Select)',
-                      prefixIcon: const Icon(Icons.segment),
-                      suffixIcon: const Icon(Icons.arrow_drop_down),
-                      hintText: filtered.isEmpty ? 'No sections available' : null,
-                    ),
-                    onChanged: (val) {
-                      if (val.isEmpty) {
-                        setState(() => _selectedSectionId = null);
-                      } else {
-                        final exactMatches = filtered.where(
-                          (s) => s.name.toLowerCase() == val.toLowerCase(),
-                        );
-                        setState(() => _selectedSectionId =
-                            exactMatches.isNotEmpty
-                                ? exactMatches.first.id
-                                : null);
-                      }
-                    },
-                    validator: (v) {
-                      if (v == null || v.isEmpty || _selectedSectionId == null) {
-                        return 'Please select a valid section.';
-                      }
-                      return null;
-                    },
-                  );
-                },
-              );
-            },
-            loading: () => const Center(child: CircularProgressIndicator()),
-            error: (err, _) =>
-                Text('Error: $err', style: const TextStyle(color: Colors.red)),
+          // Grade Level
+          DropdownButtonFormField<int>(
+            key: ValueKey('grade_level_dropdown_${effectiveYearId}_$effectiveGradeLevel'),
+            initialValue: effectiveGradeLevel,
+            isExpanded: true,
+            decoration: const InputDecoration(
+              labelText: 'Grade Level',
+              prefixIcon: Icon(Icons.grade),
+            ),
+            items: availableGrades
+                .map((g) => DropdownMenuItem<int>(
+                    value: g.level, child: Text(g.name)))
+                .toList(),
+            onChanged: (val) => setState(() {
+              _selectedGradeLevel = val;
+              _selectedSectionId = null;
+              if (val != null && val < 11) {
+                _trackStrand = null;
+              }
+              _errorMessage = null;
+            }),
+            validator: (v) => (v == null && effectiveGradeLevel == null)
+                ? 'Grade level is required.'
+                : null,
           ),
-          if (_selectedGradeLevel != null && _selectedGradeLevel! >= 11) ...[
+          const SizedBox(height: AppSizes.p12),
+
+          // Section
+          DropdownButtonFormField<int>(
+            key: ValueKey(
+                'section_dropdown_${effectiveYearId}_${effectiveGradeLevel}_$effectiveSectionId'),
+            initialValue: effectiveSectionId,
+            isExpanded: true,
+            decoration: InputDecoration(
+              labelText: 'Section',
+              prefixIcon: const Icon(Icons.segment),
+              hintText: filteredSections.isEmpty
+                  ? 'No sections available'
+                  : 'Select section',
+            ),
+            items: filteredSections
+                .map((s) => DropdownMenuItem<int>(
+                    value: s.id, child: Text(s.name)))
+                .toList(),
+            onChanged: filteredSections.isEmpty
+                ? null
+                : (val) => setState(() {
+                    _selectedSectionId = val;
+                    _errorMessage = null;
+                  }),
+            validator: (v) {
+              if (v == null && effectiveSectionId == null) {
+                return 'Please select a valid section.';
+              }
+              return null;
+            },
+          ),
+
+          if (effectiveGradeLevel != null && effectiveGradeLevel >= 11) ...[
             const SizedBox(height: AppSizes.p12),
             TextFormField(
+              key: ValueKey('track_strand_input_$effectiveGradeLevel'),
               initialValue: _trackStrand,
               decoration: const InputDecoration(
                 labelText: 'Track & Strand (for SHS)',
@@ -1225,6 +1274,9 @@ class _AddStudentModalState extends ConsumerState<AddStudentModal> {
                                           });
                                           return;
                                         }
+                                        ref.invalidate(academicYearsListProvider);
+                                        ref.invalidate(gradeLevelsListProvider);
+                                        ref.invalidate(sectionsListProvider);
                                       }
                                       if (isLastStep) {
                                         _handleSave();
@@ -1404,6 +1456,9 @@ class _AddStudentModalState extends ConsumerState<AddStudentModal> {
                                             });
                                             return;
                                           }
+                                          ref.invalidate(academicYearsListProvider);
+                                          ref.invalidate(gradeLevelsListProvider);
+                                          ref.invalidate(sectionsListProvider);
                                         }
                                         if (isLastStep) {
                                           _handleSave();

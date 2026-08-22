@@ -281,6 +281,16 @@ Files backup/restore - mirror mode or zip -->
 - apply excel icon for the documents in mobile
 - add icons for all documents based on their file extension -->
 
+<!-- # STUDENTS SCREEN
+- ADD NEW STUDENT SCREEN -> enrollment step -> make the selection realtime when select year refresh the grade level, when selected grade level refresh the section
+- EDIT STUDENT SCREEN -> "add enrollments" -> make the selection realtime when select year refresh the grade level, when selected grade level refresh the section -->
+
+<!-- # STUDENT SCREEN -> EDIT STUDENT SCREEN -> Enrollments tab -> Add enrollment
+- same size save button from cancel
+- add left and right margin for the buttons layout -->
+
+# 
+
 ---
 
 # TIS_RMS Server Manager (dont do)

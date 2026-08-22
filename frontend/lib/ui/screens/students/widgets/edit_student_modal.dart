@@ -10,6 +10,7 @@ import '../../../shared/buttons/primary_button.dart';
 import '../../../shared/dialogs/success_dialog.dart';
 import '../../../shared/dialogs/error_dialog.dart';
 import '../../../providers/student_provider.dart';
+import '../../../providers/setup_provider.dart';
 import 'edit_enrollment_modal.dart';
 import 'ocr_enrollment_validation_modal.dart';
 import 'student_form_helpers.dart';
@@ -80,6 +81,14 @@ class _EditStudentModalState extends ConsumerState<EditStudentModal> {
     _selectedStatus = _initialStudent.status;
     _selectedDob = _initialStudent.birthDate;
     _is4ps = _initialStudent.is4ps;
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        ref.invalidate(academicYearsListProvider);
+        ref.invalidate(gradeLevelsListProvider);
+        ref.invalidate(sectionsListProvider);
+      }
+    });
 
     Future.microtask(_fetchFullDetails);
   }
@@ -580,7 +589,7 @@ class _EditStudentModalState extends ConsumerState<EditStudentModal> {
                     onChanged: (val) {
                       setState(() => _is4ps = val);
                     },
-                    activeColor: AppColors.fourPs,
+                    activeThumbColor: AppColors.fourPs,
                     title: const Text('4Ps Beneficiary',
                         style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
                     subtitle: Text(

@@ -85,6 +85,10 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
               _shortcutFocusNode.requestFocus();
             }
           });
+          // Invalidate setup providers so dropdowns and filters always have fresh data
+          ref.invalidate(academicYearsListProvider);
+          ref.invalidate(gradeLevelsListProvider);
+          ref.invalidate(sectionsListProvider);
           // Sync search text if returning to Students tab with a pre-filled query
           final currentQuery = ref.read(studentQueryProvider).search;
           if (_searchController.text != currentQuery) {
@@ -1606,6 +1610,9 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
       color: AppColors.primaryGreen,
       onRefresh: () async {
         ref.invalidate(studentPageProvider);
+        ref.invalidate(academicYearsListProvider);
+        ref.invalidate(gradeLevelsListProvider);
+        ref.invalidate(sectionsListProvider);
         // Wait for the provider to rebuild
         await ref.read(studentPageProvider.future);
       },

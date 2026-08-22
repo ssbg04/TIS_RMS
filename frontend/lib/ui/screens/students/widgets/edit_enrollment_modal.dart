@@ -3,7 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_sizes.dart';
 import '../../../shared/modals/custom_modal.dart';
-import '../../../shared/buttons/primary_button.dart';
+import '../../../shared/widgets/app_button_loader.dart';
 import '../../../providers/student_provider.dart';
 import '../../../providers/setup_provider.dart';
 import '../../../../domain/entities/setup_models.dart';
@@ -49,6 +49,14 @@ class _EditEnrollmentModalState extends ConsumerState<EditEnrollmentModal> {
     } else {
       _selectedGradeLevel = 7;
     }
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        ref.invalidate(academicYearsListProvider);
+        ref.invalidate(gradeLevelsListProvider);
+        ref.invalidate(sectionsListProvider);
+      }
+    });
   }
 
   void _showValidationDialog(String message) {
@@ -245,6 +253,88 @@ class _EditEnrollmentModalState extends ConsumerState<EditEnrollmentModal> {
       screenHeight - viewInsets.bottom - 24.0,
     );
 
+    final isAsyncLoading = yearsAsync.isLoading ||
+        gradeLevelsAsync.isLoading ||
+        sectionsAsync.isLoading;
+
+    final years = yearsAsync.asData?.value ?? [];
+    final allGrades =
+        List<GradeLevelModel>.from(gradeLevelsAsync.asData?.value ?? [])
+          ..sort((a, b) => a.level.compareTo(b.level));
+    final allSections = sectionsAsync.asData?.value ?? [];
+
+    // 1. Determine active/effective Academic Year
+    final activeYears =
+        years.where((y) => y.status.toLowerCase() == 'active').toList();
+    final defaultYearId = (activeYears.isNotEmpty
+        ? activeYears.last
+        : (years.isNotEmpty ? years.last : null))?.id;
+
+    final effectiveYearId = _selectedAcademicYearId != null &&
+            years.any((y) => y.id == _selectedAcademicYearId)
+        ? _selectedAcademicYearId
+        : (_currentEnrollment != null ? null : defaultYearId);
+
+    if (_selectedAcademicYearId == null && effectiveYearId != null) {
+      _selectedAcademicYearId = effectiveYearId;
+    }
+
+    // 2. Determine available Grade Levels for the selected Academic Year based on sections in DB
+    final sectionsInYear = effectiveYearId != null
+        ? allSections.where((s) => s.academicYearId == effectiveYearId).toList()
+        : <SectionModel>[];
+
+    List<GradeLevelModel> availableGrades;
+    if (sectionsInYear.isNotEmpty) {
+      final gradesInYear = sectionsInYear.map((s) => s.gradeLevel).toSet();
+      availableGrades =
+          allGrades.where((g) => gradesInYear.contains(g.level)).toList();
+      if (availableGrades.isEmpty) {
+        availableGrades = allGrades;
+      }
+    } else {
+      availableGrades = allGrades;
+    }
+
+    // 3. Determine effective Grade Level
+    int? effectiveGradeLevel;
+    if (_selectedGradeLevel != null &&
+        availableGrades.any((g) => g.level == _selectedGradeLevel)) {
+      effectiveGradeLevel = _selectedGradeLevel;
+    } else {
+      effectiveGradeLevel = availableGrades.any((g) => g.level == 7)
+          ? 7
+          : (availableGrades.isNotEmpty ? availableGrades.first.level : null);
+      if (_currentEnrollment == null) {
+        _selectedGradeLevel = effectiveGradeLevel;
+      }
+    }
+
+    // 4. Determine available Sections for (effectiveYearId, effectiveGradeLevel)
+    final filteredSections =
+        (effectiveYearId != null && effectiveGradeLevel != null)
+            ? allSections
+                .where((sec) =>
+                    sec.academicYearId == effectiveYearId &&
+                    sec.gradeLevel == effectiveGradeLevel)
+                .toList()
+            : <SectionModel>[];
+    filteredSections.sort(
+      (a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()),
+    );
+
+    // 5. Determine effective Section
+    int? effectiveSectionId;
+    if (_selectedSectionId != null &&
+        filteredSections.any((s) => s.id == _selectedSectionId)) {
+      effectiveSectionId = _selectedSectionId;
+    } else {
+      effectiveSectionId = null;
+      if (_currentEnrollment == null) {
+        _selectedSectionId = null;
+      }
+    }
+
     return CustomModal(
       title: _currentEnrollment == null ? 'Add Enrollment' : 'Edit Enrollment',
       icon: _currentEnrollment == null
@@ -266,220 +356,162 @@ class _EditEnrollmentModalState extends ConsumerState<EditEnrollmentModal> {
                   key: _formKey,
                   child: Column(
                     children: [
-                      // Academic Year
-                      yearsAsync.when(
-                        data: (years) {
-                          final selectedYearExists = years.any(
-                            (y) => y.id == _selectedAcademicYearId,
-                          );
-                          final currentYearValue = selectedYearExists
-                              ? _selectedAcademicYearId
-                              : null;
-
-                          return DropdownButtonFormField<int>(
-                            key: const ValueKey('edit_enrollment_academic_dropdown'),
-                            value: currentYearValue,
-                            decoration: const InputDecoration(
-                              labelText: 'Academic Year',
-                              prefixIcon: Icon(Icons.calendar_today),
-                            ),
-                            items: years
-                                .map(
-                                  (y) => DropdownMenuItem<int>(
-                                    value: y.id,
-                                    child: Text(y.yearRange),
-                                  ),
-                                )
-                                .toList(),
-                            onChanged: (val) {
-                              setState(() {
-                                _selectedAcademicYearId = val;
-                                // Reset Grade Level to default value of Grade 7
-                                _selectedGradeLevel = 7;
-                                // Clear section selection
-                                _selectedSectionId = null;
-                                _trackStrand = null;
-                                _errorMessage = null;
-                                _successMessage = null;
-                              });
-                            },
-                            validator: (v) =>
-                                v == null ? 'Academic year is required.' : null,
-                          );
-                        },
-                        loading: () =>
-                            const Center(child: CircularProgressIndicator()),
-                        error: (err, _) => Text(
-                          'Error: $err',
-                          style: const TextStyle(color: Colors.red),
-                        ),
-                      ),
-                      const SizedBox(height: AppSizes.p16),
-
-                      // Grade Level
-                      gradeLevelsAsync.when(
-                        data: (grades) {
-                          final selectedGradeExists = grades.any(
-                            (g) => g.level == _selectedGradeLevel,
-                          );
-                          final currentGradeValue = selectedGradeExists
-                              ? _selectedGradeLevel
-                              : (grades.any((g) => g.level == 7)
-                                  ? 7
-                                  : (grades.isNotEmpty ? grades.first.level : null));
-
-                          return DropdownButtonFormField<int>(
-                            key: const ValueKey('edit_enrollment_grade_dropdown'),
-                            value: currentGradeValue,
-                            decoration: const InputDecoration(
-                              labelText: 'Grade Level',
-                              prefixIcon: Icon(Icons.grade),
-                            ),
-                            items: grades
-                                .map(
-                                  (g) => DropdownMenuItem<int>(
-                                    value: g.level,
-                                    child: Text(g.name),
-                                  ),
-                                )
-                                .toList(),
-                            onChanged: (val) {
-                              setState(() {
-                                _selectedGradeLevel = val;
-                                // Clear section selection
-                                _selectedSectionId = null;
-                                if (val != null && val < 11) {
-                                  _trackStrand = null;
-                                }
-                                _errorMessage = null;
-                                _successMessage = null;
-                              });
-                            },
-                            validator: (v) =>
-                                v == null ? 'Grade level is required.' : null,
-                          );
-                        },
-                        loading: () =>
-                            const Center(child: CircularProgressIndicator()),
-                        error: (err, _) => Text(
-                          'Error: $err',
-                          style: const TextStyle(color: Colors.red),
-                        ),
-                      ),
-                      const SizedBox(height: AppSizes.p16),
-
-                      // Section
-                      sectionsAsync.when(
-                        data: (sections) {
-                          final filtered = sections
-                              .where(
-                                (sec) =>
-                                    sec.academicYearId ==
-                                        _selectedAcademicYearId &&
-                                    sec.gradeLevel == _selectedGradeLevel,
-                              )
-                              .toList();
-
-                          final matches = filtered.where(
-                            (s) => s.id == _selectedSectionId,
-                          );
-                          final initialSectionName = matches.isNotEmpty
-                              ? matches.first.name
-                              : '';
-
-                          final autocompleteKey = ValueKey(
-                            'edit_enrollment_section_autocomplete_${_selectedAcademicYearId}_$_selectedGradeLevel',
-                          );
-
-                          return Autocomplete<SectionModel>(
-                            key: autocompleteKey,
-                            initialValue: TextEditingValue(
-                              text: initialSectionName,
-                            ),
-                            displayStringForOption: (sec) => sec.name,
-                            optionsBuilder: (textEditingValue) {
-                              if (textEditingValue.text.isEmpty) {
-                                return filtered;
-                              }
-                              return filtered.where(
-                                (sec) => sec.name.toLowerCase().contains(
-                                  textEditingValue.text.toLowerCase(),
-                                ),
-                              );
-                            },
-                            onSelected: (sec) {
-                              setState(() => _selectedSectionId = sec.id);
-                            },
-                            fieldViewBuilder:
-                                (
-                                  context,
-                                  controller,
-                                  focusNode,
-                                  onFieldSubmitted,
-                                ) {
-                                  return TextFormField(
-                                    controller: controller,
-                                    focusNode: focusNode,
-                                    decoration: InputDecoration(
-                                      labelText: 'Section (Type or Select)',
-                                      prefixIcon: const Icon(Icons.segment),
-                                      suffixIcon: const Icon(Icons.arrow_drop_down),
-                                      hintText: filtered.isEmpty
-                                          ? 'No sections available'
-                                          : null,
-                                    ),
-                                    onChanged: (val) {
-                                      if (val.isEmpty) {
-                                        setState(
-                                          () => _selectedSectionId = null,
-                                        );
-                                      } else {
-                                        final exactMatches = filtered.where(
-                                          (s) =>
-                                              s.name.toLowerCase() ==
-                                              val.toLowerCase(),
-                                        );
-                                        setState(
-                                          () => _selectedSectionId =
-                                              exactMatches.isNotEmpty
-                                              ? exactMatches.first.id
-                                              : null,
-                                        );
-                                      }
-                                    },
-                                    validator: (v) {
-                                      if (v == null ||
-                                          v.isEmpty ||
-                                          _selectedSectionId == null) {
-                                        return 'Please select a valid section.';
-                                      }
-                                      return null;
-                                    },
-                                  );
-                                },
-                          );
-                        },
-                        loading: () =>
-                            const Center(child: CircularProgressIndicator()),
-                        error: (err, _) => Text(
-                          'Error: $err',
-                          style: const TextStyle(color: Colors.red),
-                        ),
-                      ),
-
-                      if (_selectedGradeLevel != null &&
-                          _selectedGradeLevel! >= 11) ...[
-                        const SizedBox(height: AppSizes.p16),
-                        TextFormField(
-                          initialValue: _trackStrand,
+                      if (isAsyncLoading)
+                        const Padding(
+                          padding: EdgeInsets.all(AppSizes.p32),
+                          child: Center(child: CircularProgressIndicator()),
+                        )
+                      else ...[
+                        // Academic Year
+                        DropdownButtonFormField<int>(
+                          key: ValueKey(
+                              'edit_enrollment_academic_dropdown_$effectiveYearId'),
+                          initialValue: effectiveYearId,
+                          isExpanded: true,
                           decoration: const InputDecoration(
-                            labelText: 'Track & Strand (for SHS)',
-                            prefixIcon: Icon(Icons.school_outlined),
+                            labelText: 'Academic Year',
+                            prefixIcon: Icon(Icons.calendar_today),
                           ),
-                          onChanged: (val) => _trackStrand = val.trim().isEmpty
-                              ? null
-                              : val.trim(),
+                          items: years
+                              .map(
+                                (y) => DropdownMenuItem<int>(
+                                  value: y.id,
+                                  child: Text(y.yearRange),
+                                ),
+                              )
+                              .toList(),
+                          onChanged: (val) {
+                            ref.invalidate(academicYearsListProvider);
+                            ref.invalidate(sectionsListProvider);
+                            ref.invalidate(gradeLevelsListProvider);
+                            setState(() {
+                              _selectedAcademicYearId = val;
+                              // Realtime refresh available grade levels for the new academic year
+                              final yearSecs = val != null
+                                  ? allSections
+                                      .where((s) => s.academicYearId == val)
+                                      .toList()
+                                  : <SectionModel>[];
+                              final validGrades = yearSecs.isNotEmpty
+                                  ? allGrades
+                                      .where((g) => yearSecs
+                                          .any((s) => s.gradeLevel == g.level))
+                                      .toList()
+                                  : allGrades;
+                              if (!validGrades
+                                  .any((g) => g.level == _selectedGradeLevel)) {
+                                _selectedGradeLevel = validGrades
+                                        .any((g) => g.level == 7)
+                                    ? 7
+                                    : (validGrades.isNotEmpty
+                                        ? validGrades.first.level
+                                        : null);
+                              }
+                              _selectedSectionId = null;
+                              if (_selectedGradeLevel != null &&
+                                  _selectedGradeLevel! < 11) {
+                                _trackStrand = null;
+                              }
+                              _errorMessage = null;
+                              _successMessage = null;
+                            });
+                          },
+                          validator: (v) =>
+                              (v == null && effectiveYearId == null)
+                                  ? 'Academic year is required.'
+                                  : null,
                         ),
+                        const SizedBox(height: AppSizes.p16),
+
+                        // Grade Level
+                        DropdownButtonFormField<int>(
+                          key: ValueKey(
+                              'edit_enrollment_grade_dropdown_${effectiveYearId}_$effectiveGradeLevel'),
+                          initialValue: effectiveGradeLevel,
+                          isExpanded: true,
+                          decoration: const InputDecoration(
+                            labelText: 'Grade Level',
+                            prefixIcon: Icon(Icons.grade),
+                          ),
+                          items: availableGrades
+                              .map(
+                                (g) => DropdownMenuItem<int>(
+                                  value: g.level,
+                                  child: Text(g.name),
+                                ),
+                              )
+                              .toList(),
+                          onChanged: (val) {
+                            setState(() {
+                              _selectedGradeLevel = val;
+                              _selectedSectionId = null;
+                              if (val != null && val < 11) {
+                                _trackStrand = null;
+                              }
+                              _errorMessage = null;
+                              _successMessage = null;
+                            });
+                          },
+                          validator: (v) =>
+                              (v == null && effectiveGradeLevel == null)
+                                  ? 'Grade level is required.'
+                                  : null,
+                        ),
+                        const SizedBox(height: AppSizes.p16),
+
+                        // Section
+                        DropdownButtonFormField<int>(
+                          key: ValueKey(
+                              'edit_enrollment_section_dropdown_${effectiveYearId}_${effectiveGradeLevel}_$effectiveSectionId'),
+                          initialValue: effectiveSectionId,
+                          isExpanded: true,
+                          decoration: InputDecoration(
+                            labelText: 'Section',
+                            prefixIcon: const Icon(Icons.segment),
+                            hintText: filteredSections.isEmpty
+                                ? 'No sections available'
+                                : 'Select section',
+                          ),
+                          items: filteredSections
+                              .map(
+                                (s) => DropdownMenuItem<int>(
+                                  value: s.id,
+                                  child: Text(s.name),
+                                ),
+                              )
+                              .toList(),
+                          onChanged: filteredSections.isEmpty
+                              ? null
+                              : (val) {
+                                  setState(() {
+                                    _selectedSectionId = val;
+                                    _errorMessage = null;
+                                    _successMessage = null;
+                                  });
+                                },
+                          validator: (v) {
+                            if (v == null && effectiveSectionId == null) {
+                              return 'Please select a valid section.';
+                            }
+                            return null;
+                          },
+                        ),
+
+                        if (effectiveGradeLevel != null &&
+                            effectiveGradeLevel >= 11) ...[
+                          const SizedBox(height: AppSizes.p16),
+                          TextFormField(
+                            key: ValueKey(
+                                'edit_enrollment_track_strand_$effectiveGradeLevel'),
+                            initialValue: _trackStrand,
+                            decoration: const InputDecoration(
+                              labelText: 'Track & Strand (for SHS)',
+                              prefixIcon: Icon(Icons.school_outlined),
+                            ),
+                            onChanged: (val) => _trackStrand =
+                                val.trim().isEmpty ? null : val.trim(),
+                          ),
+                        ],
                       ],
                     ],
                   ),
@@ -490,6 +522,7 @@ class _EditEnrollmentModalState extends ConsumerState<EditEnrollmentModal> {
             if (_successMessage != null) ...[
               const SizedBox(height: 8),
               Container(
+                margin: const EdgeInsets.symmetric(horizontal: 16),
                 padding: const EdgeInsets.symmetric(
                   horizontal: 16,
                   vertical: 10,
@@ -528,6 +561,7 @@ class _EditEnrollmentModalState extends ConsumerState<EditEnrollmentModal> {
             if (_errorMessage != null) ...[
               const SizedBox(height: 8),
               Container(
+                margin: const EdgeInsets.symmetric(horizontal: 16),
                 padding: const EdgeInsets.symmetric(
                   horizontal: 16,
                   vertical: 12,
@@ -563,9 +597,10 @@ class _EditEnrollmentModalState extends ConsumerState<EditEnrollmentModal> {
             ],
 
             Padding(
-              padding: const EdgeInsets.only(top: 20, bottom: 8),
+              padding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
               child: LayoutBuilder(
                 builder: (context, constraints) {
+                  final isDark = Theme.of(context).brightness == Brightness.dark;
                   final isMobile = constraints.maxWidth < 450;
                   if (isMobile) {
                     return Column(
@@ -573,20 +608,30 @@ class _EditEnrollmentModalState extends ConsumerState<EditEnrollmentModal> {
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         if (_currentEnrollment == null) ...[
-                          OutlinedButton.icon(
-                            key: const ValueKey('add_more_enrollment_button'),
-                            onPressed: _isLoading ? null : _handleAddMoreEnrollment,
-                            icon: const Icon(Icons.add_circle_outline, size: 16),
-                            label: const Text(
-                              'Add More Enrollment',
-                              style: TextStyle(fontWeight: FontWeight.bold),
-                            ),
-                            style: OutlinedButton.styleFrom(
-                              foregroundColor: AppColors.primaryGreen,
-                              side: const BorderSide(color: AppColors.primaryGreen),
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 14,
-                                vertical: 12,
+                          SizedBox(
+                            height: 44,
+                            child: OutlinedButton.icon(
+                              key: const ValueKey('add_more_enrollment_button'),
+                              onPressed: _isLoading ? null : _handleAddMoreEnrollment,
+                              icon: const Icon(Icons.add_circle_outline, size: 18),
+                              label: const Text(
+                                'Add More Enrollment',
+                                style: TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 14,
+                                ),
+                              ),
+                              style: OutlinedButton.styleFrom(
+                                foregroundColor: AppColors.primaryGreen,
+                                side: const BorderSide(color: AppColors.primaryGreen),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(
+                                    AppSizes.radiusMedium,
+                                  ),
+                                ),
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 14,
+                                ),
                               ),
                             ),
                           ),
@@ -595,27 +640,71 @@ class _EditEnrollmentModalState extends ConsumerState<EditEnrollmentModal> {
                         Row(
                           children: [
                             Expanded(
-                              child: OutlinedButton(
-                                onPressed: _isLoading
-                                    ? null
-                                    : () => Navigator.of(context).pop(),
-                                style: OutlinedButton.styleFrom(
-                                  padding: const EdgeInsets.symmetric(vertical: 12),
-                                ),
-                                child: const Text(
-                                  'CANCEL',
-                                  style: TextStyle(
-                                    fontWeight: FontWeight.bold,
+                              child: SizedBox(
+                                height: 44,
+                                child: OutlinedButton(
+                                  onPressed: _isLoading
+                                      ? null
+                                      : () => Navigator.of(context).pop(),
+                                  style: OutlinedButton.styleFrom(
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(
+                                        AppSizes.radiusMedium,
+                                      ),
+                                    ),
+                                    side: BorderSide(
+                                      color: isDark
+                                          ? AppColors.darkBorder
+                                          : AppColors.borderLight,
+                                    ),
+                                    padding: EdgeInsets.zero,
+                                  ),
+                                  child: Text(
+                                    'CANCEL',
+                                    style: TextStyle(
+                                      color: isDark
+                                          ? AppColors.darkTextPrimary
+                                          : AppColors.textSecondary,
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 14,
+                                      letterSpacing: 0.5,
+                                    ),
                                   ),
                                 ),
                               ),
                             ),
                             const SizedBox(width: 12),
                             Expanded(
-                              child: PrimaryButton(
-                                label: 'SAVE',
-                                isLoading: _isLoading,
-                                onPressed: _handleSave,
+                              child: SizedBox(
+                                height: 44,
+                                child: ElevatedButton(
+                                  onPressed: _isLoading ? null : _handleSave,
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: const Color(0xFF1C8248),
+                                    foregroundColor: Colors.white,
+                                    padding: EdgeInsets.zero,
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(
+                                        AppSizes.radiusMedium,
+                                      ),
+                                    ),
+                                    elevation: 0,
+                                  ),
+                                  child: _isLoading
+                                      ? const AppButtonLoader(
+                                          color: Colors.white,
+                                          size: 20,
+                                          strokeWidth: 2,
+                                        )
+                                      : const Text(
+                                          'SAVE',
+                                          style: TextStyle(
+                                            fontWeight: FontWeight.bold,
+                                            fontSize: 14,
+                                            letterSpacing: 0.5,
+                                          ),
+                                        ),
+                                ),
                               ),
                             ),
                           ],
@@ -627,45 +716,100 @@ class _EditEnrollmentModalState extends ConsumerState<EditEnrollmentModal> {
                   return Row(
                     mainAxisAlignment: MainAxisAlignment.end,
                     children: [
-                      TextButton(
-                        onPressed: _isLoading
-                            ? null
-                            : () => Navigator.of(context).pop(),
-                        child: const Text(
-                          'CANCEL',
-                          style: TextStyle(
-                            color: AppColors.textSecondary,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 12),
                       if (_currentEnrollment == null) ...[
-                        OutlinedButton.icon(
-                          key: const ValueKey('add_more_enrollment_button'),
-                          onPressed: _isLoading ? null : _handleAddMoreEnrollment,
-                          icon: const Icon(Icons.add_circle_outline, size: 16),
-                          label: const Text(
-                            'Add More Enrollment',
-                            style: TextStyle(fontWeight: FontWeight.bold),
-                          ),
-                          style: OutlinedButton.styleFrom(
-                            foregroundColor: AppColors.primaryGreen,
-                            side: const BorderSide(color: AppColors.primaryGreen),
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 14,
-                              vertical: 12,
+                        SizedBox(
+                          height: 44,
+                          child: OutlinedButton.icon(
+                            key: const ValueKey('add_more_enrollment_button'),
+                            onPressed: _isLoading ? null : _handleAddMoreEnrollment,
+                            icon: const Icon(Icons.add_circle_outline, size: 18),
+                            label: const Text(
+                              'Add More Enrollment',
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 14,
+                              ),
+                            ),
+                            style: OutlinedButton.styleFrom(
+                              foregroundColor: AppColors.primaryGreen,
+                              side: const BorderSide(color: AppColors.primaryGreen),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(
+                                  AppSizes.radiusMedium,
+                                ),
+                              ),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 16,
+                              ),
                             ),
                           ),
                         ),
                         const SizedBox(width: 12),
                       ],
                       SizedBox(
-                        width: 130,
-                        child: PrimaryButton(
-                          label: 'SAVE',
-                          isLoading: _isLoading,
-                          onPressed: _handleSave,
+                        width: 120,
+                        height: 44,
+                        child: OutlinedButton(
+                          onPressed: _isLoading
+                              ? null
+                              : () => Navigator.of(context).pop(),
+                          style: OutlinedButton.styleFrom(
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(
+                                AppSizes.radiusMedium,
+                              ),
+                            ),
+                            side: BorderSide(
+                              color: isDark
+                                  ? AppColors.darkBorder
+                                  : AppColors.borderLight,
+                            ),
+                            padding: EdgeInsets.zero,
+                          ),
+                          child: Text(
+                            'CANCEL',
+                            style: TextStyle(
+                              color: isDark
+                                  ? AppColors.darkTextPrimary
+                                  : AppColors.textSecondary,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 14,
+                              letterSpacing: 0.5,
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      SizedBox(
+                        width: 120,
+                        height: 44,
+                        child: ElevatedButton(
+                          onPressed: _isLoading ? null : _handleSave,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFF1C8248),
+                            foregroundColor: Colors.white,
+                            padding: EdgeInsets.zero,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(
+                                AppSizes.radiusMedium,
+                              ),
+                            ),
+                            elevation: 0,
+                          ),
+                          child: _isLoading
+                              ? const AppButtonLoader(
+                                  color: Colors.white,
+                                  size: 20,
+                                  strokeWidth: 2,
+                                )
+                              : const Text(
+                                  'SAVE',
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 14,
+                                    letterSpacing: 0.5,
+                                  ),
+                                ),
                         ),
                       ),
                     ],
