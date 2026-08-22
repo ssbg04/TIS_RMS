@@ -53,26 +53,31 @@ class AbstractBackground extends StatelessWidget {
     return Stack(
       fit: StackFit.expand,
       children: [
-        // Background image with original normal positioning and overlay mini blur
+        // Background image with edge-to-edge coverage and overlay mini blur
         Positioned.fill(
-          child: blurSigma > 0
-              ? ImageFiltered(
-                  imageFilter: ImageFilter.blur(
-                    sigmaX: blurSigma,
-                    sigmaY: blurSigma,
-                    tileMode: TileMode.clamp,
-                  ),
-                  child: Image.asset(
-                    assetPath,
-                    fit: BoxFit.cover,
-                    alignment: Alignment.center,
-                  ),
-                )
-              : Image.asset(
-                  assetPath,
-                  fit: BoxFit.cover,
-                  alignment: Alignment.center,
-                ),
+          child: ClipRect(
+            child: Transform.scale(
+              scale: blurSigma > 0 ? 1.06 : 1.0,
+              child: blurSigma > 0
+                  ? ImageFiltered(
+                      imageFilter: ImageFilter.blur(
+                        sigmaX: blurSigma,
+                        sigmaY: blurSigma,
+                        tileMode: TileMode.clamp,
+                      ),
+                      child: Image.asset(
+                        assetPath,
+                        fit: BoxFit.cover,
+                        alignment: Alignment.center,
+                      ),
+                    )
+                  : Image.asset(
+                      assetPath,
+                      fit: BoxFit.cover,
+                      alignment: Alignment.center,
+                    ),
+            ),
+          ),
         ),
         if (withOverlay && overlayOpacity > 0)
           Positioned.fill(

@@ -304,7 +304,8 @@ Files backup/restore - mirror mode or zip -->
 # SEARCH BAR (ANDROID APP)
 - add left and right margin for search bar
 - dont make the backdrop image resize when the search bar is active -->
- 
+
+
 
 ---
 
