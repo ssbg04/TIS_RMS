@@ -12,6 +12,7 @@ import '../../providers/student_provider.dart';
 import '../../providers/auth_provider.dart';
 import '../../shared/widgets/app_pagination.dart';
 import '../../shared/widgets/app_error_state.dart';
+import '../../shared/widgets/horizontal_expandable_fab.dart';
 import '../../providers/navigation_provider.dart';
 import '../../providers/conversion_provider.dart';
 
@@ -681,65 +682,50 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
         child: Scaffold(
           resizeToAvoidBottomInset: false,
           backgroundColor: Colors.transparent,
-        floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
-        floatingActionButton:
-            (_tabController.index != 2 &&
+        floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
+        floatingActionButton: (isMobile &&
+                widget.userRole != 'teacher' &&
                 !_isMultiSelectMode &&
                 !_searchFocusNode.hasFocus)
-            ? Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    // Left FAB: Print List (Only for Android/mobile app, admin only)
-                    if (isMobile && widget.userRole != 'teacher')
-                      Badge(
-                        label: Text(
-                          '${ref.watch(printQueueProvider).value?.length ?? 0}',
-                        ),
-                        isLabelVisible:
-                            (ref.watch(printQueueProvider).value?.length ?? 0) >
-                            0,
-                        backgroundColor: AppColors.error,
-                        offset: const Offset(4, -4),
-                        child: FloatingActionButton(
-                          heroTag: 'fab-print-list',
-                          backgroundColor: AppColors.primaryGreen,
-                          shape: const CircleBorder(),
-                          onPressed: () {
-                            PrintQueueModal.show(context);
-                          },
-                          child: const Icon(Icons.print, color: Colors.white),
-                        ),
-                      )
-                    else
-                      const SizedBox.shrink(),
-                    // Right FAB: Upload Document (admin only)
-                    if (isMobile && widget.userRole != 'teacher')
-                      if (_tabController.index == 1 || isFolderOpened)
-                        FloatingActionButton(
-                          heroTag: 'fab-upload-doc',
-                          backgroundColor: AppColors.primaryGreen,
-                          shape: const CircleBorder(),
-                          onPressed: () {
-                            UploadOcrModal.show(
-                              context,
-                              prefilledStudentId:
-                                  _openedFolderStudentId ??
-                                  widget.initialStudentId,
-                            );
-                          },
-                          child: const Icon(
-                            Icons.cloud_upload,
-                            color: Colors.white,
-                          ),
-                        )
-                      else
-                        const SizedBox.shrink()
-                    else
-                      const SizedBox.shrink(),
-                  ],
-                ),
+            ? HorizontalExpandableFab(
+                heroTag: 'fab_documents_menu',
+                items: [
+                  // Print List Action (always available for admin)
+                  FabActionItem(
+                    icon: Icons.print_rounded,
+                    tooltip: 'Print List',
+                    badgeCount: ref.watch(printQueueProvider).value?.length ?? 0,
+                    heroTag: 'fab_docs_print_list',
+                    onPressed: () => PrintQueueModal.show(context),
+                  ),
+                  // Multi-Select Action (available on All Documents or in opened folder)
+                  if (_tabController.index == 1 || isFolderOpened)
+                    FabActionItem(
+                      icon: Icons.checklist_rounded,
+                      tooltip: 'Select Multiple',
+                      heroTag: 'fab_docs_multi_select',
+                      onPressed: () {
+                        setState(() {
+                          _isMultiSelectMode = true;
+                        });
+                      },
+                    ),
+                  // Upload Document Action (available on All Documents or in opened folder)
+                  if (_tabController.index == 1 || isFolderOpened)
+                    FabActionItem(
+                      icon: Icons.cloud_upload_rounded,
+                      tooltip: 'Upload Document',
+                      heroTag: 'fab_docs_upload',
+                      onPressed: () {
+                        UploadOcrModal.show(
+                          context,
+                          prefilledStudentId:
+                              _openedFolderStudentId ??
+                              widget.initialStudentId,
+                        );
+                      },
+                    ),
+                ],
               )
             : null,
         bottomNavigationBar: null,
@@ -1209,7 +1195,7 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
         }
       },
       itemBuilder: (context) => [
-        if (widget.userRole != 'teacher' && (_tabController.index == 1 || _openedFolderStudentId != null)) ...[
+        if (!isMobile && widget.userRole != 'teacher' && (_tabController.index == 1 || _openedFolderStudentId != null)) ...[
           PopupMenuItem(
             value: 'multi_select',
             child: Row(

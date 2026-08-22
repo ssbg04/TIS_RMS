@@ -12,6 +12,7 @@ import '../../../domain/repositories/document_repository.dart'
 import '../../shared/inputs/app_search_bar.dart';
 import '../../shared/widgets/app_pagination.dart';
 import '../../shared/widgets/app_error_state.dart';
+import '../../shared/widgets/horizontal_expandable_fab.dart';
 import '../../providers/archives_provider.dart';
 import '../../providers/document_provider.dart';
 import '../../providers/student_provider.dart';
@@ -1067,37 +1068,35 @@ class _ArchivesScreenState extends ConsumerState<ArchivesScreen>
         child: Scaffold(
           resizeToAvoidBottomInset: false,
           backgroundColor: Colors.transparent,
-        floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
-        floatingActionButton: (!_isMultiSelectMode &&
-                !_searchFocusNode.hasFocus &&
-                isMobile &&
-                widget.userRole != 'teacher')
-            ? Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Badge(
-                      label: Text(
-                        '${ref.watch(printQueueProvider).value?.length ?? 0}',
-                      ),
-                      isLabelVisible:
-                          (ref.watch(printQueueProvider).value?.length ?? 0) >
-                          0,
-                      backgroundColor: AppColors.error,
-                      offset: const Offset(4, -4),
-                      child: FloatingActionButton(
-                        heroTag: 'fab-print-list-archives',
-                        backgroundColor: AppColors.primaryGreen,
-                        shape: const CircleBorder(),
-                        onPressed: () {
-                          PrintQueueModal.show(context);
-                        },
-                        child: const Icon(Icons.print, color: Colors.white),
-                      ),
+        floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
+        floatingActionButton: (isMobile &&
+                widget.userRole != 'teacher' &&
+                !_isMultiSelectMode &&
+                !_searchFocusNode.hasFocus)
+            ? HorizontalExpandableFab(
+                heroTag: 'fab_archives_menu',
+                items: [
+                  // Print List Action
+                  FabActionItem(
+                    icon: Icons.print_rounded,
+                    tooltip: 'Print List',
+                    badgeCount: ref.watch(printQueueProvider).value?.length ?? 0,
+                    heroTag: 'fab_archives_print_list',
+                    onPressed: () => PrintQueueModal.show(context),
+                  ),
+                  // Multi-Select Action (available on All Archived Docs tab or in opened folder)
+                  if (_tabController.index == 1 || isFolderOpened)
+                    FabActionItem(
+                      icon: Icons.checklist_rounded,
+                      tooltip: 'Select Multiple',
+                      heroTag: 'fab_archives_multi_select',
+                      onPressed: () {
+                        setState(() {
+                          _isMultiSelectMode = true;
+                        });
+                      },
                     ),
-                  ],
-                ),
+                ],
               )
             : null,
         body: SafeArea(
@@ -1932,7 +1931,8 @@ class _ArchivesScreenState extends ConsumerState<ArchivesScreen>
         }
       },
       itemBuilder: (context) => [
-        if (widget.userRole != 'teacher' &&
+        if (!isMobile &&
+            widget.userRole != 'teacher' &&
             (_tabController.index == 1 || _openedFolderStudentId != null)) ...[
           PopupMenuItem(
             value: 'multi_select',

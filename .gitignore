@@ -12,6 +12,7 @@ backend/bin/LibreOffice/
 requirements
 TIS*
 !*.iss
+screenshots/
 
 # Environment secrets
 backend/.env

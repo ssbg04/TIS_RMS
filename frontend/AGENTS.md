@@ -311,6 +311,11 @@ Files backup/restore - mirror mode or zip -->
 <!-- # DOCUMENT SCREEN AND ARCHIVE SCREEN
 - copy from STUDENT SCREEN the table bottom spaces for pagination to the screen to these screen DOCUMENT AND ARCHIVES SCREEN -->
 
+<!-- # DOCUMENT SCREEN AND ARCHIVES SCREEN for ANDROID APP
+- make a menu FAB -> horizontal menu animation
+- move the multi select menu to the menu FAB
+- if only PRINT LIST need only to show, hide/remove the UPLOAD DOCUMENTS in menu FAB -->
+
 ---
 
 # TIS_RMS Server Manager (dont do)
