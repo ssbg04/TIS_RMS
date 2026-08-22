@@ -52,11 +52,6 @@ class _AppSearchBarState extends ConsumerState<AppSearchBar> {
         if (currentHasText) _isExpanded = true;
       });
     }
-    if (oldWidget.maxWidth != widget.maxWidth && _overlayEntry != null) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted) _overlayEntry?.markNeedsBuild();
-      });
-    }
   }
 
   @override
@@ -78,11 +73,6 @@ class _AppSearchBarState extends ConsumerState<AppSearchBar> {
         if (hasText) _isExpanded = true;
       });
     }
-
-    // Update overlay if history is visible
-    if (_overlayEntry != null && widget.enableHistory) {
-      _overlayEntry?.markNeedsBuild();
-    }
   }
 
   void _onFocusChanged() {
@@ -100,7 +90,7 @@ class _AppSearchBarState extends ConsumerState<AppSearchBar> {
       _showOverlay();
     } else {
       // Delay removal to allow overlay tap events (InkWell) to fire before the widget is destroyed
-      Future.delayed(const Duration(milliseconds: 150), () {
+      Future.delayed(const Duration(milliseconds: 200), () {
         if (mounted && !_focusNode.hasFocus) {
           _removeOverlay();
 
@@ -150,82 +140,107 @@ class _AppSearchBarState extends ConsumerState<AppSearchBar> {
 
   Widget _buildHistoryOverlay() {
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final halfScreenHeight = MediaQuery.of(context).size.height * 0.5;
+
     return Consumer(
       builder: (context, ref, child) {
         final history = ref.watch(searchHistoryProvider);
         if (history.isEmpty) return const SizedBox.shrink();
 
-        return TapRegion(
-          groupId: _focusNode,
-          child: Material(
-            elevation: 4,
-            color: isDark ? AppColors.darkSurfaceCard : Colors.white,
-            borderRadius: BorderRadius.circular(12),
-            child: Container(
-              constraints: const BoxConstraints(maxHeight: 200),
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: isDark ? AppColors.darkBorder : Colors.grey.shade200),
+        return Material(
+          elevation: 4,
+          color: isDark ? AppColors.darkSurfaceCard : Colors.white,
+          borderRadius: BorderRadius.circular(12),
+          child: Container(
+            constraints: BoxConstraints(maxHeight: halfScreenHeight),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(
+                color: isDark ? AppColors.darkBorder : Colors.grey.shade200,
               ),
-              child: ListView.builder(
-                padding: const EdgeInsets.symmetric(vertical: 8),
-                shrinkWrap: true,
-                itemCount: history.length,
-                itemBuilder: (context, index) {
-                  final term = history[index];
-                  return InkWell(
-                    onTap: () {
-                      _controller.text = term;
-                      if (widget.onSubmitted != null) {
-                        widget.onSubmitted!(term);
-                      }
-                      ref.read(searchHistoryProvider.notifier).addSearch(term);
-                      Future.delayed(const Duration(milliseconds: 50), () {
-                        if (mounted) _focusNode.unfocus();
-                      });
-                    },
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 16,
-                        vertical: 10,
-                      ),
-                      child: Row(
-                        children: [
-                          Icon(
-                            Icons.history,
-                            size: 18,
-                            color: Colors.grey.shade400,
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: Text(
-                              term,
-                              style: TextStyle(
-                                fontSize: 14,
-                                color: isDark ? AppColors.darkTextPrimary : Colors.black87,
-                              ),
-                            ),
-                          ),
-                          IconButton(
-                            icon: Icon(
-                              Icons.close,
-                              size: 16,
-                              color: Colors.grey.shade400,
-                            ),
-                            padding: EdgeInsets.zero,
-                            constraints: const BoxConstraints(),
-                            onPressed: () {
-                              ref
-                                  .read(searchHistoryProvider.notifier)
-                                  .removeSearch(term);
+            ),
+            child: ListView.builder(
+              padding: const EdgeInsets.symmetric(vertical: 8),
+              shrinkWrap: true,
+              itemCount: history.length,
+              itemBuilder: (context, index) {
+                final term = history[index];
+                return Row(
+                  children: [
+                    Expanded(
+                      child: InkWell(
+                        borderRadius: BorderRadius.circular(8),
+                        onTap: () {
+                          _controller.text = term;
+                          if (widget.onSubmitted != null) {
+                            widget.onSubmitted!(term);
+                          }
+                          ref
+                              .read(searchHistoryProvider.notifier)
+                              .addSearch(term);
+                          Future.delayed(
+                            const Duration(milliseconds: 50),
+                            () {
+                              if (mounted) _focusNode.unfocus();
                             },
+                          );
+                        },
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 10,
                           ),
-                        ],
+                          child: Row(
+                            children: [
+                              Icon(
+                                Icons.history,
+                                size: 18,
+                                color: isDark
+                                    ? AppColors.darkTextSecondary
+                                    : Colors.grey.shade400,
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Text(
+                                  term,
+                                  style: TextStyle(
+                                    fontSize: 14,
+                                    color: isDark
+                                        ? AppColors.darkTextPrimary
+                                        : Colors.black87,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
                       ),
                     ),
-                  );
-                },
-              ),
+                    InkResponse(
+                      radius: 16,
+                      onTap: () {
+                        ref
+                            .read(searchHistoryProvider.notifier)
+                            .removeSearch(term);
+                        _focusNode.requestFocus();
+                      },
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 10,
+                        ),
+                        child: Icon(
+                          Icons.close_rounded,
+                          size: 16,
+                          color: isDark
+                              ? AppColors.darkTextMuted
+                              : Colors.grey.shade400,
+                        ),
+                      ),
+                    ),
+                  ],
+                );
+              },
             ),
           ),
         );
@@ -273,8 +288,11 @@ class _AppSearchBarState extends ConsumerState<AppSearchBar> {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return TapRegion(
-      groupId: _focusNode,
-      onTapOutside: (event) => _focusNode.unfocus(),
+      onTapOutside: (event) {
+        if (_focusNode.hasFocus) {
+          _focusNode.unfocus();
+        }
+      },
       child: CompositedTransformTarget(
         link: _layerLink,
         child: Container(

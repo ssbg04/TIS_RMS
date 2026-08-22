@@ -327,6 +327,12 @@ Files backup/restore - mirror mode or zip -->
 <!-- # STUDENT SCREEN
 - use icon for multi select, no background color and border -->
 
+<!-- # SEARCH BAR
+- Windows app:
+  - 'x' button not clickable and does not remove the history
+  - make the history renders half of the screen
+- Android app:
+  - make the history renders half of the screen, dont modify other code, only the design -->
 
 ---
 
