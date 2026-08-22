@@ -20,6 +20,7 @@ class CustomTextField extends StatelessWidget {
   final TextCapitalization textCapitalization;
   final FocusNode? focusNode;
   final AutovalidateMode? autovalidateMode;
+  final String? counterText;
 
   const CustomTextField({
     super.key,
@@ -41,6 +42,7 @@ class CustomTextField extends StatelessWidget {
     this.textCapitalization = TextCapitalization.none,
     this.focusNode,
     this.autovalidateMode,
+    this.counterText,
   });
 
   @override
@@ -62,6 +64,7 @@ class CustomTextField extends StatelessWidget {
       onFieldSubmitted: onSubmitted,
       decoration: InputDecoration(
         labelText: hintText,
+        counterText: counterText,
         prefixIcon: prefixIcon != null
             ? Icon(
                 prefixIcon,

@@ -177,49 +177,58 @@ class _DocumentSourcePickerState extends State<DocumentSourcePicker> {
               ),
               const SizedBox(height: AppSizes.p16),
 
-              // Wrap instead of Row — stacks buttons on narrow screens
               Wrap(
                 alignment: WrapAlignment.center,
                 spacing: AppSizes.p12,
                 runSpacing: AppSizes.p8,
                 children: [
                   if (isMobile)
-                    ElevatedButton.icon(
-                      onPressed: _takePhoto,
-                      icon: const Icon(Icons.camera_alt_outlined),
-                      label: const Text('Use Camera'),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColors.primaryGreen,
-                        foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 16,
-                          vertical: 12,
+                    SizedBox(
+                      width: 155,
+                      height: 44,
+                      child: ElevatedButton.icon(
+                        onPressed: _takePhoto,
+                        icon: const Icon(Icons.camera_alt_outlined, size: 18),
+                        label: const Text('Use Camera'),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppColors.primaryGreen,
+                          foregroundColor: Colors.white,
+                          padding: EdgeInsets.zero,
+                          shape: RoundedRectangleBorder(
+                            borderRadius:
+                                BorderRadius.circular(AppSizes.radiusMedium),
+                          ),
+                          elevation: 0,
                         ),
-                        elevation: 0,
                       ),
                     ),
 
-                  ElevatedButton.icon(
-                    onPressed: _pickFile,
-                    icon: const Icon(Icons.folder_open),
-                    label: const Text('Browse Files'),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: isMobile
-                          ? (isDark
-                              ? AppColors.darkSurface2
-                              : Colors.white)
-                          : AppColors.primaryGreen,
-                      foregroundColor: isMobile
-                          ? AppColors.primaryGreen
-                          : Colors.white,
-                      side: isMobile
-                          ? const BorderSide(color: AppColors.primaryGreen)
-                          : BorderSide.none,
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 16,
-                        vertical: 12,
+                  SizedBox(
+                    width: 155,
+                    height: 44,
+                    child: ElevatedButton.icon(
+                      onPressed: _pickFile,
+                      icon: const Icon(Icons.folder_open, size: 18),
+                      label: const Text('Browse Files'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: isMobile
+                            ? (isDark
+                                ? AppColors.darkSurface2
+                                : Colors.white)
+                            : AppColors.primaryGreen,
+                        foregroundColor: isMobile
+                            ? AppColors.primaryGreen
+                            : Colors.white,
+                        side: isMobile
+                            ? const BorderSide(color: AppColors.primaryGreen)
+                            : BorderSide.none,
+                        padding: EdgeInsets.zero,
+                        shape: RoundedRectangleBorder(
+                          borderRadius:
+                              BorderRadius.circular(AppSizes.radiusMedium),
+                        ),
+                        elevation: 0,
                       ),
-                      elevation: 0,
                     ),
                   ),
                 ],

@@ -289,7 +289,11 @@ Files backup/restore - mirror mode or zip -->
 - same size save button from cancel
 - add left and right margin for the buttons layout -->
 
-# 
+<!-- # STUDENT SCREEN
+- add new student -> LRN field -> add preset "308035" first 6 digits for school id
+
+# DOCUMENT SCREEN
+- upload document -> review & upload step -> STUDENT LRN text field only number can input -->
 
 ---
 

@@ -26,6 +26,8 @@ import 'upload_modal_header.dart';
 // ────────────────────────────────────────────────────────────
 enum UploadStatus { pending, uploading, done, error }
 
+enum ScannedSaveFormat { pdf, image }
+
 // ────────────────────────────────────────────────────────────
 // Per-file upload entry model
 // ────────────────────────────────────────────────────────────
@@ -35,18 +37,14 @@ class _UploadEntry {
   final String fileSize;
   int? selectedRequirementId;
   String? selectedDocumentType;
-  double progress; // 0.0 – 1.0
-  UploadStatus status;
+  double progress = 0.0; // 0.0 – 1.0
+  UploadStatus status = UploadStatus.pending;
   String? errorMessage;
 
   _UploadEntry({
     required this.file,
     required this.fileName,
     required this.fileSize,
-    this.selectedRequirementId,
-    this.selectedDocumentType,
-    this.progress = 0.0,
-    this.status = UploadStatus.pending,
   });
 }
 
@@ -307,11 +305,231 @@ class _UploadOcrModalState extends ConsumerState<UploadOcrModal> {
     }
   }
 
+  Future<ScannedSaveFormat?> _showSaveFormatDialog({
+    required int pageCount,
+  }) async {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    return showDialog<ScannedSaveFormat>(
+      context: context,
+      barrierColor: Colors.black.withValues(alpha: 0.45),
+      builder: (ctx) {
+        return AlertDialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+          backgroundColor: isDark ? AppColors.darkSurfaceCard : Colors.white,
+          titlePadding: const EdgeInsets.fromLTRB(20, 20, 20, 12),
+          contentPadding: const EdgeInsets.symmetric(horizontal: 20),
+          actionsPadding: const EdgeInsets.all(16),
+          title: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: AppColors.primaryGreen.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: const Icon(
+                  Icons.document_scanner,
+                  color: AppColors.primaryGreen,
+                  size: 22,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  'Save Scanned Document',
+                  style: TextStyle(
+                    fontSize: 17,
+                    fontWeight: FontWeight.bold,
+                    color: isDark
+                        ? AppColors.darkTextPrimary
+                        : AppColors.textPrimary,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Scanned $pageCount page${pageCount > 1 ? 's' : ''}. Select format to save:',
+                style: TextStyle(
+                  fontSize: 13,
+                  color: isDark
+                      ? AppColors.darkTextSecondary
+                      : AppColors.textSecondary,
+                ),
+              ),
+              const SizedBox(height: 16),
+              // Option 1: PDF
+              InkWell(
+                onTap: () => Navigator.of(ctx).pop(ScannedSaveFormat.pdf),
+                borderRadius: BorderRadius.circular(12),
+                child: Container(
+                  padding: const EdgeInsets.all(14),
+                  decoration: BoxDecoration(
+                    border: Border.all(
+                      color: isDark
+                          ? AppColors.darkBorder
+                          : Colors.grey.shade300,
+                    ),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(10),
+                        decoration: BoxDecoration(
+                          color: Colors.red.withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: const Icon(
+                          Icons.picture_as_pdf,
+                          color: Colors.red,
+                          size: 24,
+                        ),
+                      ),
+                      const SizedBox(width: 14),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'PDF Document (.pdf)',
+                              style: TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.bold,
+                                color: isDark
+                                    ? AppColors.darkTextPrimary
+                                    : AppColors.textPrimary,
+                              ),
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              pageCount > 1
+                                  ? 'Combines all $pageCount pages into one PDF'
+                                  : 'Standard PDF document',
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: isDark
+                                    ? AppColors.darkTextSecondary
+                                    : AppColors.textSecondary,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      Icon(
+                        Icons.chevron_right,
+                        color: isDark
+                            ? AppColors.darkTextSecondary
+                            : Colors.grey.shade400,
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(height: 10),
+              // Option 2: Image
+              InkWell(
+                onTap: () => Navigator.of(ctx).pop(ScannedSaveFormat.image),
+                borderRadius: BorderRadius.circular(12),
+                child: Container(
+                  padding: const EdgeInsets.all(14),
+                  decoration: BoxDecoration(
+                    border: Border.all(
+                      color: isDark
+                          ? AppColors.darkBorder
+                          : Colors.grey.shade300,
+                    ),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(10),
+                        decoration: BoxDecoration(
+                          color: Colors.blue.withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: const Icon(
+                          Icons.image_outlined,
+                          color: Colors.blue,
+                          size: 24,
+                        ),
+                      ),
+                      const SizedBox(width: 14),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Image Format (.jpg)',
+                              style: TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.bold,
+                                color: isDark
+                                    ? AppColors.darkTextPrimary
+                                    : AppColors.textPrimary,
+                              ),
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              pageCount > 1
+                                  ? 'Saves $pageCount separate JPG image files'
+                                  : 'High-quality JPG image',
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: isDark
+                                    ? AppColors.darkTextSecondary
+                                    : AppColors.textSecondary,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      Icon(
+                        Icons.chevron_right,
+                        color: isDark
+                            ? AppColors.darkTextSecondary
+                            : Colors.grey.shade400,
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(ctx).pop(null),
+              child: Text(
+                'CANCEL',
+                style: TextStyle(
+                  color: isDark
+                      ? AppColors.darkTextSecondary
+                      : AppColors.textSecondary,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
   Future<void> _scanDocument() async {
     try {
       final scanner = DocumentScanner(
         options: DocumentScannerOptions(
-          documentFormats: const {DocumentFormat.pdf},
+          documentFormats: const {
+            DocumentFormat.pdf,
+            DocumentFormat.jpeg,
+          },
           mode: ScannerMode.full,
           isGalleryImport: true,
           pageLimit: 20,
@@ -321,15 +539,31 @@ class _UploadOcrModalState extends ConsumerState<UploadOcrModal> {
       final result = await scanner.scanDocument();
       scanner.close();
 
-      if (result.pdf != null) {
+      final hasPdf = result.pdf != null;
+      final hasImages = result.images != null && result.images!.isNotEmpty;
+
+      if (!hasPdf && !hasImages) return;
+
+      final pageCount = result.images?.length ??
+          (result.pdf != null ? result.pdf!.pageCount : 1);
+
+      if (!mounted) return;
+
+      final format = await _showSaveFormatDialog(pageCount: pageCount);
+      if (format == null) return;
+
+      final requirements =
+          ref.read(documentRequirementsProvider).value ?? [];
+      final timestamp = DateTime.now().millisecondsSinceEpoch;
+
+      if (format == ScannedSaveFormat.pdf && hasPdf) {
         final file = File(result.pdf!.uri);
         final sizeKb = (file.lengthSync() / 1024).toStringAsFixed(1);
         final sizeLabel = file.lengthSync() > 1048576
             ? '${(file.lengthSync() / 1048576).toStringAsFixed(1)} MB'
             : '$sizeKb KB';
-        final name = 'Scanned_Doc_${DateTime.now().millisecondsSinceEpoch}.pdf';
+        final name = 'Scanned_Doc_$timestamp.pdf';
 
-        final requirements = ref.read(documentRequirementsProvider).value ?? [];
         final entry = _UploadEntry(
           file: file,
           fileName: name,
@@ -344,22 +578,61 @@ class _UploadOcrModalState extends ConsumerState<UploadOcrModal> {
             widget.stepNotifier?.value = _currentStep;
           }
         });
+      } else if (hasImages) {
+        final newEntries = <_UploadEntry>[];
+        for (int i = 0; i < result.images!.length; i++) {
+          final imagePath = result.images![i];
+          final file = File(imagePath);
+          if (!file.existsSync()) continue;
+          final sizeKb = (file.lengthSync() / 1024).toStringAsFixed(1);
+          final sizeLabel = file.lengthSync() > 1048576
+              ? '${(file.lengthSync() / 1048576).toStringAsFixed(1)} MB'
+              : '$sizeKb KB';
+          final pageSuffix =
+              result.images!.length > 1 ? '_page${i + 1}' : '';
+          final name = 'Scanned_Doc_$timestamp$pageSuffix.jpg';
+
+          final entry = _UploadEntry(
+            file: file,
+            fileName: name,
+            fileSize: sizeLabel,
+          );
+          _applyAutoDetect(entry, requirements);
+          newEntries.add(entry);
+        }
+
+        if (newEntries.isNotEmpty) {
+          setState(() {
+            _entries.addAll(newEntries);
+            _currentStep = 1;
+            widget.stepNotifier?.value = _currentStep;
+          });
+        }
       }
     } catch (e) {
       if (e is PlatformException) {
         final msg = e.message?.toLowerCase() ?? '';
         final code = e.code.toLowerCase();
         final details = e.details?.toString().toLowerCase() ?? '';
-        if (msg.contains('cancel') || code.contains('cancel') || details.contains('cancel') || msg.contains('operation cancelled')) {
+        if (msg.contains('cancel') ||
+            code.contains('cancel') ||
+            details.contains('cancel') ||
+            msg.contains('operation cancelled')) {
           return;
         }
       }
       final str = e.toString().toLowerCase();
-      if (str.contains('operation cancelled') || str.contains('cancelled') || str.contains('canceled')) {
+      if (str.contains('operation cancelled') ||
+          str.contains('cancelled') ||
+          str.contains('canceled')) {
         return;
       }
       if (mounted) {
-        showErrorDialog(context, 'Scanner Error', 'Failed to scan document: $e');
+        showErrorDialog(
+          context,
+          'Scanner Error',
+          'Failed to scan document: $e',
+        );
       }
     }
   }
@@ -650,38 +923,48 @@ class _UploadOcrModalState extends ConsumerState<UploadOcrModal> {
             runSpacing: AppSizes.p12,
             children: [
               if (isMobile)
-                ElevatedButton.icon(
-                  onPressed: _scanDocument,
-                  icon: const Icon(Icons.document_scanner_outlined),
-                  label: const Text('Scan Document'),
+                SizedBox(
+                  width: 175,
+                  height: 44,
+                  child: ElevatedButton.icon(
+                    onPressed: _scanDocument,
+                    icon: const Icon(Icons.document_scanner_outlined, size: 18),
+                    label: const Text('Scan Document'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.primaryGreen,
+                      foregroundColor: Colors.white,
+                      padding: EdgeInsets.zero,
+                      shape: RoundedRectangleBorder(
+                        borderRadius:
+                            BorderRadius.circular(AppSizes.radiusMedium),
+                      ),
+                      elevation: 0,
+                    ),
+                  ),
+                ),
+              SizedBox(
+                width: 175,
+                height: 44,
+                child: ElevatedButton.icon(
+                  onPressed: _pickFiles,
+                  icon: const Icon(Icons.folder_open, size: 18),
+                  label: const Text('Browse Files'),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.primaryGreen,
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 24,
-                      vertical: 12,
+                    backgroundColor: isMobile
+                        ? (isDark ? AppColors.darkSurfaceCard : Colors.white)
+                        : AppColors.primaryGreen,
+                    foregroundColor:
+                        isMobile ? AppColors.primaryGreen : Colors.white,
+                    side: isMobile
+                        ? const BorderSide(color: AppColors.primaryGreen)
+                        : BorderSide.none,
+                    padding: EdgeInsets.zero,
+                    shape: RoundedRectangleBorder(
+                      borderRadius:
+                          BorderRadius.circular(AppSizes.radiusMedium),
                     ),
                     elevation: 0,
                   ),
-                ),
-              ElevatedButton.icon(
-                onPressed: _pickFiles,
-                icon: const Icon(Icons.folder_open),
-                label: const Text('Browse Files'),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor:
-                      isMobile ? (isDark ? AppColors.darkSurfaceCard : Colors.white) : AppColors.primaryGreen,
-                  foregroundColor:
-                      isMobile ? AppColors.primaryGreen : Colors.white,
-                  side:
-                      isMobile
-                          ? const BorderSide(color: AppColors.primaryGreen)
-                          : BorderSide.none,
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 24,
-                    vertical: 12,
-                  ),
-                  elevation: 0,
                 ),
               ),
             ],
@@ -734,6 +1017,10 @@ class _UploadOcrModalState extends ConsumerState<UploadOcrModal> {
                   hintText: 'Student LRN (12 Digits)',
                   prefixIcon: Icons.pin_outlined,
                   controller: _lrnController,
+                  keyboardType: TextInputType.number,
+                  maxLength: 12,
+                  counterText: '',
+                  inputFormatters: [FilteringTextInputFormatter.digitsOnly],
                 ),
               ),
               if (_isSearchingStudent)
@@ -789,26 +1076,38 @@ class _UploadOcrModalState extends ConsumerState<UploadOcrModal> {
                       alignment: WrapAlignment.center,
                       children: [
                         if (Platform.isAndroid || Platform.isIOS)
-                          OutlinedButton.icon(
-                            icon: const Icon(Icons.document_scanner_outlined, size: 18),
-                            label: const Text('Scan More'),
-                            onPressed: _scanDocument,
+                          SizedBox(
+                            width: 140,
+                            height: 40,
+                            child: OutlinedButton.icon(
+                              icon: const Icon(Icons.document_scanner_outlined, size: 18),
+                              label: const Text('Scan More'),
+                              onPressed: _scanDocument,
+                              style: OutlinedButton.styleFrom(
+                                foregroundColor: AppColors.primaryGreen,
+                                side: const BorderSide(color: AppColors.primaryGreen),
+                                padding: EdgeInsets.zero,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                              ),
+                            ),
+                          ),
+                        SizedBox(
+                          width: 140,
+                          height: 40,
+                          child: OutlinedButton.icon(
+                            icon: const Icon(Icons.folder_open, size: 18),
+                            label: const Text('Add Files'),
+                            onPressed: _pickFiles,
                             style: OutlinedButton.styleFrom(
                               foregroundColor: AppColors.primaryGreen,
                               side: const BorderSide(color: AppColors.primaryGreen),
+                              padding: EdgeInsets.zero,
                               shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(8)),
+                                borderRadius: BorderRadius.circular(8),
+                              ),
                             ),
-                          ),
-                        OutlinedButton.icon(
-                          icon: const Icon(Icons.folder_open, size: 18),
-                          label: const Text('Add Files'),
-                          onPressed: _pickFiles,
-                          style: OutlinedButton.styleFrom(
-                            foregroundColor: AppColors.primaryGreen,
-                            side: const BorderSide(color: AppColors.primaryGreen),
-                            shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(8)),
                           ),
                         ),
                       ],

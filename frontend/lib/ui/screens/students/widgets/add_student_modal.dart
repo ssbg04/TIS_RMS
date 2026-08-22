@@ -69,7 +69,7 @@ class _AddStudentModalState extends ConsumerState<AddStudentModal> {
   void initState() {
     super.initState();
     _selectedGradeLevel = 7;
-    _lrnController = TextEditingController();
+    _lrnController = TextEditingController(text: '308035');
     _firstNameController = TextEditingController();
     _middleNameController = TextEditingController();
     _lastNameController = TextEditingController();
@@ -95,7 +95,8 @@ class _AddStudentModalState extends ConsumerState<AddStudentModal> {
   }
 
   bool get _hasAnyData {
-    return _lrnController.text.isNotEmpty ||
+    return (_lrnController.text.isNotEmpty &&
+            _lrnController.text != '308035') ||
         _firstNameController.text.isNotEmpty ||
         _lastNameController.text.isNotEmpty;
   }
@@ -1333,7 +1334,7 @@ class _AddStudentModalState extends ConsumerState<AddStudentModal> {
                                 children: [
                                   TextButton.icon(
                                     onPressed: () => setState(() {
-                                      _lrnController.clear();
+                                      _lrnController.text = '308035';
                                       _firstNameController.clear();
                                       _middleNameController.clear();
                                       _lastNameController.clear();
