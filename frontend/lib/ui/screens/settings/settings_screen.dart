@@ -133,33 +133,44 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     });
   }
 
+  void _refreshAllSettingsData() {
+    ref.invalidate(academicYearsListProvider);
+    ref.invalidate(sectionsListProvider);
+    ref.invalidate(gradeLevelsListProvider);
+    ref.invalidate(systemSettingsProvider);
+    ref.invalidate(profileProvider);
+  }
+
   @override
   void initState() {
     super.initState();
     _newPassCtrl.addListener(_evaluatePasswordStrength);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
+      _refreshAllSettingsData();
       _tabListener = ref.listenManual<String>(activeTabProvider, (
         previous,
         next,
       ) {
         if (!mounted) return;
-        if (next == 'Settings' && previous != 'Settings') {
-          _newPassCtrl.clear();
-          _confirmPassCtrl.clear();
-          _firstNameCtrl.clear();
-          _middleNameCtrl.clear();
-          _lastNameCtrl.clear();
-          _extCtrl.clear();
-          _phoneCtrl.clear();
-          _emailCtrl.clear();
-          setState(() {
-            _isPassVisible = false;
-          });
-          _passwordFormKey.currentState?.reset();
-          _profileFormKey.currentState?.reset();
-          ref.invalidate(profileProvider);
-          _lastUserId = null;
+        if (next == 'Settings') {
+          _refreshAllSettingsData();
+          if (previous != 'Settings') {
+            _newPassCtrl.clear();
+            _confirmPassCtrl.clear();
+            _firstNameCtrl.clear();
+            _middleNameCtrl.clear();
+            _lastNameCtrl.clear();
+            _extCtrl.clear();
+            _phoneCtrl.clear();
+            _emailCtrl.clear();
+            setState(() {
+              _isPassVisible = false;
+            });
+            _passwordFormKey.currentState?.reset();
+            _profileFormKey.currentState?.reset();
+            _lastUserId = null;
+          }
         }
       });
     });
@@ -489,6 +500,11 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    ref.listen<String>(activeTabProvider, (previous, next) {
+      if (next == 'Settings') {
+        _refreshAllSettingsData();
+      }
+    });
     final profileAsync = ref.watch(profileProvider);
 
     return GestureDetector(
@@ -921,14 +937,14 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  const Row(
+                                  Row(
                                     children: [
-                                      Icon(
+                                      const Icon(
                                         Icons.school_rounded,
                                         color: AppColors.primaryGreen,
                                       ),
-                                      SizedBox(width: AppSizes.p8),
-                                      Expanded(
+                                      const SizedBox(width: AppSizes.p8),
+                                      const Expanded(
                                         child: Column(
                                           crossAxisAlignment: CrossAxisAlignment.start,
                                           children: [
@@ -948,6 +964,11 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                                             ),
                                           ],
                                         ),
+                                      ),
+                                      IconButton(
+                                        icon: const Icon(Icons.refresh, size: 20),
+                                        tooltip: 'Refresh Academic Year',
+                                        onPressed: () => ref.invalidate(academicYearsListProvider),
                                       ),
                                     ],
                                   ),

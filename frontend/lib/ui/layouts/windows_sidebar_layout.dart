@@ -17,6 +17,8 @@ import '../providers/archives_provider.dart';
 import '../providers/reports_provider.dart';
 import '../providers/users_provider.dart';
 import '../providers/auth_provider.dart';
+import '../providers/setup_provider.dart';
+import '../providers/system_settings_provider.dart';
 import '../shared/dialogs/logout_dialog.dart';
 import '../shared/widgets/abstract_background.dart';
 import '../providers/navigation_provider.dart';
@@ -82,6 +84,14 @@ class _WindowsSidebarLayoutState extends ConsumerState<WindowsSidebarLayout> {
         break;
       case 'Users':
         ref.invalidate(usersProvider);
+        break;
+      case 'Settings':
+        ref.invalidate(academicYearsListProvider);
+        ref.invalidate(sectionsListProvider);
+        ref.invalidate(gradeLevelsListProvider);
+        ref.invalidate(systemSettingsProvider);
+        ref.invalidate(profileProvider);
+        ref.invalidate(requirementsSettingsProvider);
         break;
     }
   }
