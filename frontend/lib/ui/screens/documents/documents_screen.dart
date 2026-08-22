@@ -10,6 +10,7 @@ import '../../shared/inputs/app_search_bar.dart';
 import '../../providers/document_provider.dart';
 import '../../providers/student_provider.dart';
 import '../../providers/auth_provider.dart';
+import '../../shared/dialogs/document_properties_dialog.dart';
 import '../../shared/widgets/app_pagination.dart';
 import '../../shared/widgets/app_error_state.dart';
 import '../../shared/widgets/horizontal_expandable_fab.dart';
@@ -30,7 +31,6 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'widgets/recycle_bin_modal.dart';
 import 'widgets/bulk_operations_bar.dart';
 import '../../../domain/entities/document_model.dart';
-import '../../../core/utils/file_icon_helper.dart';
 
 class DocumentsScreen extends ConsumerStatefulWidget {
   final String userRole;
@@ -291,6 +291,8 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
         _isMultiSelectMode = true;
         _selectedDocumentIds.add(documentId);
       });
+    } else if (action == 'properties') {
+      DocumentPropertiesDialog.show(context, document: document);
     } else if (action == 'view_profile' && studentId != null) {
       showStudentProfileModal(
         context,
@@ -336,13 +338,13 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
           url: url,
           fileName: document.fileName,
         );
-        if (!context.mounted) return;
+        if (!mounted) return;
         showSuccessDialog(
           context,
           message: 'Document downloaded successfully.',
         );
       } catch (e) {
-        if (!context.mounted) return;
+        if (!mounted) return;
         showErrorDialog(context, 'Download Failed', e.toString());
       }
     } else if (action == 'convert_pdf') {
@@ -1074,9 +1076,37 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
             ),
           ],
 
-          const SizedBox(width: 8),
+          const SizedBox(width: 4),
 
-          // Filter button (Icon only, no background, no border)
+          // Multi-Select Toggle (Icon only, no background, no border)
+          if (widget.userRole != 'teacher' && (_tabController.index == 1 || isFolderOpened)) ...[
+            Tooltip(
+              message: _isMultiSelectMode ? 'Exit Multi-Select' : 'Multi-Select',
+              child: IconButton(
+                style: IconButton.styleFrom(
+                  backgroundColor: Colors.transparent,
+                  side: BorderSide.none,
+                  shadowColor: Colors.transparent,
+                ),
+                onPressed: () {
+                  setState(() {
+                    _isMultiSelectMode = !_isMultiSelectMode;
+                    if (!_isMultiSelectMode) _selectedDocumentIds.clear();
+                  });
+                },
+                icon: Icon(
+                  Icons.checklist_rounded,
+                  size: 22,
+                  color: _isMultiSelectMode
+                      ? AppColors.primaryGreen
+                      : (isDark ? AppColors.darkTextPrimary : AppColors.textSecondary),
+                ),
+              ),
+            ),
+            const SizedBox(width: 4),
+          ],
+
+          // Filter button (Icon only, between Multi-Select and Upload/Bulk Add)
           if (_tabController.index == 1 || isFolderOpened) ...[
             Tooltip(
               message: 'Filter Documents',
@@ -1195,7 +1225,7 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
         }
       },
       itemBuilder: (context) => [
-        if (!isMobile && widget.userRole != 'teacher' && (_tabController.index == 1 || _openedFolderStudentId != null)) ...[
+        if (widget.userRole != 'teacher' && (_tabController.index == 1 || _openedFolderStudentId != null)) ...[
           PopupMenuItem(
             value: 'multi_select',
             child: Row(
@@ -2085,14 +2115,12 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
                                 onSecondaryTapDown: widget.userRole == 'teacher'
                                     ? null
                                     : (details) => _showFolderContextMenu(
-                                        context,
                                         details.globalPosition,
                                         folder,
                                       ),
                                 onLongPressStart: widget.userRole == 'teacher'
                                     ? null
                                     : (details) => _showFolderContextMenu(
-                                        context,
                                         details.globalPosition,
                                         folder,
                                       ),
@@ -2127,65 +2155,41 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
                                           color: Colors.orange,
                                         ),
                                         const SizedBox(width: 12),
-                                        // On mobile: stack name + badges vertically
+                                        // Column: name + count files inside + JHS/SHS badges
                                         Expanded(
-                                          child: isMobile
-                                              ? Column(
-                                                  crossAxisAlignment:
-                                                      CrossAxisAlignment.start,
-                                                  children: [
-                                                    Text(
-                                                      folder.name,
-                                                      maxLines: 2,
-                                                      overflow:
-                                                          TextOverflow.ellipsis,
-                                                       style: TextStyle(
-                                                         fontWeight:
-                                                             FontWeight.bold,
-                                                         fontSize: 13,
-                                                         color: isDark
-                                                             ? AppColors.darkTextPrimary
-                                                             : AppColors.textPrimary,
-                                                       ),
-                                                    ),
-                                                    const SizedBox(height: 4),
-                                                    _buildFolderCompletionBadge(
-                                                      folder,
-                                                    ),
-                                                  ],
-                                                )
-                                              : Row(
-                                                  children: [
-                                                    Expanded(
-                                                      flex: 3,
-                                                      child: Text(
-                                                        folder.name,
-                                                        maxLines: 1,
-                                                        overflow: TextOverflow
-                                                            .ellipsis,
-                                                         style: TextStyle(
-                                                           fontWeight:
-                                                               FontWeight.bold,
-                                                           fontSize: 14,
-                                                           color: isDark
-                                                               ? AppColors.darkTextPrimary
-                                                               : AppColors.textPrimary,
-                                                         ),
-                                                      ),
-                                                    ),
-                                                    Expanded(
-                                                      flex: 2,
-                                                      child: Align(
-                                                        alignment: Alignment
-                                                            .centerLeft,
-                                                        child:
-                                                            _buildFolderCompletionBadge(
-                                                              folder,
-                                                            ),
-                                                      ),
-                                                    ),
-                                                  ],
+                                          child: Column(
+                                            crossAxisAlignment:
+                                                CrossAxisAlignment.start,
+                                            mainAxisSize: MainAxisSize.min,
+                                            children: [
+                                              Text(
+                                                folder.name,
+                                                maxLines: 1,
+                                                overflow: TextOverflow.ellipsis,
+                                                style: TextStyle(
+                                                  fontWeight: FontWeight.bold,
+                                                  fontSize: 13,
+                                                  color: isDark
+                                                      ? AppColors.darkTextPrimary
+                                                      : AppColors.textPrimary,
                                                 ),
+                                              ),
+                                              const SizedBox(height: 2),
+                                              Text(
+                                                '${folder.documentCount ?? 0} ${folder.documentCount == 1 ? "item" : "items"}',
+                                                style: TextStyle(
+                                                  fontSize: 11,
+                                                  color: isDark
+                                                      ? AppColors.darkTextSecondary
+                                                      : AppColors.textSecondary,
+                                                ),
+                                              ),
+                                              const SizedBox(height: 4),
+                                              _buildFolderCompletionBadge(
+                                                folder,
+                                              ),
+                                            ],
+                                          ),
                                         ),
                                          Icon(
                                            Icons.chevron_right,
@@ -2236,14 +2240,12 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
                   onSecondaryTapDown: widget.userRole == 'teacher'
                       ? null
                       : (details) => _showFolderContextMenu(
-                          context,
                           details.globalPosition,
                           folder,
                         ),
                   onLongPressStart: widget.userRole == 'teacher'
                       ? null
                       : (details) => _showFolderContextMenu(
-                          context,
                           details.globalPosition,
                           folder,
                         ),
@@ -2482,140 +2484,57 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
             ),
             child: ClipRRect(
               borderRadius: BorderRadius.circular(12),
-              child: Column(
-                children: [
-                  // Table header — simplified for mobile
-                  Container(
-                    padding: EdgeInsets.symmetric(
-                      horizontal: isMobileList ? 12 : 16,
-                      vertical: 10,
-                    ),
-                    color: AppColors.primaryGreen.withValues(alpha: 0.06),
-                    child: Row(
-                      children: [
-                        // Icon placeholder
-                        const SizedBox(width: 40),
-                        const SizedBox(width: 8),
-                        // File name always visible
-                        Expanded(
-                          flex: 3,
-                          child: Text(
-                            'File Name',
-                            style: TextStyle(
-                              fontWeight: FontWeight.bold,
-                              fontSize: 12,
-                              color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
-                            ),
-                          ),
-                        ),
-                        // Student column — hidden on mobile
-                        if (!isMobileList)
-                          Expanded(
-                            flex: 2,
-                            child: Text(
-                              'Folder Path',
-                              style: TextStyle(
-                                fontWeight: FontWeight.bold,
-                                fontSize: 12,
-                                color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
-                              ),
-                            ),
-                          ),
-                        // Doc type — hidden on mobile
-                        if (!isMobileList)
-                          Expanded(
-                            flex: 2,
-                            child: Text(
-                              'Doc Type',
-                              style: TextStyle(
-                                fontWeight: FontWeight.bold,
-                                fontSize: 12,
-                                color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
-                              ),
-                            ),
-                          ),
-                        // Status always visible
-                        Expanded(
-                          child: Text(
-                            'Status',
-                            style: TextStyle(
-                              fontWeight: FontWeight.bold,
-                              fontSize: 12,
-                              color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 40),
-                      ],
-                    ),
-                  ),
-                  Expanded(
-                    child: RefreshIndicator(
-                      onRefresh: () async {
-                        ref.invalidate(documentPageProvider);
+              child: RefreshIndicator(
+                onRefresh: () async {
+                  ref.invalidate(documentPageProvider);
+                },
+                child: ListView.separated(
+                  itemCount: documents.length,
+                  separatorBuilder: (ctx, i) =>
+                      Divider(height: 1, color: isDark ? AppColors.darkBorder : Colors.grey.shade100),
+                  itemBuilder: (ctx, i) {
+                    final doc = documents[i] as DocumentModel;
+                    return FileFolderCard(
+                      document: doc,
+                      isGrid: false,
+                      userRole: widget.userRole,
+                      isMultiSelectMode: _isMultiSelectMode,
+                      isSelected: _selectedDocumentIds.contains(doc.id),
+                      onSelectedChanged: (val) {
+                        setState(() {
+                          if (val == true) {
+                            _selectedDocumentIds.add(doc.id);
+                          } else {
+                            _selectedDocumentIds.remove(doc.id);
+                          }
+                        });
                       },
-                      child: ListView.separated(
-                        itemCount: documents.length,
-                        separatorBuilder: (ctx, i) =>
-                            Divider(height: 1, color: isDark ? AppColors.darkBorder : Colors.grey.shade100),
-                        itemBuilder: (ctx, i) {
-                        return isMobileList
-                            ? _buildMobileListRow(documents[i], i)
-                            : FileFolderCard(
-                                document: documents[i],
-                                isGrid: false,
-                                userRole: widget.userRole,
-                                isMultiSelectMode: _isMultiSelectMode,
-                                isSelected: _selectedDocumentIds.contains(
-                                  documents[i].id,
-                                ),
-                                onSelectedChanged: (val) {
-                                  setState(() {
-                                    if (val == true) {
-                                      _selectedDocumentIds.add(documents[i].id);
-                                    } else {
-                                      _selectedDocumentIds.remove(
-                                        documents[i].id,
-                                      );
-                                    }
-                                  });
-                                },
-                                onTap: () {
-                                  if (_isMultiSelectMode) {
-                                    setState(() {
-                                      if (_selectedDocumentIds.contains(
-                                        documents[i].id,
-                                      )) {
-                                        _selectedDocumentIds.remove(
-                                          documents[i].id,
-                                        );
-                                      } else {
-                                        _selectedDocumentIds.add(
-                                          documents[i].id,
-                                        );
-                                      }
-                                    });
-                                  } else {
-                                    showDocumentPreview(
-                                      context: context,
-                                      document: documents[i],
-                                    );
-                                  }
-                                },
-                                onActionSelected: (a) =>
-                                    _handleAction(a, documents[i]),
-                                onViewProfile: (sid) => showStudentProfileModal(
-                                  context,
-                                  studentId: sid,
-                                  userRole: widget.userRole,
-                                  hideEnrollmentActions: true,
-                                ),
-                              );
+                      onTap: () {
+                        if (_isMultiSelectMode) {
+                          setState(() {
+                            if (_selectedDocumentIds.contains(doc.id)) {
+                              _selectedDocumentIds.remove(doc.id);
+                            } else {
+                              _selectedDocumentIds.add(doc.id);
+                            }
+                          });
+                        } else {
+                          showDocumentPreview(
+                            context: context,
+                            document: doc,
+                          );
+                        }
                       },
-                    ),
-                  ),
+                      onActionSelected: (a) => _handleAction(a, doc),
+                      onViewProfile: (sid) => showStudentProfileModal(
+                        context,
+                        studentId: sid,
+                        userRole: widget.userRole,
+                        hideEnrollmentActions: true,
+                      ),
+                    );
+                  },
                 ),
-              ],
               ),
             ),
           ),
@@ -2625,286 +2544,6 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
         else if (_openedFolderStudentId != null)
           SizedBox(height: isMobileList ? 76 : 16),
       ],
-    );
-  }
-
-  /// Compact card row for mobile list view – stacks info vertically.
-  Widget _buildMobileListRow(dynamic doc, int i) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final fileColor = FileIconHelper.getColor(
-      doc.fileName as String?,
-      docType: doc.documentType as String?,
-    );
-    final fileIcon = FileIconHelper.getIcon(
-      doc.fileName as String?,
-      docType: doc.documentType as String?,
-    );
-
-    Color statusColor;
-    switch (doc.status as String) {
-      case 'Completed':
-        statusColor = isDark ? Colors.green.shade300 : AppColors.success;
-        break;
-      case 'Archived':
-        statusColor = isDark ? Colors.blue.shade300 : Colors.blue;
-        break;
-      default:
-        statusColor = isDark ? AppColors.darkTextSecondary : Colors.grey;
-    }
-
-    final isSelected = _selectedDocumentIds.contains(doc.id);
-
-    return GestureDetector(
-      onSecondaryTapDown: widget.userRole == 'teacher'
-          ? null
-          : (details) => _showDocumentContextMenu(
-              context,
-              details.globalPosition,
-              doc as DocumentModel,
-            ),
-      onLongPressStart: widget.userRole == 'teacher'
-          ? null
-          : (details) => _showDocumentContextMenu(
-              context,
-              details.globalPosition,
-              doc as DocumentModel,
-            ),
-      child: InkWell(
-        onTap: () {
-          if (_isMultiSelectMode) {
-            setState(() {
-              if (isSelected) {
-                _selectedDocumentIds.remove(doc.id);
-              } else {
-                _selectedDocumentIds.add(doc.id);
-              }
-            });
-          } else {
-            showDocumentPreview(
-              context: context,
-              document: doc as DocumentModel,
-            );
-          }
-        },
-        child: Container(
-          color: isSelected
-              ? AppColors.primaryGreen.withValues(alpha: 0.05)
-              : null,
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              // Multi-select checkbox
-              if (_isMultiSelectMode) ...[
-                Checkbox(
-                  value: isSelected,
-                  activeColor: AppColors.primaryGreen,
-                  onChanged: (val) {
-                    setState(() {
-                      if (val == true) {
-                        _selectedDocumentIds.add(doc.id);
-                      } else {
-                        _selectedDocumentIds.remove(doc.id);
-                      }
-                    });
-                  },
-                  visualDensity: VisualDensity.compact,
-                  materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                ),
-                const SizedBox(width: 4),
-              ],
-
-              // File icon
-              SizedBox(
-                width: 32,
-                height: 32,
-                child: Center(
-                  child: Icon(fileIcon, size: 24, color: fileColor),
-                ),
-              ),
-              const SizedBox(width: 10),
-
-              // Stacked info: file name + student + doc type
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      doc.fileName as String,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                        fontWeight: FontWeight.w600,
-                        fontSize: 13,
-                        color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
-                      ),
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      doc.studentName as String? ??
-                          (doc.studentLrn != null
-                              ? 'LRN: ${doc.studentLrn}'
-                              : '—'),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                        fontSize: 11,
-                        color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
-                      ),
-                    ),
-                    if ((doc.documentType as String?) != null) ...[
-                      const SizedBox(height: 1),
-                      Text(
-                        doc.documentType as String,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: TextStyle(
-                          fontSize: 10,
-                          color: isDark ? AppColors.darkTextSecondary : Colors.grey.shade500,
-                        ),
-                      ),
-                    ],
-                  ],
-                ),
-              ),
-              const SizedBox(width: 8),
-
-              // Status badge
-              Text(
-                doc.status as String,
-                style: TextStyle(
-                  fontSize: 10,
-                  color: statusColor,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-              const SizedBox(width: 4),
-
-              // Actions menu (hidden for teachers)
-              if (!_isMultiSelectMode && widget.userRole != 'teacher')
-                SizedBox(
-                  width: 30,
-                  child: PopupMenuButton<String>(
-                    icon: Icon(
-                      Icons.more_vert,
-                      size: 16,
-                      color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
-                    ),
-                    padding: EdgeInsets.zero,
-                    onSelected: (a) => _handleAction(a, doc as DocumentModel),
-                    itemBuilder: (_) => [
-                      const PopupMenuItem(
-                        value: 'select',
-                        child: Row(
-                          children: [
-                            Icon(Icons.check_box_outlined, size: 16),
-                            SizedBox(width: 10),
-                            Text('Select', style: TextStyle(fontSize: 13)),
-                          ],
-                        ),
-                      ),
-                      const PopupMenuItem(
-                        value: 'queue',
-                        child: Row(
-                          children: [
-                            Icon(Icons.print, size: 16),
-                            SizedBox(width: 10),
-                            Text('Add to Print List', style: TextStyle(fontSize: 13)),
-                          ],
-                        ),
-                      ),
-                      const PopupMenuItem(
-                        value: 'copy',
-                        child: Row(
-                          children: [
-                            Icon(Icons.copy, size: 16),
-                            SizedBox(width: 10),
-                            Text('Copy', style: TextStyle(fontSize: 13)),
-                          ],
-                        ),
-                      ),
-                      const PopupMenuItem(
-                        value: 'download',
-                        child: Row(
-                          children: [
-                            Icon(Icons.download, size: 16),
-                            SizedBox(width: 10),
-                            Text('Download', style: TextStyle(fontSize: 13)),
-                          ],
-                        ),
-                      ),
-                      if (FileIconHelper.isExcel(
-                        (doc as DocumentModel).fileName,
-                        docType: (doc as DocumentModel).documentType,
-                      ))
-                        const PopupMenuItem(
-                          value: 'convert_pdf',
-                          child: Row(
-                            children: [
-                              Icon(
-                                Icons.picture_as_pdf,
-                                size: 16,
-                                color: Colors.green,
-                              ),
-                              SizedBox(width: 10),
-                              Text(
-                                'Convert to PDF',
-                                style: TextStyle(fontSize: 13),
-                              ),
-                            ],
-                          ),
-                        ),
-                      const PopupMenuDivider(),
-                      const PopupMenuItem(
-                        value: 'view_profile',
-                        child: Row(
-                          children: [
-                            Icon(
-                              Icons.person,
-                              size: 16,
-                              color: AppColors.primaryGreen,
-                            ),
-                            SizedBox(width: 10),
-                            Text(
-                              'Student Profile',
-                              style: TextStyle(
-                                fontSize: 13,
-                                color: AppColors.primaryGreen,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      if (widget.userRole != 'teacher') ...[
-                        const PopupMenuDivider(),
-                        const PopupMenuItem(
-                          value: 'delete',
-                          child: Row(
-                            children: [
-                              Icon(
-                                Icons.delete,
-                                size: 16,
-                                color: AppColors.error,
-                              ),
-                              SizedBox(width: 10),
-                              Text(
-                                'Delete',
-                                style: TextStyle(
-                                  fontSize: 13,
-                                  color: AppColors.error,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ],
-                  ),
-                ),
-            ],
-          ),
-        ),
-      ),
     );
   }
 
@@ -3025,16 +2664,15 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
     );
   }
 
-  void _showFolderContextMenu(
-    BuildContext context,
+  Future<void> _showFolderContextMenu(
     Offset position,
     dynamic folder,
-  ) {
+  ) async {
     if (folder.studentId == null) return;
 
     final RenderBox overlay =
         Overlay.of(context).context.findRenderObject() as RenderBox;
-    showMenu<String>(
+    final value = await showMenu<String>(
       context: context,
       position: RelativeRect.fromRect(
         position & const Size(40, 40),
@@ -3063,133 +2701,22 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
           ),
         ),
       ],
-    ).then((value) {
-      if (value == 'open') {
-        setState(() {
-          _openedFolderStudentId = folder.studentId;
-          _openedFolderName = folder.name;
-        });
-        ref.read(documentQueryProvider.notifier).setStudentId(folder.studentId);
-      } else if (value == 'view_profile') {
-        showStudentProfileModal(
-          context,
-          studentId: folder.studentId!,
-          userRole: widget.userRole,
-          hideEnrollmentActions: true,
-        );
-      }
-    });
-  }
+    );
 
-  void _showDocumentContextMenu(
-    BuildContext context,
-    Offset position,
-    DocumentModel doc,
-  ) {
-    if (_isMultiSelectMode) return;
-    final RenderBox overlay =
-        Overlay.of(context).context.findRenderObject() as RenderBox;
-
-    final items = <PopupMenuEntry<String>>[
-      const PopupMenuItem(
-        value: 'select',
-        child: Row(
-          children: [
-            Icon(Icons.check_box_outlined, size: 18),
-            SizedBox(width: 12),
-            Text('Select', style: TextStyle(fontSize: 14)),
-          ],
-        ),
-      ),
-      const PopupMenuItem(
-        value: 'queue',
-        child: Row(
-          children: [
-            Icon(Icons.print, size: 18),
-            SizedBox(width: 12),
-            Text('Add to Print List', style: TextStyle(fontSize: 14)),
-          ],
-        ),
-      ),
-      const PopupMenuItem(
-        value: 'copy',
-        child: Row(
-          children: [
-            Icon(Icons.copy, size: 18),
-            SizedBox(width: 12),
-            Text('Copy', style: TextStyle(fontSize: 14)),
-          ],
-        ),
-      ),
-      const PopupMenuItem(
-        value: 'download',
-        child: Row(
-          children: [
-            Icon(Icons.download, size: 18),
-            SizedBox(width: 12),
-            Text('Download', style: TextStyle(fontSize: 14)),
-          ],
-        ),
-      ),
-      if (FileIconHelper.isExcel(
-        doc.fileName,
-        docType: doc.documentType,
-      ))
-        const PopupMenuItem(
-          value: 'convert_pdf',
-          child: Row(
-            children: [
-              Icon(Icons.picture_as_pdf, size: 18, color: Colors.green),
-              SizedBox(width: 12),
-              Text('Convert to PDF', style: TextStyle(fontSize: 14)),
-            ],
-          ),
-        ),
-      if (doc.studentId != null) ...[
-        const PopupMenuDivider(),
-        const PopupMenuItem(
-          value: 'view_profile',
-          child: Row(
-            children: [
-              Icon(Icons.person, size: 18, color: AppColors.primaryGreen),
-              SizedBox(width: 12),
-              Text('View Student Profile', style: TextStyle(fontSize: 14)),
-            ],
-          ),
-        ),
-      ],
-    ];
-
-    if (widget.userRole != 'teacher') {
-      items.add(const PopupMenuDivider());
-      items.add(
-        const PopupMenuItem(
-          value: 'delete',
-          child: Row(
-            children: [
-              Icon(Icons.delete, size: 18, color: AppColors.error),
-              SizedBox(width: 12),
-              Text(
-                'Delete',
-                style: TextStyle(fontSize: 14, color: AppColors.error),
-              ),
-            ],
-          ),
-        ),
+    if (!mounted || value == null) return;
+    if (value == 'open') {
+      setState(() {
+        _openedFolderStudentId = folder.studentId;
+        _openedFolderName = folder.name;
+      });
+      ref.read(documentQueryProvider.notifier).setStudentId(folder.studentId);
+    } else if (value == 'view_profile') {
+      showStudentProfileModal(
+        context,
+        studentId: folder.studentId!,
+        userRole: widget.userRole,
+        hideEnrollmentActions: true,
       );
     }
-
-    showMenu<String>(
-      context: context,
-      position: RelativeRect.fromRect(
-        position & const Size(40, 40),
-        Offset.zero & overlay.size,
-      ),
-      items: items,
-    ).then((value) {
-      if (value != null) {
-        _handleAction(value, doc);
-      }
-    });
   }
 }

@@ -29,10 +29,10 @@ import '../documents/widgets/print_queue_modal.dart';
 import '../documents/widgets/student_profile_modal.dart';
 import '../documents/widgets/download_guide_dialog.dart';
 import '../documents/widgets/recycle_bin_modal.dart';
+import '../../shared/dialogs/document_properties_dialog.dart';
 import '../../../core/utils/download_service.dart';
 import '../../../core/network/api_constants.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
-import '../../../core/utils/file_icon_helper.dart';
 
 class ArchivesScreen extends ConsumerStatefulWidget {
   final String userRole;
@@ -471,6 +471,8 @@ class _ArchivesScreenState extends ConsumerState<ArchivesScreen>
   Future<void> _handleDocumentAction(String action, DocumentModel doc) async {
     if (action == 'preview') {
       _handlePreview(doc);
+    } else if (action == 'properties') {
+      DocumentPropertiesDialog.show(context, document: doc);
     } else if (action == 'select') {
       setState(() {
         _isMultiSelectMode = true;
@@ -832,131 +834,6 @@ class _ArchivesScreenState extends ConsumerState<ArchivesScreen>
         ),
       ),
     );
-  }
-
-  List<PopupMenuEntry<String>> _buildDocumentMenuItems([DocumentModel? doc]) {
-    final items = <PopupMenuEntry<String>>[
-      const PopupMenuItem(
-        value: 'select',
-        child: Row(
-          children: [
-            Icon(Icons.check_box_outlined, size: 18),
-            SizedBox(width: 12),
-            Text('Select', style: TextStyle(fontSize: 14)),
-          ],
-        ),
-      ),
-      const PopupMenuItem(
-        value: 'preview',
-        child: Row(
-          children: [
-            Icon(Icons.visibility_outlined, size: 18),
-            SizedBox(width: 12),
-            Text('Preview', style: TextStyle(fontSize: 14)),
-          ],
-        ),
-      ),
-      const PopupMenuItem(
-        value: 'print',
-        child: Row(
-          children: [
-            Icon(Icons.print, size: 18),
-            SizedBox(width: 12),
-            Text('Add to Print List', style: TextStyle(fontSize: 14)),
-          ],
-        ),
-      ),
-      const PopupMenuItem(
-        value: 'copy',
-        child: Row(
-          children: [
-            Icon(Icons.copy, size: 18),
-            SizedBox(width: 12),
-            Text('Copy', style: TextStyle(fontSize: 14)),
-          ],
-        ),
-      ),
-      const PopupMenuItem(
-        value: 'download',
-        child: Row(
-          children: [
-            Icon(Icons.download, size: 18),
-            SizedBox(width: 12),
-            Text('Download', style: TextStyle(fontSize: 14)),
-          ],
-        ),
-      ),
-      if (doc != null &&
-          FileIconHelper.isExcel(doc.fileName, docType: doc.documentType))
-        const PopupMenuItem(
-          value: 'convert_pdf',
-          child: Row(
-            children: [
-              Icon(Icons.picture_as_pdf, size: 18, color: Colors.green),
-              SizedBox(width: 12),
-              Text('Convert to PDF', style: TextStyle(fontSize: 14)),
-            ],
-          ),
-        ),
-    ];
-
-    if (doc?.studentId != null) {
-      items.add(const PopupMenuDivider());
-      items.add(
-        const PopupMenuItem(
-          value: 'view_profile',
-          child: Row(
-            children: [
-              Icon(Icons.person, size: 18, color: AppColors.primaryGreen),
-              SizedBox(width: 12),
-              Text('View Student Profile', style: TextStyle(fontSize: 14)),
-            ],
-          ),
-        ),
-      );
-    }
-
-    if (widget.userRole != 'teacher') {
-      items.add(const PopupMenuDivider());
-      items.add(
-        const PopupMenuItem(
-          value: 'delete',
-          child: Row(
-            children: [
-              Icon(Icons.delete, size: 18, color: AppColors.error),
-              SizedBox(width: 12),
-              Text(
-                'Delete',
-                style: TextStyle(fontSize: 14, color: AppColors.error),
-              ),
-            ],
-          ),
-        ),
-      );
-    }
-
-    return items;
-  }
-
-  void _showDocumentContextMenu(
-    BuildContext context,
-    Offset position,
-    DocumentModel doc,
-  ) {
-    if (_isMultiSelectMode) return;
-    final RenderBox overlay =
-        Overlay.of(context).context.findRenderObject() as RenderBox;
-
-    showMenu<String>(
-      context: context,
-      position: RelativeRect.fromRect(
-        position & const Size(40, 40),
-        Offset.zero & overlay.size,
-      ),
-      items: _buildDocumentMenuItems(doc),
-    ).then((value) {
-      if (value != null) _handleDocumentAction(value, doc);
-    });
   }
 
   void _showFolderContextMenu(
@@ -1931,8 +1808,7 @@ class _ArchivesScreenState extends ConsumerState<ArchivesScreen>
         }
       },
       itemBuilder: (context) => [
-        if (!isMobile &&
-            widget.userRole != 'teacher' &&
+        if (widget.userRole != 'teacher' &&
             (_tabController.index == 1 || _openedFolderStudentId != null)) ...[
           PopupMenuItem(
             value: 'multi_select',
@@ -2204,8 +2080,9 @@ class _ArchivesScreenState extends ConsumerState<ArchivesScreen>
                                       maxLines: 1,
                                       overflow: TextOverflow.ellipsis,
                                     ),
+                                    const SizedBox(height: 2),
                                     Text(
-                                      folder.studentLrn ?? '',
+                                      '${folder.studentLrn != null && folder.studentLrn!.isNotEmpty ? "${folder.studentLrn} • " : ""}${folder.documentCount ?? 0} ${folder.documentCount == 1 ? "item" : "items"}',
                                       style: TextStyle(
                                         fontSize: 11,
                                         color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
@@ -2494,84 +2371,54 @@ class _ArchivesScreenState extends ConsumerState<ArchivesScreen>
             ),
             child: ClipRRect(
               borderRadius: BorderRadius.circular(12),
-              child: Column(
-                children: [
-                  // Table header
-                  Container(
-                    padding: EdgeInsets.symmetric(
-                      horizontal: isMobile ? 12 : 16,
-                      vertical: 10,
-                    ),
-                    color: AppColors.primaryGreen.withValues(alpha: 0.06),
-                    child: Row(
-                      children: [
-                        const SizedBox(width: 40),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          flex: 3,
-                          child: Text(
-                            'File Name',
-                            style: TextStyle(
-                              fontWeight: FontWeight.bold,
-                              fontSize: 12,
-                              color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
-                            ),
-                          ),
-                        ),
-                        if (!isMobile) ...[
-                          Expanded(
-                            flex: 2,
-                            child: Text(
-                              'Student',
-                              style: TextStyle(
-                                fontWeight: FontWeight.bold,
-                                fontSize: 12,
-                                color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
-                              ),
-                            ),
-                          ),
-                          Expanded(
-                            flex: 2,
-                            child: Text(
-                              'Doc Type',
-                              style: TextStyle(
-                                fontWeight: FontWeight.bold,
-                                fontSize: 12,
-                                color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
-                              ),
-                            ),
-                          ),
-                        ],
-                        Expanded(
-                          child: Text(
-                            'Status',
-                            style: TextStyle(
-                              fontWeight: FontWeight.bold,
-                              fontSize: 12,
-                              color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 40),
-                      ],
-                    ),
-                  ),
-                  Expanded(
-                    child: RefreshIndicator(
-                      onRefresh: () async {
-                        ref.invalidate(archiveDocumentPageProvider);
+              child: RefreshIndicator(
+                onRefresh: () async {
+                  ref.invalidate(archiveDocumentPageProvider);
+                },
+                child: ListView.separated(
+                  itemCount: documents.length,
+                  separatorBuilder: (_, _) =>
+                      Divider(height: 1, color: isDark ? AppColors.darkBorder : Colors.grey.shade100),
+                  itemBuilder: (ctx, i) {
+                    final doc = documents[i];
+                    return FileFolderCard(
+                      document: doc,
+                      isGrid: false,
+                      userRole: widget.userRole,
+                      isMultiSelectMode: _isMultiSelectMode,
+                      isSelected: _selectedDocumentIds.contains(doc.id),
+                      onSelectedChanged: (val) {
+                        setState(() {
+                          if (val == true) {
+                            _selectedDocumentIds.add(doc.id);
+                          } else {
+                            _selectedDocumentIds.remove(doc.id);
+                          }
+                        });
                       },
-                      child: ListView.separated(
-                        itemCount: documents.length,
-                        separatorBuilder: (_, _) =>
-                            Divider(height: 1, color: isDark ? AppColors.darkBorder : Colors.grey.shade100),
-                        itemBuilder: (ctx, i) => isMobile
-                            ? _buildMobileListRow(documents[i])
-                            : _buildDesktopListRow(documents[i]),
+                      onTap: () {
+                        if (_isMultiSelectMode) {
+                          setState(() {
+                            if (_selectedDocumentIds.contains(doc.id)) {
+                              _selectedDocumentIds.remove(doc.id);
+                            } else {
+                              _selectedDocumentIds.add(doc.id);
+                            }
+                          });
+                        } else {
+                          _handlePreview(doc);
+                        }
+                      },
+                      onActionSelected: (a) => _handleDocumentAction(a, doc),
+                      onViewProfile: (sid) => showStudentProfileModal(
+                        context,
+                        studentId: sid,
+                        userRole: widget.userRole,
+                        hideEnrollmentActions: true,
                       ),
-                    ),
-                  ),
-                ],
+                    );
+                  },
+                ),
               ),
             ),
           ),
@@ -2581,257 +2428,6 @@ class _ArchivesScreenState extends ConsumerState<ArchivesScreen>
         else if (_openedFolderStudentId != null)
           SizedBox(height: isMobile ? 76 : 16),
       ],
-    );
-  }
-
-  Widget _buildDesktopListRow(DocumentModel doc) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final isSelected = _selectedDocumentIds.contains(doc.id);
-    return GestureDetector(
-      onSecondaryTapDown: (details) =>
-          _showDocumentContextMenu(context, details.globalPosition, doc),
-      onLongPressStart: (details) =>
-          _showDocumentContextMenu(context, details.globalPosition, doc),
-      child: InkWell(
-        onTap: () {
-          if (_isMultiSelectMode) {
-            setState(() {
-              if (isSelected) {
-                _selectedDocumentIds.remove(doc.id);
-              } else {
-                _selectedDocumentIds.add(doc.id);
-              }
-            });
-          } else {
-            _handlePreview(doc);
-          }
-        },
-        child: Container(
-        color: isSelected
-            ? AppColors.primaryGreen.withValues(alpha: 0.06)
-            : Colors.transparent,
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-        child: Row(
-          children: [
-            if (_isMultiSelectMode)
-              Checkbox(
-                value: isSelected,
-                activeColor: AppColors.primaryGreen,
-                onChanged: (val) {
-                  setState(() {
-                    if (val == true) {
-                      _selectedDocumentIds.add(doc.id);
-                    } else {
-                      _selectedDocumentIds.remove(doc.id);
-                    }
-                  });
-                },
-              )
-            else
-              _buildFileIcon(doc.fileName, docType: doc.documentType),
-            const SizedBox(width: 8),
-            Expanded(
-              flex: 3,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    doc.fileName,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      fontWeight: FontWeight.w600,
-                      fontSize: 13,
-                      color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
-                    ),
-                  ),
-                  Text(
-                    _formatDate(doc.createdAt),
-                    style: TextStyle(
-                      fontSize: 11,
-                      color: isDark ? AppColors.darkTextMuted : AppColors.textMuted,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            Expanded(
-              flex: 2,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    doc.studentName ?? '—',
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      fontSize: 13,
-                      color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
-                    ),
-                  ),
-                  if (doc.studentLrn != null)
-                    Text(
-                      doc.studentLrn!,
-                      style: TextStyle(
-                        fontSize: 11,
-                        color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
-                      ),
-                    ),
-                ],
-              ),
-            ),
-            Expanded(
-              flex: 2,
-              child: Text(
-                doc.documentType ?? '—',
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(
-                  fontSize: 13,
-                  color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
-                ),
-              ),
-            ),
-            Expanded(child: _buildStatusChip(doc.status)),
-            if (!_isMultiSelectMode)
-              SizedBox(
-                width: 40,
-                child: PopupMenuButton<String>(
-                  icon: const Icon(Icons.more_vert, size: 18),
-                  iconColor: isDark
-                      ? AppColors.darkTextSecondary
-                      : AppColors.textSecondary,
-                  padding: EdgeInsets.zero,
-                  onSelected: (a) => _handleDocumentAction(a, doc),
-                  itemBuilder: (_) => _buildDocumentMenuItems(doc),
-                ),
-              ),
-          ],
-        ),
-      ),
-      ),
-    );
-  }
-
-  Widget _buildMobileListRow(DocumentModel doc) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final isSelected = _selectedDocumentIds.contains(doc.id);
-    return GestureDetector(
-      onSecondaryTapDown: (details) =>
-          _showDocumentContextMenu(context, details.globalPosition, doc),
-      onLongPressStart: (details) =>
-          _showDocumentContextMenu(context, details.globalPosition, doc),
-      child: InkWell(
-        onTap: () {
-          if (_isMultiSelectMode) {
-            setState(() {
-              if (isSelected) {
-                _selectedDocumentIds.remove(doc.id);
-              } else {
-                _selectedDocumentIds.add(doc.id);
-              }
-            });
-          } else {
-            _handlePreview(doc);
-          }
-        },
-        child: Container(
-        color: isSelected
-            ? AppColors.primaryGreen.withValues(alpha: 0.06)
-            : Colors.transparent,
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: [
-            // Multi-select checkbox
-            if (_isMultiSelectMode) ...[
-              Checkbox(
-                value: isSelected,
-                activeColor: AppColors.primaryGreen,
-                onChanged: (val) {
-                  setState(() {
-                    if (val == true) {
-                      _selectedDocumentIds.add(doc.id);
-                    } else {
-                      _selectedDocumentIds.remove(doc.id);
-                    }
-                  });
-                },
-                visualDensity: VisualDensity.compact,
-                materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-              ),
-              const SizedBox(width: 4),
-            ],
-
-            // File icon always visible
-            _buildFileIcon(doc.fileName, docType: doc.documentType),
-            const SizedBox(width: 10),
-
-            // Stacked info: file name + student + doc type
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    doc.fileName,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      fontWeight: FontWeight.w600,
-                      fontSize: 13,
-                      color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
-                    ),
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    doc.studentName ??
-                        (doc.studentLrn != null
-                            ? 'LRN: ${doc.studentLrn}'
-                            : '—'),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      fontSize: 11,
-                      color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
-                    ),
-                  ),
-                  if (doc.documentType != null) ...[
-                    const SizedBox(height: 1),
-                    Text(
-                      doc.documentType!,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                        fontSize: 10,
-                        color: isDark ? AppColors.darkTextSecondary : Colors.grey.shade500,
-                      ),
-                    ),
-                  ],
-                ],
-              ),
-            ),
-            // Status and action
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.end,
-              children: [
-                _buildStatusChip(doc.status),
-                if (!_isMultiSelectMode)
-                  PopupMenuButton<String>(
-                    icon: const Icon(Icons.more_vert, size: 20),
-                    iconColor: isDark
-                        ? AppColors.darkTextSecondary
-                        : AppColors.textSecondary,
-                    padding: EdgeInsets.zero,
-                    constraints: const BoxConstraints(),
-                    onSelected: (a) => _handleDocumentAction(a, doc),
-                    itemBuilder: (_) => _buildDocumentMenuItems(doc),
-                  ),
-              ],
-            ),
-          ],
-        ),
-      ),
-      ),
     );
   }
 
@@ -2960,30 +2556,6 @@ class _ArchivesScreenState extends ConsumerState<ArchivesScreen>
     );
   }
 
-  Widget _buildFileIcon(String? fileName, {String? docType, double size = 28}) {
-    return FileIconHelper.buildIcon(fileName, docType: docType, size: size);
-  }
-
-  Widget _buildStatusChip(String status) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    Color fg;
-    if (status == 'Completed') {
-      fg = isDark ? Colors.green.shade300 : AppColors.primaryGreen;
-    } else if (status == 'Archived') {
-      fg = isDark ? Colors.orange.shade300 : Colors.orange.shade700;
-    } else {
-      fg = isDark ? AppColors.darkTextPrimary : Colors.grey.shade700;
-    }
-    return Text(
-      status,
-      style: TextStyle(
-        fontSize: 10,
-        fontWeight: FontWeight.w600,
-        color: fg,
-      ),
-    );
-  }
-
   Widget _buildStudentStatusChip(String status) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
@@ -3024,9 +2596,5 @@ class _ArchivesScreenState extends ConsumerState<ArchivesScreen>
         ),
       ],
     );
-  }
-
-  String _formatDate(DateTime dt) {
-    return '${dt.year}-${dt.month.toString().padLeft(2, '0')}-${dt.day.toString().padLeft(2, '0')}';
   }
 }

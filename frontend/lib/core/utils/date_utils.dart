@@ -72,3 +72,22 @@ String formatModalDate(String raw) {
     return raw.split('T').first;
   }
 }
+
+/// Returns a formatted short date string in `MMM d, yyyy` format.
+/// Example: `Dec 20, 2024`
+String formatShortDate(DateTime dt) {
+  return intl.DateFormat('MMM d, yyyy').format(dt);
+}
+
+/// Returns a formatted short date string from raw string in `MMM d, yyyy` format.
+/// Example: `Dec 20, 2024`
+String formatShortDateStr(String raw) {
+  if (raw.isEmpty) return '';
+  try {
+    final dt = parseToPht(raw);
+    return intl.DateFormat('MMM d, yyyy').format(dt);
+  } catch (_) {
+    return raw.split('T').first;
+  }
+}
+

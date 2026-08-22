@@ -1,8 +1,7 @@
-import 'package:flutter/foundation.dart'
-    show defaultTargetPlatform, TargetPlatform;
 import 'package:flutter/material.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_sizes.dart';
+import '../../../../core/utils/date_utils.dart';
 import '../../../../core/utils/file_icon_helper.dart';
 import '../../../../domain/entities/document_model.dart';
 
@@ -37,7 +36,6 @@ class FileFolderCard extends StatefulWidget {
 }
 
 class _FileFolderCardState extends State<FileFolderCard> {
-  // True on Android/iOS — long press is the context menu trigger.
   bool get _isExcel => FileIconHelper.isExcel(
         widget.document.fileName,
         docType: widget.document.documentType,
@@ -52,17 +50,6 @@ class _FileFolderCardState extends State<FileFolderCard> {
         widget.document.fileName,
         docType: widget.document.documentType,
       );
-
-  Color get _statusColor {
-    switch (widget.document.status) {
-      case 'Completed':
-        return AppColors.success;
-      case 'Archived':
-        return Colors.blue;
-      default:
-        return Colors.grey;
-    }
-  }
 
   List<PopupMenuEntry<String>> _buildMenuItems() {
     final items = <PopupMenuEntry<String>>[
@@ -123,6 +110,20 @@ class _FileFolderCardState extends State<FileFolderCard> {
       ),
       const PopupMenuDivider(),
       const PopupMenuItem(
+        value: 'properties',
+        child: Row(
+          children: [
+            Icon(
+              Icons.info_outline_rounded,
+              size: 18,
+              color: AppColors.primaryGreen,
+            ),
+            SizedBox(width: 12),
+            Text('Properties', style: TextStyle(fontSize: 14)),
+          ],
+        ),
+      ),
+      const PopupMenuItem(
         value: 'view_profile',
         child: Row(
           children: [
@@ -180,9 +181,10 @@ class _FileFolderCardState extends State<FileFolderCard> {
   }
 
   // ════════════════════════════════════════
-  // GRID CARD
+  // GRID CARD — Compact: Filename and Icon only, no chips or 3 dots
   // ════════════════════════════════════════
   Widget _buildGridCard(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return GestureDetector(
       // Desktop: right-click opens context menu
       onSecondaryTapDown: (details) =>
@@ -199,12 +201,12 @@ class _FileFolderCardState extends State<FileFolderCard> {
           decoration: BoxDecoration(
             color: widget.isSelected
                 ? AppColors.primaryGreen.withValues(alpha: 0.05)
-                : (Theme.of(context).brightness == Brightness.dark ? AppColors.darkSurfaceCard : AppColors.surfaceWhite),
+                : (isDark ? AppColors.darkSurfaceCard : AppColors.surfaceWhite),
             borderRadius: BorderRadius.circular(AppSizes.radiusLarge),
             border: Border.all(
               color: widget.isSelected
                   ? AppColors.primaryGreen
-                  : (Theme.of(context).brightness == Brightness.dark ? AppColors.darkBorder : Colors.grey.shade200),
+                  : (isDark ? AppColors.darkBorder : Colors.grey.shade200),
               width: widget.isSelected ? 1.5 : 1.0,
             ),
             boxShadow: [
@@ -227,58 +229,32 @@ class _FileFolderCardState extends State<FileFolderCard> {
                     onChanged: widget.onSelectedChanged,
                   ),
                 ),
-              Padding(
-                padding: const EdgeInsets.all(12),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(_fileIcon, size: 48, color: _fileColor),
-                    const SizedBox(height: 10),
-                    Text(
-                      widget.document.fileName,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        fontWeight: FontWeight.w600,
-                        fontSize: 12,
-                        color: Theme.of(context).brightness == Brightness.dark ? AppColors.darkTextPrimary : AppColors.textPrimary,
+              Center(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 12),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(_fileIcon, size: 42, color: _fileColor),
+                      const SizedBox(height: 8),
+                      Text(
+                        widget.document.fileName,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          fontWeight: FontWeight.w600,
+                          fontSize: 12,
+                          color: isDark
+                              ? AppColors.darkTextPrimary
+                              : AppColors.textPrimary,
+                        ),
                       ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      widget.document.studentName != null
-                          ? 'Student Folders / ${widget.document.studentName}'
-                          : (widget.document.studentLrn != null
-                                ? 'Student Folders / LRN: ${widget.document.studentLrn}'
-                                : '—'),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                        fontSize: 11,
-                        color: Theme.of(context).brightness == Brightness.dark ? AppColors.darkTextSecondary : AppColors.textSecondary,
-                      ),
-                    ),
-                    const SizedBox(height: 6),
-                    _buildStatusBadge(small: true),
-                  ],
-                ),
-              ),
-              // ⋮ button visible on both mobile and desktop
-              if (!widget.isMultiSelectMode)
-                Positioned(
-                  top: 2,
-                  right: 2,
-                  child: PopupMenuButton<String>(
-                    icon: Icon(
-                      Icons.more_vert,
-                      color: Theme.of(context).brightness == Brightness.dark ? AppColors.darkTextSecondary : AppColors.textSecondary,
-                      size: 18,
-                    ),
-                    onSelected: widget.onActionSelected,
-                    itemBuilder: (_) => _buildMenuItems(),
+                    ],
                   ),
                 ),
+              ),
             ],
           ),
         ),
@@ -287,9 +263,10 @@ class _FileFolderCardState extends State<FileFolderCard> {
   }
 
   // ════════════════════════════════════════
-  // LIST ROW — matches the table header columns
+  // LIST ROW — Matches folder style: Name, size below, date right, 3 dots
   // ════════════════════════════════════════
   Widget _buildListRow(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return GestureDetector(
       onSecondaryTapDown: (details) =>
           _showContextMenu(context, details.globalPosition),
@@ -326,68 +303,67 @@ class _FileFolderCardState extends State<FileFolderCard> {
                     child: Icon(_fileIcon, size: 24, color: _fileColor),
                   ),
                 ),
-                const SizedBox(width: 8),
+                const SizedBox(width: 12),
 
-                // File name
+                // File name & Size below
                 Expanded(
-                  flex: 3,
-                  child: Text(
-                    widget.document.fileName,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      fontWeight: FontWeight.w600,
-                      fontSize: 13,
-                      color: Theme.of(context).brightness == Brightness.dark ? AppColors.darkTextPrimary : AppColors.textPrimary,
-                    ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        widget.document.fileName,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          fontWeight: FontWeight.w600,
+                          fontSize: 13,
+                          color: isDark
+                              ? AppColors.darkTextPrimary
+                              : AppColors.textPrimary,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        widget.document.size ?? '—',
+                        style: TextStyle(
+                          fontSize: 11,
+                          color: isDark
+                              ? AppColors.darkTextSecondary
+                              : AppColors.textSecondary,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
 
-                // Student
-                Expanded(
-                  flex: 2,
-                  child: Text(
-                    widget.document.studentName != null
-                        ? 'Student Folders / ${widget.document.studentName}'
-                        : (widget.document.studentLrn != null
-                              ? 'Student Folders / LRN: ${widget.document.studentLrn}'
-                              : '—'),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: Theme.of(context).brightness == Brightness.dark ? AppColors.darkTextSecondary : AppColors.textSecondary,
-                    ),
+                const SizedBox(width: 12),
+
+                // Date on right side
+                Text(
+                  formatShortDate(widget.document.createdAt),
+                  style: TextStyle(
+                    fontSize: 11,
+                    color: isDark
+                        ? AppColors.darkTextMuted
+                        : AppColors.textMuted,
                   ),
                 ),
 
-                // Doc type
-                Expanded(
-                  flex: 2,
-                  child: Text(
-                    widget.document.documentType ?? '—',
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: Theme.of(context).brightness == Brightness.dark ? AppColors.darkTextSecondary : AppColors.textSecondary,
-                    ),
-                  ),
-                ),
-
-                // Status
-                Expanded(child: _buildStatusBadge()),
+                const SizedBox(width: 4),
 
                 // ⋮ Actions — visible on desktop & mobile
                 SizedBox(
-                  width: 40,
+                  width: 36,
                   child: widget.isMultiSelectMode
                       ? const SizedBox.shrink()
                       : PopupMenuButton<String>(
                           icon: Icon(
                             Icons.more_vert,
                             size: 18,
-                            color: Theme.of(context).brightness == Brightness.dark ? AppColors.darkTextSecondary : AppColors.textSecondary,
+                            color: isDark
+                                ? AppColors.darkTextSecondary
+                                : AppColors.textSecondary,
                           ),
                           onSelected: widget.onActionSelected,
                           itemBuilder: (_) => _buildMenuItems(),
@@ -396,28 +372,6 @@ class _FileFolderCardState extends State<FileFolderCard> {
               ],
             ),
           ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildStatusBadge({bool small = false}) {
-    return Container(
-      padding: EdgeInsets.symmetric(
-        horizontal: small ? 6 : 8,
-        vertical: small ? 2 : 3,
-      ),
-      decoration: BoxDecoration(
-        color: _statusColor.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: _statusColor.withValues(alpha: 0.3)),
-      ),
-      child: Text(
-        widget.document.status,
-        style: TextStyle(
-          fontSize: small ? 10 : 11,
-          color: _statusColor,
-          fontWeight: FontWeight.w600,
         ),
       ),
     );

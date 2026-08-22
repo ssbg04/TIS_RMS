@@ -318,8 +318,19 @@ Files backup/restore - mirror mode or zip -->
 - move the multi select menu to the menu FAB
 - if only PRINT LIST need only to show, hide/remove the UPLOAD DOCUMENTS in menu FAB -->
 
-<!-- # DOCUMENT SCREEN AND ARCHIVES SCREEN
-- make  -->
+<!-- # DOCUMENT SCREEN
+- move filter icon between multi select and bulk add  -->
+
+# DOCUMENT SCREEN AND ARCHIVES SCREEN
+- Properties modal: add who uploads
+- add in backend data for file size to get the accurate file size
+
+<!-- - list view -> documents only keep the folder design -> Only file name, under the file name is size of file ex. [2MB], then right side the date ex. [Dec 20, 2024] then 3 dots for menu
+- list view -> Folder only -> add count files inside ex. [3 items] -> keep the chips for JHS SHS just add, do not modify the chips code, only add under the file name
+- hide/remove the status completed and chip in list view for documents only
+
+- add multi select in more options like on windows app for android app
+- make the grid view compact -> remove the background color sections -> Filename only, and Icon -> hide/remove the complete chip -> remove the 3 dots for menu in right side -->
 
 <!-- # STUDENT SCREEN -> BULK ADD STUDENT -> APPLY ENROLLMENT STEP
 - use LRN text field from ADD STUDENT SCREEN, do not edit the design and other text fields only the LRN text field -->
