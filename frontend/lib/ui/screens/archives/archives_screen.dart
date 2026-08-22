@@ -836,57 +836,6 @@ class _ArchivesScreenState extends ConsumerState<ArchivesScreen>
     );
   }
 
-  void _showFolderContextMenu(
-    BuildContext context,
-    Offset position,
-    dynamic folder,
-  ) {
-    if (!_isAdmin) return;
-    final RenderBox overlay =
-        Overlay.of(context).context.findRenderObject() as RenderBox;
-    final studentName =
-        '${folder.studentLastName ?? ''}, ${folder.studentFirstName ?? ''}';
-
-    showMenu<String>(
-      context: context,
-      position: RelativeRect.fromRect(
-        position & const Size(40, 40),
-        Offset.zero & overlay.size,
-      ),
-      items: [
-        const PopupMenuItem(
-          value: 'restore',
-          child: Row(
-            children: [
-              Icon(Icons.restore, color: AppColors.primaryGreen, size: 18),
-              SizedBox(width: 8),
-              Text(
-                'Restore to Active',
-                style: TextStyle(color: AppColors.primaryGreen),
-              ),
-            ],
-          ),
-        ),
-        const PopupMenuItem(
-          value: 'purge',
-          child: Row(
-            children: [
-              Icon(Icons.delete_forever, color: AppColors.error, size: 18),
-              SizedBox(width: 8),
-              Text(
-                'Permanently Purge',
-                style: TextStyle(color: AppColors.error),
-              ),
-            ],
-          ),
-        ),
-      ],
-    ).then((val) {
-      if (val == 'restore') _handleRestoreStudent(folder.studentId!, studentName);
-      if (val == 'purge') _handlePurgeStudent(folder.studentId!, studentName);
-    });
-  }
-
   @override
   Widget build(BuildContext context) {
     final query = ref.watch(archiveDocumentQueryProvider);
@@ -1962,172 +1911,106 @@ class _ArchivesScreenState extends ConsumerState<ArchivesScreen>
           ),
           child: ClipRRect(
             borderRadius: BorderRadius.circular(12),
-            child: Column(
-              children: [
-                // Table header
-                Container(
-                  padding: EdgeInsets.symmetric(
-                    horizontal: isMobile ? 12 : 16,
-                    vertical: 10,
-                  ),
-                  color: AppColors.primaryGreen.withValues(alpha: 0.06),
-                  child: Row(
-                    children: [
-                      const SizedBox(width: 40),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        flex: 3,
-                        child: Text(
-                          'Student Name',
-                          style: TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 12,
-                            color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
-                          ),
-                        ),
-                      ),
-                      if (!isMobile) ...[
-                        Expanded(
-                          child: Text(
-                            'Status',
-                            style: TextStyle(
-                              fontWeight: FontWeight.bold,
-                              fontSize: 12,
-                              color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
-                            ),
-                          ),
-                        ),
-                        Expanded(
-                          child: Text(
-                            'Documents',
-                            style: TextStyle(
-                              fontWeight: FontWeight.bold,
-                              fontSize: 12,
-                              color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
-                            ),
-                          ),
-                        ),
-                      ],
-                      if (_isAdmin) const SizedBox(width: 80),
-                    ],
-                  ),
-                ),
-                Expanded(
-                  child: RefreshIndicator(
-                    onRefresh: () async {
-                      ref.invalidate(archiveStudentFoldersProvider);
-                      ref.invalidate(archiveDocumentPageProvider);
-                    },
-                    child: ListView.separated(
-                    itemCount: paginatedFolders.length,
-                    separatorBuilder: (_, _) =>
-                        Divider(height: 1, color: isDark ? AppColors.darkBorder : Colors.grey.shade100),
-                    itemBuilder: (ctx, i) {
-                      final folder = paginatedFolders[i];
-                      final studentName =
-                          '${folder.studentLastName ?? ''}, ${folder.studentFirstName ?? ''}';
+            child: RefreshIndicator(
+              onRefresh: () async {
+                ref.invalidate(archiveStudentFoldersProvider);
+                ref.invalidate(archiveDocumentPageProvider);
+              },
+              child: ListView.separated(
+                itemCount: paginatedFolders.length,
+                separatorBuilder: (_, _) =>
+                    Divider(height: 1, color: isDark ? AppColors.darkBorder : Colors.grey.shade100),
+                itemBuilder: (ctx, i) {
+                  final folder = paginatedFolders[i];
+                  final studentName =
+                      '${folder.studentLastName ?? ''}, ${folder.studentFirstName ?? ''}';
 
-                      return GestureDetector(
-                        onSecondaryTapDown: widget.userRole == 'teacher'
-                            ? null
-                            : (details) => _showFolderContextMenu(
-                                context,
-                                details.globalPosition,
-                                folder,
-                              ),
-                        onLongPressStart: widget.userRole == 'teacher'
-                            ? null
-                            : (details) => _showFolderContextMenu(
-                                context,
-                                details.globalPosition,
-                                folder,
-                              ),
-                        child: InkWell(
-                        onTap: () {
-                          if (folder.studentId != null) {
-                            setState(() {
-                              _openedFolderStudentId = folder.studentId;
-                              _openedFolderName = studentName;
-                            });
-                            ref
-                                .read(archiveDocumentQueryProvider.notifier)
-                                .setStudentId(folder.studentId);
-                          }
-                        },
-                        child: Padding(
-                          padding: EdgeInsets.symmetric(
-                            horizontal: isMobile ? 12 : 16,
-                            vertical: isMobile ? 10 : 12,
-                          ),
-                          child: Row(
-                            children: [
-                              const Icon(
-                                Icons.folder_special_rounded,
-                                size: 28,
-                                color: Colors.deepOrange,
-                              ),
-                              const SizedBox(width: 12),
-                              Expanded(
-                                flex: 3,
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      studentName,
-                                      style: const TextStyle(
-                                        fontWeight: FontWeight.bold,
-                                        fontSize: 14,
-                                      ),
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
-                                    ),
-                                    const SizedBox(height: 2),
-                                    Text(
-                                      '${folder.studentLrn != null && folder.studentLrn!.isNotEmpty ? "${folder.studentLrn} • " : ""}${folder.documentCount ?? 0} ${folder.documentCount == 1 ? "item" : "items"}',
-                                      style: TextStyle(
-                                        fontSize: 11,
-                                        color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                              if (!isMobile) ...[
-                                Expanded(
-                                  child: _buildStudentStatusChip(
-                                    folder.studentStatus ?? 'Archived',
-                                  ),
-                                ),
-                                Expanded(
-                                  child: Text(
-                                    '${folder.documentCount ?? 0} docs',
+                  return GestureDetector(
+                    onSecondaryTapDown: (details) => _showFolderContextMenu(
+                      details.globalPosition,
+                      folder,
+                    ),
+                    onLongPressStart: (details) => _showFolderContextMenu(
+                      details.globalPosition,
+                      folder,
+                    ),
+                    child: InkWell(
+                      onTap: () {
+                        if (folder.studentId != null) {
+                          setState(() {
+                            _openedFolderStudentId = folder.studentId;
+                            _openedFolderName = studentName;
+                          });
+                          ref
+                              .read(archiveDocumentQueryProvider.notifier)
+                              .setStudentId(folder.studentId);
+                        }
+                      },
+                      child: Padding(
+                        padding: EdgeInsets.symmetric(
+                          horizontal: isMobile ? 12 : 16,
+                          vertical: isMobile ? 10 : 12,
+                        ),
+                        child: Row(
+                          children: [
+                            const Icon(
+                              Icons.folder_special_rounded,
+                              size: 28,
+                              color: Colors.deepOrange,
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Text(
+                                    studentName,
                                     style: TextStyle(
+                                      fontWeight: FontWeight.bold,
                                       fontSize: 13,
-                                      color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
+                                      color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
                                     ),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
                                   ),
-                                ),
-                              ],
-                              if (_isAdmin)
-                                _buildFolderActionMenu(
-                                  folder.studentId!,
-                                  studentName,
-                                ),
-                              Icon(
-                                Icons.chevron_right,
-                                size: 18,
-                                color: isDark ? AppColors.darkTextMuted : AppColors.textMuted,
+                                  const SizedBox(height: 3),
+                                  Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Text(
+                                        '${folder.documentCount ?? 0} ${folder.documentCount == 1 ? "item" : "items"}',
+                                        style: TextStyle(
+                                          fontSize: 11,
+                                          color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
+                                        ),
+                                      ),
+                                      const SizedBox(width: 8),
+                                      _buildStudentStatusChip(
+                                        folder.studentStatus ?? 'Archived',
+                                      ),
+                                    ],
+                                  ),
+                                ],
                               ),
-                            ],
-                          ),
+                            ),
+                            if (_isAdmin)
+                              _buildFolderActionMenu(
+                                folder.studentId!,
+                                studentName,
+                              ),
+                            Icon(
+                              Icons.chevron_right,
+                              size: 18,
+                              color: isDark ? AppColors.darkTextMuted : AppColors.textMuted,
+                            ),
+                          ],
                         ),
                       ),
-                      );
-                    },
-                  ),
-                ),
+                    ),
+                  );
+                },
               ),
-              ],
             ),
           ),
         );
@@ -2153,92 +2036,86 @@ class _ArchivesScreenState extends ConsumerState<ArchivesScreen>
                 final studentName =
                     '${folder.studentLastName ?? ''}, ${folder.studentFirstName ?? ''}';
                 return GestureDetector(
-                  onSecondaryTapDown: widget.userRole == 'teacher'
-                      ? null
-                      : (details) => _showFolderContextMenu(
-                          context,
-                          details.globalPosition,
-                          folder,
-                        ),
-                  onLongPressStart: widget.userRole == 'teacher'
-                      ? null
-                      : (details) => _showFolderContextMenu(
-                          context,
-                          details.globalPosition,
-                          folder,
-                        ),
+                  onSecondaryTapDown: (details) => _showFolderContextMenu(
+                    details.globalPosition,
+                    folder,
+                  ),
+                  onLongPressStart: (details) => _showFolderContextMenu(
+                    details.globalPosition,
+                    folder,
+                  ),
                   child: InkWell(
-                  onTap: () {
-                    if (folder.studentId != null) {
-                      setState(() {
-                        _openedFolderStudentId = folder.studentId;
-                        _openedFolderName = studentName;
-                      });
-                      ref
-                          .read(archiveDocumentQueryProvider.notifier)
-                          .setStudentId(folder.studentId);
-                    }
-                  },
-                  borderRadius: BorderRadius.circular(12),
-                  child: Container(
-                    decoration: BoxDecoration(
-                      color: isDark ? AppColors.darkSurfaceCard : AppColors.surfaceWhite,
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: isDark ? AppColors.darkBorder : Colors.grey.shade200),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withValues(alpha: 0.03),
-                          blurRadius: 6,
-                          offset: const Offset(0, 2),
-                        ),
-                      ],
-                    ),
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(
-                          Icons.folder_special_rounded,
-                          size: isMobile ? 36 : 48,
-                          color: Colors.deepOrange,
-                        ),
-                        SizedBox(height: isMobile ? 8 : 12),
-                        Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 8),
-                          child: Text(
-                            studentName,
-                            textAlign: TextAlign.center,
-                            maxLines: 2,
-                            overflow: TextOverflow.ellipsis,
-                            style: TextStyle(
-                              fontWeight: FontWeight.bold,
-                              fontSize: isMobile ? 11 : 13,
-                              color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
-                            ),
-                          ),
-                        ),
-                        const SizedBox(height: 4),
-                        _buildStudentStatusChip(
-                          folder.studentStatus ?? 'Archived',
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          '${folder.documentCount ?? 0} docs',
-                          style: TextStyle(
-                            fontSize: 11,
-                            color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
-                          ),
-                        ),
-                        if (_isAdmin) ...[
-                          const SizedBox(height: 4),
-                          _buildFolderActionMenu(
-                            folder.studentId!,
-                            studentName,
+                    onTap: () {
+                      if (folder.studentId != null) {
+                        setState(() {
+                          _openedFolderStudentId = folder.studentId;
+                          _openedFolderName = studentName;
+                        });
+                        ref
+                            .read(archiveDocumentQueryProvider.notifier)
+                            .setStudentId(folder.studentId);
+                      }
+                    },
+                    borderRadius: BorderRadius.circular(12),
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: isDark ? AppColors.darkSurfaceCard : AppColors.surfaceWhite,
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: isDark ? AppColors.darkBorder : Colors.grey.shade200),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withValues(alpha: 0.03),
+                            blurRadius: 6,
+                            offset: const Offset(0, 2),
                           ),
                         ],
-                      ],
+                      ),
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(
+                            Icons.folder_special_rounded,
+                            size: isMobile ? 36 : 48,
+                            color: Colors.deepOrange,
+                          ),
+                          SizedBox(height: isMobile ? 8 : 12),
+                          Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 8),
+                            child: Text(
+                              studentName,
+                              textAlign: TextAlign.center,
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: isMobile ? 11 : 13,
+                                color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          _buildStudentStatusChip(
+                            folder.studentStatus ?? 'Archived',
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            '${folder.documentCount ?? 0} docs',
+                            style: TextStyle(
+                              fontSize: 11,
+                              color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
+                            ),
+                          ),
+                          if (_isAdmin) ...[
+                            const SizedBox(height: 4),
+                            _buildFolderActionMenu(
+                              folder.studentId!,
+                              studentName,
+                            ),
+                          ],
+                        ],
+                      ),
                     ),
                   ),
-                ),
                 );
               },
             );
@@ -2265,16 +2142,127 @@ class _ArchivesScreenState extends ConsumerState<ArchivesScreen>
     );
   }
 
+  Future<void> _showFolderContextMenu(
+    Offset position,
+    dynamic folder,
+  ) async {
+    if (folder.studentId == null) return;
+    final studentName =
+        '${folder.studentLastName ?? ''}, ${folder.studentFirstName ?? ''}';
+
+    final RenderBox overlay =
+        Overlay.of(context).context.findRenderObject() as RenderBox;
+    final value = await showMenu<String>(
+      context: context,
+      position: RelativeRect.fromRect(
+        position & const Size(40, 40),
+        Offset.zero & overlay.size,
+      ),
+      items: [
+        const PopupMenuItem(
+          value: 'open',
+          child: Row(
+            children: [
+              Icon(Icons.folder_open, size: 18, color: Colors.deepOrange),
+              SizedBox(width: 12),
+              Text('Open Folder', style: TextStyle(fontSize: 14)),
+            ],
+          ),
+        ),
+        const PopupMenuDivider(),
+        const PopupMenuItem(
+          value: 'view_profile',
+          child: Row(
+            children: [
+              Icon(Icons.person, size: 18, color: AppColors.primaryGreen),
+              SizedBox(width: 12),
+              Text('View Student Profile', style: TextStyle(fontSize: 14)),
+            ],
+          ),
+        ),
+        if (_isAdmin) ...[
+          const PopupMenuDivider(),
+          const PopupMenuItem(
+            value: 'restore',
+            child: Row(
+              children: [
+                Icon(Icons.restore, size: 18, color: AppColors.primaryGreen),
+                SizedBox(width: 12),
+                Text('Restore to Active', style: TextStyle(fontSize: 14, color: AppColors.primaryGreen)),
+              ],
+            ),
+          ),
+          const PopupMenuItem(
+            value: 'purge',
+            child: Row(
+              children: [
+                Icon(Icons.delete_forever, size: 18, color: AppColors.error),
+                SizedBox(width: 12),
+                Text('Permanently Purge', style: TextStyle(fontSize: 14, color: AppColors.error)),
+              ],
+            ),
+          ),
+        ],
+      ],
+    );
+
+    if (!mounted || value == null) return;
+    if (value == 'open') {
+      setState(() {
+        _openedFolderStudentId = folder.studentId;
+        _openedFolderName = studentName;
+      });
+      ref
+          .read(archiveDocumentQueryProvider.notifier)
+          .setStudentId(folder.studentId);
+    } else if (value == 'view_profile') {
+      showStudentProfileModal(
+        context,
+        studentId: folder.studentId!,
+        userRole: widget.userRole,
+        hideEnrollmentActions: true,
+      );
+    } else if (value == 'restore') {
+      _handleRestoreStudent(folder.studentId!, studentName);
+    } else if (value == 'purge') {
+      _handlePurgeStudent(folder.studentId!, studentName);
+    }
+  }
+
   Widget _buildFolderActionMenu(int studentId, String studentName) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     return PopupMenuButton<String>(
       icon: Icon(Icons.more_vert, size: 18, color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary),
       tooltip: 'Actions',
       onSelected: (val) {
-        if (val == 'restore') _handleRestoreStudent(studentId, studentName);
-        if (val == 'purge') _handlePurgeStudent(studentId, studentName);
+        if (val == 'view_profile') {
+          showStudentProfileModal(
+            context,
+            studentId: studentId,
+            userRole: widget.userRole,
+            hideEnrollmentActions: true,
+          );
+        } else if (val == 'restore') {
+          _handleRestoreStudent(studentId, studentName);
+        } else if (val == 'purge') {
+          _handlePurgeStudent(studentId, studentName);
+        }
       },
       itemBuilder: (ctx) => [
+        const PopupMenuItem(
+          value: 'view_profile',
+          child: Row(
+            children: [
+              Icon(Icons.person, color: AppColors.primaryGreen, size: 18),
+              SizedBox(width: 8),
+              Text(
+                'View Profile',
+                style: TextStyle(fontSize: 14),
+              ),
+            ],
+          ),
+        ),
+        const PopupMenuDivider(),
         const PopupMenuItem(
           value: 'restore',
           child: Row(

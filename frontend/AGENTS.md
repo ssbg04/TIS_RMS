@@ -354,6 +354,11 @@ Files backup/restore - mirror mode or zip -->
 - Android app:
   - remove the multi select icon in the more option
   - keep only multi select icon in the menu FAB -->
+
+<!-- # DOCUMENT SCREEN AND ARCHIVES SCREEN
+- Student Folders:
+  - remove the title column in DOCUMENT SCREEN, but keep the count items and chip requirements progress
+  - remove the title column in ARCHIVES SCREEN -> remove the LRN -> add right click/hold feature and actions a view student profile ->  show only Student name, under the student name the item count status chip next before the action button -->
 ---
 
 # TIS_RMS Server Manager (dont do)

@@ -2064,52 +2064,11 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
                   ),
                   child: ClipRRect(
                     borderRadius: BorderRadius.circular(12),
-                    child: Column(
-                      children: [
-                        // Table header — hide progress column on mobile
-                        Container(
-                          padding: EdgeInsets.symmetric(
-                            horizontal: isMobile ? 12 : 16,
-                            vertical: 10,
-                          ),
-                          color: AppColors.primaryGreen.withValues(alpha: 0.06),
-                          child: Row(
-                            children: [
-                              const SizedBox(width: 40),
-                              const SizedBox(width: 12),
-                              Expanded(
-                                child: Text(
-                                  'Folder Name',
-                                  style: TextStyle(
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 12,
-                                    color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
-                                  ),
-                                ),
-                              ),
-                              if (!isMobile)
-                                Expanded(
-                                  flex: 2,
-                                  child: Text(
-                                    'Requirement Progress',
-                                    textAlign: TextAlign.center,
-                                    style: TextStyle(
-                                      fontWeight: FontWeight.bold,
-                                      fontSize: 12,
-                                      color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
-                                    ),
-                                  ),
-                                ),
-                              const SizedBox(width: 24),
-                            ],
-                          ),
-                        ),
-                        Expanded(
-                          child: ListView.separated(
-                            itemCount: paginatedFolders.length,
-                            separatorBuilder: (context, index) =>
-                                Divider(height: 1, color: isDark ? AppColors.darkBorder : Colors.grey.shade100),
-                            itemBuilder: (ctx, i) {
+                    child: ListView.separated(
+                      itemCount: paginatedFolders.length,
+                      separatorBuilder: (context, index) =>
+                          Divider(height: 1, color: isDark ? AppColors.darkBorder : Colors.grey.shade100),
+                      itemBuilder: (ctx, i) {
                               final folder = paginatedFolders[i];
                               return GestureDetector(
                                 onSecondaryTapDown: widget.userRole == 'teacher'
@@ -2205,16 +2164,13 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
                               );
                             },
                           ),
-                        ),
-                      ],
                     ),
                   ),
                 ),
-              ),
-              if (totalPages > 1 && !_searchFocusNode.hasFocus)
-                _buildFoldersPagination(totalPages, _foldersPage),
-            ],
-          );
+                if (totalPages > 1 && !_searchFocusNode.hasFocus)
+                  _buildFoldersPagination(totalPages, _foldersPage),
+              ],
+            );
         }
 
         return LayoutBuilder(
