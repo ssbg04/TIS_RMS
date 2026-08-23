@@ -525,6 +525,7 @@ exports.deleteDocument = (req, res) => {
 
         logActivity(req.user?.id, 'DELETE', 'document', req.params.id,
             `Moved document "${document.file_name}" to Recycle Bin`);
+        createNotification(null, 'Document Deleted', `Document "${document.file_name}" was moved to Recycle Bin.`, 'document', 'document', req.params.id);
         res.json({ message: 'Document moved to Recycle Bin successfully' });
     } catch (error) {
         res.status(500).json({ message: 'Failed to delete document', error: error.message });
@@ -725,6 +726,7 @@ exports.copyDocument = (req, res) => {
         const studentName = student ? `${student.first_name} ${student.last_name}` : `Student #${doc.student_id}`;
         logActivity(req.user.id, 'CREATE', 'document', result.lastInsertRowid,
             `Copied document "${doc.file_name}" as "${newFileName}" for ${studentName}`);
+        createNotification(null, 'Document Copied', `Document "${doc.file_name}" copied as "${newFileName}" for ${studentName}.`, 'document', 'document', result.lastInsertRowid);
 
         res.status(201).json({ id: result.lastInsertRowid, fileName: newFileName, message: 'Document copied successfully' });
     } catch (error) {
@@ -806,6 +808,7 @@ exports.convertToPdf = async (req, res) => {
         const studentName = student ? `${student.first_name} ${student.last_name}` : `Student #${doc.student_id}`;
         logActivity(req.user.id, 'CREATE', 'document', result.lastInsertRowid,
             `Converted Excel document "${doc.file_name}" to PDF "${newFileName}" for ${studentName}`);
+        createNotification(null, 'Document Converted', `Document "${doc.file_name}" converted to PDF for ${studentName}.`, 'document', 'document', result.lastInsertRowid);
 
         res.status(201).json({
             id: result.lastInsertRowid,
@@ -1113,6 +1116,7 @@ exports.restoreDocument = (req, res) => {
 
         logActivity(req.user?.id, 'UPDATE', 'document', req.params.id,
             `Restored document "${doc.file_name}"`);
+        createNotification(null, 'Document Restored', `Document "${doc.file_name}" was restored from Recycle Bin.`, 'document', 'document', req.params.id);
 
         res.json({ message: 'Document restored successfully' });
     } catch (error) {

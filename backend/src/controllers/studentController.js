@@ -694,6 +694,7 @@ exports.updateStudent = (req, res) => {
         })();
 
         logActivity(req.user?.id, 'UPDATE', 'student', id, `Updated student ${maskLrn(lrn)}`);
+        createNotification(null, 'Student Updated', `Student ${firstName} ${lastName} (LRN: ${lrn.trim()}) record was updated.`, 'student', 'student', id);
         res.json({ message: 'Student updated successfully.' });
     } catch (error) {
         console.error('updateStudent error:', error);
@@ -722,6 +723,7 @@ exports.deleteStudent = (req, res) => {
         })();
 
         logActivity(req.user?.id, 'DELETE', 'student', id, `DELETE student ${student.lrn} (${student.first_name} ${student.last_name})`);
+        createNotification(null, 'Student Deleted', `Student ${student.first_name} ${student.last_name} was removed.`, 'student', 'student', id);
         res.json({ message: 'Student deleted successfully.' });
     } catch (error) {
         console.error('deleteStudent error:', error);
@@ -778,6 +780,7 @@ exports.bulkEnrollStudents = (req, res) => {
             ? `Updated ${studentRows.length} students\n${studentListText}`
             : (studentRows.length === 1 ? `Updated 1 student ${studentRows[0].last_name || ''} - ${maskLrn(studentRows[0].lrn)}` : `Bulk enrolled ${studentIds.length} students`);
         logActivity(req.user?.id, 'UPDATE', 'student', null, bulkDesc);
+        createNotification(null, 'Students Enrolled', `${studentIds.length} student(s) enrolled into section.`, 'student', 'section', sectionId);
         res.json({ message: `Successfully enrolled ${studentIds.length} students.` });
     } catch (error) {
         console.error('bulkEnrollStudents error:', error);
@@ -876,6 +879,7 @@ exports.addEnrollment = (req, res) => {
         const studentRow = db.prepare('SELECT lrn FROM students WHERE id = ?').get(studentId);
         const lrn = studentRow?.lrn || studentId;
         logActivity(req.user?.id, 'CREATE', 'enrollment', info.lastInsertRowid, getEnrollmentLogDesc(academicYearId, gradeLevel, sectionId, lrn));
+        createNotification(null, 'Student Enrolled', `Student (LRN: ${lrn}) was enrolled in a new section.`, 'student', 'student', studentId);
         res.status(201).json({ message: 'Enrollment added successfully', id: info.lastInsertRowid });
     } catch (error) {
         console.error('addEnrollment error:', error);

@@ -140,7 +140,7 @@ const sendNotification = async ({ userId = null, title, body, category = 'system
 
             tokens.push(...adminTokens);
 
-            // 2. Target assigned teachers if scoped to student or document
+            // 2. Target assigned teachers if scoped to student, document, or section
             if (entityType === 'student' && entityId) {
                 const teacherTokens = db.prepare(`
                     SELECT DISTINCT ft.token
@@ -149,7 +149,13 @@ const sendNotification = async ({ userId = null, title, body, category = 'system
                     JOIN teacher_sections ts ON u.id = ts.teacher_id
                     JOIN enrollments e ON ts.section_id = e.section_id
                     WHERE e.student_id = ? AND u.role = 'teacher' AND u.is_active = 1
-                `).all(entityId).map(r => r.token);
+                      AND e.id = (
+                          SELECT e2.id FROM enrollments e2
+                          JOIN academic_years ay ON e2.academic_year_id = ay.id
+                          WHERE e2.student_id = ?
+                          ORDER BY ay.year_range DESC, e2.grade_level DESC, e2.id DESC LIMIT 1
+                      )
+                `).all(entityId, entityId).map(r => r.token);
                 tokens.push(...teacherTokens);
             } else if (entityType === 'document' && entityId) {
                 const teacherTokens = db.prepare(`
@@ -160,18 +166,26 @@ const sendNotification = async ({ userId = null, title, body, category = 'system
                     JOIN enrollments e ON ts.section_id = e.section_id
                     JOIN documents d ON e.student_id = d.student_id
                     WHERE d.id = ? AND u.role = 'teacher' AND u.is_active = 1
-                `).all(entityId).map(r => r.token);
+                      AND e.id = (
+                          SELECT e2.id FROM enrollments e2
+                          JOIN academic_years ay ON e2.academic_year_id = ay.id
+                          WHERE e2.student_id = d.student_id
+                          ORDER BY ay.year_range DESC, e2.grade_level DESC, e2.id DESC LIMIT 1
+                      )
+                `).all(entityId, entityId).map(r => r.token);
                 tokens.push(...teacherTokens);
-            } else {
-                // Generic broadcast to all active users
-                const allTokens = db.prepare(`
-                    SELECT ft.token
+            } else if (entityType === 'section' && entityId) {
+                const teacherTokens = db.prepare(`
+                    SELECT DISTINCT ft.token
                     FROM fcm_tokens ft
                     JOIN users u ON ft.user_id = u.id
-                    WHERE u.is_active = 1
-                `).all().map(r => r.token);
-                tokens.push(...allTokens);
+                    JOIN teacher_sections ts ON u.id = ts.teacher_id
+                    WHERE ts.section_id = ? AND u.role = 'teacher' AND u.is_active = 1
+                `).all(entityId).map(r => r.token);
+                tokens.push(...teacherTokens);
             }
+            // Note: Unscoped notifications (entityType is null or not student/document/section)
+            // are delivered solely to Admins and not broadcast to teachers.
         }
 
         await _sendMulticast(tokens, title, body, category, notificationId);
