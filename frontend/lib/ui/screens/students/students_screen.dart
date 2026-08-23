@@ -8,6 +8,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_sizes.dart';
 import '../../../domain/entities/student_model.dart';
+import '../../../domain/entities/setup_models.dart';
 import '../../shared/buttons/primary_button.dart';
 import '../../shared/widgets/app_button_loader.dart';
 import '../../providers/student_provider.dart';
@@ -2127,157 +2128,243 @@ class _BulkEnrollDialogState extends ConsumerState<BulkEnrollDialog> {
   bool _isLoading = false;
 
   @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        ref.invalidate(academicYearsListProvider);
+        ref.invalidate(gradeLevelsListProvider);
+        ref.invalidate(sectionsListProvider);
+      }
+    });
+  }
+
+  @override
   Widget build(BuildContext context) {
     final yearsAsync = ref.watch(academicYearsListProvider);
     final gradeLevelsAsync = ref.watch(gradeLevelsListProvider);
     final sectionsAsync = ref.watch(sectionsListProvider);
 
+    final years = yearsAsync.value ?? [];
+    final allGrades =
+        List<GradeLevelModel>.from(gradeLevelsAsync.value ?? [])
+          ..sort((a, b) => a.level.compareTo(b.level));
+    final allSections = sectionsAsync.value ?? [];
+
+    // 1. Determine active/effective Academic Year
+    final activeYears =
+        years.where((y) => y.status.toLowerCase() == 'active').toList();
+    final defaultYearId = (activeYears.isNotEmpty
+        ? activeYears.last
+        : (years.isNotEmpty ? years.last : null))?.id;
+
+    final effectiveYearId = _selectedAcademicYearId != null &&
+            years.any((y) => y.id == _selectedAcademicYearId)
+        ? _selectedAcademicYearId
+        : defaultYearId;
+
+    if (_selectedAcademicYearId != effectiveYearId && effectiveYearId != null) {
+      _selectedAcademicYearId = effectiveYearId;
+    }
+
+    // 2. Determine available Grade Levels for the selected Academic Year
+    final sectionsInYear = effectiveYearId != null
+        ? allSections.where((s) => s.academicYearId == effectiveYearId).toList()
+        : <SectionModel>[];
+
+    List<GradeLevelModel> availableGrades;
+    if (sectionsInYear.isNotEmpty) {
+      final gradesInYear = sectionsInYear.map((s) => s.gradeLevel).toSet();
+      availableGrades =
+          allGrades.where((g) => gradesInYear.contains(g.level)).toList();
+      if (availableGrades.isEmpty) {
+        availableGrades = allGrades;
+      }
+    } else {
+      availableGrades = allGrades;
+    }
+
+    // 3. Determine effective Grade Level
+    int? effectiveGradeLevel;
+    if (_selectedGradeLevel != null &&
+        availableGrades.any((g) => g.level == _selectedGradeLevel)) {
+      effectiveGradeLevel = _selectedGradeLevel;
+    } else {
+      effectiveGradeLevel = availableGrades.any((g) => g.level == 7)
+          ? 7
+          : (availableGrades.isNotEmpty ? availableGrades.first.level : null);
+      _selectedGradeLevel = effectiveGradeLevel;
+    }
+
+    // 4. Determine available Sections
+    final filteredSections =
+        (effectiveYearId != null && effectiveGradeLevel != null)
+            ? allSections
+                .where((sec) =>
+                    sec.academicYearId == effectiveYearId &&
+                    sec.gradeLevel == effectiveGradeLevel)
+                .toList()
+            : <SectionModel>[];
+    filteredSections.sort(
+      (a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()),
+    );
+
+    // 5. Determine effective Section
+    int? effectiveSectionId;
+    if (_selectedSectionId != null &&
+        filteredSections.any((s) => s.id == _selectedSectionId)) {
+      effectiveSectionId = _selectedSectionId;
+    } else {
+      effectiveSectionId = null;
+      _selectedSectionId = null;
+    }
+
     return AlertDialog(
       title: Text('Bulk Enroll ${widget.studentIds.length} Students'),
       content: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 320),
+        constraints: const BoxConstraints(maxWidth: 360),
         child: SingleChildScrollView(
-          child: Form(
-            key: _formKey,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                yearsAsync.when(
-                  data: (years) {
-                    if (_selectedAcademicYearId == null && years.isNotEmpty) {
-                      WidgetsBinding.instance.addPostFrameCallback((_) {
-                        if (mounted)
-                          setState(
-                            () => _selectedAcademicYearId = years.first.id,
-                          );
-                      });
-                    }
-                    return DropdownButtonFormField<int>(
-                      value: _selectedAcademicYearId,
-                      decoration: const InputDecoration(
-                        labelText: 'Academic Year',
-                        prefixIcon: Icon(Icons.calendar_today),
-                        border: OutlineInputBorder(),
+          child: (yearsAsync.isLoading ||
+                  gradeLevelsAsync.isLoading ||
+                  sectionsAsync.isLoading)
+              ? const Padding(
+                  padding: EdgeInsets.all(AppSizes.p24),
+                  child: Center(child: CircularProgressIndicator()),
+                )
+              : Form(
+                  key: _formKey,
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      // Academic Year
+                      DropdownButtonFormField<int>(
+                        key: ValueKey('bulk_enroll_ay_$effectiveYearId'),
+                        initialValue: effectiveYearId,
+                        decoration: const InputDecoration(
+                          labelText: 'Academic Year',
+                          prefixIcon: Icon(Icons.calendar_today),
+                          border: OutlineInputBorder(),
+                        ),
+                        items: years
+                            .map(
+                              (y) => DropdownMenuItem<int>(
+                                value: y.id,
+                                child: Text(y.yearRange),
+                              ),
+                            )
+                            .toList(),
+                        onChanged: (val) {
+                          ref.invalidate(academicYearsListProvider);
+                          ref.invalidate(sectionsListProvider);
+                          ref.invalidate(gradeLevelsListProvider);
+                          setState(() {
+                            _selectedAcademicYearId = val;
+                            final yearSecs = val != null
+                                ? allSections.where((s) => s.academicYearId == val).toList()
+                                : <SectionModel>[];
+                            final validGrades = yearSecs.isNotEmpty
+                                ? allGrades
+                                    .where((g) => yearSecs.any((s) => s.gradeLevel == g.level))
+                                    .toList()
+                                : allGrades;
+                            if (!validGrades.any((g) => g.level == _selectedGradeLevel)) {
+                              _selectedGradeLevel = validGrades.any((g) => g.level == 7)
+                                  ? 7
+                                  : (validGrades.isNotEmpty ? validGrades.first.level : null);
+                            }
+                            _selectedSectionId = null;
+                            if (_selectedGradeLevel != null && _selectedGradeLevel! < 11) {
+                              _trackStrand = null;
+                            }
+                          });
+                        },
+                        validator: (v) => (v == null && effectiveYearId == null)
+                            ? 'Academic year is required.'
+                            : null,
                       ),
-                      items: years
-                          .map(
-                            (y) => DropdownMenuItem<int>(
-                              value: y.id,
-                              child: Text(y.yearRange),
-                            ),
-                          )
-                          .toList(),
-                      onChanged: (val) {
-                        setState(() {
-                          _selectedAcademicYearId = val;
-                          _selectedGradeLevel = 7;
-                          _selectedSectionId = null;
-                        });
-                      },
-                      validator: (v) =>
-                          v == null ? 'Academic year is required.' : null,
-                    );
-                  },
-                  loading: () => const Center(
-                    child: Padding(
-                      padding: EdgeInsets.all(8),
-                      child: CircularProgressIndicator(),
-                    ),
-                  ),
-                  error: (e, _) => Text('Error: $e'),
-                ),
-                const SizedBox(height: AppSizes.p16),
-                gradeLevelsAsync.when(
-                  data: (grades) {
-                    return DropdownButtonFormField<int>(
-                      value: _selectedGradeLevel,
-                      decoration: const InputDecoration(
-                        labelText: 'Grade Level',
-                        prefixIcon: Icon(Icons.grade),
-                        border: OutlineInputBorder(),
-                      ),
-                      items: grades
-                          .map(
-                            (g) => DropdownMenuItem<int>(
-                              value: g.level,
-                              child: Text(g.name),
-                            ),
-                          )
-                          .toList(),
-                      onChanged: (val) {
-                        setState(() {
-                          _selectedGradeLevel = val;
-                          _selectedSectionId = null;
-                        });
-                      },
-                      validator: (v) =>
-                          v == null ? 'Grade level is required.' : null,
-                    );
-                  },
-                  loading: () => const Center(
-                    child: Padding(
-                      padding: EdgeInsets.all(8),
-                      child: CircularProgressIndicator(),
-                    ),
-                  ),
-                  error: (e, _) => Text('Error: $e'),
-                ),
-                const SizedBox(height: AppSizes.p16),
-                sectionsAsync.when(
-                  data: (sections) {
-                    final filtered = sections
-                        .where(
-                          (sec) =>
-                              sec.academicYearId == _selectedAcademicYearId &&
-                              sec.gradeLevel == _selectedGradeLevel,
-                        )
-                        .toList();
+                      const SizedBox(height: AppSizes.p16),
 
-                    return DropdownButtonFormField<int>(
-                      value: _selectedSectionId,
-                      decoration: const InputDecoration(
-                        labelText: 'Section',
-                        prefixIcon: Icon(Icons.segment),
-                        border: OutlineInputBorder(),
+                      // Grade Level
+                      DropdownButtonFormField<int>(
+                        key: ValueKey('bulk_enroll_grade_${effectiveYearId}_$effectiveGradeLevel'),
+                        initialValue: effectiveGradeLevel,
+                        decoration: const InputDecoration(
+                          labelText: 'Grade Level',
+                          prefixIcon: Icon(Icons.grade),
+                          border: OutlineInputBorder(),
+                        ),
+                        items: availableGrades
+                            .map(
+                              (g) => DropdownMenuItem<int>(
+                                value: g.level,
+                                child: Text(g.name),
+                              ),
+                            )
+                            .toList(),
+                        onChanged: (val) {
+                          setState(() {
+                            _selectedGradeLevel = val;
+                            _selectedSectionId = null;
+                            if (val != null && val < 11) {
+                              _trackStrand = null;
+                            }
+                          });
+                        },
+                        validator: (v) => (v == null && effectiveGradeLevel == null)
+                            ? 'Grade level is required.'
+                            : null,
                       ),
-                      items: filtered
-                          .map(
-                            (s) => DropdownMenuItem<int>(
-                              value: s.id,
-                              child: Text(s.name),
-                            ),
-                          )
-                          .toList(),
-                      onChanged: (val) =>
-                          setState(() => _selectedSectionId = val),
-                      validator: (v) =>
-                          v == null ? 'Section is required.' : null,
-                    );
-                  },
-                  loading: () => const Center(
-                    child: Padding(
-                      padding: EdgeInsets.all(8),
-                      child: CircularProgressIndicator(),
-                    ),
+                      const SizedBox(height: AppSizes.p16),
+
+                      // Section
+                      DropdownButtonFormField<int>(
+                        key: ValueKey(
+                            'bulk_enroll_sec_${effectiveYearId}_${effectiveGradeLevel}_$effectiveSectionId'),
+                        initialValue: effectiveSectionId,
+                        decoration: InputDecoration(
+                          labelText: 'Section',
+                          prefixIcon: const Icon(Icons.segment),
+                          border: const OutlineInputBorder(),
+                          hintText: filteredSections.isEmpty
+                              ? 'No sections available'
+                              : 'Select section',
+                        ),
+                        items: filteredSections
+                            .map(
+                              (s) => DropdownMenuItem<int>(
+                                value: s.id,
+                                child: Text(s.name),
+                              ),
+                            )
+                            .toList(),
+                        onChanged: filteredSections.isEmpty
+                            ? null
+                            : (val) =>
+                                setState(() => _selectedSectionId = val),
+                        validator: (v) => (v == null && effectiveSectionId == null)
+                            ? 'Section is required.'
+                            : null,
+                      ),
+
+                      // Track & Strand for SHS
+                      if (effectiveGradeLevel != null &&
+                          effectiveGradeLevel >= 11) ...[
+                        const SizedBox(height: AppSizes.p16),
+                        TextFormField(
+                          key: ValueKey('bulk_enroll_strand_$effectiveGradeLevel'),
+                          initialValue: _trackStrand,
+                          decoration: const InputDecoration(
+                            labelText: 'Track & Strand (for SHS)',
+                            prefixIcon: Icon(Icons.school_outlined),
+                            border: OutlineInputBorder(),
+                          ),
+                          onChanged: (val) =>
+                              _trackStrand = val.trim().isEmpty ? null : val.trim(),
+                        ),
+                      ],
+                    ],
                   ),
-                  error: (e, _) => Text('Error: $e'),
                 ),
-                if (_selectedGradeLevel != null &&
-                    _selectedGradeLevel! >= 11) ...[
-                  const SizedBox(height: AppSizes.p16),
-                  TextFormField(
-                    decoration: const InputDecoration(
-                      labelText: 'Track & Strand (for SHS)',
-                      prefixIcon: Icon(Icons.school_outlined),
-                      border: OutlineInputBorder(),
-                    ),
-                    onChanged: (val) =>
-                        _trackStrand = val.trim().isEmpty ? null : val.trim(),
-                  ),
-                ],
-              ],
-            ),
-          ),
         ),
       ),
       actions: [

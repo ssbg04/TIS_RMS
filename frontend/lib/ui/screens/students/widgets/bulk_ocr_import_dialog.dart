@@ -122,6 +122,13 @@ class _BulkOcrImportDialogState extends ConsumerState<BulkOcrImportDialog> {
         _items.add(_OcrItem(filePath: f.path, fileName: name));
       }
     }
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        ref.invalidate(academicYearsListProvider);
+        ref.invalidate(gradeLevelsListProvider);
+        ref.invalidate(sectionsListProvider);
+      }
+    });
   }
 
   // Shared enrollment selection
@@ -353,12 +360,12 @@ class _BulkOcrImportDialogState extends ConsumerState<BulkOcrImportDialog> {
 
   // ── import ────────────────────────────────────────────────────────────────
   Future<void> _importAll() async {
-    // Push shared enrollment down to rows that still lack it
+    // Push shared enrollment down to rows
     for (final item in _items.where((i) => i.status == _FileStatus.done)) {
-      item.academicYearId ??= _sharedAcademicYearId;
-      item.sectionId ??= _sharedSectionId;
-      item.gradeLevel ??= _sharedGradeLevel;
-      item.trackStrand ??= _sharedTrackStrand;
+      if (_sharedAcademicYearId != null) item.academicYearId = _sharedAcademicYearId;
+      if (_sharedSectionId != null) item.sectionId = _sharedSectionId;
+      if (_sharedGradeLevel != null) item.gradeLevel = _sharedGradeLevel;
+      item.trackStrand = _sharedTrackStrand;
     }
 
     // Validate enrollment completeness & grade level bounds (7-12)
@@ -733,11 +740,12 @@ class _BulkOcrImportDialogState extends ConsumerState<BulkOcrImportDialog> {
   // ── STEP 1: REVIEW ────────────────────────────────────────────────────────
   Widget _buildReviewStep() {
     final academicYearsAsync = ref.watch(academicYearsListProvider);
+    final gradeLevelsAsync = ref.watch(gradeLevelsListProvider);
     final sectionsAsync = ref.watch(sectionsListProvider);
     final doneItems = _items.where((i) => i.status == _FileStatus.done).toList();
 
     return Column(children: [
-      _buildSharedEnrollmentPicker(academicYearsAsync, sectionsAsync),
+      _buildSharedEnrollmentPicker(academicYearsAsync, gradeLevelsAsync, sectionsAsync),
       Expanded(
         child: doneItems.isEmpty
             ? const Center(
@@ -750,90 +758,255 @@ class _BulkOcrImportDialogState extends ConsumerState<BulkOcrImportDialog> {
 
   Widget _buildSharedEnrollmentPicker(
     AsyncValue<List<AcademicYearModel>> academicYearsAsync,
+    AsyncValue<List<GradeLevelModel>> gradeLevelsAsync,
     AsyncValue<List<SectionModel>> sectionsAsync,
   ) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final academicYears = academicYearsAsync.asData?.value ?? <AcademicYearModel>[];
-    final allSections = sectionsAsync.asData?.value ?? <SectionModel>[];
-    final filteredSections = _sharedGradeLevel != null
-        ? allSections.where((s) => s.gradeLevel == _sharedGradeLevel).toList()
-        : allSections;
+
+    if (academicYearsAsync.isLoading ||
+        gradeLevelsAsync.isLoading ||
+        sectionsAsync.isLoading) {
+      return Container(
+        padding: const EdgeInsets.all(16),
+        color: isDark ? AppColors.primaryGreen.withValues(alpha: 0.12) : const Color(0xFFF0FAF4),
+        child: const Center(
+          child: SizedBox(
+            height: 24,
+            width: 24,
+            child: CircularProgressIndicator(strokeWidth: 2.5),
+          ),
+        ),
+      );
+    }
+
+    final years = academicYearsAsync.value ?? [];
+    final allGrades =
+        List<GradeLevelModel>.from(gradeLevelsAsync.value ?? [])
+          ..sort((a, b) => a.level.compareTo(b.level));
+    final allSections = sectionsAsync.value ?? [];
+
+    // 1. Determine active/effective Academic Year
+    final activeYears =
+        years.where((y) => y.status.toLowerCase() == 'active').toList();
+    final defaultYearId = (activeYears.isNotEmpty
+        ? activeYears.last
+        : (years.isNotEmpty ? years.last : null))?.id;
+
+    final effectiveYearId = _sharedAcademicYearId != null &&
+            years.any((y) => y.id == _sharedAcademicYearId)
+        ? _sharedAcademicYearId
+        : defaultYearId;
+
+    if (_sharedAcademicYearId != effectiveYearId && effectiveYearId != null) {
+      _sharedAcademicYearId = effectiveYearId;
+      for (final item in _items) {
+        item.academicYearId = effectiveYearId;
+      }
+    }
+
+    // 2. Determine available Grade Levels for the selected Academic Year based on sections in DB
+    final sectionsInYear = effectiveYearId != null
+        ? allSections.where((s) => s.academicYearId == effectiveYearId).toList()
+        : <SectionModel>[];
+
+    List<GradeLevelModel> availableGrades;
+    if (sectionsInYear.isNotEmpty) {
+      final gradesInYear = sectionsInYear.map((s) => s.gradeLevel).toSet();
+      availableGrades =
+          allGrades.where((g) => gradesInYear.contains(g.level)).toList();
+      if (availableGrades.isEmpty) {
+        availableGrades = allGrades;
+      }
+    } else {
+      availableGrades = allGrades;
+    }
+
+    // 3. Determine effective Grade Level
+    int? effectiveGradeLevel;
+    if (_sharedGradeLevel != null &&
+        availableGrades.any((g) => g.level == _sharedGradeLevel)) {
+      effectiveGradeLevel = _sharedGradeLevel;
+    } else {
+      effectiveGradeLevel = availableGrades.any((g) => g.level == 7)
+          ? 7
+          : (availableGrades.isNotEmpty ? availableGrades.first.level : null);
+      _sharedGradeLevel = effectiveGradeLevel;
+      for (final item in _items) {
+        item.gradeLevel = effectiveGradeLevel;
+      }
+    }
+
+    // 4. Determine available Sections for (effectiveYearId, effectiveGradeLevel)
+    final filteredSections =
+        (effectiveYearId != null && effectiveGradeLevel != null)
+            ? allSections
+                .where((sec) =>
+                    sec.academicYearId == effectiveYearId &&
+                    sec.gradeLevel == effectiveGradeLevel)
+                .toList()
+            : <SectionModel>[];
+    filteredSections.sort(
+      (a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()),
+    );
+
+    // 5. Determine effective Section
+    int? effectiveSectionId;
+    if (_sharedSectionId != null &&
+        filteredSections.any((s) => s.id == _sharedSectionId)) {
+      effectiveSectionId = _sharedSectionId;
+    } else {
+      effectiveSectionId = null;
+      _sharedSectionId = null;
+      for (final item in _items) {
+        item.sectionId = null;
+      }
+    }
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       color: isDark ? AppColors.primaryGreen.withValues(alpha: 0.12) : const Color(0xFFF0FAF4),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        const Row(children: [
-          Icon(Icons.info_outline_rounded, size: 16, color: AppColors.primaryGreen),
-          SizedBox(width: 6),
-          Text('Apply enrollment to all rows:',
+        Row(children: [
+          const Icon(Icons.info_outline_rounded, size: 16, color: AppColors.primaryGreen),
+          const SizedBox(width: 6),
+          const Text('Apply enrollment to all rows:',
               style: TextStyle(
                   fontWeight: FontWeight.bold,
                   fontSize: 13,
                   color: AppColors.primaryGreen)),
+          const Spacer(),
+          IconButton(
+            icon: const Icon(Icons.refresh, size: 16, color: AppColors.primaryGreen),
+            tooltip: 'Refresh Sections & Academic Years',
+            visualDensity: VisualDensity.compact,
+            onPressed: () {
+              ref.invalidate(academicYearsListProvider);
+              ref.invalidate(gradeLevelsListProvider);
+              ref.invalidate(sectionsListProvider);
+            },
+          ),
         ]),
         const SizedBox(height: 10),
-        Wrap(spacing: 10, runSpacing: 8, children: [
+        Wrap(spacing: 10, runSpacing: 8, crossAxisAlignment: WrapCrossAlignment.center, children: [
+          // Academic Year
           SizedBox(
             width: 200,
             child: DropdownButtonFormField<int>(
-              initialValue: _sharedAcademicYearId,
+              key: ValueKey('bulk_academic_year_$effectiveYearId'),
+              initialValue: effectiveYearId,
               isExpanded: true,
               decoration: _compactDeco(context, 'Academic Year'),
-              items: academicYears
+              items: years
                   .map((y) => DropdownMenuItem<int>(
                       value: y.id, child: Text(y.yearRange)))
                   .toList(),
-              onChanged: (v) => setState(() {
-                _sharedAcademicYearId = v;
-                _sharedSectionId = null;
-                for (final item in _items) {
-                  item.academicYearId = v;
-                  item.sectionId = null;
-                }
-              }),
+              onChanged: (val) {
+                ref.invalidate(academicYearsListProvider);
+                ref.invalidate(sectionsListProvider);
+                ref.invalidate(gradeLevelsListProvider);
+                setState(() {
+                  _sharedAcademicYearId = val;
+                  final yearSecs = val != null
+                      ? allSections.where((s) => s.academicYearId == val).toList()
+                      : <SectionModel>[];
+                  final validGrades = yearSecs.isNotEmpty
+                      ? allGrades
+                          .where((g) => yearSecs.any((s) => s.gradeLevel == g.level))
+                          .toList()
+                      : allGrades;
+                  if (!validGrades.any((g) => g.level == _sharedGradeLevel)) {
+                    _sharedGradeLevel = validGrades.any((g) => g.level == 7)
+                        ? 7
+                        : (validGrades.isNotEmpty ? validGrades.first.level : null);
+                  }
+                  _sharedSectionId = null;
+                  if (_sharedGradeLevel != null && _sharedGradeLevel! < 11) {
+                    _sharedTrackStrand = null;
+                  }
+                  for (final item in _items) {
+                    item.academicYearId = val;
+                    item.gradeLevel = _sharedGradeLevel;
+                    item.sectionId = null;
+                    item.trackStrand = _sharedTrackStrand;
+                  }
+                });
+              },
             ),
           ),
+
+          // Grade Level
           SizedBox(
             width: 150,
             child: DropdownButtonFormField<int>(
-              initialValue: _sharedGradeLevel,
+              key: ValueKey('bulk_grade_level_${effectiveYearId}_$effectiveGradeLevel'),
+              initialValue: effectiveGradeLevel,
               isExpanded: true,
               decoration: _compactDeco(context, 'Grade Level'),
-              items: [7, 8, 9, 10, 11, 12]
+              items: availableGrades
                   .map((g) => DropdownMenuItem<int>(
-                      value: g, child: Text('Grade $g')))
+                      value: g.level, child: Text(g.name)))
                   .toList(),
-              onChanged: (v) => setState(() {
-                _sharedGradeLevel = v;
+              onChanged: (val) => setState(() {
+                _sharedGradeLevel = val;
                 _sharedSectionId = null;
+                if (val != null && val < 11) {
+                  _sharedTrackStrand = null;
+                }
                 for (final item in _items) {
-                  item.gradeLevel = v;
+                  item.gradeLevel = val;
                   item.sectionId = null;
+                  item.trackStrand = _sharedTrackStrand;
                 }
               }),
             ),
           ),
+
+          // Section
           SizedBox(
-            width: 180,
+            width: 200,
             child: DropdownButtonFormField<int>(
-              initialValue: filteredSections.any((s) => s.id == _sharedSectionId)
-                  ? _sharedSectionId
-                  : null,
+              key: ValueKey('bulk_section_${effectiveYearId}_${effectiveGradeLevel}_$effectiveSectionId'),
+              initialValue: effectiveSectionId,
               isExpanded: true,
-              decoration: _compactDeco(context, 'Section'),
+              decoration: _compactDeco(
+                context,
+                filteredSections.isEmpty ? 'No sections available' : 'Section',
+              ),
               items: filteredSections
                   .map((s) =>
                       DropdownMenuItem<int>(value: s.id, child: Text(s.name)))
                   .toList(),
-              onChanged: (v) => setState(() {
-                _sharedSectionId = v;
-                for (final item in _items) {
-                  item.sectionId = v;
-                }
-              }),
+              onChanged: filteredSections.isEmpty
+                  ? null
+                  : (val) => setState(() {
+                      _sharedSectionId = val;
+                      for (final item in _items) {
+                        item.sectionId = val;
+                      }
+                    }),
             ),
           ),
+
+          // Track & Strand for Senior High School (Grade 11 & 12)
+          if (effectiveGradeLevel != null && effectiveGradeLevel >= 11)
+            SizedBox(
+              width: 220,
+              child: TextFormField(
+                key: ValueKey('bulk_track_strand_$effectiveGradeLevel'),
+                initialValue: _sharedTrackStrand,
+                decoration: _compactDeco(context, 'Track & Strand (SHS)'),
+                style: TextStyle(
+                  fontSize: 13,
+                  color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
+                ),
+                onChanged: (val) => setState(() {
+                  _sharedTrackStrand = val.trim().isEmpty ? null : val.trim();
+                  for (final item in _items) {
+                    item.trackStrand = _sharedTrackStrand;
+                  }
+                }),
+              ),
+            ),
         ]),
       ]),
     );

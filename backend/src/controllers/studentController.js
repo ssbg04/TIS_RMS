@@ -1134,6 +1134,15 @@ exports.bulkCreateStudents = (req, res) => {
         logActivity(req.user?.id, 'CREATE', 'student', newId,
             `BULK OCR CREATE student ${s.firstName} ${s.lastName}`);
 
+        createNotification(
+            null,
+            'New Student Enrolled',
+            `Student ${fnUpper} ${lnUpper} (LRN: ${lrn}) was enrolled via Bulk Import.`,
+            'student',
+            'student',
+            newId
+        );
+
         return { status: 'created', id: newId };
     });
 
