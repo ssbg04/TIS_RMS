@@ -127,7 +127,8 @@ async function startTunnel() {
     }
 
     const DEFAULT_TOKEN = 'eyJhIjoiZWRhMWQ4ZTc1MzNjMjBiMDcyNmM0ZGU1OWE5YTMxYzgiLCJ0IjoiZjJhOGYyYmMtMWE1YS00MmNmLWJjZTUtZWMzYzAxNzY4M2IyIiwicyI6Ik5EbGtOMkZpTldNdFpEYzVNUzAwTUdFMUxXSTFNalV0WW1RNVl6VXlaV1EzTVRWaiJ9';
-    const token = process.env.CLOUDFLARE_TUNNEL_TOKEN || DEFAULT_TOKEN;
+    const rawToken = process.env.CLOUDFLARE_TUNNEL_TOKEN || DEFAULT_TOKEN;
+    const token = rawToken.replace(/[\r\n\s'"=]/g, '').trim(); // Strip any hidden CR/LF, spaces, or quotes
     const port = process.env.PORT || 18484;
 
     const args = token
@@ -140,7 +141,8 @@ async function startTunnel() {
     try {
         tunnelProcess = spawn(binPath, args, {
             windowsHide: true,
-            stdio: ['ignore', 'pipe', 'pipe']
+            stdio: ['ignore', 'pipe', 'pipe'],
+            env: { ...process.env, NO_AUTOUPDATE: 'true', TUNNEL_METRICS: 'localhost:0' }
         });
 
         const pid = tunnelProcess.pid;
