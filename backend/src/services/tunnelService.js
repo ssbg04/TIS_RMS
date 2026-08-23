@@ -131,10 +131,10 @@ async function startTunnel() {
     const port = process.env.PORT || 18484;
 
     const args = token
-        ? ['tunnel', 'run', '--token', token]
-        : ['tunnel', '--url', `http://localhost:${port}`];
+        ? ['tunnel', '--protocol', 'http2', 'run', '--token', token]
+        : ['tunnel', '--protocol', 'http2', '--url', `http://localhost:${port}`];
 
-    console.log(`[Tunnel] Launching Cloudflare tunnel: "${binPath}" ${token ? 'tunnel run --token [CONFIGURED]' : args.join(' ')}`);
+    console.log(`[Tunnel] Launching Cloudflare tunnel: "${binPath}" ${token ? 'tunnel --protocol http2 run --token [CONFIGURED]' : args.join(' ')}`);
     tunnelState = 'starting';
 
     try {
