@@ -5,7 +5,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 class ApiConstants {
   static const int port = 18484;
   static const String tunnelUrl = 'https://tis-rms.cc.cd/api';
-  static const String vpsUrl = 'http://198.252.107.197:$port/api';
+  static const String vpsUrl = 'http://198.252.101.35:$port/api';
   static const String localhostUrl = 'http://127.0.0.1:$port/api';
 
   // Runtime-mutable base URL — set by ServerDiscoveryService before first use.

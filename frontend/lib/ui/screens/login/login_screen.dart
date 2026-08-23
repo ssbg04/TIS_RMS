@@ -540,7 +540,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> with SingleTickerProv
               controller: controller,
               decoration: InputDecoration(
                 labelText: 'Server URL',
-                hintText: 'http://198.252.107.197:18484/api',
+                hintText: 'http://198.252.101.35:18484/api',
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(10),
                 ),
