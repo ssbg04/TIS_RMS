@@ -367,8 +367,9 @@ Files backup/restore - mirror mode or zip -->
   - Doc status attention rename selections from "Default Doc Status Order, Low, High" to "Default, Completed, Pending"
   - remove the LRN Sort Order -->
 
-<!-- # USER MANAGEMENT
-- add space in bottom of list for FABs -->
+# USER MANAGEMENT
+- user profile details, redesign the action buttons, make responsive buttons for android app and windows app
+- add confirmation dialog for deactivate and activate
 
 ---
 

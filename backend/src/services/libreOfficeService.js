@@ -22,6 +22,8 @@ class LibreOfficeService {
 
         if (isWindows) {
             const candidatePaths = [
+                path.join(__dirname, '..', '..', '..', 'bin', 'LibreOffice', 'program', 'soffice.exe'),
+                path.join(__dirname, '..', '..', '..', 'bin', 'soffice.exe'),
                 path.join(__dirname, '..', '..', 'bin', 'LibreOffice', 'program', 'soffice.exe'),
                 path.join(__dirname, '..', '..', 'bin', 'soffice.exe'),
                 'C:\\Program Files\\LibreOffice\\program\\soffice.exe',

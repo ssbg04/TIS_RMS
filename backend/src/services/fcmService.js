@@ -18,9 +18,22 @@ const init = () => {
     }
 
     try {
-        const resolvedPath = path.isAbsolute(serviceAccountPath)
+        let resolvedPath = path.isAbsolute(serviceAccountPath)
             ? serviceAccountPath
             : path.resolve(process.cwd(), serviceAccountPath);
+
+        if (!fs.existsSync(resolvedPath)) {
+            const candidates = [
+                path.join(__dirname, '..', '..', serviceAccountPath),
+                path.join(__dirname, '..', '..', '..', serviceAccountPath)
+            ];
+            for (const cand of candidates) {
+                if (fs.existsSync(cand)) {
+                    resolvedPath = cand;
+                    break;
+                }
+            }
+        }
 
         if (!fs.existsSync(resolvedPath)) {
             console.error('[FCM] Service account file not found at:', resolvedPath);

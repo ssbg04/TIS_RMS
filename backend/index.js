@@ -3,7 +3,8 @@ const express = require('express');
 const cors = require('cors');
 const morgan = require('morgan');
 const path = require('path');
-require('dotenv').config();
+require('dotenv').config({ path: path.join(__dirname, '.env') });
+require('dotenv').config({ path: path.join(__dirname, '..', '.env') });
 
 // ==========================================
 // CROSS-PLATFORM SYSTEM SETUP (Ghostscript, Tesseract)
@@ -72,5 +73,13 @@ app.listen(PORT, '0.0.0.0', () => {
         setInterval(() => checkAndRunAutoGraduation(1), 24 * 60 * 60 * 1000);
     } catch (err) {
         console.error('Failed to start auto-graduation schedule:', err.message);
+    }
+
+    // Initialize Auto Cloudflare Tunnel activation when internet is connected
+    try {
+        const { startAutoTunnel } = require('./src/services/tunnelService');
+        startAutoTunnel();
+    } catch (err) {
+        console.error('Failed to start auto tunnel service:', err.message);
     }
 });

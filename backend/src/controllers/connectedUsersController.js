@@ -111,12 +111,19 @@ exports.getServerStatus = async (req, res) => {
         const memUsedMB  = Math.round((os.totalmem() - os.freemem()) / 1024 / 1024);
         const uptimeSec  = Math.round((Date.now() - SERVER_START_TIME) / 1000);
 
+        let tunnelStatus = null;
+        try {
+            const { getTunnelStatus } = require('../services/tunnelService');
+            tunnelStatus = getTunnelStatus();
+        } catch (_) {}
+
         res.json({
             uptime: uptimeSec,
             cpuPercent,
             memUsedMB,
             memTotalMB,
             connectedUserCount: connectedUsers.size,
+            tunnel: tunnelStatus,
         });
     } catch (err) {
         res.status(500).json({ message: 'Failed to get server status.', error: err.message });
