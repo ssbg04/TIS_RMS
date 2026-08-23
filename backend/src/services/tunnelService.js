@@ -19,11 +19,19 @@ let retryCount = 0;
  * Finds the cloudflared executable path.
  */
 function getCloudflaredPath() {
+    const isWindows = process.platform === 'win32';
+
+    const setExecutable = (filePath) => {
+        if (!isWindows) {
+            try { fs.chmodSync(filePath, 0o755); } catch (_) {}
+        }
+    };
+
     if (process.env.CLOUDFLARED_PATH && fs.existsSync(process.env.CLOUDFLARED_PATH)) {
+        setExecutable(process.env.CLOUDFLARED_PATH);
         return process.env.CLOUDFLARED_PATH;
     }
 
-    const isWindows = process.platform === 'win32';
     const binaryName = isWindows ? 'cloudflared.exe' : 'cloudflared';
 
     const candidatePaths = [
@@ -36,6 +44,7 @@ function getCloudflaredPath() {
 
     for (const cand of candidatePaths) {
         if (fs.existsSync(cand)) {
+            setExecutable(cand);
             return path.resolve(cand);
         }
     }
@@ -44,7 +53,10 @@ function getCloudflaredPath() {
         const cmd = isWindows ? 'where.exe cloudflared' : 'which cloudflared';
         const out = execSync(cmd, { encoding: 'utf8', stdio: ['pipe', 'pipe', 'ignore'] });
         const first = out.trim().split(/\r?\n/)[0];
-        if (first && fs.existsSync(first)) return first;
+        if (first && fs.existsSync(first)) {
+            setExecutable(first);
+            return first;
+        }
     } catch (_) {}
 
     return null;
