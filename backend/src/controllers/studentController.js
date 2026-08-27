@@ -288,7 +288,7 @@ exports.getAllStudents = (req, res) => {
                       )
                       AND dr.id NOT IN (
                           SELECT requirement_id FROM documents
-                          WHERE student_id = s.id AND status IN ('Completed', 'Archived') AND requirement_id IS NOT NULL
+                          WHERE student_id = s.id AND status IN ('Completed', 'Archived') AND requirement_id IS NOT NULL AND deleted_at IS NULL
                       )
                 ) as missing_count
             FROM students s
@@ -327,7 +327,7 @@ exports.getAllStudents = (req, res) => {
                   )
                   AND dr.id NOT IN (
                       SELECT requirement_id FROM documents
-                      WHERE student_id = ? AND status IN ('Completed', 'Archived') AND requirement_id IS NOT NULL
+                      WHERE student_id = ? AND status IN ('Completed', 'Archived') AND requirement_id IS NOT NULL AND deleted_at IS NULL
                   )
             `).all(student.id, student.id);
             

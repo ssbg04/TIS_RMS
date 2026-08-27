@@ -5,6 +5,7 @@ import '../../../../domain/repositories/document_repository.dart'
     show MissingRequirements;
 import '../../../providers/student_provider.dart';
 import '../../../providers/document_provider.dart';
+import '../../../shared/widgets/horizontal_expandable_fab.dart';
 // ─────────────────────────────────────────────────────────────
 // Public helper – call this anywhere to show the modal
 // ─────────────────────────────────────────────────────────────
@@ -90,6 +91,47 @@ class _StudentProfileDialogShellState
         : EdgeInsets.zero;
 
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final hasEdit = (widget.onEdit != null || widget.onEditById != null) &&
+        widget.userRole != 'teacher';
+    final hasDelete =
+        (widget.onDelete != null || widget.onDeleteById != null) &&
+            widget.userRole != 'teacher';
+
+    final fabItems = <FabActionItem>[
+      if (hasEdit)
+        FabActionItem(
+          icon: Icons.edit_rounded,
+          tooltip: 'Edit Student',
+          label: 'Edit Student',
+          heroTag: 'fab_student_profile_edit',
+          backgroundColor: AppColors.primaryGreen,
+          foregroundColor: Colors.white,
+          onPressed: () {
+            if (widget.onEditById != null) {
+              widget.onEditById!(_currentStudentId);
+            } else if (widget.onEdit != null) {
+              widget.onEdit!();
+            }
+          },
+        ),
+      if (hasDelete)
+        FabActionItem(
+          icon: Icons.delete_rounded,
+          tooltip: 'Delete Student',
+          label: 'Delete Student',
+          heroTag: 'fab_student_profile_delete',
+          backgroundColor: Colors.red.shade600,
+          foregroundColor: Colors.white,
+          onPressed: () {
+            if (widget.onDeleteById != null) {
+              widget.onDeleteById!(_currentStudentId);
+            } else if (widget.onDelete != null) {
+              widget.onDelete!();
+            }
+          },
+        ),
+    ];
+
     return Dialog(
       backgroundColor: Colors.transparent,
       insetPadding: widget.isMobile
@@ -104,49 +146,112 @@ class _StudentProfileDialogShellState
             minHeight: 460,
           ),
           color: isDark ? AppColors.darkPageBackground : AppColors.pageBackground,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
+          child: Stack(
             children: [
-              // ── Modal header ──
-              Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 8,
-                ),
-                decoration: const BoxDecoration(
-                  color: AppColors.primaryGreen,
-                  borderRadius: BorderRadius.vertical(top: Radius.circular(12)),
-                ),
-                child: Row(
-                  children: [
-                    const Icon(
-                      Icons.person_rounded,
-                      color: Colors.white,
-                      size: 20,
+              Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  // ── Modal header ──
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 8,
                     ),
-                    const SizedBox(width: 8),
-                    const Expanded(
-                      child: Text(
-                        'Student Profile',
-                        style: TextStyle(
+                    decoration: const BoxDecoration(
+                      color: AppColors.primaryGreen,
+                      borderRadius: BorderRadius.vertical(top: Radius.circular(12)),
+                    ),
+                    child: Row(
+                      children: [
+                        const Icon(
+                          Icons.person_rounded,
                           color: Colors.white,
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
+                          size: 20,
                         ),
-                        overflow: TextOverflow.ellipsis,
-                        maxLines: 1,
-                      ),
-                    ),
-                    if (students.isNotEmpty && currentIndex != -1) ...[
-                      Tooltip(
-                        message: 'Previous Student',
-                        child: IconButton(
+                        const SizedBox(width: 8),
+                        const Expanded(
+                          child: Text(
+                            'Student Profile',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                            ),
+                            overflow: TextOverflow.ellipsis,
+                            maxLines: 1,
+                          ),
+                        ),
+                        if (students.isNotEmpty && currentIndex != -1) ...[
+                          Tooltip(
+                            message: 'Previous Student',
+                            child: IconButton(
+                              icon: Icon(
+                                Icons.arrow_back_ios_new_rounded,
+                                color: currentIndex > 0
+                                    ? Colors.white
+                                    : Colors.white24,
+                                size: arrowIconSize,
+                              ),
+                              visualDensity: VisualDensity.compact,
+                              style: IconButton.styleFrom(
+                                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                                minimumSize: Size.zero,
+                                padding: buttonPadding,
+                              ),
+                              padding: buttonPadding,
+                              constraints: buttonConstraints,
+                              onPressed: currentIndex > 0
+                                  ? () => setState(() {
+                                        _currentStudentId =
+                                            students[currentIndex - 1].id;
+                                      })
+                                  : null,
+                            ),
+                          ),
+                          Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 4),
+                            child: Text(
+                              '${currentIndex + 1}/${students.length}',
+                              style: TextStyle(
+                                color: Colors.white70,
+                                fontSize: isMobileOrAndroid ? 13 : 12,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ),
+                          Tooltip(
+                            message: 'Next Student',
+                            child: IconButton(
+                              icon: Icon(
+                                Icons.arrow_forward_ios_rounded,
+                                color: currentIndex < students.length - 1
+                                    ? Colors.white
+                                    : Colors.white24,
+                                size: arrowIconSize,
+                              ),
+                              visualDensity: VisualDensity.compact,
+                              style: IconButton.styleFrom(
+                                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                                minimumSize: Size.zero,
+                                padding: buttonPadding,
+                              ),
+                              padding: buttonPadding,
+                              constraints: buttonConstraints,
+                              onPressed: currentIndex < students.length - 1
+                                  ? () => setState(() {
+                                        _currentStudentId =
+                                            students[currentIndex + 1].id;
+                                      })
+                                  : null,
+                            ),
+                          ),
+                          SizedBox(width: isMobileOrAndroid ? 4 : 10),
+                        ],
+                        IconButton(
                           icon: Icon(
-                            Icons.arrow_back_ios_new_rounded,
-                            color: currentIndex > 0
-                                ? Colors.white
-                                : Colors.white24,
-                            size: arrowIconSize,
+                            Icons.close,
+                            color: Colors.white,
+                            size: actionIconSize,
                           ),
                           visualDensity: VisualDensity.compact,
                           style: IconButton.styleFrom(
@@ -156,138 +261,30 @@ class _StudentProfileDialogShellState
                           ),
                           padding: buttonPadding,
                           constraints: buttonConstraints,
-                          onPressed: currentIndex > 0
-                              ? () => setState(() {
-                                    _currentStudentId =
-                                        students[currentIndex - 1].id;
-                                  })
-                              : null,
+                          onPressed: () => Navigator.of(context).pop(),
                         ),
-                      ),
-                      Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 4),
-                        child: Text(
-                          '${currentIndex + 1}/${students.length}',
-                          style: TextStyle(
-                            color: Colors.white70,
-                            fontSize: isMobileOrAndroid ? 13 : 12,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      ),
-                      Tooltip(
-                        message: 'Next Student',
-                        child: IconButton(
-                          icon: Icon(
-                            Icons.arrow_forward_ios_rounded,
-                            color: currentIndex < students.length - 1
-                                ? Colors.white
-                                : Colors.white24,
-                            size: arrowIconSize,
-                          ),
-                          visualDensity: VisualDensity.compact,
-                          style: IconButton.styleFrom(
-                            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                            minimumSize: Size.zero,
-                            padding: buttonPadding,
-                          ),
-                          padding: buttonPadding,
-                          constraints: buttonConstraints,
-                          onPressed: currentIndex < students.length - 1
-                              ? () => setState(() {
-                                    _currentStudentId =
-                                        students[currentIndex + 1].id;
-                                  })
-                              : null,
-                        ),
-                      ),
-                      SizedBox(width: isMobileOrAndroid ? 4 : 10),
-                    ],
-                    if ((widget.onEdit != null || widget.onEditById != null) &&
-                        widget.userRole != 'teacher')
-                      IconButton(
-                        icon: Icon(
-                          Icons.edit,
-                          color: Colors.white,
-                          size: actionIconSize,
-                        ),
-                        tooltip: 'Edit Student',
-                        visualDensity: VisualDensity.compact,
-                        style: IconButton.styleFrom(
-                          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                          minimumSize: Size.zero,
-                          padding: buttonPadding,
-                        ),
-                        padding: buttonPadding,
-                        constraints: buttonConstraints,
-                        onPressed: () {
-                          if (widget.onEditById != null) {
-                            widget.onEditById!(_currentStudentId);
-                          } else if (widget.onEdit != null) {
-                            widget.onEdit!();
-                          }
-                        },
-                      ),
-                    if ((widget.onEdit != null || widget.onEditById != null) &&
-                        widget.userRole != 'teacher')
-                      SizedBox(width: isMobileOrAndroid ? 4 : 8),
-                    if ((widget.onDelete != null ||
-                            widget.onDeleteById != null) &&
-                        widget.userRole != 'teacher')
-                      IconButton(
-                        icon: Icon(
-                          Icons.delete,
-                          color: Colors.white,
-                          size: actionIconSize,
-                        ),
-                        tooltip: 'Delete Student',
-                        visualDensity: VisualDensity.compact,
-                        style: IconButton.styleFrom(
-                          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                          minimumSize: Size.zero,
-                          padding: buttonPadding,
-                        ),
-                        padding: buttonPadding,
-                        constraints: buttonConstraints,
-                        onPressed: () {
-                          if (widget.onDeleteById != null) {
-                            widget.onDeleteById!(_currentStudentId);
-                          } else if (widget.onDelete != null) {
-                            widget.onDelete!();
-                          }
-                        },
-                      ),
-                    if ((widget.onDelete != null ||
-                            widget.onDeleteById != null) &&
-                        widget.userRole != 'teacher')
-                      SizedBox(width: isMobileOrAndroid ? 4 : 8),
-                    IconButton(
-                      icon: Icon(
-                        Icons.close,
-                        color: Colors.white,
-                        size: actionIconSize,
-                      ),
-                      visualDensity: VisualDensity.compact,
-                      style: IconButton.styleFrom(
-                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                        minimumSize: Size.zero,
-                        padding: buttonPadding,
-                      ),
-                      padding: buttonPadding,
-                      constraints: buttonConstraints,
-                      onPressed: () => Navigator.of(context).pop(),
+                      ],
                     ),
-                  ],
-                ),
+                  ),
+                  // ── Scrollable profile body ──
+                  Flexible(
+                    child: StudentProfileModalBody(
+                      studentId: _currentStudentId,
+                      userRole: widget.userRole,
+                      hideEnrollmentActions: widget.hideEnrollmentActions,
+                    ),
+                  ),
+                ],
               ),
-              // ── Scrollable profile body ──
-              Flexible(
-                child: StudentProfileModalBody(
-                  studentId: _currentStudentId,
-                  userRole: widget.userRole,
-                  hideEnrollmentActions: widget.hideEnrollmentActions,
+              if (fabItems.isNotEmpty)
+                Positioned(
+                  right: 16,
+                  bottom: 16,
+                  child: HorizontalExpandableFab(
+                    heroTag: 'fab_student_profile_actions',
+                    items: fabItems,
+                  ),
                 ),
-              ),
             ],
           ),
         ),
@@ -337,7 +334,7 @@ class StudentProfileModalBody extends ConsumerWidget {
       data: (student) {
         final isDark = Theme.of(context).brightness == Brightness.dark;
         return SingleChildScrollView(
-          padding: const EdgeInsets.all(20),
+          padding: const EdgeInsets.fromLTRB(20, 20, 20, 80),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [

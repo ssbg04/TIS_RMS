@@ -61,6 +61,7 @@ exports.getStats = (req, res) => {
                           WHERE d.student_id = s.id
                             AND d.requirement_id = dr.id
                             AND d.status IN ('Completed', 'Archived')
+                            AND d.deleted_at IS NULL
                       )
                 )
             `).get(userId).count;
@@ -93,6 +94,7 @@ exports.getStats = (req, res) => {
                           WHERE d.student_id = s.id
                             AND d.requirement_id = dr.id
                             AND d.status IN ('Completed', 'Archived')
+                            AND d.deleted_at IS NULL
                       )
                 )
             `).get(userId).count;
@@ -118,6 +120,7 @@ exports.getStats = (req, res) => {
                           WHERE d.student_id = s.id
                             AND d.requirement_id = dr.id
                             AND d.status IN ('Completed', 'Archived')
+                            AND d.deleted_at IS NULL
                       )
                 )
             `).get().count;
@@ -140,6 +143,7 @@ exports.getStats = (req, res) => {
                           WHERE d.student_id = s.id
                             AND d.requirement_id = dr.id
                             AND d.status IN ('Completed', 'Archived')
+                            AND d.deleted_at IS NULL
                       )
                 )
             `).get().count;

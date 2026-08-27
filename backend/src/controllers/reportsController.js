@@ -204,7 +204,7 @@ exports.getEnrollmentByGrade = (req, res) => {
 exports.getDocumentStatus = (req, res) => {
     try {
         const rows = db.prepare(`
-            SELECT status, COUNT(*) as count FROM documents GROUP BY status
+            SELECT status, COUNT(*) as count FROM documents WHERE deleted_at IS NULL GROUP BY status
         `).all();
         const result = { Completed: 0, Archived: 0 };
         rows.forEach(r => { if (r.status in result) result[r.status] = r.count; });
@@ -242,7 +242,7 @@ exports.getExportData = (req, res) => {
 
         // Document status breakdown
         const docStatusRows = db.prepare(`
-            SELECT status, COUNT(*) as count FROM documents GROUP BY status
+            SELECT status, COUNT(*) as count FROM documents WHERE deleted_at IS NULL GROUP BY status
         `).all();
         const documentStatus = { Completed: 0, Archived: 0 };
         docStatusRows.forEach(r => { if (r.status in documentStatus) documentStatus[r.status] = r.count; });

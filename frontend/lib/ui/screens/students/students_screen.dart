@@ -1179,8 +1179,6 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
     StudentQueryParams query, {
     bool noSections = false,
   }) {
-    if (rawStudents.isEmpty) return _buildEmptyState(noSections: noSections);
-
     List<StudentModel> students = _sortStudents(rawStudents, query);
 
     return LayoutBuilder(
@@ -1209,6 +1207,15 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
         }
 
         final isDark = Theme.of(context).brightness == Brightness.dark;
+        final headingColor = isDark
+            ? Color.alphaBlend(
+                AppColors.primaryGreen.withValues(alpha: 0.12),
+                AppColors.darkSurfaceCard,
+              )
+            : Color.alphaBlend(
+                AppColors.primaryGreen.withValues(alpha: 0.08),
+                AppColors.surfaceWhite,
+              );
 
         return Container(
             width: double.infinity,
@@ -1226,12 +1233,21 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
             child: ClipRRect(
               borderRadius: BorderRadius.circular(AppSizes.radiusLarge),
               child: DataTable2(
+                fixedTopRows: 1,
                 minWidth: 950,
                 columnSpacing: 12,
                 horizontalMargin: 16,
-                headingRowColor: WidgetStateProperty.all(
-                  AppColors.primaryGreen.withValues(alpha: 0.06),
+                headingRowHeight: 52,
+                headingRowColor: WidgetStateProperty.all(headingColor),
+                headingTextStyle: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
+                  fontSize: 13,
                 ),
+                showBottomBorder: true,
+                isVerticalScrollBarVisible: true,
+                isHorizontalScrollBarVisible: true,
+                empty: _buildEmptyState(noSections: noSections),
                 dataRowHeight: 56,
                 columns: [
                   if (widget.userRole != 'teacher' && _showMultiSelect)

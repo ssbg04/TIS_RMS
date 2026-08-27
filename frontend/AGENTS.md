@@ -373,21 +373,26 @@ Files backup/restore - mirror mode or zip -->
 <!-- # CUSTOM DIALOGS
 - add sound effects for success, error, warning, info, confirm -->
 
+<!-- # STUDENT SCREEN
+- student profile -> action icon button -> convert to bottom right FAB
+- file delete moved to inside of recycle bin -> missing requirements count, dont count files inside of recycle bin -->
+
+<!-- # STUDENT SCREEN
+- fix/stay the table header when no student found -->
+
 --- 
 
 # DONT DO
 - documents screen -> archive files hide in list -> move archive files into archive screen or in more icon
-- document screen -> fix stay the table header
 - recycle bin -> search history not delete history
+
 - reports screen -> compliance -> students per year -> year filter
-- student screen -> file delete inside of recycle bin -> missing requirements count, dont count files inside of recycle bin
 - reports screen -> horizontal scroll bar hint
 - report screen -> dynamic year filter default as active year
 - reports screen -> compliance hover on missing count shows all missing documents separated jhs shs
 - dashboard screen -> kpi and analytics
 - user management -> expired the jwt of deactivated user
 
-- student screen -> student progile -> action icon button -> convert to bottom right FAB 
 - dashboard screen -> user friendly logs/histories
 - notification separate admin and teacher
 - teacher no assigned section theme color
@@ -396,8 +401,7 @@ Files backup/restore - mirror mode or zip -->
 - forget password sa admin side (email)
 - search history dapat naalis
 - lrn should not be fixed
-- n/a add student in suffix part 
-remove
+- n/a add student in suffix part -> remove
 - inactive academic year 
 - multiple selection of files in select document type 
 - how about when the pages needed to upload have two pages or more?

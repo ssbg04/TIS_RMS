@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../domain/repositories/document_repository.dart';
 import '../../domain/entities/document_requirement_model.dart';
 import '../../domain/entities/folder_model.dart';
+import 'student_provider.dart';
 
 final documentRepositoryProvider = Provider<DocumentRepository>((ref) {
   return DocumentRepository();
@@ -316,6 +317,8 @@ class DocumentMutationNotifier extends AsyncNotifier<void> {
       ref.invalidate(documentPageProvider);
       ref.invalidate(foldersProvider);
       ref.invalidate(studentFoldersProvider);
+      ref.invalidate(studentPageProvider);
+      ref.invalidate(missingRequirementsProvider);
     } catch (e, st) {
       state = AsyncError(e, st);
       rethrow;
@@ -331,6 +334,8 @@ class DocumentMutationNotifier extends AsyncNotifier<void> {
       ref.invalidate(documentPageProvider);
       ref.invalidate(foldersProvider);
       ref.invalidate(studentFoldersProvider);
+      ref.invalidate(studentPageProvider);
+      ref.invalidate(missingRequirementsProvider);
     } catch (e, st) {
       state = AsyncError(e, st);
       rethrow;
@@ -361,6 +366,8 @@ class DocumentMutationNotifier extends AsyncNotifier<void> {
       ref.invalidate(documentPageProvider);
       ref.invalidate(foldersProvider);
       ref.invalidate(studentFoldersProvider);
+      ref.invalidate(studentPageProvider);
+      ref.invalidate(missingRequirementsProvider);
     } catch (e, st) {
       state = AsyncError(e, st);
       rethrow;
@@ -376,6 +383,8 @@ class DocumentMutationNotifier extends AsyncNotifier<void> {
       ref.invalidate(documentPageProvider);
       ref.invalidate(foldersProvider);
       ref.invalidate(studentFoldersProvider);
+      ref.invalidate(studentPageProvider);
+      ref.invalidate(missingRequirementsProvider);
     } catch (e, st) {
       state = AsyncError(e, st);
       rethrow;
@@ -596,6 +605,8 @@ class TrashMutationNotifier extends AsyncNotifier<void> {
       ref.invalidate(documentPageProvider);
       ref.invalidate(foldersProvider);
       ref.invalidate(studentFoldersProvider);
+      ref.invalidate(studentPageProvider);
+      ref.invalidate(missingRequirementsProvider);
     } catch (e, st) {
       state = AsyncError(e, st);
       rethrow;
@@ -612,6 +623,8 @@ class TrashMutationNotifier extends AsyncNotifier<void> {
       ref.invalidate(documentPageProvider);
       ref.invalidate(foldersProvider);
       ref.invalidate(studentFoldersProvider);
+      ref.invalidate(studentPageProvider);
+      ref.invalidate(missingRequirementsProvider);
     } catch (e, st) {
       state = AsyncError(e, st);
       rethrow;
@@ -625,6 +638,8 @@ class TrashMutationNotifier extends AsyncNotifier<void> {
       await repo.permanentDeleteDocument(id);
       state = const AsyncData(null);
       ref.invalidate(trashDocumentsProvider);
+      ref.invalidate(studentPageProvider);
+      ref.invalidate(missingRequirementsProvider);
     } catch (e, st) {
       state = AsyncError(e, st);
       rethrow;
@@ -638,6 +653,8 @@ class TrashMutationNotifier extends AsyncNotifier<void> {
       await repo.bulkPermanentDeleteDocuments(ids);
       state = const AsyncData(null);
       ref.invalidate(trashDocumentsProvider);
+      ref.invalidate(studentPageProvider);
+      ref.invalidate(missingRequirementsProvider);
     } catch (e, st) {
       state = AsyncError(e, st);
       rethrow;
