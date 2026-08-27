@@ -1969,7 +1969,7 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
                     child: Icon(
                       Icons.class_outlined,
                       size: 56,
-                      color: Colors.orange.shade400,
+                      color: isDark ? Colors.orangeAccent : Colors.orange.shade400,
                     ),
                   ),
                   const SizedBox(height: 20),
@@ -2522,7 +2522,7 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
               child: Icon(
                 Icons.class_outlined,
                 size: 56,
-                color: Colors.orange.shade400,
+                color: isDark ? Colors.orangeAccent : Colors.orange.shade400,
               ),
             ),
             const SizedBox(height: 20),

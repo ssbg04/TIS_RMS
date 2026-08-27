@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:fl_chart/fl_chart.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../providers/dashboard_provider.dart';
+import '../../../providers/auth_provider.dart';
 import '../../../../domain/entities/dashboard_models.dart';
 
 // ──────────────────────────────────────────────────────────────
@@ -14,6 +15,8 @@ class DashboardKpisSection extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final user = ref.watch(authProvider).value;
+    final isTeacher = user?.role == 'teacher';
     final kpisAsync = ref.watch(dashboardKpisProvider);
     final width = MediaQuery.of(context).size.width;
     final isWide = width >= 800;
@@ -28,7 +31,11 @@ class DashboardKpisSection extends ConsumerWidget {
           style: TextStyle(color: Colors.grey.shade500, fontSize: 12),
         ),
       ),
-      data: (kpis) => _KpisContent(kpis: kpis, isWide: isWide),
+      data: (kpis) => _KpisContent(
+        kpis: kpis,
+        isWide: isWide,
+        isTeacher: isTeacher,
+      ),
     );
   }
 }
@@ -39,11 +46,69 @@ class DashboardKpisSection extends ConsumerWidget {
 class _KpisContent extends StatelessWidget {
   final DashboardKpis kpis;
   final bool isWide;
+  final bool isTeacher;
 
-  const _KpisContent({required this.kpis, required this.isWide});
+  const _KpisContent({
+    required this.kpis,
+    required this.isWide,
+    this.isTeacher = false,
+  });
 
   @override
   Widget build(BuildContext context) {
+    if (isTeacher) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          if (isWide)
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(
+                  child: _StudentDocCard(
+                    title: 'Top Students by Documents',
+                    icon: Icons.emoji_events_rounded,
+                    iconColor: Colors.amber.shade700,
+                    students: kpis.topStudents,
+                    isTop: true,
+                  ),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: _StudentDocCard(
+                    title: 'Needs Attention',
+                    icon: Icons.warning_amber_rounded,
+                    iconColor: Colors.orange,
+                    students: kpis.bottomStudents,
+                    isTop: false,
+                  ),
+                ),
+              ],
+            )
+          else
+            Column(
+              children: [
+                _StudentDocCard(
+                  title: 'Top Students by Documents',
+                  icon: Icons.emoji_events_rounded,
+                  iconColor: Colors.amber.shade700,
+                  students: kpis.topStudents,
+                  isTop: true,
+                ),
+                const SizedBox(height: 16),
+                _StudentDocCard(
+                  title: 'Needs Attention',
+                  icon: Icons.warning_amber_rounded,
+                  iconColor: Colors.orange,
+                  students: kpis.bottomStudents,
+                  isTop: false,
+                ),
+              ],
+            ),
+        ],
+      );
+    }
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [

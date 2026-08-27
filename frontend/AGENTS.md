@@ -380,6 +380,10 @@ Files backup/restore - mirror mode or zip -->
 <!-- # STUDENT SCREEN
 - fix/stay the table header when no student found -->
 
+<!-- # DASHBOARD SCREEN
+- teacher side -> no assigned section theme color
+- remove analytics and KPIs in teacher side keep only the top students by documents and needs attention -->
+
 --- 
 
 # DONT DO
@@ -390,14 +394,19 @@ Files backup/restore - mirror mode or zip -->
 - reports screen -> horizontal scroll bar hint
 - report screen -> dynamic year filter default as active year
 - reports screen -> compliance hover on missing count shows all missing documents separated jhs shs
-- dashboard screen -> kpi and analytics
+
+
 - user management -> expired the jwt of deactivated user
 
+- dashboard screen -> kpi and analytics
 - dashboard screen -> user friendly logs/histories
+- dashboard screen -> assign section modal
+
 - notification separate admin and teacher
-- teacher no assigned section theme color
+
 - bug in bulk add student enrollment
 
+# CHINE
 - forget password sa admin side (email)
 - search history dapat naalis
 - lrn should not be fixed
