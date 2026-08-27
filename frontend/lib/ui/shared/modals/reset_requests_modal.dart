@@ -4,6 +4,7 @@ import '../../../core/constants/app_colors.dart';
 import '../../../core/utils/date_utils.dart' as date_utils;
 
 import '../../providers/auth_provider.dart';
+import '../dialogs/confirm_dialog.dart';
 import '../dialogs/error_dialog.dart';
 import '../dialogs/success_dialog.dart';
 import 'custom_modal.dart';
@@ -32,60 +33,46 @@ class _ResetRequestsModalState extends ConsumerState<ResetRequestsModal> {
   }
 
   Future<void> _confirmAction(
-    BuildContext context,
     Map<String, dynamic> req, {
     required bool isApprove,
   }) async {
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: Text(isApprove ? 'Approve Request' : 'Reject Request'),
-        content: Text(
+    final confirmed = await showConfirmDialog(
+      context,
+      title: isApprove ? 'Approve Reset Request' : 'Reject Reset Request',
+      message:
           'Are you sure you want to ${isApprove ? 'approve' : 'reject'} the password reset request for @${req['username']}?',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop(false),
-            child: const Text('CANCEL'),
-          ),
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop(true),
-            style: TextButton.styleFrom(
-              foregroundColor: isApprove ? AppColors.success : Colors.red,
-            ),
-            child: const Text('CONFIRM'),
-          ),
-        ],
-      ),
+      confirmLabel: isApprove ? 'Approve' : 'Reject',
+      isDanger: !isApprove,
+      confirmColor: isApprove ? AppColors.success : AppColors.error,
+      icon: isApprove ? Icons.check_circle_outline_rounded : Icons.cancel_outlined,
+      iconColor: isApprove ? AppColors.success : AppColors.error,
     );
 
-    if (confirmed == true && mounted) {
-      try {
-        final repo = ref.read(authRepositoryProvider);
-        if (isApprove) {
-          await repo.approveResetRequest(req['id'] as int);
-        } else {
-          await repo.rejectResetRequest(req['id'] as int);
-        }
-        ref.invalidate(resetRequestsProvider);
-        if (mounted) {
-          showSuccessDialog(
-            context,
-            title: isApprove ? 'Approved' : 'Rejected',
-            message: isApprove
-                ? 'Password reset approved.'
-                : 'Request rejected.',
-          );
-        }
-      } catch (e) {
-        if (mounted) {
-          showErrorDialog(
-            context,
-            isApprove ? 'Approval Failed' : 'Rejection Failed',
-            e.toString(),
-          );
-        }
+    if (confirmed != true || !mounted) return;
+
+    try {
+      final repo = ref.read(authRepositoryProvider);
+      if (isApprove) {
+        await repo.approveResetRequest(req['id'] as int);
+      } else {
+        await repo.rejectResetRequest(req['id'] as int);
       }
+      ref.invalidate(resetRequestsProvider);
+      if (!mounted) return;
+      showSuccessDialog(
+        context,
+        title: isApprove ? 'Approved' : 'Rejected',
+        message: isApprove
+            ? 'Password reset approved.'
+            : 'Request rejected.',
+      );
+    } catch (e) {
+      if (!mounted) return;
+      showErrorDialog(
+        context,
+        isApprove ? 'Approval Failed' : 'Rejection Failed',
+        e.toString(),
+      );
     }
   }
 
@@ -169,7 +156,7 @@ class _ResetRequestsModalState extends ConsumerState<ResetRequestsModal> {
                           ),
                           child: const Text('Approve'),
                           onPressed: () =>
-                              _confirmAction(context, req, isApprove: true),
+                              _confirmAction(req, isApprove: true),
                         ),
                         const SizedBox(height: 8),
                         TextButton(
@@ -179,7 +166,7 @@ class _ResetRequestsModalState extends ConsumerState<ResetRequestsModal> {
                           ),
                           child: const Text('Reject'),
                           onPressed: () =>
-                              _confirmAction(context, req, isApprove: false),
+                              _confirmAction(req, isApprove: false),
                         ),
                       ],
                     ),

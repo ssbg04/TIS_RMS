@@ -67,6 +67,7 @@ dependencies:
   firebase_messaging: ^15.2.5
   vibration: ^3.2.0
   desktop_drop: ^0.7.1
+  audioplayers: ^6.8.1
 
 dev_dependencies:
   flutter_test:
@@ -103,6 +104,7 @@ flutter:
   assets:
     - assets/images/
     - assets/lottie/
+    - assets/sounds/
     - assets/templates/School-Form-10-JHS.xlsx
     - assets/templates/SSHS-SF-10-v2026_corrected.xlsx
 

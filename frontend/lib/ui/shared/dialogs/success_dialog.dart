@@ -4,6 +4,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_sizes.dart';
 import '../../../core/services/haptic_service.dart';
+import '../../../core/services/sound_service.dart';
 
 /// Shows a reusable success dialog.
 ///
@@ -22,6 +23,7 @@ Future<void> showSuccessDialog(
   VoidCallback? onDismissed,
   String? filePath,
 }) {
+  SoundService.playSuccess();
   HapticService.success();
   return showDialog<void>(
     context: context,

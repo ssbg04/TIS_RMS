@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_sizes.dart';
 import '../../../core/services/haptic_service.dart';
+import '../../../core/services/sound_service.dart';
 
 /// Shows a reusable informational / warning dialog.
 ///
@@ -31,8 +32,10 @@ void showInfoDialog(
       iconColor == Colors.orange ||
       title.toLowerCase().contains('warning') ||
       title.toLowerCase().contains('alert')) {
+    SoundService.playWarning();
     HapticService.warning();
   } else {
+    SoundService.playInfo();
     HapticService.info();
   }
 

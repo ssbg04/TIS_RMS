@@ -2,11 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../../core/services/haptic_service.dart';
+import '../../../core/services/sound_service.dart';
 import '../../providers/auth_provider.dart';
 import '../../screens/login/login_screen.dart';
 
 /// A reusable function to show the logout confirmation and handle the logout process.
 Future<void> showLogoutConfirmationDialog(BuildContext context) async {
+  SoundService.playWarning();
   HapticService.warning();
   return showDialog(
     context: context,

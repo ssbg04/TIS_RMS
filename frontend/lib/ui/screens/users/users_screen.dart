@@ -17,8 +17,11 @@ import '../../providers/navigation_provider.dart';
 // --- NEW IMPORTS FOR CUSTOM DIALOGS ---
 import '../../shared/dialogs/error_dialog.dart';
 import '../../shared/dialogs/success_dialog.dart';
+import '../../shared/dialogs/confirm_dialog.dart';
 import '../../shared/modals/custom_modal.dart';
 import '../../shared/modals/reset_requests_modal.dart';
+import '../../../core/services/sound_service.dart';
+import '../../../core/services/haptic_service.dart';
 import 'package:wolt_modal_sheet/wolt_modal_sheet.dart';
 
 class UsersScreen extends ConsumerStatefulWidget {
@@ -95,9 +98,16 @@ class _UsersScreenState extends ConsumerState<UsersScreen> {
 
   List<SystemUser> _filter(List<SystemUser> users) {
     var result = users;
-    // Apply role filter first
-    if (_roleFilter != 'all') {
-      result = result.where((u) => u.role == _roleFilter).toList();
+    // Apply status and role filter
+    if (_roleFilter == 'inactive') {
+      result = result.where((u) => !u.isActive).toList();
+    } else if (_roleFilter == 'admin') {
+      result = result.where((u) => u.isActive && u.role == 'admin').toList();
+    } else if (_roleFilter == 'teacher') {
+      result = result.where((u) => u.isActive && u.role == 'teacher').toList();
+    } else {
+      // 'all' shows all active users
+      result = result.where((u) => u.isActive).toList();
     }
     bool isFuzzyMatch(String text, String query) {
       if (query.isEmpty) return true;
@@ -157,6 +167,26 @@ class _UsersScreenState extends ConsumerState<UsersScreen> {
     }
   }
 
+  Future<void> _confirmToggleStatus(SystemUser user) async {
+    final willDeactivate = user.isActive;
+    final confirmed = await showConfirmDialog(
+      context,
+      title: willDeactivate ? 'Deactivate User?' : 'Activate User?',
+      message: willDeactivate
+          ? 'Are you sure you want to deactivate "${user.fullName}" (@${user.username})?\n\nThis user will be immediately blocked from logging in.'
+          : 'Are you sure you want to activate "${user.fullName}" (@${user.username})?\n\nThis user will regain access to log into the system.',
+      confirmLabel: willDeactivate ? 'Deactivate' : 'Activate',
+      cancelLabel: 'Cancel',
+      isDanger: willDeactivate,
+      confirmColor: willDeactivate ? AppColors.error : AppColors.primaryGreen,
+      icon: willDeactivate ? Icons.block_rounded : Icons.check_circle_outline_rounded,
+      iconColor: willDeactivate ? AppColors.error : AppColors.primaryGreen,
+    );
+
+    if (confirmed != true || !mounted) return;
+    await _toggleStatus(user);
+  }
+
   Future<void> _toggleStatus(SystemUser user) async {
     try {
       final newActive = await ref
@@ -180,23 +210,9 @@ class _UsersScreenState extends ConsumerState<UsersScreen> {
     }
   }
 
-  Future<void> _openModal({SystemUser? user, bool fromDetails = false}) async {
+  Future<void> _openModal({SystemUser? user}) async {
     final success = await AddEditUserModal.show(context, user: user);
-    if (fromDetails && user != null && mounted) {
-      final users = ref.read(usersProvider).value ?? [];
-      final updatedUser = users.firstWhere(
-        (u) => u.id == user.id,
-        orElse: () => user,
-      );
-      _showUserDetailModal(updatedUser);
-      if (success == true) {
-        showSuccessDialog(
-          context,
-          title: 'User Updated',
-          message: 'User updated successfully!',
-        );
-      }
-    } else if (success == true && mounted && user != null) {
+    if (success == true && mounted && user != null) {
       showSuccessDialog(
         context,
         title: 'User Updated',
@@ -212,20 +228,21 @@ class _UsersScreenState extends ConsumerState<UsersScreen> {
     final textSecondary = isDark ? AppColors.darkTextSecondary : AppColors.textSecondary;
     final headerBg = isDark ? AppColors.darkSurface2 : Colors.grey.shade50;
     final borderCol = isDark ? AppColors.darkBorder : Colors.grey.shade200;
+    final roleCol = _roleColor(user.role);
 
     CustomModal.show(
       context: context,
       title: 'User Profile Details',
       icon: Icons.person_outline,
-      maxWidth: 500,
+      maxWidth: 540,
       content: SingleChildScrollView(
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Header with aligned actions
+            // Header with Profile Identity & Badges
             Container(
-              padding: const EdgeInsets.all(AppSizes.p24),
+              padding: const EdgeInsets.all(AppSizes.p20),
               decoration: BoxDecoration(
                 color: headerBg,
                 border: Border(bottom: BorderSide(color: borderCol)),
@@ -234,152 +251,238 @@ class _UsersScreenState extends ConsumerState<UsersScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Row(
+                    crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
-                      CircleAvatar(
-                        radius: 28,
-                        backgroundColor: _roleColor(
-                          user.role,
-                        ).withValues(alpha: 0.15),
-                        child: Text(
-                          user.initials,
-                          style: TextStyle(
-                            fontSize: 20,
-                            fontWeight: FontWeight.bold,
-                            color: _roleColor(user.role),
+                      Stack(
+                        clipBehavior: Clip.none,
+                        children: [
+                          CircleAvatar(
+                            radius: 28,
+                            backgroundColor: roleCol.withValues(alpha: 0.15),
+                            child: Text(
+                              user.initials,
+                              style: TextStyle(
+                                fontSize: 20,
+                                fontWeight: FontWeight.bold,
+                                color: roleCol,
+                              ),
+                            ),
                           ),
-                        ),
+                          Positioned(
+                            right: 0,
+                            bottom: 0,
+                            child: Container(
+                              width: 14,
+                              height: 14,
+                              decoration: BoxDecoration(
+                                color: user.isActive ? AppColors.success : Colors.grey,
+                                shape: BoxShape.circle,
+                                border: Border.all(
+                                  color: headerBg,
+                                  width: 2.5,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
                       const SizedBox(width: AppSizes.p16),
                       Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text(
-                              user.fullName,
-                              style: TextStyle(
-                                fontSize: 20,
-                                fontWeight: FontWeight.bold,
-                                color: textPrimary,
-                              ),
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: Text(
+                                    user.fullName,
+                                    style: TextStyle(
+                                      fontSize: 18,
+                                      fontWeight: FontWeight.bold,
+                                      color: textPrimary,
+                                    ),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+                              ],
                             ),
-                            Text(
-                              '@${user.username}',
-                              style: TextStyle(
-                                fontSize: 14,
-                                color: textSecondary,
-                              ),
+                            const SizedBox(height: 3),
+                            Row(
+                              children: [
+                                Text(
+                                  '@${user.username}',
+                                  style: TextStyle(
+                                    fontSize: 13,
+                                    color: textSecondary,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                                const SizedBox(width: 8),
+                                _buildRoleChip(user.role),
+                                const SizedBox(width: 6),
+                                _buildStatusChip(user.isActive),
+                              ],
                             ),
                           ],
                         ),
                       ),
                     ],
                   ),
-                  const SizedBox(height: AppSizes.p20),
-                  Wrap(
-                    spacing: 12,
-                    runSpacing: 12,
-                    children: [
-                      OutlinedButton.icon(
-                        icon: const Icon(Icons.edit, size: 16),
-                        label: const Text('Edit'),
-                        onPressed: () {
+                  const SizedBox(height: AppSizes.p16),
+
+                  // Responsive Action Buttons Toolbar for Android & Windows
+                  LayoutBuilder(
+                    builder: (context, constraints) {
+                      final isCompact = constraints.maxWidth < 420;
+                      final canToggle = user.id != currentUser?.id;
+
+                      Widget buildActionButton({
+                        required IconData icon,
+                        required String label,
+                        required Color color,
+                        required VoidCallback onTap,
+                      }) {
+                        return Material(
+                          color: color.withValues(alpha: isDark ? 0.12 : 0.08),
+                          borderRadius: BorderRadius.circular(10),
+                          child: InkWell(
+                            onTap: () {
+                              HapticService.light();
+                              onTap();
+                            },
+                            borderRadius: BorderRadius.circular(10),
+                            child: Container(
+                              padding: EdgeInsets.symmetric(
+                                horizontal: isCompact ? 8 : 14,
+                                vertical: isCompact ? 10 : 10,
+                              ),
+                              decoration: BoxDecoration(
+                                borderRadius: BorderRadius.circular(10),
+                                border: Border.all(
+                                  color: color.withValues(alpha: isDark ? 0.35 : 0.28),
+                                  width: 1,
+                                ),
+                              ),
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(icon, size: isCompact ? 16 : 17, color: color),
+                                  const SizedBox(width: 6),
+                                  Flexible(
+                                    child: Text(
+                                      label,
+                                      style: TextStyle(
+                                        color: color,
+                                        fontSize: isCompact ? 12 : 13,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        );
+                      }
+
+                      final editBtn = buildActionButton(
+                        icon: Icons.edit_outlined,
+                        label: 'Edit',
+                        color: AppColors.primaryGreen,
+                        onTap: () {
                           Navigator.of(context, rootNavigator: true).pop();
-                          _openModal(user: user, fromDetails: true);
+                          _openModal(user: user);
                         },
-                        style: OutlinedButton.styleFrom(
-                          foregroundColor: AppColors.primaryGreen,
-                          side: const BorderSide(color: AppColors.primaryGreen),
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 16,
-                            vertical: 12,
-                          ),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                        ),
-                      ),
-                      OutlinedButton.icon(
-                        icon: const Icon(Icons.lock_reset, size: 16),
-                        label: const Text('Reset Pass'),
-                        onPressed: () {
+                      );
+
+                      final resetBtn = buildActionButton(
+                        icon: Icons.lock_reset_rounded,
+                        label: 'Reset Pass',
+                        color: Colors.orange.shade700,
+                        onTap: () {
                           Navigator.of(context, rootNavigator: true).pop();
                           _confirmResetPassword(user);
                         },
-                        style: OutlinedButton.styleFrom(
-                          foregroundColor: Colors.orange,
-                          side: const BorderSide(color: Colors.orange),
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 16,
-                            vertical: 12,
-                          ),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                        ),
-                      ),
-                      if (user.id != currentUser?.id)
-                        OutlinedButton.icon(
-                          icon: Icon(
-                            user.isActive ? Icons.block : Icons.check_circle_outline,
-                            size: 16,
-                          ),
-                          label: Text(user.isActive ? 'Deactivate' : 'Activate'),
-                          onPressed: () {
-                            Navigator.of(context, rootNavigator: true).pop();
-                            _toggleStatus(user);
-                          },
-                          style: OutlinedButton.styleFrom(
-                            foregroundColor: user.isActive ? Colors.red : AppColors.primaryGreen,
-                            side: BorderSide(color: user.isActive ? Colors.red : AppColors.primaryGreen),
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 16,
-                              vertical: 12,
-                            ),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                          ),
-                        ),
-                    ],
+                      );
+
+                      final toggleBtn = canToggle
+                          ? buildActionButton(
+                              icon: user.isActive
+                                  ? Icons.block_rounded
+                                  : Icons.check_circle_outline_rounded,
+                              label: user.isActive ? 'Deactivate' : 'Activate',
+                              color: user.isActive
+                                  ? Colors.red.shade600
+                                  : AppColors.primaryGreen,
+                              onTap: () {
+                                Navigator.of(context, rootNavigator: true).pop();
+                                _confirmToggleStatus(user);
+                              },
+                            )
+                          : null;
+
+                      return Row(
+                        children: [
+                          Expanded(child: editBtn),
+                          const SizedBox(width: 8),
+                          Expanded(child: resetBtn),
+                          if (toggleBtn != null) ...[
+                            const SizedBox(width: 8),
+                            Expanded(child: toggleBtn),
+                          ],
+                        ],
+                      );
+                    },
                   ),
                 ],
               ),
             ),
-            // Content layout line by line
+
+            // Profile Information Body
             Padding(
-              padding: const EdgeInsets.all(AppSizes.p24),
+              padding: const EdgeInsets.all(AppSizes.p20),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   _detailRow(
-                    'Access Role',
-                    user.role.toUpperCase().replaceAll('_', ' '),
+                    icon: Icons.admin_panel_settings_outlined,
+                    label: 'Access Role',
+                    value: user.role.toUpperCase().replaceAll('_', ' '),
                   ),
                   const SizedBox(height: AppSizes.p16),
                   _detailRow(
-                    'Date Joined',
-                    user.createdAt?.split('T').first ?? '—',
+                    icon: Icons.verified_user_outlined,
+                    label: 'Account Status',
+                    value: user.isActive ? 'Active (Can login)' : 'Inactive (Access blocked)',
+                    valueColor: user.isActive ? Colors.green.shade700 : Colors.red.shade700,
                   ),
                   const SizedBox(height: AppSizes.p16),
                   _detailRow(
-                    'Email',
-                    user.email?.isNotEmpty == true ? user.email! : '—',
+                    icon: Icons.calendar_today_outlined,
+                    label: 'Date Joined',
+                    value: user.createdAt?.split('T').first ?? '—',
                   ),
                   const SizedBox(height: AppSizes.p16),
                   _detailRow(
-                    'Phone',
-                    user.phone?.isNotEmpty == true ? user.phone! : '—',
-                  ),
-                  // Status row
-                  const SizedBox(height: AppSizes.p16),
-                  _detailRow(
-                    'Account Status',
-                    user.isActive ? 'Active' : 'Inactive',
+                    icon: Icons.email_outlined,
+                    label: 'Email',
+                    value: user.email?.isNotEmpty == true ? user.email! : '—',
                   ),
                   const SizedBox(height: AppSizes.p16),
                   _detailRow(
-                    'Added By',
-                    user.addedByName != null
+                    icon: Icons.phone_outlined,
+                    label: 'Phone',
+                    value: user.phone?.isNotEmpty == true ? user.phone! : '—',
+                  ),
+                  const SizedBox(height: AppSizes.p16),
+                  _detailRow(
+                    icon: Icons.person_add_outlined,
+                    label: 'Added By',
+                    value: user.addedByName != null
                         ? '${user.addedByName} (@${user.addedByUsername})'
                         : 'System',
                   ),
@@ -392,25 +495,43 @@ class _UsersScreenState extends ConsumerState<UsersScreen> {
     );
   }
 
-  Widget _detailRow(String label, String value) {
+  Widget _detailRow({
+    required IconData icon,
+    required String label,
+    required String value,
+    Color? valueColor,
+  }) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final textPrimary = isDark ? AppColors.darkTextPrimary : AppColors.textPrimary;
     final textSecondary = isDark ? AppColors.darkTextSecondary : AppColors.textSecondary;
-    return Column(
+    return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          label,
-          style: TextStyle(
-            fontSize: 12,
-            color: textSecondary,
-            fontWeight: FontWeight.bold,
+        Icon(icon, size: 18, color: textSecondary.withValues(alpha: 0.8)),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                label,
+                style: TextStyle(
+                  fontSize: 12,
+                  color: textSecondary,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                value,
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w500,
+                  color: valueColor ?? textPrimary,
+                ),
+              ),
+            ],
           ),
-        ),
-        const SizedBox(height: 2),
-        Text(
-          value,
-          style: TextStyle(fontSize: 15, color: textPrimary),
         ),
       ],
     );
@@ -536,6 +657,11 @@ class _UsersScreenState extends ConsumerState<UsersScreen> {
                     final int endIndex = (startIndex + _itemsPerPage).clamp(0, filtered.length);
                     final paginated = filtered.isEmpty ? <SystemUser>[] : filtered.sublist(startIndex, endIndex);
 
+                    final activeUsers = users.where((u) => u.isActive).toList();
+                    final activeAdmins = activeUsers.where((u) => u.role == 'admin').toList();
+                    final activeTeachers = activeUsers.where((u) => u.role == 'teacher').toList();
+                    final inactiveUsers = users.where((u) => !u.isActive).toList();
+
                     return Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
@@ -546,16 +672,21 @@ class _UsersScreenState extends ConsumerState<UsersScreen> {
                                 scrollDirection: Axis.horizontal,
                                 child: Row(
                                   children: [
-                                    _buildAnimatedFilter('All', 'all', users.length),
+                                    _buildAnimatedFilter('All', 'all', activeUsers.length),
                                     _buildAnimatedFilter(
                                       'Admin',
                                       'admin',
-                                      users.where((u) => u.role == 'admin').length,
+                                      activeAdmins.length,
                                     ),
                                     _buildAnimatedFilter(
                                       'Teacher',
                                       'teacher',
-                                      users.where((u) => u.role == 'teacher').length,
+                                      activeTeachers.length,
+                                    ),
+                                    _buildAnimatedFilter(
+                                      'Inactive',
+                                      'inactive',
+                                      inactiveUsers.length,
                                     ),
                                   ],
                                 ),
@@ -1918,6 +2049,13 @@ class _ResetPasswordConfirmationDialogState
     extends State<_ResetPasswordConfirmationDialog> {
   final _passwordCtrl = TextEditingController();
   bool _obscurePassword = true;
+
+  @override
+  void initState() {
+    super.initState();
+    SoundService.playWarning();
+    HapticService.warning();
+  }
 
   @override
   void dispose() {

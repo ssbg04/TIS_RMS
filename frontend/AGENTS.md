@@ -367,9 +367,44 @@ Files backup/restore - mirror mode or zip -->
   - Doc status attention rename selections from "Default Doc Status Order, Low, High" to "Default, Completed, Pending"
   - remove the LRN Sort Order -->
 
-# USER MANAGEMENT
-- user profile details, redesign the action buttons, make responsive buttons for android app and windows app
-- add confirmation dialog for deactivate and activate
+<!-- # USER MANAGEMENT
+- add another filter for inactive status, show in [all, admin, teacher] filter for active users -->
+
+<!-- # CUSTOM DIALOGS
+- add sound effects for success, error, warning, info, confirm -->
+
+--- 
+
+# DONT DO
+- documents screen -> archive files hide in list -> move archive files into archive screen or in more icon
+- document screen -> fix stay the table header
+- recycle bin -> search history not delete history
+- reports screen -> compliance -> students per year -> year filter
+- student screen -> file delete inside of recycle bin -> missing requirements count, dont count files inside of recycle bin
+- reports screen -> horizontal scroll bar hint
+- report screen -> dynamic year filter default as active year
+- reports screen -> compliance hover on missing count shows all missing documents separated jhs shs
+- dashboard screen -> kpi and analytics
+- user management -> expired the jwt of deactivated user
+
+- student screen -> student progile -> action icon button -> convert to bottom right FAB 
+- dashboard screen -> user friendly logs/histories
+- notification separate admin and teacher
+- teacher no assigned section theme color
+- bug in bulk add student enrollment
+
+- forget password sa admin side (email)
+- search history dapat naalis
+- lrn should not be fixed
+- n/a add student in suffix part 
+remove
+- inactive academic year 
+- multiple selection of files in select document type 
+- how about when the pages needed to upload have two pages or more?
+- archive still popping up even after archiving & overall number of docs are inaccurate in docs status
+- overall number of docs are inaccurate in docs status
+- table header on students directory
+- accurate reports
 
 ---
 
