@@ -169,6 +169,31 @@ exports.uploadDocument = (req, res) => {
 
     try {
         const reqId = requirementId && requirementId !== 'null' ? requirementId : null;
+
+        // Duplicate Guard: Ensure only one file per document type / requirement exists per student
+        const existingDoc = reqId
+            ? db.prepare(`
+                SELECT id, file_name, document_type FROM documents 
+                WHERE student_id = ? AND deleted_at IS NULL
+                  AND (document_type = ? OR requirement_id = ?)
+                LIMIT 1
+            `).get(studentId, documentType, reqId)
+            : db.prepare(`
+                SELECT id, file_name, document_type FROM documents 
+                WHERE student_id = ? AND deleted_at IS NULL
+                  AND document_type = ?
+                LIMIT 1
+            `).get(studentId, documentType);
+
+        if (existingDoc) {
+            if (file.path && fs.existsSync(file.path)) {
+                try { fs.unlinkSync(file.path); } catch (_) {}
+            }
+            return res.status(400).json({ 
+                message: `A document of type "${documentType}" already exists for this student (${existingDoc.file_name}). Duplicate uploads of the same document type are not allowed.` 
+            });
+        }
+
         const fileSize = file.size || (file.path && fs.existsSync(file.path) ? fs.statSync(file.path).size : null);
 
         const result = db.prepare(`

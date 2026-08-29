@@ -55,7 +55,6 @@ class _AddStudentModalState extends ConsumerState<AddStudentModal> {
   String? _selectedOcrDocType;
 
   static const _extSuggestions = [
-    'N/A',
     'JR.',
     'SR.',
     'II',

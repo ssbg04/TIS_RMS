@@ -410,31 +410,29 @@ Files backup/restore - mirror mode or zip -->
 - add dialog to reconnect or loads the splash screen
 - always check LAN connection then if the LAN connection not working then use the tunnel connection -->
 
+<!-- # STUDENT SCREEN
+- add new student screen -> remove N/A on suffix dropdown
+
+# DASHBOARD SCREEN
+- upload document limit document type limit -> duplicate files -> if one file for one document type already exist, dont allow to upload another one
+- kpi and analytics (active year)
+  - document status distribution -> count by document type uploaded not count of total documents uploaded
+  - Document type breakdown -> add filter dropdown for all document type -> if selected one document type show all year level in one pie chart, then it has over to the total
+  - top student by documents -> dont count all uploaded document, just count document type uploaded over the total missing required documents -->
+
 --- 
 
 # DONT DO
-
 - recycle bin -> search history not delete history
 
+- add missing students by document type kpi
 
-
-- document screen -> upload document limit document type limit -> duplicate files
-
-
-- dashboard school -> add missing students by document type kpi 
-- dashboard screen -> kpi and analytics
-- dashboard screen -> user friendly logs/histories
-- dashboard screen -> assign section modal
-
-- student screen -> add new student screen -> remove N/A on suffix dropdown
+- user friendly logs/histories
+- assign section modal
 
 - notification separate admin and teacher
-
 - bug in bulk add student enrollment
 
-Aug 28 2026:
-- missing kpi in dashboard
-- grade level by teacher
 - report all export 
 
 Dashboard

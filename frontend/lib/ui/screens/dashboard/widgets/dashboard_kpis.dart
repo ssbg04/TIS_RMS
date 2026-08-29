@@ -112,7 +112,11 @@ class _KpisContent extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const _SectionHeader(title: 'Analytics & KPIs', icon: Icons.insights_rounded),
+        _SectionHeader(
+          title: 'Analytics & KPIs',
+          icon: Icons.insights_rounded,
+          activeYear: kpis.activeAcademicYear,
+        ),
         const SizedBox(height: 16),
 
         // Row 1: Digitalization donuts + Activity bar
@@ -143,7 +147,12 @@ class _KpisContent extends StatelessWidget {
             children: [
               Expanded(child: _StatusDistributionCard(entries: kpis.statusDistribution)),
               const SizedBox(width: 16),
-              Expanded(child: _DocTypePieCard(entries: kpis.docTypeBreakdown)),
+              Expanded(
+                child: _DocTypePieCard(
+                  entries: kpis.docTypeBreakdown,
+                  docTypeByGrade: kpis.docTypeByGrade,
+                ),
+              ),
             ],
           )
         else
@@ -151,7 +160,10 @@ class _KpisContent extends StatelessWidget {
             children: [
               _StatusDistributionCard(entries: kpis.statusDistribution),
               const SizedBox(height: 16),
-              _DocTypePieCard(entries: kpis.docTypeBreakdown),
+              _DocTypePieCard(
+                entries: kpis.docTypeBreakdown,
+                docTypeByGrade: kpis.docTypeByGrade,
+              ),
             ],
           ),
 
@@ -229,6 +241,7 @@ class _ChartCard extends StatelessWidget {
   final Color iconColor;
   final Widget child;
   final String? subtitle;
+  final Widget? trailing;
 
   const _ChartCard({
     required this.title,
@@ -236,6 +249,7 @@ class _ChartCard extends StatelessWidget {
     required this.child,
     this.iconColor = AppColors.primaryGreen,
     this.subtitle,
+    this.trailing,
   });
 
   @override
@@ -279,12 +293,13 @@ class _ChartCard extends StatelessWidget {
                         subtitle!,
                         style: TextStyle(
                           fontSize: 11,
-                          color: Theme.of(context).colorScheme.onSurface.withOpacity(0.38),
+                          color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5),
                         ),
                       ),
                   ],
                 ),
               ),
+              ?trailing,
             ],
           ),
           const SizedBox(height: 16),
@@ -296,7 +311,7 @@ class _ChartCard extends StatelessWidget {
 }
 
 // ──────────────────────────────────────────────────────────────
-// 1. DIGITALIZATION DONUT
+// 1. DIGITALIZATION (JHS / SHS / Overall donuts)
 // ──────────────────────────────────────────────────────────────
 class _DigitalizationCard extends StatelessWidget {
   final DigitalizationData data;
@@ -305,66 +320,90 @@ class _DigitalizationCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return _ChartCard(
-      title: 'Digitalization Rate',
+      title: 'Digitalization Progress',
       icon: Icons.donut_large_rounded,
-      subtitle: 'Students with at least one uploaded document',
+      subtitle: 'Enrolled students with uploaded documents',
       child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceAround,
         children: [
-          Expanded(child: _DonutWidget(label: 'JHS', category: data.jhs, color: AppColors.primaryGreen)),
-          const SizedBox(width: 8),
-          Expanded(child: _DonutWidget(label: 'SHS', category: data.shs, color: Colors.blue.shade600)),
-          const SizedBox(width: 8),
-          Expanded(child: _DonutWidget(label: 'Overall', category: data.overall, color: Colors.purple.shade600)),
+          _DonutTile(
+            label: 'JHS',
+            percent: data.jhs.percent,
+            digitized: data.jhs.digitized,
+            total: data.jhs.total,
+            color: AppColors.primaryGreen,
+          ),
+          _DonutTile(
+            label: 'SHS',
+            percent: data.shs.percent,
+            digitized: data.shs.digitized,
+            total: data.shs.total,
+            color: Colors.blue.shade700,
+          ),
+          _DonutTile(
+            label: 'Overall',
+            percent: data.overall.percent,
+            digitized: data.overall.digitized,
+            total: data.overall.total,
+            color: Colors.purple.shade600,
+          ),
         ],
       ),
     );
   }
 }
 
-class _DonutWidget extends StatelessWidget {
+class _DonutTile extends StatelessWidget {
   final String label;
-  final DigitalizationCategory category;
+  final double percent;
+  final int digitized;
+  final int total;
   final Color color;
-  const _DonutWidget({required this.label, required this.category, required this.color});
+
+  const _DonutTile({
+    required this.label,
+    required this.percent,
+    required this.digitized,
+    required this.total,
+    required this.color,
+  });
 
   @override
   Widget build(BuildContext context) {
-    final pct = (category.percent * 100).round();
-    final remaining = category.total - category.digitized;
-
+    final pctInt = (percent * 100).toInt();
     return Column(
       children: [
         SizedBox(
-          height: 100,
+          height: 80,
+          width: 80,
           child: Stack(
             alignment: Alignment.center,
             children: [
               PieChart(
                 PieChartData(
-                  sectionsSpace: 2,
-                  centerSpaceRadius: 30,
+                  sectionsSpace: 0,
+                  centerSpaceRadius: 28,
+                  startDegreeOffset: -90,
                   sections: [
                     PieChartSectionData(
-                      value: category.digitized.toDouble().clamp(0.01, double.infinity),
+                      value: digitized.toDouble(),
                       color: color,
-                      radius: 20,
+                      radius: 12,
                       showTitle: false,
                     ),
                     PieChartSectionData(
-                      value: remaining.clamp(0, double.maxFinite.toInt()).toDouble().clamp(0.01, double.infinity),
-                      color: Theme.of(context).brightness == Brightness.dark
-                          ? AppColors.darkSurface2
-                          : Colors.grey.shade200,
-                      radius: 20,
+                      value: max(0, total - digitized).toDouble(),
+                      color: color.withValues(alpha: 0.12),
+                      radius: 12,
                       showTitle: false,
                     ),
                   ],
                 ),
               ),
               Text(
-                '$pct%',
+                '$pctInt%',
                 style: TextStyle(
-                  fontSize: 14,
+                  fontSize: 13,
                   fontWeight: FontWeight.bold,
                   color: color,
                 ),
@@ -372,11 +411,21 @@ class _DonutWidget extends StatelessWidget {
             ],
           ),
         ),
-        Text(label, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
-        const SizedBox(height: 2),
+        const SizedBox(height: 6),
         Text(
-          '${category.digitized}/${category.total}',
-          style: TextStyle(fontSize: 11, color: Theme.of(context).colorScheme.onSurface.withOpacity(0.38)),
+          label,
+          style: TextStyle(
+            fontSize: 12,
+            fontWeight: FontWeight.w600,
+            color: Theme.of(context).colorScheme.onSurface,
+          ),
+        ),
+        Text(
+          '$digitized / $total',
+          style: TextStyle(
+            fontSize: 10,
+            color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.54),
+          ),
         ),
       ],
     );
@@ -482,7 +531,7 @@ class _ActivityBarCard extends StatelessWidget {
                         return Text(
                           '${parts[1]}/${parts[2]}',
                           style: TextStyle(
-                              fontSize: 9, color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6)),
+                              fontSize: 9, color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6)),
                         );
                       },
                       reservedSize: 20,
@@ -531,6 +580,7 @@ class _StatusDistributionCard extends StatelessWidget {
       title: 'Document Status Distribution',
       icon: Icons.pie_chart_outline_rounded,
       iconColor: Colors.orange,
+      subtitle: 'By unique document types uploaded',
       child: Column(
         children: entries.map((e) {
           final pct = total == 0 ? 0.0 : e.count / total;
@@ -555,7 +605,7 @@ class _StatusDistributionCard extends StatelessWidget {
                       '${e.count} (${(pct * 100).toStringAsFixed(1)}%)',
                       style: TextStyle(
                         fontSize: 12,
-                        color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+                        color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
                       ),
                     ),
                   ],
@@ -580,17 +630,23 @@ class _StatusDistributionCard extends StatelessWidget {
 }
 
 // ──────────────────────────────────────────────────────────────
-// 4. DOCUMENT TYPE PIE
+// 4. DOCUMENT TYPE PIE WITH DROPDOWN FILTER & GRADE BREAKDOWN
 // ──────────────────────────────────────────────────────────────
 class _DocTypePieCard extends StatefulWidget {
   final List<DocTypeEntry> entries;
-  const _DocTypePieCard({required this.entries});
+  final Map<String, List<DocTypeGradeEntry>> docTypeByGrade;
+
+  const _DocTypePieCard({
+    required this.entries,
+    this.docTypeByGrade = const {},
+  });
 
   @override
   State<_DocTypePieCard> createState() => _DocTypePieCardState();
 }
 
 class _DocTypePieCardState extends State<_DocTypePieCard> {
+  String? _selectedDocType; // null = "All Document Types"
   int _touchedIndex = -1;
 
   static const List<Color> _palette = [
@@ -599,93 +655,490 @@ class _DocTypePieCardState extends State<_DocTypePieCard> {
     Color(0xFFF97316), Color(0xFF10B981), Color(0xFFEC4899), Color(0xFF6366F1),
   ];
 
+  static const Map<String, Color> _gradeColorMap = {
+    'Grade 7': Color(0xFF1C8248),
+    'Grade 8': Color(0xFF2196F3),
+    'Grade 9': Color(0xFFF59E0B),
+    'Grade 10': Color(0xFFEF4444),
+    'Grade 11': Color(0xFF8B5CF6),
+    'Grade 12': Color(0xFF06B6D4),
+  };
+
   @override
   Widget build(BuildContext context) {
-    final total = widget.entries.fold(0, (s, e) => s + e.count);
-    final sections = <PieChartSectionData>[];
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final allDocTypeNames = <String>[];
+    if (widget.docTypeByGrade.isNotEmpty) {
+      allDocTypeNames.addAll(widget.docTypeByGrade.keys);
+    } else {
+      allDocTypeNames.addAll(widget.entries.map((e) => e.name));
+    }
 
-    for (int i = 0; i < widget.entries.length; i++) {
-      final e = widget.entries[i];
-      final color = _palette[i % _palette.length];
-      final isTouched = i == _touchedIndex;
-      sections.add(PieChartSectionData(
-        value: e.count.toDouble(),
-        color: color,
-        radius: isTouched ? 70 : 60,
-        showTitle: false,
-      ));
+    final jhsTypes = allDocTypeNames.where((k) => k.startsWith('JHS - ') || k.contains('(JHS)')).toList();
+    final shsTypes = allDocTypeNames.where((k) => k.startsWith('SHS - ') || k.contains('(SHS)')).toList();
+    final otherTypes = allDocTypeNames.where((k) => !jhsTypes.contains(k) && !shsTypes.contains(k)).toList();
+
+    final isAll = _selectedDocType == null;
+
+    // Data for "All Document Types"
+    final allTotal = widget.entries.fold(0, (s, e) => s + e.count);
+
+    // Data for specific doc type
+    final selectedGradeList = _selectedDocType != null
+        ? (widget.docTypeByGrade[_selectedDocType] ?? <DocTypeGradeEntry>[])
+        : <DocTypeGradeEntry>[];
+    final selectedTotalUploaded =
+        selectedGradeList.fold(0, (s, g) => s + g.count);
+    final selectedTotalEnrolled =
+        selectedGradeList.fold(0, (s, g) => s + g.totalStudents);
+
+    final isSelectedJhs = _selectedDocType != null && (_selectedDocType!.startsWith('JHS - ') || _selectedDocType!.contains('(JHS)'));
+    final isSelectedShs = _selectedDocType != null && (_selectedDocType!.startsWith('SHS - ') || _selectedDocType!.contains('(SHS)'));
+    final categoryLabel = isSelectedJhs ? 'JHS ' : (isSelectedShs ? 'SHS ' : '');
+
+    // Build Pie Chart Sections
+    final sections = <PieChartSectionData>[];
+    if (isAll) {
+      if (widget.entries.isEmpty) {
+        sections.add(PieChartSectionData(
+          value: 1,
+          color: isDark ? AppColors.darkSurface2 : Colors.grey.shade300,
+          radius: 50,
+          showTitle: false,
+        ));
+      } else {
+        for (int i = 0; i < widget.entries.length; i++) {
+          final e = widget.entries[i];
+          final color = _palette[i % _palette.length];
+          final isTouched = i == _touchedIndex;
+          sections.add(PieChartSectionData(
+            value: e.count.toDouble(),
+            color: color,
+            radius: isTouched ? 70 : 60,
+            showTitle: false,
+          ));
+        }
+      }
+    } else {
+      if (selectedTotalUploaded == 0) {
+        sections.add(PieChartSectionData(
+          value: 1,
+          color: isDark ? AppColors.darkSurface2 : Colors.grey.shade300,
+          radius: 50,
+          showTitle: false,
+        ));
+      } else {
+        for (int i = 0; i < selectedGradeList.length; i++) {
+          final g = selectedGradeList[i];
+          if (g.count == 0) continue;
+          final color = _gradeColorMap[g.gradeLevel] ?? _palette[i % _palette.length];
+          final isTouched = i == _touchedIndex;
+          sections.add(PieChartSectionData(
+            value: g.count.toDouble(),
+            color: color,
+            radius: isTouched ? 70 : 60,
+            showTitle: false,
+          ));
+        }
+      }
+    }
+
+    final subtitle = isAll
+        ? 'Top ${widget.entries.length} document types ($allTotal uploaded)'
+        : '$selectedTotalUploaded / $selectedTotalEnrolled ${categoryLabel}students (${selectedTotalEnrolled == 0 ? "0.0" : (selectedTotalUploaded / selectedTotalEnrolled * 100).toStringAsFixed(1)}% complete)';
+
+    // Build grouped dropdown menu items
+    final dropdownItems = <DropdownMenuItem<String?>>[
+      const DropdownMenuItem<String?>(
+        value: null,
+        child: Text('All Document Types', style: TextStyle(fontWeight: FontWeight.w600)),
+      ),
+    ];
+
+    if (jhsTypes.isNotEmpty) {
+      dropdownItems.add(
+        DropdownMenuItem<String?>(
+          enabled: false,
+          value: '__header_jhs__',
+          child: Container(
+            padding: const EdgeInsets.only(top: 4, bottom: 2),
+            child: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                  decoration: BoxDecoration(
+                    color: AppColors.primaryGreen.withValues(alpha: isDark ? 0.25 : 0.15),
+                    borderRadius: BorderRadius.circular(4),
+                  ),
+                  child: Text(
+                    'JHS',
+                    style: TextStyle(
+                      fontSize: 10,
+                      fontWeight: FontWeight.bold,
+                      color: isDark ? const Color(0xFF66BB6A) : AppColors.primaryGreen,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  'Junior High School',
+                  style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.bold,
+                    color: isDark ? Colors.grey.shade400 : Colors.grey.shade700,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+      for (final name in jhsTypes) {
+        final displayName = name.startsWith('JHS - ') ? name.substring(6) : name;
+        dropdownItems.add(
+          DropdownMenuItem<String?>(
+            value: name,
+            child: Padding(
+              padding: const EdgeInsets.only(left: 12),
+              child: Text(
+                displayName,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+          ),
+        );
+      }
+    }
+
+    if (shsTypes.isNotEmpty) {
+      dropdownItems.add(
+        DropdownMenuItem<String?>(
+          enabled: false,
+          value: '__header_shs__',
+          child: Container(
+            padding: const EdgeInsets.only(top: 6, bottom: 2),
+            child: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                  decoration: BoxDecoration(
+                    color: Colors.blue.withValues(alpha: isDark ? 0.25 : 0.15),
+                    borderRadius: BorderRadius.circular(4),
+                  ),
+                  child: Text(
+                    'SHS',
+                    style: TextStyle(
+                      fontSize: 10,
+                      fontWeight: FontWeight.bold,
+                      color: isDark ? Colors.blue.shade300 : Colors.blue.shade700,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  'Senior High School',
+                  style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.bold,
+                    color: isDark ? Colors.grey.shade400 : Colors.grey.shade700,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+      for (final name in shsTypes) {
+        final displayName = name.startsWith('SHS - ') ? name.substring(6) : name;
+        dropdownItems.add(
+          DropdownMenuItem<String?>(
+            value: name,
+            child: Padding(
+              padding: const EdgeInsets.only(left: 12),
+              child: Text(
+                displayName,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+          ),
+        );
+      }
+    }
+
+    if (otherTypes.isNotEmpty) {
+      for (final name in otherTypes) {
+        dropdownItems.add(
+          DropdownMenuItem<String?>(
+            value: name,
+            child: Text(
+              name,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+        );
+      }
     }
 
     return _ChartCard(
       title: 'Document Type Breakdown',
       icon: Icons.donut_small_rounded,
       iconColor: Colors.purple.shade600,
-      subtitle: 'Top ${widget.entries.length} document types',
-      child: Row(
-        children: [
-          SizedBox(
-            height: 160,
-            width: 160,
-            child: PieChart(
-              PieChartData(
-                pieTouchData: PieTouchData(
-                  touchCallback: (e, resp) {
-                    setState(() {
-                      _touchedIndex =
-                          resp?.touchedSection?.touchedSectionIndex ?? -1;
-                    });
-                  },
-                ),
-                sectionsSpace: 2,
-                centerSpaceRadius: 30,
-                sections: sections,
-              ),
-            ),
+      subtitle: subtitle,
+      trailing: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 2),
+        decoration: BoxDecoration(
+          color: isDark ? AppColors.darkSurface2 : Colors.grey.shade100,
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(
+            color: isDark ? AppColors.darkBorder : AppColors.borderLight,
           ),
-          const SizedBox(width: 16),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: List.generate(widget.entries.length, (i) {
-                final e = widget.entries[i];
-                final pct = total == 0 ? 0.0 : e.count / total * 100;
-                final color = _palette[i % _palette.length];
-                return Padding(
-                  padding: const EdgeInsets.only(bottom: 6),
+        ),
+        child: DropdownButtonHideUnderline(
+          child: DropdownButton<String?>(
+            value: _selectedDocType,
+            isDense: true,
+            icon: const Icon(Icons.arrow_drop_down_rounded, size: 20),
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+              color: Theme.of(context).colorScheme.onSurface,
+            ),
+            items: dropdownItems,
+            selectedItemBuilder: (context) {
+              return dropdownItems.map((item) {
+                final val = item.value;
+                if (val == null) {
+                  return const Align(
+                    alignment: Alignment.centerLeft,
+                    child: Text(
+                      'All Document Types',
+                      style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
+                    ),
+                  );
+                }
+                final isJhs = val.startsWith('JHS - ');
+                final isShs = val.startsWith('SHS - ');
+                final cleanName = isJhs
+                    ? val.substring(6)
+                    : (isShs ? val.substring(6) : val);
+
+                return Align(
+                  alignment: Alignment.centerLeft,
                   child: Row(
+                    mainAxisSize: MainAxisSize.min,
                     children: [
-                      Container(
-                        width: 10,
-                        height: 10,
-                        decoration: BoxDecoration(color: color, shape: BoxShape.circle),
-                      ),
-                      const SizedBox(width: 6),
-                      Expanded(
+                      if (isJhs || isShs)
+                        Container(
+                          margin: const EdgeInsets.only(right: 6),
+                          padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+                          decoration: BoxDecoration(
+                            color: (isJhs ? AppColors.primaryGreen : Colors.blue)
+                                .withValues(alpha: isDark ? 0.25 : 0.15),
+                            borderRadius: BorderRadius.circular(3),
+                          ),
+                          child: Text(
+                            isJhs ? 'JHS' : 'SHS',
+                            style: TextStyle(
+                              fontSize: 9,
+                              fontWeight: FontWeight.bold,
+                              color: isJhs
+                                  ? (isDark ? const Color(0xFF66BB6A) : AppColors.primaryGreen)
+                                  : (isDark ? Colors.blue.shade300 : Colors.blue.shade700),
+                            ),
+                          ),
+                        ),
+                      Flexible(
                         child: Text(
-                          e.name,
+                          cleanName,
                           style: TextStyle(
-                            fontSize: 11,
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
                             color: Theme.of(context).colorScheme.onSurface,
                           ),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                         ),
                       ),
-                      Text(
-                        '${pct.toStringAsFixed(1)}%',
-                        style: TextStyle(
-                          fontSize: 11,
-                          color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
-                        ),
-                      ),
                     ],
                   ),
                 );
-              }),
-            ),
+              }).toList();
+            },
+            onChanged: (val) {
+              if (val != null && val.startsWith('__header_')) return;
+              setState(() {
+                _selectedDocType = val;
+                _touchedIndex = -1;
+              });
+            },
           ),
-        ],
+        ),
       ),
+      child: isAll
+          ? (widget.entries.isEmpty
+              ? const Padding(
+                  padding: EdgeInsets.symmetric(vertical: 20),
+                  child: Center(
+                    child: Text('No document types uploaded yet.',
+                        style: TextStyle(fontSize: 12, color: AppColors.textSecondary)),
+                  ),
+                )
+              : Row(
+                  children: [
+                    SizedBox(
+                      height: 160,
+                      width: 160,
+                      child: PieChart(
+                        PieChartData(
+                          pieTouchData: PieTouchData(
+                            touchCallback: (e, resp) {
+                              setState(() {
+                                _touchedIndex =
+                                    resp?.touchedSection?.touchedSectionIndex ?? -1;
+                              });
+                            },
+                          ),
+                          sectionsSpace: 2,
+                          centerSpaceRadius: 30,
+                          sections: sections,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: List.generate(widget.entries.length, (i) {
+                          final e = widget.entries[i];
+                          final pct = allTotal == 0 ? 0.0 : e.count / allTotal * 100;
+                          final color = _palette[i % _palette.length];
+                          return Padding(
+                            padding: const EdgeInsets.only(bottom: 6),
+                            child: Row(
+                              children: [
+                                Container(
+                                  width: 10,
+                                  height: 10,
+                                  decoration:
+                                      BoxDecoration(color: color, shape: BoxShape.circle),
+                                ),
+                                const SizedBox(width: 6),
+                                Expanded(
+                                  child: Text(
+                                    e.name,
+                                    style: TextStyle(
+                                      fontSize: 11,
+                                      color: Theme.of(context).colorScheme.onSurface,
+                                    ),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+                                Text(
+                                  '${e.count} (${pct.toStringAsFixed(1)}%)',
+                                  style: TextStyle(
+                                    fontSize: 11,
+                                    color: Theme.of(context)
+                                        .colorScheme
+                                        .onSurface
+                                        .withValues(alpha: 0.6),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          );
+                        }),
+                      ),
+                    ),
+                  ],
+                ))
+          : (selectedGradeList.isEmpty
+              ? const Padding(
+                  padding: EdgeInsets.symmetric(vertical: 20),
+                  child: Center(
+                    child: Text('No grade level data available for this document type.',
+                        style: TextStyle(fontSize: 12, color: AppColors.textSecondary)),
+                  ),
+                )
+              : Row(
+                  children: [
+                    SizedBox(
+                      height: 160,
+                      width: 160,
+                      child: PieChart(
+                        PieChartData(
+                          pieTouchData: PieTouchData(
+                            touchCallback: (e, resp) {
+                              setState(() {
+                                _touchedIndex =
+                                    resp?.touchedSection?.touchedSectionIndex ?? -1;
+                              });
+                            },
+                          ),
+                          sectionsSpace: 2,
+                          centerSpaceRadius: 30,
+                          sections: sections,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: List.generate(selectedGradeList.length, (i) {
+                          final g = selectedGradeList[i];
+                          final pct = g.totalStudents == 0
+                              ? 0.0
+                              : (g.count / g.totalStudents * 100);
+                          final color = _gradeColorMap[g.gradeLevel] ??
+                              _palette[i % _palette.length];
+                          return Padding(
+                            padding: const EdgeInsets.only(bottom: 6),
+                            child: Row(
+                              children: [
+                                Container(
+                                  width: 10,
+                                  height: 10,
+                                  decoration:
+                                      BoxDecoration(color: color, shape: BoxShape.circle),
+                                ),
+                                const SizedBox(width: 6),
+                                Expanded(
+                                  child: Text(
+                                    g.gradeLevel,
+                                    style: TextStyle(
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.w600,
+                                      color: Theme.of(context).colorScheme.onSurface,
+                                    ),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+                                Text(
+                                  '${g.count} / ${g.totalStudents} (${pct.toStringAsFixed(1)}%)',
+                                  style: TextStyle(
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w500,
+                                    color: g.count > 0
+                                        ? AppColors.primaryGreen
+                                        : Theme.of(context)
+                                            .colorScheme
+                                            .onSurface
+                                            .withValues(alpha: 0.5),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          );
+                        }),
+                      ),
+                    ),
+                  ],
+                )),
     );
   }
 }
@@ -828,14 +1281,15 @@ class _StudentDocCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final maxCount =
-        students.isEmpty ? 1 : students.map((s) => s.docCount).reduce(max);
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return _ChartCard(
       title: title,
       icon: icon,
       iconColor: iconColor,
+      subtitle: isTop
+          ? 'Most required document types completed'
+          : 'Most missing required document types',
       child: students.isEmpty
           ? Text(
               'No data yet.',
@@ -845,7 +1299,7 @@ class _StudentDocCard extends StatelessWidget {
               children: students.asMap().entries.map((entry) {
                 final i = entry.key;
                 final s = entry.value;
-                final pct = maxCount == 0 ? 0.0 : s.docCount / maxCount;
+                final pct = s.percent.clamp(0.0, 1.0);
                 final color = isTop
                     ? Color.lerp(
                         AppColors.primaryGreen, Colors.blue.shade700, i / 5)!
@@ -866,7 +1320,7 @@ class _StudentDocCard extends StatelessWidget {
                                 fontWeight: FontWeight.bold,
                                 color: i == 0
                                     ? Colors.amber.shade700
-                                    : Theme.of(context).colorScheme.onSurface.withOpacity(0.54),
+                                    : Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.54),
                               ),
                             ),
                           if (isTop) const SizedBox(width: 6),
@@ -883,10 +1337,15 @@ class _StudentDocCard extends StatelessWidget {
                             ),
                           ),
                           Text(
-                            '${s.docCount} docs',
+                            '${s.uploadedCount} / ${s.totalRequired} (${s.missingCount} missing)',
                             style: TextStyle(
                               fontSize: 11,
-                              color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+                              fontWeight: FontWeight.w600,
+                              color: s.missingCount == 0
+                                  ? AppColors.primaryGreen
+                                  : (isTop
+                                      ? Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7)
+                                      : Colors.orange.shade700),
                             ),
                           ),
                         ],
@@ -981,7 +1440,7 @@ class _StorageCard extends StatelessWidget {
               style: TextStyle(
                 fontSize: 12,
                 fontWeight: FontWeight.w600,
-                color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+                color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
               ),
             ),
             const SizedBox(height: 8),
@@ -1011,7 +1470,7 @@ class _StorageCard extends StatelessWidget {
                           _fmt(t.bytes),
                           style: TextStyle(
                             fontSize: 11,
-                            color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+                            color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
                           ),
                         ),
                       ],
@@ -1055,7 +1514,7 @@ class _StorageStat extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: isDark ? color.withOpacity(0.12) : color.withValues(alpha: 0.06),
+        color: isDark ? color.withValues(alpha: 0.12) : color.withValues(alpha: 0.06),
         borderRadius: BorderRadius.circular(12),
         border: Border.all(color: color.withValues(alpha: 0.15)),
       ),
@@ -1074,7 +1533,7 @@ class _StorageStat extends StatelessWidget {
             label,
             style: TextStyle(
               fontSize: 10,
-              color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+              color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
             ),
           ),
         ],
@@ -1089,11 +1548,19 @@ class _StorageStat extends StatelessWidget {
 class _SectionHeader extends StatelessWidget {
   final String title;
   final IconData icon;
-  const _SectionHeader({required this.title, required this.icon});
+  final String? activeYear;
+
+  const _SectionHeader({
+    required this.title,
+    required this.icon,
+    this.activeYear,
+  });
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Row(
+      crossAxisAlignment: CrossAxisAlignment.center,
       children: [
         Icon(icon, size: 22, color: AppColors.primaryGreen),
         const SizedBox(width: 8),
@@ -1105,6 +1572,41 @@ class _SectionHeader extends StatelessWidget {
             color: Theme.of(context).colorScheme.onSurface,
           ),
         ),
+        if (activeYear != null && activeYear!.trim().isNotEmpty) ...[
+          const SizedBox(width: 10),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
+            decoration: BoxDecoration(
+              color: AppColors.primaryGreen.withValues(alpha: isDark ? 0.18 : 0.1),
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(
+                color: AppColors.primaryGreen.withValues(alpha: isDark ? 0.4 : 0.25),
+              ),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  Icons.calendar_month_rounded,
+                  size: 13,
+                  color: isDark ? const Color(0xFF66BB6A) : AppColors.primaryGreen,
+                ),
+                const SizedBox(width: 5),
+                Text(
+                  activeYear!.toLowerCase().contains('s.y.') || activeYear!.toLowerCase().contains('a.y.')
+                      ? activeYear!
+                      : 'S.Y. $activeYear',
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.bold,
+                    color: isDark ? const Color(0xFF81C784) : const Color(0xFF1B5E20),
+                    letterSpacing: 0.2,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
       ],
     );
   }
@@ -1127,7 +1629,7 @@ class _Legend extends StatelessWidget {
         const SizedBox(width: 4),
         Text(label,
             style:
-                TextStyle(fontSize: 10, color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6)),),
+                TextStyle(fontSize: 10, color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6)),),
       ],
     );
   }

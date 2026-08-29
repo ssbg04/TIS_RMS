@@ -264,81 +264,63 @@ exports.getKpis = (req, res) => {
         const isTeacher = req.user?.role?.toLowerCase() === 'teacher';
         const userId = req.user.id;
 
+        // Resolve Active Academic Year
+        const activeAy = db.prepare("SELECT * FROM academic_years WHERE status = 'active' LIMIT 1").get()
+            || db.prepare("SELECT * FROM academic_years ORDER BY year_range DESC LIMIT 1").get();
+        const activeAyId = activeAy?.id;
+
+        // Mandatory Requirements by Category
+        const jhsReqs = db.prepare("SELECT id, name FROM document_requirements WHERE category = 'JHS' AND is_mandatory = 1 AND is_enabled = 1").all();
+        const shsReqs = db.prepare("SELECT id, name FROM document_requirements WHERE category = 'SHS' AND is_mandatory = 1 AND is_enabled = 1").all();
+
         let jhsTotal, shsTotal, jhsDigitized, shsDigitized;
         let activityByDay;
         let statusDistribution;
         let topStudents, bottomStudents;
         let docTypeBreakdown;
+        let docTypeByGrade = {};
         let uploadTrend;
         let fileRows, recentRows, olderRows;
 
         if (isTeacher) {
-            // ── 1. Digitalization (Teacher's Students) ───────────────────────────
+            // ── 1. Digitalization (Teacher's Students in Active Year) ───────────────────
             jhsTotal = db.prepare(`
                 SELECT COUNT(DISTINCT s.id) as count
                 FROM students s
                 JOIN enrollments e ON s.id = e.student_id
-                WHERE e.id = (
-                    SELECT e2.id FROM enrollments e2
-                    JOIN academic_years ay ON e2.academic_year_id = ay.id
-                    WHERE e2.student_id = s.id
-                    ORDER BY ay.year_range DESC, e2.grade_level DESC, e2.id DESC LIMIT 1
-                )
-                AND e.section_id IN (
-                    SELECT section_id FROM teacher_sections WHERE teacher_id = ?
-                )
-                AND e.grade_level <= 10
-            `).get(userId).count;
+                WHERE e.academic_year_id = ?
+                  AND e.section_id IN (SELECT section_id FROM teacher_sections WHERE teacher_id = ?)
+                  AND e.grade_level <= 10
+            `).get(activeAyId, userId).count;
 
             shsTotal = db.prepare(`
                 SELECT COUNT(DISTINCT s.id) as count
                 FROM students s
                 JOIN enrollments e ON s.id = e.student_id
-                WHERE e.id = (
-                    SELECT e2.id FROM enrollments e2
-                    JOIN academic_years ay ON e2.academic_year_id = ay.id
-                    WHERE e2.student_id = s.id
-                    ORDER BY ay.year_range DESC, e2.grade_level DESC, e2.id DESC LIMIT 1
-                )
-                AND e.section_id IN (
-                    SELECT section_id FROM teacher_sections WHERE teacher_id = ?
-                )
-                AND e.grade_level > 10
-            `).get(userId).count;
+                WHERE e.academic_year_id = ?
+                  AND e.section_id IN (SELECT section_id FROM teacher_sections WHERE teacher_id = ?)
+                  AND e.grade_level > 10
+            `).get(activeAyId, userId).count;
 
             jhsDigitized = db.prepare(`
                 SELECT COUNT(DISTINCT s.id) as count
                 FROM students s
                 JOIN enrollments e ON s.id = e.student_id
                 JOIN documents d ON d.student_id = s.id AND d.deleted_at IS NULL
-                WHERE e.id = (
-                    SELECT e2.id FROM enrollments e2
-                    JOIN academic_years ay ON e2.academic_year_id = ay.id
-                    WHERE e2.student_id = s.id
-                    ORDER BY ay.year_range DESC, e2.grade_level DESC, e2.id DESC LIMIT 1
-                )
-                AND e.section_id IN (
-                    SELECT section_id FROM teacher_sections WHERE teacher_id = ?
-                )
-                AND e.grade_level <= 10
-            `).get(userId).count;
+                WHERE e.academic_year_id = ?
+                  AND e.section_id IN (SELECT section_id FROM teacher_sections WHERE teacher_id = ?)
+                  AND e.grade_level <= 10
+            `).get(activeAyId, userId).count;
 
             shsDigitized = db.prepare(`
                 SELECT COUNT(DISTINCT s.id) as count
                 FROM students s
                 JOIN enrollments e ON s.id = e.student_id
                 JOIN documents d ON d.student_id = s.id AND d.deleted_at IS NULL
-                WHERE e.id = (
-                    SELECT e2.id FROM enrollments e2
-                    JOIN academic_years ay ON e2.academic_year_id = ay.id
-                    WHERE e2.student_id = s.id
-                    ORDER BY ay.year_range DESC, e2.grade_level DESC, e2.id DESC LIMIT 1
-                )
-                AND e.section_id IN (
-                    SELECT section_id FROM teacher_sections WHERE teacher_id = ?
-                )
-                AND e.grade_level > 10
-            `).get(userId).count;
+                WHERE e.academic_year_id = ?
+                  AND e.section_id IN (SELECT section_id FROM teacher_sections WHERE teacher_id = ?)
+                  AND e.grade_level > 10
+            `).get(activeAyId, userId).count;
 
             // ── 2. Activity by day (Teacher's Activities / Students) ────────────
             activityByDay = db.prepare(`
@@ -355,88 +337,168 @@ exports.getKpis = (req, res) => {
                           SELECT s.id FROM students s
                           JOIN enrollments e ON s.id = e.student_id
                           JOIN teacher_sections ts ON e.section_id = ts.section_id
-                          WHERE ts.teacher_id = ?
+                          WHERE ts.teacher_id = ? AND e.academic_year_id = ?
                       ))
                       OR (a.entity_type = 'document' AND a.entity_id IN (
                           SELECT d.id FROM documents d
                           JOIN enrollments e ON d.student_id = e.student_id
                           JOIN teacher_sections ts ON e.section_id = ts.section_id
-                          WHERE ts.teacher_id = ?
+                          WHERE ts.teacher_id = ? AND e.academic_year_id = ?
                       ))
                   )
                 GROUP BY day, a.action, a.entity_type
                 ORDER BY day ASC
-            `).all(userId, userId, userId);
+            `).all(userId, userId, activeAyId, userId, activeAyId);
 
-            // ── 3. Document status distribution (Teacher's Students) ─────────────
+            // ── 3. Document status distribution (count by distinct document types uploaded) ──
             const statusRows = db.prepare(`
-                SELECT d.status, COUNT(*) as count
+                SELECT d.status, COUNT(DISTINCT d.student_id || '-' || COALESCE(d.requirement_id, d.document_type)) as count
                 FROM documents d
                 JOIN students s ON d.student_id = s.id
                 JOIN enrollments e ON s.id = e.student_id
-                WHERE e.id = (
-                    SELECT e2.id FROM enrollments e2
-                    JOIN academic_years ay ON e2.academic_year_id = ay.id
-                    WHERE e2.student_id = s.id
-                    ORDER BY ay.year_range DESC, e2.grade_level DESC, e2.id DESC LIMIT 1
-                )
-                AND e.section_id IN (
-                    SELECT section_id FROM teacher_sections WHERE teacher_id = ?
-                )
-                AND d.deleted_at IS NULL
+                WHERE e.academic_year_id = ?
+                  AND e.section_id IN (SELECT section_id FROM teacher_sections WHERE teacher_id = ?)
+                  AND d.deleted_at IS NULL
                 GROUP BY d.status
-            `).all(userId);
+            `).all(activeAyId, userId);
             statusDistribution = statusRows.map(r => ({ status: r.status, count: r.count }));
 
-            // ── 4. Top & bottom students (Teacher's Students) ──────────────────
-            const studentDocCounts = db.prepare(`
-                SELECT
-                    s.id,
-                    s.first_name || ' ' || s.last_name as name,
-                    COUNT(d.id) as doc_count
+            // ── 4. Top & bottom students (Required Document Type Count over Total Required) ──
+            const enrolledStudents = db.prepare(`
+                SELECT s.id, s.first_name || ' ' || s.last_name as name, e.grade_level,
+                       CASE WHEN e.grade_level <= 10 THEN 'JHS' ELSE 'SHS' END as category
                 FROM students s
                 JOIN enrollments e ON s.id = e.student_id
-                LEFT JOIN documents d ON d.student_id = s.id AND d.deleted_at IS NULL
-                WHERE e.id = (
-                    SELECT e2.id FROM enrollments e2
-                    JOIN academic_years ay ON e2.academic_year_id = ay.id
-                    WHERE e2.student_id = s.id
-                    ORDER BY ay.year_range DESC, e2.grade_level DESC, e2.id DESC LIMIT 1
-                )
-                AND e.section_id IN (
-                    SELECT section_id FROM teacher_sections WHERE teacher_id = ?
-                )
-                GROUP BY s.id
-                ORDER BY doc_count DESC
-            `).all(userId);
+                WHERE e.academic_year_id = ?
+                  AND e.section_id IN (SELECT section_id FROM teacher_sections WHERE teacher_id = ?)
+            `).all(activeAyId, userId);
 
-            topStudents = studentDocCounts.slice(0, 5);
-            bottomStudents = [...studentDocCounts].sort((a, b) => a.doc_count - b.doc_count).slice(0, 5);
+            const studentDocStats = enrolledStudents.map(s => {
+                const reqs = s.category === 'JHS' ? jhsReqs : shsReqs;
+                const totalRequired = reqs.length;
+                const reqIds = reqs.map(r => r.id);
+                let uploadedCount = 0;
+                if (reqIds.length > 0) {
+                    uploadedCount = db.prepare(`
+                        SELECT COUNT(DISTINCT requirement_id) as count
+                        FROM documents
+                        WHERE student_id = ? AND requirement_id IN (${reqIds.join(',')})
+                          AND status = 'Completed' AND deleted_at IS NULL
+                    `).get(s.id).count;
+                }
+                const missingCount = Math.max(0, totalRequired - uploadedCount);
+                return {
+                    id: s.id,
+                    name: s.name,
+                    gradeLevel: s.grade_level,
+                    category: s.category,
+                    uploadedCount,
+                    totalRequired,
+                    missingCount,
+                    docCount: uploadedCount,
+                    percent: totalRequired === 0 ? 1.0 : uploadedCount / totalRequired
+                };
+            });
 
-            // ── 5. Document type breakdown (Teacher's Students) ────────────────
+            topStudents = [...studentDocStats]
+                .sort((a, b) => b.uploadedCount - a.uploadedCount || a.missingCount - b.missingCount || a.name.localeCompare(b.name))
+                .slice(0, 5);
+
+            bottomStudents = [...studentDocStats]
+                .sort((a, b) => b.missingCount - a.missingCount || a.uploadedCount - b.uploadedCount || a.name.localeCompare(b.name))
+                .slice(0, 5);
+
+            // ── 5. Document type breakdown overall + by Grade Level (Separated by JHS & SHS) ──
             const typeRows = db.prepare(`
                 SELECT
-                    COALESCE(dr.name, d.document_type, 'Uncategorized') as type_name,
-                    COUNT(*) as count
+                    COALESCE(
+                        CASE 
+                            WHEN dr.category IS NOT NULL THEN dr.category || ' - ' || dr.name
+                            WHEN d.document_type LIKE 'JHS - %' OR d.document_type LIKE 'SHS - %' THEN d.document_type
+                            WHEN e.grade_level <= 10 THEN 'JHS - ' || COALESCE(dr.name, d.document_type)
+                            WHEN e.grade_level > 10 THEN 'SHS - ' || COALESCE(dr.name, d.document_type)
+                            ELSE COALESCE(dr.name, d.document_type)
+                        END,
+                        'Uncategorized'
+                    ) as type_name,
+                    COUNT(DISTINCT d.student_id) as count
                 FROM documents d
                 JOIN students s ON d.student_id = s.id
                 JOIN enrollments e ON s.id = e.student_id
                 LEFT JOIN document_requirements dr ON d.requirement_id = dr.id
-                WHERE e.id = (
-                    SELECT e2.id FROM enrollments e2
-                    JOIN academic_years ay ON e2.academic_year_id = ay.id
-                    WHERE e2.student_id = s.id
-                    ORDER BY ay.year_range DESC, e2.grade_level DESC, e2.id DESC LIMIT 1
-                )
-                AND e.section_id IN (
-                    SELECT section_id FROM teacher_sections WHERE teacher_id = ?
-                )
-                AND d.deleted_at IS NULL
+                WHERE e.academic_year_id = ?
+                  AND e.section_id IN (SELECT section_id FROM teacher_sections WHERE teacher_id = ?)
+                  AND d.deleted_at IS NULL
+                  AND d.status = 'Completed'
                 GROUP BY type_name
                 ORDER BY count DESC
-                LIMIT 10
-            `).all(userId);
+            `).all(activeAyId, userId);
             docTypeBreakdown = typeRows.map(r => ({ name: r.type_name, count: r.count }));
+
+            // Compute Grade Level Breakdown for each Document Requirement separated by JHS / SHS
+            const gradeTotalsRows = db.prepare(`
+                SELECT e.grade_level, COUNT(DISTINCT s.id) as total_students
+                FROM students s
+                JOIN enrollments e ON s.id = e.student_id
+                WHERE e.academic_year_id = ?
+                  AND e.section_id IN (SELECT section_id FROM teacher_sections WHERE teacher_id = ?)
+                GROUP BY e.grade_level
+                ORDER BY e.grade_level ASC
+            `).all(activeAyId, userId);
+
+            const gradeTotalsMap = {};
+            for (const row of gradeTotalsRows) {
+                gradeTotalsMap[row.grade_level] = row.total_students;
+            }
+
+            const reqRows = db.prepare(`
+                SELECT id, category, name 
+                FROM document_requirements 
+                WHERE is_enabled = 1 
+                ORDER BY category ASC, name ASC
+            `).all();
+
+            for (const req of reqRows) {
+                const isJhs = req.category === 'JHS';
+                const minGrade = isJhs ? 7 : 11;
+                const maxGrade = isJhs ? 10 : 12;
+
+                const countsByGrade = db.prepare(`
+                    SELECT e.grade_level, COUNT(DISTINCT d.student_id) as uploaded_count
+                    FROM documents d
+                    JOIN students s ON d.student_id = s.id
+                    JOIN enrollments e ON s.id = e.student_id
+                    LEFT JOIN document_requirements dr ON d.requirement_id = dr.id
+                    WHERE e.academic_year_id = ?
+                      AND e.section_id IN (SELECT section_id FROM teacher_sections WHERE teacher_id = ?)
+                      AND e.grade_level BETWEEN ? AND ?
+                      AND (d.requirement_id = ? OR dr.name = ? OR d.document_type = ? OR d.document_type = ?)
+                      AND d.deleted_at IS NULL
+                      AND d.status = 'Completed'
+                    GROUP BY e.grade_level
+                `).all(activeAyId, userId, minGrade, maxGrade, req.id, req.name, req.name, `${req.category} - ${req.name}`);
+
+                const uploadedMap = {};
+                for (const r of countsByGrade) {
+                    uploadedMap[r.grade_level] = r.uploaded_count;
+                }
+
+                const key = `${req.category} - ${req.name}`;
+                const targetGrades = isJhs ? [7, 8, 9, 10] : [11, 12];
+
+                docTypeByGrade[key] = targetGrades.map(g => {
+                    const uploaded = uploadedMap[g] || 0;
+                    const total = gradeTotalsMap[g] || 0;
+                    return {
+                        gradeLevel: `Grade ${g}`,
+                        grade: g,
+                        category: req.category,
+                        count: uploaded,
+                        totalStudents: total,
+                        percent: total === 0 ? 0 : uploaded / total
+                    };
+                });
+            }
 
             // ── 6. Upload trend (Teacher's Students) ───────────────────────────
             uploadTrend = db.prepare(`
@@ -446,22 +508,15 @@ exports.getKpis = (req, res) => {
                 FROM documents d
                 JOIN students s ON d.student_id = s.id
                 JOIN enrollments e ON s.id = e.student_id
-                WHERE e.id = (
-                    SELECT e2.id FROM enrollments e2
-                    JOIN academic_years ay ON e2.academic_year_id = ay.id
-                    WHERE e2.student_id = s.id
-                    ORDER BY ay.year_range DESC, e2.grade_level DESC, e2.id DESC LIMIT 1
-                )
-                AND e.section_id IN (
-                    SELECT section_id FROM teacher_sections WHERE teacher_id = ?
-                )
-                AND DATE(d.created_at) >= DATE('now', '-29 days')
-                AND d.deleted_at IS NULL
+                WHERE e.academic_year_id = ?
+                  AND e.section_id IN (SELECT section_id FROM teacher_sections WHERE teacher_id = ?)
+                  AND DATE(d.created_at) >= DATE('now', '-29 days')
+                  AND d.deleted_at IS NULL
                 GROUP BY day
                 ORDER BY day ASC
-            `).all(userId);
+            `).all(activeAyId, userId);
 
-            // ── 7. Storage analytics (Teacher's Students) ──────────────────────
+            // ── 7. Storage analytics ──────────────────────────────────────────
             fileRows = db.prepare(`
                 SELECT d.file_path, d.document_type,
                        COALESCE(dr.name, d.document_type, 'Uncategorized') as type_name
@@ -469,84 +524,63 @@ exports.getKpis = (req, res) => {
                 JOIN students s ON d.student_id = s.id
                 JOIN enrollments e ON s.id = e.student_id
                 LEFT JOIN document_requirements dr ON d.requirement_id = dr.id
-                WHERE e.id = (
-                    SELECT e2.id FROM enrollments e2
-                    JOIN academic_years ay ON e2.academic_year_id = ay.id
-                    WHERE e2.student_id = s.id
-                    ORDER BY ay.year_range DESC, e2.grade_level DESC, e2.id DESC LIMIT 1
-                )
-                AND e.section_id IN (
-                    SELECT section_id FROM teacher_sections WHERE teacher_id = ?
-                )
-                AND d.deleted_at IS NULL
-            `).all(userId);
+                WHERE e.academic_year_id = ?
+                  AND e.section_id IN (SELECT section_id FROM teacher_sections WHERE teacher_id = ?)
+                  AND d.deleted_at IS NULL
+            `).all(activeAyId, userId);
 
             recentRows = db.prepare(`
                 SELECT d.file_path FROM documents d
                 JOIN students s ON d.student_id = s.id
                 JOIN enrollments e ON s.id = e.student_id
-                WHERE e.id = (
-                    SELECT e2.id FROM enrollments e2
-                    JOIN academic_years ay ON e2.academic_year_id = ay.id
-                    WHERE e2.student_id = s.id
-                    ORDER BY ay.year_range DESC, e2.grade_level DESC, e2.id DESC LIMIT 1
-                )
-                AND e.section_id IN (
-                    SELECT section_id FROM teacher_sections WHERE teacher_id = ?
-                )
-                AND d.deleted_at IS NULL
-                AND d.created_at >= datetime('now', '-30 days')
-            `).all(userId);
+                WHERE e.academic_year_id = ?
+                  AND e.section_id IN (SELECT section_id FROM teacher_sections WHERE teacher_id = ?)
+                  AND d.deleted_at IS NULL
+                  AND d.created_at >= datetime('now', '-30 days')
+            `).all(activeAyId, userId);
 
             olderRows = db.prepare(`
                 SELECT d.file_path FROM documents d
                 JOIN students s ON d.student_id = s.id
                 JOIN enrollments e ON s.id = e.student_id
-                WHERE e.id = (
-                    SELECT e2.id FROM enrollments e2
-                    JOIN academic_years ay ON e2.academic_year_id = ay.id
-                    WHERE e2.student_id = s.id
-                    ORDER BY ay.year_range DESC, e2.grade_level DESC, e2.id DESC LIMIT 1
-                )
-                AND e.section_id IN (
-                    SELECT section_id FROM teacher_sections WHERE teacher_id = ?
-                )
-                AND d.deleted_at IS NULL
-                AND d.created_at >= datetime('now', '-60 days')
-                AND d.created_at < datetime('now', '-30 days')
-            `).all(userId);
+                WHERE e.academic_year_id = ?
+                  AND e.section_id IN (SELECT section_id FROM teacher_sections WHERE teacher_id = ?)
+                  AND d.deleted_at IS NULL
+                  AND d.created_at >= datetime('now', '-60 days')
+                  AND d.created_at < datetime('now', '-30 days')
+            `).all(activeAyId, userId);
         } else {
-            // Admin: All students across the school
+            // Admin: All students across the school in active academic year
             // ── 1. Digitalization — JHS/SHS donut ───────────────────────────
             jhsTotal = db.prepare(`
                 SELECT COUNT(DISTINCT s.id) as count
                 FROM students s
                 JOIN enrollments e ON s.id = e.student_id
-                WHERE e.grade_level <= 10
-            `).get().count;
+                WHERE e.academic_year_id = ? AND e.grade_level <= 10
+            `).get(activeAyId).count;
 
             shsTotal = db.prepare(`
                 SELECT COUNT(DISTINCT s.id) as count
                 FROM students s
                 JOIN enrollments e ON s.id = e.student_id
-                WHERE e.grade_level > 10
-            `).get().count;
+                WHERE e.academic_year_id = ? AND e.grade_level > 10
+            `).get(activeAyId).count;
 
             jhsDigitized = db.prepare(`
                 SELECT COUNT(DISTINCT s.id) as count
                 FROM students s
                 JOIN documents d ON d.student_id = s.id
                 JOIN enrollments e ON s.id = e.student_id
-                WHERE e.grade_level <= 10 AND d.deleted_at IS NULL
-            `).get().count;
+                WHERE e.academic_year_id = ? AND e.grade_level <= 10 AND d.deleted_at IS NULL
+            `).get(activeAyId).count;
 
             shsDigitized = db.prepare(`
                 SELECT COUNT(DISTINCT s.id) as count
                 FROM students s
                 JOIN documents d ON d.student_id = s.id
                 JOIN enrollments e ON s.id = e.student_id
-                WHERE e.grade_level > 10 AND d.deleted_at IS NULL
-            `).get().count;
+                WHERE e.academic_year_id = ? AND e.grade_level > 10 AND d.deleted_at IS NULL
+            `).get(activeAyId).count;
 
             // ── 2. Activity by day — last 7 days bar chart ──────────────────
             activityByDay = db.prepare(`
@@ -561,43 +595,149 @@ exports.getKpis = (req, res) => {
                 ORDER BY day ASC
             `).all();
 
-            // ── 3. Document status distribution ─────────────────────────────
+            // ── 3. Document status distribution (count by distinct document types uploaded) ──
             const statusRows = db.prepare(`
-                SELECT status, COUNT(*) as count
-                FROM documents
-                WHERE deleted_at IS NULL
-                GROUP BY status
-            `).all();
+                SELECT d.status, COUNT(DISTINCT d.student_id || '-' || COALESCE(d.requirement_id, d.document_type)) as count
+                FROM documents d
+                JOIN students s ON d.student_id = s.id
+                JOIN enrollments e ON s.id = e.student_id
+                WHERE e.academic_year_id = ? AND d.deleted_at IS NULL
+                GROUP BY d.status
+            `).all(activeAyId);
             statusDistribution = statusRows.map(r => ({ status: r.status, count: r.count }));
 
-            // ── 4. Top & bottom students by document count ──────────────────
-            const studentDocCounts = db.prepare(`
-                SELECT
-                    s.id,
-                    s.first_name || ' ' || s.last_name as name,
-                    COUNT(d.id) as doc_count
+            // ── 4. Top & bottom students by required document types ─────────
+            const enrolledStudents = db.prepare(`
+                SELECT s.id, s.first_name || ' ' || s.last_name as name, e.grade_level,
+                       CASE WHEN e.grade_level <= 10 THEN 'JHS' ELSE 'SHS' END as category
                 FROM students s
-                LEFT JOIN documents d ON d.student_id = s.id AND d.deleted_at IS NULL
-                GROUP BY s.id
-                ORDER BY doc_count DESC
-            `).all();
+                JOIN enrollments e ON s.id = e.student_id
+                WHERE e.academic_year_id = ?
+            `).all(activeAyId);
 
-            topStudents = studentDocCounts.slice(0, 5);
-            bottomStudents = [...studentDocCounts].sort((a, b) => a.doc_count - b.doc_count).slice(0, 5);
+            const studentDocStats = enrolledStudents.map(s => {
+                const reqs = s.category === 'JHS' ? jhsReqs : shsReqs;
+                const totalRequired = reqs.length;
+                const reqIds = reqs.map(r => r.id);
+                let uploadedCount = 0;
+                if (reqIds.length > 0) {
+                    uploadedCount = db.prepare(`
+                        SELECT COUNT(DISTINCT requirement_id) as count
+                        FROM documents
+                        WHERE student_id = ? AND requirement_id IN (${reqIds.join(',')})
+                          AND status = 'Completed' AND deleted_at IS NULL
+                    `).get(s.id).count;
+                }
+                const missingCount = Math.max(0, totalRequired - uploadedCount);
+                return {
+                    id: s.id,
+                    name: s.name,
+                    gradeLevel: s.grade_level,
+                    category: s.category,
+                    uploadedCount,
+                    totalRequired,
+                    missingCount,
+                    docCount: uploadedCount,
+                    percent: totalRequired === 0 ? 1.0 : uploadedCount / totalRequired
+                };
+            });
 
-            // ── 5. Document type breakdown pie ──────────────────────────────
+            topStudents = [...studentDocStats]
+                .sort((a, b) => b.uploadedCount - a.uploadedCount || a.missingCount - b.missingCount || a.name.localeCompare(b.name))
+                .slice(0, 5);
+
+            bottomStudents = [...studentDocStats]
+                .sort((a, b) => b.missingCount - a.missingCount || a.uploadedCount - b.uploadedCount || a.name.localeCompare(b.name))
+                .slice(0, 5);
+
+            // ── 5. Document type breakdown overall + by Grade Level (Separated by JHS & SHS) ──
             const typeRows = db.prepare(`
                 SELECT
-                    COALESCE(dr.name, d.document_type, 'Uncategorized') as type_name,
-                    COUNT(*) as count
+                    COALESCE(
+                        CASE 
+                            WHEN dr.category IS NOT NULL THEN dr.category || ' - ' || dr.name
+                            WHEN d.document_type LIKE 'JHS - %' OR d.document_type LIKE 'SHS - %' THEN d.document_type
+                            WHEN e.grade_level <= 10 THEN 'JHS - ' || COALESCE(dr.name, d.document_type)
+                            WHEN e.grade_level > 10 THEN 'SHS - ' || COALESCE(dr.name, d.document_type)
+                            ELSE COALESCE(dr.name, d.document_type)
+                        END,
+                        'Uncategorized'
+                    ) as type_name,
+                    COUNT(DISTINCT d.student_id) as count
                 FROM documents d
+                JOIN students s ON d.student_id = s.id
+                JOIN enrollments e ON s.id = e.student_id
                 LEFT JOIN document_requirements dr ON d.requirement_id = dr.id
-                WHERE d.deleted_at IS NULL
+                WHERE e.academic_year_id = ?
+                  AND d.deleted_at IS NULL
+                  AND d.status = 'Completed'
                 GROUP BY type_name
                 ORDER BY count DESC
-                LIMIT 10
-            `).all();
+            `).all(activeAyId);
             docTypeBreakdown = typeRows.map(r => ({ name: r.type_name, count: r.count }));
+
+            // Compute Grade Level Breakdown for each Document Requirement separated by JHS / SHS
+            const gradeTotalsRows = db.prepare(`
+                SELECT e.grade_level, COUNT(DISTINCT s.id) as total_students
+                FROM students s
+                JOIN enrollments e ON s.id = e.student_id
+                WHERE e.academic_year_id = ?
+                GROUP BY e.grade_level
+                ORDER BY e.grade_level ASC
+            `).all(activeAyId);
+
+            const gradeTotalsMap = {};
+            for (const row of gradeTotalsRows) {
+                gradeTotalsMap[row.grade_level] = row.total_students;
+            }
+
+            const reqRows = db.prepare(`
+                SELECT id, category, name 
+                FROM document_requirements 
+                WHERE is_enabled = 1 
+                ORDER BY category ASC, name ASC
+            `).all();
+
+            for (const req of reqRows) {
+                const isJhs = req.category === 'JHS';
+                const minGrade = isJhs ? 7 : 11;
+                const maxGrade = isJhs ? 10 : 12;
+
+                const countsByGrade = db.prepare(`
+                    SELECT e.grade_level, COUNT(DISTINCT d.student_id) as uploaded_count
+                    FROM documents d
+                    JOIN students s ON d.student_id = s.id
+                    JOIN enrollments e ON s.id = e.student_id
+                    LEFT JOIN document_requirements dr ON d.requirement_id = dr.id
+                    WHERE e.academic_year_id = ?
+                      AND e.grade_level BETWEEN ? AND ?
+                      AND (d.requirement_id = ? OR dr.name = ? OR d.document_type = ? OR d.document_type = ?)
+                      AND d.deleted_at IS NULL
+                      AND d.status = 'Completed'
+                    GROUP BY e.grade_level
+                `).all(activeAyId, minGrade, maxGrade, req.id, req.name, req.name, `${req.category} - ${req.name}`);
+
+                const uploadedMap = {};
+                for (const r of countsByGrade) {
+                    uploadedMap[r.grade_level] = r.uploaded_count;
+                }
+
+                const key = `${req.category} - ${req.name}`;
+                const targetGrades = isJhs ? [7, 8, 9, 10] : [11, 12];
+
+                docTypeByGrade[key] = targetGrades.map(g => {
+                    const uploaded = uploadedMap[g] || 0;
+                    const total = gradeTotalsMap[g] || 0;
+                    return {
+                        gradeLevel: `Grade ${g}`,
+                        grade: g,
+                        category: req.category,
+                        count: uploaded,
+                        totalStudents: total,
+                        percent: total === 0 ? 0 : uploaded / total
+                    };
+                });
+            }
 
             // ── 6. Upload trend — last 30 days line chart ───────────────────
             uploadTrend = db.prepare(`
@@ -694,8 +834,10 @@ exports.getKpis = (req, res) => {
             topStudents,
             bottomStudents,
             docTypeBreakdown,
+            docTypeByGrade,
             uploadTrend,
             storageAnalytics,
+            activeAcademicYear: activeAy?.year_range || null
         });
     } catch (error) {
         console.error('getKpis error:', error);

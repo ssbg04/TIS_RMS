@@ -727,6 +727,27 @@ class _UploadOcrModalState extends ConsumerState<UploadOcrModal> {
       return;
     }
 
+    // Check for duplicate document types within the same upload batch
+    final docTypeCounts = <String, int>{};
+    for (final e in pending) {
+      final dt = e.selectedDocumentType;
+      if (dt != null && dt.isNotEmpty) {
+        docTypeCounts[dt] = (docTypeCounts[dt] ?? 0) + 1;
+      }
+    }
+    final duplicatesInBatch = docTypeCounts.entries
+        .where((entry) => entry.value > 1)
+        .map((entry) => entry.key)
+        .toList();
+    if (duplicatesInBatch.isNotEmpty) {
+      showErrorDialog(
+        context,
+        'Duplicate Document Types',
+        'Multiple files have the same document type (${duplicatesInBatch.join(", ")}).\n\nOnly one file per document type is allowed per student. Please assign distinct document types.',
+      );
+      return;
+    }
+
     setState(() => _isUploading = true);
 
     try {

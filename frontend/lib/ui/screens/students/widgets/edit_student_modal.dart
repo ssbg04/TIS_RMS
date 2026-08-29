@@ -55,7 +55,6 @@ class _EditStudentModalState extends ConsumerState<EditStudentModal> {
 
   static const _statuses = ['Enrolled', 'Graduated', 'Transferred', 'Dropped', 'Inactive'];
   static const _extSuggestions = [
-    'N/A',
     'JR.',
     'SR.',
     'II',
