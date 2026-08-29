@@ -35,6 +35,7 @@ class _UsersScreenState extends ConsumerState<UsersScreen> {
   final TextEditingController _searchController = TextEditingController();
   final FocusNode _searchFocusNode = FocusNode();
   final FocusNode _shortcutFocusNode = FocusNode();
+  final ScrollController _filterScrollController = ScrollController();
   ProviderSubscription<String>? _tabListener;
   String _searchQuery = '';
   String _roleFilter = 'all'; // 'all', 'admin', 'teacher'
@@ -89,6 +90,7 @@ class _UsersScreenState extends ConsumerState<UsersScreen> {
     _searchController.dispose();
     _searchFocusNode.dispose();
     _shortcutFocusNode.dispose();
+    _filterScrollController.dispose();
     super.dispose();
   }
 
@@ -662,34 +664,46 @@ class _UsersScreenState extends ConsumerState<UsersScreen> {
                     final activeTeachers = activeUsers.where((u) => u.role == 'teacher').toList();
                     final inactiveUsers = users.where((u) => !u.isActive).toList();
 
+                    final isDark = Theme.of(context).brightness == Brightness.dark;
                     return Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Row(
                           children: [
                             Expanded(
-                              child: SingleChildScrollView(
-                                scrollDirection: Axis.horizontal,
-                                child: Row(
-                                  children: [
-                                    _buildAnimatedFilter('All', 'all', activeUsers.length),
-                                    _buildAnimatedFilter(
-                                      'Admin',
-                                      'admin',
-                                      activeAdmins.length,
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  SingleChildScrollView(
+                                    controller: _filterScrollController,
+                                    scrollDirection: Axis.horizontal,
+                                    child: Row(
+                                      children: [
+                                        _buildAnimatedFilter('All', 'all', activeUsers.length),
+                                        _buildAnimatedFilter(
+                                          'Admin',
+                                          'admin',
+                                          activeAdmins.length,
+                                        ),
+                                        _buildAnimatedFilter(
+                                          'Teacher',
+                                          'teacher',
+                                          activeTeachers.length,
+                                        ),
+                                        _buildAnimatedFilter(
+                                          'Inactive',
+                                          'inactive',
+                                          inactiveUsers.length,
+                                        ),
+                                      ],
                                     ),
-                                    _buildAnimatedFilter(
-                                      'Teacher',
-                                      'teacher',
-                                      activeTeachers.length,
-                                    ),
-                                    _buildAnimatedFilter(
-                                      'Inactive',
-                                      'inactive',
-                                      inactiveUsers.length,
-                                    ),
-                                  ],
-                                ),
+                                  ),
+                                  _CustomHorizontalScrollBar(
+                                    controller: _filterScrollController,
+                                    isDark: isDark,
+                                  ),
+                                ],
                               ),
                             ),
                             if (!_searchFocusNode.hasFocus)
@@ -709,7 +723,7 @@ class _UsersScreenState extends ConsumerState<UsersScreen> {
                                   icon: Icon(
                                     _searchQuery.isNotEmpty ? Icons.close : Icons.search,
                                     size: 28,
-                                    color: Theme.of(context).brightness == Brightness.dark
+                                    color: isDark
                                         ? AppColors.darkTextPrimary
                                         : Colors.black87,
                                   ),
@@ -2208,6 +2222,132 @@ class _TitleCaseTextInputFormatter extends TextInputFormatter {
     return TextEditingValue(
       text: buffer.toString(),
       selection: newValue.selection,
+    );
+  }
+}
+
+// ── Custom Dedicated Thin Horizontal Scrollbar Under Filters ─────────────────
+class _CustomHorizontalScrollBar extends StatefulWidget {
+  final ScrollController controller;
+  final bool isDark;
+
+  const _CustomHorizontalScrollBar({
+    required this.controller,
+    required this.isDark,
+  });
+
+  @override
+  State<_CustomHorizontalScrollBar> createState() => _CustomHorizontalScrollBarState();
+}
+
+class _CustomHorizontalScrollBarState extends State<_CustomHorizontalScrollBar> {
+  @override
+  void initState() {
+    super.initState();
+    widget.controller.addListener(_onScroll);
+  }
+
+  @override
+  void didUpdateWidget(covariant _CustomHorizontalScrollBar oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.controller != widget.controller) {
+      oldWidget.controller.removeListener(_onScroll);
+      widget.controller.addListener(_onScroll);
+    }
+  }
+
+  @override
+  void dispose() {
+    widget.controller.removeListener(_onScroll);
+    super.dispose();
+  }
+
+  void _onScroll() {
+    if (mounted) setState(() {});
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: widget.controller,
+      builder: (context, _) {
+        if (!widget.controller.hasClients ||
+            !widget.controller.position.hasContentDimensions ||
+            widget.controller.position.maxScrollExtent <= 0) {
+          return const SizedBox.shrink();
+        }
+
+        final pos = widget.controller.position;
+        final maxScroll = pos.maxScrollExtent;
+        final currentScroll = pos.pixels.clamp(0.0, maxScroll);
+        final progress = maxScroll > 0 ? currentScroll / maxScroll : 0.0;
+        final viewportFraction = (pos.viewportDimension /
+                (pos.maxScrollExtent + pos.viewportDimension))
+            .clamp(0.15, 0.85);
+
+        final trackColor = widget.isDark
+            ? AppColors.darkBorder.withValues(alpha: 0.5)
+            : const Color(0xFFE2E8F0);
+        final thumbColor = widget.isDark
+            ? const Color(0xFFE2E8F0)
+            : const Color(0xFF334155);
+
+        return Padding(
+          padding: const EdgeInsets.only(top: 4, bottom: 2),
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              final trackWidth = constraints.maxWidth;
+              final thumbWidth =
+                  (trackWidth * viewportFraction).clamp(36.0, trackWidth);
+              final maxThumbOffset = trackWidth - thumbWidth;
+              final thumbOffset = maxThumbOffset * progress;
+
+              return GestureDetector(
+                behavior: HitTestBehavior.opaque,
+                onHorizontalDragUpdate: (details) {
+                  if (maxThumbOffset <= 0) return;
+                  final deltaFraction = details.primaryDelta! / maxThumbOffset;
+                  final newScroll = (widget.controller.offset +
+                          deltaFraction * maxScroll)
+                      .clamp(0.0, maxScroll);
+                  widget.controller.jumpTo(newScroll);
+                },
+                child: Container(
+                  height: 10,
+                  width: double.infinity,
+                  alignment: Alignment.centerLeft,
+                  child: Stack(
+                    alignment: Alignment.centerLeft,
+                    children: [
+                      // Thin Track Line
+                      Container(
+                        height: 3,
+                        width: trackWidth,
+                        decoration: BoxDecoration(
+                          color: trackColor,
+                          borderRadius: BorderRadius.circular(1.5),
+                        ),
+                      ),
+                      // Thin Thumb Line
+                      Positioned(
+                        left: thumbOffset,
+                        child: Container(
+                          height: 3,
+                          width: thumbWidth,
+                          decoration: BoxDecoration(
+                            color: thumbColor,
+                            borderRadius: BorderRadius.circular(1.5),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            },
+          ),
+        );
+      },
     );
   }
 }

@@ -1441,8 +1441,8 @@ class _CustomHorizontalScrollBarState extends State<_CustomHorizontalScrollBar> 
             ? AppColors.darkBorder.withValues(alpha: 0.5)
             : const Color(0xFFE2E8F0);
         final thumbColor = widget.isDark
-            ? const Color(0xFF2DD4BF)
-            : const Color(0xFF0D9488);
+            ? const Color(0xFFE2E8F0)
+            : const Color(0xFF334155);
 
         return Padding(
           padding: const EdgeInsets.only(top: 4, bottom: 2),
