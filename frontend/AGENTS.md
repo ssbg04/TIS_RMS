@@ -387,18 +387,22 @@ Files backup/restore - mirror mode or zip -->
 <!-- # DOCUMENTS SCREEN
 - archive files hide in list -> move archive files into in more icon where the switch grid includes, show the "archives" when the student folder opened or if the student have archived files -> hide the archives files in the documents list, only show completed files -->
 
+<!-- # REPORTS SCREEN
+- compliance tab -> "students per year" section -> year filter list all acad year -> deafult selected is 4 consecutive years (ex. 2022-2023, 2023-2024, 2024-2025, 2025-2026)
+- horizontal scroll bar hint for android app
+- filter by year default as active year
+- compliance hover on missing count shows all missing documents separated jhs shs
+- compliance tab -> "Student list" section -> remove missing requirements -> make the missing column hover just like on "STUDENT SCREEN", can see missing documents separate jhs and shs same from "STUDENT SCREEN" -->
+
 --- 
 
 # DONT DO
 
 - recycle bin -> search history not delete history
 
-- reports screen -> compliance -> students per year -> year filter
-- reports screen -> horizontal scroll bar hint
-- report screen -> dynamic year filter default as active year
-- reports screen -> compliance hover on missing count shows all missing documents separated jhs shs
 
 
+- document screen -> upload document limit document type limit -> duplicate files
 - user management -> expired the jwt of deactivated user
 
 - dashboard school -> add missing students by document type kpi 
@@ -406,23 +410,30 @@ Files backup/restore - mirror mode or zip -->
 - dashboard screen -> user friendly logs/histories
 - dashboard screen -> assign section modal
 
+- student screen -> add new student screen -> remove N/A on suffix dropdown
+
 - notification separate admin and teacher
 
 - bug in bulk add student enrollment
 
-# CHINE
-- forget password sa admin side (email)
-- search history dapat naalis
-- lrn should not be fixed
-- n/a add student in suffix part -> remove
-- inactive academic year 
-- multiple selection of files in select document type 
-- how about when the pages needed to upload have two pages or more?
-- archive still popping up even after archiving & overall number of docs are inaccurate in docs status
-- overall number of docs are inaccurate in docs status
-- table header on students directory
-- accurate reports
+Aug 28 2026:
+- missing kpi in dashboard
+- grade level by teacher
+- report all export 
 
+Dashboard
+Document breakdown- missing docs
+those who didnt submit
+What specific year level have complied or partially complied
+Documents (no. of completed) over ilan ang docu
+Orient ang client as extension proj of our sch
+Graph depending sa no. of 4ps
+
+features
+- submit missing requirement
+- specific yr level dashboard
+- number of completed
+- how many document
 ---
 
 # TIS_RMS Server Manager (dont do)

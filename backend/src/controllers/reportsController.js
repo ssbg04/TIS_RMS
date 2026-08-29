@@ -314,12 +314,10 @@ exports.getYearlyComparison = (req, res) => {
                 )
             ) sly ON s.id = sly.student_id
             GROUP BY ay.id, ay.year_range
-            ORDER BY ay.id DESC
-            LIMIT 5
+            ORDER BY ay.year_range ASC
         `;
         const data = db.prepare(query).all();
-        // Return oldest first for charting (left to right)
-        res.json(data.reverse());
+        res.json(data);
     } catch (error) {
         res.status(500).json({ message: 'Failed to fetch yearly comparison', error: error.message });
     }

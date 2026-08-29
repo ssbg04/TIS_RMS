@@ -32,12 +32,13 @@ class ReportsScreen extends ConsumerStatefulWidget {
 class _ReportsScreenState extends ConsumerState<ReportsScreen> {
   bool _isExporting = false;
   final ScrollController _scrollController = ScrollController();
+  final ScrollController _tableHorizontalScrollController = ScrollController();
+  final ScrollController _chartHorizontalScrollController = ScrollController();
   ProviderSubscription<String>? _tabListener;
   Timer? _pollingTimer;
 
   int _currentPage = 0;
   int _rowsPerPage = 10;
-  int _lastTotalRows = -1;
   int _selectedViewMode = 0; // 0: DepEd Transparency Board, 1: Compliance & Analytics, 2: Combined
 
   // Table search & sort state
@@ -99,6 +100,8 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
     _pollingTimer?.cancel();
     _tabListener?.close();
     _scrollController.dispose();
+    _tableHorizontalScrollController.dispose();
+    _chartHorizontalScrollController.dispose();
     _searchController.dispose();
     super.dispose();
   }
@@ -477,6 +480,25 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
   Widget build(BuildContext context) {
     final statsAsync = ref.watch(reportStatsProvider);
     final storageAsync = ref.watch(storageStatsProvider);
+    final yearsAsync = ref.watch(academicYearsProvider);
+    final selectedYearId = ref.watch(selectedAcademicYearIdProvider);
+    final selectedYearNotifier = ref.read(selectedAcademicYearIdProvider.notifier);
+
+    // Auto-select active academic year on initial load if not explicitly chosen
+    if (!selectedYearNotifier.hasExplicitSelection && selectedYearId == null && yearsAsync.hasValue) {
+      final yearsList = yearsAsync.value ?? [];
+      if (yearsList.isNotEmpty) {
+        final activeYear = yearsList.firstWhere(
+          (y) => y.status.toLowerCase() == 'active',
+          orElse: () => yearsList.last,
+        );
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted) {
+            selectedYearNotifier.setDefaultIfUnset(activeYear.id);
+          }
+        });
+      }
+    }
 
     return Scaffold(
       resizeToAvoidBottomInset: false,
@@ -982,7 +1004,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                               data: (yearsList) =>
                                   DropdownButtonFormField<int?>(
                                     isExpanded: true,
-                                    initialValue: selectedYearId,
+                                    value: selectedYearId,
                                     decoration: _filterDecoration(
                                       'School Year',
                                     ),
@@ -2038,7 +2060,114 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
     );
   }
 
-  // â”€â”€ Interactive Compliance Table â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Missing Documents Hover Tooltip ──────────────────────────────────────────
+  Widget _buildMissingDocsTooltip({
+    required BuildContext context,
+    required int missingCount,
+    required String? missingRequirementsStr,
+    required Widget child,
+  }) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    String tooltipMessage = '';
+
+    if (missingCount == 0 ||
+        missingRequirementsStr == null ||
+        missingRequirementsStr.trim().isEmpty) {
+      tooltipMessage = 'All documents completed';
+    } else {
+      final rawList = missingRequirementsStr
+          .split(',')
+          .map((s) => s.trim())
+          .where((s) => s.isNotEmpty)
+          .toList();
+
+      final jhsDocs = rawList
+          .where((d) => d.toUpperCase().startsWith('[JHS]'))
+          .map((d) => d.replaceFirst(RegExp(r'^\[JHS\]\s*', caseSensitive: false), '').trim())
+          .toList();
+      final shsDocs = rawList
+          .where((d) => d.toUpperCase().startsWith('[SHS]'))
+          .map((d) => d.replaceFirst(RegExp(r'^\[SHS\]\s*', caseSensitive: false), '').trim())
+          .toList();
+      final otherDocs = rawList
+          .where((d) =>
+              !d.toUpperCase().startsWith('[JHS]') &&
+              !d.toUpperCase().startsWith('[SHS]'))
+          .map((d) => d.trim())
+          .toList();
+
+      final lines = <String>['Missing Documents:'];
+      if (jhsDocs.isNotEmpty) {
+        lines.add('JHS:');
+        lines.addAll(jhsDocs.map((d) => '  • $d'));
+      }
+      if (shsDocs.isNotEmpty) {
+        lines.add('SHS:');
+        lines.addAll(shsDocs.map((d) => '  • $d'));
+      }
+      if (otherDocs.isNotEmpty) {
+        if (jhsDocs.isNotEmpty || shsDocs.isNotEmpty) lines.add('Other:');
+        lines.addAll(otherDocs.map((d) => '  • $d'));
+      }
+
+      tooltipMessage = lines.join('\n');
+    }
+
+    return Tooltip(
+      message: tooltipMessage,
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      decoration: BoxDecoration(
+        color: isDark ? AppColors.darkSurfaceCard : const Color(0xFF2C3437),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(
+          color: isDark ? AppColors.darkBorder : Colors.transparent,
+        ),
+        boxShadow: const [
+          BoxShadow(
+            color: Colors.black26,
+            blurRadius: 6,
+            offset: Offset(0, 2),
+          ),
+        ],
+      ),
+      textStyle: const TextStyle(
+        color: Colors.white,
+        fontSize: 12,
+        height: 1.4,
+      ),
+      preferBelow: false,
+      child: child,
+    );
+  }
+
+  // ── Horizontal Scroll Hint for Mobile/Android ───────────────────────────────
+  Widget _buildHorizontalScrollHint(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            Icons.swap_horiz_rounded,
+            size: 15,
+            color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
+          ),
+          const SizedBox(width: 4),
+          Text(
+            'Scroll horizontally to view more',
+            style: TextStyle(
+              fontSize: 11,
+              fontStyle: FontStyle.italic,
+              color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ── Interactive Compliance Table ──────────────────────────────────────────
   Widget _buildComplianceTable(ReportStats data) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final showOnlyMissing = ref.watch(showOnlyMissingDocsProvider);
@@ -2052,94 +2181,71 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
         activeStatus != null ||
         showOnlyMissing;
 
-    var filteredStudents = showOnlyMissing
-        ? data.students.where((s) => s.missingCount > 0).toList()
-        : List<ReportStudent>.from(data.students);
+    // Filter students
+    final filteredStudents = data.students.where((student) {
+      if (showOnlyMissing && student.missingCount == 0) return false;
+      if (_searchQuery.isNotEmpty) {
+        final q = _searchQuery.toLowerCase();
+        final matchLrn = student.lrn.toLowerCase().contains(q);
+        final matchName = student.fullName.toLowerCase().contains(q);
+        if (!matchLrn && !matchName) return false;
+      }
+      return true;
+    }).toList();
 
-    // Apply search
-    if (_searchQuery.isNotEmpty) {
-      final q = _searchQuery.toLowerCase();
-      filteredStudents = filteredStudents
-          .where(
-            (s) =>
-                s.fullName.toLowerCase().contains(q) ||
-                s.lrn.toLowerCase().contains(q),
-          )
-          .toList();
-    }
-
-    // Apply sort
+    // Sort students
     if (_sortColumn != null) {
       filteredStudents.sort((a, b) {
-        int cmp;
+        int comparison = 0;
         switch (_sortColumn) {
-          case 'name':
-            cmp = a.fullName.compareTo(b.fullName);
-            break;
           case 'lrn':
-            cmp = a.lrn.compareTo(b.lrn);
+            comparison = a.lrn.compareTo(b.lrn);
+            break;
+          case 'name':
+            comparison = a.fullName.compareTo(b.fullName);
             break;
           case 'missing':
-            cmp = a.missingCount.compareTo(b.missingCount);
+            comparison = a.missingCount.compareTo(b.missingCount);
             break;
-          default:
-            cmp = 0;
         }
-        return _sortAscending ? cmp : -cmp;
+        return _sortAscending ? comparison : -comparison;
       });
     }
 
     final totalRows = filteredStudents.length;
-    if (totalRows != _lastTotalRows) {
-      Future.microtask(() {
-        if (mounted) {
+    final totalPages = (totalRows / _rowsPerPage).ceil().clamp(1, 99999);
+    final startIndex = (_currentPage * _rowsPerPage).clamp(0, totalRows);
+    final endIndex = (startIndex + _rowsPerPage).clamp(0, totalRows);
+    final paginatedStudents = totalRows == 0
+        ? <ReportStudent>[]
+        : filteredStudents.sublist(startIndex, endIndex);
+
+    Widget sortableHeader(String label, String columnKey) {
+      final isSelected = _sortColumn == columnKey;
+      return InkWell(
+        onTap: () {
           setState(() {
-            _currentPage = 0;
-            _lastTotalRows = totalRows;
+            if (_sortColumn == columnKey) {
+              _sortAscending = !_sortAscending;
+            } else {
+              _sortColumn = columnKey;
+              _sortAscending = true;
+            }
           });
-        }
-      });
-    }
-
-    final totalPages = totalRows > 0 ? (totalRows / _rowsPerPage).ceil() : 1;
-    final startIndex = _currentPage * _rowsPerPage;
-    final endIndex = (startIndex + _rowsPerPage > totalRows)
-        ? totalRows
-        : startIndex + _rowsPerPage;
-
-    final safeStartIndex = startIndex.clamp(0, totalRows);
-    final safeEndIndex = endIndex.clamp(0, totalRows);
-    final paginatedStudents = filteredStudents.sublist(
-      safeStartIndex,
-      safeEndIndex,
-    );
-
-    // Sortable column header
-    Widget sortableHeader(String label, String colKey) {
-      final isActive = _sortColumn == colKey;
-      return GestureDetector(
-        onTap: () => setState(() {
-          if (_sortColumn == colKey) {
-            _sortAscending = !_sortAscending;
-          } else {
-            _sortColumn = colKey;
-            _sortAscending = true;
-            _currentPage = 0;
-          }
-        }),
+        },
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
             Text(label, style: const TextStyle(fontWeight: FontWeight.bold)),
-            const SizedBox(width: 3),
+            const SizedBox(width: 4),
             Icon(
-              isActive
+              isSelected
                   ? (_sortAscending
-                      ? Icons.arrow_upward_rounded
-                      : Icons.arrow_downward_rounded)
-                  : Icons.unfold_more_rounded,
-              size: 13,
-              color: isActive
+                      ? Icons.arrow_upward
+                      : Icons.arrow_downward)
+                  : Icons.unfold_more,
+              size: 14,
+              color: isSelected
                   ? AppColors.primaryGreen
                   : (isDark ? AppColors.darkTextMuted : Colors.grey.shade400),
             ),
@@ -2160,14 +2266,14 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            'Student List',
+                            'Student Document Compliance',
                             style: TextStyle(
                               fontSize: 18,
                               fontWeight: FontWeight.bold,
@@ -2176,7 +2282,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                           ),
                           const SizedBox(height: 4),
                           Text(
-                            'Tap a student to see their full profile. You can sort by LRN, Name, or missing count.',
+                            'List of students with their document compliance status.',
                             style: TextStyle(
                               color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
                               fontSize: 13,
@@ -2185,18 +2291,17 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                         ],
                       ),
                     ),
-                    const SizedBox(width: 12),
                     Container(
                       padding: const EdgeInsets.symmetric(
-                        horizontal: 10,
-                        vertical: 4,
+                        horizontal: 12,
+                        vertical: 6,
                       ),
                       decoration: BoxDecoration(
-                        color: AppColors.primaryGreen.withValues(alpha: 0.08),
+                        color: AppColors.primaryGreen.withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(20),
                       ),
                       child: Text(
-                        '${data.students.length} students',
+                        'Total: $totalRows',
                         style: const TextStyle(
                           fontSize: 12,
                           fontWeight: FontWeight.w600,
@@ -2207,7 +2312,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                   ],
                 ),
                 const SizedBox(height: 12),
-                // â”€â”€ Search Field â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+                // ── Search Field ───────────────────────────────────────────
                 TextField(
                   controller: _searchController,
                   onChanged: (val) => setState(() {
@@ -2270,7 +2375,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                     ),
                   ),
                 ),
-                // â”€â”€ Clear All Chip â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+                // ── Clear All Chip ─────────────────────────────────────────
                 if (hasActiveFilters || _searchQuery.isNotEmpty) ...[
                   const SizedBox(height: 8),
                   ActionChip(
@@ -2354,12 +2459,6 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                       ),
                     ),
                     DataColumn(label: sortableHeader('Missing', 'missing')),
-                    const DataColumn(
-                      label: Text(
-                        'Missing Requirements',
-                        style: TextStyle(fontWeight: FontWeight.bold),
-                      ),
-                    ),
                   ],
                   rows: paginatedStudents.isEmpty
                       ? <DataRow>[
@@ -2370,7 +2469,6 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                                   'No students found for these filters.',
                                 ),
                               ),
-                              DataCell(Text('')),
                               DataCell(Text('')),
                               DataCell(Text('')),
                               DataCell(Text('')),
@@ -2473,53 +2571,68 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                               ),
                             ),
                             DataCell(
-                              Container(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 8,
-                                  vertical: 3,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: student.missingCount > 0
-                                      ? (isDark
-                                          ? const Color(0xFFD67878).withValues(alpha: 0.14)
-                                          : Colors.red.shade50)
-                                      : (isDark
-                                          ? const Color(0xFF76BA8A).withValues(alpha: 0.14)
-                                          : Colors.green.shade50),
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                                child: Text(
-                                  student.missingCount.toString(),
-                                  style: TextStyle(
+                              _buildMissingDocsTooltip(
+                                context: context,
+                                missingCount: student.missingCount,
+                                missingRequirementsStr: student.missingRequirements,
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 8,
+                                    vertical: 3,
+                                  ),
+                                  decoration: BoxDecoration(
                                     color: student.missingCount > 0
                                         ? (isDark
-                                            ? const Color(0xFFD67878)
-                                            : Colors.red.shade700)
+                                            ? const Color(0xFFD67878).withValues(alpha: 0.14)
+                                            : Colors.red.shade50)
                                         : (isDark
-                                            ? const Color(0xFF76BA8A)
-                                            : Colors.green.shade700),
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 12,
+                                            ? const Color(0xFF76BA8A).withValues(alpha: 0.14)
+                                            : Colors.green.shade50),
+                                    borderRadius: BorderRadius.circular(12),
+                                    border: Border.all(
+                                      color: student.missingCount > 0
+                                          ? (isDark
+                                              ? const Color(0xFFD67878).withValues(alpha: 0.3)
+                                              : Colors.red.shade200)
+                                          : (isDark
+                                              ? const Color(0xFF76BA8A).withValues(alpha: 0.3)
+                                              : Colors.green.shade200),
+                                      width: 0.8,
+                                    ),
                                   ),
-                                ),
-                              ),
-                            ),
-                            DataCell(
-                              Text(
-                                student.missingRequirements ??
-                                    'None — Complete',
-                                style: TextStyle(
-                                  color: student.missingCount > 0
-                                      ? (isDark
-                                          ? AppColors.darkTextSecondary
-                                          : Colors.grey.shade700)
-                                      : (isDark
-                                          ? const Color(0xFF76BA8A)
-                                          : Colors.green.shade700),
-                                  fontSize: 12,
-                                  fontStyle: student.missingCount > 0
-                                      ? FontStyle.normal
-                                      : FontStyle.italic,
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Icon(
+                                        student.missingCount > 0
+                                            ? Icons.info_outline_rounded
+                                            : Icons.check_circle_outline_rounded,
+                                        size: 13,
+                                        color: student.missingCount > 0
+                                            ? (isDark
+                                                ? const Color(0xFFD67878)
+                                                : Colors.red.shade700)
+                                            : (isDark
+                                                ? const Color(0xFF76BA8A)
+                                                : Colors.green.shade700),
+                                      ),
+                                      const SizedBox(width: 4),
+                                      Text(
+                                        student.missingCount.toString(),
+                                        style: TextStyle(
+                                          color: student.missingCount > 0
+                                              ? (isDark
+                                                  ? const Color(0xFFD67878)
+                                                  : Colors.red.shade700)
+                                              : (isDark
+                                                  ? const Color(0xFF76BA8A)
+                                                  : Colors.green.shade700),
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: 12,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
                                 ),
                               ),
                             ),
@@ -2530,9 +2643,21 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                 if (isWideTable) {
                   return tableWidget;
                 }
-                return SingleChildScrollView(
-                  scrollDirection: Axis.horizontal,
-                  child: tableWidget,
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _buildHorizontalScrollHint(context),
+                    Scrollbar(
+                      controller: _tableHorizontalScrollController,
+                      thumbVisibility: true,
+                      trackVisibility: true,
+                      child: SingleChildScrollView(
+                        controller: _tableHorizontalScrollController,
+                        scrollDirection: Axis.horizontal,
+                        child: tableWidget,
+                      ),
+                    ),
+                  ],
                 );
               },
             ),
@@ -2601,7 +2726,9 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                       ),
                       const SizedBox(width: 16),
                       Text(
-                        'Showing ${safeStartIndex + 1} - $safeEndIndex of $totalRows',
+                        totalRows == 0
+                            ? 'Showing 0 of 0'
+                            : 'Showing ${startIndex + 1} - $endIndex of $totalRows',
                         style: TextStyle(
                           color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
                           fontSize: 12,
@@ -3260,24 +3387,36 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
 
           const SizedBox(height: 16),
 
-          // â”€â”€ Underline Filter Dropdown Row â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+          // ── Underline Filter Dropdown Row ──────────────────────────────────────────
           yearlyAsync.when(
             skipLoadingOnReload: true,
             loading: () => const SizedBox.shrink(),
             error: (_, e) => const SizedBox.shrink(),
             data: (allData) {
-              // All available year strings from DB, sorted ascending
-              final allYearStrings = allData.map((d) => d.year).toSet().toList()
+              // Combine all available academic years from setup and data
+              final allSysYears = (ref.watch(academicYearsProvider).asData?.value ?? [])
+                  .map((y) => y.yearRange)
+                  .toSet();
+              final allDataYears = allData.map((d) => d.year).toSet();
+              final allYearStrings = {...allSysYears, ...allDataYears}.toList()
                 ..sort();
+
+              final default4 = allYearStrings.length <= 4
+                  ? allYearStrings
+                  : allYearStrings.sublist(allYearStrings.length - 4);
 
               return Row(
                 children: [
                   // Year multi-select dropdown
                   _buildUnderlineDropdown(
                     label: selectedYears.isEmpty
-                        ? 'Last 4 Years'
+                        ? (default4.length > 1
+                            ? '${default4.first} – ${default4.last}'
+                            : 'Latest 4 Years')
                         : selectedYears.length == 1
                         ? selectedYears.first
+                        : selectedYears.length == allYearStrings.length
+                        ? 'All Years'
                         : '${selectedYears.length} Years',
                     icon: Icons.calendar_today_outlined,
                     onTap: (btnCtx) => _showYearMultiSelectMenu(
@@ -3319,7 +3458,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
 
           const SizedBox(height: AppSizes.p24),
 
-          // â”€â”€ Chart â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+          // ── Chart ──────────────────────────────────────────────────────────
           yearlyAsync.when(
             skipLoadingOnReload: true,
             loading: () => const Center(
@@ -3372,143 +3511,161 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                       constraints.maxWidth > (data.length * 150.0)
                       ? constraints.maxWidth
                       : (data.length * 150.0);
-                  return SingleChildScrollView(
-                    scrollDirection: Axis.horizontal,
-                    child: SizedBox(
-                      width: chartWidth,
-                      height: 300,
-                      child: BarChart(
-                        BarChartData(
-                          alignment: BarChartAlignment.spaceAround,
-                          maxY: maxY,
-                          barTouchData: BarTouchData(
-                            touchTooltipData: BarTouchTooltipData(
-                              getTooltipColor: (group) => isDark
-                                  ? AppColors.darkSurface2
-                                  : Colors.blueGrey.shade800,
-                              getTooltipItem:
-                                  (group, groupIndex, rod, rodIndex) {
-                                    if (groupIndex >= data.length) return null;
-                                    final yearData = data[groupIndex];
-                                    final opt = rodIndex < activeOptions.length
-                                        ? activeOptions[rodIndex]
-                                        : null;
-                                    if (opt == null) return null;
-                                    final val = _getStatusValue(
-                                      yearData,
-                                      opt.key,
-                                    );
-                                    return BarTooltipItem(
-                                      '${opt.label}\n',
-                                      const TextStyle(
-                                        color: Colors.white,
-                                        fontWeight: FontWeight.bold,
-                                        fontSize: 14,
-                                      ),
-                                      children: [
-                                        TextSpan(
-                                          text: val.toString(),
-                                          style: const TextStyle(
-                                            color: Colors.white70,
-                                            fontSize: 13,
-                                            fontWeight: FontWeight.normal,
-                                          ),
-                                        ),
-                                      ],
-                                    );
-                                  },
-                            ),
-                          ),
-                          titlesData: FlTitlesData(
-                            show: true,
-                            bottomTitles: AxisTitles(
-                              sideTitles: SideTitles(
-                                showTitles: true,
-                                getTitlesWidget: (value, meta) {
-                                  if (value.toInt() >= data.length) {
-                                    return const SizedBox.shrink();
-                                  }
-                                  return Padding(
-                                    padding: const EdgeInsets.only(top: 8.0),
-                                    child: Text(
-                                      data[value.toInt()].year,
-                                      style: TextStyle(
-                                        color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
-                                        fontSize: 12,
-                                        fontWeight: FontWeight.bold,
-                                      ),
+                  final Widget chartWidget = SizedBox(
+                    width: chartWidth,
+                    height: 300,
+                    child: BarChart(
+                      BarChartData(
+                        alignment: BarChartAlignment.spaceAround,
+                        maxY: maxY,
+                        barTouchData: BarTouchData(
+                          touchTooltipData: BarTouchTooltipData(
+                            getTooltipColor: (group) => isDark
+                                ? AppColors.darkSurface2
+                                : Colors.blueGrey.shade800,
+                            getTooltipItem:
+                                (group, groupIndex, rod, rodIndex) {
+                                  if (groupIndex >= data.length) return null;
+                                  final yearData = data[groupIndex];
+                                  final opt = rodIndex < activeOptions.length
+                                      ? activeOptions[rodIndex]
+                                      : null;
+                                  if (opt == null) return null;
+                                  final val = _getStatusValue(
+                                    yearData,
+                                    opt.key,
+                                  );
+                                  return BarTooltipItem(
+                                    '${opt.label}\n',
+                                    const TextStyle(
+                                      color: Colors.white,
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 14,
                                     ),
+                                    children: [
+                                      TextSpan(
+                                        text: val.toString(),
+                                        style: const TextStyle(
+                                          color: Colors.white70,
+                                          fontSize: 13,
+                                          fontWeight: FontWeight.normal,
+                                        ),
+                                      ),
+                                    ],
                                   );
                                 },
-                                reservedSize: 32,
-                              ),
-                            ),
-                            leftTitles: AxisTitles(
-                              sideTitles: SideTitles(
-                                showTitles: true,
-                                reservedSize: 40,
-                                getTitlesWidget: (value, meta) {
-                                  if (value % (maxY / 5).ceil() != 0) {
-                                    return const SizedBox.shrink();
-                                  }
-                                  return Text(
-                                    value.toInt().toString(),
+                          ),
+                        ),
+                        titlesData: FlTitlesData(
+                          show: true,
+                          bottomTitles: AxisTitles(
+                            sideTitles: SideTitles(
+                              showTitles: true,
+                              getTitlesWidget: (value, meta) {
+                                if (value.toInt() >= data.length) {
+                                  return const SizedBox.shrink();
+                                }
+                                return Padding(
+                                  padding: const EdgeInsets.only(top: 8.0),
+                                  child: Text(
+                                    data[value.toInt()].year,
                                     style: TextStyle(
                                       color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
                                       fontSize: 12,
+                                      fontWeight: FontWeight.bold,
                                     ),
-                                  );
-                                },
-                              ),
-                            ),
-                            topTitles: const AxisTitles(
-                              sideTitles: SideTitles(showTitles: false),
-                            ),
-                            rightTitles: const AxisTitles(
-                              sideTitles: SideTitles(showTitles: false),
+                                  ),
+                                );
+                              },
+                              reservedSize: 32,
                             ),
                           ),
-                          gridData: FlGridData(
-                            show: true,
-                            drawVerticalLine: false,
-                            horizontalInterval: (maxY / 5) > 0 ? (maxY / 5) : 1,
-                            getDrawingHorizontalLine: (value) => FlLine(
-                              color: isDark ? AppColors.darkBorder : Colors.grey.shade200,
-                              strokeWidth: 1,
+                          leftTitles: AxisTitles(
+                            sideTitles: SideTitles(
+                              showTitles: true,
+                              reservedSize: 40,
+                              getTitlesWidget: (value, meta) {
+                                if (value % (maxY / 5).ceil() != 0) {
+                                  return const SizedBox.shrink();
+                                }
+                                return Text(
+                                  value.toInt().toString(),
+                                  style: TextStyle(
+                                    color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
+                                    fontSize: 12,
+                                  ),
+                                );
+                              },
                             ),
                           ),
-                          borderData: FlBorderData(show: false),
-                          barGroups: data.asMap().entries.map((entry) {
-                            final i = entry.key;
-                            final d = entry.value;
-                            return BarChartGroupData(
-                              x: i,
-                              barsSpace: 4,
-                              barRods: activeOptions
-                                  .map(
-                                    (opt) => BarChartRodData(
-                                      toY: _getStatusValue(
-                                        d,
-                                        opt.key,
-                                      ).toDouble(),
-                                      color: opt.color,
-                                      width: activeOptions.length > 2 ? 12 : 16,
-                                      borderRadius: BorderRadius.circular(4),
-                                    ),
-                                  )
-                                  .toList(),
-                            );
-                          }).toList(),
+                          topTitles: const AxisTitles(
+                            sideTitles: SideTitles(showTitles: false),
+                          ),
+                          rightTitles: const AxisTitles(
+                            sideTitles: SideTitles(showTitles: false),
+                          ),
                         ),
+                        gridData: FlGridData(
+                          show: true,
+                          drawVerticalLine: false,
+                          horizontalInterval: (maxY / 5) > 0 ? (maxY / 5) : 1,
+                          getDrawingHorizontalLine: (value) => FlLine(
+                            color: isDark ? AppColors.darkBorder : Colors.grey.shade200,
+                            strokeWidth: 1,
+                          ),
+                        ),
+                        borderData: FlBorderData(show: false),
+                        barGroups: data.asMap().entries.map((entry) {
+                          final i = entry.key;
+                          final d = entry.value;
+                          return BarChartGroupData(
+                            x: i,
+                            barsSpace: 4,
+                            barRods: activeOptions
+                                .map(
+                                  (opt) => BarChartRodData(
+                                    toY: _getStatusValue(
+                                      d,
+                                      opt.key,
+                                    ).toDouble(),
+                                    color: opt.color,
+                                    width: activeOptions.length > 2 ? 12 : 16,
+                                    borderRadius: BorderRadius.circular(4),
+                                  ),
+                                )
+                                .toList(),
+                          );
+                        }).toList(),
                       ),
                     ),
+                  );
+
+                  if (chartWidth <= constraints.maxWidth) {
+                    return chartWidget;
+                  }
+
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _buildHorizontalScrollHint(context),
+                      Scrollbar(
+                        controller: _chartHorizontalScrollController,
+                        thumbVisibility: true,
+                        trackVisibility: true,
+                        child: SingleChildScrollView(
+                          controller: _chartHorizontalScrollController,
+                          scrollDirection: Axis.horizontal,
+                          child: chartWidget,
+                        ),
+                      ),
+                    ],
                   );
                 },
               );
             },
           ),
           const SizedBox(height: 24),
-          // â”€â”€ Legend (dynamic based on selected statuses) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+          // ── Legend (dynamic based on selected statuses) ─────────────────────
           Consumer(
             builder: (context, ref, _) {
               final statuses = ref.watch(
@@ -3644,58 +3801,139 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
               final currentSelected = ref.watch(
                 yearlyComparisonSelectedYearsProvider,
               );
-              return Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
-                    child: Row(
-                      children: [
-                        const Text(
-                          'Select School Years',
-                          style: TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 13,
+              final default4 = allYears.length <= 4
+                  ? allYears.toSet()
+                  : allYears.sublist(allYears.length - 4).toSet();
+
+              return SizedBox(
+                width: 290,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(16, 12, 16, 6),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text(
+                            'Select School Years',
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 13,
+                            ),
                           ),
-                        ),
-                        const Spacer(),
-                        TextButton(
-                          onPressed: () {
-                            ref
-                                .read(
-                                  yearlyComparisonSelectedYearsProvider
-                                      .notifier,
-                                )
-                                .clear();
-                          },
-                          child: const Text(
-                            'Clear All',
-                            style: TextStyle(fontSize: 12),
+                          const SizedBox(height: 6),
+                          Row(
+                            children: [
+                              TextButton(
+                                style: TextButton.styleFrom(
+                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                  minimumSize: Size.zero,
+                                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                                ),
+                                onPressed: () {
+                                  ref
+                                      .read(
+                                        yearlyComparisonSelectedYearsProvider
+                                            .notifier,
+                                      )
+                                      .setYears(default4);
+                                },
+                                child: const Text(
+                                  'Latest 4',
+                                  style: TextStyle(fontSize: 12),
+                                ),
+                              ),
+                              const SizedBox(width: 4),
+                              TextButton(
+                                style: TextButton.styleFrom(
+                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                  minimumSize: Size.zero,
+                                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                                ),
+                                onPressed: () {
+                                  ref
+                                      .read(
+                                        yearlyComparisonSelectedYearsProvider
+                                            .notifier,
+                                      )
+                                      .setYears(allYears.toSet());
+                                },
+                                child: const Text(
+                                  'All Years',
+                                  style: TextStyle(fontSize: 12),
+                                ),
+                              ),
+                              const Spacer(),
+                              TextButton(
+                                style: TextButton.styleFrom(
+                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                  minimumSize: Size.zero,
+                                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                                ),
+                                onPressed: () {
+                                  ref
+                                      .read(
+                                        yearlyComparisonSelectedYearsProvider
+                                            .notifier,
+                                      )
+                                      .clear();
+                                },
+                                child: const Text(
+                                  'Clear',
+                                  style: TextStyle(fontSize: 12),
+                                ),
+                              ),
+                            ],
                           ),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
-                  ),
-                  const Divider(height: 1),
-                  ...allYears.map((year) {
-                    final isChecked = currentSelected.contains(year);
-                    return CheckboxListTile(
-                      dense: true,
-                      value: isChecked,
-                      title: Text(year, style: const TextStyle(fontSize: 13)),
-                      activeColor: AppColors.primaryGreen,
-                      controlAffinity: ListTileControlAffinity.leading,
-                      onChanged: (val) {
-                        ref
-                            .read(
-                              yearlyComparisonSelectedYearsProvider.notifier,
-                            )
-                            .toggle(year);
-                      },
-                    );
-                  }),
-                ],
+                    const Divider(height: 1),
+                    ConstrainedBox(
+                      constraints: const BoxConstraints(maxHeight: 280),
+                      child: ListView(
+                        shrinkWrap: true,
+                        children: allYears.map((year) {
+                          final isChecked = currentSelected.isEmpty
+                              ? default4.contains(year)
+                              : currentSelected.contains(year);
+                          return CheckboxListTile(
+                            dense: true,
+                            value: isChecked,
+                            title: Text(year, style: const TextStyle(fontSize: 13)),
+                            activeColor: AppColors.primaryGreen,
+                            controlAffinity: ListTileControlAffinity.leading,
+                            onChanged: (val) {
+                              if (currentSelected.isEmpty) {
+                                final updated = Set<String>.from(default4);
+                                if (updated.contains(year)) {
+                                  updated.remove(year);
+                                } else {
+                                  updated.add(year);
+                                }
+                                ref
+                                    .read(
+                                      yearlyComparisonSelectedYearsProvider
+                                          .notifier,
+                                    )
+                                    .setYears(updated);
+                              } else {
+                                ref
+                                    .read(
+                                      yearlyComparisonSelectedYearsProvider
+                                          .notifier,
+                                    )
+                                    .toggle(year);
+                              }
+                            },
+                          );
+                        }).toList(),
+                      ),
+                    ),
+                  ],
+                ),
               );
             },
           ),

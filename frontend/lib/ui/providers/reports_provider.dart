@@ -12,9 +12,30 @@ final selectedAcademicYearIdProvider =
     NotifierProvider<SelectedYearNotifier, int?>(() => SelectedYearNotifier());
 
 class SelectedYearNotifier extends Notifier<int?> {
+  bool _hasExplicitSelection = false;
+  bool get hasExplicitSelection => _hasExplicitSelection;
+
   @override
-  int? build() => null;
-  void select(int? id) => state = id;
+  int? build() {
+    _hasExplicitSelection = false;
+    return null;
+  }
+
+  void select(int? id) {
+    _hasExplicitSelection = true;
+    state = id;
+  }
+
+  void setDefaultIfUnset(int activeYearId) {
+    if (!_hasExplicitSelection && state == null) {
+      state = activeYearId;
+    }
+  }
+
+  void reset() {
+    _hasExplicitSelection = false;
+    state = null;
+  }
 }
 
 // Academic years list
@@ -87,7 +108,7 @@ final missingDocsFilterExpandedProvider = NotifierProvider<_BoolNotifier, bool>(
 
 // ── Yearly Comparison Filters ─────────────────────────────────────────────────
 
-/// Selected years for yearly comparison (empty = all years)
+/// Selected years for yearly comparison (empty = default 4 consecutive years)
 final yearlyComparisonSelectedYearsProvider =
     NotifierProvider<SelectedYearsNotifier, Set<String>>(
       () => SelectedYearsNotifier(),
@@ -106,6 +127,8 @@ class SelectedYearsNotifier extends Notifier<Set<String>> {
     }
     state = current;
   }
+
+  void setYears(Set<String> years) => state = years;
 
   void clear() => state = {};
 }
