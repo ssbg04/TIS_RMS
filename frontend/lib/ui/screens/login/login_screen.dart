@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io' show Platform;
 import 'dart:ui' show ImageFilter;
 import 'package:flutter/foundation.dart' show kIsWeb;
@@ -215,13 +216,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen> with SingleTickerProv
       builder: (ctx) => _ForgotPasswordDialog(
         initialUsername: _usernameController.text,
         onSuccess: (msg) {
-          Navigator.pop(ctx);
           showSuccessDialog(
             context,
-            title: 'Request Submitted',
+            title: 'Password Reset Successful',
             message: msg,
-
-            ///onDismissed: () {}
           );
         },
       ),
@@ -706,7 +704,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen> with SingleTickerProv
 }
 
 // ================================================================
-// FORGOT PASSWORD DIALOG
+// FORGOT PASSWORD OTP DIALOG (EMAIL & PHONE SMS MULTI-STEP)
+// ================================================================
+// ================================================================
+// FORGOT PASSWORD DIALOG (EMAIL OTP VERIFICATION)
 // ================================================================
 class _ForgotPasswordDialog extends ConsumerStatefulWidget {
   final void Function(String message) onSuccess;
@@ -719,12 +720,21 @@ class _ForgotPasswordDialog extends ConsumerStatefulWidget {
 }
 
 class _ForgotPasswordDialogState extends ConsumerState<_ForgotPasswordDialog> {
-  final _formKey = GlobalKey<FormState>();
+  final _usernameFormKey = GlobalKey<FormState>();
+  final _resetFormKey = GlobalKey<FormState>();
+
   final _usernameCtrl = TextEditingController();
+  final _otpCtrl = TextEditingController();
   final _newPassCtrl = TextEditingController();
   final _confirmPassCtrl = TextEditingController();
-  bool _obscurePasswords = true;
+
+  int _currentStep = 0; // 0: Enter Username, 1: Enter OTP & Set New Password
   bool _isLoading = false;
+  bool _obscurePasswords = true;
+  String? _maskedEmail;
+
+  Timer? _cooldownTimer;
+  int _cooldownSeconds = 0;
 
   @override
   void initState() {
@@ -737,16 +747,72 @@ class _ForgotPasswordDialogState extends ConsumerState<_ForgotPasswordDialog> {
 
   @override
   void dispose() {
+    _cooldownTimer?.cancel();
     _usernameCtrl.dispose();
+    _otpCtrl.dispose();
     _newPassCtrl.dispose();
     _confirmPassCtrl.dispose();
     super.dispose();
   }
 
-  Future<void> _handleSubmit() async {
-    if (!_formKey.currentState!.validate()) return;
+  void _startCooldown([int seconds = 60]) {
+    _cooldownTimer?.cancel();
+    setState(() => _cooldownSeconds = seconds);
+    _cooldownTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      if (!mounted) {
+        timer.cancel();
+        return;
+      }
+      if (_cooldownSeconds <= 1) {
+        timer.cancel();
+        setState(() => _cooldownSeconds = 0);
+      } else {
+        setState(() => _cooldownSeconds--);
+      }
+    });
+  }
+
+  // ── Step 0: Find Account & Send Email OTP ─────────────────────────────────
+  Future<void> _handleSendEmailOtp() async {
+    if (!_usernameFormKey.currentState!.validate()) return;
+    final username = _usernameCtrl.text.trim();
+
+    setState(() => _isLoading = true);
+    try {
+      final repo = ref.read(authRepositoryProvider);
+      
+      // 1. Lookup account to verify email exists & get masked email
+      final lookup = await repo.lookupResetOptions(username);
+      _maskedEmail = lookup['maskedEmail'] as String?;
+
+      // 2. Dispatch OTP to email
+      await repo.sendEmailOtp(username);
+
+      if (!mounted) return;
+      _startCooldown(60);
+      setState(() {
+        _otpCtrl.clear();
+        _currentStep = 1;
+      });
+    } catch (e) {
+      if (mounted) {
+        showErrorDialog(
+          context,
+          'Password Reset Request Failed',
+          e.toString().replaceAll('Exception: ', ''),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  // ── Step 1: Verify OTP & Reset Password ───────────────────────────────────
+  Future<void> _handleResetPassword() async {
+    if (!_resetFormKey.currentState!.validate()) return;
 
     final username = _usernameCtrl.text.trim();
+    final otp = _otpCtrl.text.trim();
     final newPass = _newPassCtrl.text;
     final confirmPass = _confirmPassCtrl.text;
 
@@ -755,25 +821,26 @@ class _ForgotPasswordDialogState extends ConsumerState<_ForgotPasswordDialog> {
       return;
     }
 
-    setState(() {
-      _isLoading = true;
-    });
+    setState(() => _isLoading = true);
 
     try {
       final repo = ref.read(authRepositoryProvider);
-      await repo.requestPasswordReset(
+      final message = await repo.resetPasswordEmailOtp(
         username: username,
+        otp: otp,
         newPassword: newPass,
         confirmPassword: confirmPass,
       );
+
       if (mounted) {
-        widget.onSuccess('Reset request submitted. Awaiting Admin approval.');
+        Navigator.pop(context);
+        widget.onSuccess(message);
       }
     } catch (e) {
       if (mounted) {
         showErrorDialog(
           context,
-          'Request Failed',
+          'Password Reset Failed',
           e.toString().replaceAll('Exception: ', ''),
         );
       }
@@ -785,6 +852,7 @@ class _ForgotPasswordDialogState extends ConsumerState<_ForgotPasswordDialog> {
   @override
   Widget build(BuildContext context) {
     final isMobile = MediaQuery.of(context).size.width < 600;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Dialog(
       shape: RoundedRectangleBorder(
@@ -792,91 +860,103 @@ class _ForgotPasswordDialogState extends ConsumerState<_ForgotPasswordDialog> {
       ),
       insetPadding: EdgeInsets.all(isMobile ? 16 : 24),
       child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 420),
+        constraints: const BoxConstraints(maxWidth: 440),
         child: Padding(
-          padding: EdgeInsets.all(isMobile ? 16 : 24),
-          child: Form(
-            key: _formKey,
-            child: SingleChildScrollView(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Icon(
-                        Icons.lock_reset,
-                        color: AppColors.primaryGreen,
-                        size: isMobile ? 24 : 28,
+          padding: EdgeInsets.all(isMobile ? 18 : 24),
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Header
+                Row(
+                  children: [
+                    if (_currentStep > 0)
+                      IconButton(
+                        icon: const Icon(Icons.arrow_back, size: 20),
+                        padding: EdgeInsets.zero,
+                        constraints: const BoxConstraints(),
+                        onPressed: _isLoading
+                            ? null
+                            : () => setState(() => _currentStep = 0),
                       ),
-                      SizedBox(width: isMobile ? 8 : 12),
-                      Expanded(
-                        child: Text(
-                          'Forgot Password',
-                          style: TextStyle(
-                            fontSize: isMobile ? 18 : 22,
-                            fontWeight: FontWeight.bold,
-                          ),
+                    if (_currentStep > 0) const SizedBox(width: 8),
+                    Icon(
+                      _currentStep == 0 ? Icons.email_outlined : Icons.lock_reset,
+                      color: AppColors.primaryGreen,
+                      size: isMobile ? 24 : 28,
+                    ),
+                    SizedBox(width: isMobile ? 8 : 12),
+                    Expanded(
+                      child: Text(
+                        _currentStep == 0
+                            ? 'Forgot Password'
+                            : 'Set New Password',
+                        style: TextStyle(
+                          fontSize: isMobile ? 18 : 20,
+                          fontWeight: FontWeight.bold,
                         ),
                       ),
-                      IconButton(
-                        icon: Icon(Icons.close, size: isMobile ? 20 : 24),
-                        onPressed: () => Navigator.pop(context),
-                      ),
-                    ],
+                    ),
+                    IconButton(
+                      icon: Icon(Icons.close, size: isMobile ? 20 : 24),
+                      onPressed: () => Navigator.pop(context),
+                    ),
+                  ],
+                ),
+
+                // Step Progress Indicator
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  child: Row(
+                    children: List.generate(2, (idx) {
+                      final isActive = idx == _currentStep;
+                      final isPast = idx < _currentStep;
+                      return Expanded(
+                        child: Container(
+                          height: 4,
+                          margin: EdgeInsets.only(right: idx == 0 ? 6 : 0),
+                          decoration: BoxDecoration(
+                            color: isActive
+                                ? AppColors.primaryGreen
+                                : (isPast
+                                    ? AppColors.primaryGreen.withValues(alpha: 0.4)
+                                    : (isDark
+                                        ? AppColors.darkBorder
+                                        : Colors.grey.shade300)),
+                            borderRadius: BorderRadius.circular(2),
+                          ),
+                        ),
+                      );
+                    }),
                   ),
-                  SizedBox(height: isMobile ? 4 : 8),
+                ),
+
+                const Divider(height: 16),
+
+                // ── STEP 0: Enter Username & Send Email OTP ─────────────────
+                if (_currentStep == 0) ...[
                   Text(
-                    'Admin and Teacher accounts only. Your request will be reviewed by the Admin.',
+                    'Enter your account username. A 6-digit verification code will be sent to your registered email address.',
                     style: TextStyle(
-                      fontSize: isMobile ? 12 : 14,
+                      fontSize: isMobile ? 12 : 13,
                       color: AppColors.textSecondary,
                     ),
                   ),
-                  Divider(height: isMobile ? 20 : 28),
-
-                  CustomTextField(
-                    hintText: 'Your Username',
-                    prefixIcon: Icons.person_outline,
-                    controller: _usernameCtrl,
-                    validator: (v) =>
-                        AppValidators.validateRequired(v, 'Username'),
-                  ),
                   const SizedBox(height: AppSizes.p16),
-                  Divider(height: isMobile ? 20 : 28),
-                  const SizedBox(height: AppSizes.p8),
-                  CustomTextField(
-                    hintText: 'New Password',
-                    prefixIcon: Icons.lock_outline,
-                    controller: _newPassCtrl,
-                    isPassword: true,
-                    obscureText: _obscurePasswords,
-                    onToggleVisibility: () => setState(() => _obscurePasswords = !_obscurePasswords),
-                    validator: AppValidators.validatePasswordComplexity,
-                    autovalidateMode: AutovalidateMode.onUserInteraction,
-                    onChanged: (v) => setState(() {}),
+                  Form(
+                    key: _usernameFormKey,
+                    child: CustomTextField(
+                      hintText: 'Your Username',
+                      prefixIcon: Icons.person_outline,
+                      controller: _usernameCtrl,
+                      textInputAction: TextInputAction.done,
+                      onSubmitted: (_) => _handleSendEmailOtp(),
+                      validator: (v) =>
+                          AppValidators.validateRequired(v, 'Username'),
+                    ),
                   ),
-                  if (_newPassCtrl.text.isNotEmpty) ...[
-                    PasswordStrengthIndicator(password: _newPassCtrl.text),
-                  ],
                   const SizedBox(height: AppSizes.p24),
-                  CustomTextField(
-                    hintText: 'Confirm New Password',
-                    prefixIcon: Icons.lock_outline,
-                    controller: _confirmPassCtrl,
-                    isPassword: true,
-                    obscureText: _obscurePasswords,
-                    onToggleVisibility: () => setState(() => _obscurePasswords = !_obscurePasswords),
-                    autovalidateMode: AutovalidateMode.onUserInteraction,
-                    onChanged: (v) => setState(() {}),
-                    validator: (v) {
-                      if (v == null || v.isEmpty) return 'Confirm Password is required';
-                      if (v != _newPassCtrl.text) return 'Passwords do not match';
-                      return null;
-                    },
-                  ),
-
-                  SizedBox(height: isMobile ? 16 : 24),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.end,
                     children: [
@@ -886,17 +966,167 @@ class _ForgotPasswordDialogState extends ConsumerState<_ForgotPasswordDialog> {
                       ),
                       const SizedBox(width: 12),
                       SizedBox(
-                        width: isMobile ? 130 : 140,
+                        width: isMobile ? 140 : 160,
                         child: PrimaryButton(
-                          label: 'SUBMIT',
+                          label: 'SEND CODE',
                           isLoading: _isLoading,
-                          onPressed: _handleSubmit,
+                          onPressed: _handleSendEmailOtp,
                         ),
                       ),
                     ],
                   ),
                 ],
-              ),
+
+                // ── STEP 1: Enter OTP & Set New Password ────────────────────
+                if (_currentStep == 1) ...[
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: AppColors.primaryGreen.withValues(alpha: isDark ? 0.12 : 0.08),
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(
+                        color: AppColors.primaryGreen.withValues(alpha: 0.3),
+                      ),
+                    ),
+                    child: Row(
+                      children: [
+                        const Icon(
+                          Icons.mark_email_read_outlined,
+                          color: AppColors.primaryGreen,
+                          size: 20,
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Text(
+                            'Code sent to ${_maskedEmail ?? "your registered email"}',
+                            style: const TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+
+                  const SizedBox(height: AppSizes.p16),
+
+                  Form(
+                    key: _resetFormKey,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // 6-digit OTP code input + Resend button
+                        Row(
+                          children: [
+                            Expanded(
+                              child: CustomTextField(
+                                hintText: '6-digit code',
+                                prefixIcon: Icons.pin_outlined,
+                                controller: _otpCtrl,
+                                keyboardType: TextInputType.number,
+                                maxLength: 6,
+                                validator: (v) {
+                                  if (v == null || v.trim().length != 6) {
+                                    return 'Enter full 6-digit code';
+                                  }
+                                  return null;
+                                },
+                              ),
+                            ),
+                            const SizedBox(width: 10),
+                            SizedBox(
+                              height: 48,
+                              child: OutlinedButton(
+                                onPressed: (_cooldownSeconds == 0 && !_isLoading)
+                                    ? _handleSendEmailOtp
+                                    : null,
+                                style: OutlinedButton.styleFrom(
+                                  padding: const EdgeInsets.symmetric(horizontal: 12),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(10),
+                                  ),
+                                ),
+                                child: Text(
+                                  _cooldownSeconds > 0
+                                      ? 'Resend (${_cooldownSeconds}s)'
+                                      : 'Resend',
+                                  style: const TextStyle(fontSize: 12),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+
+                        const SizedBox(height: AppSizes.p16),
+
+                        CustomTextField(
+                          hintText: 'New Password',
+                          prefixIcon: Icons.lock_outline,
+                          controller: _newPassCtrl,
+                          isPassword: true,
+                          obscureText: _obscurePasswords,
+                          onToggleVisibility: () => setState(
+                              () => _obscurePasswords = !_obscurePasswords),
+                          validator: AppValidators.validatePasswordComplexity,
+                          autovalidateMode: AutovalidateMode.onUserInteraction,
+                          onChanged: (_) => setState(() {}),
+                        ),
+
+                        if (_newPassCtrl.text.isNotEmpty) ...[
+                          const SizedBox(height: 6),
+                          PasswordStrengthIndicator(password: _newPassCtrl.text),
+                        ],
+
+                        const SizedBox(height: AppSizes.p16),
+
+                        CustomTextField(
+                          hintText: 'Confirm New Password',
+                          prefixIcon: Icons.lock_outline,
+                          controller: _confirmPassCtrl,
+                          isPassword: true,
+                          obscureText: _obscurePasswords,
+                          onToggleVisibility: () => setState(
+                              () => _obscurePasswords = !_obscurePasswords),
+                          autovalidateMode: AutovalidateMode.onUserInteraction,
+                          validator: (v) {
+                            if (v == null || v.isEmpty) {
+                              return 'Confirm Password is required';
+                            }
+                            if (v != _newPassCtrl.text) {
+                              return 'Passwords do not match';
+                            }
+                            return null;
+                          },
+                        ),
+                      ],
+                    ),
+                  ),
+
+                  const SizedBox(height: AppSizes.p24),
+
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.end,
+                    children: [
+                      TextButton(
+                        onPressed: _isLoading
+                            ? null
+                            : () => setState(() => _currentStep = 0),
+                        child: const Text('BACK'),
+                      ),
+                      const SizedBox(width: 12),
+                      SizedBox(
+                        width: isMobile ? 110 : 130,
+                        child: PrimaryButton(
+                          label: 'RESET',
+                          isLoading: _isLoading,
+                          onPressed: _handleResetPassword,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ],
             ),
           ),
         ),
@@ -904,6 +1134,7 @@ class _ForgotPasswordDialogState extends ConsumerState<_ForgotPasswordDialog> {
     );
   }
 }
+
 
 class _NetworkScanDialog extends StatefulWidget {
   const _NetworkScanDialog();

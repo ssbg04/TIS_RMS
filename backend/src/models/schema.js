@@ -702,6 +702,21 @@ const initSchema = () => {
             )
         `).run();
 
+        // 10b. Password Reset OTPs Table (Email and Phone OTP verification)
+        db.prepare(`
+            CREATE TABLE IF NOT EXISTS password_reset_otps (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id INTEGER NOT NULL,
+                otp_hash TEXT NOT NULL,
+                delivery_method TEXT CHECK(delivery_method IN ('email', 'phone')) NOT NULL,
+                target TEXT NOT NULL,
+                is_used INTEGER DEFAULT 0,
+                expires_at DATETIME NOT NULL,
+                created_at DATETIME DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ', 'now')),
+                FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+            )
+        `).run();
+
         // 11. System Settings Table
         db.prepare(`
             CREATE TABLE IF NOT EXISTS system_settings (

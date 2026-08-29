@@ -236,4 +236,64 @@ class AuthRepository {
       return false;
     }
   }
+
+  // ── Self-Service OTP Password Reset ────────────────────────────────────────
+
+  /// Lookup user contact methods (masked email & phone) for password reset
+  Future<Map<String, dynamic>> lookupResetOptions(String username) async {
+    try {
+      final response = await _dio.post(
+        '/auth/lookup-reset-options',
+        data: {'username': username},
+      );
+      return Map<String, dynamic>.from(response.data);
+    } on DioException catch (e) {
+      final errorMessage =
+          e.response?.data['message'] ?? 'Failed to lookup account.';
+      throw Exception(errorMessage);
+    }
+  }
+
+  /// Request 6-digit OTP sent to registered email
+  Future<String> sendEmailOtp(String username) async {
+    try {
+      final response = await _dio.post(
+        '/auth/send-email-otp',
+        data: {'username': username},
+      );
+      return response.data['message'] as String? ??
+          'Verification code sent to your email.';
+    } on DioException catch (e) {
+      final errorMessage =
+          e.response?.data['message'] ?? 'Failed to send email verification code.';
+      throw Exception(errorMessage);
+    }
+  }
+
+  /// Reset password using 6-digit Email OTP
+  Future<String> resetPasswordEmailOtp({
+    required String username,
+    required String otp,
+    required String newPassword,
+    required String confirmPassword,
+  }) async {
+    try {
+      final response = await _dio.post(
+        '/auth/reset-password-email-otp',
+        data: {
+          'username': username,
+          'otp': otp,
+          'newPassword': newPassword,
+          'confirmPassword': confirmPassword,
+        },
+      );
+      return response.data['message'] as String? ??
+          'Password reset successfully.';
+    } on DioException catch (e) {
+      final errorMessage =
+          e.response?.data['message'] ?? 'Failed to reset password.';
+      throw Exception(errorMessage);
+    }
+  }
 }
+
