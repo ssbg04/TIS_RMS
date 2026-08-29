@@ -29,6 +29,7 @@ import '../../../core/utils/download_service.dart';
 import '../../../core/network/api_constants.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'widgets/recycle_bin_modal.dart';
+import 'widgets/student_archives_modal.dart';
 import 'widgets/bulk_operations_bar.dart';
 import '../../../domain/entities/document_model.dart';
 
@@ -347,6 +348,8 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
         if (!mounted) return;
         showErrorDialog(context, 'Download Failed', e.toString());
       }
+    } else if (action == 'archive') {
+      _confirmArchive(document);
     } else if (action == 'convert_pdf') {
       try {
         final converted = await ref
@@ -366,6 +369,54 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
         );
       }
     }
+  }
+
+  void _confirmArchive(DocumentModel document) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Row(
+          children: [
+            Icon(Icons.archive_outlined, color: AppColors.primaryGreen),
+            SizedBox(width: 8),
+            Text('Archive Document'),
+          ],
+        ),
+        content: Text(
+          'Are you sure you want to archive "${document.fileName}"?\n\nIt will be moved to the Archive Screen and hidden from active documents.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('CANCEL'),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.primaryGreen,
+              foregroundColor: Colors.white,
+            ),
+            onPressed: () async {
+              Navigator.pop(ctx);
+              try {
+                await ref
+                    .read(documentMutationProvider.notifier)
+                    .updateStatus(document.id, 'Archived');
+                if (!mounted) return;
+                showSuccessDialog(
+                  context,
+                  message: 'Document moved to Archive Screen.',
+                );
+              } catch (e) {
+                if (!mounted) return;
+                showErrorDialog(context, 'Archive Failed', e.toString());
+              }
+            },
+            child: const Text('ARCHIVE'),
+          ),
+        ],
+      ),
+    );
   }
 
   void _confirmDelete(int id) {
@@ -1205,8 +1256,13 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
 
   Widget _buildMoreOptionsDropdown(bool isMobile) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final isFolderOpened = _openedFolderStudentId != null;
+
     return PopupMenuButton<String>(
-      icon: Icon(Icons.more_vert, color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary),
+      icon: Icon(
+        Icons.more_vert,
+        color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
+      ),
       tooltip: 'More Options',
       position: PopupMenuPosition.under,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
@@ -1220,12 +1276,23 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
           });
         } else if (value == 'grid_list') {
           setState(() => _isGridView = !_isGridView);
+        } else if (value == 'archives') {
+          if (_openedFolderStudentId != null) {
+            StudentArchivesModal.show(
+              context,
+              studentId: _openedFolderStudentId!,
+              studentName: _openedFolderName ?? 'Student',
+              userRole: widget.userRole,
+            );
+          }
         } else if (value == 'recycle_bin') {
           showDialog(context: context, builder: (_) => const RecycleBinModal());
         }
       },
       itemBuilder: (context) => [
-        if (!isMobile && widget.userRole != 'teacher' && (_tabController.index == 1 || _openedFolderStudentId != null)) ...[
+        if (!isMobile &&
+            widget.userRole != 'teacher' &&
+            (_tabController.index == 1 || isFolderOpened)) ...[
           PopupMenuItem(
             value: 'multi_select',
             child: Row(
@@ -1233,7 +1300,9 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
                 Icon(
                   Icons.checklist_rounded,
                   size: 20,
-                  color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
+                  color: isDark
+                      ? AppColors.darkTextSecondary
+                      : AppColors.textSecondary,
                 ),
                 const SizedBox(width: 8),
                 Text(
@@ -1252,7 +1321,9 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
               Icon(
                 _isGridView ? Icons.view_list_rounded : Icons.grid_view_rounded,
                 size: 20,
-                color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
+                color: isDark
+                    ? AppColors.darkTextSecondary
+                    : AppColors.textSecondary,
               ),
               const SizedBox(width: 8),
               Text(
@@ -1262,6 +1333,25 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
             ],
           ),
         ),
+        if (isFolderOpened) ...[
+          const PopupMenuDivider(),
+          PopupMenuItem(
+            value: 'archives',
+            child: Row(
+              children: [
+                Icon(
+                  Icons.inventory_2_outlined,
+                  size: 20,
+                  color: isDark
+                      ? AppColors.darkTextSecondary
+                      : AppColors.textSecondary,
+                ),
+                const SizedBox(width: 8),
+                const Text('Archives', style: TextStyle(fontSize: 14)),
+              ],
+            ),
+          ),
+        ],
         const PopupMenuDivider(),
         PopupMenuItem(
           value: 'recycle_bin',
@@ -1270,7 +1360,9 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
               Icon(
                 Icons.delete_sweep,
                 size: 20,
-                color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
+                color: isDark
+                    ? AppColors.darkTextSecondary
+                    : AppColors.textSecondary,
               ),
               const SizedBox(width: 8),
               const Text('Recycle Bin', style: TextStyle(fontSize: 14)),
@@ -1385,7 +1477,6 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
     const defaultStatuses = [
       'All Statuses',
       'Completed',
-      'Archived',
     ];
     final statusItems = statusesAsync.when(
       data: (s) => (defaultStatuses.toSet()
@@ -1393,7 +1484,8 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
               final lower = item.toLowerCase();
               return lower != 'verified' &&
                   lower != 'draft' &&
-                  lower != 'pending';
+                  lower != 'pending' &&
+                  lower != 'archived';
             })))
           .toList(),
       loading: () => defaultStatuses,
@@ -1920,16 +2012,19 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
                     query.gradeLevel.isEmpty &&
                     query.schoolYear.isEmpty &&
                     pageData.total == 0;
-                return pageData.documents.isEmpty
+                final activeDocuments = pageData.documents
+                    .where((d) => (d as DocumentModel).status != 'Archived')
+                    .toList();
+                return activeDocuments.isEmpty
                     ? _buildEmptyState(noSections: hasNoSections)
                     : _isGridView
                     ? _buildGridView(
-                        pageData.documents,
+                        activeDocuments,
                         pageData.totalPages,
                         query.page,
                       )
                     : _buildListView(
-                        pageData.documents,
+                        activeDocuments,
                         pageData.totalPages,
                         query.page,
                       );

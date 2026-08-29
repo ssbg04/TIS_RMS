@@ -94,7 +94,7 @@ exports.getStats = (req, res) => {
                   SELECT 1 FROM documents d 
                   WHERE d.student_id = s.id 
                     AND d.requirement_id = r.id 
-                    AND d.status IN ('Completed', 'Archived')
+                    AND d.status = 'Completed'
                     AND d.deleted_at IS NULL
               )
             GROUP BY r.id, r.category, r.name
@@ -126,7 +126,7 @@ exports.getStats = (req, res) => {
                              SELECT 1 FROM documents d 
                              WHERE d.student_id = s.id 
                                AND d.requirement_id = r.id 
-                               AND d.status IN ('Completed', 'Archived')
+                               AND d.status = 'Completed'
                                AND d.deleted_at IS NULL
                          )
                    ) as missing_count,
@@ -143,7 +143,7 @@ exports.getStats = (req, res) => {
                              SELECT 1 FROM documents d 
                              WHERE d.student_id = s.id 
                                AND d.requirement_id = r.id 
-                               AND d.status IN ('Completed', 'Archived')
+                               AND d.status = 'Completed'
                                AND d.deleted_at IS NULL
                          )
                    ) as missing_requirements

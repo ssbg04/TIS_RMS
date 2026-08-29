@@ -17,6 +17,7 @@ class FileFolderCard extends StatefulWidget {
   final bool isMultiSelectMode;
   final bool isSelected;
   final ValueChanged<bool?>? onSelectedChanged;
+  final bool isArchiveScreen;
 
   const FileFolderCard({
     super.key,
@@ -29,6 +30,7 @@ class FileFolderCard extends StatefulWidget {
     this.isMultiSelectMode = false,
     this.isSelected = false,
     this.onSelectedChanged,
+    this.isArchiveScreen = false,
   });
 
   @override
@@ -137,6 +139,41 @@ class _FileFolderCardState extends State<FileFolderCard> {
 
     if (widget.userRole != 'teacher') {
       items.add(const PopupMenuDivider());
+      if (widget.isArchiveScreen) {
+        items.add(
+          const PopupMenuItem(
+            value: 'restore',
+            child: Row(
+              children: [
+                Icon(
+                  Icons.unarchive_outlined,
+                  size: 18,
+                  color: AppColors.primaryGreen,
+                ),
+                SizedBox(width: 12),
+                Text('Restore', style: TextStyle(fontSize: 14)),
+              ],
+            ),
+          ),
+        );
+      } else {
+        items.add(
+          const PopupMenuItem(
+            value: 'archive',
+            child: Row(
+              children: [
+                Icon(
+                  Icons.archive_outlined,
+                  size: 18,
+                  color: AppColors.primaryGreen,
+                ),
+                SizedBox(width: 12),
+                Text('Archive', style: TextStyle(fontSize: 14)),
+              ],
+            ),
+          ),
+        );
+      }
       items.add(
         const PopupMenuItem(
           value: 'delete',

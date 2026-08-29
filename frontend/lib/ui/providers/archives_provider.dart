@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../domain/repositories/archive_repository.dart';
 import '../../domain/repositories/document_repository.dart';
+import '../../domain/entities/document_model.dart';
 import '../../domain/entities/folder_model.dart';
 
 final archiveRepositoryProvider = Provider<ArchiveRepository>((ref) {
@@ -241,4 +242,17 @@ final archiveStudentFoldersProvider =
         search: query.search,
         status: query.status,
       );
+    });
+
+// ============================================================
+// Single student archived documents provider
+// ============================================================
+final studentArchivedDocumentsProvider = FutureProvider.family
+    .autoDispose<List<DocumentModel>, int>((ref, studentId) async {
+      final repo = ref.read(archiveRepositoryProvider);
+      final page = await repo.getArchivedDocuments(
+        studentId: studentId,
+        limit: 100,
+      );
+      return page.documents;
     });

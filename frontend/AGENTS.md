@@ -384,10 +384,13 @@ Files backup/restore - mirror mode or zip -->
 - teacher side -> no assigned section theme color
 - remove analytics and KPIs in teacher side keep only the top students by documents and needs attention -->
 
+<!-- # DOCUMENTS SCREEN
+- archive files hide in list -> move archive files into in more icon where the switch grid includes, show the "archives" when the student folder opened or if the student have archived files -> hide the archives files in the documents list, only show completed files -->
+
 --- 
 
 # DONT DO
-- documents screen -> archive files hide in list -> move archive files into archive screen or in more icon
+
 - recycle bin -> search history not delete history
 
 - reports screen -> compliance -> students per year -> year filter
@@ -398,6 +401,7 @@ Files backup/restore - mirror mode or zip -->
 
 - user management -> expired the jwt of deactivated user
 
+- dashboard school -> add missing students by document type kpi 
 - dashboard screen -> kpi and analytics
 - dashboard screen -> user friendly logs/histories
 - dashboard screen -> assign section modal

@@ -60,7 +60,7 @@ exports.getStats = (req, res) => {
                           SELECT 1 FROM documents d
                           WHERE d.student_id = s.id
                             AND d.requirement_id = dr.id
-                            AND d.status IN ('Completed', 'Archived')
+                            AND d.status = 'Completed'
                             AND d.deleted_at IS NULL
                       )
                 )
@@ -93,7 +93,7 @@ exports.getStats = (req, res) => {
                           SELECT 1 FROM documents d
                           WHERE d.student_id = s.id
                             AND d.requirement_id = dr.id
-                            AND d.status IN ('Completed', 'Archived')
+                            AND d.status = 'Completed'
                             AND d.deleted_at IS NULL
                       )
                 )
@@ -119,7 +119,7 @@ exports.getStats = (req, res) => {
                           SELECT 1 FROM documents d
                           WHERE d.student_id = s.id
                             AND d.requirement_id = dr.id
-                            AND d.status IN ('Completed', 'Archived')
+                            AND d.status = 'Completed'
                             AND d.deleted_at IS NULL
                       )
                 )
@@ -142,7 +142,7 @@ exports.getStats = (req, res) => {
                           SELECT 1 FROM documents d
                           WHERE d.student_id = s.id
                             AND d.requirement_id = dr.id
-                            AND d.status IN ('Completed', 'Archived')
+                            AND d.status = 'Completed'
                             AND d.deleted_at IS NULL
                       )
                 )

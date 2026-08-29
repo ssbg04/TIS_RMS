@@ -551,6 +551,15 @@ class _LoginScreenState extends ConsumerState<LoginScreen> with SingleTickerProv
         actions: [
           TextButton(
             onPressed: () async {
+              ApiConstants.setBaseUrl(ApiConstants.localhostUrl);
+              await ServerDiscoveryService.save(ApiConstants.baseUrl);
+              if (mounted) setState(() {});
+              if (ctx.mounted) Navigator.pop(ctx);
+            },
+            child: const Text('Use Localhost'),
+          ),
+          TextButton(
+            onPressed: () async {
               ApiConstants.setBaseUrl(ApiConstants.tunnelUrl);
               await ServerDiscoveryService.save(ApiConstants.baseUrl);
               if (mounted) setState(() {});

@@ -542,9 +542,61 @@ class _ArchivesScreenState extends ConsumerState<ArchivesScreen>
         userRole: widget.userRole,
         hideEnrollmentActions: true,
       );
+    } else if (action == 'restore') {
+      _confirmRestoreDocument(doc);
     } else if (action == 'delete') {
       _handleDeleteDocument(doc);
     }
+  }
+
+  void _confirmRestoreDocument(DocumentModel doc) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Row(
+          children: [
+            Icon(Icons.unarchive_outlined, color: AppColors.primaryGreen),
+            SizedBox(width: 8),
+            Text('Restore Document'),
+          ],
+        ),
+        content: Text(
+          'Are you sure you want to restore "${doc.fileName}" to active documents?',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('CANCEL'),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.primaryGreen,
+              foregroundColor: Colors.white,
+            ),
+            onPressed: () async {
+              Navigator.pop(ctx);
+              try {
+                await ref
+                    .read(documentMutationProvider.notifier)
+                    .updateStatus(doc.id, 'Completed');
+                if (!mounted) return;
+                showSuccessDialog(
+                  context,
+                  message: 'Document restored to active documents.',
+                );
+                ref.invalidate(archiveDocumentPageProvider);
+                ref.invalidate(archiveStudentFoldersProvider);
+              } catch (e) {
+                if (!mounted) return;
+                showErrorDialog(context, 'Restore Failed', e.toString());
+              }
+            },
+            child: const Text('RESTORE'),
+          ),
+        ],
+      ),
+    );
   }
 
   Future<void> _handleDeleteDocument(DocumentModel doc) async {
@@ -794,7 +846,9 @@ class _ArchivesScreenState extends ConsumerState<ArchivesScreen>
       onBatchDownload: _handleBatchDownload,
       onBatchStatus: _handleBatchStatus,
       onBatchArchive: () => _handleBatchStatus('Archived'),
+      onBatchRestore: () => _handleBatchStatus('Completed'),
       onBatchDelete: _handleBatchDelete,
+      isArchiveScreen: true,
     );
   }
 
@@ -2374,6 +2428,7 @@ class _ArchivesScreenState extends ConsumerState<ArchivesScreen>
                       document: doc,
                       isGrid: false,
                       userRole: widget.userRole,
+                      isArchiveScreen: true,
                       isMultiSelectMode: _isMultiSelectMode,
                       isSelected: _selectedDocumentIds.contains(doc.id),
                       onSelectedChanged: (val) {
@@ -2451,6 +2506,7 @@ class _ArchivesScreenState extends ConsumerState<ArchivesScreen>
                   document: documents[i],
                   isGrid: true,
                   userRole: widget.userRole,
+                  isArchiveScreen: true,
                   isMultiSelectMode: _isMultiSelectMode,
                   isSelected: _selectedDocumentIds.contains(documents[i].id),
                   onSelectedChanged: (val) {

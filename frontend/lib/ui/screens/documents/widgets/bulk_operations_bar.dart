@@ -13,7 +13,9 @@ class BulkOperationsBar extends StatelessWidget {
   final VoidCallback onBatchDownload;
   final ValueChanged<String> onBatchStatus;
   final VoidCallback onBatchArchive;
+  final VoidCallback? onBatchRestore;
   final VoidCallback? onBatchDelete;
+  final bool isArchiveScreen;
 
   const BulkOperationsBar({
     super.key,
@@ -27,7 +29,9 @@ class BulkOperationsBar extends StatelessWidget {
     required this.onBatchDownload,
     required this.onBatchStatus,
     required this.onBatchArchive,
+    this.onBatchRestore,
     this.onBatchDelete,
+    this.isArchiveScreen = false,
   });
 
   @override
@@ -105,20 +109,25 @@ class BulkOperationsBar extends StatelessWidget {
                 onPressed: selectedCount == 0 ? null : onBatchDownload,
               ),
             ),
-            Tooltip(
-              message: 'Complete',
-              child: IconButton(
-                icon: Icon(Icons.check_circle_outline_rounded, color: buttonColor),
-                onPressed: selectedCount == 0 ? null : () => onBatchStatus('Completed'),
+            if (isArchiveScreen) ...[
+              Tooltip(
+                message: 'Restore',
+                child: IconButton(
+                  icon: Icon(Icons.unarchive_outlined, color: buttonColor),
+                  onPressed: selectedCount == 0
+                      ? null
+                      : (onBatchRestore ?? () => onBatchStatus('Completed')),
+                ),
               ),
-            ),
-            Tooltip(
-              message: 'Archive',
-              child: IconButton(
-                icon: Icon(Icons.archive_outlined, color: buttonColor),
-                onPressed: selectedCount == 0 ? null : onBatchArchive,
+            ] else ...[
+              Tooltip(
+                message: 'Archive',
+                child: IconButton(
+                  icon: Icon(Icons.archive_outlined, color: buttonColor),
+                  onPressed: selectedCount == 0 ? null : onBatchArchive,
+                ),
               ),
-            ),
+            ],
             if (isAdmin) ...[
               Tooltip(
                 message: 'Delete',

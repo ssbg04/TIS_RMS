@@ -374,6 +374,23 @@ class DocumentMutationNotifier extends AsyncNotifier<void> {
     }
   }
 
+  Future<void> updateStatus(int id, String status) async {
+    state = const AsyncLoading();
+    try {
+      final repo = ref.read(documentRepositoryProvider);
+      await repo.updateDocumentStatus(id, status);
+      state = const AsyncData(null);
+      ref.invalidate(documentPageProvider);
+      ref.invalidate(foldersProvider);
+      ref.invalidate(studentFoldersProvider);
+      ref.invalidate(studentPageProvider);
+      ref.invalidate(missingRequirementsProvider);
+    } catch (e, st) {
+      state = AsyncError(e, st);
+      rethrow;
+    }
+  }
+
   Future<void> bulkUpdateStatus(List<int> ids, String status) async {
     state = const AsyncLoading();
     try {

@@ -273,6 +273,9 @@ exports.getAllDocuments = (req, res) => {
         if (status.trim() && status !== 'All Statuses') {
             conditions.push(`d.status = ?`);
             params.push(status.trim());
+        } else {
+            // Default on active Documents screen: hide archived files
+            conditions.push(`d.status = 'Completed'`);
         }
 
         if (documentType.trim() && documentType !== 'All Types') {
@@ -448,6 +451,16 @@ exports.getDocumentsByStudent = exports.getDocumentById = (req, res) => {
             }
         }
 
+        const { status } = req.query;
+        let statusCondition = "AND d.status = 'Completed'";
+        const queryParams = [studentId];
+        if (status && status !== 'All Statuses' && status !== 'all' && status !== 'Completed') {
+            statusCondition = "AND d.status = ?";
+            queryParams.push(status);
+        } else {
+            statusCondition = "AND d.status = 'Completed'";
+        }
+
         const documents = db.prepare(`
             SELECT d.*, dr.name as requirement_name,
                    s.lrn as student_lrn,
@@ -458,8 +471,8 @@ exports.getDocumentsByStudent = exports.getDocumentById = (req, res) => {
             LEFT JOIN users u ON d.uploaded_by = u.id
             LEFT JOIN document_requirements dr ON d.requirement_id = dr.id
             LEFT JOIN students s ON d.student_id = s.id
-            WHERE d.student_id = ? AND d.deleted_at IS NULL
-        `).all(studentId);
+            WHERE d.student_id = ? AND d.deleted_at IS NULL ${statusCondition}
+        `).all(...queryParams);
 
         const mappedDocs = documents.map(d => {
             const rawSize = getDocSize(d);

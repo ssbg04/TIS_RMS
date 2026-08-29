@@ -324,7 +324,7 @@ exports.getMissingRequirements = (req, res) => {
               )
               AND dr.id NOT IN (
                   SELECT requirement_id FROM documents
-                  WHERE student_id = ? AND status IN ('Completed', 'Archived') AND requirement_id IS NOT NULL AND deleted_at IS NULL
+                  WHERE student_id = ? AND status = 'Completed' AND requirement_id IS NOT NULL AND deleted_at IS NULL
               )
             ORDER BY dr.category ASC, dr.name ASC
         `).all(studentId, studentId);
@@ -337,7 +337,7 @@ exports.getMissingRequirements = (req, res) => {
             FROM document_requirements dr
             JOIN documents d ON d.requirement_id = dr.id
             WHERE d.student_id = ?
-              AND d.status IN ('Completed', 'Archived')
+              AND d.status = 'Completed'
               AND d.deleted_at IS NULL
               AND dr.category IN (
                   SELECT DISTINCT CASE WHEN grade_level <= 10 THEN 'JHS' ELSE 'SHS' END

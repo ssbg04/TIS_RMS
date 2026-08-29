@@ -65,7 +65,7 @@ exports.getFolders = (req, res) => {
             SELECT f.*,
                    s.lrn, s.first_name, s.last_name,
                    COALESCE(u.username, dh.username, 'Deleted User') as created_by_username,
-                   (SELECT COUNT(*) FROM documents d WHERE d.student_id = f.student_id AND d.deleted_at IS NULL) as document_count,
+                   (SELECT COUNT(*) FROM documents d WHERE d.student_id = f.student_id AND d.deleted_at IS NULL AND d.status = 'Completed') as document_count,
                    -- Which tier (JHS/SHS) applies to this student based on latest enrollment
                    (
                        SELECT CASE WHEN e_tier.grade_level <= 10 THEN 'JHS' ELSE 'SHS' END
@@ -80,7 +80,7 @@ exports.getFolders = (req, res) => {
                    (
                        SELECT COUNT(DISTINCT d2.requirement_id) FROM documents d2
                        JOIN document_requirements dr2 ON dr2.id = d2.requirement_id
-                       WHERE d2.student_id = f.student_id AND d2.status IN ('Completed', 'Archived') AND d2.deleted_at IS NULL
+                       WHERE d2.student_id = f.student_id AND d2.status = 'Completed' AND d2.deleted_at IS NULL
                          AND dr2.category = 'JHS' AND dr2.is_mandatory = 1 AND dr2.is_enabled = 1
                    ) as jhs_completed,
                    -- Total enabled mandatory SHS requirements
@@ -89,7 +89,7 @@ exports.getFolders = (req, res) => {
                    (
                        SELECT COUNT(DISTINCT d3.requirement_id) FROM documents d3
                        JOIN document_requirements dr3 ON dr3.id = d3.requirement_id
-                       WHERE d3.student_id = f.student_id AND d3.status IN ('Completed', 'Archived') AND d3.deleted_at IS NULL
+                       WHERE d3.student_id = f.student_id AND d3.status = 'Completed' AND d3.deleted_at IS NULL
                          AND dr3.category = 'SHS' AND dr3.is_mandatory = 1 AND dr3.is_enabled = 1
                    ) as shs_completed
             FROM document_folders f
