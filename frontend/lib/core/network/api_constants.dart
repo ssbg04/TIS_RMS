@@ -56,6 +56,23 @@ class ApiConstants {
 
           return handler.next(options);
         },
+        onError: (DioException err, handler) async {
+          final statusCode = err.response?.statusCode;
+          final isDeactivated = err.response?.data is Map &&
+              (err.response?.data as Map)['isDeactivated'] == true;
+
+          if (statusCode == 401 || (statusCode == 403 && isDeactivated)) {
+            // Expire / wipe stored JWT token immediately on deactivation or invalidation
+            const storage = FlutterSecureStorage();
+            await storage.delete(key: 'jwt_token');
+            await storage.delete(key: 'remember_me');
+            final prefs = await SharedPreferences.getInstance();
+            await prefs.remove('jwt_token');
+            await prefs.remove('rememberMe');
+          }
+
+          return handler.next(err);
+        },
       ),
     );
     return dio;

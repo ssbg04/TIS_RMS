@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:flutter/foundation.dart' show debugPrint;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../domain/repositories/auth_repository.dart';
 import '../../domain/entities/user_model.dart';
@@ -69,6 +70,7 @@ class AuthNotifier extends AsyncNotifier<UserModel?> {
   Future<void> logout() async {
     ref.read(heartbeatServiceProvider).stop();
     ForegroundSyncService.stop();
+    await FcmService.unregisterToken();
     final repository = ref.read(authRepositoryProvider);
     await repository.logout();
     state = const AsyncData(null);
@@ -106,7 +108,7 @@ class AuthNotifier extends AsyncNotifier<UserModel?> {
       state = AsyncData(updatedUser);
     } catch (e) {
       // Don't emit error state to prevent UI disruptions on background refresh failures
-      print('Background refresh failed: $e');
+      debugPrint('Background refresh failed: $e');
     }
   }
 

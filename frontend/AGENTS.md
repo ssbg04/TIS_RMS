@@ -402,9 +402,9 @@ Files backup/restore - mirror mode or zip -->
 # STUDENT SCREEN
 - hover missing document make the design theme color responsive -->
 
-
-# USER SCREEN
-- add y scroll bar line not notes, under filter
+<!-- # AUTHENTICATION
+- user management -> expired the jwt of deactivated user
+- i can receive a push notifications even i logged out -->
 
 --- 
 
@@ -415,7 +415,7 @@ Files backup/restore - mirror mode or zip -->
 
 
 - document screen -> upload document limit document type limit -> duplicate files
-- user management -> expired the jwt of deactivated user
+
 
 - dashboard school -> add missing students by document type kpi 
 - dashboard screen -> kpi and analytics

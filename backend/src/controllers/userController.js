@@ -239,6 +239,11 @@ exports.toggleUserStatus = (req, res) => {
         db.prepare("UPDATE users SET is_active = ?, updated_at = (strftime('%Y-%m-%dT%H:%M:%SZ', 'now')) WHERE id = ?")
             .run(newStatus, id);
 
+        if (newStatus === 0) {
+            // Revoke all FCM push tokens immediately upon deactivation
+            db.prepare("DELETE FROM fcm_tokens WHERE user_id = ?").run(id);
+        }
+
         const statusLabel = newStatus === 1 ? 'Activated' : 'Deactivated';
         const fullName = [user.first_name, user.last_name].filter(Boolean).join(' ');
         logActivity(adminId, 'UPDATE', 'user', id, `${statusLabel} user: ${user.username}`);

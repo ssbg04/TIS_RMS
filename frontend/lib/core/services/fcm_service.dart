@@ -81,4 +81,34 @@ class FcmService {
       debugPrint('[FcmService] Token registration failed: $e');
     }
   }
+
+  static Future<void> unregisterToken() async {
+    try {
+      if (!_isMobile || Firebase.apps.isEmpty) return;
+      final token = await FirebaseMessaging.instance.getToken();
+
+      final prefs = await SharedPreferences.getInstance();
+      final rawUrl = prefs.getString('server_url') ?? ApiConstants.baseUrl;
+      final clean = rawUrl.replaceAll(RegExp(r'/+$'), '');
+      final baseUrl = clean.endsWith('/api') ? clean : '$clean/api';
+
+      final jwtToken = prefs.getString('jwt_token') ?? '';
+      if (jwtToken.isNotEmpty) {
+        final dio = Dio(BaseOptions(
+          baseUrl: baseUrl,
+          connectTimeout: const Duration(seconds: 5),
+          receiveTimeout: const Duration(seconds: 5),
+          headers: {'Authorization': 'Bearer $jwtToken'},
+        ));
+
+        await dio.post('/notifications/fcm-token/unregister', data: {'token': token});
+      }
+
+      // Delete FCM token from device instance so no further push notifications arrive
+      await FirebaseMessaging.instance.deleteToken();
+      debugPrint('[FcmService] Token unregistered and deleted from device');
+    } catch (e) {
+      debugPrint('[FcmService] Token unregistration error: $e');
+    }
+  }
 }

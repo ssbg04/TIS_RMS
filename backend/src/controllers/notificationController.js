@@ -50,6 +50,21 @@ exports.registerFcmToken = (req, res) => {
     }
 };
 
+// DELETE /api/notifications/fcm-token OR POST /api/notifications/fcm-token/unregister
+exports.unregisterFcmToken = (req, res) => {
+    const { token } = req.body || {};
+    try {
+        if (token) {
+            db.prepare('DELETE FROM fcm_tokens WHERE token = ?').run(token);
+        } else if (req.user?.id) {
+            db.prepare('DELETE FROM fcm_tokens WHERE user_id = ?').run(req.user.id);
+        }
+        res.json({ message: 'FCM token unregistered successfully' });
+    } catch (error) {
+        res.status(500).json({ message: 'Failed to unregister FCM token', error: error.message });
+    }
+};
+
 // Common WHERE clause fragment for teacher notification scoping.
 // Requires 4 bind parameters: [teacherId, teacherId, teacherId, teacherId]
 const TEACHER_NOTIF_WHERE_CLAUSE = `

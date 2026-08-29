@@ -256,7 +256,14 @@ exports.resetPasswordEmailOtp = (req, res) => {
         // Mark OTP as used
         db.prepare('UPDATE password_reset_otps SET is_used = 1 WHERE id = ?').run(otpRecord.id);
 
-        createNotification(user.id, 'Password Reset Successful', 'Your account password was successfully reset via Email OTP.', 'system');
+        // Purge old FCM tokens on password reset so logged-out devices don't receive push notifications
+        db.prepare('DELETE FROM fcm_tokens WHERE user_id = ?').run(user.id);
+
+        // Record in-app notification in DB (visible when the user logs in) without dispatching push notification
+        try {
+            db.prepare('INSERT INTO notifications (user_id, title, message, is_read, category) VALUES (?, ?, ?, 0, ?)')
+                .run(user.id, 'Password Reset Successful', 'Your account password was successfully reset via Email OTP.', 'system');
+        } catch (_) {}
 
         res.json({
             success: true,

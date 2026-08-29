@@ -125,8 +125,13 @@ const sendNotification = async ({ userId = null, title, body, category = 'system
         let tokens = [];
 
         if (userId) {
-            // Direct message to a specific user
-            tokens = db.prepare('SELECT token FROM fcm_tokens WHERE user_id = ?')
+            // Direct message to a specific active user
+            tokens = db.prepare(`
+                SELECT ft.token 
+                FROM fcm_tokens ft
+                JOIN users u ON ft.user_id = u.id
+                WHERE ft.user_id = ? AND u.is_active = 1
+            `)
                 .all(userId)
                 .map(r => r.token);
         } else {
