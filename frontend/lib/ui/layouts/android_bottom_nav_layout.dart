@@ -23,7 +23,9 @@ import '../providers/system_settings_provider.dart';
 import '../shared/dialogs/logout_dialog.dart';
 import '../shared/widgets/abstract_background.dart';
 import '../providers/navigation_provider.dart';
+import '../providers/connected_users_provider.dart';
 import '../screens/capstone_members/capstone_members_screen.dart';
+import '../shared/dialogs/disconnected_dialog.dart';
 
 // Dummy screen for placeholders
 class PlaceholderScreen extends StatelessWidget {
@@ -61,6 +63,23 @@ class _AndroidBottomNavLayoutState extends ConsumerState<AndroidBottomNavLayout>
   void initState() {
     super.initState();
     _initTabs();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      ref.read(heartbeatServiceProvider).onConnectionLost = () {
+        if (mounted) {
+          DisconnectedDialog.show(
+            context,
+            onReconnected: () {
+              final currentIdx = _tabController?.index ?? 0;
+              if (currentIdx < _allowedPrimary.length) {
+                final label =
+                    _allowedPrimary[currentIdx]['label'] as String? ?? '';
+                _reloadTabContent(label);
+              }
+            },
+          );
+        }
+      };
+    });
   }
 
   void _initTabs() {

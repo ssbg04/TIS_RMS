@@ -1153,45 +1153,30 @@ class _NetworkScanDialogState extends State<_NetworkScanDialog> {
   }
 
   Future<void> _scan() async {
-    final found = await ServerDiscoveryService.discover(
-      onProgress: (subnet, scanned, total) {
-        if (mounted) {
-          setState(() => _status = 'Scanning ${subnet}x … ($scanned/$total)');
-        }
+    final found = await ServerDiscoveryService.resolveServerWithFallback(
+      onProgress: (msg) {
+        if (mounted) setState(() => _status = msg);
       },
     );
     if (!mounted) return;
     Navigator.pop(context);
     if (found != null) {
-      ApiConstants.setBaseUrl(found);
-      await ServerDiscoveryService.save(ApiConstants.baseUrl);
-      if (!mounted) return;
+      final isLan = found.contains('192.168.') ||
+          found.contains('10.') ||
+          found.contains('172.');
       showSuccessDialog(
         context,
-        title: 'Server Connected',
-        message: 'Connected to local server: $found',
+        title: isLan ? 'LAN Server Connected' : 'Tunnel Connected',
+        message: isLan
+            ? 'Connected to local server: $found'
+            : 'Local server not found. Connected to Cloud Tunnel: $found',
       );
     } else {
-      final tunnelAlive =
-          await ServerDiscoveryService.ping(ApiConstants.tunnelUrl);
-      if (tunnelAlive) {
-        ApiConstants.setBaseUrl(ApiConstants.tunnelUrl);
-        await ServerDiscoveryService.save(ApiConstants.baseUrl);
-        if (!mounted) return;
-        showSuccessDialog(
-          context,
-          title: 'Connected to Tunnel',
-          message:
-              'Local server not found. Connected to tunnel domain: ${ApiConstants.tunnelUrl}',
-        );
-      } else {
-        if (!mounted) return;
-        showErrorDialog(
-          context,
-          'Server Not Found',
-          'No TIS RMS server found on local network and tunnel domain (${ApiConstants.tunnelUrl}) is unreachable.',
-        );
-      }
+      showErrorDialog(
+        context,
+        'Server Not Found',
+        'No TIS RMS server found on your Local Network (LAN) and the Cloud Tunnel domain (${ApiConstants.tunnelUrl}) is currently unreachable.',
+      );
     }
   }
 

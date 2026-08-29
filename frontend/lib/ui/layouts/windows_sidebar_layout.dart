@@ -22,11 +22,13 @@ import '../providers/system_settings_provider.dart';
 import '../shared/dialogs/logout_dialog.dart';
 import '../shared/widgets/abstract_background.dart';
 import '../providers/navigation_provider.dart';
+import '../providers/connected_users_provider.dart';
 
 import 'dart:io' show Platform;
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:window_manager/window_manager.dart';
 import '../screens/capstone_members/capstone_members_screen.dart';
+import '../shared/dialogs/disconnected_dialog.dart';
 
 // Dummy screen for placeholders
 class PlaceholderScreen extends StatelessWidget {
@@ -53,6 +55,24 @@ class _WindowsSidebarLayoutState extends ConsumerState<WindowsSidebarLayout> {
   Timer? _tabLoadingTimer;
   bool _isMinimized = false;
   bool _isTabLoading = false;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      ref.read(heartbeatServiceProvider).onConnectionLost = () {
+        if (mounted) {
+          DisconnectedDialog.show(
+            context,
+            onReconnected: () {
+              final activeTab = ref.read(activeTabProvider);
+              _reloadTabContent(activeTab);
+            },
+          );
+        }
+      };
+    });
+  }
 
   @override
   void dispose() {

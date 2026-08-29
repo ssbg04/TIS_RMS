@@ -12,7 +12,7 @@ class ConnectedUsersRepository {
     return Options(headers: {'Authorization': 'Bearer $token'});
   }
 
-  Future<void> sendHeartbeat({
+  Future<bool> sendHeartbeat({
     required String username,
     required String role,
     required String platform,
@@ -20,7 +20,7 @@ class ConnectedUsersRepository {
   }) async {
     try {
       final options = await _getAuthOptions();
-      await _dio.post(
+      final response = await _dio.post(
         '/server/heartbeat',
         options: options,
         data: {
@@ -30,8 +30,9 @@ class ConnectedUsersRepository {
           'ip': ip,
         },
       );
+      return response.statusCode == 200;
     } catch (_) {
-      // Ignore heartbeat network errors silently so UI is undisturbed
+      return false;
     }
   }
 

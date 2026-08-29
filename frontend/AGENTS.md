@@ -406,6 +406,10 @@ Files backup/restore - mirror mode or zip -->
 - user management -> expired the jwt of deactivated user
 - i can receive a push notifications even i logged out -->
 
+<!-- # DISCONNECTED OR NO CONNECTION
+- add dialog to reconnect or loads the splash screen
+- always check LAN connection then if the LAN connection not working then use the tunnel connection -->
+
 --- 
 
 # DONT DO

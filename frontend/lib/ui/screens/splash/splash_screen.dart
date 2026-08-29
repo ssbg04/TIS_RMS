@@ -6,7 +6,6 @@ import 'package:window_manager/window_manager.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/constants/app_colors.dart';
-import '../../../core/network/api_constants.dart';
 import '../../../core/network/server_discovery.dart';
 import '../login/login_screen.dart';
 import '../../layouts/windows_sidebar_layout.dart';
@@ -73,14 +72,14 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
     super.dispose();
   }
 
-  Future<void> _initializeApp() async {
+  Future<void> _initializeApp({bool isRetry = false}) async {
     await ForegroundSyncService.requestPermissions();
     await Future.delayed(const Duration(milliseconds: 600));
     if (!mounted) return;
 
     // ── Step 1: Resolve server URL silently in background ───────────────────
-    await _resolveServer();
-    if (!mounted) return;
+    final resolved = await _resolveServer(isRetry: isRetry);
+    if (!resolved || !mounted) return; // Do NOT proceed to login if not connected!
 
     // ── Step 2: Try auto-login ─────────────────────────────────────────────
     final user = await ref.read(authProvider.notifier).tryAutoLogin();
@@ -104,50 +103,20 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
 
   // ── Server resolution logic ────────────────────────────────────────────────
 
-  Future<void> _resolveServer() async {
-    // 1. Check saved URL first
-    final saved = await ServerDiscoveryService.getSaved();
-    if (saved != null) {
-      final alive = await ServerDiscoveryService.ping(saved);
-      if (alive) {
-        ApiConstants.setBaseUrl(saved);
-        return;
-      }
-    }
-
-    // 2. Automatically scan local network first by default (LAN Discovery)
-    await _runScan();
-  }
-
-  Future<void> _runScan() async {
-    final prefixes = await ServerDiscoveryService.getSubnetPrefixes();
-
-    if (prefixes.isNotEmpty) {
-      final found = await ServerDiscoveryService.discover();
-      if (found != null) {
-        await ServerDiscoveryService.save(found);
-        ApiConstants.setBaseUrl(found);
-        await Future.delayed(const Duration(milliseconds: 300));
-        return;
-      }
-    }
-
-    // 3. Fallback to tunnel domain
-    final tunnelAlive =
-        await ServerDiscoveryService.ping(ApiConstants.tunnelUrl);
-    if (tunnelAlive) {
-      await ServerDiscoveryService.save(ApiConstants.tunnelUrl);
-      ApiConstants.setBaseUrl(ApiConstants.tunnelUrl);
+  Future<bool> _resolveServer({bool isRetry = false}) async {
+    final found = await ServerDiscoveryService.resolveServerWithFallback();
+    if (found != null) {
       await Future.delayed(const Duration(milliseconds: 300));
-      return;
+      return true;
     }
 
-    // 4. If connection fails, show dialog
-    if (!mounted) return;
-    await _showConnectionFailedDialog();
+    // If all connection attempts fail, show the dialog
+    if (!mounted) return false;
+    await _showConnectionFailedDialog(isRetry: isRetry);
+    return false;
   }
 
-  Future<void> _showConnectionFailedDialog() async {
+  Future<void> _showConnectionFailedDialog({bool isRetry = false}) async {
     if (!mounted) return;
 
     await showDialog<void>(
@@ -160,31 +129,48 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
           color: Colors.redAccent,
           size: 40,
         ),
-        title: const Text(
-          'Server Connection Failed',
+        title: Text(
+          isRetry ? 'Still Not Connected' : 'Server Connection Failed',
           textAlign: TextAlign.center,
-          style: TextStyle(fontWeight: FontWeight.bold),
+          style: const TextStyle(fontWeight: FontWeight.bold),
         ),
-        content: const Column(
+        content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             Text(
-              'No local TIS RMS server was detected on your network and the tunnel domain (${ApiConstants.tunnelUrl}) is currently unreachable.\n\nPlease check your network connection or ensure the server is online.',
+              isRetry
+                  ? 'Reconnection attempt failed. The TIS RMS server is unreachable on your Local Network (LAN) and Cloud Tunnel.\n\nWould you like to try again or close the application?'
+                  : 'No local TIS RMS server was detected on your Local Network (LAN) and the Cloud Tunnel domain is unreachable.\n\nPlease check your Wi-Fi/Internet connection or ensure the server is online.',
               textAlign: TextAlign.center,
-              style: TextStyle(
+              style: const TextStyle(
                 color: AppColors.textSecondary,
                 fontSize: 13,
                 height: 1.4,
               ),
             ),
-            SizedBox(height: 12),
-            Text(
-              'Your saved credentials remain safe.',
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                color: AppColors.primaryGreen,
-                fontSize: 12,
-                fontWeight: FontWeight.w600,
+            const SizedBox(height: 12),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+              decoration: BoxDecoration(
+                color: AppColors.primaryGreen.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: AppColors.primaryGreen.withValues(alpha: 0.3)),
+              ),
+              child: const Row(
+                children: [
+                  Icon(Icons.info_outline_rounded, size: 16, color: AppColors.primaryGreen),
+                  SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'Checks LAN first, then Tunnel fallback automatically.',
+                      style: TextStyle(
+                        color: AppColors.primaryGreen,
+                        fontSize: 11,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ),
           ],
@@ -193,11 +179,11 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
           TextButton(
             onPressed: () {
               Navigator.of(ctx).pop();
-              _initializeApp();
+              _initializeApp(isRetry: true);
             },
-            child: const Text(
-              'Retry Connection',
-              style: TextStyle(
+            child: Text(
+              isRetry ? 'RETRY' : 'RECONNECT',
+              style: const TextStyle(
                 color: AppColors.primaryGreen,
                 fontWeight: FontWeight.bold,
               ),
@@ -210,7 +196,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
             onPressed: () {
               _closeApp();
             },
-            child: const Text('Close App'),
+            child: const Text('CLOSE APP'),
           ),
         ],
       ),

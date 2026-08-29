@@ -1,11 +1,13 @@
 import 'dart:io';
 import 'package:dio/dio.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'api_constants.dart';
 
 /// Discovers the TIS RMS server on the local network by:
 /// 1. Reading the device's own LAN IP to derive the subnet prefix.
 /// 2. Concurrently probing all 254 host addresses on that subnet.
 /// 3. Verifying each candidate by checking the X-TIS-RMS response header.
+/// 4. If LAN connection is not found/working, automatically falls back to the Tunnel connection.
 class ServerDiscoveryService {
   static const int _port = 18484;
   static const String _prefsKey = 'server_url';
@@ -145,5 +147,90 @@ class ServerDiscoveryService {
       if (result != null) return result;
     }
     return null;
+  }
+
+  // ─── Master Resolution: Always Check LAN First, Then Tunnel Fallback ────────
+
+  /// Always prioritizes the Local Area Network (LAN) first.
+  /// If the LAN connection is not found or not working, seamlessly falls back to the Tunnel connection.
+  static Future<String?> resolveServerWithFallback({
+    void Function(String message)? onProgress,
+  }) async {
+    // 1. Check if previously saved URL is a LAN URL and is still reachable
+    final saved = await getSaved();
+    if (saved != null && _isLanUrl(saved)) {
+      onProgress?.call('Checking saved LAN connection…');
+      final alive = await ping(saved);
+      if (alive) {
+        ApiConstants.setBaseUrl(saved);
+        return saved;
+      }
+    }
+
+    // 2. Scan Local Network (LAN) for any active TIS RMS server
+    onProgress?.call('Scanning local network (LAN)…');
+    final prefixes = await getSubnetPrefixes();
+    if (prefixes.isNotEmpty) {
+      final found = await discover(
+        onProgress: (subnet, scanned, total) {
+          onProgress?.call('Scanning LAN ${subnet}x … ($scanned/$total)');
+        },
+      );
+      if (found != null) {
+        await save(found);
+        ApiConstants.setBaseUrl(found);
+        return found;
+      }
+    }
+
+    // 3. Fallback to Tunnel connection if LAN is not working
+    onProgress?.call('Connecting to tunnel domain…');
+    final tunnelAlive = await ping(ApiConstants.tunnelUrl);
+    if (tunnelAlive) {
+      await save(ApiConstants.tunnelUrl);
+      ApiConstants.setBaseUrl(ApiConstants.tunnelUrl);
+      return ApiConstants.tunnelUrl;
+    }
+
+    // 4. Check if saved non-LAN URL is alive (e.g. custom VPS)
+    if (saved != null && !_isLanUrl(saved)) {
+      final savedAlive = await ping(saved);
+      if (savedAlive) {
+        ApiConstants.setBaseUrl(saved);
+        return saved;
+      }
+    }
+
+    // 5. Final fallback to localhost if running directly on the host machine
+    final localhostAlive = await ping(ApiConstants.localhostUrl);
+    if (localhostAlive) {
+      await save(ApiConstants.localhostUrl);
+      ApiConstants.setBaseUrl(ApiConstants.localhostUrl);
+      return ApiConstants.localhostUrl;
+    }
+
+    return null;
+  }
+
+  /// Helper to check whether a URL points to a private local area network address
+  static bool _isLanUrl(String url) {
+    return url.contains('192.168.') ||
+        url.contains('10.') ||
+        url.contains('172.16.') ||
+        url.contains('172.17.') ||
+        url.contains('172.18.') ||
+        url.contains('172.19.') ||
+        url.contains('172.20.') ||
+        url.contains('172.21.') ||
+        url.contains('172.22.') ||
+        url.contains('172.23.') ||
+        url.contains('172.24.') ||
+        url.contains('172.25.') ||
+        url.contains('172.26.') ||
+        url.contains('172.27.') ||
+        url.contains('172.28.') ||
+        url.contains('172.29.') ||
+        url.contains('172.30.') ||
+        url.contains('172.31.');
   }
 }
