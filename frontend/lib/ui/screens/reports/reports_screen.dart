@@ -34,6 +34,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
   final ScrollController _scrollController = ScrollController();
   final ScrollController _tableHorizontalScrollController = ScrollController();
   final ScrollController _chartHorizontalScrollController = ScrollController();
+  final ScrollController _gradeComplianceScrollController = ScrollController();
   ProviderSubscription<String>? _tabListener;
   Timer? _pollingTimer;
 
@@ -102,6 +103,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
     _scrollController.dispose();
     _tableHorizontalScrollController.dispose();
     _chartHorizontalScrollController.dispose();
+    _gradeComplianceScrollController.dispose();
     _searchController.dispose();
     super.dispose();
   }
@@ -2060,7 +2062,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
     );
   }
 
-  // ── Missing Documents Hover Tooltip ──────────────────────────────────────────
+  // ── Missing Documents Hover Tooltip (Theme Responsive) ──────────────────────
   Widget _buildMissingDocsTooltip({
     required BuildContext context,
     required int missingCount,
@@ -2068,12 +2070,35 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
     required Widget child,
   }) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    String tooltipMessage = '';
+
+    InlineSpan richMessage;
 
     if (missingCount == 0 ||
         missingRequirementsStr == null ||
         missingRequirementsStr.trim().isEmpty) {
-      tooltipMessage = 'All documents completed';
+      richMessage = TextSpan(
+        children: [
+          WidgetSpan(
+            alignment: PlaceholderAlignment.middle,
+            child: Padding(
+              padding: const EdgeInsets.only(right: 6),
+              child: Icon(
+                Icons.check_circle_rounded,
+                size: 15,
+                color: isDark ? const Color(0xFF76BA8A) : Colors.green.shade700,
+              ),
+            ),
+          ),
+          TextSpan(
+            text: 'All documents completed',
+            style: TextStyle(
+              color: isDark ? const Color(0xFF76BA8A) : Colors.green.shade700,
+              fontWeight: FontWeight.w600,
+              fontSize: 12,
+            ),
+          ),
+        ],
+      );
     } else {
       final rawList = missingRequirementsStr
           .split(',')
@@ -2096,73 +2121,164 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
           .map((d) => d.trim())
           .toList();
 
-      final lines = <String>['Missing Documents:'];
+      final spanChildren = <InlineSpan>[
+        TextSpan(
+          text: 'Missing Documents ($missingCount):\n',
+          style: TextStyle(
+            color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
+            fontWeight: FontWeight.bold,
+            fontSize: 12.5,
+          ),
+        ),
+      ];
+
       if (jhsDocs.isNotEmpty) {
-        lines.add('JHS:');
-        lines.addAll(jhsDocs.map((d) => '  • $d'));
-      }
-      if (shsDocs.isNotEmpty) {
-        lines.add('SHS:');
-        lines.addAll(shsDocs.map((d) => '  • $d'));
-      }
-      if (otherDocs.isNotEmpty) {
-        if (jhsDocs.isNotEmpty || shsDocs.isNotEmpty) lines.add('Other:');
-        lines.addAll(otherDocs.map((d) => '  • $d'));
+        spanChildren.add(
+          TextSpan(
+            text: '\nJHS Requirements:\n',
+            style: TextStyle(
+              color: isDark ? const Color(0xFF80CBC4) : const Color(0xFF00796B),
+              fontWeight: FontWeight.bold,
+              fontSize: 11.5,
+            ),
+          ),
+        );
+        for (final doc in jhsDocs) {
+          spanChildren.add(
+            TextSpan(
+              text: '  • $doc\n',
+              style: TextStyle(
+                color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
+                fontSize: 12,
+                height: 1.35,
+              ),
+            ),
+          );
+        }
       }
 
-      tooltipMessage = lines.join('\n');
+      if (shsDocs.isNotEmpty) {
+        spanChildren.add(
+          TextSpan(
+            text: '\nSHS Requirements:\n',
+            style: TextStyle(
+              color: isDark ? const Color(0xFFB39DDB) : const Color(0xFF6A1B9A),
+              fontWeight: FontWeight.bold,
+              fontSize: 11.5,
+            ),
+          ),
+        );
+        for (final doc in shsDocs) {
+          spanChildren.add(
+            TextSpan(
+              text: '  • $doc\n',
+              style: TextStyle(
+                color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
+                fontSize: 12,
+                height: 1.35,
+              ),
+            ),
+          );
+        }
+      }
+
+      if (otherDocs.isNotEmpty) {
+        if (jhsDocs.isNotEmpty || shsDocs.isNotEmpty) {
+          spanChildren.add(
+            TextSpan(
+              text: '\nOther Requirements:\n',
+              style: TextStyle(
+                color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
+                fontWeight: FontWeight.bold,
+                fontSize: 11.5,
+              ),
+            ),
+          );
+        }
+        for (final doc in otherDocs) {
+          spanChildren.add(
+            TextSpan(
+              text: '  • $doc\n',
+              style: TextStyle(
+                color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
+                fontSize: 12,
+                height: 1.35,
+              ),
+            ),
+          );
+        }
+      }
+
+      richMessage = TextSpan(children: spanChildren);
     }
 
     return Tooltip(
-      message: tooltipMessage,
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      richMessage: richMessage,
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
       decoration: BoxDecoration(
-        color: isDark ? AppColors.darkSurfaceCard : const Color(0xFF2C3437),
+        color: isDark ? AppColors.darkSurfaceCard : AppColors.surfaceWhite,
         borderRadius: BorderRadius.circular(8),
         border: Border.all(
-          color: isDark ? AppColors.darkBorder : Colors.transparent,
+          color: isDark ? AppColors.darkBorder : Colors.grey.shade300,
+          width: 1,
         ),
-        boxShadow: const [
+        boxShadow: [
           BoxShadow(
-            color: Colors.black26,
-            blurRadius: 6,
-            offset: Offset(0, 2),
+            color: isDark ? Colors.black45 : Colors.black.withValues(alpha: 0.12),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
           ),
         ],
-      ),
-      textStyle: const TextStyle(
-        color: Colors.white,
-        fontSize: 12,
-        height: 1.4,
       ),
       preferBelow: false,
       child: child,
     );
   }
 
-  // ── Horizontal Scroll Hint for Mobile/Android ───────────────────────────────
-  Widget _buildHorizontalScrollHint(BuildContext context) {
+  Widget _buildHorizontalScrollHint(BuildContext context, {String text = 'Scroll horizontally to view more'}) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(
-            Icons.swap_horiz_rounded,
-            size: 15,
-            color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
-          ),
-          const SizedBox(width: 4),
-          Text(
-            'Scroll horizontally to view more',
-            style: TextStyle(
-              fontSize: 11,
-              fontStyle: FontStyle.italic,
-              color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
+    final hintColor = isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B);
+    final bgColor = isDark
+        ? AppColors.darkSurface2
+        : const Color(0xFFF1F5F9);
+    final borderColor = isDark
+        ? AppColors.darkBorder
+        : const Color(0xFFCBD5E1);
+
+    return Align(
+      alignment: Alignment.centerLeft,
+      child: Padding(
+        padding: const EdgeInsets.only(top: 6, bottom: 4),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+          decoration: BoxDecoration(
+            color: bgColor,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+              color: borderColor,
+              width: 0.8,
             ),
           ),
-        ],
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                Icons.swap_horiz_rounded,
+                size: 14,
+                color: hintColor,
+              ),
+              const SizedBox(width: 5),
+              Text(
+                text,
+                style: TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w500,
+                  color: hintColor,
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
@@ -2646,16 +2762,19 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                 return Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    _buildHorizontalScrollHint(context),
-                    Scrollbar(
+                    SingleChildScrollView(
                       controller: _tableHorizontalScrollController,
-                      thumbVisibility: true,
-                      trackVisibility: true,
-                      child: SingleChildScrollView(
-                        controller: _tableHorizontalScrollController,
-                        scrollDirection: Axis.horizontal,
-                        child: tableWidget,
-                      ),
+                      scrollDirection: Axis.horizontal,
+                      child: tableWidget,
+                    ),
+                    const SizedBox(height: 6),
+                    _CustomHorizontalScrollBar(
+                      controller: _tableHorizontalScrollController,
+                      isDark: isDark,
+                    ),
+                    _buildHorizontalScrollHint(
+                      context,
+                      text: 'Scroll horizontally to view full table',
                     ),
                   ],
                 );
@@ -3072,7 +3191,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
     );
   }
 
-  // â”€â”€ Grade Compliance Chart â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Grade Compliance Chart ──────────────────────────────────────────
   Widget _buildGradeComplianceChart(List<ReportStudent> students) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final gradeMap = <int, _GradeCompliance>{};
@@ -3086,170 +3205,197 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
     final grades = gradeMap.values.toList()
       ..sort((a, b) => a.grade.compareTo(b.grade));
 
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(AppSizes.p24),
-      decoration: _cardDecoration(),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            'Document Completion by Grade',
-            style: TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
-              color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
-            ),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            'How many students per grade have all their documents.',
-            style: TextStyle(
-              color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
-              fontSize: 13,
-            ),
-          ),
-          const SizedBox(height: AppSizes.p24),
-          if (grades.isEmpty)
-            _emptyWidget('No grade data for current filters.')
-          else
-            SizedBox(
-              height: 220,
-              child: BarChart(
-                BarChartData(
-                  maxY: 100,
-                  barGroups: grades.asMap().entries.map((entry) {
-                    final g = entry.value;
-                    final pct = g.total > 0
-                        ? g.compliant / g.total * 100
-                        : 0.0;
-                    final barColor = pct >= 80
-                        ? AppColors.primaryGreen
-                        : pct >= 50
-                        ? Colors.orange
-                        : Colors.red;
-                    return BarChartGroupData(
-                      x: entry.key,
-                      barRods: [
-                        BarChartRodData(
-                          toY: pct,
-                          color: barColor,
-                          width: grades.length <= 6 ? 36 : 22,
-                          borderRadius: const BorderRadius.vertical(
-                            top: Radius.circular(6),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final double minChartWidth = (grades.length * 64.0).clamp(320.0, 1000.0);
+        final bool isNarrow = constraints.maxWidth < minChartWidth;
+        final double chartWidth = isNarrow ? minChartWidth : constraints.maxWidth;
+
+        final Widget chartWidget = SizedBox(
+          width: chartWidth,
+          height: 220,
+          child: BarChart(
+            BarChartData(
+              maxY: 100,
+              barGroups: grades.asMap().entries.map((entry) {
+                final g = entry.value;
+                final pct = g.total > 0
+                    ? g.compliant / g.total * 100
+                    : 0.0;
+                final barColor = pct >= 80
+                    ? AppColors.primaryGreen
+                    : pct >= 50
+                    ? Colors.orange
+                    : Colors.red;
+                return BarChartGroupData(
+                  x: entry.key,
+                  barRods: [
+                    BarChartRodData(
+                      toY: pct,
+                      color: barColor,
+                      width: grades.length <= 6 ? 36 : 22,
+                      borderRadius: const BorderRadius.vertical(
+                        top: Radius.circular(6),
+                      ),
+                      backDrawRodData: BackgroundBarChartRodData(
+                        show: true,
+                        toY: 100,
+                        color: isDark ? AppColors.darkSurface2 : Colors.grey.shade100,
+                      ),
+                    ),
+                  ],
+                );
+              }).toList(),
+              titlesData: FlTitlesData(
+                show: true,
+                bottomTitles: AxisTitles(
+                  sideTitles: SideTitles(
+                    showTitles: true,
+                    reservedSize: 32,
+                    getTitlesWidget: (value, meta) {
+                      final idx = value.toInt();
+                      if (idx >= grades.length) {
+                        return const SizedBox.shrink();
+                      }
+                      return Padding(
+                        padding: const EdgeInsets.only(top: 6),
+                        child: Text(
+                          'G${grades[idx].grade}',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
+                            fontWeight: FontWeight.bold,
                           ),
-                          backDrawRodData: BackgroundBarChartRodData(
-                            show: true,
-                            toY: 100,
-                            color: isDark ? AppColors.darkSurface2 : Colors.grey.shade100,
+                        ),
+                      );
+                    },
+                  ),
+                ),
+                leftTitles: AxisTitles(
+                  sideTitles: SideTitles(
+                    showTitles: true,
+                    reservedSize: 40,
+                    getTitlesWidget: (value, meta) {
+                      if (value % 25 != 0) return const SizedBox.shrink();
+                      return Text(
+                        '${value.toInt()}%',
+                        style: TextStyle(
+                          fontSize: 11,
+                          color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
+                        ),
+                      );
+                    },
+                  ),
+                ),
+                topTitles: const AxisTitles(
+                  sideTitles: SideTitles(showTitles: false),
+                ),
+                rightTitles: const AxisTitles(
+                  sideTitles: SideTitles(showTitles: false),
+                ),
+              ),
+              gridData: FlGridData(
+                show: true,
+                drawVerticalLine: false,
+                horizontalInterval: 25,
+                getDrawingHorizontalLine: (value) => FlLine(
+                  color: isDark ? AppColors.darkBorder : Colors.grey.shade200,
+                  strokeWidth: 1,
+                ),
+              ),
+              borderData: FlBorderData(show: false),
+              barTouchData: BarTouchData(
+                touchTooltipData: BarTouchTooltipData(
+                  getTooltipColor: (group) => isDark
+                      ? AppColors.darkSurface2
+                      : Colors.blueGrey.shade800,
+                  getTooltipItem: (group, groupIndex, rod, rodIndex) {
+                    if (groupIndex >= grades.length) return null;
+                    final g = grades[groupIndex];
+                    return BarTooltipItem(
+                      'Grade ${g.grade}\n',
+                      const TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 13,
+                      ),
+                      children: [
+                        TextSpan(
+                          text:
+                              '${g.compliant}/${g.total} complete (${rod.toY.toStringAsFixed(1)}%)',
+                          style: const TextStyle(
+                            color: Colors.white70,
+                            fontSize: 12,
+                            fontWeight: FontWeight.normal,
                           ),
                         ),
                       ],
                     );
-                  }).toList(),
-                  titlesData: FlTitlesData(
-                    show: true,
-                    bottomTitles: AxisTitles(
-                      sideTitles: SideTitles(
-                        showTitles: true,
-                        reservedSize: 32,
-                        getTitlesWidget: (value, meta) {
-                          final idx = value.toInt();
-                          if (idx >= grades.length) {
-                            return const SizedBox.shrink();
-                          }
-                          return Padding(
-                            padding: const EdgeInsets.only(top: 6),
-                            child: Text(
-                              'G${grades[idx].grade}',
-                              style: TextStyle(
-                                fontSize: 12,
-                                color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          );
-                        },
-                      ),
-                    ),
-                    leftTitles: AxisTitles(
-                      sideTitles: SideTitles(
-                        showTitles: true,
-                        reservedSize: 40,
-                        getTitlesWidget: (value, meta) {
-                          if (value % 25 != 0) return const SizedBox.shrink();
-                          return Text(
-                            '${value.toInt()}%',
-                            style: TextStyle(
-                              fontSize: 11,
-                              color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
-                            ),
-                          );
-                        },
-                      ),
-                    ),
-                    topTitles: const AxisTitles(
-                      sideTitles: SideTitles(showTitles: false),
-                    ),
-                    rightTitles: const AxisTitles(
-                      sideTitles: SideTitles(showTitles: false),
-                    ),
-                  ),
-                  gridData: FlGridData(
-                    show: true,
-                    drawVerticalLine: false,
-                    horizontalInterval: 25,
-                    getDrawingHorizontalLine: (value) => FlLine(
-                      color: isDark ? AppColors.darkBorder : Colors.grey.shade200,
-                      strokeWidth: 1,
-                    ),
-                  ),
-                  borderData: FlBorderData(show: false),
-                  barTouchData: BarTouchData(
-                    touchTooltipData: BarTouchTooltipData(
-                      getTooltipColor: (group) => isDark
-                          ? AppColors.darkSurface2
-                          : Colors.blueGrey.shade800,
-                      getTooltipItem: (group, groupIndex, rod, rodIndex) {
-                        if (groupIndex >= grades.length) return null;
-                        final g = grades[groupIndex];
-                        return BarTooltipItem(
-                          'Grade ${g.grade}\n',
-                          const TextStyle(
-                            color: Colors.white,
-                            fontWeight: FontWeight.bold,
-                            fontSize: 13,
-                          ),
-                          children: [
-                            TextSpan(
-                              text:
-                                  '${g.compliant}/${g.total} complete (${rod.toY.toStringAsFixed(1)}%)',
-                              style: const TextStyle(
-                                color: Colors.white70,
-                                fontSize: 12,
-                                fontWeight: FontWeight.normal,
-                              ),
-                            ),
-                          ],
-                        );
-                      },
-                    ),
-                  ),
+                  },
                 ),
               ),
             ),
-          const SizedBox(height: 16),
-          Wrap(
-            spacing: 16,
-            runSpacing: 6,
+          ),
+        );
+
+        return Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(AppSizes.p24),
+          decoration: _cardDecoration(),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              _buildLegendItem(AppColors.primaryGreen, '≥ 80% Good'),
-              _buildLegendItem(Colors.orange, '50–79% Moderate'),
-              _buildLegendItem(Colors.red, '< 50% Critical'),
+              Text(
+                'Document Completion by Grade',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                'How many students per grade have all their documents.',
+                style: TextStyle(
+                  color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
+                  fontSize: 13,
+                ),
+              ),
+              const SizedBox(height: AppSizes.p24),
+              if (grades.isEmpty)
+                _emptyWidget('No grade data for current filters.')
+              else if (!isNarrow)
+                chartWidget
+              else ...[
+                SingleChildScrollView(
+                  controller: _gradeComplianceScrollController,
+                  scrollDirection: Axis.horizontal,
+                  child: chartWidget,
+                ),
+                const SizedBox(height: 6),
+                _CustomHorizontalScrollBar(
+                  controller: _gradeComplianceScrollController,
+                  isDark: isDark,
+                ),
+                _buildHorizontalScrollHint(
+                  context,
+                  text: 'Scroll horizontally to view all grades',
+                ),
+              ],
+              const SizedBox(height: 16),
+              Wrap(
+                spacing: 16,
+                runSpacing: 6,
+                children: [
+                  _buildLegendItem(AppColors.primaryGreen, '≥ 80% Good'),
+                  _buildLegendItem(Colors.orange, '50–79% Moderate'),
+                  _buildLegendItem(Colors.red, '< 50% Critical'),
+                ],
+              ),
             ],
           ),
-        ],
-      ),
+        );
+      },
     );
   }
 
@@ -3647,16 +3793,19 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                   return Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      _buildHorizontalScrollHint(context),
-                      Scrollbar(
+                      SingleChildScrollView(
                         controller: _chartHorizontalScrollController,
-                        thumbVisibility: true,
-                        trackVisibility: true,
-                        child: SingleChildScrollView(
-                          controller: _chartHorizontalScrollController,
-                          scrollDirection: Axis.horizontal,
-                          child: chartWidget,
-                        ),
+                        scrollDirection: Axis.horizontal,
+                        child: chartWidget,
+                      ),
+                      const SizedBox(height: 6),
+                      _CustomHorizontalScrollBar(
+                        controller: _chartHorizontalScrollController,
+                        isDark: isDark,
+                      ),
+                      _buildHorizontalScrollHint(
+                        context,
+                        text: 'Scroll horizontally to view all years',
                       ),
                     ],
                   );
@@ -4093,4 +4242,130 @@ class _StatusOption {
     required this.label,
     required this.color,
   });
+}
+
+// ── Custom Dedicated Horizontal Scrollbar Under Graphs & Tables ──────────────
+class _CustomHorizontalScrollBar extends StatefulWidget {
+  final ScrollController controller;
+  final bool isDark;
+
+  const _CustomHorizontalScrollBar({
+    required this.controller,
+    required this.isDark,
+  });
+
+  @override
+  State<_CustomHorizontalScrollBar> createState() => _CustomHorizontalScrollBarState();
+}
+
+class _CustomHorizontalScrollBarState extends State<_CustomHorizontalScrollBar> {
+  @override
+  void initState() {
+    super.initState();
+    widget.controller.addListener(_onScroll);
+  }
+
+  @override
+  void didUpdateWidget(covariant _CustomHorizontalScrollBar oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.controller != widget.controller) {
+      oldWidget.controller.removeListener(_onScroll);
+      widget.controller.addListener(_onScroll);
+    }
+  }
+
+  @override
+  void dispose() {
+    widget.controller.removeListener(_onScroll);
+    super.dispose();
+  }
+
+  void _onScroll() {
+    if (mounted) setState(() {});
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: widget.controller,
+      builder: (context, _) {
+        if (!widget.controller.hasClients ||
+            !widget.controller.position.hasContentDimensions ||
+            widget.controller.position.maxScrollExtent <= 0) {
+          return const SizedBox.shrink();
+        }
+
+        final pos = widget.controller.position;
+        final maxScroll = pos.maxScrollExtent;
+        final currentScroll = pos.pixels.clamp(0.0, maxScroll);
+        final progress = maxScroll > 0 ? currentScroll / maxScroll : 0.0;
+        final viewportFraction = (pos.viewportDimension /
+                (pos.maxScrollExtent + pos.viewportDimension))
+            .clamp(0.15, 0.85);
+
+        final trackColor = widget.isDark
+            ? AppColors.darkBorder.withValues(alpha: 0.5)
+            : const Color(0xFFE2E8F0);
+        final thumbColor = widget.isDark
+            ? const Color(0xFF2DD4BF)
+            : const Color(0xFF0D9488);
+
+        return Padding(
+          padding: const EdgeInsets.only(top: 4, bottom: 2),
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              final trackWidth = constraints.maxWidth;
+              final thumbWidth =
+                  (trackWidth * viewportFraction).clamp(36.0, trackWidth);
+              final maxThumbOffset = trackWidth - thumbWidth;
+              final thumbOffset = maxThumbOffset * progress;
+
+              return GestureDetector(
+                behavior: HitTestBehavior.opaque,
+                onHorizontalDragUpdate: (details) {
+                  if (maxThumbOffset <= 0) return;
+                  final deltaFraction = details.primaryDelta! / maxThumbOffset;
+                  final newScroll = (widget.controller.offset +
+                          deltaFraction * maxScroll)
+                      .clamp(0.0, maxScroll);
+                  widget.controller.jumpTo(newScroll);
+                },
+                child: Container(
+                  height: 10,
+                  width: double.infinity,
+                  alignment: Alignment.centerLeft,
+                  child: Stack(
+                    alignment: Alignment.centerLeft,
+                    children: [
+                      // Thin Track Line
+                      Container(
+                        height: 3,
+                        width: trackWidth,
+                        decoration: BoxDecoration(
+                          color: trackColor,
+                          borderRadius: BorderRadius.circular(1.5),
+                        ),
+                      ),
+                      // Thin Thumb Line
+                      Positioned(
+                        left: thumbOffset,
+                        child: Container(
+                          height: 3,
+                          width: thumbWidth,
+                          decoration: BoxDecoration(
+                            color: thumbColor,
+                            borderRadius: BorderRadius.circular(1.5),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            },
+          ),
+        );
+      },
+    );
+  }
 }

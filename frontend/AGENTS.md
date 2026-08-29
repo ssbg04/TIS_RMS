@@ -394,6 +394,17 @@ Files backup/restore - mirror mode or zip -->
 - compliance hover on missing count shows all missing documents separated jhs shs
 - compliance tab -> "Student list" section -> remove missing requirements -> make the missing column hover just like on "STUDENT SCREEN", can see missing documents separate jhs and shs same from "STUDENT SCREEN" -->
 
+<!-- # REPORTS SCREEN
+- horizontal scroll bar hint for android app all overlaps graphs
+- hover missing document make the design theme color responsive
+- 
+
+# STUDENT SCREEN
+- hover missing document make the design theme color responsive -->
+
+
+
+
 --- 
 
 # DONT DO

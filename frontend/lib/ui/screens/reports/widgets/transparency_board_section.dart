@@ -38,12 +38,26 @@ class TransparencyBoardSection extends ConsumerWidget {
   }
 }
 
-class _TransparencyBoardContent extends StatelessWidget {
+class _TransparencyBoardContent extends StatefulWidget {
   final TransparencyBoardData data;
   const _TransparencyBoardContent({required this.data});
 
   @override
+  State<_TransparencyBoardContent> createState() => _TransparencyBoardContentState();
+}
+
+class _TransparencyBoardContentState extends State<_TransparencyBoardContent> {
+  final ScrollController _enrollmentChartScrollController = ScrollController();
+
+  @override
+  void dispose() {
+    _enrollmentChartScrollController.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final data = widget.data;
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Container(
@@ -270,29 +284,70 @@ class _TransparencyBoardContent extends StatelessWidget {
     );
   }
 
-  /// Responsive table wrapper â€” on wide screens it fills width naturally;
-  /// on narrow screens it allows horizontal scroll with a minimum width.
-  static Widget _responsiveTable({
-    required Widget child,
-    double minWidth = 550,
+  static Widget _buildTableScrollHint(
+    BuildContext context, {
+    String text = 'Scroll horizontally to view full table',
   }) {
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        if (constraints.maxWidth >= minWidth) {
-          return child;
-        }
-        return SingleChildScrollView(
-          scrollDirection: Axis.horizontal,
-          child: ConstrainedBox(
-            constraints: BoxConstraints(minWidth: minWidth),
-            child: child,
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final hintColor = isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B);
+    final bgColor = isDark
+        ? AppColors.darkSurface2
+        : const Color(0xFFF1F5F9);
+    final borderColor = isDark
+        ? AppColors.darkBorder
+        : const Color(0xFFCBD5E1);
+
+    return Align(
+      alignment: Alignment.centerLeft,
+      child: Padding(
+        padding: const EdgeInsets.only(top: 6, bottom: 4),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+          decoration: BoxDecoration(
+            color: bgColor,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+              color: borderColor,
+              width: 0.8,
+            ),
           ),
-        );
-      },
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                Icons.swap_horiz_rounded,
+                size: 14,
+                color: hintColor,
+              ),
+              const SizedBox(width: 5),
+              Text(
+                text,
+                style: TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w500,
+                  color: hintColor,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 
-  // â”€â”€ Section 1: Enrollment â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  /// Responsive table wrapper — on wide screens it fills width naturally;
+  /// on narrow screens it allows horizontal scroll with a minimum width and hint.
+  static Widget _responsiveTable({
+    required Widget child,
+    double minWidth = 580,
+  }) {
+    return _StatefulResponsiveTable(
+      minWidth: minWidth,
+      child: child,
+    );
+  }
+
+  // ── Section 1: Enrollment ─────────────────────────────────────────────────
 
   Widget _buildEnrollmentSection(
     BuildContext context,
@@ -316,9 +371,14 @@ class _TransparencyBoardContent extends StatelessWidget {
           ),
         ),
         const SizedBox(height: AppSizes.p12),
-        SizedBox(
-          height: 360,
-          child: _buildEnrollmentGroupedBarChart(context, years, isDark: isDark),
+        LayoutBuilder(
+          builder: (context, constraints) {
+            final isNarrow = constraints.maxWidth < 720;
+            return SizedBox(
+              height: isNarrow ? 400 : 360,
+              child: _buildEnrollmentGroupedBarChart(context, years, isDark: isDark),
+            );
+          },
         ),
         const SizedBox(height: AppSizes.p24),
         const Divider(height: 1),
@@ -373,8 +433,9 @@ class _TransparencyBoardContent extends StatelessWidget {
 
     return LayoutBuilder(
       builder: (context, constraints) {
-        final isMobile = constraints.maxWidth < 600;
-        final chartContentWidth = isMobile ? 640.0 : constraints.maxWidth;
+        const double minChartWidth = 720.0;
+        final bool isNarrow = constraints.maxWidth < minChartWidth;
+        final double chartContentWidth = isNarrow ? minChartWidth : constraints.maxWidth;
 
         final chartWidget = Padding(
           padding: const EdgeInsets.only(top: 16, right: 14, left: 4),
@@ -474,55 +535,55 @@ class _TransparencyBoardContent extends StatelessWidget {
                     sideTitles: SideTitles(showTitles: false),
                   ),
                 ),
-              gridData: FlGridData(
-                show: true,
-                drawVerticalLine: false,
-                getDrawingHorizontalLine: (value) => FlLine(
-                  color: isDark
-                      ? AppColors.darkBorder
-                      : Colors.grey.withValues(alpha: 0.15),
-                  strokeWidth: 1,
+                gridData: FlGridData(
+                  show: true,
+                  drawVerticalLine: false,
+                  getDrawingHorizontalLine: (value) => FlLine(
+                    color: isDark
+                        ? AppColors.darkBorder
+                        : Colors.grey.withValues(alpha: 0.15),
+                    strokeWidth: 1,
+                  ),
                 ),
-              ),
-              borderData: FlBorderData(show: false),
-              barGroups: gradeLevels.asMap().entries.map((entry) {
-                final xIdx = entry.key;
-                final grade = entry.value;
+                borderData: FlBorderData(show: false),
+                barGroups: gradeLevels.asMap().entries.map((entry) {
+                  final xIdx = entry.key;
+                  final grade = entry.value;
 
-                final rods = years.asMap().entries.map((yEntry) {
-                  final yIdx = yEntry.key;
-                  final yItem = yEntry.value;
-                  final gData = yItem.enrollment.grades
-                      .firstWhere(
-                        (g) => g.gradeLevel == grade,
-                        orElse: () => GradeEnrollmentBreakdown(
-                          gradeLevel: grade,
-                          male: 0,
-                          female: 0,
-                          total: 0,
-                        ),
-                      );
-                  return BarChartRodData(
-                    toY: gData.total.toDouble(),
-                    color: yearColors[yIdx % yearColors.length],
-                    width: 12,
-                    borderRadius: const BorderRadius.only(
-                      topLeft: Radius.circular(3),
-                      topRight: Radius.circular(3),
-                    ),
+                  final rods = years.asMap().entries.map((yEntry) {
+                    final yIdx = yEntry.key;
+                    final yItem = yEntry.value;
+                    final gData = yItem.enrollment.grades
+                        .firstWhere(
+                          (g) => g.gradeLevel == grade,
+                          orElse: () => GradeEnrollmentBreakdown(
+                            gradeLevel: grade,
+                            male: 0,
+                            female: 0,
+                            total: 0,
+                          ),
+                        );
+                    return BarChartRodData(
+                      toY: gData.total.toDouble(),
+                      color: yearColors[yIdx % yearColors.length],
+                      width: 12,
+                      borderRadius: const BorderRadius.only(
+                        topLeft: Radius.circular(3),
+                        topRight: Radius.circular(3),
+                      ),
+                    );
+                  }).toList();
+
+                  return BarChartGroupData(
+                    x: xIdx,
+                    barsSpace: 4,
+                    barRods: rods,
                   );
-                }).toList();
-
-                return BarChartGroupData(
-                  x: xIdx,
-                  barsSpace: 4,
-                  barRods: rods,
-                );
-              }).toList(),
+                }).toList(),
+              ),
             ),
           ),
-        ),
-      );
+        );
 
         return Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -558,37 +619,27 @@ class _TransparencyBoardContent extends StatelessWidget {
                 );
               }).toList(),
             ),
-            if (isMobile) ...[
-              const SizedBox(height: 6),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.end,
-                children: [
-                  Icon(
-                    Icons.swipe_outlined,
-                    size: 14,
-                    color: isDark ? AppColors.darkTextMuted : Colors.grey.shade500,
-                  ),
-                  const SizedBox(width: 4),
-                  Text(
-                    'Scroll horizontally to view all grades',
-                    style: TextStyle(
-                      fontSize: 11,
-                      color: isDark ? AppColors.darkTextMuted : Colors.grey.shade500,
-                      fontStyle: FontStyle.italic,
-                    ),
-                  ),
-                ],
-              ),
-            ],
             const SizedBox(height: 10),
             Expanded(
-              child: isMobile
+              child: isNarrow
                   ? SingleChildScrollView(
+                      controller: _enrollmentChartScrollController,
                       scrollDirection: Axis.horizontal,
                       child: chartWidget,
                     )
                   : chartWidget,
             ),
+            if (isNarrow) ...[
+              const SizedBox(height: 6),
+              _CustomHorizontalScrollBar(
+                controller: _enrollmentChartScrollController,
+                isDark: isDark,
+              ),
+              _buildTableScrollHint(
+                context,
+                text: 'Scroll horizontally to view all grades',
+              ),
+            ],
           ],
         );
       },
@@ -841,7 +892,7 @@ class _TransparencyBoardContent extends StatelessWidget {
       ),
     );
 
-    return _responsiveTable(child: tableWidget, minWidth: 500);
+    return _responsiveTable(child: tableWidget, minWidth: 580);
   }
 
   // â”€â”€ Section 2: Dropouts & Transferees â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
@@ -1039,7 +1090,7 @@ class _TransparencyBoardContent extends StatelessWidget {
       ),
     );
 
-    return _responsiveTable(child: tableWidget, minWidth: 500);
+    return _responsiveTable(child: tableWidget, minWidth: 580);
   }
 
   // â”€â”€ Section 3: 4Ps Equity â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
@@ -1098,7 +1149,7 @@ class _TransparencyBoardContent extends StatelessWidget {
         ),
         const SizedBox(height: 16),
         _responsiveTable(
-          minWidth: 500,
+          minWidth: 580,
           child: Container(
             decoration: BoxDecoration(
               border: Border.all(
@@ -1258,6 +1309,197 @@ class _TransparencyBoardContent extends StatelessWidget {
           ),
         ),
       ],
+    );
+  }
+}
+
+// ── Stateful Responsive Table with Dedicated Horizontal Scrollbar ───────────
+class _StatefulResponsiveTable extends StatefulWidget {
+  final Widget child;
+  final double minWidth;
+
+  const _StatefulResponsiveTable({
+    required this.child,
+    this.minWidth = 580,
+  });
+
+  @override
+  State<_StatefulResponsiveTable> createState() => _StatefulResponsiveTableState();
+}
+
+class _StatefulResponsiveTableState extends State<_StatefulResponsiveTable> {
+  late final ScrollController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = ScrollController();
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        if (constraints.maxWidth >= widget.minWidth) {
+          return widget.child;
+        }
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            SingleChildScrollView(
+              controller: _controller,
+              scrollDirection: Axis.horizontal,
+              child: ConstrainedBox(
+                constraints: BoxConstraints(minWidth: widget.minWidth),
+                child: widget.child,
+              ),
+            ),
+            const SizedBox(height: 6),
+            _CustomHorizontalScrollBar(
+              controller: _controller,
+              isDark: isDark,
+            ),
+            _TransparencyBoardContentState._buildTableScrollHint(
+              context,
+              text: 'Scroll horizontally to view full table',
+            ),
+          ],
+        );
+      },
+    );
+  }
+}
+
+// ── Custom Dedicated Horizontal Scrollbar Under Graphs & Tables ──────────────
+class _CustomHorizontalScrollBar extends StatefulWidget {
+  final ScrollController controller;
+  final bool isDark;
+
+  const _CustomHorizontalScrollBar({
+    required this.controller,
+    required this.isDark,
+  });
+
+  @override
+  State<_CustomHorizontalScrollBar> createState() => _CustomHorizontalScrollBarState();
+}
+
+class _CustomHorizontalScrollBarState extends State<_CustomHorizontalScrollBar> {
+  @override
+  void initState() {
+    super.initState();
+    widget.controller.addListener(_onScroll);
+  }
+
+  @override
+  void didUpdateWidget(covariant _CustomHorizontalScrollBar oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.controller != widget.controller) {
+      oldWidget.controller.removeListener(_onScroll);
+      widget.controller.addListener(_onScroll);
+    }
+  }
+
+  @override
+  void dispose() {
+    widget.controller.removeListener(_onScroll);
+    super.dispose();
+  }
+
+  void _onScroll() {
+    if (mounted) setState(() {});
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: widget.controller,
+      builder: (context, _) {
+        if (!widget.controller.hasClients ||
+            !widget.controller.position.hasContentDimensions ||
+            widget.controller.position.maxScrollExtent <= 0) {
+          return const SizedBox.shrink();
+        }
+
+        final pos = widget.controller.position;
+        final maxScroll = pos.maxScrollExtent;
+        final currentScroll = pos.pixels.clamp(0.0, maxScroll);
+        final progress = maxScroll > 0 ? currentScroll / maxScroll : 0.0;
+        final viewportFraction = (pos.viewportDimension /
+                (pos.maxScrollExtent + pos.viewportDimension))
+            .clamp(0.15, 0.85);
+
+        final trackColor = widget.isDark
+            ? AppColors.darkBorder.withValues(alpha: 0.5)
+            : const Color(0xFFE2E8F0);
+        final thumbColor = widget.isDark
+            ? const Color(0xFF2DD4BF)
+            : const Color(0xFF0D9488);
+
+        return Padding(
+          padding: const EdgeInsets.only(top: 4, bottom: 2),
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              final trackWidth = constraints.maxWidth;
+              final thumbWidth =
+                  (trackWidth * viewportFraction).clamp(36.0, trackWidth);
+              final maxThumbOffset = trackWidth - thumbWidth;
+              final thumbOffset = maxThumbOffset * progress;
+
+              return GestureDetector(
+                behavior: HitTestBehavior.opaque,
+                onHorizontalDragUpdate: (details) {
+                  if (maxThumbOffset <= 0) return;
+                  final deltaFraction = details.primaryDelta! / maxThumbOffset;
+                  final newScroll = (widget.controller.offset +
+                          deltaFraction * maxScroll)
+                      .clamp(0.0, maxScroll);
+                  widget.controller.jumpTo(newScroll);
+                },
+                child: Container(
+                  height: 10,
+                  width: double.infinity,
+                  alignment: Alignment.centerLeft,
+                  child: Stack(
+                    alignment: Alignment.centerLeft,
+                    children: [
+                      // Thin Track Line
+                      Container(
+                        height: 3,
+                        width: trackWidth,
+                        decoration: BoxDecoration(
+                          color: trackColor,
+                          borderRadius: BorderRadius.circular(1.5),
+                        ),
+                      ),
+                      // Thin Thumb Line
+                      Positioned(
+                        left: thumbOffset,
+                        child: Container(
+                          height: 3,
+                          width: thumbWidth,
+                          decoration: BoxDecoration(
+                            color: thumbColor,
+                            borderRadius: BorderRadius.circular(1.5),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            },
+          ),
+        );
+      },
     );
   }
 }

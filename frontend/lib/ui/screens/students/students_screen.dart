@@ -2019,43 +2019,165 @@ class _DocumentProgressBar extends StatelessWidget {
     final double progress = totalCount == 0 ? 1.0 : completedCount / totalCount;
     final bool isComplete = missingCount == 0 && totalCount > 0;
 
-    String tooltipMessage = '';
+    InlineSpan richMessage;
     if (!isComplete && missingDocuments.isNotEmpty) {
       final jhsDocs = missingDocuments
-          .where((d) => d.startsWith('[JHS]'))
-          .map((d) => d.replaceFirst('[JHS] ', ''))
+          .where((d) => d.toUpperCase().startsWith('[JHS]'))
+          .map((d) => d.replaceFirst(RegExp(r'^\[JHS\]\s*', caseSensitive: false), '').trim())
           .toList();
       final shsDocs = missingDocuments
-          .where((d) => d.startsWith('[SHS]'))
-          .map((d) => d.replaceFirst('[SHS] ', ''))
+          .where((d) => d.toUpperCase().startsWith('[SHS]'))
+          .map((d) => d.replaceFirst(RegExp(r'^\[SHS\]\s*', caseSensitive: false), '').trim())
           .toList();
       final otherDocs = missingDocuments
-          .where((d) => !d.startsWith('[JHS]') && !d.startsWith('[SHS]'))
+          .where((d) =>
+              !d.toUpperCase().startsWith('[JHS]') &&
+              !d.toUpperCase().startsWith('[SHS]'))
+          .map((d) => d.trim())
           .toList();
 
-      final lines = <String>['Missing Documents:'];
+      final spanChildren = <InlineSpan>[
+        TextSpan(
+          text: 'Missing Documents ($missingCount):\n',
+          style: TextStyle(
+            color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
+            fontWeight: FontWeight.bold,
+            fontSize: 12.5,
+          ),
+        ),
+      ];
+
       if (jhsDocs.isNotEmpty) {
-        lines.add('JHS:');
-        lines.addAll(jhsDocs.map((d) => '  • $d'));
-      }
-      if (shsDocs.isNotEmpty) {
-        lines.add('SHS:');
-        lines.addAll(shsDocs.map((d) => '  • $d'));
-      }
-      if (otherDocs.isNotEmpty) {
-        if (jhsDocs.isNotEmpty || shsDocs.isNotEmpty) lines.add('Other:');
-        lines.addAll(otherDocs.map((d) => '  • $d'));
+        spanChildren.add(
+          TextSpan(
+            text: '\nJHS Requirements:\n',
+            style: TextStyle(
+              color: isDark ? const Color(0xFF80CBC4) : const Color(0xFF00796B),
+              fontWeight: FontWeight.bold,
+              fontSize: 11.5,
+            ),
+          ),
+        );
+        for (final doc in jhsDocs) {
+          spanChildren.add(
+            TextSpan(
+              text: '  • $doc\n',
+              style: TextStyle(
+                color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
+                fontSize: 12,
+                height: 1.35,
+              ),
+            ),
+          );
+        }
       }
 
-      tooltipMessage = lines.join('\n');
+      if (shsDocs.isNotEmpty) {
+        spanChildren.add(
+          TextSpan(
+            text: '\nSHS Requirements:\n',
+            style: TextStyle(
+              color: isDark ? const Color(0xFFB39DDB) : const Color(0xFF6A1B9A),
+              fontWeight: FontWeight.bold,
+              fontSize: 11.5,
+            ),
+          ),
+        );
+        for (final doc in shsDocs) {
+          spanChildren.add(
+            TextSpan(
+              text: '  • $doc\n',
+              style: TextStyle(
+                color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
+                fontSize: 12,
+                height: 1.35,
+              ),
+            ),
+          );
+        }
+      }
+
+      if (otherDocs.isNotEmpty) {
+        if (jhsDocs.isNotEmpty || shsDocs.isNotEmpty) {
+          spanChildren.add(
+            TextSpan(
+              text: '\nOther Requirements:\n',
+              style: TextStyle(
+                color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
+                fontWeight: FontWeight.bold,
+                fontSize: 11.5,
+              ),
+            ),
+          );
+        }
+        for (final doc in otherDocs) {
+          spanChildren.add(
+            TextSpan(
+              text: '  • $doc\n',
+              style: TextStyle(
+                color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
+                fontSize: 12,
+                height: 1.35,
+              ),
+            ),
+          );
+        }
+      }
+
+      richMessage = TextSpan(children: spanChildren);
     } else if (isComplete) {
-      tooltipMessage = 'All documents completed';
+      richMessage = TextSpan(
+        children: [
+          WidgetSpan(
+            alignment: PlaceholderAlignment.middle,
+            child: Padding(
+              padding: const EdgeInsets.only(right: 6),
+              child: Icon(
+                Icons.check_circle_rounded,
+                size: 15,
+                color: isDark ? const Color(0xFF76BA8A) : Colors.green.shade700,
+              ),
+            ),
+          ),
+          TextSpan(
+            text: 'All documents completed',
+            style: TextStyle(
+              color: isDark ? const Color(0xFF76BA8A) : Colors.green.shade700,
+              fontWeight: FontWeight.w600,
+              fontSize: 12,
+            ),
+          ),
+        ],
+      );
     } else {
-      tooltipMessage = 'No documents required';
+      richMessage = TextSpan(
+        text: 'No documents required',
+        style: TextStyle(
+          color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
+          fontSize: 12,
+        ),
+      );
     }
 
     return Tooltip(
-      message: tooltipMessage,
+      richMessage: richMessage,
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+      decoration: BoxDecoration(
+        color: isDark ? AppColors.darkSurfaceCard : AppColors.surfaceWhite,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(
+          color: isDark ? AppColors.darkBorder : Colors.grey.shade300,
+          width: 1,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: isDark ? Colors.black45 : Colors.black.withValues(alpha: 0.12),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      preferBelow: false,
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         crossAxisAlignment: CrossAxisAlignment.start,
