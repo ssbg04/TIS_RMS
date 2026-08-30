@@ -10,7 +10,6 @@ import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_sizes.dart';
 import '../../../domain/entities/report_models.dart';
 import '../../shared/buttons/primary_button.dart';
-import '../../shared/cards/stat_card.dart';
 import '../../providers/reports_provider.dart';
 import '../../providers/navigation_provider.dart';
 import '../../providers/auth_provider.dart';
@@ -549,34 +548,32 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                       children: [
                         // 1. Filter Panel (collapsible)
                         _buildFilterPanel(context),
-                        const SizedBox(height: AppSizes.p16),
+                        const SizedBox(height: AppSizes.p20),
 
-                        // 2. Summary Banner
-                        _buildSummaryBanner(data),
-                        const SizedBox(height: AppSizes.p24),
-
-                        // 3. KPI Cards
+                        // 2. Focused Compliance KPI Cards (4 cards + storage badge)
                         _buildMetricsGrid(data, storageAsync.asData?.value),
                         const SizedBox(height: AppSizes.p24),
 
-                        // 4. Charts Row 1: Yearly Comparison + Status Donut
+                        // 3. Analytics Grid Row 1: Grade Compliance & Missing Requirements Breakdown
                         LayoutBuilder(
                           builder: (context, constraints) {
-                            if (constraints.maxWidth > 1100) {
+                            if (constraints.maxWidth >= 1000) {
                               return Row(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Expanded(
-                                    flex: 6,
-                                    child: _buildYearlyComparisonChart(
+                                    flex: 5,
+                                    child: _buildGradeComplianceChart(
+                                      data.students,
                                       isDesktop: true,
                                     ),
                                   ),
                                   const SizedBox(width: AppSizes.p24),
                                   Expanded(
-                                    flex: 4,
-                                    child: _buildStatusDonutChart(
-                                      data.studentCounts,
+                                    flex: 5,
+                                    child: _buildMissingDocsChart(
+                                      data.missingDocsBreakdown,
+                                      isDesktop: true,
                                     ),
                                   ),
                                 ],
@@ -584,9 +581,15 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                             } else {
                               return Column(
                                 children: [
-                                  _buildYearlyComparisonChart(isDesktop: false),
+                                  _buildGradeComplianceChart(
+                                    data.students,
+                                    isDesktop: false,
+                                  ),
                                   const SizedBox(height: AppSizes.p24),
-                                  _buildStatusDonutChart(data.studentCounts),
+                                  _buildMissingDocsChart(
+                                    data.missingDocsBreakdown,
+                                    isDesktop: false,
+                                  ),
                                 ],
                               );
                             }
@@ -594,18 +597,46 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                         ),
                         const SizedBox(height: AppSizes.p24),
 
-                        // 5. Grade Compliance Chart (full width)
-                        _buildGradeComplianceChart(data.students),
-                        const SizedBox(height: AppSizes.p24),
-
-                        // 6. Missing Docs Breakdown (full width)
-                        _buildMissingDocsChart(
-                          data.missingDocsBreakdown,
-                          isDesktop: false,
+                        // 4. Analytics Grid Row 2: Status Breakdown & Historical Trends
+                        LayoutBuilder(
+                          builder: (context, constraints) {
+                            if (constraints.maxWidth >= 1000) {
+                              return Row(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Expanded(
+                                    flex: 4,
+                                    child: _buildStatusDonutChart(
+                                      data.studentCounts,
+                                      isDesktop: true,
+                                    ),
+                                  ),
+                                  const SizedBox(width: AppSizes.p24),
+                                  Expanded(
+                                    flex: 6,
+                                    child: _buildYearlyComparisonChart(
+                                      isDesktop: true,
+                                    ),
+                                  ),
+                                ],
+                              );
+                            } else {
+                              return Column(
+                                children: [
+                                  _buildStatusDonutChart(
+                                    data.studentCounts,
+                                    isDesktop: false,
+                                  ),
+                                  const SizedBox(height: AppSizes.p24),
+                                  _buildYearlyComparisonChart(isDesktop: false),
+                                ],
+                              );
+                            }
+                          },
                         ),
                         const SizedBox(height: AppSizes.p24),
 
-                        // 7. Interactive Student Compliance Table
+                        // 5. Interactive Student Compliance Table
                         _buildComplianceTable(data),
                       ],
                     ),
@@ -1008,7 +1039,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                               data: (yearsList) =>
                                   DropdownButtonFormField<int?>(
                                     isExpanded: true,
-                                    value: selectedYearId,
+                                    initialValue: selectedYearId,
                                     decoration: _filterDecoration(
                                       'School Year',
                                     ),
@@ -1274,38 +1305,16 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
     );
   }
 
-  // â”€â”€ KPI Cards: Compliance + Student status grid â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── KPI Cards: 4 Focused Compliance Metrics ─────────────────────────────
   Widget _buildMetricsGrid(ReportStats reportData, int? storageBytes) {
-    final counts = reportData.studentCounts;
     final students = reportData.students;
     final breakdown = reportData.missingDocsBreakdown;
 
-    final total = counts.active +
-        counts.inactive +
-        counts.dropped +
-        counts.transferee +
-        counts.graduated;
     final compliantCount = students.where((s) => s.missingCount == 0).length;
     final withIssuesCount = students.where((s) => s.missingCount > 0).length;
     final totalMissing = breakdown.fold<int>(0, (a, b) => a + b.count);
     final complianceRate =
         students.isNotEmpty ? (compliantCount / students.length * 100) : 0.0;
-
-    final inactiveRate = total > 0
-        ? (counts.inactive / total * 100).toStringAsFixed(1)
-        : '0.0';
-    final gradRate = total > 0
-        ? (counts.graduated / total * 100).toStringAsFixed(1)
-        : '0.0';
-    final dropRate = total > 0
-        ? (counts.dropped / total * 100).toStringAsFixed(1)
-        : '0.0';
-    final transRate = total > 0
-        ? (counts.transferee / total * 100).toStringAsFixed(1)
-        : '0.0';
-    final fourPsRate = total > 0
-        ? (counts.fourPs / total * 100).toStringAsFixed(1)
-        : '0.0';
 
     String formatBytes(int bytes) {
       if (bytes < 1024) return '$bytes B';
@@ -1319,75 +1328,12 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // ── Card Color Guide Tip Banner ──────────────────────────────
-        Builder(
-          builder: (ctx) {
-            final isDark = Theme.of(ctx).brightness == Brightness.dark;
-            return Container(
-              margin: const EdgeInsets.only(bottom: 12),
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-              decoration: BoxDecoration(
-                color: isDark ? AppColors.darkSurfaceCard : Colors.white,
-                borderRadius: BorderRadius.circular(10),
-                border: Border.all(
-                  color: isDark ? AppColors.darkBorder : Colors.grey.shade200,
-                ),
-              ),
-              child: Row(
-                children: [
-                  Icon(
-                    Icons.lightbulb_outline_rounded,
-                    size: 16,
-                    color: isDark ? const Color(0xFFE5A663) : Colors.amber.shade700,
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Wrap(
-                      crossAxisAlignment: WrapCrossAlignment.center,
-                      spacing: 16,
-                      runSpacing: 4,
-                      children: [
-                        Text(
-                          'Color Guide:',
-                          style: TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.w600,
-                            color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
-                          ),
-                        ),
-                        _buildColorTipItem(
-                          dotColor: isDark ? const Color(0xFF76BA8A) : AppColors.primaryGreen,
-                          label: 'Green',
-                          meaning: 'Good (≥80% compliance, 0 issues)',
-                          isDark: isDark,
-                        ),
-                        _buildColorTipItem(
-                          dotColor: isDark ? const Color(0xFFE5A663) : Colors.orange.shade700,
-                          label: 'Orange',
-                          meaning: 'Warning (50–79% compliance or missing docs)',
-                          isDark: isDark,
-                        ),
-                        _buildColorTipItem(
-                          dotColor: isDark ? const Color(0xFFD67878) : Colors.red.shade600,
-                          label: 'Red',
-                          meaning: 'Needs Action (<50% compliance or student issues)',
-                          isDark: isDark,
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            );
-          },
-        ),
-
-        // ── Primary KPI Row (3 cards) ────────────────────────────────
+        // ── 4 Primary Compliance KPI Cards ──────────────────────────────────
         LayoutBuilder(
           builder: (ctx, constraints) {
-            final cols = constraints.maxWidth >= 700
-                ? 3
-                : (constraints.maxWidth >= 480 ? 2 : 1);
+            final cols = constraints.maxWidth >= 1000
+                ? 4
+                : (constraints.maxWidth >= 550 ? 2 : 1);
             return GridView(
               shrinkWrap: true,
               physics: const NeverScrollableScrollPhysics(),
@@ -1395,117 +1341,54 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                 crossAxisCount: cols,
                 crossAxisSpacing: 16,
                 mainAxisSpacing: 16,
-                mainAxisExtent: constraints.maxWidth < 480 ? 150 : 165,
+                mainAxisExtent: constraints.maxWidth < 550 ? 145 : 155,
               ),
               children: [
                 _buildPrimaryKpiCard(
                   title: 'Overall Compliance',
                   value: '${complianceRate.toStringAsFixed(1)}%',
-                  subtitle:
-                      '$compliantCount of ${students.length} students complete',
+                  subtitle: '$compliantCount of ${students.length} students complete',
                   icon: Icons.verified_outlined,
                   color: complianceRate >= 80
                       ? AppColors.primaryGreen
                       : complianceRate >= 50
-                      ? Colors.orange
-                      : Colors.red,
+                          ? Colors.orange
+                          : Colors.red,
+                  progress: complianceRate / 100,
                 ),
                 _buildPrimaryKpiCard(
-                  title: 'Students with Issues',
+                  title: 'Complete Records',
+                  value: '$compliantCount',
+                  subtitle: 'All documents submitted',
+                  icon: Icons.check_circle_outline_rounded,
+                  color: AppColors.primaryGreen,
+                ),
+                _buildPrimaryKpiCard(
+                  title: 'Needs Follow-up',
                   value: '$withIssuesCount',
-                  subtitle: 'Missing at least 1 document',
-                  icon: Icons.person_off_outlined,
+                  subtitle: 'Missing 1 or more documents',
+                  icon: Icons.warning_amber_rounded,
                   color: withIssuesCount == 0
-                      ? AppColors.primaryGreen
-                      : Colors.red.shade600,
-                ),
-                _buildPrimaryKpiCard(
-                  title: 'Total Missing Docs',
-                  value: '$totalMissing',
-                  subtitle: 'Across ${breakdown.length} requirement types',
-                  icon: Icons.file_copy_outlined,
-                  color: totalMissing == 0
                       ? AppColors.primaryGreen
                       : Colors.orange.shade700,
                 ),
-              ],
-            );
-          },
-        ),
-
-        const SizedBox(height: 16),
-
-        // ── Secondary Status Row (6 cards) ───────────────────────────
-        LayoutBuilder(
-          builder: (ctx, constraints) {
-            final isDesktop = Theme.of(ctx).platform == TargetPlatform.windows ||
-                Theme.of(ctx).platform == TargetPlatform.macOS ||
-                Theme.of(ctx).platform == TargetPlatform.linux;
-            final isWide = constraints.maxWidth >= 750 || isDesktop;
-            final cols = isWide
-                ? 6
-                : (constraints.maxWidth >= 480 ? 3 : 2);
-            final spacing = isWide ? 10.0 : 12.0;
-            return GridView(
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: cols,
-                crossAxisSpacing: spacing,
-                mainAxisSpacing: 10,
-                mainAxisExtent: cols == 6 ? 94 : (constraints.maxWidth < 480 ? 115 : 125),
-              ),
-              children: [
-                StatCard(
-                  title: 'Active Students',
-                  value: counts.active.toString(),
-                  subtitle: 'Total: $total',
-                  icon: Icons.check_circle_outline,
-                  iconColor: AppColors.primaryGreen,
-                ),
-                StatCard(
-                  title: 'Inactive',
-                  value: counts.inactive.toString(),
-                  subtitle: 'Rate: $inactiveRate%',
-                  icon: Icons.pause_circle_outline,
-                  iconColor: Colors.blueGrey,
-                ),
-                StatCard(
-                  title: 'Dropouts',
-                  value: counts.dropped.toString(),
-                  subtitle: 'Rate: $dropRate%',
-                  icon: Icons.person_remove_outlined,
-                  iconColor: Colors.red,
-                ),
-                StatCard(
-                  title: 'Transferees',
-                  value: counts.transferee.toString(),
-                  subtitle: 'Rate: $transRate%',
-                  icon: Icons.transfer_within_a_station,
-                  iconColor: Colors.orange,
-                ),
-                StatCard(
-                  title: 'Graduated',
-                  value: counts.graduated.toString(),
-                  subtitle: 'Rate: $gradRate%',
-                  icon: Icons.school_outlined,
-                  iconColor: Colors.blue,
-                ),
-                StatCard(
-                  title: '4Ps Beneficiaries',
-                  value: counts.fourPs.toString(),
-                  subtitle: 'Rate: $fourPsRate%',
-                  icon: Icons.card_membership_outlined,
-                  iconColor: Colors.purple,
+                _buildPrimaryKpiCard(
+                  title: 'Pending Documents',
+                  value: '$totalMissing',
+                  subtitle: 'Across ${breakdown.length} requirement types',
+                  icon: Icons.description_outlined,
+                  color: totalMissing == 0
+                      ? AppColors.primaryGreen
+                      : Colors.redAccent,
                 ),
               ],
             );
           },
         ),
 
-        // ── Storage chip (small, right-aligned) ───────────────────────
+        // ── Storage Chip (compact right-aligned) ───────────────────────────
         if (storageBytes != null) ...[
-          const SizedBox(height: 8),
+          const SizedBox(height: 10),
           Align(
             alignment: Alignment.centerRight,
             child: Builder(
@@ -1549,62 +1432,23 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
     );
   }
 
-  Widget _buildColorTipItem({
-    required Color dotColor,
-    required String label,
-    required String meaning,
-    required bool isDark,
-  }) {
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Container(
-          width: 8,
-          height: 8,
-          decoration: BoxDecoration(
-            color: dotColor,
-            shape: BoxShape.circle,
-          ),
-        ),
-        const SizedBox(width: 5),
-        RichText(
-          text: TextSpan(
-            style: TextStyle(
-              fontSize: 11,
-              color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
-            ),
-            children: [
-              TextSpan(
-                text: '$label: ',
-                style: TextStyle(
-                  fontWeight: FontWeight.bold,
-                  color: dotColor,
-                ),
-              ),
-              TextSpan(text: meaning),
-            ],
-          ),
-        ),
-      ],
-    );
-  }
-
-  /// Highlighted primary KPI card with colored accent border.
+  /// Highlighted primary KPI card with colored accent border and optional progress.
   Widget _buildPrimaryKpiCard({
     required String title,
     required String value,
     required String subtitle,
     required IconData icon,
     required Color color,
+    double? progress,
   }) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     // In dark mode, slightly desaturate bright accents for a softer, eye-friendly look
     final effectiveColor = isDark
         ? (color == AppColors.primaryGreen
             ? const Color(0xFF76BA8A)
-            : color == Colors.orange
+            : color == Colors.orange || color == Colors.orange.shade700
                 ? const Color(0xFFE5A663)
-                : color == Colors.redAccent || color == Colors.red
+                : color == Colors.redAccent || color == Colors.red || color == Colors.red.shade600
                     ? const Color(0xFFD67878)
                     : color == Colors.blue
                         ? const Color(0xFF7EAAD8)
@@ -1664,18 +1508,34 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                 child: Text(
                   value,
                   style: TextStyle(
-                    fontSize: 32,
+                    fontSize: 28,
                     fontWeight: FontWeight.w800,
                     color: effectiveColor,
                     letterSpacing: -0.5,
                   ),
                 ),
               ),
-              const SizedBox(height: 3),
+              if (progress != null) ...[
+                const SizedBox(height: 6),
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(4),
+                  child: LinearProgressIndicator(
+                    value: progress.clamp(0.0, 1.0),
+                    minHeight: 5,
+                    backgroundColor: isDark
+                        ? AppColors.darkSurface2
+                        : Colors.grey.shade100,
+                    valueColor: AlwaysStoppedAnimation<Color>(effectiveColor),
+                  ),
+                ),
+                const SizedBox(height: 4),
+              ] else ...[
+                const SizedBox(height: 2),
+              ],
               Text(
                 subtitle,
                 style: TextStyle(
-                  fontSize: 12,
+                  fontSize: 11.5,
                   fontWeight: FontWeight.w500,
                   color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
                 ),
@@ -2842,113 +2702,8 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
   }
 
 
-  // ── Summary Banner ────────────────────────────────────────────────────────
-  Widget _buildSummaryBanner(ReportStats data) {
-    final total = data.students.length;
-    final compliant = data.students.where((s) => s.missingCount == 0).length;
-    final withIssues = total - compliant;
-    final totalMissing = data.missingDocsBreakdown.fold<int>(
-      0,
-      (a, b) => a + b.count,
-    );
-    final complianceRate = total > 0 ? (compliant / total * 100) : 0.0;
-    final rateColor = complianceRate >= 80
-        ? AppColors.primaryGreen
-        : complianceRate >= 50
-        ? Colors.orange.shade700
-        : Colors.red;
-
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [
-            AppColors.primaryGreen.withValues(alpha: 0.08),
-            AppColors.primaryGreen.withValues(alpha: 0.02),
-          ],
-        ),
-        borderRadius: BorderRadius.circular(AppSizes.radiusLarge),
-        border: Border.all(
-          color: AppColors.primaryGreen.withValues(alpha: 0.2),
-        ),
-      ),
-      child: LayoutBuilder(
-        builder: (context, constraints) {
-          final items = [
-            _summaryItem(Icons.people_outline, '$total', 'Students',
-                AppColors.primaryGreen),
-            _summaryItem(Icons.check_circle_outline, '$compliant', 'Complete',
-                AppColors.primaryGreen),
-            _summaryItem(Icons.warning_amber_outlined, '$withIssues',
-                'Need Docs', Colors.orange.shade700),
-            _summaryItem(Icons.description_outlined, '$totalMissing',
-                'Missing', Colors.red.shade400),
-            _summaryItem(Icons.analytics_outlined,
-                '${complianceRate.toStringAsFixed(1)}%', 'Complete Rate',
-                rateColor),
-          ];
-          if (constraints.maxWidth < 750) {
-            return Wrap(
-              spacing: 20,
-              runSpacing: 12,
-              alignment: WrapAlignment.spaceAround,
-              children: items,
-            );
-          }
-          final row = <Widget>[];
-          for (int i = 0; i < items.length; i++) {
-            row.add(Expanded(child: items[i]));
-            if (i < items.length - 1) {
-              row.add(Container(
-                width: 1,
-                height: 36,
-                color: AppColors.primaryGreen.withValues(alpha: 0.2),
-              ));
-            }
-          }
-          return Row(children: row);
-        },
-      ),
-    );
-  }
-
-  Widget _summaryItem(
-      IconData icon, String value, String label, Color color) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Icon(icon, size: 16, color: color),
-        const SizedBox(width: 8),
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              value,
-              style: TextStyle(
-                fontSize: 17,
-                fontWeight: FontWeight.w800,
-                color: color,
-              ),
-            ),
-            Text(
-              label,
-              style: TextStyle(
-                fontSize: 11.5,
-                fontWeight: FontWeight.w500,
-                color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
-              ),
-            ),
-          ],
-        ),
-      ],
-    );
-  }
-
   // ── Status Donut Chart ───────────────────────────────────────────────────
-  Widget _buildStatusDonutChart(StudentCounts counts) {
+  Widget _buildStatusDonutChart(StudentCounts counts, {required bool isDesktop}) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final total = counts.active +
         counts.inactive +
@@ -2958,6 +2713,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
 
     return Container(
       width: double.infinity,
+      height: isDesktop ? 460 : null,
       padding: const EdgeInsets.all(AppSizes.p24),
       decoration: _cardDecoration(),
       child: Column(
@@ -2981,7 +2737,9 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
           ),
           const SizedBox(height: AppSizes.p24),
           if (total == 0)
-            _emptyWidget('No student data for current filters.')
+            isDesktop
+                ? Expanded(child: _emptyWidget('No student data for current filters.'))
+                : _emptyWidget('No student data for current filters.')
           else ...[
             SizedBox(
               height: 220,
@@ -3109,7 +2867,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
   }
 
   // ── Grade Compliance Chart ──────────────────────────────────────────
-  Widget _buildGradeComplianceChart(List<ReportStudent> students) {
+  Widget _buildGradeComplianceChart(List<ReportStudent> students, {required bool isDesktop}) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final gradeMap = <int, _GradeCompliance>{};
     for (final s in students) {
@@ -3130,7 +2888,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
 
         final Widget chartWidget = SizedBox(
           width: chartWidth,
-          height: 220,
+          height: isDesktop ? 280 : 220,
           child: BarChart(
             BarChartData(
               maxY: 100,
@@ -3257,6 +3015,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
 
         return Container(
           width: double.infinity,
+          height: isDesktop ? 460 : null,
           padding: const EdgeInsets.all(AppSizes.p24),
           decoration: _cardDecoration(),
           child: Column(
@@ -3280,15 +3039,25 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
               ),
               const SizedBox(height: AppSizes.p24),
               if (grades.isEmpty)
-                _emptyWidget('No grade data for current filters.')
+                isDesktop
+                    ? Expanded(child: _emptyWidget('No grade data for current filters.'))
+                    : _emptyWidget('No grade data for current filters.')
               else if (!isNarrow)
-                chartWidget
+                isDesktop ? Expanded(child: Center(child: chartWidget)) : chartWidget
               else ...[
-                SingleChildScrollView(
-                  controller: _gradeComplianceScrollController,
-                  scrollDirection: Axis.horizontal,
-                  child: chartWidget,
-                ),
+                isDesktop
+                    ? Expanded(
+                        child: SingleChildScrollView(
+                          controller: _gradeComplianceScrollController,
+                          scrollDirection: Axis.horizontal,
+                          child: chartWidget,
+                        ),
+                      )
+                    : SingleChildScrollView(
+                        controller: _gradeComplianceScrollController,
+                        scrollDirection: Axis.horizontal,
+                        child: chartWidget,
+                      ),
                 const SizedBox(height: 6),
                 _CustomHorizontalScrollBar(
                   controller: _gradeComplianceScrollController,
