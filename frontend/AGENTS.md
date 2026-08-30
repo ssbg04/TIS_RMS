@@ -437,15 +437,12 @@ Files backup/restore - mirror mode or zip -->
 
 
 # DOCUMENT REQUIREMENTS SCREEN
-- fix some student folders didnt show in the list
-
-# TEACHERS & ACADEMIC SETUP SCREEN
-- manage section -> make the buttons responsive same size
-- add academic year -> make the buttons responsive same size
-- add section -> -> make the buttons responsive same size
+- teachers cannot upload documents
 
 # REPORTS SCREEN
-- fix all y scroll bar need to touch the graphs to show
+
+
+- fix all horizontal scroll bars always visible not hide -> need to touch the graphs to show
 
 --- 
 

@@ -1389,14 +1389,19 @@ class _CustomHorizontalScrollBar extends StatefulWidget {
   });
 
   @override
-  State<_CustomHorizontalScrollBar> createState() => _CustomHorizontalScrollBarState();
+  State<_CustomHorizontalScrollBar> createState() =>
+      _CustomHorizontalScrollBarState();
 }
 
-class _CustomHorizontalScrollBarState extends State<_CustomHorizontalScrollBar> {
+class _CustomHorizontalScrollBarState
+    extends State<_CustomHorizontalScrollBar> {
   @override
   void initState() {
     super.initState();
     widget.controller.addListener(_onScroll);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) setState(() {});
+    });
   }
 
   @override
@@ -1405,6 +1410,9 @@ class _CustomHorizontalScrollBarState extends State<_CustomHorizontalScrollBar> 
     if (oldWidget.controller != widget.controller) {
       oldWidget.controller.removeListener(_onScroll);
       widget.controller.addListener(_onScroll);
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) setState(() {});
+      });
     }
   }
 
@@ -1423,76 +1431,106 @@ class _CustomHorizontalScrollBarState extends State<_CustomHorizontalScrollBar> 
     return AnimatedBuilder(
       animation: widget.controller,
       builder: (context, _) {
-        if (!widget.controller.hasClients ||
-            !widget.controller.position.hasContentDimensions ||
-            widget.controller.position.maxScrollExtent <= 0) {
-          return const SizedBox.shrink();
+        final hasClients = widget.controller.hasClients &&
+            widget.controller.position.hasContentDimensions;
+
+        if (!hasClients) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (mounted) setState(() {});
+          });
         }
 
-        final pos = widget.controller.position;
-        final maxScroll = pos.maxScrollExtent;
-        final currentScroll = pos.pixels.clamp(0.0, maxScroll);
+        final pos = hasClients ? widget.controller.position : null;
+        final maxScroll = pos?.maxScrollExtent ?? 0.0;
+        final currentScroll = (pos?.pixels ?? 0.0).clamp(
+          0.0,
+          maxScroll > 0 ? maxScroll : 1.0,
+        );
         final progress = maxScroll > 0 ? currentScroll / maxScroll : 0.0;
-        final viewportFraction = (pos.viewportDimension /
-                (pos.maxScrollExtent + pos.viewportDimension))
-            .clamp(0.15, 0.85);
+        final viewportFraction = hasClients && maxScroll > 0
+            ? (pos!.viewportDimension /
+                    (pos.maxScrollExtent + pos.viewportDimension))
+                .clamp(0.15, 0.85)
+            : 0.35;
 
         final trackColor = widget.isDark
-            ? AppColors.darkBorder.withValues(alpha: 0.5)
-            : const Color(0xFFE2E8F0);
-        final thumbColor = widget.isDark
-            ? const Color(0xFFE2E8F0)
-            : const Color(0xFF334155);
+            ? AppColors.darkBorder.withValues(alpha: 0.7)
+            : const Color(0xFFCBD5E1);
+        final thumbColor = AppColors.primaryGreen;
 
         return Padding(
-          padding: const EdgeInsets.only(top: 4, bottom: 2),
+          padding: const EdgeInsets.symmetric(vertical: 4),
           child: LayoutBuilder(
             builder: (context, constraints) {
               final trackWidth = constraints.maxWidth;
               final thumbWidth =
                   (trackWidth * viewportFraction).clamp(36.0, trackWidth);
-              final maxThumbOffset = trackWidth - thumbWidth;
+              final maxThumbOffset =
+                  (trackWidth - thumbWidth).clamp(0.0, trackWidth);
               final thumbOffset = maxThumbOffset * progress;
 
-              return GestureDetector(
-                behavior: HitTestBehavior.opaque,
-                onHorizontalDragUpdate: (details) {
-                  if (maxThumbOffset <= 0) return;
-                  final deltaFraction = details.primaryDelta! / maxThumbOffset;
-                  final newScroll = (widget.controller.offset +
-                          deltaFraction * maxScroll)
-                      .clamp(0.0, maxScroll);
-                  widget.controller.jumpTo(newScroll);
-                },
-                child: Container(
-                  height: 10,
-                  width: double.infinity,
-                  alignment: Alignment.centerLeft,
-                  child: Stack(
+              return MouseRegion(
+                cursor: SystemMouseCursors.click,
+                child: GestureDetector(
+                  behavior: HitTestBehavior.opaque,
+                  onHorizontalDragUpdate: (details) {
+                    if (!hasClients || maxThumbOffset <= 0 || maxScroll <= 0) return;
+                    final deltaFraction =
+                        details.primaryDelta! / maxThumbOffset;
+                    final newScroll = (widget.controller.offset +
+                            deltaFraction * maxScroll)
+                        .clamp(0.0, maxScroll);
+                    widget.controller.jumpTo(newScroll);
+                  },
+                  onTapDown: (details) {
+                    if (!hasClients || maxThumbOffset <= 0 || maxScroll <= 0) return;
+                    final localX = details.localPosition.dx;
+                    final targetProgress = (localX / trackWidth).clamp(0.0, 1.0);
+                    final newScroll =
+                        (targetProgress * maxScroll).clamp(0.0, maxScroll);
+                    widget.controller.animateTo(
+                      newScroll,
+                      duration: const Duration(milliseconds: 200),
+                      curve: Curves.easeOut,
+                    );
+                  },
+                  child: Container(
+                    height: 16,
+                    width: double.infinity,
                     alignment: Alignment.centerLeft,
-                    children: [
-                      // Thin Track Line
-                      Container(
-                        height: 3,
-                        width: trackWidth,
-                        decoration: BoxDecoration(
-                          color: trackColor,
-                          borderRadius: BorderRadius.circular(1.5),
-                        ),
-                      ),
-                      // Thin Thumb Line
-                      Positioned(
-                        left: thumbOffset,
-                        child: Container(
-                          height: 3,
-                          width: thumbWidth,
+                    child: Stack(
+                      alignment: Alignment.centerLeft,
+                      children: [
+                        // Track
+                        Container(
+                          height: 4.5,
+                          width: trackWidth,
                           decoration: BoxDecoration(
-                            color: thumbColor,
-                            borderRadius: BorderRadius.circular(1.5),
+                            color: trackColor,
+                            borderRadius: BorderRadius.circular(2.25),
                           ),
                         ),
-                      ),
-                    ],
+                        // Thumb
+                        Positioned(
+                          left: thumbOffset,
+                          child: Container(
+                            height: 4.5,
+                            width: thumbWidth,
+                            decoration: BoxDecoration(
+                              color: thumbColor,
+                              borderRadius: BorderRadius.circular(2.25),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: thumbColor.withValues(alpha: 0.3),
+                                  blurRadius: 3,
+                                  offset: const Offset(0, 1),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               );
