@@ -306,20 +306,46 @@ exports.getKpis = (req, res) => {
                 SELECT COUNT(DISTINCT s.id) as count
                 FROM students s
                 JOIN enrollments e ON s.id = e.student_id
-                JOIN documents d ON d.student_id = s.id AND d.deleted_at IS NULL
                 WHERE e.academic_year_id = ?
                   AND e.section_id IN (SELECT section_id FROM teacher_sections WHERE teacher_id = ?)
                   AND e.grade_level <= 10
+                  AND NOT EXISTS (
+                      SELECT 1
+                      FROM document_requirements dr
+                      WHERE dr.category = 'JHS'
+                        AND dr.is_mandatory = 1
+                        AND dr.is_enabled = 1
+                        AND NOT EXISTS (
+                            SELECT 1 FROM documents d
+                            WHERE d.student_id = s.id
+                              AND d.requirement_id = dr.id
+                              AND d.status = 'Completed'
+                              AND d.deleted_at IS NULL
+                        )
+                  )
             `).get(activeAyId, userId).count;
 
             shsDigitized = db.prepare(`
                 SELECT COUNT(DISTINCT s.id) as count
                 FROM students s
                 JOIN enrollments e ON s.id = e.student_id
-                JOIN documents d ON d.student_id = s.id AND d.deleted_at IS NULL
                 WHERE e.academic_year_id = ?
                   AND e.section_id IN (SELECT section_id FROM teacher_sections WHERE teacher_id = ?)
                   AND e.grade_level > 10
+                  AND NOT EXISTS (
+                      SELECT 1
+                      FROM document_requirements dr
+                      WHERE dr.category = 'SHS'
+                        AND dr.is_mandatory = 1
+                        AND dr.is_enabled = 1
+                        AND NOT EXISTS (
+                            SELECT 1 FROM documents d
+                            WHERE d.student_id = s.id
+                              AND d.requirement_id = dr.id
+                              AND d.status = 'Completed'
+                              AND d.deleted_at IS NULL
+                        )
+                  )
             `).get(activeAyId, userId).count;
 
             // ── 2. Activity by day (Teacher's Activities / Students) ────────────
@@ -569,17 +595,45 @@ exports.getKpis = (req, res) => {
             jhsDigitized = db.prepare(`
                 SELECT COUNT(DISTINCT s.id) as count
                 FROM students s
-                JOIN documents d ON d.student_id = s.id
                 JOIN enrollments e ON s.id = e.student_id
-                WHERE e.academic_year_id = ? AND e.grade_level <= 10 AND d.deleted_at IS NULL
+                WHERE e.academic_year_id = ?
+                  AND e.grade_level <= 10
+                  AND NOT EXISTS (
+                      SELECT 1
+                      FROM document_requirements dr
+                      WHERE dr.category = 'JHS'
+                        AND dr.is_mandatory = 1
+                        AND dr.is_enabled = 1
+                        AND NOT EXISTS (
+                            SELECT 1 FROM documents d
+                            WHERE d.student_id = s.id
+                              AND d.requirement_id = dr.id
+                              AND d.status = 'Completed'
+                              AND d.deleted_at IS NULL
+                        )
+                  )
             `).get(activeAyId).count;
 
             shsDigitized = db.prepare(`
                 SELECT COUNT(DISTINCT s.id) as count
                 FROM students s
-                JOIN documents d ON d.student_id = s.id
                 JOIN enrollments e ON s.id = e.student_id
-                WHERE e.academic_year_id = ? AND e.grade_level > 10 AND d.deleted_at IS NULL
+                WHERE e.academic_year_id = ?
+                  AND e.grade_level > 10
+                  AND NOT EXISTS (
+                      SELECT 1
+                      FROM document_requirements dr
+                      WHERE dr.category = 'SHS'
+                        AND dr.is_mandatory = 1
+                        AND dr.is_enabled = 1
+                        AND NOT EXISTS (
+                            SELECT 1 FROM documents d
+                            WHERE d.student_id = s.id
+                              AND d.requirement_id = dr.id
+                              AND d.status = 'Completed'
+                              AND d.deleted_at IS NULL
+                        )
+                  )
             `).get(activeAyId).count;
 
             // ── 2. Activity by day — last 7 days bar chart ──────────────────

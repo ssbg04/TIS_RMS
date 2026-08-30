@@ -322,7 +322,7 @@ class _DigitalizationCard extends StatelessWidget {
     return _ChartCard(
       title: 'Digitalization Progress',
       icon: Icons.donut_large_rounded,
-      subtitle: 'Enrolled students with uploaded documents',
+      subtitle: 'Enrolled students with all mandatory requirements completed',
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceAround,
         children: [
