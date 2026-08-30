@@ -20,66 +20,63 @@ exports.getStats = (req, res) => {
         const activeAyId = activeAy?.id;
 
         if (isTeacher) {
-            // Count of students enrolled in teacher's assigned sections in the active academic year
+            // Count of students enrolled in teacher's assigned sections across all assigned sections
             totalStudents = db.prepare(`
                 SELECT COUNT(DISTINCT s.id) as count
                 FROM students s
                 JOIN enrollments e ON s.id = e.student_id
-                WHERE e.academic_year_id = ?
-                  AND e.section_id IN (
-                      SELECT section_id FROM teacher_sections WHERE teacher_id = ?
-                  )
-            `).get(activeAyId, userId).count;
+                WHERE e.section_id IN (
+                    SELECT section_id FROM teacher_sections WHERE teacher_id = ?
+                )
+            `).get(userId).count;
 
             // Count of students in teacher's sections who have ALL mandatory docs complete
             completedDocuments = db.prepare(`
                 SELECT COUNT(DISTINCT s.id) as count
                 FROM students s
                 JOIN enrollments e ON s.id = e.student_id
-                WHERE e.academic_year_id = ?
-                  AND e.section_id IN (
-                      SELECT section_id FROM teacher_sections WHERE teacher_id = ?
-                  )
-                  AND NOT EXISTS (
-                      SELECT 1
-                      FROM document_requirements dr
-                      WHERE dr.is_mandatory = 1
-                        AND dr.is_enabled = 1
-                        AND dr.category = (CASE WHEN e.grade_level <= 10 THEN 'JHS' ELSE 'SHS' END)
-                        AND NOT EXISTS (
-                            SELECT 1 FROM documents d
-                            WHERE d.student_id = s.id
-                              AND (d.requirement_id = dr.id OR d.document_type = dr.name OR d.document_type = dr.category || ' - ' || dr.name)
-                              AND d.status = 'Completed'
-                              AND d.deleted_at IS NULL
-                        )
-                  )
-            `).get(activeAyId, userId).count;
+                WHERE e.section_id IN (
+                    SELECT section_id FROM teacher_sections WHERE teacher_id = ?
+                )
+                AND NOT EXISTS (
+                    SELECT 1
+                    FROM document_requirements dr
+                    WHERE dr.is_mandatory = 1
+                      AND dr.is_enabled = 1
+                      AND dr.category = (CASE WHEN e.grade_level <= 10 THEN 'JHS' ELSE 'SHS' END)
+                      AND NOT EXISTS (
+                          SELECT 1 FROM documents d
+                          WHERE d.student_id = s.id
+                            AND (d.requirement_id = dr.id OR d.document_type = dr.name OR d.document_type = dr.category || ' - ' || dr.name)
+                            AND d.status = 'Completed'
+                            AND d.deleted_at IS NULL
+                      )
+                )
+            `).get(userId).count;
 
             // Count of students in teacher's assigned sections who are missing at least one mandatory document
             missingDocuments = db.prepare(`
                 SELECT COUNT(DISTINCT s.id) as count
                 FROM students s
                 JOIN enrollments e ON s.id = e.student_id
-                WHERE e.academic_year_id = ?
-                  AND e.section_id IN (
-                      SELECT section_id FROM teacher_sections WHERE teacher_id = ?
-                  )
-                  AND EXISTS (
-                      SELECT 1
-                      FROM document_requirements dr
-                      WHERE dr.is_mandatory = 1
-                        AND dr.is_enabled = 1
-                        AND dr.category = (CASE WHEN e.grade_level <= 10 THEN 'JHS' ELSE 'SHS' END)
-                        AND NOT EXISTS (
-                            SELECT 1 FROM documents d
-                            WHERE d.student_id = s.id
-                              AND (d.requirement_id = dr.id OR d.document_type = dr.name OR d.document_type = dr.category || ' - ' || dr.name)
-                              AND d.status = 'Completed'
-                              AND d.deleted_at IS NULL
-                        )
-                  )
-            `).get(activeAyId, userId).count;
+                WHERE e.section_id IN (
+                    SELECT section_id FROM teacher_sections WHERE teacher_id = ?
+                )
+                AND EXISTS (
+                    SELECT 1
+                    FROM document_requirements dr
+                    WHERE dr.is_mandatory = 1
+                      AND dr.is_enabled = 1
+                      AND dr.category = (CASE WHEN e.grade_level <= 10 THEN 'JHS' ELSE 'SHS' END)
+                      AND NOT EXISTS (
+                          SELECT 1 FROM documents d
+                          WHERE d.student_id = s.id
+                            AND (d.requirement_id = dr.id OR d.document_type = dr.name OR d.document_type = dr.category || ' - ' || dr.name)
+                            AND d.status = 'Completed'
+                            AND d.deleted_at IS NULL
+                      )
+                )
+            `).get(userId).count;
         } else {
             // Admin: All students across the entire system
             totalStudents = db.prepare('SELECT COUNT(*) as count FROM students').get().count;
@@ -255,31 +252,28 @@ exports.getKpis = (req, res) => {
         let fileRows, recentRows, olderRows;
 
         if (isTeacher) {
-            // ── 1. Digitalization (Teacher's Students in Active Year) ───────────────────
+            // ── 1. Digitalization (Teacher's Students in Assigned Sections) ───────────────────
             jhsTotal = db.prepare(`
                 SELECT COUNT(DISTINCT s.id) as count
                 FROM students s
                 JOIN enrollments e ON s.id = e.student_id
-                WHERE e.academic_year_id = ?
-                  AND e.section_id IN (SELECT section_id FROM teacher_sections WHERE teacher_id = ?)
+                WHERE e.section_id IN (SELECT section_id FROM teacher_sections WHERE teacher_id = ?)
                   AND e.grade_level <= 10
-            `).get(activeAyId, userId).count;
+            `).get(userId).count;
 
             shsTotal = db.prepare(`
                 SELECT COUNT(DISTINCT s.id) as count
                 FROM students s
                 JOIN enrollments e ON s.id = e.student_id
-                WHERE e.academic_year_id = ?
-                  AND e.section_id IN (SELECT section_id FROM teacher_sections WHERE teacher_id = ?)
+                WHERE e.section_id IN (SELECT section_id FROM teacher_sections WHERE teacher_id = ?)
                   AND e.grade_level > 10
-            `).get(activeAyId, userId).count;
+            `).get(userId).count;
 
             jhsDigitized = db.prepare(`
                 SELECT COUNT(DISTINCT s.id) as count
                 FROM students s
                 JOIN enrollments e ON s.id = e.student_id
-                WHERE e.academic_year_id = ?
-                  AND e.section_id IN (SELECT section_id FROM teacher_sections WHERE teacher_id = ?)
+                WHERE e.section_id IN (SELECT section_id FROM teacher_sections WHERE teacher_id = ?)
                   AND e.grade_level <= 10
                   AND NOT EXISTS (
                       SELECT 1
@@ -295,14 +289,13 @@ exports.getKpis = (req, res) => {
                               AND d.deleted_at IS NULL
                         )
                   )
-            `).get(activeAyId, userId).count;
+            `).get(userId).count;
 
             shsDigitized = db.prepare(`
                 SELECT COUNT(DISTINCT s.id) as count
                 FROM students s
                 JOIN enrollments e ON s.id = e.student_id
-                WHERE e.academic_year_id = ?
-                  AND e.section_id IN (SELECT section_id FROM teacher_sections WHERE teacher_id = ?)
+                WHERE e.section_id IN (SELECT section_id FROM teacher_sections WHERE teacher_id = ?)
                   AND e.grade_level > 10
                   AND NOT EXISTS (
                       SELECT 1
@@ -318,7 +311,7 @@ exports.getKpis = (req, res) => {
                               AND d.deleted_at IS NULL
                         )
                   )
-            `).get(activeAyId, userId).count;
+            `).get(userId).count;
 
             // ── 2. Activity by day (Teacher's Activities / Students) ────────────
             activityByDay = db.prepare(`
@@ -335,20 +328,20 @@ exports.getKpis = (req, res) => {
                           SELECT s.id FROM students s
                           JOIN enrollments e ON s.id = e.student_id
                           JOIN teacher_sections ts ON e.section_id = ts.section_id
-                          WHERE ts.teacher_id = ? AND e.academic_year_id = ?
+                          WHERE ts.teacher_id = ?
                       ))
                       OR (a.entity_type = 'document' AND a.entity_id IN (
                           SELECT d.id FROM documents d
                           JOIN enrollments e ON d.student_id = e.student_id
                           JOIN teacher_sections ts ON e.section_id = ts.section_id
-                          WHERE ts.teacher_id = ? AND e.academic_year_id = ?
+                          WHERE ts.teacher_id = ?
                       ))
                   )
                 GROUP BY day, a.action, a.entity_type
                 ORDER BY day ASC
-            `).all(userId, userId, activeAyId, userId, activeAyId);
+            `).all(userId, userId, userId);
 
-            // Status distribution will be assigned below from active year requirement counts
+            // Status distribution will be assigned below from requirement counts
             let totalCompletedReqsTeacher = 0;
             let totalArchivedReqsTeacher = 0;
 
@@ -358,23 +351,35 @@ exports.getKpis = (req, res) => {
                        CASE WHEN e.grade_level <= 10 THEN 'JHS' ELSE 'SHS' END as category
                 FROM students s
                 JOIN enrollments e ON s.id = e.student_id
-                WHERE e.academic_year_id = ?
-                  AND e.section_id IN (SELECT section_id FROM teacher_sections WHERE teacher_id = ?)
-            `).all(activeAyId, userId);
+                WHERE e.section_id IN (SELECT section_id FROM teacher_sections WHERE teacher_id = ?)
+            `).all(userId);
 
             const studentDocStats = enrolledStudents.map(s => {
                 const reqs = s.category === 'JHS' ? jhsReqs : shsReqs;
                 const totalRequired = reqs.length;
                 const reqIds = reqs.map(r => r.id);
                 let uploadedCount = 0;
-                if (reqIds.length > 0) {
-                    uploadedCount = db.prepare(`
-                        SELECT COUNT(DISTINCT requirement_id) as count
-                        FROM documents
-                        WHERE student_id = ? AND requirement_id IN (${reqIds.join(',')})
-                          AND status = 'Completed' AND deleted_at IS NULL
-                    `).get(s.id).count;
+                const completedRows = reqIds.length > 0 ? db.prepare(`
+                    SELECT DISTINCT d.requirement_id, dr.name as req_name
+                    FROM documents d
+                    LEFT JOIN document_requirements dr ON d.requirement_id = dr.id
+                    WHERE d.student_id = ?
+                      AND (d.requirement_id IN (${reqIds.join(',')})
+                           OR d.document_type IN (${reqs.map(r => `'${r.name.replace(/'/g, "''")}'`).join(',')})
+                           OR d.document_type IN (${reqs.map(r => `'${s.category} - ${r.name.replace(/'/g, "''")}'`).join(',')}))
+                      AND d.status = 'Completed' AND d.deleted_at IS NULL
+                `).all(s.id) : [];
+
+                const completedNames = new Set();
+                for (const r of completedRows) {
+                    if (r.requirement_id) {
+                        const match = reqs.find(req => req.id === r.requirement_id);
+                        if (match) completedNames.add(match.name);
+                    }
+                    if (r.req_name) completedNames.add(r.req_name);
                 }
+                uploadedCount = completedNames.size;
+                const missingReqs = reqs.filter(r => !completedNames.has(r.name)).map(r => r.name);
                 const missingCount = Math.max(0, totalRequired - uploadedCount);
                 return {
                     id: s.id,
@@ -384,6 +389,7 @@ exports.getKpis = (req, res) => {
                     uploadedCount,
                     totalRequired,
                     missingCount,
+                    missingRequirements: missingReqs,
                     docCount: uploadedCount,
                     percent: totalRequired === 0 ? 1.0 : uploadedCount / totalRequired
                 };
@@ -401,11 +407,10 @@ exports.getKpis = (req, res) => {
                 SELECT e.grade_level, COUNT(DISTINCT s.id) as total_students
                 FROM students s
                 JOIN enrollments e ON s.id = e.student_id
-                WHERE e.academic_year_id = ?
-                  AND e.section_id IN (SELECT section_id FROM teacher_sections WHERE teacher_id = ?)
+                WHERE e.section_id IN (SELECT section_id FROM teacher_sections WHERE teacher_id = ?)
                 GROUP BY e.grade_level
                 ORDER BY e.grade_level ASC
-            `).all(activeAyId, userId);
+            `).all(userId);
 
             const gradeTotalsMap = {};
             for (const row of gradeTotalsRows) {
@@ -430,14 +435,13 @@ exports.getKpis = (req, res) => {
                     JOIN students s ON d.student_id = s.id
                     JOIN enrollments e ON s.id = e.student_id
                     LEFT JOIN document_requirements dr ON d.requirement_id = dr.id
-                    WHERE e.academic_year_id = ?
-                      AND e.section_id IN (SELECT section_id FROM teacher_sections WHERE teacher_id = ?)
+                    WHERE e.section_id IN (SELECT section_id FROM teacher_sections WHERE teacher_id = ?)
                       AND e.grade_level BETWEEN ? AND ?
                       AND (d.requirement_id = ? OR dr.name = ? OR d.document_type = ? OR d.document_type = ?)
                       AND d.deleted_at IS NULL
                       AND d.status = 'Completed'
                     GROUP BY e.grade_level
-                `).all(activeAyId, userId, minGrade, maxGrade, req.id, req.name, req.name, `${req.category} - ${req.name}`);
+                `).all(userId, minGrade, maxGrade, req.id, req.name, req.name, `${req.category} - ${req.name}`);
 
                 const archCountsByGrade = db.prepare(`
                     SELECT COUNT(DISTINCT d.student_id) as archived_count
@@ -445,13 +449,12 @@ exports.getKpis = (req, res) => {
                     JOIN students s ON d.student_id = s.id
                     JOIN enrollments e ON s.id = e.student_id
                     LEFT JOIN document_requirements dr ON d.requirement_id = dr.id
-                    WHERE e.academic_year_id = ?
-                      AND e.section_id IN (SELECT section_id FROM teacher_sections WHERE teacher_id = ?)
+                    WHERE e.section_id IN (SELECT section_id FROM teacher_sections WHERE teacher_id = ?)
                       AND e.grade_level BETWEEN ? AND ?
                       AND (d.requirement_id = ? OR dr.name = ? OR d.document_type = ? OR d.document_type = ?)
                       AND d.deleted_at IS NULL
                       AND d.status = 'Archived'
-                `).get(activeAyId, userId, minGrade, maxGrade, req.id, req.name, req.name, `${req.category} - ${req.name}`);
+                `).get(userId, minGrade, maxGrade, req.id, req.name, req.name, `${req.category} - ${req.name}`);
 
                 const compSum = countsByGrade.reduce((sum, r) => sum + r.uploaded_count, 0);
                 totalCompletedReqsTeacher += compSum;
@@ -479,26 +482,18 @@ exports.getKpis = (req, res) => {
                 });
             }
 
-            const archivedDocsTeacher = activeAy ? db.prepare(`
+            const archivedDocsTeacher = db.prepare(`
                 SELECT COUNT(DISTINCT d.id) as total
                 FROM documents d
                 LEFT JOIN students s ON d.student_id = s.id
                 LEFT JOIN enrollments e ON e.student_id = s.id
-                    AND e.id = (
-                        SELECT e2.id FROM enrollments e2
-                        JOIN academic_years ay_inner ON e2.academic_year_id = ay_inner.id
-                        WHERE e2.student_id = s.id
-                        ORDER BY ay_inner.year_range DESC, e2.grade_level DESC, e2.id DESC LIMIT 1
-                    )
                 JOIN teacher_sections ts ON e.section_id = ts.section_id AND ts.teacher_id = ?
-                LEFT JOIN academic_years ay ON e.academic_year_id = ay.id
                 WHERE (
                     (s.status IN ('Graduated','Transferred','Dropped','Inactive') AND d.deleted_at IS NULL)
                     OR
                     (s.status = 'Enrolled' AND d.status = 'Archived' AND d.deleted_at IS NULL)
                 )
-                AND ay.year_range = ?
-            `).get(userId, activeAy.year_range)?.total || 0 : 0;
+            `).get(userId)?.total || 0;
 
             statusDistribution = [
                 { status: 'Completed', count: totalCompletedReqsTeacher },
@@ -521,13 +516,12 @@ exports.getKpis = (req, res) => {
                 FROM documents d
                 JOIN students s ON d.student_id = s.id
                 JOIN enrollments e ON s.id = e.student_id
-                WHERE e.academic_year_id = ?
-                  AND e.section_id IN (SELECT section_id FROM teacher_sections WHERE teacher_id = ?)
+                WHERE e.section_id IN (SELECT section_id FROM teacher_sections WHERE teacher_id = ?)
                   AND DATE(d.created_at) >= DATE('now', '-29 days')
                   AND d.deleted_at IS NULL
                 GROUP BY day
                 ORDER BY day ASC
-            `).all(activeAyId, userId);
+            `).all(userId);
 
             // ── 7. Storage analytics ──────────────────────────────────────────
             fileRows = db.prepare(`
@@ -537,31 +531,28 @@ exports.getKpis = (req, res) => {
                 JOIN students s ON d.student_id = s.id
                 JOIN enrollments e ON s.id = e.student_id
                 LEFT JOIN document_requirements dr ON d.requirement_id = dr.id
-                WHERE e.academic_year_id = ?
-                  AND e.section_id IN (SELECT section_id FROM teacher_sections WHERE teacher_id = ?)
+                WHERE e.section_id IN (SELECT section_id FROM teacher_sections WHERE teacher_id = ?)
                   AND d.deleted_at IS NULL
-            `).all(activeAyId, userId);
+            `).all(userId);
 
             recentRows = db.prepare(`
                 SELECT d.file_path FROM documents d
                 JOIN students s ON d.student_id = s.id
                 JOIN enrollments e ON s.id = e.student_id
-                WHERE e.academic_year_id = ?
-                  AND e.section_id IN (SELECT section_id FROM teacher_sections WHERE teacher_id = ?)
+                WHERE e.section_id IN (SELECT section_id FROM teacher_sections WHERE teacher_id = ?)
                   AND d.deleted_at IS NULL
                   AND d.created_at >= datetime('now', '-30 days')
-            `).all(activeAyId, userId);
+            `).all(userId);
 
             olderRows = db.prepare(`
                 SELECT d.file_path FROM documents d
                 JOIN students s ON d.student_id = s.id
                 JOIN enrollments e ON s.id = e.student_id
-                WHERE e.academic_year_id = ?
-                  AND e.section_id IN (SELECT section_id FROM teacher_sections WHERE teacher_id = ?)
+                WHERE e.section_id IN (SELECT section_id FROM teacher_sections WHERE teacher_id = ?)
                   AND d.deleted_at IS NULL
                   AND d.created_at >= datetime('now', '-60 days')
                   AND d.created_at < datetime('now', '-30 days')
-            `).all(activeAyId, userId);
+            `).all(userId);
         } else {
             // Admin: All students across the school in active academic year
             // ── 1. Digitalization — JHS/SHS donut ───────────────────────────
@@ -654,14 +645,27 @@ exports.getKpis = (req, res) => {
                 const totalRequired = reqs.length;
                 const reqIds = reqs.map(r => r.id);
                 let uploadedCount = 0;
-                if (reqIds.length > 0) {
-                    uploadedCount = db.prepare(`
-                        SELECT COUNT(DISTINCT requirement_id) as count
-                        FROM documents
-                        WHERE student_id = ? AND requirement_id IN (${reqIds.join(',')})
-                          AND status = 'Completed' AND deleted_at IS NULL
-                    `).get(s.id).count;
+                const completedRows = reqIds.length > 0 ? db.prepare(`
+                    SELECT DISTINCT d.requirement_id, dr.name as req_name
+                    FROM documents d
+                    LEFT JOIN document_requirements dr ON d.requirement_id = dr.id
+                    WHERE d.student_id = ?
+                      AND (d.requirement_id IN (${reqIds.join(',')})
+                           OR d.document_type IN (${reqs.map(r => `'${r.name.replace(/'/g, "''")}'`).join(',')})
+                           OR d.document_type IN (${reqs.map(r => `'${s.category} - ${r.name.replace(/'/g, "''")}'`).join(',')}))
+                      AND d.status = 'Completed' AND d.deleted_at IS NULL
+                `).all(s.id) : [];
+
+                const completedNames = new Set();
+                for (const r of completedRows) {
+                    if (r.requirement_id) {
+                        const match = reqs.find(req => req.id === r.requirement_id);
+                        if (match) completedNames.add(match.name);
+                    }
+                    if (r.req_name) completedNames.add(r.req_name);
                 }
+                uploadedCount = completedNames.size;
+                const missingReqs = reqs.filter(r => !completedNames.has(r.name)).map(r => r.name);
                 const missingCount = Math.max(0, totalRequired - uploadedCount);
                 return {
                     id: s.id,
@@ -671,6 +675,7 @@ exports.getKpis = (req, res) => {
                     uploadedCount,
                     totalRequired,
                     missingCount,
+                    missingRequirements: missingReqs,
                     docCount: uploadedCount,
                     percent: totalRequired === 0 ? 1.0 : uploadedCount / totalRequired
                 };

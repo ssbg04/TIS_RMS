@@ -431,9 +431,12 @@ Files backup/restore - mirror mode or zip -->
 
 # TEACHERS & ACADEMIC SETUP
 - hide or remove from the list all users have deactivated status -->
-
+<!-- 
 # STUDENT SCREEN
-- student profile modal -> make the lrn can be copy add icon button to automatically copy
+- student profile modal -> make the lrn can be copy add icon button to automatically copy -->
+
+# DASHBOARD SCREEN
+- "Top students by documents" and "needs attention" view all -> list of students count of missing documents when hover shows missing requirements separate jhs shs
 
 --- 
 

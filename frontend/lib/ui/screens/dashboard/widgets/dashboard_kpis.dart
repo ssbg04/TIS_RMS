@@ -1633,16 +1633,49 @@ class _StudentDocCard extends StatelessWidget {
                               overflow: TextOverflow.ellipsis,
                             ),
                           ),
-                          Text(
-                            '${s.uploadedCount} / ${s.totalRequired} (${s.missingCount} missing)',
-                            style: TextStyle(
-                              fontSize: 11,
-                              fontWeight: FontWeight.w600,
-                              color: s.missingCount == 0
-                                  ? (isDark ? const Color(0xFF66BB6A) : AppColors.primaryGreen)
-                                  : (isTop
-                                      ? Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7)
-                                      : Colors.orange.shade700),
+                          Tooltip(
+                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                            decoration: BoxDecoration(
+                              color: isDark ? const Color(0xFF1E293B) : const Color(0xFF0F172A),
+                              borderRadius: BorderRadius.circular(8),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.black.withValues(alpha: 0.2),
+                                  blurRadius: 6,
+                                  offset: const Offset(0, 2),
+                                ),
+                              ],
+                            ),
+                            textStyle: const TextStyle(fontSize: 11, color: Colors.white, height: 1.4),
+                            message: s.missingCount == 0
+                                ? '[${s.category}] All ${s.totalRequired} required documents submitted! ✅'
+                                : '[${s.category} Missing Requirements (${s.missingCount})]:\n• ${s.missingRequirements.join('\n• ')}',
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Text(
+                                  '${s.uploadedCount} / ${s.totalRequired} (${s.missingCount} missing)',
+                                  style: TextStyle(
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w600,
+                                    color: s.missingCount == 0
+                                        ? (isDark ? const Color(0xFF66BB6A) : AppColors.primaryGreen)
+                                        : (isTop
+                                            ? Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7)
+                                            : Colors.orange.shade700),
+                                  ),
+                                ),
+                                if (s.missingCount > 0) ...[
+                                  const SizedBox(width: 4),
+                                  Icon(
+                                    Icons.info_outline_rounded,
+                                    size: 12,
+                                    color: s.missingCount == 0
+                                        ? AppColors.primaryGreen
+                                        : Colors.orange.shade700,
+                                  ),
+                                ],
+                              ],
                             ),
                           ),
                         ],
@@ -2060,23 +2093,54 @@ class _StudentDocRankingModalState extends State<_StudentDocRankingModal> {
                               ),
                               const SizedBox(width: 10),
 
-                              // Status Pill
-                              Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                              // Status Pill with hover tooltip showing missing requirements separated by category
+                              Tooltip(
+                                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                                 decoration: BoxDecoration(
-                                  color: isComplete
-                                      ? AppColors.primaryGreen.withValues(alpha: isDark ? 0.25 : 0.12)
-                                      : Colors.orange.withValues(alpha: isDark ? 0.25 : 0.12),
-                                  borderRadius: BorderRadius.circular(4),
+                                  color: isDark ? const Color(0xFF1E293B) : const Color(0xFF0F172A),
+                                  borderRadius: BorderRadius.circular(8),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: Colors.black.withValues(alpha: 0.2),
+                                      blurRadius: 6,
+                                      offset: const Offset(0, 2),
+                                    ),
+                                  ],
                                 ),
-                                child: Text(
-                                  isComplete ? 'Complete' : '${s.missingCount} Missing',
-                                  style: TextStyle(
-                                    fontSize: 10,
-                                    fontWeight: FontWeight.bold,
+                                textStyle: const TextStyle(fontSize: 11, color: Colors.white, height: 1.4),
+                                message: isComplete
+                                    ? '[${s.category}] All ${s.totalRequired} required documents submitted! ✅'
+                                    : '[${s.category} Missing Requirements (${s.missingCount})]:\n• ${s.missingRequirements.join('\n• ')}',
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                                  decoration: BoxDecoration(
                                     color: isComplete
-                                        ? (isDark ? const Color(0xFF66BB6A) : AppColors.primaryGreen)
-                                        : (isDark ? Colors.orange.shade300 : Colors.orange.shade800),
+                                        ? AppColors.primaryGreen.withValues(alpha: isDark ? 0.25 : 0.12)
+                                        : Colors.orange.withValues(alpha: isDark ? 0.25 : 0.12),
+                                    borderRadius: BorderRadius.circular(4),
+                                  ),
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Text(
+                                        isComplete ? 'Complete' : '${s.missingCount} Missing',
+                                        style: TextStyle(
+                                          fontSize: 10,
+                                          fontWeight: FontWeight.bold,
+                                          color: isComplete
+                                              ? (isDark ? const Color(0xFF66BB6A) : AppColors.primaryGreen)
+                                              : (isDark ? Colors.orange.shade300 : Colors.orange.shade800),
+                                        ),
+                                      ),
+                                      if (!isComplete) ...[
+                                        const SizedBox(width: 4),
+                                        Icon(
+                                          Icons.info_outline_rounded,
+                                          size: 11,
+                                          color: isDark ? Colors.orange.shade300 : Colors.orange.shade800,
+                                        ),
+                                      ],
+                                    ],
                                   ),
                                 ),
                               ),

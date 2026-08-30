@@ -231,6 +231,7 @@ class StudentDocCount {
   final int uploadedCount;
   final int totalRequired;
   final int missingCount;
+  final List<String> missingRequirements;
   final double percent;
   final int? gradeLevel;
   final String category;
@@ -242,6 +243,7 @@ class StudentDocCount {
     this.uploadedCount = 0,
     this.totalRequired = 0,
     this.missingCount = 0,
+    this.missingRequirements = const [],
     this.percent = 0.0,
     this.gradeLevel,
     this.category = 'JHS',
@@ -256,6 +258,11 @@ class StudentDocCount {
     final pct = (j['percent'] as num?)?.toDouble() ??
         (total == 0 ? (uploaded > 0 ? 1.0 : 0.0) : uploaded / total);
 
+    final missingReqs = (j['missingRequirements'] as List<dynamic>?)
+            ?.map((e) => e.toString())
+            .toList() ??
+        const [];
+
     return StudentDocCount(
       id: (j['id'] as num?)?.toInt() ?? 0,
       name: j['name'] as String? ?? '',
@@ -263,6 +270,7 @@ class StudentDocCount {
       uploadedCount: uploaded,
       totalRequired: total,
       missingCount: missing,
+      missingRequirements: missingReqs,
       percent: pct,
       gradeLevel: (j['gradeLevel'] as num?)?.toInt(),
       category: j['category'] as String? ?? 'JHS',
