@@ -630,7 +630,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
             index: 0,
             icon: Icons.dashboard_outlined,
             title: 'DepEd Transparency Board',
-            subtitle: 'Recommended DepEd metrics & equity',
+            subtitle: 'Enrollment, dropouts, & 4Ps records',
           ),
           _buildToggleItem(
             index: 1,

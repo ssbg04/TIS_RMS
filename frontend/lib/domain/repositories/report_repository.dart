@@ -36,8 +36,9 @@ class ReportRepository {
   }) async {
     try {
       final queryParams = <String, dynamic>{};
-      if (academicYearId != null)
+      if (academicYearId != null) {
         queryParams['academicYearId'] = academicYearId;
+      }
       if (gradeLevel != null) queryParams['gradeLevel'] = gradeLevel;
       if (sectionId != null) queryParams['sectionId'] = sectionId;
       if (status != null) queryParams['status'] = status;
@@ -97,10 +98,20 @@ class ReportRepository {
     }
   }
 
-  Future<TransparencyBoardData> getTransparencyBoardData() async {
+  Future<TransparencyBoardData> getTransparencyBoardData({
+    int? academicYearId,
+    List<int>? yearIds,
+  }) async {
     try {
+      final queryParams = <String, dynamic>{};
+      if (academicYearId != null) queryParams['academicYearId'] = academicYearId;
+      if (yearIds != null && yearIds.isNotEmpty) {
+        queryParams['yearIds'] = yearIds.join(',');
+      }
+
       final res = await _dio.get(
         '/reports/transparency-board',
+        queryParameters: queryParams.isNotEmpty ? queryParams : null,
         options: await _authOptions(),
       );
       return TransparencyBoardData.fromJson(res.data as Map<String, dynamic>);

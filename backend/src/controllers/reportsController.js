@@ -369,14 +369,54 @@ exports.getStorageUsed = async (req, res) => {
 // GET /api/reports/transparency-board
 exports.getTransparencyBoardData = (req, res) => {
     try {
-        const academicYears = db.prepare(`
-            SELECT id, year_range 
-            FROM academic_years 
-            WHERE id IN (SELECT DISTINCT academic_year_id FROM enrollments) 
-               OR status = 'active'
-            ORDER BY year_range DESC 
-            LIMIT 3
-        `).all().reverse();
+        const { academicYearId, yearIds } = req.query;
+        let academicYears = [];
+
+        if (yearIds) {
+            const ids = yearIds.toString().split(',').map(id => Number(id.trim())).filter(id => !isNaN(id));
+            if (ids.length > 0) {
+                const placeholders = ids.map(() => '?').join(',');
+                academicYears = db.prepare(`
+                    SELECT id, year_range 
+                    FROM academic_years 
+                    WHERE id IN (${placeholders})
+                    ORDER BY year_range ASC
+                `).all(...ids);
+            }
+        } else if (academicYearId) {
+            const targetYear = db.prepare('SELECT id, year_range FROM academic_years WHERE id = ?').get(academicYearId);
+            if (targetYear) {
+                academicYears = db.prepare(`
+                    SELECT id, year_range 
+                    FROM academic_years 
+                    WHERE year_range <= ?
+                    ORDER BY year_range DESC 
+                    LIMIT 3
+                `).all(targetYear.year_range).reverse();
+            }
+        }
+
+        if (academicYears.length === 0) {
+            const activeAy = db.prepare("SELECT id, year_range FROM academic_years WHERE status = 'active' LIMIT 1").get()
+                || db.prepare("SELECT id, year_range FROM academic_years ORDER BY year_range DESC LIMIT 1").get();
+
+            if (activeAy) {
+                academicYears = db.prepare(`
+                    SELECT id, year_range 
+                    FROM academic_years 
+                    WHERE year_range <= ?
+                    ORDER BY year_range DESC 
+                    LIMIT 3
+                `).all(activeAy.year_range).reverse();
+            } else {
+                academicYears = db.prepare(`
+                    SELECT id, year_range 
+                    FROM academic_years 
+                    ORDER BY year_range DESC 
+                    LIMIT 3
+                `).all().reverse();
+            }
+        }
 
         const yearsData = academicYears.map(ay => {
             // Enrollment breakdown by sex & grade — COUNT DISTINCT students

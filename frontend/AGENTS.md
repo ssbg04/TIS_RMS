@@ -435,18 +435,33 @@ Files backup/restore - mirror mode or zip -->
 # STUDENT SCREEN
 - student profile modal -> make the lrn can be copy add icon button to automatically copy -->
 
-
+<!-- 
 # DOCUMENT REQUIREMENTS SCREEN
 - teachers cannot upload documents
 
 # REPORTS SCREEN
 
 
-- fix all horizontal scroll bars always visible not hide -> need to touch the graphs to show
+- fix all horizontal scroll bars always visible not hide -> need to touch the graphs to show -->
+
+<!-- 
+# TEACHER & ACADEMIC SETUP
+- Academic year updated dialog -> just one title word "Updated" 
+  -->
+
+
+
+- Deped transparency board -> rephrase the the description use easy to understand -> make it simple and user friendly -> dont make it AI slop -> make it responsive
+-->
+
 
 --- 
 
 # DONT DO
+
+- teacher no assigned section theme color
+- bug in bulk add student enrollment
+
 - recycle bin -> search history not delete history
 
 - add missing students by document type kpi
@@ -455,7 +470,7 @@ Files backup/restore - mirror mode or zip -->
 - notification separate admin and teacher
 - bug in bulk add student enrollment
 
-- report all export 
+- report all filter and export 
 ---
 
 # TIS_RMS Server Manager (dont do)

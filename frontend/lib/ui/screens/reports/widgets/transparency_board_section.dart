@@ -38,15 +38,15 @@ class TransparencyBoardSection extends ConsumerWidget {
   }
 }
 
-class _TransparencyBoardContent extends StatefulWidget {
+class _TransparencyBoardContent extends ConsumerStatefulWidget {
   final TransparencyBoardData data;
   const _TransparencyBoardContent({required this.data});
 
   @override
-  State<_TransparencyBoardContent> createState() => _TransparencyBoardContentState();
+  ConsumerState<_TransparencyBoardContent> createState() => _TransparencyBoardContentState();
 }
 
-class _TransparencyBoardContentState extends State<_TransparencyBoardContent> {
+class _TransparencyBoardContentState extends ConsumerState<_TransparencyBoardContent> {
   final ScrollController _enrollmentChartScrollController = ScrollController();
 
   @override
@@ -59,6 +59,8 @@ class _TransparencyBoardContentState extends State<_TransparencyBoardContent> {
   Widget build(BuildContext context) {
     final data = widget.data;
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final academicYears = ref.watch(academicYearsProvider).asData?.value ?? [];
+    final selectedYearId = ref.watch(transparencyBoardYearProvider);
 
     return Container(
       decoration: BoxDecoration(
@@ -80,7 +82,7 @@ class _TransparencyBoardContentState extends State<_TransparencyBoardContent> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          // â”€â”€ Header Banner â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+          // ── Header Banner ──────────────────────────────────────────
           Container(
             padding: const EdgeInsets.all(AppSizes.p20),
             decoration: BoxDecoration(
@@ -99,7 +101,7 @@ class _TransparencyBoardContentState extends State<_TransparencyBoardContent> {
             ),
             child: LayoutBuilder(
               builder: (context, headerConstraints) {
-                final isMobileHeader = headerConstraints.maxWidth < 650;
+                final isMobileHeader = headerConstraints.maxWidth < 750;
                 return Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -128,10 +130,17 @@ class _TransparencyBoardContentState extends State<_TransparencyBoardContent> {
                       const SizedBox(height: 8),
                       Wrap(
                         spacing: 8,
-                        runSpacing: 4,
+                        runSpacing: 6,
+                        crossAxisAlignment: WrapCrossAlignment.center,
                         children: [
                           _buildThemeChip('ACCESS', Colors.amber),
                           _buildThemeChip('EQUITY', Colors.lightBlueAccent),
+                          if (academicYears.isNotEmpty)
+                            _buildYearSelector(
+                              context,
+                              academicYears: academicYears,
+                              selectedYearId: selectedYearId,
+                            ),
                         ],
                       ),
                     ] else ...[
@@ -157,14 +166,62 @@ class _TransparencyBoardContentState extends State<_TransparencyBoardContent> {
                           _buildThemeChip('ACCESS', Colors.amber),
                           const SizedBox(width: 8),
                           _buildThemeChip('EQUITY', Colors.lightBlueAccent),
+                          if (academicYears.isNotEmpty) ...[
+                            const SizedBox(width: 12),
+                            _buildYearSelector(
+                              context,
+                              academicYears: academicYears,
+                              selectedYearId: selectedYearId,
+                            ),
+                          ],
                         ],
                       ),
                     ],
                     const SizedBox(height: 6),
-                    const Text(
-                      'Comparative student population, mobility, and equity indicators across consecutive academic years.',
-                      style: TextStyle(color: Colors.white70, fontSize: 13),
+                    Text(
+                      'Track student enrollment, dropouts, transferees, and 4Ps learners across school years.',
+                      style: TextStyle(
+                        color: Colors.white.withValues(alpha: 0.85),
+                        fontSize: isMobileHeader ? 12 : 13,
+                        height: 1.35,
+                      ),
                     ),
+                    if (data.years.isNotEmpty) ...[
+                      const SizedBox(height: 8),
+                      Wrap(
+                        spacing: 6,
+                        runSpacing: 4,
+                        crossAxisAlignment: WrapCrossAlignment.center,
+                        children: [
+                          Text(
+                            'Showing ${data.years.length} Consecutive Year${data.years.length > 1 ? 's' : ''}:',
+                            style: const TextStyle(
+                              color: Colors.white70,
+                              fontSize: 12,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                          ...data.years.map((y) {
+                            return Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                              decoration: BoxDecoration(
+                                color: Colors.white.withValues(alpha: 0.2),
+                                borderRadius: BorderRadius.circular(6),
+                                border: Border.all(color: Colors.white.withValues(alpha: 0.3)),
+                              ),
+                              child: Text(
+                                'SY ${y.yearRange}',
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            );
+                          }),
+                        ],
+                      ),
+                    ],
                   ],
                 );
               },
@@ -232,7 +289,83 @@ class _TransparencyBoardContentState extends State<_TransparencyBoardContent> {
     );
   }
 
-  // â”€â”€ Shared Helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  Widget _buildYearSelector(
+    BuildContext context, {
+    required List<AcademicYear> academicYears,
+    required int? selectedYearId,
+  }) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final activeAy = academicYears
+            .where((y) => y.status.toLowerCase() == 'active')
+            .firstOrNull ??
+        academicYears.firstOrNull;
+    final effectiveSelectedId = (selectedYearId != null &&
+            academicYears.any((y) => y.id == selectedYearId))
+        ? selectedYearId
+        : activeAy?.id;
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
+      decoration: BoxDecoration(
+        color: Colors.black.withValues(alpha: 0.25),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(
+          color: Colors.white.withValues(alpha: 0.35),
+        ),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const Icon(Icons.filter_alt_outlined, color: Colors.white, size: 15),
+          const SizedBox(width: 6),
+          const Text(
+            'Academic Year:',
+            style: TextStyle(
+              color: Colors.white70,
+              fontSize: 12,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+          const SizedBox(width: 6),
+          DropdownButtonHideUnderline(
+            child: DropdownButton<int>(
+              value: effectiveSelectedId,
+              isDense: true,
+              dropdownColor:
+                  isDark ? AppColors.darkSurfaceCard : AppColors.surfaceWhite,
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 12,
+                fontWeight: FontWeight.bold,
+              ),
+              icon: const Icon(Icons.arrow_drop_down, color: Colors.white, size: 20),
+              items: academicYears.map((ay) {
+                final isActive = ay.status.toLowerCase() == 'active';
+                return DropdownMenuItem<int>(
+                  value: ay.id,
+                  child: Text(
+                    'SY ${ay.yearRange}${isActive ? ' (Active)' : ''}',
+                    style: TextStyle(
+                      color: isDark ? Colors.white : Colors.black87,
+                      fontSize: 12,
+                      fontWeight: isActive ? FontWeight.bold : FontWeight.w500,
+                    ),
+                  ),
+                );
+              }).toList(),
+              onChanged: (val) {
+                if (val != null) {
+                  ref.read(transparencyBoardYearProvider.notifier).state = val;
+                }
+              },
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ── Shared Helpers ─────────────────────────────────────────────────────────
 
   static Widget _buildThemeChip(String label, Color color) {
     return Container(
@@ -363,7 +496,7 @@ class _TransparencyBoardContentState extends State<_TransparencyBoardContent> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'Comparative Enrollment Data for Consecutive Years',
+          'Enrollment Trends across School Years',
           style: TextStyle(
             fontSize: 14,
             fontWeight: FontWeight.w600,
@@ -390,7 +523,7 @@ class _TransparencyBoardContentState extends State<_TransparencyBoardContent> {
           runSpacing: 8,
           children: [
             Text(
-              'JHS (Key Stage 3) & SHS (Key Stage 4) Enrollment Breakdown (${latestYear.yearRange})',
+              'Enrollment Summary (SY ${latestYear.yearRange})',
               style: TextStyle(
                 fontSize: 14,
                 fontWeight: FontWeight.w600,
@@ -916,7 +1049,7 @@ class _TransparencyBoardContentState extends State<_TransparencyBoardContent> {
             const Icon(Icons.error_outline, color: Colors.redAccent, size: 18),
             const SizedBox(width: 8),
             Text(
-              'Data on Dropout (3 Consecutive Years)',
+              'Dropouts by Grade',
               style: TextStyle(
                 fontSize: 14,
                 fontWeight: FontWeight.w600,
@@ -949,7 +1082,7 @@ class _TransparencyBoardContentState extends State<_TransparencyBoardContent> {
             const Icon(Icons.swap_horiz_outlined, color: Colors.orange, size: 18),
             const SizedBox(width: 8),
             Text(
-              'Data on Transferees (3 Consecutive Years)',
+              'Transferees by Grade',
               style: TextStyle(
                 fontSize: 14,
                 fontWeight: FontWeight.w600,
@@ -1120,7 +1253,7 @@ class _TransparencyBoardContentState extends State<_TransparencyBoardContent> {
                 ),
                 const SizedBox(width: 8),
                 Text(
-                  '4Ps Beneficiaries Distribution',
+                  '4Ps Beneficiaries by Grade',
                   style: TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.w600,

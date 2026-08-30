@@ -210,12 +210,16 @@ final storageStatsProvider = FutureProvider.autoDispose<int>((ref) async {
   return await ref.read(reportRepositoryProvider).getStorageUsed();
 });
 
+// Selected Academic Year for Transparency Board (null = default to active academic year)
+final transparencyBoardYearProvider = StateProvider<int?>((ref) => null);
+
 // DepEd Transparency Board Data provider
 final transparencyBoardProvider =
     FutureProvider.autoDispose<TransparencyBoardData>((ref) async {
+      final selectedYearId = ref.watch(transparencyBoardYearProvider);
       return await ref
           .read(reportRepositoryProvider)
-          .getTransparencyBoardData();
+          .getTransparencyBoardData(academicYearId: selectedYearId);
     });
 
 

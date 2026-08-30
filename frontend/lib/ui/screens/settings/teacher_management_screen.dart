@@ -1584,7 +1584,7 @@ class _AcademicYearFormModalState extends ConsumerState<AcademicYearFormModal> {
       showSuccessDialog(
         context,
         title: widget.year != null
-            ? 'Academic Year Updated'
+            ? 'Updated'
             : 'Academic Year Created',
         message: widget.year != null
             ? 'Academic year has been successfully updated.'
