@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -70,6 +71,8 @@ class _KpisContent extends StatelessWidget {
                     icon: Icons.emoji_events_rounded,
                     iconColor: Colors.amber.shade700,
                     students: kpis.topStudents,
+                    allTopStudents: kpis.topStudents,
+                    allBottomStudents: kpis.bottomStudents,
                     isTop: true,
                   ),
                 ),
@@ -80,6 +83,8 @@ class _KpisContent extends StatelessWidget {
                     icon: Icons.warning_amber_rounded,
                     iconColor: Colors.orange,
                     students: kpis.bottomStudents,
+                    allTopStudents: kpis.topStudents,
+                    allBottomStudents: kpis.bottomStudents,
                     isTop: false,
                   ),
                 ),
@@ -93,6 +98,8 @@ class _KpisContent extends StatelessWidget {
                   icon: Icons.emoji_events_rounded,
                   iconColor: Colors.amber.shade700,
                   students: kpis.topStudents,
+                  allTopStudents: kpis.topStudents,
+                  allBottomStudents: kpis.bottomStudents,
                   isTop: true,
                 ),
                 const SizedBox(height: 16),
@@ -101,6 +108,8 @@ class _KpisContent extends StatelessWidget {
                   icon: Icons.warning_amber_rounded,
                   iconColor: Colors.orange,
                   students: kpis.bottomStudents,
+                  allTopStudents: kpis.topStudents,
+                  allBottomStudents: kpis.bottomStudents,
                   isTop: false,
                 ),
               ],
@@ -185,6 +194,8 @@ class _KpisContent extends StatelessWidget {
                   icon: Icons.emoji_events_rounded,
                   iconColor: Colors.amber.shade700,
                   students: kpis.topStudents,
+                  allTopStudents: kpis.topStudents,
+                  allBottomStudents: kpis.bottomStudents,
                   isTop: true,
                 ),
               ),
@@ -195,6 +206,8 @@ class _KpisContent extends StatelessWidget {
                   icon: Icons.warning_amber_rounded,
                   iconColor: Colors.orange,
                   students: kpis.bottomStudents,
+                  allTopStudents: kpis.topStudents,
+                  allBottomStudents: kpis.bottomStudents,
                   isTop: false,
                 ),
               ),
@@ -208,6 +221,8 @@ class _KpisContent extends StatelessWidget {
                 icon: Icons.emoji_events_rounded,
                 iconColor: Colors.amber.shade700,
                 students: kpis.topStudents,
+                allTopStudents: kpis.topStudents,
+                allBottomStudents: kpis.bottomStudents,
                 isTop: true,
               ),
               const SizedBox(height: 16),
@@ -216,6 +231,8 @@ class _KpisContent extends StatelessWidget {
                 icon: Icons.warning_amber_rounded,
                 iconColor: Colors.orange,
                 students: kpis.bottomStudents,
+                allTopStudents: kpis.topStudents,
+                allBottomStudents: kpis.bottomStudents,
                 isTop: false,
               ),
             ],
@@ -646,8 +663,10 @@ class _DocTypePieCard extends StatefulWidget {
 }
 
 class _DocTypePieCardState extends State<_DocTypePieCard> {
-  String? _selectedDocType; // null = "All Document Types"
+  String? _selectedDocType;
   int _touchedIndex = -1;
+  Timer? _rotationTimer;
+  bool _isAutoRotating = true;
 
   static const List<Color> _palette = [
     Color(0xFF1C8248), Color(0xFF2196F3), Color(0xFFF59E0B),
@@ -664,24 +683,114 @@ class _DocTypePieCardState extends State<_DocTypePieCard> {
     'Grade 12': Color(0xFF06B6D4),
   };
 
+  List<String> _getOrderedDocTypeNames() {
+    final rawNames = <String>[];
+    if (widget.docTypeByGrade.isNotEmpty) {
+      rawNames.addAll(widget.docTypeByGrade.keys);
+    } else {
+      rawNames.addAll(widget.entries.map((e) => e.name));
+    }
+
+    final jhs = rawNames.where((k) => k.startsWith('JHS - ') || k.contains('(JHS)')).toList();
+    final shs = rawNames.where((k) => k.startsWith('SHS - ') || k.contains('(SHS)')).toList();
+    final others = rawNames.where((k) => !jhs.contains(k) && !shs.contains(k)).toList();
+
+    return [...jhs, ...shs, ...others];
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    final names = _getOrderedDocTypeNames();
+    if (names.isNotEmpty) {
+      _selectedDocType = names.first;
+    }
+    if (_isAutoRotating) {
+      _startAutoRotation();
+    }
+  }
+
+  @override
+  void didUpdateWidget(covariant _DocTypePieCard oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    final names = _getOrderedDocTypeNames();
+    if (names.isNotEmpty && (_selectedDocType == null || !names.contains(_selectedDocType))) {
+      _selectedDocType = names.first;
+    }
+  }
+
+  void _startAutoRotation() {
+    _rotationTimer?.cancel();
+    if (!_isAutoRotating) return;
+    _rotationTimer = Timer.periodic(const Duration(seconds: 5), (_) {
+      final names = _getOrderedDocTypeNames();
+      if (names.length <= 1) return;
+      if (!mounted) return;
+      final currentIndex = names.indexOf(_selectedDocType ?? '');
+      final nextIndex = currentIndex < 0 ? 0 : (currentIndex + 1) % names.length;
+      setState(() {
+        _selectedDocType = names[nextIndex];
+        _touchedIndex = -1;
+      });
+    });
+  }
+
+  void _toggleAutoRotation() {
+    setState(() {
+      _isAutoRotating = !_isAutoRotating;
+      if (_isAutoRotating) {
+        _startAutoRotation();
+      } else {
+        _rotationTimer?.cancel();
+      }
+    });
+  }
+
+  void _onManualSelect(String? docType) {
+    if (docType == null || docType.startsWith('__header_')) return;
+    setState(() {
+      _selectedDocType = docType;
+      _touchedIndex = -1;
+    });
+    if (_isAutoRotating) {
+      _startAutoRotation();
+    }
+  }
+
+  void _stepPrevious() {
+    final names = _getOrderedDocTypeNames();
+    if (names.isEmpty) return;
+    final currentIndex = names.indexOf(_selectedDocType ?? '');
+    final prevIndex = currentIndex <= 0 ? names.length - 1 : currentIndex - 1;
+    _onManualSelect(names[prevIndex]);
+  }
+
+  void _stepNext() {
+    final names = _getOrderedDocTypeNames();
+    if (names.isEmpty) return;
+    final currentIndex = names.indexOf(_selectedDocType ?? '');
+    final nextIndex = currentIndex < 0 ? 0 : (currentIndex + 1) % names.length;
+    _onManualSelect(names[nextIndex]);
+  }
+
+  @override
+  void dispose() {
+    _rotationTimer?.cancel();
+    super.dispose();
+  }
+
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final allDocTypeNames = <String>[];
-    if (widget.docTypeByGrade.isNotEmpty) {
-      allDocTypeNames.addAll(widget.docTypeByGrade.keys);
-    } else {
-      allDocTypeNames.addAll(widget.entries.map((e) => e.name));
+    final allDocTypeNames = _getOrderedDocTypeNames();
+
+    if (_selectedDocType == null && allDocTypeNames.isNotEmpty) {
+      _selectedDocType = allDocTypeNames.first;
     }
 
     final jhsTypes = allDocTypeNames.where((k) => k.startsWith('JHS - ') || k.contains('(JHS)')).toList();
     final shsTypes = allDocTypeNames.where((k) => k.startsWith('SHS - ') || k.contains('(SHS)')).toList();
     final otherTypes = allDocTypeNames.where((k) => !jhsTypes.contains(k) && !shsTypes.contains(k)).toList();
-
-    final isAll = _selectedDocType == null;
-
-    // Data for "All Document Types"
-    final allTotal = widget.entries.fold(0, (s, e) => s + e.count);
 
     // Data for specific doc type
     final selectedGradeList = _selectedDocType != null
@@ -695,65 +804,38 @@ class _DocTypePieCardState extends State<_DocTypePieCard> {
     final isSelectedJhs = _selectedDocType != null && (_selectedDocType!.startsWith('JHS - ') || _selectedDocType!.contains('(JHS)'));
     final isSelectedShs = _selectedDocType != null && (_selectedDocType!.startsWith('SHS - ') || _selectedDocType!.contains('(SHS)'));
     final categoryLabel = isSelectedJhs ? 'JHS ' : (isSelectedShs ? 'SHS ' : '');
+    final overallPercent = selectedTotalEnrolled == 0 ? 0.0 : (selectedTotalUploaded / selectedTotalEnrolled);
 
     // Build Pie Chart Sections
     final sections = <PieChartSectionData>[];
-    if (isAll) {
-      if (widget.entries.isEmpty) {
-        sections.add(PieChartSectionData(
-          value: 1,
-          color: isDark ? AppColors.darkSurface2 : Colors.grey.shade300,
-          radius: 50,
-          showTitle: false,
-        ));
-      } else {
-        for (int i = 0; i < widget.entries.length; i++) {
-          final e = widget.entries[i];
-          final color = _palette[i % _palette.length];
-          final isTouched = i == _touchedIndex;
-          sections.add(PieChartSectionData(
-            value: e.count.toDouble(),
-            color: color,
-            radius: isTouched ? 70 : 60,
-            showTitle: false,
-          ));
-        }
-      }
+    if (selectedTotalUploaded == 0) {
+      sections.add(PieChartSectionData(
+        value: 1,
+        color: isDark ? AppColors.darkSurface2 : Colors.grey.shade300,
+        radius: 44,
+        showTitle: false,
+      ));
     } else {
-      if (selectedTotalUploaded == 0) {
+      for (int i = 0; i < selectedGradeList.length; i++) {
+        final g = selectedGradeList[i];
+        if (g.count == 0) continue;
+        final color = _gradeColorMap[g.gradeLevel] ?? _palette[i % _palette.length];
+        final isTouched = i == _touchedIndex;
         sections.add(PieChartSectionData(
-          value: 1,
-          color: isDark ? AppColors.darkSurface2 : Colors.grey.shade300,
-          radius: 50,
+          value: g.count.toDouble(),
+          color: color,
+          radius: isTouched ? 52 : 44,
           showTitle: false,
         ));
-      } else {
-        for (int i = 0; i < selectedGradeList.length; i++) {
-          final g = selectedGradeList[i];
-          if (g.count == 0) continue;
-          final color = _gradeColorMap[g.gradeLevel] ?? _palette[i % _palette.length];
-          final isTouched = i == _touchedIndex;
-          sections.add(PieChartSectionData(
-            value: g.count.toDouble(),
-            color: color,
-            radius: isTouched ? 70 : 60,
-            showTitle: false,
-          ));
-        }
       }
     }
 
-    final subtitle = isAll
-        ? 'Top ${widget.entries.length} document types ($allTotal uploaded)'
-        : '$selectedTotalUploaded / $selectedTotalEnrolled ${categoryLabel}students (${selectedTotalEnrolled == 0 ? "0.0" : (selectedTotalUploaded / selectedTotalEnrolled * 100).toStringAsFixed(1)}% complete)';
+    final subtitle = selectedTotalEnrolled == 0
+        ? 'No enrolled students for this category'
+        : '$selectedTotalUploaded / $selectedTotalEnrolled ${categoryLabel}students (${(overallPercent * 100).toStringAsFixed(1)}% complete)';
 
-    // Build grouped dropdown menu items
-    final dropdownItems = <DropdownMenuItem<String?>>[
-      const DropdownMenuItem<String?>(
-        value: null,
-        child: Text('All Document Types', style: TextStyle(fontWeight: FontWeight.w600)),
-      ),
-    ];
+    // Build grouped dropdown menu items (WITHOUT "All Document Types")
+    final dropdownItems = <DropdownMenuItem<String?>>[];
 
     if (jhsTypes.isNotEmpty) {
       dropdownItems.add(
@@ -882,79 +964,218 @@ class _DocTypePieCardState extends State<_DocTypePieCard> {
       }
     }
 
-    return _ChartCard(
-      title: 'Document Type Breakdown',
-      icon: Icons.donut_small_rounded,
-      iconColor: Colors.purple.shade600,
-      subtitle: subtitle,
-      trailing: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 2),
-        decoration: BoxDecoration(
-          color: isDark ? AppColors.darkSurface2 : Colors.grey.shade100,
-          borderRadius: BorderRadius.circular(8),
-          border: Border.all(
-            color: isDark ? AppColors.darkBorder : AppColors.borderLight,
-          ),
-        ),
-        child: DropdownButtonHideUnderline(
-          child: DropdownButton<String?>(
-            value: _selectedDocType,
-            isDense: true,
-            icon: const Icon(Icons.arrow_drop_down_rounded, size: 20),
-            style: TextStyle(
-              fontSize: 12,
-              fontWeight: FontWeight.w600,
-              color: Theme.of(context).colorScheme.onSurface,
+    Widget buildSelectorBar() {
+      return Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (allDocTypeNames.length > 1) ...[
+            IconButton(
+              onPressed: _stepPrevious,
+              icon: const Icon(Icons.chevron_left_rounded, size: 20),
+              tooltip: 'Previous document type',
+              visualDensity: VisualDensity.compact,
+              padding: EdgeInsets.zero,
+              constraints: const BoxConstraints(minWidth: 28, minHeight: 28),
             ),
-            items: dropdownItems,
-            selectedItemBuilder: (context) {
-              return dropdownItems.map((item) {
-                final val = item.value;
-                if (val == null) {
-                  return const Align(
-                    alignment: Alignment.centerLeft,
-                    child: Text(
-                      'All Document Types',
-                      style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
-                    ),
-                  );
-                }
-                final isJhs = val.startsWith('JHS - ');
-                final isShs = val.startsWith('SHS - ');
-                final cleanName = isJhs
-                    ? val.substring(6)
-                    : (isShs ? val.substring(6) : val);
-
-                return Align(
-                  alignment: Alignment.centerLeft,
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      if (isJhs || isShs)
-                        Container(
-                          margin: const EdgeInsets.only(right: 6),
-                          padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
-                          decoration: BoxDecoration(
-                            color: (isJhs ? AppColors.primaryGreen : Colors.blue)
-                                .withValues(alpha: isDark ? 0.25 : 0.15),
-                            borderRadius: BorderRadius.circular(3),
-                          ),
+            const SizedBox(width: 2),
+            IconButton(
+              onPressed: _toggleAutoRotation,
+              icon: Icon(
+                _isAutoRotating ? Icons.pause_rounded : Icons.play_arrow_rounded,
+                size: 18,
+                color: _isAutoRotating
+                    ? AppColors.primaryGreen
+                    : Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5),
+              ),
+              tooltip: _isAutoRotating ? 'Pause auto-rotation' : 'Resume auto-rotation',
+              visualDensity: VisualDensity.compact,
+              padding: EdgeInsets.zero,
+              constraints: const BoxConstraints(minWidth: 28, minHeight: 28),
+            ),
+            const SizedBox(width: 2),
+          ],
+          Expanded(
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+              decoration: BoxDecoration(
+                color: isDark ? AppColors.darkSurface2 : Colors.grey.shade100,
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(
+                  color: isDark ? AppColors.darkBorder : AppColors.borderLight,
+                ),
+              ),
+              child: DropdownButtonHideUnderline(
+                child: DropdownButton<String?>(
+                  value: _selectedDocType,
+                  isDense: true,
+                  isExpanded: true,
+                  icon: const Icon(Icons.arrow_drop_down_rounded, size: 20),
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    color: Theme.of(context).colorScheme.onSurface,
+                  ),
+                  items: dropdownItems,
+                  selectedItemBuilder: (context) {
+                    return dropdownItems.map((item) {
+                      final val = item.value;
+                      if (val == null) {
+                        return const Align(
+                          alignment: Alignment.centerLeft,
                           child: Text(
-                            isJhs ? 'JHS' : 'SHS',
-                            style: TextStyle(
-                              fontSize: 9,
-                              fontWeight: FontWeight.bold,
-                              color: isJhs
-                                  ? (isDark ? const Color(0xFF66BB6A) : AppColors.primaryGreen)
-                                  : (isDark ? Colors.blue.shade300 : Colors.blue.shade700),
-                            ),
+                            'Select Document Type',
+                            style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
                           ),
+                        );
+                      }
+                      final isJhs = val.startsWith('JHS - ');
+                      final isShs = val.startsWith('SHS - ');
+                      final cleanName = isJhs
+                          ? val.substring(6)
+                          : (isShs ? val.substring(6) : val);
+
+                      return Align(
+                        alignment: Alignment.centerLeft,
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            if (isJhs || isShs)
+                              Container(
+                                margin: const EdgeInsets.only(right: 6),
+                                padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+                                decoration: BoxDecoration(
+                                  color: (isJhs ? AppColors.primaryGreen : Colors.blue)
+                                      .withValues(alpha: isDark ? 0.25 : 0.15),
+                                  borderRadius: BorderRadius.circular(3),
+                                ),
+                                child: Text(
+                                  isJhs ? 'JHS' : 'SHS',
+                                  style: TextStyle(
+                                    fontSize: 9,
+                                    fontWeight: FontWeight.bold,
+                                    color: isJhs
+                                        ? (isDark ? const Color(0xFF66BB6A) : AppColors.primaryGreen)
+                                        : (isDark ? Colors.blue.shade300 : Colors.blue.shade700),
+                                  ),
+                                ),
+                              ),
+                            Flexible(
+                              child: Text(
+                                cleanName,
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w600,
+                                  color: Theme.of(context).colorScheme.onSurface,
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                          ],
                         ),
-                      Flexible(
+                      );
+                    }).toList();
+                  },
+                  onChanged: _onManualSelect,
+                ),
+              ),
+            ),
+          ),
+          if (allDocTypeNames.length > 1) ...[
+            const SizedBox(width: 2),
+            IconButton(
+              onPressed: _stepNext,
+              icon: const Icon(Icons.chevron_right_rounded, size: 20),
+              tooltip: 'Next document type',
+              visualDensity: VisualDensity.compact,
+              padding: EdgeInsets.zero,
+              constraints: const BoxConstraints(minWidth: 28, minHeight: 28),
+            ),
+          ],
+        ],
+      );
+    }
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final isMobile = constraints.maxWidth < 480;
+        final isCompactChart = constraints.maxWidth < 360;
+
+        final chartWidget = SizedBox(
+          height: 130,
+          width: 130,
+          child: Stack(
+            alignment: Alignment.center,
+            children: [
+              PieChart(
+                PieChartData(
+                  pieTouchData: PieTouchData(
+                    touchCallback: (e, resp) {
+                      setState(() {
+                        _touchedIndex =
+                            resp?.touchedSection?.touchedSectionIndex ?? -1;
+                      });
+                    },
+                  ),
+                  sectionsSpace: 2,
+                  centerSpaceRadius: 26,
+                  sections: sections,
+                ),
+              ),
+              Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    '${(overallPercent * 100).toInt()}%',
+                    style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.bold,
+                      color: Theme.of(context).colorScheme.onSurface,
+                    ),
+                  ),
+                  Text(
+                    'Total',
+                    style: TextStyle(
+                      fontSize: 9,
+                      color: Theme.of(context)
+                          .colorScheme
+                          .onSurface
+                          .withValues(alpha: 0.54),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        );
+
+        final listWidget = Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: List.generate(selectedGradeList.length, (i) {
+            final g = selectedGradeList[i];
+            final pct = g.totalStudents == 0
+                ? 0.0
+                : (g.count / g.totalStudents);
+            final color = _gradeColorMap[g.gradeLevel] ??
+                _palette[i % _palette.length];
+            return Padding(
+              padding: const EdgeInsets.only(bottom: 8),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Container(
+                        width: 8,
+                        height: 8,
+                        decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+                      ),
+                      const SizedBox(width: 6),
+                      Expanded(
                         child: Text(
-                          cleanName,
+                          g.gradeLevel,
                           style: TextStyle(
-                            fontSize: 12,
+                            fontSize: 11,
                             fontWeight: FontWeight.w600,
                             color: Theme.of(context).colorScheme.onSurface,
                           ),
@@ -962,183 +1183,149 @@ class _DocTypePieCardState extends State<_DocTypePieCard> {
                           overflow: TextOverflow.ellipsis,
                         ),
                       ),
-                    ],
-                  ),
-                );
-              }).toList();
-            },
-            onChanged: (val) {
-              if (val != null && val.startsWith('__header_')) return;
-              setState(() {
-                _selectedDocType = val;
-                _touchedIndex = -1;
-              });
-            },
-          ),
-        ),
-      ),
-      child: isAll
-          ? (widget.entries.isEmpty
-              ? const Padding(
-                  padding: EdgeInsets.symmetric(vertical: 20),
-                  child: Center(
-                    child: Text('No document types uploaded yet.',
-                        style: TextStyle(fontSize: 12, color: AppColors.textSecondary)),
-                  ),
-                )
-              : Row(
-                  children: [
-                    SizedBox(
-                      height: 160,
-                      width: 160,
-                      child: PieChart(
-                        PieChartData(
-                          pieTouchData: PieTouchData(
-                            touchCallback: (e, resp) {
-                              setState(() {
-                                _touchedIndex =
-                                    resp?.touchedSection?.touchedSectionIndex ?? -1;
-                              });
-                            },
-                          ),
-                          sectionsSpace: 2,
-                          centerSpaceRadius: 30,
-                          sections: sections,
+                      Text(
+                        '${g.count} / ${g.totalStudents} (${(pct * 100).toStringAsFixed(1)}%)',
+                        style: TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w600,
+                          color: g.count > 0
+                              ? (isDark ? const Color(0xFF66BB6A) : AppColors.primaryGreen)
+                              : Theme.of(context)
+                                  .colorScheme
+                                  .onSurface
+                                  .withValues(alpha: 0.5),
                         ),
                       ),
+                    ],
+                  ),
+                  const SizedBox(height: 3),
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(3),
+                    child: LinearProgressIndicator(
+                      value: pct.clamp(0.0, 1.0),
+                      backgroundColor: isDark ? AppColors.darkSurface2 : Colors.grey.shade100,
+                      valueColor: AlwaysStoppedAnimation<Color>(color),
+                      minHeight: 6,
                     ),
-                    const SizedBox(width: 16),
+                  ),
+                ],
+              ),
+            );
+          }),
+        );
+
+        return Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: isDark ? AppColors.darkSurfaceCard : Colors.white,
+            borderRadius: BorderRadius.circular(16),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.04),
+                blurRadius: 12,
+                offset: const Offset(0, 4),
+              ),
+            ],
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Header
+              if (isMobile) ...[
+                Row(
+                  children: [
+                    Icon(Icons.donut_small_rounded, size: 18, color: Colors.purple.shade600),
+                    const SizedBox(width: 8),
                     Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: List.generate(widget.entries.length, (i) {
-                          final e = widget.entries[i];
-                          final pct = allTotal == 0 ? 0.0 : e.count / allTotal * 100;
-                          final color = _palette[i % _palette.length];
-                          return Padding(
-                            padding: const EdgeInsets.only(bottom: 6),
-                            child: Row(
-                              children: [
-                                Container(
-                                  width: 10,
-                                  height: 10,
-                                  decoration:
-                                      BoxDecoration(color: color, shape: BoxShape.circle),
-                                ),
-                                const SizedBox(width: 6),
-                                Expanded(
-                                  child: Text(
-                                    e.name,
-                                    style: TextStyle(
-                                      fontSize: 11,
-                                      color: Theme.of(context).colorScheme.onSurface,
-                                    ),
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                  ),
-                                ),
-                                Text(
-                                  '${e.count} (${pct.toStringAsFixed(1)}%)',
-                                  style: TextStyle(
-                                    fontSize: 11,
-                                    color: Theme.of(context)
-                                        .colorScheme
-                                        .onSurface
-                                        .withValues(alpha: 0.6),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          );
-                        }),
+                      child: Text(
+                        'Document Breakdown',
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w700,
+                          color: Theme.of(context).colorScheme.onSurface,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                       ),
                     ),
                   ],
-                ))
-          : (selectedGradeList.isEmpty
-              ? const Padding(
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  subtitle,
+                  style: TextStyle(
+                    fontSize: 11,
+                    color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5),
+                  ),
+                ),
+                const SizedBox(height: 10),
+                buildSelectorBar(),
+              ] else ...[
+                Row(
+                  children: [
+                    Icon(Icons.donut_small_rounded, size: 18, color: Colors.purple.shade600),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Document Breakdown',
+                            style: TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w700,
+                              color: Theme.of(context).colorScheme.onSurface,
+                            ),
+                          ),
+                          Text(
+                            subtitle,
+                            style: TextStyle(
+                              fontSize: 11,
+                              color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    ConstrainedBox(
+                      constraints: const BoxConstraints(maxWidth: 280),
+                      child: buildSelectorBar(),
+                    ),
+                  ],
+                ),
+              ],
+              const SizedBox(height: 16),
+
+              // Content Body
+              if (selectedGradeList.isEmpty)
+                const Padding(
                   padding: EdgeInsets.symmetric(vertical: 20),
                   child: Center(
                     child: Text('No grade level data available for this document type.',
                         style: TextStyle(fontSize: 12, color: AppColors.textSecondary)),
                   ),
                 )
-              : Row(
+              else if (isCompactChart)
+                Column(
                   children: [
-                    SizedBox(
-                      height: 160,
-                      width: 160,
-                      child: PieChart(
-                        PieChartData(
-                          pieTouchData: PieTouchData(
-                            touchCallback: (e, resp) {
-                              setState(() {
-                                _touchedIndex =
-                                    resp?.touchedSection?.touchedSectionIndex ?? -1;
-                              });
-                            },
-                          ),
-                          sectionsSpace: 2,
-                          centerSpaceRadius: 30,
-                          sections: sections,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 16),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: List.generate(selectedGradeList.length, (i) {
-                          final g = selectedGradeList[i];
-                          final pct = g.totalStudents == 0
-                              ? 0.0
-                              : (g.count / g.totalStudents * 100);
-                          final color = _gradeColorMap[g.gradeLevel] ??
-                              _palette[i % _palette.length];
-                          return Padding(
-                            padding: const EdgeInsets.only(bottom: 6),
-                            child: Row(
-                              children: [
-                                Container(
-                                  width: 10,
-                                  height: 10,
-                                  decoration:
-                                      BoxDecoration(color: color, shape: BoxShape.circle),
-                                ),
-                                const SizedBox(width: 6),
-                                Expanded(
-                                  child: Text(
-                                    g.gradeLevel,
-                                    style: TextStyle(
-                                      fontSize: 11,
-                                      fontWeight: FontWeight.w600,
-                                      color: Theme.of(context).colorScheme.onSurface,
-                                    ),
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                  ),
-                                ),
-                                Text(
-                                  '${g.count} / ${g.totalStudents} (${pct.toStringAsFixed(1)}%)',
-                                  style: TextStyle(
-                                    fontSize: 11,
-                                    fontWeight: FontWeight.w500,
-                                    color: g.count > 0
-                                        ? AppColors.primaryGreen
-                                        : Theme.of(context)
-                                            .colorScheme
-                                            .onSurface
-                                            .withValues(alpha: 0.5),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          );
-                        }),
-                      ),
-                    ),
+                    Center(child: chartWidget),
+                    const SizedBox(height: 12),
+                    listWidget,
                   ],
-                )),
+                )
+              else
+                Row(
+                  children: [
+                    chartWidget,
+                    const SizedBox(width: 16),
+                    Expanded(child: listWidget),
+                  ],
+                ),
+            ],
+          ),
+        );
+      },
     );
   }
 }
@@ -1262,13 +1449,17 @@ class _UploadTrendCard extends StatelessWidget {
 }
 
 // ──────────────────────────────────────────────────────────────
-// 6. STUDENT DOC COUNT (horizontal bars)
+// 6. STUDENT DOC COUNT (horizontal bars) + RANKING MODAL
 // ──────────────────────────────────────────────────────────────
+enum _RankingTab { top, needsAttention }
+
 class _StudentDocCard extends StatelessWidget {
   final String title;
   final IconData icon;
   final Color iconColor;
   final List<StudentDocCount> students;
+  final List<StudentDocCount> allTopStudents;
+  final List<StudentDocCount> allBottomStudents;
   final bool isTop;
 
   const _StudentDocCard({
@@ -1276,12 +1467,26 @@ class _StudentDocCard extends StatelessWidget {
     required this.icon,
     required this.iconColor,
     required this.students,
+    required this.allTopStudents,
+    required this.allBottomStudents,
     required this.isTop,
   });
+
+  void _openModal(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (context) => _StudentDocRankingModal(
+        allTopStudents: allTopStudents,
+        allBottomStudents: allBottomStudents,
+        initialTab: isTop ? _RankingTab.top : _RankingTab.needsAttention,
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final displayList = students.take(5).toList();
 
     return _ChartCard(
       title: title,
@@ -1290,13 +1495,24 @@ class _StudentDocCard extends StatelessWidget {
       subtitle: isTop
           ? 'Most required document types completed'
           : 'Most missing required document types',
+      trailing: TextButton.icon(
+        onPressed: () => _openModal(context),
+        icon: const Icon(Icons.arrow_forward_rounded, size: 14),
+        label: const Text('View All'),
+        style: TextButton.styleFrom(
+          visualDensity: VisualDensity.compact,
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+          foregroundColor: isTop ? AppColors.primaryGreen : Colors.orange.shade700,
+          textStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
+        ),
+      ),
       child: students.isEmpty
           ? Text(
               'No data yet.',
               style: TextStyle(color: Colors.grey.shade400, fontSize: 13),
             )
           : Column(
-              children: students.asMap().entries.map((entry) {
+              children: displayList.asMap().entries.map((entry) {
                 final i = entry.key;
                 final s = entry.value;
                 final pct = s.percent.clamp(0.0, 1.0);
@@ -1318,9 +1534,7 @@ class _StudentDocCard extends StatelessWidget {
                               style: TextStyle(
                                 fontSize: 12,
                                 fontWeight: FontWeight.bold,
-                                color: i == 0
-                                    ? Colors.amber.shade700
-                                    : Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.54),
+                                color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.54),
                               ),
                             ),
                           if (isTop) const SizedBox(width: 6),
@@ -1342,7 +1556,7 @@ class _StudentDocCard extends StatelessWidget {
                               fontSize: 11,
                               fontWeight: FontWeight.w600,
                               color: s.missingCount == 0
-                                  ? AppColors.primaryGreen
+                                  ? (isDark ? const Color(0xFF66BB6A) : AppColors.primaryGreen)
                                   : (isTop
                                       ? Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7)
                                       : Colors.orange.shade700),
@@ -1365,6 +1579,545 @@ class _StudentDocCard extends StatelessWidget {
                 );
               }).toList(),
             ),
+    );
+  }
+}
+
+class _StudentDocRankingModal extends StatefulWidget {
+  final List<StudentDocCount> allTopStudents;
+  final List<StudentDocCount> allBottomStudents;
+  final _RankingTab initialTab;
+
+  const _StudentDocRankingModal({
+    required this.allTopStudents,
+    required this.allBottomStudents,
+    this.initialTab = _RankingTab.top,
+  });
+
+  @override
+  State<_StudentDocRankingModal> createState() => _StudentDocRankingModalState();
+}
+
+class _StudentDocRankingModalState extends State<_StudentDocRankingModal> {
+  late _RankingTab _activeTab;
+  String _searchQuery = '';
+  String _selectedGradeFilter = 'All';
+  final TextEditingController _searchController = TextEditingController();
+
+  @override
+  void initState() {
+    super.initState();
+    _activeTab = widget.initialTab;
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isMobile = screenWidth < 600;
+
+    final baseList = _activeTab == _RankingTab.top
+        ? widget.allTopStudents
+        : widget.allBottomStudents;
+
+    final filtered = baseList.where((s) {
+      if (_searchQuery.isNotEmpty) {
+        final q = _searchQuery.toLowerCase();
+        if (!s.name.toLowerCase().contains(q)) return false;
+      }
+      if (_selectedGradeFilter == 'All') return true;
+      if (_selectedGradeFilter == 'JHS') return s.category == 'JHS';
+      if (_selectedGradeFilter == 'SHS') return s.category == 'SHS';
+      if (_selectedGradeFilter.startsWith('Grade ')) {
+        final g = int.tryParse(_selectedGradeFilter.replaceAll('Grade ', ''));
+        if (g != null && s.gradeLevel != g) return false;
+      }
+      return true;
+    }).toList();
+
+    return Dialog(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      backgroundColor: isDark ? AppColors.darkSurfaceCard : Colors.white,
+      insetPadding: EdgeInsets.symmetric(
+        horizontal: isMobile ? 12 : 24,
+        vertical: isMobile ? 16 : 24,
+      ),
+      child: Container(
+        width: isMobile ? double.infinity : 680,
+        height: isMobile ? MediaQuery.of(context).size.height * 0.85 : 640,
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Header
+            Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: AppColors.primaryGreen.withValues(alpha: isDark ? 0.25 : 0.12),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: const Icon(
+                    Icons.leaderboard_rounded,
+                    color: AppColors.primaryGreen,
+                    size: 20,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Student Document Status',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                          color: Theme.of(context).colorScheme.onSurface,
+                        ),
+                      ),
+                      Text(
+                        'Required document submission overview',
+                        style: TextStyle(
+                          fontSize: 11,
+                          color: Theme.of(context)
+                              .colorScheme
+                              .onSurface
+                              .withValues(alpha: 0.55),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                IconButton(
+                  onPressed: () => Navigator.of(context).pop(),
+                  icon: const Icon(Icons.close_rounded, size: 20),
+                  splashRadius: 18,
+                  padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+                ),
+              ],
+            ),
+            const SizedBox(height: 14),
+
+            // Tab Filter Buttons (Top Students vs Needs Attention)
+            Container(
+              padding: const EdgeInsets.all(3),
+              decoration: BoxDecoration(
+                color: isDark ? AppColors.darkSurface2 : Colors.grey.shade100,
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(
+                  color: isDark ? AppColors.darkBorder : AppColors.borderLight,
+                ),
+              ),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: _TabButton(
+                      label: 'Top Students',
+                      icon: Icons.check_circle_outline_rounded,
+                      count: widget.allTopStudents.length,
+                      isSelected: _activeTab == _RankingTab.top,
+                      activeColor: AppColors.primaryGreen,
+                      onTap: () {
+                        setState(() {
+                          _activeTab = _RankingTab.top;
+                        });
+                      },
+                    ),
+                  ),
+                  const SizedBox(width: 4),
+                  Expanded(
+                    child: _TabButton(
+                      label: 'Needs Attention',
+                      icon: Icons.warning_amber_rounded,
+                      count: widget.allBottomStudents.length,
+                      isSelected: _activeTab == _RankingTab.needsAttention,
+                      activeColor: Colors.orange.shade700,
+                      onTap: () {
+                        setState(() {
+                          _activeTab = _RankingTab.needsAttention;
+                        });
+                      },
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 12),
+
+            // Search and Grade Filter row
+            Row(
+              children: [
+                Expanded(
+                  child: Container(
+                    height: 38,
+                    decoration: BoxDecoration(
+                      color: isDark ? AppColors.darkSurface2 : Colors.grey.shade50,
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(
+                        color: isDark ? AppColors.darkBorder : AppColors.borderLight,
+                      ),
+                    ),
+                    child: TextField(
+                      controller: _searchController,
+                      style: TextStyle(
+                        fontSize: 13,
+                        color: Theme.of(context).colorScheme.onSurface,
+                      ),
+                      decoration: InputDecoration(
+                        hintText: 'Search student name...',
+                        hintStyle: TextStyle(
+                          fontSize: 12,
+                          color: Theme.of(context)
+                              .colorScheme
+                              .onSurface
+                              .withValues(alpha: 0.45),
+                        ),
+                        prefixIcon: const Icon(Icons.search_rounded, size: 18),
+                        suffixIcon: _searchQuery.isNotEmpty
+                            ? IconButton(
+                                icon: const Icon(Icons.clear_rounded, size: 16),
+                                onPressed: () {
+                                  _searchController.clear();
+                                  setState(() => _searchQuery = '');
+                                },
+                              )
+                            : null,
+                        border: InputBorder.none,
+                        contentPadding: const EdgeInsets.symmetric(vertical: 8),
+                      ),
+                      onChanged: (v) => setState(() => _searchQuery = v.trim()),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Container(
+                  height: 38,
+                  padding: const EdgeInsets.symmetric(horizontal: 8),
+                  decoration: BoxDecoration(
+                    color: isDark ? AppColors.darkSurface2 : Colors.grey.shade50,
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(
+                      color: isDark ? AppColors.darkBorder : AppColors.borderLight,
+                    ),
+                  ),
+                  child: DropdownButtonHideUnderline(
+                    child: DropdownButton<String>(
+                      value: _selectedGradeFilter,
+                      icon: const Icon(Icons.arrow_drop_down_rounded, size: 20),
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                        color: Theme.of(context).colorScheme.onSurface,
+                      ),
+                      items: const [
+                        DropdownMenuItem(value: 'All', child: Text('All Levels')),
+                        DropdownMenuItem(value: 'JHS', child: Text('JHS')),
+                        DropdownMenuItem(value: 'SHS', child: Text('SHS')),
+                        DropdownMenuItem(value: 'Grade 7', child: Text('Grade 7')),
+                        DropdownMenuItem(value: 'Grade 8', child: Text('Grade 8')),
+                        DropdownMenuItem(value: 'Grade 9', child: Text('Grade 9')),
+                        DropdownMenuItem(value: 'Grade 10', child: Text('Grade 10')),
+                        DropdownMenuItem(value: 'Grade 11', child: Text('Grade 11')),
+                        DropdownMenuItem(value: 'Grade 12', child: Text('Grade 12')),
+                      ],
+                      onChanged: (val) {
+                        if (val != null) setState(() => _selectedGradeFilter = val);
+                      },
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+
+            // Students List
+            Expanded(
+              child: filtered.isEmpty
+                  ? Center(
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            Icons.person_search_rounded,
+                            size: 42,
+                            color: Colors.grey.shade400,
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            _searchQuery.isNotEmpty
+                                ? 'No students matching "$_searchQuery"'
+                                : 'No students found.',
+                            style: TextStyle(
+                              fontSize: 13,
+                              color: Theme.of(context)
+                                  .colorScheme
+                                  .onSurface
+                                  .withValues(alpha: 0.54),
+                            ),
+                          ),
+                        ],
+                      ),
+                    )
+                  : ListView.separated(
+                      itemCount: filtered.length,
+                      separatorBuilder: (_, _) => const SizedBox(height: 6),
+                      itemBuilder: (context, idx) {
+                        final s = filtered[idx];
+                        final pct = s.percent.clamp(0.0, 1.0);
+                        final isComplete = s.missingCount == 0;
+
+                        return Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                          decoration: BoxDecoration(
+                            color: isDark ? AppColors.darkSurface2 : Colors.grey.shade50,
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(
+                              color: isDark ? AppColors.darkBorder : AppColors.borderLight,
+                            ),
+                          ),
+                          child: Row(
+                            children: [
+                              // Rank number
+                              SizedBox(
+                                width: 28,
+                                child: Text(
+                                  '#${idx + 1}',
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.bold,
+                                    color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5),
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+
+                              // Student info & progress bar
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Row(
+                                      children: [
+                                        Expanded(
+                                          child: Text(
+                                            s.name,
+                                            style: TextStyle(
+                                              fontSize: 12,
+                                              fontWeight: FontWeight.w600,
+                                              color: Theme.of(context).colorScheme.onSurface,
+                                            ),
+                                            maxLines: 1,
+                                            overflow: TextOverflow.ellipsis,
+                                          ),
+                                        ),
+                                        if (s.gradeLevel != null) ...[
+                                          Container(
+                                            padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+                                            decoration: BoxDecoration(
+                                              color: (s.category == 'JHS'
+                                                      ? AppColors.primaryGreen
+                                                      : Colors.blue)
+                                                  .withValues(alpha: isDark ? 0.25 : 0.12),
+                                              borderRadius: BorderRadius.circular(3),
+                                            ),
+                                            child: Text(
+                                              '${s.category} • Gr. ${s.gradeLevel}',
+                                              style: TextStyle(
+                                                fontSize: 9,
+                                                fontWeight: FontWeight.bold,
+                                                color: s.category == 'JHS'
+                                                    ? (isDark ? const Color(0xFF66BB6A) : AppColors.primaryGreen)
+                                                    : (isDark ? Colors.blue.shade300 : Colors.blue.shade700),
+                                              ),
+                                            ),
+                                          ),
+                                        ],
+                                      ],
+                                    ),
+                                    const SizedBox(height: 5),
+                                    Row(
+                                      children: [
+                                        Expanded(
+                                          child: ClipRRect(
+                                            borderRadius: BorderRadius.circular(2),
+                                            child: LinearProgressIndicator(
+                                              value: pct,
+                                              backgroundColor: isDark ? AppColors.darkSurfaceCard : Colors.grey.shade200,
+                                              valueColor: AlwaysStoppedAnimation<Color>(
+                                                isComplete
+                                                    ? AppColors.primaryGreen
+                                                    : (_activeTab == _RankingTab.top
+                                                        ? Colors.blue.shade600
+                                                        : Colors.orange.shade600),
+                                              ),
+                                              minHeight: 5,
+                                            ),
+                                          ),
+                                        ),
+                                        const SizedBox(width: 8),
+                                        Text(
+                                          '${s.uploadedCount}/${s.totalRequired}',
+                                          style: TextStyle(
+                                            fontSize: 10,
+                                            fontWeight: FontWeight.w600,
+                                            color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.65),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              const SizedBox(width: 10),
+
+                              // Status Pill
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                                decoration: BoxDecoration(
+                                  color: isComplete
+                                      ? AppColors.primaryGreen.withValues(alpha: isDark ? 0.25 : 0.12)
+                                      : Colors.orange.withValues(alpha: isDark ? 0.25 : 0.12),
+                                  borderRadius: BorderRadius.circular(4),
+                                ),
+                                child: Text(
+                                  isComplete ? 'Complete' : '${s.missingCount} Missing',
+                                  style: TextStyle(
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.bold,
+                                    color: isComplete
+                                        ? (isDark ? const Color(0xFF66BB6A) : AppColors.primaryGreen)
+                                        : (isDark ? Colors.orange.shade300 : Colors.orange.shade800),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        );
+                      },
+                    ),
+            ),
+            const SizedBox(height: 10),
+
+            // Footer
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  '${filtered.length} students',
+                  style: TextStyle(
+                    fontSize: 11,
+                    color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5),
+                  ),
+                ),
+                TextButton(
+                  onPressed: () => Navigator.of(context).pop(),
+                  style: TextButton.styleFrom(
+                    visualDensity: VisualDensity.compact,
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  ),
+                  child: const Text('Close'),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _TabButton extends StatelessWidget {
+  final String label;
+  final IconData icon;
+  final int count;
+  final bool isSelected;
+  final Color activeColor;
+  final VoidCallback onTap;
+
+  const _TabButton({
+    required this.label,
+    required this.icon,
+    required this.count,
+    required this.isSelected,
+    required this.activeColor,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(8),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
+        decoration: BoxDecoration(
+          color: isSelected
+              ? (isDark ? AppColors.darkSurfaceCard : Colors.white)
+              : Colors.transparent,
+          borderRadius: BorderRadius.circular(8),
+          boxShadow: isSelected
+              ? [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.05),
+                    blurRadius: 4,
+                    offset: const Offset(0, 2),
+                  ),
+                ]
+              : null,
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              icon,
+              size: 16,
+              color: isSelected ? activeColor : Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5),
+            ),
+            const SizedBox(width: 8),
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 13,
+                fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+                color: isSelected
+                    ? Theme.of(context).colorScheme.onSurface
+                    : Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
+              ),
+            ),
+            const SizedBox(width: 6),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
+              decoration: BoxDecoration(
+                color: isSelected
+                    ? activeColor.withValues(alpha: isDark ? 0.25 : 0.15)
+                    : (isDark ? AppColors.darkSurfaceCard : Colors.grey.shade200),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Text(
+                '$count',
+                style: TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.bold,
+                  color: isSelected
+                      ? activeColor
+                      : Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

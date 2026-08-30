@@ -427,12 +427,10 @@ exports.getKpis = (req, res) => {
             });
 
             topStudents = [...studentDocStats]
-                .sort((a, b) => b.uploadedCount - a.uploadedCount || a.missingCount - b.missingCount || a.name.localeCompare(b.name))
-                .slice(0, 5);
+                .sort((a, b) => b.uploadedCount - a.uploadedCount || a.missingCount - b.missingCount || a.name.localeCompare(b.name));
 
             bottomStudents = [...studentDocStats]
-                .sort((a, b) => b.missingCount - a.missingCount || a.uploadedCount - b.uploadedCount || a.name.localeCompare(b.name))
-                .slice(0, 5);
+                .sort((a, b) => b.missingCount - a.missingCount || a.uploadedCount - b.uploadedCount || a.name.localeCompare(b.name));
 
             // ── 5. Document type breakdown overall + by Grade Level (Separated by JHS & SHS) ──
             const typeRows = db.prepare(`
@@ -697,12 +695,10 @@ exports.getKpis = (req, res) => {
             });
 
             topStudents = [...studentDocStats]
-                .sort((a, b) => b.uploadedCount - a.uploadedCount || a.missingCount - b.missingCount || a.name.localeCompare(b.name))
-                .slice(0, 5);
+                .sort((a, b) => b.uploadedCount - a.uploadedCount || a.missingCount - b.missingCount || a.name.localeCompare(b.name));
 
             bottomStudents = [...studentDocStats]
-                .sort((a, b) => b.missingCount - a.missingCount || a.uploadedCount - b.uploadedCount || a.name.localeCompare(b.name))
-                .slice(0, 5);
+                .sort((a, b) => b.missingCount - a.missingCount || a.uploadedCount - b.uploadedCount || a.name.localeCompare(b.name));
 
             // ── 5. Document type breakdown overall + by Grade Level (Separated by JHS & SHS) ──
             const typeRows = db.prepare(`

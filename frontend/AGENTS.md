@@ -420,6 +420,10 @@ Files backup/restore - mirror mode or zip -->
   - Document type breakdown -> add filter dropdown for all document type -> if selected one document type show all year level in one pie chart, then it has over to the total
   - top student by documents -> dont count all uploaded document, just count document type uploaded over the total missing required documents -->
 
+# DASHBOARD SCREEN
+- Document breakdown -> make it reponsive for android app
+- "Top students by documents" and "needs attention" view all-> remove the duplicated label button -> student rankings modal dont make it AI slop or too AI generic design
+
 --- 
 
 # DONT DO
