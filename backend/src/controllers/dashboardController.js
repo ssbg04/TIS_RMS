@@ -81,57 +81,54 @@ exports.getStats = (req, res) => {
                   )
             `).get(activeAyId, userId).count;
         } else {
-            // Admin: Students enrolled in active academic year
-            totalStudents = db.prepare(`
-                SELECT COUNT(DISTINCT s.id) as count
-                FROM students s
-                JOIN enrollments e ON s.id = e.student_id
-                WHERE e.academic_year_id = ?
-            `).get(activeAyId).count;
+            // Admin: All students across the entire system
+            totalStudents = db.prepare('SELECT COUNT(*) as count FROM students').get().count;
 
-            // Count of students who have ALL mandatory docs complete across all sections in active year
+            // Count of students who have ALL mandatory docs complete across all students
             completedDocuments = db.prepare(`
                 SELECT COUNT(DISTINCT s.id) as count
                 FROM students s
-                JOIN enrollments e ON s.id = e.student_id
-                WHERE e.academic_year_id = ?
-                  AND NOT EXISTS (
-                      SELECT 1
-                      FROM document_requirements dr
-                      WHERE dr.is_mandatory = 1
-                        AND dr.is_enabled = 1
-                        AND dr.category = (CASE WHEN e.grade_level <= 10 THEN 'JHS' ELSE 'SHS' END)
-                        AND NOT EXISTS (
-                            SELECT 1 FROM documents d
-                            WHERE d.student_id = s.id
-                              AND (d.requirement_id = dr.id OR d.document_type = dr.name OR d.document_type = dr.category || ' - ' || dr.name)
-                              AND d.status = 'Completed'
-                              AND d.deleted_at IS NULL
-                        )
-                  )
-            `).get(activeAyId).count;
+                WHERE NOT EXISTS (
+                    SELECT 1
+                    FROM document_requirements dr
+                    WHERE dr.is_mandatory = 1
+                      AND dr.is_enabled = 1
+                      AND dr.category IN (
+                          SELECT DISTINCT CASE WHEN grade_level <= 10 THEN 'JHS' ELSE 'SHS' END
+                          FROM enrollments WHERE student_id = s.id
+                      )
+                      AND NOT EXISTS (
+                          SELECT 1 FROM documents d
+                          WHERE d.student_id = s.id
+                            AND (d.requirement_id = dr.id OR d.document_type = dr.name OR d.document_type = dr.category || ' - ' || dr.name)
+                            AND d.status = 'Completed'
+                            AND d.deleted_at IS NULL
+                      )
+                )
+            `).get().count;
 
-            // Count of students who are missing at least one mandatory document across all sections in active year
+            // Count of students who are missing at least one mandatory document across all students
             missingDocuments = db.prepare(`
                 SELECT COUNT(DISTINCT s.id) as count
                 FROM students s
-                JOIN enrollments e ON s.id = e.student_id
-                WHERE e.academic_year_id = ?
-                  AND EXISTS (
-                      SELECT 1
-                      FROM document_requirements dr
-                      WHERE dr.is_mandatory = 1
-                        AND dr.is_enabled = 1
-                        AND dr.category = (CASE WHEN e.grade_level <= 10 THEN 'JHS' ELSE 'SHS' END)
-                        AND NOT EXISTS (
-                            SELECT 1 FROM documents d
-                            WHERE d.student_id = s.id
-                              AND (d.requirement_id = dr.id OR d.document_type = dr.name OR d.document_type = dr.category || ' - ' || dr.name)
-                              AND d.status = 'Completed'
-                              AND d.deleted_at IS NULL
-                        )
-                  )
-            `).get(activeAyId).count;
+                WHERE EXISTS (
+                    SELECT 1
+                    FROM document_requirements dr
+                    WHERE dr.is_mandatory = 1
+                      AND dr.is_enabled = 1
+                      AND dr.category IN (
+                          SELECT DISTINCT CASE WHEN grade_level <= 10 THEN 'JHS' ELSE 'SHS' END
+                          FROM enrollments WHERE student_id = s.id
+                      )
+                      AND NOT EXISTS (
+                          SELECT 1 FROM documents d
+                          WHERE d.student_id = s.id
+                            AND (d.requirement_id = dr.id OR d.document_type = dr.name OR d.document_type = dr.category || ' - ' || dr.name)
+                            AND d.status = 'Completed'
+                            AND d.deleted_at IS NULL
+                      )
+                )
+            `).get().count;
         }
 
         const hasAssignedSections = isTeacher 

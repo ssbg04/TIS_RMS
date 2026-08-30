@@ -737,22 +737,22 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
           backgroundColor: Colors.transparent,
         floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
         floatingActionButton: (isMobile &&
-                widget.userRole != 'teacher' &&
                 !_isMultiSelectMode &&
                 !_searchFocusNode.hasFocus)
             ? HorizontalExpandableFab(
                 heroTag: 'fab_documents_menu',
                 items: [
-                  // Print List Action (always available for admin)
-                  FabActionItem(
-                    icon: Icons.print_rounded,
-                    tooltip: 'Print List',
-                    badgeCount: ref.watch(printQueueProvider).value?.length ?? 0,
-                    heroTag: 'fab_docs_print_list',
-                    onPressed: () => PrintQueueModal.show(context),
-                  ),
-                  // Multi-Select Action (available on All Documents or in opened folder)
-                  if (_tabController.index == 1 || isFolderOpened)
+                  // Print List Action (available for admin only)
+                  if (widget.userRole != 'teacher')
+                    FabActionItem(
+                      icon: Icons.print_rounded,
+                      tooltip: 'Print List',
+                      badgeCount: ref.watch(printQueueProvider).value?.length ?? 0,
+                      heroTag: 'fab_docs_print_list',
+                      onPressed: () => PrintQueueModal.show(context),
+                    ),
+                  // Multi-Select Action (available for admin on All Documents or in opened folder)
+                  if (widget.userRole != 'teacher' && (_tabController.index == 1 || isFolderOpened))
                     FabActionItem(
                       icon: Icons.checklist_rounded,
                       tooltip: 'Select Multiple',
@@ -763,7 +763,7 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
                         });
                       },
                     ),
-                  // Upload Document Action (available on All Documents or in opened folder)
+                  // Upload Document Action (available on All Documents or in opened folder for both admin and teacher)
                   if (_tabController.index == 1 || isFolderOpened)
                     FabActionItem(
                       icon: Icons.cloud_upload_rounded,
@@ -1181,8 +1181,8 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
             const SizedBox(width: 4),
           ],
 
-          // Desktop action buttons (Upload available to admins only)
-          if (!isMobile && _tabController.index != 2 && widget.userRole != 'teacher') ...[
+          // Desktop action buttons (Upload available to admins and teachers)
+          if (!isMobile && _tabController.index != 2) ...[
             SizedBox(
               height: 36,
               child: ElevatedButton.icon(

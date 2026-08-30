@@ -10,7 +10,6 @@ import '../../../core/constants/app_sizes.dart';
 import '../../../domain/entities/student_model.dart';
 import '../../../domain/entities/setup_models.dart';
 import '../../shared/buttons/primary_button.dart';
-import '../../shared/widgets/app_button_loader.dart';
 import '../../providers/student_provider.dart';
 import '../documents/widgets/student_profile_modal.dart';
 import 'widgets/add_student_modal.dart';
@@ -593,7 +592,6 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
   // ----------------------------------------------------------------
   Future<void> _confirmDelete(StudentModel student) async {
     final confirmController = TextEditingController();
-    bool isLoading = false;
     String? errorMessage;
 
     final confirmed = await showDialog<bool>(
@@ -626,35 +624,26 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
               ),
               actions: [
                 TextButton(
-                  onPressed: isLoading
-                      ? null
-                      : () => Navigator.of(ctx).pop(false),
+                  onPressed: () => Navigator.of(ctx).pop(false),
                   child: const Text('CANCEL'),
                 ),
                 TextButton(
-                  onPressed: isLoading
-                      ? null
-                      : () async {
-                          final text = confirmController.text.trim();
-                          if (text.isEmpty) {
-                            setState(() => errorMessage = 'Input is required');
-                            return;
-                          }
-                          if (text.toLowerCase() != 'confirm') {
-                            setState(
-                              () => errorMessage = 'Please type "confirm"',
-                            );
-                            return;
-                          }
-                          Navigator.of(ctx).pop(true);
-                        },
+                  onPressed: () {
+                    final text = confirmController.text.trim();
+                    if (text.isEmpty) {
+                      setState(() => errorMessage = 'Input is required');
+                      return;
+                    }
+                    if (text.toLowerCase() != 'confirm') {
+                      setState(
+                        () => errorMessage = 'Please type "confirm"',
+                      );
+                      return;
+                    }
+                    Navigator.of(ctx).pop(true);
+                  },
                   style: TextButton.styleFrom(foregroundColor: AppColors.error),
-                  child: isLoading
-                      ? const AppButtonLoader(
-                          size: 16,
-                          color: AppColors.error,
-                        )
-                      : const Text('DELETE'),
+                  child: const Text('DELETE'),
                 ),
               ],
             );
@@ -720,6 +709,24 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
 
   void _openDocumentsFolder(StudentModel student) {
     if (student.status != 'Enrolled') {
+      if (widget.userRole == 'teacher') {
+        showDialog(
+          context: context,
+          builder: (ctx) => AlertDialog(
+            title: const Text('Inactive Record'),
+            content: Text(
+              '${student.listDisplayName} is currently marked as ${student.status}. Archived records are only accessible by Administrators.',
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(ctx).pop(),
+                child: const Text('OK'),
+              ),
+            ],
+          ),
+        );
+        return;
+      }
       showDialog(
         context: context,
         builder: (ctx) => AlertDialog(

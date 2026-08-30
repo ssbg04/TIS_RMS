@@ -218,7 +218,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> with SingleTickerProv
         onSuccess: (msg) {
           showSuccessDialog(
             context,
-            title: 'Password Reset Successful',
+            title: 'Success',
             message: msg,
           );
         },
@@ -798,7 +798,7 @@ class _ForgotPasswordDialogState extends ConsumerState<_ForgotPasswordDialog> {
       if (mounted) {
         showErrorDialog(
           context,
-          'Password Reset Request Failed',
+          'Error',
           e.toString().replaceAll('Exception: ', ''),
         );
       }
@@ -817,7 +817,7 @@ class _ForgotPasswordDialogState extends ConsumerState<_ForgotPasswordDialog> {
     final confirmPass = _confirmPassCtrl.text;
 
     if (newPass != confirmPass) {
-      showErrorDialog(context, 'Password Mismatch', 'Passwords do not match.');
+      showErrorDialog(context, 'Error', 'Passwords do not match.');
       return;
     }
 
@@ -840,7 +840,7 @@ class _ForgotPasswordDialogState extends ConsumerState<_ForgotPasswordDialog> {
       if (mounted) {
         showErrorDialog(
           context,
-          'Password Reset Failed',
+          'Error',
           e.toString().replaceAll('Exception: ', ''),
         );
       }
@@ -889,9 +889,7 @@ class _ForgotPasswordDialogState extends ConsumerState<_ForgotPasswordDialog> {
                     SizedBox(width: isMobile ? 8 : 12),
                     Expanded(
                       child: Text(
-                        _currentStep == 0
-                            ? 'Forgot Password'
-                            : 'Set New Password',
+                        _currentStep == 0 ? 'Recovery' : 'Reset',
                         style: TextStyle(
                           fontSize: isMobile ? 18 : 20,
                           fontWeight: FontWeight.bold,

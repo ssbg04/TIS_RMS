@@ -1,4 +1,6 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../domain/repositories/document_repository.dart'
@@ -479,12 +481,9 @@ class StudentProfileModalBody extends ConsumerWidget {
                         color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
                       ),
                     ),
-                    Text(
-                      'LRN: ${student.lrn}',
-                      style: TextStyle(
-                        color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
-                        fontSize: 13,
-                      ),
+                    _CopyableLrnButton(
+                      lrn: student.lrn?.toString(),
+                      isDark: isDark,
                     ),
                   ],
                 ),
@@ -939,6 +938,116 @@ class StudentProfileModalBody extends ConsumerWidget {
     if (date == null) return 'N/A';
     if (date is DateTime) return '${date.month}/${date.day}/${date.year}';
     return date.toString();
+  }
+}
+
+class _CopyableLrnButton extends StatefulWidget {
+  final String? lrn;
+  final bool isDark;
+
+  const _CopyableLrnButton({required this.lrn, required this.isDark});
+
+  @override
+  State<_CopyableLrnButton> createState() => _CopyableLrnButtonState();
+}
+
+class _CopyableLrnButtonState extends State<_CopyableLrnButton> {
+  bool _copied = false;
+  Timer? _timer;
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    super.dispose();
+  }
+
+  void _handleCopy() {
+    final lrn = widget.lrn?.toString().trim() ?? '';
+    if (lrn.isEmpty) return;
+
+    Clipboard.setData(ClipboardData(text: lrn));
+    HapticFeedback.lightImpact();
+
+    setState(() {
+      _copied = true;
+    });
+
+    _timer?.cancel();
+    _timer = Timer(const Duration(milliseconds: 1800), () {
+      if (mounted) {
+        setState(() {
+          _copied = false;
+        });
+      }
+    });
+
+    ScaffoldMessenger.of(context).hideCurrentSnackBar();
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Row(
+          children: [
+            const Icon(Icons.check_circle_outline, color: Colors.white, size: 18),
+            const SizedBox(width: 8),
+            Text('LRN copied: $lrn'),
+          ],
+        ),
+        duration: const Duration(seconds: 2),
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+        backgroundColor: AppColors.primaryGreen,
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      borderRadius: BorderRadius.circular(6),
+      onTap: _handleCopy,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 2, horizontal: 2),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              'LRN: ${widget.lrn ?? 'N/A'}',
+              style: TextStyle(
+                color: widget.isDark
+                    ? AppColors.darkTextSecondary
+                    : AppColors.textSecondary,
+                fontSize: 13,
+              ),
+            ),
+            const SizedBox(width: 6),
+            Tooltip(
+              message: _copied ? 'Copied!' : 'Copy LRN',
+              child: AnimatedSwitcher(
+                duration: const Duration(milliseconds: 250),
+                transitionBuilder: (child, anim) => ScaleTransition(
+                  scale: anim,
+                  child: child,
+                ),
+                child: _copied
+                    ? const Icon(
+                        Icons.check_circle_rounded,
+                        key: ValueKey('check'),
+                        size: 15,
+                        color: AppColors.primaryGreen,
+                      )
+                    : Icon(
+                        Icons.copy_rounded,
+                        key: const ValueKey('copy'),
+                        size: 14,
+                        color: widget.isDark
+                            ? AppColors.darkTextSecondary
+                            : AppColors.textSecondary,
+                      ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 }
 

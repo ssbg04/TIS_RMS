@@ -426,11 +426,14 @@ Files backup/restore - mirror mode or zip -->
 # STUDENT SCREEN
 - student profile modal -> make the modal have fixed size so every loading its not smaller when loading -->
 
-# STUDENT SCREEN
+<!-- # STUDENT SCREEN
 - user friendly logs/histories and "analytics & KPIs" that uses basic english understandable by normal user
 
 # TEACHERS & ACADEMIC SETUP
-- hide or remove from the list all users have deactivated status
+- hide or remove from the list all users have deactivated status -->
+
+# STUDENT SCREEN
+- student profile modal -> make the lrn can be copy add icon button to automatically copy
 
 --- 
 
