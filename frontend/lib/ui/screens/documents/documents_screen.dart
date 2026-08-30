@@ -579,6 +579,7 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
   }
 
   Future<void> _handleBatchDelete() async {
+    final count = _selectedDocumentIds.length;
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
@@ -589,14 +590,14 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
             SizedBox(width: 8),
             Flexible(
               child: Text(
-                'Delete Selected Documents',
+                'Delete Documents',
                 style: TextStyle(color: AppColors.error, fontSize: 17),
               ),
             ),
           ],
         ),
         content: Text(
-          'Are you sure you want to permanently delete these ${_selectedDocumentIds.length} documents?',
+          'Are you sure you want to move $count document${count > 1 ? 's' : ''} to the Recycle Bin?',
         ),
         actions: [
           TextButton(
@@ -626,7 +627,7 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
       if (!mounted) return;
       showSuccessDialog(
         context,
-        message: 'Selected documents deleted successfully.',
+        message: 'Moved $count document${count > 1 ? 's' : ''} to Recycle Bin.',
       );
     } catch (e) {
       if (!mounted) return;

@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:calendar_date_picker2/calendar_date_picker2.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_sizes.dart';
 import '../../shared/inputs/custom_text_field.dart';
@@ -1415,98 +1416,130 @@ class _AcademicYearFormModalState extends ConsumerState<AcademicYearFormModal> {
                 onChanged: (v) => setState(() => _status = v!),
               ),
               const SizedBox(height: AppSizes.p16),
-              Row(
-                children: [
-                  Expanded(
-                    child: OutlinedButton.icon(
-                      onPressed: () async {
-                        final picked = await showDatePicker(
-                          context: context,
-                          initialDate: _startDate ?? DateTime.now(),
-                          firstDate: DateTime(2000),
-                          lastDate: DateTime(2100),
-                        );
-                        if (picked != null) {
-                          setState(() => _startDate = picked);
-                        }
-                      },
-                      icon: const Icon(Icons.date_range, size: 16),
-                      label: Text(
-                        _startDate != null
-                            ? 'Start: ${_formatYmd(_startDate)!}'
-                            : (isNarrow ? 'Start Date' : 'Start Date (Optional)'),
-                        overflow: TextOverflow.ellipsis,
+              // Date Range Picker (1 picker only using calendar_date_picker2)
+              Container(
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(
+                    color: isDark ? AppColors.darkBorder : Colors.grey.shade300,
+                  ),
+                  color: isDark ? AppColors.darkSurface2 : Colors.grey.shade50,
+                ),
+                child: InkWell(
+                  borderRadius: BorderRadius.circular(8),
+                  onTap: () async {
+                    final initialDates = <DateTime>[];
+                    if (_startDate != null) initialDates.add(_startDate!);
+                    if (_endDate != null) initialDates.add(_endDate!);
+
+                    final results = await showCalendarDatePicker2Dialog(
+                      context: context,
+                      config: CalendarDatePicker2WithActionButtonsConfig(
+                        calendarType: CalendarDatePicker2Type.range,
+                        firstDate: DateTime(1990),
+                        lastDate: DateTime(2100),
+                        selectedDayHighlightColor: AppColors.primaryGreen,
+                        okButton: const Text('APPLY', style: TextStyle(color: AppColors.primaryGreen, fontWeight: FontWeight.bold)),
+                        cancelButton: const Text('CANCEL', style: TextStyle(color: AppColors.textSecondary)),
                       ),
+                      dialogSize: const Size(325, 400),
+                      value: initialDates,
+                      borderRadius: BorderRadius.circular(16),
+                    );
+
+                    if (results != null && results.isNotEmpty) {
+                      setState(() {
+                        _startDate = results.first;
+                        _endDate = results.length > 1 ? results.last : results.first;
+                      });
+                    }
+                  },
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                    child: Row(
+                      children: [
+                        const Icon(
+                          Icons.date_range_outlined,
+                          size: 20,
+                          color: AppColors.primaryGreen,
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Text(
+                            (_startDate != null && _endDate != null)
+                                ? '${_formatYmd(_startDate)}  to  ${_formatYmd(_endDate)}'
+                                : _startDate != null
+                                    ? 'Start: ${_formatYmd(_startDate)} (Select End Date)'
+                                    : 'Select Academic Year Dates (Optional)',
+                            style: TextStyle(
+                              fontSize: 13,
+                              color: (_startDate != null || _endDate != null)
+                                  ? (isDark ? AppColors.darkTextPrimary : AppColors.textPrimary)
+                                  : (isDark ? AppColors.darkTextMuted : AppColors.textMuted),
+                              fontWeight: (_startDate != null || _endDate != null)
+                                  ? FontWeight.w600
+                                  : FontWeight.normal,
+                            ),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                        if (_startDate != null || _endDate != null)
+                          IconButton(
+                            icon: const Icon(Icons.clear, size: 18),
+                            padding: EdgeInsets.zero,
+                            constraints: const BoxConstraints(),
+                            tooltip: 'Clear dates',
+                            onPressed: () {
+                              setState(() {
+                                _startDate = null;
+                                _endDate = null;
+                              });
+                            },
+                          ),
+                      ],
                     ),
                   ),
-                  if (_startDate != null) ...[
-                    const SizedBox(width: 4),
-                    IconButton(
-                      icon: const Icon(Icons.clear, size: 16),
-                      onPressed: () => setState(() => _startDate = null),
-                    ),
-                  ],
-                ],
-              ),
-              const SizedBox(height: 8),
-              Row(
-                children: [
-                  Expanded(
-                    child: OutlinedButton.icon(
-                      onPressed: () async {
-                        final picked = await showDatePicker(
-                          context: context,
-                          initialDate:
-                              _endDate ?? (_startDate ?? DateTime.now()),
-                          firstDate: DateTime(2000),
-                          lastDate: DateTime(2100),
-                        );
-                        if (picked != null) {
-                          setState(() => _endDate = picked);
-                        }
-                      },
-                      icon: const Icon(Icons.event, size: 16),
-                      label: Text(
-                        _endDate != null
-                            ? 'End: ${_formatYmd(_endDate)!}'
-                            : (isNarrow ? 'End Date' : 'End Date (Optional)'),
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ),
-                  ),
-                  if (_endDate != null) ...[
-                    const SizedBox(width: 4),
-                    IconButton(
-                      icon: const Icon(Icons.clear, size: 16),
-                      onPressed: () => setState(() => _endDate = null),
-                    ),
-                  ],
-                ],
+                ),
               ),
               const SizedBox(height: 24),
               Row(
                 children: [
                   Expanded(
-                    child: OutlinedButton(
-                      onPressed: () => Navigator.pop(context),
-                      style: OutlinedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(vertical: 16),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(
-                            AppSizes.radiusMedium,
+                    child: SizedBox(
+                      height: 44,
+                      child: OutlinedButton(
+                        onPressed: () => Navigator.pop(context),
+                        style: OutlinedButton.styleFrom(
+                          padding: EdgeInsets.zero,
+                          side: BorderSide(
+                            color: isDark ? AppColors.darkBorder : Colors.grey.shade300,
+                          ),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(
+                              AppSizes.radiusMedium,
+                            ),
+                          ),
+                        ),
+                        child: Text(
+                          'CANCEL',
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 13,
+                            color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
                           ),
                         ),
                       ),
-                      child: const Text('CANCEL'),
                     ),
                   ),
                   const SizedBox(width: 12),
                   Expanded(
-                    flex: 2,
-                    child: PrimaryButton(
-                      label: isEditing ? 'UPDATE' : 'CREATE',
-                      isLoading: _isLoading,
-                      onPressed: _handleSubmit,
+                    child: SizedBox(
+                      height: 44,
+                      child: PrimaryButton(
+                        label: isEditing ? 'UPDATE' : 'CREATE',
+                        isLoading: _isLoading,
+                        onPressed: _handleSubmit,
+                      ),
                     ),
                   ),
                 ],
@@ -1613,6 +1646,7 @@ class _SectionFormModalState extends ConsumerState<SectionFormModal> {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final isEditing = widget.section != null;
     final yearsAsync = ref.watch(academicYearsListProvider);
     final isNarrow =
@@ -1730,26 +1764,41 @@ class _SectionFormModalState extends ConsumerState<SectionFormModal> {
                   Row(
                     children: [
                       Expanded(
-                        child: OutlinedButton(
-                          onPressed: () => Navigator.pop(context),
-                          style: OutlinedButton.styleFrom(
-                            padding: const EdgeInsets.symmetric(vertical: 16),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(
-                                AppSizes.radiusMedium,
+                        child: SizedBox(
+                          height: 44,
+                          child: OutlinedButton(
+                            onPressed: () => Navigator.pop(context),
+                            style: OutlinedButton.styleFrom(
+                              padding: EdgeInsets.zero,
+                              side: BorderSide(
+                                color: isDark ? AppColors.darkBorder : Colors.grey.shade300,
+                              ),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(
+                                  AppSizes.radiusMedium,
+                                ),
+                              ),
+                            ),
+                            child: Text(
+                              'CANCEL',
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 13,
+                                color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
                               ),
                             ),
                           ),
-                          child: const Text('CANCEL'),
                         ),
                       ),
                       const SizedBox(width: 12),
                       Expanded(
-                        flex: 2,
-                        child: PrimaryButton(
-                          label: isEditing ? 'UPDATE' : 'CREATE',
-                          isLoading: _isLoading,
-                          onPressed: _handleSubmit,
+                        child: SizedBox(
+                          height: 44,
+                          child: PrimaryButton(
+                            label: isEditing ? 'UPDATE' : 'CREATE',
+                            isLoading: _isLoading,
+                            onPressed: _handleSubmit,
+                          ),
                         ),
                       ),
                     ],
@@ -2145,26 +2194,41 @@ class _TeacherSectionsModalState extends ConsumerState<TeacherSectionsModal> {
               child: Row(
                 children: [
                   Expanded(
-                    child: OutlinedButton(
-                      onPressed: () => Navigator.pop(context),
-                      style: OutlinedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(vertical: 16),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(
-                            AppSizes.radiusMedium,
+                    child: SizedBox(
+                      height: 44,
+                      child: OutlinedButton(
+                        onPressed: () => Navigator.pop(context),
+                        style: OutlinedButton.styleFrom(
+                          padding: EdgeInsets.zero,
+                          side: BorderSide(
+                            color: isDark ? AppColors.darkBorder : Colors.grey.shade300,
+                          ),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(
+                              AppSizes.radiusMedium,
+                            ),
+                          ),
+                        ),
+                        child: Text(
+                          'CANCEL',
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 13,
+                            color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
                           ),
                         ),
                       ),
-                      child: const Text('CANCEL'),
                     ),
                   ),
                   const SizedBox(width: 12),
                   Expanded(
-                    flex: 2,
-                    child: PrimaryButton(
-                      label: 'SAVE',
-                      isLoading: _isLoading,
-                      onPressed: _handleSave,
+                    child: SizedBox(
+                      height: 44,
+                      child: PrimaryButton(
+                        label: 'SAVE',
+                        isLoading: _isLoading,
+                        onPressed: _handleSave,
+                      ),
                     ),
                   ),
                 ],

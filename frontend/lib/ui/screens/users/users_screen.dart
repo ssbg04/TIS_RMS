@@ -19,7 +19,6 @@ import '../../shared/dialogs/error_dialog.dart';
 import '../../shared/dialogs/success_dialog.dart';
 import '../../shared/dialogs/confirm_dialog.dart';
 import '../../shared/modals/custom_modal.dart';
-import '../../shared/modals/reset_requests_modal.dart';
 import '../../../core/services/sound_service.dart';
 import '../../../core/services/haptic_service.dart';
 import 'package:wolt_modal_sheet/wolt_modal_sheet.dart';
@@ -54,7 +53,6 @@ class _UsersScreenState extends ConsumerState<UsersScreen> {
     });
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
-      ref.invalidate(resetRequestsProvider);
 
       if (ref.read(activeTabProvider) == 'Users') {
         _shortcutFocusNode.requestFocus();
@@ -588,8 +586,6 @@ class _UsersScreenState extends ConsumerState<UsersScreen> {
   @override
   Widget build(BuildContext context) {
     final usersAsync = ref.watch(usersProvider);
-    final resetRequestsAsync = ref.watch(resetRequestsProvider);
-    final resetCount = resetRequestsAsync.value?.length ?? 0;
 
     return CallbackShortcuts(
       bindings: <ShortcutActivator, VoidCallback>{
@@ -603,38 +599,18 @@ class _UsersScreenState extends ConsumerState<UsersScreen> {
         child: Scaffold(
           resizeToAvoidBottomInset: false,
           backgroundColor: Colors.transparent,
-      floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
+      floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
       floatingActionButton: (MediaQuery.of(context).size.width > 800 ||
               _searchFocusNode.hasFocus ||
               _searchQuery.isNotEmpty)
           ? null
-          : Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16.0),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Badge(
-                    isLabelVisible: resetCount > 0,
-                    label: Text(resetCount.toString()),
-                    child: FloatingActionButton(
-                      heroTag: 'reset_requests_fab',
-                      onPressed: () => ResetRequestsModal.show(context),
-                      backgroundColor: Colors.orange,
-                      foregroundColor: Colors.white,
-                      shape: const CircleBorder(),
-                      child: const Icon(Icons.lock_clock),
-                    ),
-                  ),
-                  FloatingActionButton(
-                    heroTag: 'add_user_fab',
-                    onPressed: () => _openModal(),
-                    backgroundColor: AppColors.primaryGreen,
-                    foregroundColor: Colors.white,
-                    shape: const CircleBorder(),
-                    child: const Icon(Icons.add),
-                  ),
-                ],
-              ),
+          : FloatingActionButton(
+              heroTag: 'add_user_fab',
+              onPressed: () => _openModal(),
+              backgroundColor: AppColors.primaryGreen,
+              foregroundColor: Colors.white,
+              shape: const CircleBorder(),
+              child: const Icon(Icons.add),
             ),
       body: SafeArea(
         child: Padding(
@@ -642,7 +618,7 @@ class _UsersScreenState extends ConsumerState<UsersScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              _buildHeader(context, resetCount),
+              _buildHeader(context),
               const SizedBox(height: AppSizes.p24),
               Expanded(
                 child: usersAsync.when(
@@ -779,7 +755,7 @@ class _UsersScreenState extends ConsumerState<UsersScreen> {
     );
   }
 
-  Widget _buildHeader(BuildContext context, int resetCount) {
+  Widget _buildHeader(BuildContext context) {
     final isDesktop = MediaQuery.of(context).size.width > 800;
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final textPrimary = isDark ? AppColors.darkTextPrimary : AppColors.textPrimary;
@@ -800,61 +776,28 @@ class _UsersScreenState extends ConsumerState<UsersScreen> {
               ),
             ),
             if (isDesktop)
-              Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Badge(
-                    isLabelVisible: resetCount > 0,
-                    label: Text(resetCount.toString()),
-                    child: ElevatedButton.icon(
-                      icon: const Icon(Icons.lock_clock, size: 18),
-                      label: const Text(
-                        'Password Requests',
-                        style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 14,
-                        ),
-                      ),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.orange,
-                        foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 16,
-                          vertical: 12,
-                        ),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        elevation: 0,
-                      ),
-                      onPressed: () => ResetRequestsModal.show(context),
-                    ),
+              ElevatedButton.icon(
+                icon: const Icon(Icons.add, size: 18),
+                label: const Text(
+                  'Add User',
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 14,
                   ),
-                  const SizedBox(width: 12),
-                  ElevatedButton.icon(
-                    icon: const Icon(Icons.add, size: 18),
-                    label: const Text(
-                      'Add User',
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 14,
-                      ),
-                    ),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.primaryGreen,
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 20,
-                        vertical: 12,
-                      ),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      elevation: 0,
-                    ),
-                    onPressed: () => _openModal(),
+                ),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.primaryGreen,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 20,
+                    vertical: 12,
                   ),
-                ],
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  elevation: 0,
+                ),
+                onPressed: () => _openModal(),
               ),
           ],
         ),

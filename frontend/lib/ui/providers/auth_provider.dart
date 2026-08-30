@@ -123,10 +123,3 @@ final profileProvider = FutureProvider.autoDispose<UserModel>((ref) async {
   final repository = ref.read(authRepositoryProvider);
   return await repository.getProfile();
 });
-
-// Super Admin: pending password reset requests
-final resetRequestsProvider =
-    FutureProvider.autoDispose<List<Map<String, dynamic>>>((ref) async {
-      final repository = ref.read(authRepositoryProvider);
-      return await repository.getResetRequests();
-    });

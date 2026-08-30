@@ -435,8 +435,17 @@ Files backup/restore - mirror mode or zip -->
 # STUDENT SCREEN
 - student profile modal -> make the lrn can be copy add icon button to automatically copy -->
 
-# DASHBOARD SCREEN
-- "Top students by documents" and "needs attention" view all -> list of students count of missing documents when hover shows missing requirements separate jhs shs
+
+# DOCUMENT REQUIREMENTS SCREEN
+- fix some student folders didnt show in the list
+
+# TEACHERS & ACADEMIC SETUP SCREEN
+- manage section -> make the buttons responsive same size
+- add academic year -> make the buttons responsive same size
+- add section -> -> make the buttons responsive same size
+
+# REPORTS SCREEN
+- fix all y scroll bar need to touch the graphs to show
 
 --- 
 
@@ -446,25 +455,10 @@ Files backup/restore - mirror mode or zip -->
 - add missing students by document type kpi
 
 
-
 - notification separate admin and teacher
 - bug in bulk add student enrollment
 
 - report all export 
-
-Dashboard
-Document breakdown- missing docs
-those who didnt submit
-What specific year level have complied or partially complied
-Documents (no. of completed) over ilan ang docu
-Orient ang client as extension proj of our sch
-Graph depending sa no. of 4ps
-
-features
-- submit missing requirement
-- specific yr level dashboard
-- number of completed
-- how many document
 ---
 
 # TIS_RMS Server Manager (dont do)

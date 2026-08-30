@@ -181,47 +181,6 @@ class AuthRepository {
     }
   }
 
-  /// Super Admin: get pending password reset requests.
-  Future<List<Map<String, dynamic>>> getResetRequests() async {
-    try {
-      final options = await _getAuthOptions();
-      final response = await _dio.get('/auth/reset-requests', options: options);
-      return List<Map<String, dynamic>>.from(response.data);
-    } on DioException catch (e) {
-      final errorMessage =
-          e.response?.data['message'] ?? 'Failed to fetch requests.';
-      throw Exception(errorMessage);
-    }
-  }
-
-  /// Super Admin: approve a password reset request.
-  Future<void> approveResetRequest(int requestId) async {
-    try {
-      final options = await _getAuthOptions();
-      await _dio.put(
-        '/auth/reset-requests/$requestId/approve',
-        options: options,
-      );
-    } on DioException catch (e) {
-      final errorMessage = e.response?.data['message'] ?? 'Failed to approve.';
-      throw Exception(errorMessage);
-    }
-  }
-
-  /// Super Admin: reject a password reset request.
-  Future<void> rejectResetRequest(int requestId) async {
-    try {
-      final options = await _getAuthOptions();
-      await _dio.put(
-        '/auth/reset-requests/$requestId/reject',
-        options: options,
-      );
-    } on DioException catch (e) {
-      final errorMessage = e.response?.data['message'] ?? 'Failed to reject.';
-      throw Exception(errorMessage);
-    }
-  }
-
   /// Verify current user's password
   Future<bool> verifyPassword(String password) async {
     try {

@@ -35,6 +35,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
   final ScrollController _tableHorizontalScrollController = ScrollController();
   final ScrollController _chartHorizontalScrollController = ScrollController();
   final ScrollController _gradeComplianceScrollController = ScrollController();
+  final ScrollController _missingDocsScrollController = ScrollController();
   ProviderSubscription<String>? _tabListener;
   Timer? _pollingTimer;
 
@@ -104,6 +105,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
     _tableHorizontalScrollController.dispose();
     _chartHorizontalScrollController.dispose();
     _gradeComplianceScrollController.dispose();
+    _missingDocsScrollController.dispose();
     _searchController.dispose();
     super.dispose();
   }
@@ -514,11 +516,18 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
             ref.invalidate(storageStatsProvider);
             ref.invalidate(transparencyBoardProvider);
           },
-          child: SingleChildScrollView(
+          child: Scrollbar(
             controller: _scrollController,
-            physics: const AlwaysScrollableScrollPhysics(),
-            padding: const EdgeInsets.all(AppSizes.p24),
-            child: Column(
+            thumbVisibility: true,
+            trackVisibility: true,
+            interactive: true,
+            thickness: 8.0,
+            radius: const Radius.circular(4),
+            child: SingleChildScrollView(
+              controller: _scrollController,
+              physics: const AlwaysScrollableScrollPhysics(),
+              padding: const EdgeInsets.all(AppSizes.p24),
+              child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 _buildTitleAndExportActions(context),
@@ -615,8 +624,9 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
           ),
         ),
       ),
-    );
-  }
+    ),
+  );
+}
 
   Widget _buildViewModeToggle() {
     final isDark = Theme.of(context).brightness == Brightness.dark;
@@ -1687,16 +1697,17 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
     );
   }
 
-  // â”€â”€ Missing Documents Breakdown Card â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Missing Documents Breakdown Card ──────────────────────────────────────
   Widget _buildMissingDocsChart(
     List<MissingDocBreakdown> breakdown, {
     required bool isDesktop,
   }) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final isFilterExpanded = ref.watch(missingDocsFilterExpandedProvider);
+    final totalMissingAll = breakdown.fold<int>(0, (sum, item) => sum + item.count);
 
     // Categorize by SHS (grade 11-12) vs JHS (grade 7-10)
-    // The requirement name may contain grade info â€“ we rely on the name for best-effort.
+    // The requirement name may contain grade info – we rely on the name for best-effort.
     // Since the backend doesn't yet return grade_level per requirement, we detect via
     // common keywords or a "SHS"/"JHS" prefix approach. Fall back to showing both tags.
     Widget levelBadge(String level, Color bg, Color fg) => Container(
@@ -1711,7 +1722,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
       ),
     );
 
-    // Heuristic: if name contains 'Grade 11' or 'Grade 12' or 'SHS' â†’ SHS; 'Grade 7â€“10' or 'JHS' â†’ JHS; else both
+    // Heuristic: if name contains 'Grade 11' or 'Grade 12' or 'SHS' → SHS; 'Grade 7–10' or 'JHS' → JHS; else both
     String detectLevel(String name) {
       final upper = name.toUpperCase();
       if (upper.contains('SHS') ||
@@ -1729,6 +1740,123 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
       return 'ALL';
     }
 
+    Widget buildMissingDocRow(MissingDocBreakdown item) {
+      final pct = totalMissingAll > 0 ? (item.count / totalMissingAll).clamp(0.0, 1.0) : 0.0;
+      final level = detectLevel(item.name);
+
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              // Level badge
+              SizedBox(
+                width: 36,
+                child: level == 'SHS'
+                    ? levelBadge(
+                        'SHS',
+                        isDark
+                            ? const Color(0xFFB39DDB).withValues(alpha: 0.14)
+                            : Colors.purple.shade50,
+                        isDark ? const Color(0xFFB39DDB) : Colors.purple.shade700,
+                      )
+                    : level == 'JHS'
+                    ? levelBadge(
+                        'JHS',
+                        isDark
+                            ? const Color(0xFF80CBC4).withValues(alpha: 0.14)
+                            : Colors.teal.shade50,
+                        isDark ? const Color(0xFF80CBC4) : Colors.teal.shade700,
+                      )
+                    : levelBadge(
+                        'ALL',
+                        isDark ? AppColors.darkSurface2 : Colors.grey.shade100,
+                        isDark
+                            ? AppColors.darkTextSecondary
+                            : Colors.grey.shade600,
+                      ),
+              ),
+              const SizedBox(width: 8),
+              // Name
+              Expanded(
+                child: Text(
+                  item.name,
+                  style: TextStyle(
+                    fontWeight: FontWeight.w600,
+                    fontSize: 12.5,
+                    color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
+                  ),
+                  overflow: TextOverflow.ellipsis,
+                  maxLines: 1,
+                ),
+              ),
+              const SizedBox(width: 8),
+              // Count: (count of missing documents / overall total missing documents)
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 8,
+                  vertical: 2.5,
+                ),
+                decoration: BoxDecoration(
+                  color: isDark
+                      ? const Color(0xFFD67878).withValues(alpha: 0.14)
+                      : Colors.red.shade50,
+                  borderRadius: BorderRadius.circular(6),
+                  border: Border.all(
+                    color: isDark
+                        ? const Color(0xFFD67878).withValues(alpha: 0.3)
+                        : Colors.red.shade200,
+                    width: 0.8,
+                  ),
+                ),
+                child: Text(
+                  '${item.count} / $totalMissingAll',
+                  style: TextStyle(
+                    color: isDark
+                        ? const Color(0xFFD67878)
+                        : Colors.red.shade700,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 11,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 6),
+          // Slim underline progress bar
+          LayoutBuilder(
+            builder: (context, bc) => Stack(
+              children: [
+                Container(
+                  height: 3.5,
+                  width: double.infinity,
+                  decoration: BoxDecoration(
+                    color: isDark ? AppColors.darkSurface2 : Colors.grey.shade200,
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+                AnimatedContainer(
+                  duration: const Duration(milliseconds: 600),
+                  curve: Curves.easeOut,
+                  height: 3.5,
+                  width: bc.maxWidth * pct,
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: isDark
+                          ? const [Color(0xFFE5A663), Color(0xFFD67878)]
+                          : const [Colors.orange, Colors.redAccent],
+                    ),
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      );
+    }
+
     return Container(
       width: double.infinity,
       height: isDesktop ? 460 : null,
@@ -1737,7 +1865,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // â”€â”€ Section Header with show/hide â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+          // ── Section Header with show/hide ─────────────────────────────────
           Row(
             children: [
               Expanded(
@@ -1805,125 +1933,30 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
 
           if (isDesktop) const SizedBox(height: AppSizes.p24),
 
-          // â”€â”€ Expandable content â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+          // ── Expandable content ─────────────────────────────────────────────
           if (isDesktop)
             Expanded(
               child: breakdown.isEmpty
                   ? _emptyWidget(
                       'No missing document requirements found. Compliance is 100%!',
                     )
-                  : ListView.separated(
-                      shrinkWrap: false,
-                      physics: const AlwaysScrollableScrollPhysics(),
-                      itemCount: breakdown.length,
-                      separatorBuilder: (context, index) =>
-                          const SizedBox(height: 10),
-                      itemBuilder: (context, index) {
-                        final item = breakdown[index];
-                        final maxCount = breakdown.first.count;
-                        final pct = maxCount > 0 ? item.count / maxCount : 0.0;
-                        final level = detectLevel(item.name);
-
-                        return Row(
-                          crossAxisAlignment: CrossAxisAlignment.center,
-                          children: [
-                            // Level badge
-                            SizedBox(
-                              width: 34,
-                              child: level == 'SHS'
-                                  ? levelBadge(
-                                      'SHS',
-                                      isDark ? const Color(0xFFB39DDB).withValues(alpha: 0.14) : Colors.purple.shade50,
-                                      isDark ? const Color(0xFFB39DDB) : Colors.purple.shade700,
-                                    )
-                                  : level == 'JHS'
-                                  ? levelBadge(
-                                      'JHS',
-                                      isDark ? const Color(0xFF80CBC4).withValues(alpha: 0.14) : Colors.teal.shade50,
-                                      isDark ? const Color(0xFF80CBC4) : Colors.teal.shade700,
-                                    )
-                                  : levelBadge(
-                                      'ALL',
-                                      isDark ? AppColors.darkSurface2 : Colors.grey.shade100,
-                                      isDark ? AppColors.darkTextSecondary : Colors.grey.shade600,
-                                    ),
-                            ),
-                            const SizedBox(width: 8),
-                            // Name
-                            SizedBox(
-                              width: 155,
-                              child: Text(
-                                item.name,
-                                style: const TextStyle(
-                                  fontWeight: FontWeight.w600,
-                                  fontSize: 12,
-                                ),
-                                overflow: TextOverflow.ellipsis,
-                                maxLines: 1,
-                              ),
-                            ),
-                            const SizedBox(width: 10),
-                            // Progress bar (compact height)
-                            Expanded(
-                              child: Stack(
-                                children: [
-                                  Container(
-                                    height: 10,
-                                    decoration: BoxDecoration(
-                                      color: isDark ? AppColors.darkSurface2 : Colors.grey.shade100,
-                                      borderRadius: BorderRadius.circular(5),
-                                    ),
-                                  ),
-                                  AnimatedContainer(
-                                    duration: const Duration(milliseconds: 600),
-                                    curve: Curves.easeOut,
-                                    height: 10,
-                                    width:
-                                        (MediaQuery.of(context).size.width -
-                                            300) *
-                                        0.45 *
-                                        pct,
-                                    decoration: BoxDecoration(
-                                      gradient: LinearGradient(
-                                        colors: isDark
-                                            ? const [
-                                                Color(0xFFE5A663),
-                                                Color(0xFFD67878),
-                                              ]
-                                            : const [
-                                                Colors.orange,
-                                                Colors.redAccent,
-                                              ],
-                                      ),
-                                      borderRadius: BorderRadius.circular(5),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                            const SizedBox(width: 10),
-                            // Count badge
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 7,
-                                vertical: 2,
-                              ),
-                              decoration: BoxDecoration(
-                                color: isDark ? const Color(0xFFD67878).withValues(alpha: 0.14) : Colors.red.shade50,
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                              child: Text(
-                                '${item.count}',
-                                style: TextStyle(
-                                  color: isDark ? const Color(0xFFD67878) : Colors.red.shade700,
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 11,
-                                ),
-                              ),
-                            ),
-                          ],
-                        );
-                      },
+                  : Scrollbar(
+                      controller: _missingDocsScrollController,
+                      thumbVisibility: true,
+                      trackVisibility: true,
+                      interactive: true,
+                      thickness: 6.0,
+                      radius: const Radius.circular(3),
+                      child: ListView.separated(
+                        controller: _missingDocsScrollController,
+                        shrinkWrap: false,
+                        physics: const AlwaysScrollableScrollPhysics(),
+                        itemCount: breakdown.length,
+                        separatorBuilder: (context, index) =>
+                            const SizedBox(height: 14),
+                        itemBuilder: (context, index) =>
+                            buildMissingDocRow(breakdown[index]),
+                      ),
                     ),
             )
           else
@@ -1943,112 +1976,9 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                       physics: const NeverScrollableScrollPhysics(),
                       itemCount: breakdown.length,
                       separatorBuilder: (context, index) =>
-                          const SizedBox(height: 10),
-                      itemBuilder: (context, index) {
-                        final item = breakdown[index];
-                        final maxCount = breakdown.first.count;
-                        final pct = maxCount > 0 ? item.count / maxCount : 0.0;
-                        final level = detectLevel(item.name);
-
-                        return Row(
-                          crossAxisAlignment: CrossAxisAlignment.center,
-                          children: [
-                            // Level badge
-                            SizedBox(
-                              width: 34,
-                              child: level == 'SHS'
-                                  ? levelBadge(
-                                      'SHS',
-                                      isDark ? const Color(0xFFB39DDB).withValues(alpha: 0.14) : Colors.purple.shade50,
-                                      isDark ? const Color(0xFFB39DDB) : Colors.purple.shade700,
-                                    )
-                                  : level == 'JHS'
-                                  ? levelBadge(
-                                      'JHS',
-                                      isDark ? const Color(0xFF80CBC4).withValues(alpha: 0.14) : Colors.teal.shade50,
-                                      isDark ? const Color(0xFF80CBC4) : Colors.teal.shade700,
-                                    )
-                                  : levelBadge(
-                                      'ALL',
-                                      isDark ? AppColors.darkSurface2 : Colors.grey.shade100,
-                                      isDark ? AppColors.darkTextSecondary : Colors.grey.shade600,
-                                    ),
-                            ),
-                            const SizedBox(width: 8),
-                            // Name
-                            SizedBox(
-                              width: 155,
-                              child: Text(
-                                item.name,
-                                style: const TextStyle(
-                                  fontWeight: FontWeight.w600,
-                                  fontSize: 12,
-                                ),
-                                overflow: TextOverflow.ellipsis,
-                                maxLines: 1,
-                              ),
-                            ),
-                            const SizedBox(width: 10),
-                            // Progress bar (compact height)
-                            Expanded(
-                              child: LayoutBuilder(
-                                builder: (_, bc) => Stack(
-                                  children: [
-                                    Container(
-                                      height: 10,
-                                      decoration: BoxDecoration(
-                                        color: isDark ? AppColors.darkSurface2 : Colors.grey.shade100,
-                                        borderRadius: BorderRadius.circular(5),
-                                      ),
-                                    ),
-                                    AnimatedContainer(
-                                      duration:
-                                          const Duration(milliseconds: 600),
-                                      curve: Curves.easeOut,
-                                      height: 10,
-                                      width: bc.maxWidth * pct,
-                                      decoration: BoxDecoration(
-                                        gradient: LinearGradient(
-                                          colors: isDark
-                                              ? const [
-                                                  Color(0xFFE5A663),
-                                                  Color(0xFFD67878),
-                                                ]
-                                              : const [
-                                                  Colors.orange,
-                                                  Colors.redAccent,
-                                                ],
-                                        ),
-                                        borderRadius: BorderRadius.circular(5),
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ),
-                            const SizedBox(width: 10),
-                            // Count badge
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 7,
-                                vertical: 2,
-                              ),
-                              decoration: BoxDecoration(
-                                color: isDark ? const Color(0xFFD67878).withValues(alpha: 0.14) : Colors.red.shade50,
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                              child: Text(
-                                '${item.count}',
-                                style: TextStyle(
-                                  color: isDark ? const Color(0xFFD67878) : Colors.red.shade700,
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 11,
-                                ),
-                              ),
-                            ),
-                          ],
-                        );
-                      },
+                          const SizedBox(height: 14),
+                      itemBuilder: (context, index) =>
+                          buildMissingDocRow(breakdown[index]),
                     ),
                 ],
               ),
@@ -2547,12 +2477,14 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                 // On wide screens let the table fill naturally.
                 // On narrow screens allow horizontal scroll.
                 final isWideTable = tableConstraints.maxWidth >= 700;
-                Widget tableWidget = DataTable(
-                  showCheckboxColumn: false,
-                  headingRowColor: WidgetStateProperty.all(
-                    AppColors.primaryGreen.withValues(alpha: 0.04),
-                  ),
-                  columnSpacing: isWideTable ? 24 : 16,
+                Widget tableWidget = SizedBox(
+                  width: isWideTable ? tableConstraints.maxWidth : null,
+                  child: DataTable(
+                    showCheckboxColumn: false,
+                    headingRowColor: WidgetStateProperty.all(
+                      AppColors.primaryGreen.withValues(alpha: 0.04),
+                    ),
+                    columnSpacing: isWideTable ? ((tableConstraints.maxWidth - 480) / 6).clamp(16.0, 56.0) : 16,
                   columns: [
                     DataColumn(label: sortableHeader('LRN', 'lrn')),
                     DataColumn(label: sortableHeader('Name', 'name')),
@@ -2755,6 +2687,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                           ],
                         );
                       }).toList(),
+                  ),
                 );
                 if (isWideTable) {
                   return tableWidget;
@@ -3551,7 +3484,9 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                   ? allYearStrings
                   : allYearStrings.sublist(allYearStrings.length - 4);
 
-              return Row(
+              return Wrap(
+                spacing: 20,
+                runSpacing: 12,
                 children: [
                   // Year multi-select dropdown
                   _buildUnderlineDropdown(
@@ -3571,7 +3506,6 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                       selectedYears,
                     ),
                   ),
-                  const SizedBox(width: 20),
                   // Status multi-select dropdown
                   _buildUnderlineDropdown(
                     label: selectedStatuses.length == allStatusOptions.length

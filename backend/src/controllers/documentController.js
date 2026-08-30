@@ -152,13 +152,7 @@ exports.uploadDocument = (req, res) => {
             SELECT 1 FROM enrollments e
             JOIN teacher_sections ts ON e.section_id = ts.section_id
             WHERE e.student_id = ? AND ts.teacher_id = ?
-              AND e.id = (
-                  SELECT e2.id FROM enrollments e2
-                  JOIN academic_years ay ON e2.academic_year_id = ay.id
-                  WHERE e2.student_id = ?
-                  ORDER BY ay.year_range DESC, e2.grade_level DESC, e2.id DESC LIMIT 1
-              )
-        `).get(studentId, req.user.id, studentId);
+        `).get(studentId, req.user.id);
         if (!hasAccess) {
             if (file.path && fs.existsSync(file.path)) {
                 fs.unlinkSync(file.path);
@@ -242,13 +236,7 @@ exports.viewDocument = (req, res) => {
                 SELECT 1 FROM enrollments e
                 JOIN teacher_sections ts ON e.section_id = ts.section_id
                 WHERE e.student_id = ? AND ts.teacher_id = ?
-                  AND e.id = (
-                      SELECT e2.id FROM enrollments e2
-                      JOIN academic_years ay ON e2.academic_year_id = ay.id
-                      WHERE e2.student_id = ?
-                      ORDER BY ay.year_range DESC, e2.grade_level DESC, e2.id DESC LIMIT 1
-                  )
-            `).get(doc.student_id, req.user.id, doc.student_id);
+            `).get(doc.student_id, req.user.id);
             if (!hasAccess) {
                 return res.status(403).json({ message: 'Access denied to this document.' });
             }
@@ -346,7 +334,11 @@ exports.getAllDocuments = (req, res) => {
         const whereClause = conditions.length ? `WHERE ${conditions.join(' AND ')}` : '';
 
         const teacherJoin = isTeacher 
-            ? `JOIN teacher_sections ts ON e.section_id = ts.section_id AND ts.teacher_id = ?`
+            ? `JOIN (
+                SELECT DISTINCT e_sub.student_id FROM enrollments e_sub
+                JOIN teacher_sections ts_sub ON e_sub.section_id = ts_sub.section_id
+                WHERE ts_sub.teacher_id = ?
+            ) t_scope ON t_scope.student_id = d.student_id`
             : '';
         
         if (isTeacher) {
@@ -464,13 +456,7 @@ exports.getDocumentsByStudent = exports.getDocumentById = (req, res) => {
                 SELECT 1 FROM enrollments e
                 JOIN teacher_sections ts ON e.section_id = ts.section_id
                 WHERE e.student_id = ? AND ts.teacher_id = ?
-                  AND e.id = (
-                      SELECT e2.id FROM enrollments e2
-                      JOIN academic_years ay ON e2.academic_year_id = ay.id
-                      WHERE e2.student_id = ?
-                      ORDER BY ay.year_range DESC, e2.grade_level DESC, e2.id DESC LIMIT 1
-                  )
-            `).get(studentId, req.user.id, studentId);
+            `).get(studentId, req.user.id);
             if (!hasAccess) {
                 return res.status(403).json({ message: "Access denied to fetch this student's documents." });
             }
@@ -645,13 +631,7 @@ exports.addToPrintQueue = (req, res) => {
                 SELECT 1 FROM enrollments e
                 JOIN teacher_sections ts ON e.section_id = ts.section_id
                 WHERE e.student_id = ? AND ts.teacher_id = ?
-                  AND e.id = (
-                      SELECT e2.id FROM enrollments e2
-                      JOIN academic_years ay ON e2.academic_year_id = ay.id
-                      WHERE e2.student_id = ?
-                      ORDER BY ay.year_range DESC, e2.grade_level DESC, e2.id DESC LIMIT 1
-                  )
-            `).get(document.student_id, userId, document.student_id);
+            `).get(document.student_id, userId);
             if (!hasAccess) {
                 return res.status(403).json({ message: 'Access denied to print this document.' });
             }
@@ -717,13 +697,7 @@ exports.copyDocument = (req, res) => {
                 SELECT 1 FROM enrollments e
                 JOIN teacher_sections ts ON e.section_id = ts.section_id
                 WHERE e.student_id = ? AND ts.teacher_id = ?
-                  AND e.id = (
-                      SELECT e2.id FROM enrollments e2
-                      JOIN academic_years ay ON e2.academic_year_id = ay.id
-                      WHERE e2.student_id = ?
-                      ORDER BY ay.year_range DESC, e2.grade_level DESC, e2.id DESC LIMIT 1
-                  )
-            `).get(doc.student_id, req.user.id, doc.student_id);
+            `).get(doc.student_id, req.user.id);
             if (!hasAccess) {
                 return res.status(403).json({ message: 'Access denied to copy this document.' });
             }
@@ -788,13 +762,7 @@ exports.convertToPdf = async (req, res) => {
                 SELECT 1 FROM enrollments e
                 JOIN teacher_sections ts ON e.section_id = ts.section_id
                 WHERE e.student_id = ? AND ts.teacher_id = ?
-                  AND e.id = (
-                      SELECT e2.id FROM enrollments e2
-                      JOIN academic_years ay ON e2.academic_year_id = ay.id
-                      WHERE e2.student_id = ?
-                      ORDER BY ay.year_range DESC, e2.grade_level DESC, e2.id DESC LIMIT 1
-                  )
-            `).get(doc.student_id, req.user.id, doc.student_id);
+            `).get(doc.student_id, req.user.id);
             if (!hasAccess) {
                 return res.status(403).json({ message: 'Access denied to convert this document.' });
             }
@@ -872,6 +840,7 @@ exports.bulkDelete = (req, res) => {
         const isTeacher = req.user?.role?.toLowerCase() === 'teacher';
         const teacherId = req.user?.id;
         let deletedCount = 0;
+        const deletedNames = [];
 
         const getStmt = db.prepare('SELECT file_name, student_id, file_path, document_type FROM documents WHERE id = ?');
         const insertRecentStmt = db.prepare(`
@@ -889,23 +858,23 @@ exports.bulkDelete = (req, res) => {
                             SELECT 1 FROM enrollments e
                             JOIN teacher_sections ts ON e.section_id = ts.section_id
                             WHERE e.student_id = ? AND ts.teacher_id = ?
-                              AND e.id = (
-                                  SELECT e2.id FROM enrollments e2
-                                  JOIN academic_years ay ON e2.academic_year_id = ay.id
-                                  WHERE e2.student_id = ?
-                                  ORDER BY ay.year_range DESC, e2.grade_level DESC, e2.id DESC LIMIT 1
-                              )
-                        `).get(doc.student_id, teacherId, doc.student_id);
+                        `).get(doc.student_id, teacherId);
                         if (!hasAccess) continue;
                     }
                     insertRecentStmt.run(id, doc.student_id, doc.file_name, doc.file_path, doc.document_type, req.user?.id);
                     softDeleteStmt.run(id);
                     deletedCount++;
+                    deletedNames.push(doc.file_name);
                 }
             }
         });
 
         transaction();
+
+        if (deletedCount > 0) {
+            logActivity(req.user?.id, 'DELETE', 'document', null,
+                `Moved ${deletedCount} documents to Recycle Bin: ${deletedNames.join(', ')}`);
+        }
 
         res.json({ message: `Successfully moved ${deletedCount} documents to recycle bin` });
     } catch (error) {
@@ -980,13 +949,7 @@ exports.bulkAddToPrintQueue = (req, res) => {
                             SELECT 1 FROM enrollments e
                             JOIN teacher_sections ts ON e.section_id = ts.section_id
                             WHERE e.student_id = ? AND ts.teacher_id = ?
-                              AND e.id = (
-                                  SELECT e2.id FROM enrollments e2
-                                  JOIN academic_years ay ON e2.academic_year_id = ay.id
-                                  WHERE e2.student_id = ?
-                                  ORDER BY ay.year_range DESC, e2.grade_level DESC, e2.id DESC LIMIT 1
-                              )
-                        `).get(docStudent.student_id, userId, docStudent.student_id);
+                        `).get(docStudent.student_id, userId);
                         if (!hasAccess) continue;
                     }
                     insertStmt.run(id, userId);
@@ -1030,13 +993,7 @@ exports.bulkCopy = (req, res) => {
                         SELECT 1 FROM enrollments e
                         JOIN teacher_sections ts ON e.section_id = ts.section_id
                         WHERE e.student_id = ? AND ts.teacher_id = ?
-                          AND e.id = (
-                              SELECT e2.id FROM enrollments e2
-                              JOIN academic_years ay ON e2.academic_year_id = ay.id
-                              WHERE e2.student_id = ?
-                              ORDER BY ay.year_range DESC, e2.grade_level DESC, e2.id DESC LIMIT 1
-                          )
-                    `).get(doc.student_id, req.user.id, doc.student_id);
+                    `).get(doc.student_id, req.user.id);
                     if (!hasAccess) {
                         continue;
                     }
@@ -1082,14 +1039,11 @@ exports.getTrashDocuments = (req, res) => {
         const teacherId = req.user?.id;
 
         const teacherJoin = isTeacher 
-            ? `JOIN enrollments e ON e.student_id = s.id 
-               AND e.id = (
-                   SELECT e2.id FROM enrollments e2
-                   JOIN academic_years ay_inner ON e2.academic_year_id = ay_inner.id
-                   WHERE e2.student_id = s.id
-                   ORDER BY ay_inner.year_range DESC, e2.grade_level DESC, e2.id DESC LIMIT 1
-               )
-               JOIN teacher_sections ts ON e.section_id = ts.section_id AND ts.teacher_id = ?`
+            ? `JOIN (
+                SELECT DISTINCT e_sub.student_id FROM enrollments e_sub
+                JOIN teacher_sections ts_sub ON e_sub.section_id = ts_sub.section_id
+                WHERE ts_sub.teacher_id = ?
+            ) t_scope ON t_scope.student_id = rd.student_id`
             : '';
 
         const params = isTeacher ? [teacherId] : [];

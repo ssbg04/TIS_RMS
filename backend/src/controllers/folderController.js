@@ -19,6 +19,16 @@ exports.getFolders = (req, res) => {
     const teacherId = req.user?.id;
 
     try {
+        // Auto-ensure root document_folders exist for all students
+        db.prepare(`
+            INSERT INTO document_folders (name, student_id, category, created_by)
+            SELECT s.last_name || '_' || s.first_name || '_' || s.lrn, s.id, 'root', NULL
+            FROM students s
+            WHERE s.id NOT IN (
+                SELECT df.student_id FROM document_folders df WHERE df.student_id IS NOT NULL AND df.parent_id IS NULL
+            )
+        `).run();
+
         const conditions = [];
         const params = [];
 
@@ -47,26 +57,15 @@ exports.getFolders = (req, res) => {
         const whereClause = conditions.length ? `WHERE ${conditions.join(' AND ')}` : '';
 
         // When the caller is a teacher, restrict to folders for students in
-        // the teacher's assigned sections only. Uses a parameterised sub-select.
+        // the teacher's assigned sections only.
         let teacherJoinSql = '';
         if (isTeacher) {
-            const activeAy = db.prepare("SELECT * FROM academic_years WHERE status = 'active' LIMIT 1").get()
-                || db.prepare("SELECT * FROM academic_years ORDER BY year_range DESC LIMIT 1").get();
-            const targetYear = activeAy?.year_range;
-            teacherJoinSql = `JOIN enrollments e_teacher ON e_teacher.student_id = f.student_id
-                AND e_teacher.id = (
-                    SELECT e2.id FROM enrollments e2
-                    JOIN academic_years ay ON e2.academic_year_id = ay.id
-                    WHERE e2.student_id = f.student_id
-                      ${targetYear ? 'AND ay.year_range = ?' : ''}
-                    ORDER BY ay.year_range DESC, e2.grade_level DESC, e2.id DESC LIMIT 1
-                )
-                JOIN teacher_sections ts ON ts.section_id = e_teacher.section_id AND ts.teacher_id = ?`;
-            if (targetYear) {
-                params.unshift(targetYear, teacherId);
-            } else {
-                params.unshift(teacherId);
-            }
+            teacherJoinSql = `JOIN (
+                SELECT DISTINCT e_sub.student_id FROM enrollments e_sub
+                JOIN teacher_sections ts_sub ON e_sub.section_id = ts_sub.section_id
+                WHERE ts_sub.teacher_id = ?
+            ) ts_scope ON ts_scope.student_id = f.student_id`;
+            params.unshift(teacherId);
         }
 
         const sql = `
@@ -281,13 +280,7 @@ exports.getStudentFolder = (req, res) => {
             SELECT 1 FROM enrollments e
             JOIN teacher_sections ts ON e.section_id = ts.section_id
             WHERE e.student_id = ? AND ts.teacher_id = ?
-              AND e.id = (
-                  SELECT e2.id FROM enrollments e2
-                  JOIN academic_years ay ON e2.academic_year_id = ay.id
-                  WHERE e2.student_id = ?
-                  ORDER BY ay.year_range DESC, e2.grade_level DESC, e2.id DESC LIMIT 1
-              )
-        `).get(studentId, req.user.id, studentId);
+        `).get(studentId, req.user.id);
         if (!hasAccess) {
             return res.status(403).json({ message: "Access denied to this student's folder." });
         }
@@ -375,13 +368,7 @@ exports.syncFolders = (req, res) => {
             SELECT 1 FROM enrollments e
             JOIN teacher_sections ts ON e.section_id = ts.section_id
             WHERE e.student_id = ? AND ts.teacher_id = ?
-              AND e.id = (
-                  SELECT e2.id FROM enrollments e2
-                  JOIN academic_years ay ON e2.academic_year_id = ay.id
-                  WHERE e2.student_id = ?
-                  ORDER BY ay.year_range DESC, e2.grade_level DESC, e2.id DESC LIMIT 1
-              )
-        `).get(studentId, req.user.id, studentId);
+        `).get(studentId, req.user.id);
         if (!hasAccess) {
             return res.status(403).json({ message: "Access denied to sync this student's folder." });
         }

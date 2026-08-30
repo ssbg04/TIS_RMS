@@ -2110,25 +2110,41 @@ class _RequirementFormModalState extends ConsumerState<RequirementFormModal> {
               child: Row(
                 children: [
                   Expanded(
-                    child: OutlinedButton(
-                      onPressed: () => Navigator.pop(context),
-                      style: OutlinedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(vertical: 12),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(
-                            AppSizes.radiusMedium,
+                    child: SizedBox(
+                      height: 44,
+                      child: OutlinedButton(
+                        onPressed: () => Navigator.pop(context),
+                        style: OutlinedButton.styleFrom(
+                          padding: EdgeInsets.zero,
+                          side: BorderSide(
+                            color: isDark ? AppColors.darkBorder : Colors.grey.shade300,
+                          ),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(
+                              AppSizes.radiusMedium,
+                            ),
+                          ),
+                        ),
+                        child: Text(
+                          'CANCEL',
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 13,
+                            color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
                           ),
                         ),
                       ),
-                      child: const Text('CANCEL'),
                     ),
                   ),
                   const SizedBox(width: AppSizes.p12),
                   Expanded(
-                    child: PrimaryButton(
-                      label: isEditing ? 'UPDATE' : 'CREATE',
-                      isLoading: _isLoading,
-                      onPressed: _handleSubmit,
+                    child: SizedBox(
+                      height: 44,
+                      child: PrimaryButton(
+                        label: isEditing ? 'UPDATE' : 'CREATE',
+                        isLoading: _isLoading,
+                        onPressed: _handleSubmit,
+                      ),
                     ),
                   ),
                 ],

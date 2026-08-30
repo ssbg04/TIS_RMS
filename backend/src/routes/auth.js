@@ -13,11 +13,6 @@ router.post('/lookup-reset-options', authController.lookupResetOptions);
 router.post('/send-email-otp', authController.sendEmailOtp);
 router.post('/reset-password-email-otp', authController.resetPasswordEmailOtp);
 
-// Legacy Admin Review Password Reset Request
-router.post('/forgot-password', authController.requestPasswordReset);
-router.get('/reset-requests', authenticateToken, authorizeRoles('admin'), authController.getResetRequests);
-router.put('/reset-requests/:id/approve', authenticateToken, authorizeRoles('admin'), authController.approveResetRequest);
-router.put('/reset-requests/:id/reject', authenticateToken, authorizeRoles('admin'), authController.rejectResetRequest);
 router.post('/verify-password', authenticateToken, authController.verifyPassword);
 
 module.exports = router;

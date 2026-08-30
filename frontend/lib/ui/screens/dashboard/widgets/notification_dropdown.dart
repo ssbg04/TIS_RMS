@@ -7,7 +7,6 @@ import '../../../providers/notification_provider.dart';
 import '../../../providers/auth_provider.dart';
 import '../../../../domain/entities/notification_model.dart';
 import '../../../../core/utils/date_utils.dart' as pht;
-import '../../../shared/modals/reset_requests_modal.dart';
 
 class NotificationDropdownWidget extends ConsumerStatefulWidget {
   final List<NotificationModel> notifications;
@@ -109,20 +108,14 @@ class _NotificationDropdownWidgetState
                   ref.read(notificationsProvider.notifier).markAsRead(note.id);
                   Future.delayed(const Duration(milliseconds: 100), () {
                     if (context.mounted) {
-                      final role = ref.read(authProvider).value?.role;
-                      if (note.title.toLowerCase().contains('password') &&
-                          role == 'admin') {
-                        ResetRequestsModal.show(context);
-                      } else {
-                        widget.onViewActivity(
-                          context,
-                          note.title,
-                          note.message,
-                          pht.formatModalDate(note.createdAt),
-                          icon,
-                          color,
-                        );
-                      }
+                      widget.onViewActivity(
+                        context,
+                        note.title,
+                        note.message,
+                        pht.formatModalDate(note.createdAt),
+                        icon,
+                        color,
+                      );
                     }
                   });
                 },
