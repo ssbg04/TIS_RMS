@@ -453,9 +453,13 @@ Files backup/restore - mirror mode or zip -->
 
 <!-- - Deped transparency board -> rephrase the the description use easy to understand -> make it simple and user friendly -> dont make it AI slop -> make it responsive -->
 
-# STUDENT SCREEN
-- table dropdowns only status have dropdown, other convert to icon click to change the sorting order
+<!-- # STUDENT SCREEN
+- table dropdowns only status have dropdown, other convert to icon click to change the sorting order -->
 
+# REPORT SCREEN
+- Compliance & analytics -> "Students per year" section -> add inactive status
+- Compliance & analytics -> fix the layout for windows app it has overflow 
+- Compliance & analytics -> remove the storage chip
 
 --- 
 

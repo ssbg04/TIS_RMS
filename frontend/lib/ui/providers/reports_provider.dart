@@ -141,7 +141,7 @@ final yearlyComparisonSelectedStatusesProvider =
 
 class SelectedStatusesNotifier extends Notifier<Set<String>> {
   @override
-  Set<String> build() => {'enrolled', 'dropped', 'graduated', 'transferred'};
+  Set<String> build() => {'enrolled', 'inactive', 'dropped', 'graduated', 'transferred'};
 
   void toggle(String status) {
     final current = Set<String>.from(state);
@@ -154,7 +154,7 @@ class SelectedStatusesNotifier extends Notifier<Set<String>> {
   }
 
   void selectAll() =>
-      state = {'enrolled', 'dropped', 'graduated', 'transferred'};
+      state = {'enrolled', 'inactive', 'dropped', 'graduated', 'transferred'};
 }
 
 // KPI stats & compliance data — re-fetches when any filter changes

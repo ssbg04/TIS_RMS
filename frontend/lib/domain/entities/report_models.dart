@@ -136,6 +136,7 @@ class ReportStats {
 class YearlyComparisonData {
   final String year;
   final int enrolled;
+  final int inactive;
   final int dropped;
   final int graduated;
   final int transferred;
@@ -143,6 +144,7 @@ class YearlyComparisonData {
   const YearlyComparisonData({
     required this.year,
     required this.enrolled,
+    this.inactive = 0,
     required this.dropped,
     required this.graduated,
     required this.transferred,
@@ -152,6 +154,7 @@ class YearlyComparisonData {
       YearlyComparisonData(
         year: j['year'] as String? ?? '',
         enrolled: (j['enrolled'] as num?)?.toInt() ?? 0,
+        inactive: (j['inactive'] as num?)?.toInt() ?? 0,
         dropped: (j['dropped'] as num?)?.toInt() ?? 0,
         graduated: (j['graduated'] as num?)?.toInt() ?? 0,
         transferred: (j['transferred'] as num?)?.toInt() ?? 0,

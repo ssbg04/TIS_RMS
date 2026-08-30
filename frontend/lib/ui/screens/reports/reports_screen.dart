@@ -482,7 +482,6 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
   @override
   Widget build(BuildContext context) {
     final statsAsync = ref.watch(reportStatsProvider);
-    final storageAsync = ref.watch(storageStatsProvider);
     final yearsAsync = ref.watch(academicYearsProvider);
     final selectedYearId = ref.watch(selectedAcademicYearIdProvider);
     final selectedYearNotifier = ref.read(selectedAcademicYearIdProvider.notifier);
@@ -550,8 +549,8 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                         _buildFilterPanel(context),
                         const SizedBox(height: AppSizes.p20),
 
-                        // 2. Focused Compliance KPI Cards (4 cards + storage badge)
-                        _buildMetricsGrid(data, storageAsync.asData?.value),
+                        // 2. Focused Compliance KPI Cards (4 cards)
+                        _buildMetricsGrid(data),
                         const SizedBox(height: AppSizes.p24),
 
                         // 3. Analytics Grid Row 1: Grade Compliance & Missing Requirements Breakdown
@@ -1306,7 +1305,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
   }
 
   // ── KPI Cards: 4 Focused Compliance Metrics ─────────────────────────────
-  Widget _buildMetricsGrid(ReportStats reportData, int? storageBytes) {
+  Widget _buildMetricsGrid(ReportStats reportData) {
     final students = reportData.students;
     final breakdown = reportData.missingDocsBreakdown;
 
@@ -1316,119 +1315,61 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
     final complianceRate =
         students.isNotEmpty ? (compliantCount / students.length * 100) : 0.0;
 
-    String formatBytes(int bytes) {
-      if (bytes < 1024) return '$bytes B';
-      if (bytes < 1048576) return '${(bytes / 1024).toStringAsFixed(1)} KB';
-      if (bytes < 1073741824) {
-        return '${(bytes / 1048576).toStringAsFixed(1)} MB';
-      }
-      return '${(bytes / 1073741824).toStringAsFixed(1)} GB';
-    }
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        // ── 4 Primary Compliance KPI Cards ──────────────────────────────────
-        LayoutBuilder(
-          builder: (ctx, constraints) {
-            final cols = constraints.maxWidth >= 1000
-                ? 4
-                : (constraints.maxWidth >= 550 ? 2 : 1);
-            return GridView(
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: cols,
-                crossAxisSpacing: 16,
-                mainAxisSpacing: 16,
-                mainAxisExtent: constraints.maxWidth < 550 ? 145 : 155,
-              ),
-              children: [
-                _buildPrimaryKpiCard(
-                  title: 'Overall Compliance',
-                  value: '${complianceRate.toStringAsFixed(1)}%',
-                  subtitle: '$compliantCount of ${students.length} students complete',
-                  icon: Icons.verified_outlined,
-                  color: complianceRate >= 80
-                      ? AppColors.primaryGreen
-                      : complianceRate >= 50
-                          ? Colors.orange
-                          : Colors.red,
-                  progress: complianceRate / 100,
-                ),
-                _buildPrimaryKpiCard(
-                  title: 'Complete Records',
-                  value: '$compliantCount',
-                  subtitle: 'All documents submitted',
-                  icon: Icons.check_circle_outline_rounded,
-                  color: AppColors.primaryGreen,
-                ),
-                _buildPrimaryKpiCard(
-                  title: 'Needs Follow-up',
-                  value: '$withIssuesCount',
-                  subtitle: 'Missing 1 or more documents',
-                  icon: Icons.warning_amber_rounded,
-                  color: withIssuesCount == 0
-                      ? AppColors.primaryGreen
-                      : Colors.orange.shade700,
-                ),
-                _buildPrimaryKpiCard(
-                  title: 'Pending Documents',
-                  value: '$totalMissing',
-                  subtitle: 'Across ${breakdown.length} requirement types',
-                  icon: Icons.description_outlined,
-                  color: totalMissing == 0
-                      ? AppColors.primaryGreen
-                      : Colors.redAccent,
-                ),
-              ],
-            );
-          },
-        ),
-
-        // ── Storage Chip (compact right-aligned) ───────────────────────────
-        if (storageBytes != null) ...[
-          const SizedBox(height: 10),
-          Align(
-            alignment: Alignment.centerRight,
-            child: Builder(
-              builder: (ctx) {
-                final isDark = Theme.of(ctx).brightness == Brightness.dark;
-                return Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
-                  decoration: BoxDecoration(
-                    color: isDark ? AppColors.darkSurface2 : Colors.blueGrey.shade50,
-                    borderRadius: BorderRadius.circular(20),
-                    border: Border.all(
-                      color: isDark ? AppColors.darkBorder : Colors.blueGrey.shade100,
-                    ),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(
-                        Icons.storage_outlined,
-                        size: 13,
-                        color: isDark ? AppColors.darkTextSecondary : Colors.blueGrey.shade600,
-                      ),
-                      const SizedBox(width: 6),
-                      Text(
-                        'Storage: ${formatBytes(storageBytes)} used',
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: isDark ? AppColors.darkTextSecondary : Colors.blueGrey.shade700,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                    ],
-                  ),
-                );
-              },
-            ),
+    return LayoutBuilder(
+      builder: (ctx, constraints) {
+        final cols = constraints.maxWidth >= 1000
+            ? 4
+            : (constraints.maxWidth >= 550 ? 2 : 1);
+        return GridView(
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: cols,
+            crossAxisSpacing: 16,
+            mainAxisSpacing: 16,
+            mainAxisExtent: constraints.maxWidth < 550 ? 150 : 160,
           ),
-        ],
-      ],
+          children: [
+            _buildPrimaryKpiCard(
+              title: 'Overall Compliance',
+              value: '${complianceRate.toStringAsFixed(1)}%',
+              subtitle: '$compliantCount of ${students.length} students complete',
+              icon: Icons.verified_outlined,
+              color: complianceRate >= 80
+                  ? AppColors.primaryGreen
+                  : complianceRate >= 50
+                      ? Colors.orange
+                      : Colors.red,
+              progress: complianceRate / 100,
+            ),
+            _buildPrimaryKpiCard(
+              title: 'Complete Records',
+              value: '$compliantCount',
+              subtitle: 'All documents submitted',
+              icon: Icons.check_circle_outline_rounded,
+              color: AppColors.primaryGreen,
+            ),
+            _buildPrimaryKpiCard(
+              title: 'Needs Follow-up',
+              value: '$withIssuesCount',
+              subtitle: 'Missing 1 or more documents',
+              icon: Icons.warning_amber_rounded,
+              color: withIssuesCount == 0
+                  ? AppColors.primaryGreen
+                  : Colors.orange.shade700,
+            ),
+            _buildPrimaryKpiCard(
+              title: 'Pending Documents',
+              value: '$totalMissing',
+              subtitle: 'Across ${breakdown.length} requirement types',
+              icon: Icons.description_outlined,
+              color: totalMissing == 0
+                  ? AppColors.primaryGreen
+                  : Colors.redAccent,
+            ),
+          ],
+        );
+      },
     );
   }
 
@@ -2742,7 +2683,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                 : _emptyWidget('No student data for current filters.')
           else ...[
             SizedBox(
-              height: 220,
+              height: 190,
               child: Stack(
                 alignment: Alignment.center,
                 children: [
@@ -2755,7 +2696,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                             value: counts.active.toDouble(),
                             title:
                                 '${(counts.active / total * 100).toStringAsFixed(0)}%',
-                            radius: 55,
+                            radius: 48,
                             titleStyle: const TextStyle(
                               fontSize: 11,
                               fontWeight: FontWeight.bold,
@@ -2768,7 +2709,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                             value: counts.inactive.toDouble(),
                             title:
                                 '${(counts.inactive / total * 100).toStringAsFixed(0)}%',
-                            radius: 55,
+                            radius: 48,
                             titleStyle: const TextStyle(
                               fontSize: 11,
                               fontWeight: FontWeight.bold,
@@ -2888,7 +2829,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
 
         final Widget chartWidget = SizedBox(
           width: chartWidth,
-          height: isDesktop ? 280 : 220,
+          height: isDesktop ? 240 : 220,
           child: BarChart(
             BarChartData(
               maxY: 100,
@@ -3170,6 +3111,11 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
         label: 'Active',
         color: AppColors.primaryGreen,
       ),
+      _StatusOption(
+        key: 'inactive',
+        label: 'Inactive',
+        color: Colors.blueGrey,
+      ),
       _StatusOption(key: 'dropped', label: 'Dropped', color: Colors.red),
       _StatusOption(key: 'graduated', label: 'Graduated', color: Colors.blue),
       _StatusOption(
@@ -3346,7 +3292,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                       : (data.length * 150.0);
                   final Widget chartWidget = SizedBox(
                     width: chartWidth,
-                    height: 300,
+                    height: 230,
                     child: BarChart(
                       BarChartData(
                         alignment: BarChartAlignment.spaceAround,
@@ -3514,6 +3460,11 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                   color: AppColors.primaryGreen,
                 ),
                 _StatusOption(
+                  key: 'inactive',
+                  label: 'Inactive',
+                  color: Colors.blueGrey,
+                ),
+                _StatusOption(
                   key: 'dropped',
                   label: 'Dropped',
                   color: Colors.red,
@@ -3550,6 +3501,8 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
     switch (key) {
       case 'enrolled':
         return data.enrolled;
+      case 'inactive':
+        return data.inactive;
       case 'dropped':
         return data.dropped;
       case 'graduated':

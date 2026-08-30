@@ -295,6 +295,7 @@ exports.getYearlyComparison = (req, res) => {
             SELECT 
                 ay.year_range as year,
                 COUNT(DISTINCT CASE WHEN (CASE WHEN e.academic_year_id = sly.max_ay_id THEN s.status ELSE 'Enrolled' END) = 'Enrolled' THEN s.id END) as enrolled,
+                COUNT(DISTINCT CASE WHEN (CASE WHEN e.academic_year_id = sly.max_ay_id THEN s.status ELSE 'Enrolled' END) = 'Inactive' THEN s.id END) as inactive,
                 COUNT(DISTINCT CASE WHEN (CASE WHEN e.academic_year_id = sly.max_ay_id THEN s.status ELSE 'Enrolled' END) = 'Dropped' THEN s.id END) as dropped,
                 COUNT(DISTINCT CASE WHEN (CASE WHEN e.academic_year_id = sly.max_ay_id THEN s.status ELSE 'Enrolled' END) = 'Graduated' THEN s.id END) as graduated,
                 COUNT(DISTINCT CASE WHEN (CASE WHEN e.academic_year_id = sly.max_ay_id THEN s.status ELSE 'Enrolled' END) = 'Transferred' THEN s.id END) as transferred
