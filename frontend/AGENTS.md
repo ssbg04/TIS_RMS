@@ -420,9 +420,17 @@ Files backup/restore - mirror mode or zip -->
   - Document type breakdown -> add filter dropdown for all document type -> if selected one document type show all year level in one pie chart, then it has over to the total
   - top student by documents -> dont count all uploaded document, just count document type uploaded over the total missing required documents -->
 
-# DASHBOARD SCREEN
-- Document breakdown -> make it reponsive for android app
-- "Top students by documents" and "needs attention" view all-> remove the duplicated label button -> student rankings modal dont make it AI slop or too AI generic design
+<!-- # DASHBOARD SCREEN
+- "Top students by documents" and "needs attention" view all -> make the tab responsive use 1 word for tab title or remove the icon
+
+# STUDENT SCREEN
+- student profile modal -> make the modal have fixed size so every loading its not smaller when loading -->
+
+# STUDENT SCREEN
+- user friendly logs/histories and "analytics & KPIs" that uses basic english understandable by normal user
+
+# TEACHERS & ACADEMIC SETUP
+- hide or remove from the list all users have deactivated status
 
 --- 
 
@@ -431,8 +439,7 @@ Files backup/restore - mirror mode or zip -->
 
 - add missing students by document type kpi
 
-- user friendly logs/histories
-- assign section modal
+
 
 - notification separate admin and teacher
 - bug in bulk add student enrollment

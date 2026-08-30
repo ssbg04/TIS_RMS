@@ -664,7 +664,7 @@ exports.updateStudent = (req, res) => {
                             SET grade_level = ?, section_id = ?, track_strand = ?
                             WHERE id = ?
                         `).run(parseInt(gradeLevel), sectionId, trackStrand || null, existingEnrollment.id);
-                        logActivity(req.user?.id, 'UPDATE', 'enrollment', existingEnrollment.id, `UPDATE enrollment ${existingEnrollment.id} student ${lrn.trim()}`);
+                        logActivity(req.user?.id, 'UPDATE', 'enrollment', existingEnrollment.id, getEnrollmentLogDesc(academicYearId, gradeLevel, sectionId, lrn.trim()));
                     }
                 } else {
                     // No enrollment for this year, create a new one
@@ -722,7 +722,7 @@ exports.deleteStudent = (req, res) => {
             db.prepare('DELETE FROM students WHERE id = ?').run(id);
         })();
 
-        logActivity(req.user?.id, 'DELETE', 'student', id, `DELETE student ${student.lrn} (${student.first_name} ${student.last_name})`);
+        logActivity(req.user?.id, 'DELETE', 'student', id, `Deleted student: ${student.first_name} ${student.last_name} (LRN: ${maskLrn(student.lrn)})`);
         createNotification(null, 'Student Deleted', `Student ${student.first_name} ${student.last_name} was removed.`, 'student', 'student', id);
         res.json({ message: 'Student deleted successfully.' });
     } catch (error) {
@@ -1132,7 +1132,7 @@ exports.bulkCreateStudents = (req, res) => {
         } catch (_) { /* non-fatal */ }
 
         logActivity(req.user?.id, 'CREATE', 'student', newId,
-            `BULK OCR CREATE student ${s.firstName} ${s.lastName}`);
+            `Enrolled student: ${s.firstName} ${s.lastName} via Bulk OCR Import`);
 
         createNotification(
             null,

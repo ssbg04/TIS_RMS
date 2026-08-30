@@ -140,16 +140,14 @@ class _StudentProfileDialogShellState
       child: ClipRRect(
         borderRadius: BorderRadius.circular(12),
         child: Container(
-          constraints: BoxConstraints(
-            maxWidth: 620,
-            minWidth: widget.isMobile ? 0 : 540,
-            minHeight: 460,
-          ),
+          width: widget.isMobile ? double.infinity : 620,
+          height: widget.isMobile
+              ? MediaQuery.of(context).size.height * 0.88
+              : 680,
           color: isDark ? AppColors.darkPageBackground : AppColors.pageBackground,
           child: Stack(
             children: [
               Column(
-                mainAxisSize: MainAxisSize.min,
                 children: [
                   // ── Modal header ──
                   Container(
@@ -267,7 +265,7 @@ class _StudentProfileDialogShellState
                     ),
                   ),
                   // ── Scrollable profile body ──
-                  Flexible(
+                  Expanded(
                     child: StudentProfileModalBody(
                       studentId: _currentStudentId,
                       userRole: widget.userRole,
@@ -314,21 +312,20 @@ class StudentProfileModalBody extends ConsumerWidget {
     final missingReqsAsync = ref.watch(missingRequirementsProvider(studentId));
 
     return studentAsync.when(
-      loading: () => const SizedBox(
-        height: 400,
-        child: Center(
-          child: CircularProgressIndicator(color: AppColors.primaryGreen),
-        ),
+      loading: () => const Center(
+        child: CircularProgressIndicator(color: AppColors.primaryGreen),
       ),
       error: (e, _) => Padding(
         padding: const EdgeInsets.all(24),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Icon(Icons.error_outline, size: 48, color: AppColors.error),
-            const SizedBox(height: 12),
-            Text('Error: $e', style: const TextStyle(color: AppColors.error)),
-          ],
+        child: Center(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(Icons.error_outline, size: 48, color: AppColors.error),
+              const SizedBox(height: 12),
+              Text('Error: $e', style: const TextStyle(color: AppColors.error)),
+            ],
+          ),
         ),
       ),
       data: (student) {

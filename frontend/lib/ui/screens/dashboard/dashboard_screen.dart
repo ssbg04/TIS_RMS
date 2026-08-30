@@ -1116,7 +1116,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
               onTap: () => ViewActivityModal.show(
                 context: context,
                 title: a.entityType.toUpperCase(),
-                description: a.description,
+                description: _formatFriendlyDescription(a.description),
                 date: pht.formatModalDate(a.createdAt),
                 performedBy: a.performedBy ?? a.username ?? 'System',
                 action: a.action,
@@ -1144,7 +1144,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      a.description,
+                      _formatFriendlyDescription(a.description),
                       style: TextStyle(
                         fontWeight: FontWeight.w500,
                         fontSize: 13,
@@ -1219,7 +1219,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
             Divider(height: 1, color: Theme.of(context).dividerColor),
         itemBuilder: (context, index) {
           final h = history[index];
-          final desc = '${h.action.toUpperCase()} User: ${h.fullName}';
+          final desc = _getUserHistoryDescription(h);
 
           return Material(
             color: Colors.transparent,
@@ -1354,6 +1354,37 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
   }
 
   String _formatDate(String raw) => pht.formatRelative(raw);
+
+  String _formatFriendlyDescription(String desc) {
+    if (desc.startsWith('BULK OCR CREATE student ')) {
+      return 'Enrolled student ${desc.substring(24)} via Bulk Document Import';
+    }
+    if (desc.startsWith('DELETE student ')) {
+      return 'Deleted student record: ${desc.substring(15)}';
+    }
+    if (desc.startsWith('UPDATE enrollment ')) {
+      return desc.replaceAll(RegExp(r'UPDATE enrollment \d+ student'), 'Updated enrollment for student');
+    }
+    return desc;
+  }
+
+  String _getUserHistoryDescription(UserHistoryEntry h) {
+    final actionLower = h.action.toLowerCase();
+    if (actionLower == 'created') {
+      return 'Added user: ${h.fullName} as ${h.role}';
+    } else if (actionLower == 'updated') {
+      return 'Updated user: ${h.fullName}';
+    } else if (actionLower == 'deleted') {
+      return 'Deleted user: ${h.fullName}';
+    } else if (actionLower == 'activated') {
+      return 'Activated user: ${h.fullName}';
+    } else if (actionLower == 'deactivated') {
+      return 'Deactivated user: ${h.fullName}';
+    } else if (actionLower == 'reset_password') {
+      return 'Reset password for user: ${h.fullName}';
+    }
+    return '${h.action.toUpperCase()} User: ${h.fullName}';
+  }
 
   String _getInitials(String name) {
     if (name.trim().isEmpty) return '?';

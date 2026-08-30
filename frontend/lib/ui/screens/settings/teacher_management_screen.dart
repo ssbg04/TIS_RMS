@@ -167,7 +167,7 @@ class _TeachersTab extends ConsumerWidget {
 
     return usersAsync.when(
       data: (users) {
-        final teachers = users.where((u) => u.role == 'teacher').toList();
+        final teachers = users.where((u) => u.role == 'teacher' && u.isActive).toList();
         if (teachers.isEmpty) {
           return Center(
             child: Column(

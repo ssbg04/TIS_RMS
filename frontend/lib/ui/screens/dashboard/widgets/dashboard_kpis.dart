@@ -1707,7 +1707,7 @@ class _StudentDocRankingModalState extends State<_StudentDocRankingModal> {
             ),
             const SizedBox(height: 14),
 
-            // Tab Filter Buttons (Top Students vs Needs Attention)
+            // Tab Filter Buttons (Top vs Attention)
             Container(
               padding: const EdgeInsets.all(3),
               decoration: BoxDecoration(
@@ -1721,8 +1721,7 @@ class _StudentDocRankingModalState extends State<_StudentDocRankingModal> {
                 children: [
                   Expanded(
                     child: _TabButton(
-                      label: 'Top Students',
-                      icon: Icons.check_circle_outline_rounded,
+                      label: 'Top',
                       count: widget.allTopStudents.length,
                       isSelected: _activeTab == _RankingTab.top,
                       activeColor: AppColors.primaryGreen,
@@ -1736,8 +1735,7 @@ class _StudentDocRankingModalState extends State<_StudentDocRankingModal> {
                   const SizedBox(width: 4),
                   Expanded(
                     child: _TabButton(
-                      label: 'Needs Attention',
-                      icon: Icons.warning_amber_rounded,
+                      label: 'Attention',
                       count: widget.allBottomStudents.length,
                       isSelected: _activeTab == _RankingTab.needsAttention,
                       activeColor: Colors.orange.shade700,
@@ -2037,7 +2035,6 @@ class _StudentDocRankingModalState extends State<_StudentDocRankingModal> {
 
 class _TabButton extends StatelessWidget {
   final String label;
-  final IconData icon;
   final int count;
   final bool isSelected;
   final Color activeColor;
@@ -2045,7 +2042,6 @@ class _TabButton extends StatelessWidget {
 
   const _TabButton({
     required this.label,
-    required this.icon,
     required this.count,
     required this.isSelected,
     required this.activeColor,
@@ -2060,7 +2056,7 @@ class _TabButton extends StatelessWidget {
       borderRadius: BorderRadius.circular(8),
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
-        padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
+        padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 8),
         decoration: BoxDecoration(
           color: isSelected
               ? (isDark ? AppColors.darkSurfaceCard : Colors.white)
@@ -2079,20 +2075,18 @@ class _TabButton extends StatelessWidget {
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(
-              icon,
-              size: 16,
-              color: isSelected ? activeColor : Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5),
-            ),
-            const SizedBox(width: 8),
-            Text(
-              label,
-              style: TextStyle(
-                fontSize: 13,
-                fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
-                color: isSelected
-                    ? Theme.of(context).colorScheme.onSurface
-                    : Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
+            Flexible(
+              child: Text(
+                label,
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: isSelected ? FontWeight.bold : FontWeight.w600,
+                  color: isSelected
+                      ? Theme.of(context).colorScheme.onSurface
+                      : Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
+                ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
               ),
             ),
             const SizedBox(width: 6),

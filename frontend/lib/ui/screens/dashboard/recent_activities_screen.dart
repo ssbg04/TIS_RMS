@@ -784,7 +784,7 @@ class _RecentActivitiesScreenState
                       onTap: () => ViewActivityModal.show(
                         context: context,
                         title: a.entityType.toUpperCase(),
-                        description: a.description,
+                        description: _formatFriendlyDescription(a.description),
                         date: pht.formatModalDate(a.createdAt),
                         performedBy: a.performedBy ?? a.username ?? 'System',
                         action: a.action,
@@ -812,7 +812,7 @@ class _RecentActivitiesScreenState
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              a.description,
+                              _formatFriendlyDescription(a.description),
                               style: TextStyle(
                                 fontWeight: FontWeight.w500,
                                 fontSize: 13,
@@ -920,5 +920,18 @@ class _RecentActivitiesScreenState
       default:
         return Icons.history_rounded;
     }
+  }
+
+  String _formatFriendlyDescription(String desc) {
+    if (desc.startsWith('BULK OCR CREATE student ')) {
+      return 'Enrolled student ${desc.substring(24)} via Bulk Document Import';
+    }
+    if (desc.startsWith('DELETE student ')) {
+      return 'Deleted student record: ${desc.substring(15)}';
+    }
+    if (desc.startsWith('UPDATE enrollment ')) {
+      return desc.replaceAll(RegExp(r'UPDATE enrollment \d+ student'), 'Updated enrollment for student');
+    }
+    return desc;
   }
 }
