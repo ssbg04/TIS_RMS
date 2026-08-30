@@ -451,8 +451,10 @@ Files backup/restore - mirror mode or zip -->
 
 
 
-- Deped transparency board -> rephrase the the description use easy to understand -> make it simple and user friendly -> dont make it AI slop -> make it responsive
--->
+<!-- - Deped transparency board -> rephrase the the description use easy to understand -> make it simple and user friendly -> dont make it AI slop -> make it responsive -->
+
+# STUDENT SCREEN
+- table dropdowns only status have dropdown, other convert to icon click to change the sorting order
 
 
 --- 

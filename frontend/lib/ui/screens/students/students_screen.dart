@@ -1167,6 +1167,13 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
             );
         return query.sortOrder == 'desc' ? -sComp : sComp;
       });
+    } else if (query.sortBy == '4ps' || query.sortBy == 'is_4ps') {
+      students.sort((a, b) {
+        final aVal = a.is4ps ? 1 : 0;
+        final bVal = b.is4ps ? 1 : 0;
+        final comp = aVal.compareTo(bVal);
+        return query.sortOrder == 'desc' ? -comp : comp;
+      });
     } else if (query.sortBy == 'doc_status') {
       students.sort((a, b) {
         final comp = a.missingDocumentsCount.compareTo(
@@ -1223,6 +1230,66 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
                 AppColors.primaryGreen.withValues(alpha: 0.08),
                 AppColors.surfaceWhite,
               );
+
+        Widget buildSortableHeader(String label, String columnKey) {
+          final isSorted = query.sortBy == columnKey;
+          final isAsc = query.sortOrder == 'asc';
+          final isDesc = query.sortOrder == 'desc';
+
+          IconData iconData = Icons.unfold_more_rounded;
+          Color iconColor = isDark ? AppColors.darkTextMuted : Colors.grey.shade400;
+
+          if (isSorted && isAsc) {
+            iconData = Icons.arrow_upward_rounded;
+            iconColor = AppColors.primaryGreen;
+          } else if (isSorted && isDesc) {
+            iconData = Icons.arrow_downward_rounded;
+            iconColor = AppColors.primaryGreen;
+          }
+
+          void toggleSort() {
+            if (isSorted) {
+              if (isAsc) {
+                ref.read(studentQueryProvider.notifier).setSort(columnKey, 'desc');
+              } else if (isDesc) {
+                ref.read(studentQueryProvider.notifier).setSort('', '');
+              } else {
+                ref.read(studentQueryProvider.notifier).setSort(columnKey, 'asc');
+              }
+            } else {
+              ref.read(studentQueryProvider.notifier).setSort(columnKey, 'asc');
+            }
+          }
+
+          return InkWell(
+            onTap: toggleSort,
+            borderRadius: BorderRadius.circular(4),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 2),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    label,
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 13,
+                      color: isSorted
+                          ? AppColors.primaryGreen
+                          : (isDark ? AppColors.darkTextPrimary : AppColors.textPrimary),
+                    ),
+                  ),
+                  const SizedBox(width: 4),
+                  Icon(
+                    iconData,
+                    size: 16,
+                    color: iconColor,
+                  ),
+                ],
+              ),
+            ),
+          );
+        }
 
         return Container(
             width: double.infinity,
@@ -1288,158 +1355,46 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
                     ),
                   DataColumn2(
                     size: ColumnSize.M,
-                    label: Row(
-                      children: [
-                        const Text(
-                          'LRN',
-                          style: TextStyle(fontWeight: FontWeight.bold),
-                        ),
-                        PopupMenuButton<String>(
-                          icon: const Icon(Icons.arrow_drop_down, size: 18),
-                          onSelected: (val) {
-                            ref
-                                .read(studentQueryProvider.notifier)
-                                .setSort(val.isEmpty ? '' : 'lrn', val);
-                          },
-                          itemBuilder: (ctx) => [
-                            CheckedPopupMenuItem(
-                              value: '',
-                              checked: query.sortBy == 'lrn' && query.sortOrder == '',
-                              child: const Text('None'),
-                            ),
-                            CheckedPopupMenuItem(
-                              value: 'asc',
-                              checked: query.sortBy == 'lrn' && query.sortOrder == 'asc',
-                              child: const Text('ASC'),
-                            ),
-                            CheckedPopupMenuItem(
-                              value: 'desc',
-                              checked: query.sortBy == 'lrn' && query.sortOrder == 'desc',
-                              child: const Text('DESC'),
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
+                    label: buildSortableHeader('LRN', 'lrn'),
                   ),
                   DataColumn2(
                     size: ColumnSize.L,
-                    label: Row(
-                      children: [
-                        const Text(
-                          'Name',
-                          style: TextStyle(fontWeight: FontWeight.bold),
-                        ),
-                        PopupMenuButton<String>(
-                          icon: const Icon(Icons.arrow_drop_down, size: 18),
-                          onSelected: (val) {
-                            ref
-                                .read(studentQueryProvider.notifier)
-                                .setSort(val.isEmpty ? '' : 'name', val);
-                          },
-                          itemBuilder: (ctx) => [
-                            CheckedPopupMenuItem(
-                              value: '',
-                              checked: query.sortBy == 'name' && query.sortOrder == '',
-                              child: const Text('None'),
-                            ),
-                            CheckedPopupMenuItem(
-                              value: 'asc',
-                              checked: query.sortBy == 'name' && query.sortOrder == 'asc',
-                              child: const Text('A-Z'),
-                            ),
-                            CheckedPopupMenuItem(
-                              value: 'desc',
-                              checked: query.sortBy == 'name' && query.sortOrder == 'desc',
-                              child: const Text('Z-A'),
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
+                    label: buildSortableHeader('Name', 'name'),
                   ),
                   DataColumn2(
                     size: ColumnSize.M,
-                    label: Row(
-                      children: [
-                        const Text(
-                          'Grade & Sec.',
-                          style: TextStyle(fontWeight: FontWeight.bold),
-                        ),
-                        PopupMenuButton<String>(
-                          icon: const Icon(Icons.arrow_drop_down, size: 18),
-                          onSelected: (val) {
-                            ref
-                                .read(studentQueryProvider.notifier)
-                                .setSort(val.isEmpty ? '' : 'grade_section', val);
-                          },
-                          itemBuilder: (ctx) => [
-                            CheckedPopupMenuItem(
-                              value: '',
-                              checked: query.sortBy == 'grade_section' && query.sortOrder == '',
-                              child: const Text('None'),
-                            ),
-                            CheckedPopupMenuItem(
-                              value: 'asc',
-                              checked: query.sortBy == 'grade_section' && query.sortOrder == 'asc',
-                              child: const Text('7-12 & A-Z'),
-                            ),
-                            CheckedPopupMenuItem(
-                              value: 'desc',
-                              checked: query.sortBy == 'grade_section' && query.sortOrder == 'desc',
-                              child: const Text('12-7 & Z-A'),
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
+                    label: buildSortableHeader('Grade & Sec.', 'grade_section'),
                   ),
                   DataColumn2(
                     size: ColumnSize.S,
-                    label: Row(
-                      children: [
-                        const Text(
-                          '4Ps',
-                          style: TextStyle(fontWeight: FontWeight.bold),
-                        ),
-                        PopupMenuButton<String>(
-                          icon: const Icon(Icons.arrow_drop_down, size: 18),
-                          onSelected: (val) {
-                            ref
-                                .read(studentQueryProvider.notifier)
-                                .setIs4Ps(val);
-                          },
-                          itemBuilder: (ctx) => [
-                            CheckedPopupMenuItem(
-                              value: '',
-                              checked: query.is4Ps == '',
-                              child: const Text('All'),
-                            ),
-                            CheckedPopupMenuItem(
-                              value: 'true',
-                              checked: query.is4Ps == 'true',
-                              child: const Text('Yes'),
-                            ),
-                            CheckedPopupMenuItem(
-                              value: 'false',
-                              checked: query.is4Ps == 'false',
-                              child: const Text('No'),
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
+                    label: buildSortableHeader('4Ps', '4ps'),
                   ),
                   DataColumn2(
                     size: ColumnSize.M,
                     label: Row(
                       children: [
-                        const Text(
+                        Text(
                           'Status',
-                          style: TextStyle(fontWeight: FontWeight.bold),
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 13,
+                            color: query.status.isNotEmpty
+                                ? AppColors.primaryGreen
+                                : (isDark
+                                    ? AppColors.darkTextPrimary
+                                    : AppColors.textPrimary),
+                          ),
                         ),
                         PopupMenuButton<String>(
-                          icon: const Icon(Icons.arrow_drop_down, size: 18),
+                          icon: Icon(
+                            Icons.arrow_drop_down,
+                            size: 18,
+                            color: query.status.isNotEmpty
+                                ? AppColors.primaryGreen
+                                : (isDark
+                                    ? AppColors.darkTextPrimary
+                                    : Colors.black87),
+                          ),
                           onSelected: (val) {
                             ref
                                 .read(studentQueryProvider.notifier)
@@ -1483,39 +1438,7 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
                   ),
                   DataColumn2(
                     size: ColumnSize.M,
-                    label: Row(
-                      children: [
-                        const Text(
-                          'Doc Status',
-                          style: TextStyle(fontWeight: FontWeight.bold),
-                        ),
-                        PopupMenuButton<String>(
-                          icon: const Icon(Icons.arrow_drop_down, size: 18),
-                          onSelected: (val) {
-                            ref
-                                .read(studentQueryProvider.notifier)
-                                .setSort(val.isEmpty ? '' : 'doc_status', val);
-                          },
-                          itemBuilder: (ctx) => [
-                            CheckedPopupMenuItem(
-                              value: '',
-                              checked: query.sortBy == 'doc_status' && query.sortOrder == '',
-                              child: const Text('Default'),
-                            ),
-                            CheckedPopupMenuItem(
-                              value: 'asc',
-                              checked: query.sortBy == 'doc_status' && query.sortOrder == 'asc',
-                              child: const Text('Completed'),
-                            ),
-                            CheckedPopupMenuItem(
-                              value: 'desc',
-                              checked: query.sortBy == 'doc_status' && query.sortOrder == 'desc',
-                              child: const Text('Pending'),
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
+                    label: buildSortableHeader('Doc Status', 'doc_status'),
                   ),
                   const DataColumn2(
                     size: ColumnSize.S,
