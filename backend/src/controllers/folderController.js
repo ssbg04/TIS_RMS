@@ -50,15 +50,23 @@ exports.getFolders = (req, res) => {
         // the teacher's assigned sections only. Uses a parameterised sub-select.
         let teacherJoinSql = '';
         if (isTeacher) {
+            const activeAy = db.prepare("SELECT * FROM academic_years WHERE status = 'active' LIMIT 1").get()
+                || db.prepare("SELECT * FROM academic_years ORDER BY year_range DESC LIMIT 1").get();
+            const targetYear = activeAy?.year_range;
             teacherJoinSql = `JOIN enrollments e_teacher ON e_teacher.student_id = f.student_id
                 AND e_teacher.id = (
                     SELECT e2.id FROM enrollments e2
                     JOIN academic_years ay ON e2.academic_year_id = ay.id
                     WHERE e2.student_id = f.student_id
+                      ${targetYear ? 'AND ay.year_range = ?' : ''}
                     ORDER BY ay.year_range DESC, e2.grade_level DESC, e2.id DESC LIMIT 1
                 )
                 JOIN teacher_sections ts ON ts.section_id = e_teacher.section_id AND ts.teacher_id = ?`;
-            params.unshift(teacherId);
+            if (targetYear) {
+                params.unshift(targetYear, teacherId);
+            } else {
+                params.unshift(teacherId);
+            }
         }
 
         const sql = `

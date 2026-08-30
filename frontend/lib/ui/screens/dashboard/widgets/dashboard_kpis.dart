@@ -1,4 +1,3 @@
-import 'dart:async';
 import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -128,15 +127,23 @@ class _KpisContent extends StatelessWidget {
         ),
         const SizedBox(height: 16),
 
-        // Row 1: Digitalization donuts + Activity bar
+        // Bento Block 1: Digitalization Progress (Hero flex: 3) + Activity Bar (flex: 2)
         if (isWide)
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Expanded(child: _DigitalizationCard(data: kpis.digitalization)),
-              const SizedBox(width: 16),
-              Expanded(child: _ActivityBarCard(entries: kpis.activityByDay)),
-            ],
+          IntrinsicHeight(
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Expanded(
+                  flex: 3,
+                  child: _DigitalizationCard(data: kpis.digitalization),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  flex: 2,
+                  child: _ActivityBarCard(entries: kpis.activityByDay),
+                ),
+              ],
+            ),
           )
         else
           Column(
@@ -149,69 +156,77 @@ class _KpisContent extends StatelessWidget {
 
         const SizedBox(height: 16),
 
-        // Row 2: Status distribution + Doc type pie
+        // Bento Block 2: Document Breakdown (Detailed flex: 3) + Status Distribution (Compact flex: 2)
         if (isWide)
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Expanded(child: _StatusDistributionCard(entries: kpis.statusDistribution)),
-              const SizedBox(width: 16),
-              Expanded(
-                child: _DocTypePieCard(
-                  entries: kpis.docTypeBreakdown,
-                  docTypeByGrade: kpis.docTypeByGrade,
+          IntrinsicHeight(
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Expanded(
+                  flex: 3,
+                  child: _DocTypePieCard(
+                    entries: kpis.docTypeBreakdown,
+                    docTypeByGrade: kpis.docTypeByGrade,
+                  ),
                 ),
-              ),
-            ],
+                const SizedBox(width: 16),
+                Expanded(
+                  flex: 2,
+                  child: _StatusDistributionCard(entries: kpis.statusDistribution),
+                ),
+              ],
+            ),
           )
         else
           Column(
             children: [
-              _StatusDistributionCard(entries: kpis.statusDistribution),
-              const SizedBox(height: 16),
               _DocTypePieCard(
                 entries: kpis.docTypeBreakdown,
                 docTypeByGrade: kpis.docTypeByGrade,
               ),
+              const SizedBox(height: 16),
+              _StatusDistributionCard(entries: kpis.statusDistribution),
             ],
           ),
 
         const SizedBox(height: 16),
 
-        // Upload trend line (full width)
+        // Bento Block 3: Full-width Upload Trend Line
         _UploadTrendCard(entries: kpis.uploadTrend),
 
         const SizedBox(height: 16),
 
-        // Row 3: Top students + Bottom students
+        // Bento Block 4: Top Students & Needs Attention
         if (isWide)
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Expanded(
-                child: _StudentDocCard(
-                  title: 'Top Students by Documents',
-                  icon: Icons.emoji_events_rounded,
-                  iconColor: Colors.amber.shade700,
-                  students: kpis.topStudents,
-                  allTopStudents: kpis.topStudents,
-                  allBottomStudents: kpis.bottomStudents,
-                  isTop: true,
+          IntrinsicHeight(
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Expanded(
+                  child: _StudentDocCard(
+                    title: 'Top Students by Documents',
+                    icon: Icons.emoji_events_rounded,
+                    iconColor: Colors.amber.shade700,
+                    students: kpis.topStudents,
+                    allTopStudents: kpis.topStudents,
+                    allBottomStudents: kpis.bottomStudents,
+                    isTop: true,
+                  ),
                 ),
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: _StudentDocCard(
-                  title: 'Needs Attention',
-                  icon: Icons.warning_amber_rounded,
-                  iconColor: Colors.orange,
-                  students: kpis.bottomStudents,
-                  allTopStudents: kpis.topStudents,
-                  allBottomStudents: kpis.bottomStudents,
-                  isTop: false,
+                const SizedBox(width: 16),
+                Expanded(
+                  child: _StudentDocCard(
+                    title: 'Needs Attention',
+                    icon: Icons.warning_amber_rounded,
+                    iconColor: Colors.orange,
+                    students: kpis.bottomStudents,
+                    allTopStudents: kpis.topStudents,
+                    allBottomStudents: kpis.bottomStudents,
+                    isTop: false,
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           )
         else
           Column(
@@ -599,48 +614,83 @@ class _StatusDistributionCard extends StatelessWidget {
       iconColor: Colors.orange,
       subtitle: 'By unique document types uploaded',
       child: Column(
-        children: entries.map((e) {
-          final pct = total == 0 ? 0.0 : e.count / total;
-          final color = _colorMap[e.status] ?? (isDark ? Colors.grey.shade400 : Colors.grey.shade500);
-          return Padding(
-            padding: const EdgeInsets.only(bottom: 12),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          ...entries.map((e) {
+            final pct = total == 0 ? 0.0 : e.count / total;
+            final color = _colorMap[e.status] ?? (isDark ? Colors.grey.shade400 : Colors.grey.shade500);
+            return Padding(
+              padding: const EdgeInsets.only(bottom: 12),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        e.status,
+                        style: TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                          color: Theme.of(context).colorScheme.onSurface,
+                        ),
+                      ),
+                      Text(
+                        '${e.count} (${(pct * 100).toStringAsFixed(1)}%)',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 6),
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(6),
+                    child: LinearProgressIndicator(
+                      value: pct,
+                      backgroundColor: isDark ? AppColors.darkSurface2 : Colors.grey.shade100,
+                      valueColor: AlwaysStoppedAnimation<Color>(color),
+                      minHeight: 10,
+                    ),
+                  ),
+                ],
+              ),
+            );
+          }),
+          const SizedBox(height: 4),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            decoration: BoxDecoration(
+              color: isDark ? AppColors.darkSurface2 : Colors.grey.shade50,
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(
+                color: isDark ? AppColors.darkBorder : Colors.grey.shade200,
+              ),
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      e.status,
-                      style: TextStyle(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w600,
-                        color: Theme.of(context).colorScheme.onSurface,
-                      ),
-                    ),
-                    Text(
-                      '${e.count} (${(pct * 100).toStringAsFixed(1)}%)',
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
-                      ),
-                    ),
-                  ],
+                Text(
+                  'Total Uploaded Types',
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w500,
+                    color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7),
+                  ),
                 ),
-                const SizedBox(height: 6),
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(6),
-                  child: LinearProgressIndicator(
-                    value: pct,
-                    backgroundColor: isDark ? AppColors.darkSurface2 : Colors.grey.shade100,
-                    valueColor: AlwaysStoppedAnimation<Color>(color),
-                    minHeight: 10,
+                Text(
+                  '$total',
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.bold,
+                    color: Theme.of(context).colorScheme.onSurface,
                   ),
                 ),
               ],
             ),
-          );
-        }).toList(),
+          ),
+        ],
       ),
     );
   }
@@ -662,10 +712,11 @@ class _DocTypePieCard extends StatefulWidget {
   State<_DocTypePieCard> createState() => _DocTypePieCardState();
 }
 
-class _DocTypePieCardState extends State<_DocTypePieCard> {
+class _DocTypePieCardState extends State<_DocTypePieCard>
+    with SingleTickerProviderStateMixin {
   String? _selectedDocType;
   int _touchedIndex = -1;
-  Timer? _rotationTimer;
+  late AnimationController _countdownController;
   bool _isAutoRotating = true;
 
   static const List<Color> _palette = [
@@ -705,8 +756,30 @@ class _DocTypePieCardState extends State<_DocTypePieCard> {
     if (names.isNotEmpty) {
       _selectedDocType = names.first;
     }
+    _countdownController = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 5),
+    );
+
+    _countdownController.addStatusListener((status) {
+      if (status == AnimationStatus.completed) {
+        final names = _getOrderedDocTypeNames();
+        if (names.length > 1 && mounted) {
+          final currentIndex = names.indexOf(_selectedDocType ?? '');
+          final nextIndex = currentIndex < 0 ? 0 : (currentIndex + 1) % names.length;
+          setState(() {
+            _selectedDocType = names[nextIndex];
+            _touchedIndex = -1;
+          });
+        }
+        if (_isAutoRotating && mounted) {
+          _countdownController.forward(from: 0.0);
+        }
+      }
+    });
+
     if (_isAutoRotating) {
-      _startAutoRotation();
+      _countdownController.forward();
     }
   }
 
@@ -719,29 +792,13 @@ class _DocTypePieCardState extends State<_DocTypePieCard> {
     }
   }
 
-  void _startAutoRotation() {
-    _rotationTimer?.cancel();
-    if (!_isAutoRotating) return;
-    _rotationTimer = Timer.periodic(const Duration(seconds: 5), (_) {
-      final names = _getOrderedDocTypeNames();
-      if (names.length <= 1) return;
-      if (!mounted) return;
-      final currentIndex = names.indexOf(_selectedDocType ?? '');
-      final nextIndex = currentIndex < 0 ? 0 : (currentIndex + 1) % names.length;
-      setState(() {
-        _selectedDocType = names[nextIndex];
-        _touchedIndex = -1;
-      });
-    });
-  }
-
   void _toggleAutoRotation() {
     setState(() {
       _isAutoRotating = !_isAutoRotating;
       if (_isAutoRotating) {
-        _startAutoRotation();
+        _countdownController.forward(from: _countdownController.value);
       } else {
-        _rotationTimer?.cancel();
+        _countdownController.stop();
       }
     });
   }
@@ -753,7 +810,7 @@ class _DocTypePieCardState extends State<_DocTypePieCard> {
       _touchedIndex = -1;
     });
     if (_isAutoRotating) {
-      _startAutoRotation();
+      _countdownController.forward(from: 0.0);
     }
   }
 
@@ -775,7 +832,7 @@ class _DocTypePieCardState extends State<_DocTypePieCard> {
 
   @override
   void dispose() {
-    _rotationTimer?.cancel();
+    _countdownController.dispose();
     super.dispose();
   }
 
@@ -978,21 +1035,50 @@ class _DocTypePieCardState extends State<_DocTypePieCard> {
               constraints: const BoxConstraints(minWidth: 28, minHeight: 28),
             ),
             const SizedBox(width: 2),
-            IconButton(
-              onPressed: _toggleAutoRotation,
-              icon: Icon(
-                _isAutoRotating ? Icons.pause_rounded : Icons.play_arrow_rounded,
-                size: 18,
-                color: _isAutoRotating
-                    ? AppColors.primaryGreen
-                    : Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5),
-              ),
-              tooltip: _isAutoRotating ? 'Pause auto-rotation' : 'Resume auto-rotation',
-              visualDensity: VisualDensity.compact,
-              padding: EdgeInsets.zero,
-              constraints: const BoxConstraints(minWidth: 28, minHeight: 28),
+            AnimatedBuilder(
+              animation: _countdownController,
+              builder: (context, _) {
+                final remainingSeconds = ((1.0 - _countdownController.value) * 5).ceil().clamp(1, 5);
+                return Tooltip(
+                  message: _isAutoRotating
+                      ? 'Auto-advancing in ${remainingSeconds}s (Click to pause)'
+                      : 'Auto-rotation paused (Click to resume)',
+                  child: InkWell(
+                    onTap: _toggleAutoRotation,
+                    borderRadius: BorderRadius.circular(16),
+                    child: Container(
+                      width: 28,
+                      height: 28,
+                      alignment: Alignment.center,
+                      child: Stack(
+                        alignment: Alignment.center,
+                        children: [
+                          if (_isAutoRotating)
+                            SizedBox(
+                              width: 24,
+                              height: 24,
+                              child: CircularProgressIndicator(
+                                value: 1.0 - _countdownController.value,
+                                strokeWidth: 2.2,
+                                backgroundColor: (isDark ? Colors.white : Colors.black).withValues(alpha: 0.08),
+                                valueColor: const AlwaysStoppedAnimation<Color>(AppColors.primaryGreen),
+                              ),
+                            ),
+                          Icon(
+                            _isAutoRotating ? Icons.pause_rounded : Icons.play_arrow_rounded,
+                            size: 14,
+                            color: _isAutoRotating
+                                ? AppColors.primaryGreen
+                                : Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                );
+              },
             ),
-            const SizedBox(width: 2),
+            const SizedBox(width: 4),
           ],
           Expanded(
             child: Container(
@@ -1096,10 +1182,9 @@ class _DocTypePieCardState extends State<_DocTypePieCard> {
       );
     }
 
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final isMobile = constraints.maxWidth < 480;
-        final isCompactChart = constraints.maxWidth < 360;
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isMobile = screenWidth < 700;
+    final isCompactChart = screenWidth < 450;
 
         final chartWidget = SizedBox(
           height: 130,
@@ -1215,7 +1300,7 @@ class _DocTypePieCardState extends State<_DocTypePieCard> {
         );
 
         return Container(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.all(20),
           decoration: BoxDecoration(
             color: isDark ? AppColors.darkSurfaceCard : Colors.white,
             borderRadius: BorderRadius.circular(16),
@@ -1325,8 +1410,6 @@ class _DocTypePieCardState extends State<_DocTypePieCard> {
             ],
           ),
         );
-      },
-    );
   }
 }
 

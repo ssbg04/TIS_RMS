@@ -168,6 +168,11 @@ exports.getAllStudents = (req, res) => {
             conditions.push(`s.is_4ps = 0`);
         }
 
+        // Resolve target school year (defaults to active academic year)
+        const activeAy = db.prepare("SELECT * FROM academic_years WHERE status = 'active' LIMIT 1").get()
+            || db.prepare("SELECT * FROM academic_years ORDER BY year_range DESC LIMIT 1").get();
+        const effectiveYearRange = (schoolYear && schoolYear.trim()) ? schoolYear.trim() : (activeAy?.year_range || '');
+
         // grade_level lives in enrollments.
         // When schoolYear is specified we must join on the enrollment IN that year
         // (not just the globally-latest enrollment), otherwise students whose newest
@@ -178,33 +183,19 @@ exports.getAllStudents = (req, res) => {
         const enrollJoinParams = []; // binds consumed by the enrollment JOIN subquery
 
         if (needsEnrollmentJoin) {
-            if (schoolYear.trim()) {
-                // ── Year-scoped join ──────────────────────────────────────────
-                // Pick the best enrollment the student has IN the requested year.
-                enrollmentJoin = `
-                   JOIN enrollments e_latest ON e_latest.student_id = s.id
-                   AND e_latest.id = (
-                       SELECT e.id FROM enrollments e
-                       JOIN academic_years ay_inner ON e.academic_year_id = ay_inner.id
-                       WHERE e.student_id = s.id
-                         AND ay_inner.year_range = ?
-                       ORDER BY e.grade_level DESC, e.id DESC LIMIT 1
-                   )
-                   JOIN sections sec ON sec.id = e_latest.section_id
-                   JOIN academic_years ay ON ay.id = e_latest.academic_year_id`;
-                enrollJoinParams.push(schoolYear.trim());
-            } else {
-                // ── No year filter: use globally latest enrollment ─────────────
-                enrollmentJoin = `
-                   JOIN enrollments e_latest ON e_latest.student_id = s.id
-                   AND e_latest.id = (
-                       SELECT e.id FROM enrollments e
-                       JOIN academic_years ay_inner ON e.academic_year_id = ay_inner.id
-                       WHERE e.student_id = s.id
-                       ORDER BY ay_inner.year_range DESC, e.grade_level DESC, e.id DESC LIMIT 1
-                   )
-                   JOIN sections sec ON sec.id = e_latest.section_id
-                   JOIN academic_years ay ON ay.id = e_latest.academic_year_id`;
+            enrollmentJoin = `
+               JOIN enrollments e_latest ON e_latest.student_id = s.id
+               AND e_latest.id = (
+                   SELECT e.id FROM enrollments e
+                   JOIN academic_years ay_inner ON e.academic_year_id = ay_inner.id
+                   WHERE e.student_id = s.id
+                     ${effectiveYearRange ? 'AND ay_inner.year_range = ?' : ''}
+                   ORDER BY ay_inner.year_range DESC, e.grade_level DESC, e.id DESC LIMIT 1
+               )
+               JOIN sections sec ON sec.id = e_latest.section_id
+               JOIN academic_years ay ON ay.id = e_latest.academic_year_id`;
+            if (effectiveYearRange) {
+                enrollJoinParams.push(effectiveYearRange);
             }
         }
 
@@ -218,18 +209,21 @@ exports.getAllStudents = (req, res) => {
         }
         // schoolYear is handled inside the JOIN subquery (enrollJoinParams), not WHERE.
 
-        // ---- Teacher section scoping ----
+        // ---- Teacher section scoping (scoped to active school year by default) ----
         const teacherJoin       = isTeacher
             ? `JOIN enrollments e_teacher ON e_teacher.student_id = s.id
                AND e_teacher.id = (
                    SELECT e.id FROM enrollments e
                    JOIN academic_years ay_inner ON e.academic_year_id = ay_inner.id
                    WHERE e.student_id = s.id
+                     ${effectiveYearRange ? 'AND ay_inner.year_range = ?' : ''}
                    ORDER BY ay_inner.year_range DESC, e.grade_level DESC, e.id DESC LIMIT 1
                )
                JOIN teacher_sections ts ON ts.section_id = e_teacher.section_id AND ts.teacher_id = ?`
             : '';
-        const teacherJoinParams = isTeacher ? [teacherId] : [];
+        const teacherJoinParams = isTeacher
+            ? (effectiveYearRange ? [effectiveYearRange, teacherId] : [teacherId])
+            : [];
 
         const whereClause = conditions.length ? `WHERE ${conditions.join(' AND ')}` : '';
 
@@ -268,6 +262,7 @@ exports.getAllStudents = (req, res) => {
                     SELECT e.grade_level FROM enrollments e
                     JOIN academic_years ay_inner ON e.academic_year_id = ay_inner.id
                     WHERE e.student_id = s.id
+                      ${effectiveYearRange ? `AND ay_inner.year_range = '${effectiveYearRange.replace(/'/g, "''")}'` : ''}
                     ORDER BY ay_inner.year_range DESC, e.grade_level DESC, e.id DESC LIMIT 1
                 ) as latest_grade_level,
                 (
@@ -275,6 +270,7 @@ exports.getAllStudents = (req, res) => {
                     JOIN sections sec ON sec.id = enr.section_id
                     JOIN academic_years ay_inner ON enr.academic_year_id = ay_inner.id
                     WHERE enr.student_id = s.id
+                      ${effectiveYearRange ? `AND ay_inner.year_range = '${effectiveYearRange.replace(/'/g, "''")}'` : ''}
                     ORDER BY ay_inner.year_range DESC, enr.grade_level DESC, enr.id DESC LIMIT 1
                 ) as latest_section,
                 (
@@ -369,13 +365,7 @@ exports.getStudentById = (req, res) => {
                 SELECT 1 FROM enrollments e
                 JOIN teacher_sections ts ON e.section_id = ts.section_id
                 WHERE e.student_id = ? AND ts.teacher_id = ?
-                  AND e.id = (
-                      SELECT e2.id FROM enrollments e2
-                      JOIN academic_years ay ON e2.academic_year_id = ay.id
-                      WHERE e2.student_id = ?
-                      ORDER BY ay.year_range DESC, e2.grade_level DESC, e2.id DESC LIMIT 1
-                  )
-            `).get(studentId, req.user.id, studentId);
+            `).get(studentId, req.user.id);
             if (!hasAccess) {
                 return res.status(403).json({ message: "Access denied to this student's details." });
             }
