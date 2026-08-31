@@ -573,24 +573,41 @@ class _EditEnrollmentModalState extends ConsumerState<EditEnrollmentModal> {
                   ),
                   borderRadius: BorderRadius.circular(AppSizes.radiusMedium),
                 ),
-                child: Row(
+                child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Icon(
-                      Icons.error_outline,
-                      color: AppColors.error,
-                      size: 20,
-                    ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Text(
-                        _errorMessage!,
-                        style: const TextStyle(
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Icon(
+                          Icons.error_outline,
                           color: AppColors.error,
-                          fontSize: 14,
+                          size: 20,
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            _errorMessage!,
+                            style: const TextStyle(
+                              color: AppColors.error,
+                              fontSize: 13,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    if (_errorMessage!.toLowerCase().contains('downgrade') ||
+                        _errorMessage!.toLowerCase().contains('lower')) ...[
+                      const SizedBox(height: 8),
+                      Text(
+                        'Tip: To correct a grade level or downgrade a student, delete the higher enrollment record(s) first from the Enrollments tab.',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.75),
                         ),
                       ),
-                    ),
+                    ],
                   ],
                 ),
               ),

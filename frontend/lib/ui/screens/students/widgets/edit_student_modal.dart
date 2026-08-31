@@ -865,7 +865,63 @@ class _EditStudentModalState extends ConsumerState<EditStudentModal> {
                   ],
                 ),
               ],
-              const SizedBox(height: 16),
+              const SizedBox(height: 14),
+
+              // ── Downgrade / Correction Guidance Note ──
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                decoration: BoxDecoration(
+                  color: isDark
+                      ? Colors.blue.withValues(alpha: 0.12)
+                      : Colors.blue.shade50,
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(
+                    color: isDark
+                        ? Colors.blue.withValues(alpha: 0.3)
+                        : Colors.blue.shade200,
+                  ),
+                ),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Icon(
+                      Icons.info_outline_rounded,
+                      size: 18,
+                      color: isDark ? Colors.blue.shade300 : Colors.blue.shade700,
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: RichText(
+                        text: TextSpan(
+                          style: TextStyle(
+                            fontSize: 12,
+                            height: 1.4,
+                            color: isDark
+                                ? AppColors.darkTextPrimary
+                                : const Color(0xFF1E293B),
+                          ),
+                          children: [
+                            TextSpan(
+                              text: 'Note on Downgrading: ',
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                color: isDark
+                                    ? Colors.blue.shade300
+                                    : Colors.blue.shade700,
+                              ),
+                            ),
+                            const TextSpan(
+                              text:
+                                  'To correct a mistake or downgrade a student\'s grade level, delete the higher enrollment record(s) first to bypass downgrading restrictions.',
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 14),
               if (sorted.isEmpty)
                 Container(
                   padding: const EdgeInsets.all(32),
