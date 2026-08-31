@@ -127,22 +127,14 @@ class _TransparencyBoardContentState extends ConsumerState<_TransparencyBoardCon
                           ),
                         ],
                       ),
-                      const SizedBox(height: 8),
-                      Wrap(
-                        spacing: 8,
-                        runSpacing: 6,
-                        crossAxisAlignment: WrapCrossAlignment.center,
-                        children: [
-                          _buildThemeChip('ACCESS', Colors.amber),
-                          _buildThemeChip('EQUITY', Colors.lightBlueAccent),
-                          if (academicYears.isNotEmpty)
-                            _buildYearSelector(
-                              context,
-                              academicYears: academicYears,
-                              selectedYearId: selectedYearId,
-                            ),
-                        ],
-                      ),
+                      if (academicYears.isNotEmpty) ...[
+                        const SizedBox(height: 8),
+                        _buildYearSelector(
+                          context,
+                          academicYears: academicYears,
+                          selectedYearId: selectedYearId,
+                        ),
+                      ],
                     ] else ...[
                       Row(
                         children: [
@@ -163,9 +155,6 @@ class _TransparencyBoardContentState extends ConsumerState<_TransparencyBoardCon
                               ),
                             ),
                           ),
-                          _buildThemeChip('ACCESS', Colors.amber),
-                          const SizedBox(width: 8),
-                          _buildThemeChip('EQUITY', Colors.lightBlueAccent),
                           if (academicYears.isNotEmpty) ...[
                             const SizedBox(width: 12),
                             _buildYearSelector(
@@ -234,11 +223,11 @@ class _TransparencyBoardContentState extends ConsumerState<_TransparencyBoardCon
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // ── Section 1: ACCESS — Enrollment ──────────────────────────
+                // ── Section 1: Data on Enrollment ───────────────────────────
                 _buildSectionHeader(
                   context,
                   icon: Icons.bar_chart,
-                  label: '1. ACCESS — Enrollment by Sex & Year',
+                  label: '1. Data on Enrollment',
                   color: AppColors.primaryGreen,
                 ),
                 const SizedBox(height: AppSizes.p16),
@@ -253,11 +242,11 @@ class _TransparencyBoardContentState extends ConsumerState<_TransparencyBoardCon
                 ),
                 const SizedBox(height: AppSizes.p24),
 
-                // ── Section 2: ACCESS — Dropouts & Transferees ───────────────
+                // ── Section 2: Dropouts & Transferees ────────────────────────
                 _buildSectionHeader(
                   context,
                   icon: Icons.trending_down,
-                  label: '2. ACCESS — Dropouts & Transferees',
+                  label: '2. Dropouts & Transferees',
                   color: Colors.redAccent,
                 ),
                 const SizedBox(height: AppSizes.p16),
@@ -272,11 +261,11 @@ class _TransparencyBoardContentState extends ConsumerState<_TransparencyBoardCon
                 ),
                 const SizedBox(height: AppSizes.p24),
 
-                // ── Section 3: EQUITY — 4Ps Beneficiaries ────────────────────
+                // ── Section 3: 4Ps Beneficiaries ─────────────────────────────
                 _buildSectionHeader(
                   context,
                   icon: Icons.family_restroom,
-                  label: '3. EQUITY — 4Ps Beneficiaries',
+                  label: '3. 4Ps Beneficiaries',
                   color: Colors.deepPurple,
                 ),
                 const SizedBox(height: AppSizes.p16),
@@ -367,22 +356,141 @@ class _TransparencyBoardContentState extends ConsumerState<_TransparencyBoardCon
 
   // ── Shared Helpers ─────────────────────────────────────────────────────────
 
-  static Widget _buildThemeChip(String label, Color color) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-      decoration: BoxDecoration(
-        color: color,
-        borderRadius: BorderRadius.circular(20),
-      ),
-      child: Text(
-        label,
-        style: const TextStyle(
-          color: Colors.black87,
-          fontSize: 11,
-          fontWeight: FontWeight.bold,
+  static Widget _buildDifferenceCell(int? diff, {required bool hasPreviousYear, required bool isDark}) {
+    if (!hasPreviousYear || diff == null) {
+      return Text(
+        '—',
+        style: TextStyle(
+          fontWeight: FontWeight.w600,
+          color: isDark ? AppColors.darkTextMuted : Colors.grey,
         ),
+      );
+    }
+
+    final String text = diff > 0 ? '+$diff' : '$diff';
+    final Color color = diff > 0
+        ? (isDark ? const Color(0xFF81C784) : const Color(0xFF2E7D32))
+        : (diff < 0
+            ? (isDark ? const Color(0xFFE57373) : const Color(0xFFC62828))
+            : (isDark ? AppColors.darkTextSecondary : AppColors.textSecondary));
+
+    return Text(
+      text,
+      style: TextStyle(
+        fontWeight: FontWeight.bold,
+        color: color,
       ),
     );
+  }
+
+  static Widget _buildRemarkBadge(int? diff, {required bool hasPreviousYear, required bool isDark}) {
+    if (!hasPreviousYear || diff == null) {
+      return Container(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+        decoration: BoxDecoration(
+          color: isDark ? AppColors.darkSurface2 : Colors.grey.shade100,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: isDark ? AppColors.darkBorder : Colors.grey.shade300,
+          ),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.remove, size: 12, color: isDark ? AppColors.darkTextMuted : Colors.grey.shade600),
+            const SizedBox(width: 4),
+            Text(
+              'Baseline',
+              style: TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.w600,
+                color: isDark ? AppColors.darkTextSecondary : Colors.grey.shade700,
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    if (diff > 0) {
+      return Container(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+        decoration: BoxDecoration(
+          color: isDark ? const Color(0xFF1B3828) : const Color(0xFFE8F5E9),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: isDark ? const Color(0xFF2E7D32) : const Color(0xFFA5D6A7),
+          ),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.trending_up, size: 13, color: isDark ? const Color(0xFF81C784) : const Color(0xFF2E7D32)),
+            const SizedBox(width: 4),
+            Text(
+              'Increasing',
+              style: TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.bold,
+                color: isDark ? const Color(0xFF81C784) : const Color(0xFF2E7D32),
+              ),
+            ),
+          ],
+        ),
+      );
+    } else if (diff < 0) {
+      return Container(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+        decoration: BoxDecoration(
+          color: isDark ? const Color(0xFF3E1F1F) : const Color(0xFFFFEBEE),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: isDark ? const Color(0xFFC62828) : const Color(0xFFEF9A9A),
+          ),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.trending_down, size: 13, color: isDark ? const Color(0xFFE57373) : const Color(0xFFC62828)),
+            const SizedBox(width: 4),
+            Text(
+              'Decreasing',
+              style: TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.bold,
+                color: isDark ? const Color(0xFFE57373) : const Color(0xFFC62828),
+              ),
+            ),
+          ],
+        ),
+      );
+    } else {
+      return Container(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+        decoration: BoxDecoration(
+          color: isDark ? AppColors.darkSurface2 : const Color(0xFFF1F5F9),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: isDark ? AppColors.darkBorder : const Color(0xFFCBD5E1),
+          ),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.trending_flat, size: 13, color: isDark ? AppColors.darkTextSecondary : const Color(0xFF64748B)),
+            const SizedBox(width: 4),
+            Text(
+              'Maintained',
+              style: TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.bold,
+                color: isDark ? AppColors.darkTextSecondary : const Color(0xFF64748B),
+              ),
+            ),
+          ],
+        ),
+      );
+    }
   }
 
   static Widget _buildSectionHeader(
@@ -480,7 +588,7 @@ class _TransparencyBoardContentState extends ConsumerState<_TransparencyBoardCon
     );
   }
 
-  // ── Section 1: Enrollment ─────────────────────────────────────────────────
+  // ── Section 1: Data on Enrollment ─────────────────────────────────────────
 
   Widget _buildEnrollmentSection(
     BuildContext context,
@@ -491,6 +599,7 @@ class _TransparencyBoardContentState extends ConsumerState<_TransparencyBoardCon
     }
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final latestYear = years.last;
+    final previousYear = years.length > 1 ? years[years.length - 2] : null;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -523,7 +632,9 @@ class _TransparencyBoardContentState extends ConsumerState<_TransparencyBoardCon
           runSpacing: 8,
           children: [
             Text(
-              'Enrollment Summary (SY ${latestYear.yearRange})',
+              previousYear != null
+                  ? 'Data on Enrollment (SY ${previousYear.yearRange} vs. SY ${latestYear.yearRange})'
+                  : 'Data on Enrollment (SY ${latestYear.yearRange})',
               style: TextStyle(
                 fontSize: 14,
                 fontWeight: FontWeight.w600,
@@ -531,7 +642,7 @@ class _TransparencyBoardContentState extends ConsumerState<_TransparencyBoardCon
               ),
             ),
             Text(
-              'Overall Total: ${latestYear.enrollment.overallTotal.total}',
+              'Active SY Total: ${latestYear.enrollment.overallTotal.total}',
               style: const TextStyle(
                 fontWeight: FontWeight.bold,
                 color: AppColors.primaryGreen,
@@ -540,7 +651,12 @@ class _TransparencyBoardContentState extends ConsumerState<_TransparencyBoardCon
           ],
         ),
         const SizedBox(height: AppSizes.p12),
-        _buildEnrollmentTable(context, latestYear.enrollment, isDark: isDark),
+        _buildEnrollmentComparisonTable(
+          context,
+          latestYear: latestYear,
+          previousYear: previousYear,
+          isDark: isDark,
+        ),
       ],
     );
   }
@@ -779,11 +895,16 @@ class _TransparencyBoardContentState extends ConsumerState<_TransparencyBoardCon
     );
   }
 
-  Widget _buildEnrollmentTable(
-    BuildContext context,
-    YearlyEnrollmentSummary summary, {
+  Widget _buildEnrollmentComparisonTable(
+    BuildContext context, {
+    required YearlyTransparencyItem latestYear,
+    required YearlyTransparencyItem? previousYear,
     required bool isDark,
   }) {
+    final hasPrev = previousYear != null;
+    final prevLabel = hasPrev ? 'SY ${previousYear.yearRange}' : 'Previous SY';
+    final currentLabel = 'SY ${latestYear.yearRange}';
+
     Widget tableWidget = Container(
       decoration: BoxDecoration(
         border: Border.all(
@@ -793,10 +914,11 @@ class _TransparencyBoardContentState extends ConsumerState<_TransparencyBoardCon
       ),
       child: Table(
         columnWidths: const {
-          0: FlexColumnWidth(2.5),
-          1: FlexColumnWidth(1),
-          2: FlexColumnWidth(1),
-          3: FlexColumnWidth(1),
+          0: FlexColumnWidth(2.4),
+          1: FlexColumnWidth(1.2),
+          2: FlexColumnWidth(1.2),
+          3: FlexColumnWidth(1.1),
+          4: FlexColumnWidth(1.4),
         },
         border: TableBorder.symmetric(
           inside: BorderSide(
@@ -806,7 +928,7 @@ class _TransparencyBoardContentState extends ConsumerState<_TransparencyBoardCon
           ),
         ),
         children: [
-          // Header
+          // Header Row
           TableRow(
             decoration: BoxDecoration(
               color: AppColors.primaryGreen.withValues(alpha: 0.1),
@@ -814,38 +936,50 @@ class _TransparencyBoardContentState extends ConsumerState<_TransparencyBoardCon
                 top: Radius.circular(AppSizes.radiusMedium),
               ),
             ),
-            children: const [
-              Padding(
+            children: [
+              const Padding(
                 padding: EdgeInsets.all(10),
                 child: Text(
                   'Key Stage / Grade Level',
-                  style: TextStyle(fontWeight: FontWeight.bold),
+                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
                 ),
               ),
               Padding(
-                padding: EdgeInsets.all(10),
+                padding: const EdgeInsets.all(10),
                 child: Text(
-                  'Male',
-                  style: TextStyle(fontWeight: FontWeight.bold),
+                  prevLabel,
+                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
+                  textAlign: TextAlign.center,
                 ),
               ),
               Padding(
-                padding: EdgeInsets.all(10),
+                padding: const EdgeInsets.all(10),
                 child: Text(
-                  'Female',
-                  style: TextStyle(fontWeight: FontWeight.bold),
+                  currentLabel,
+                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
+                  textAlign: TextAlign.center,
                 ),
               ),
-              Padding(
+              const Padding(
                 padding: EdgeInsets.all(10),
                 child: Text(
-                  'Total',
-                  style: TextStyle(fontWeight: FontWeight.bold),
+                  'Difference',
+                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
+                  textAlign: TextAlign.center,
+                ),
+              ),
+              const Padding(
+                padding: EdgeInsets.all(10),
+                child: Text(
+                  'Remarks',
+                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
+                  textAlign: TextAlign.center,
                 ),
               ),
             ],
           ),
-          // Key Stage 3 Header
+
+          // ── Key Stage 3 Header ──
           TableRow(
             decoration: BoxDecoration(
               color: isDark
@@ -866,34 +1000,73 @@ class _TransparencyBoardContentState extends ConsumerState<_TransparencyBoardCon
               SizedBox.shrink(),
               SizedBox.shrink(),
               SizedBox.shrink(),
+              SizedBox.shrink(),
             ],
           ),
-          // JHS Grades
-          ...summary.grades.where((g) => g.gradeLevel <= 10).map((g) {
+
+          // JHS Grades 7-10
+          ...[7, 8, 9, 10].map((grade) {
+            final curr = latestYear.enrollment.grades.firstWhere(
+              (g) => g.gradeLevel == grade,
+              orElse: () => GradeEnrollmentBreakdown(
+                gradeLevel: grade,
+                male: 0,
+                female: 0,
+                total: 0,
+              ),
+            ).total;
+
+            final prev = hasPrev
+                ? previousYear.enrollment.grades.firstWhere(
+                    (g) => g.gradeLevel == grade,
+                    orElse: () => GradeEnrollmentBreakdown(
+                      gradeLevel: grade,
+                      male: 0,
+                      female: 0,
+                      total: 0,
+                    ),
+                  ).total
+                : null;
+
+            final diff = hasPrev ? (curr - (prev ?? 0)) : null;
+
             return TableRow(
               children: [
                 Padding(
                   padding: const EdgeInsets.all(10),
-                  child: Text('Grade ${g.gradeLevel}'),
-                ),
-                Padding(
-                  padding: const EdgeInsets.all(10),
-                  child: Text(g.male.toString()),
-                ),
-                Padding(
-                  padding: const EdgeInsets.all(10),
-                  child: Text(g.female.toString()),
+                  child: Text('Grade $grade'),
                 ),
                 Padding(
                   padding: const EdgeInsets.all(10),
                   child: Text(
-                    g.total.toString(),
-                    style: const TextStyle(fontWeight: FontWeight.bold),
+                    hasPrev ? '$prev' : '—',
+                    textAlign: TextAlign.center,
+                  ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.all(10),
+                  child: Text(
+                    '$curr',
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(fontWeight: FontWeight.w600),
+                  ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.all(10),
+                  child: Center(
+                    child: _buildDifferenceCell(diff, hasPreviousYear: hasPrev, isDark: isDark),
+                  ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 8),
+                  child: Center(
+                    child: _buildRemarkBadge(diff, hasPreviousYear: hasPrev, isDark: isDark),
                   ),
                 ),
               ],
             );
           }),
+
           // JHS Subtotal Row
           TableRow(
             decoration: BoxDecoration(
@@ -903,37 +1076,59 @@ class _TransparencyBoardContentState extends ConsumerState<_TransparencyBoardCon
               const Padding(
                 padding: EdgeInsets.all(10),
                 child: Text(
-                  'Key Stage 3 Total',
+                  'Key Stage 3 (JHS) Total',
                   style: TextStyle(fontWeight: FontWeight.bold),
                 ),
               ),
               Padding(
                 padding: const EdgeInsets.all(10),
                 child: Text(
-                  summary.jhsTotal.male.toString(),
+                  hasPrev ? '${previousYear.enrollment.jhsTotal.total}' : '—',
+                  textAlign: TextAlign.center,
                   style: const TextStyle(fontWeight: FontWeight.bold),
                 ),
               ),
               Padding(
                 padding: const EdgeInsets.all(10),
                 child: Text(
-                  summary.jhsTotal.female.toString(),
-                  style: const TextStyle(fontWeight: FontWeight.bold),
-                ),
-              ),
-              Padding(
-                padding: const EdgeInsets.all(10),
-                child: Text(
-                  summary.jhsTotal.total.toString(),
+                  '${latestYear.enrollment.jhsTotal.total}',
+                  textAlign: TextAlign.center,
                   style: const TextStyle(
                     fontWeight: FontWeight.bold,
                     color: AppColors.primaryGreen,
                   ),
                 ),
               ),
+              Padding(
+                padding: const EdgeInsets.all(10),
+                child: Center(
+                  child: _buildDifferenceCell(
+                    hasPrev
+                        ? (latestYear.enrollment.jhsTotal.total -
+                            previousYear.enrollment.jhsTotal.total)
+                        : null,
+                    hasPreviousYear: hasPrev,
+                    isDark: isDark,
+                  ),
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 8),
+                child: Center(
+                  child: _buildRemarkBadge(
+                    hasPrev
+                        ? (latestYear.enrollment.jhsTotal.total -
+                            previousYear.enrollment.jhsTotal.total)
+                        : null,
+                    hasPreviousYear: hasPrev,
+                    isDark: isDark,
+                  ),
+                ),
+              ),
             ],
           ),
-          // Key Stage 4 Header
+
+          // ── Key Stage 4 Header ──
           TableRow(
             decoration: BoxDecoration(
               color: isDark
@@ -954,34 +1149,73 @@ class _TransparencyBoardContentState extends ConsumerState<_TransparencyBoardCon
               SizedBox.shrink(),
               SizedBox.shrink(),
               SizedBox.shrink(),
+              SizedBox.shrink(),
             ],
           ),
-          // SHS Grades
-          ...summary.grades.where((g) => g.gradeLevel > 10).map((g) {
+
+          // SHS Grades 11-12
+          ...[11, 12].map((grade) {
+            final curr = latestYear.enrollment.grades.firstWhere(
+              (g) => g.gradeLevel == grade,
+              orElse: () => GradeEnrollmentBreakdown(
+                gradeLevel: grade,
+                male: 0,
+                female: 0,
+                total: 0,
+              ),
+            ).total;
+
+            final prev = hasPrev
+                ? previousYear.enrollment.grades.firstWhere(
+                    (g) => g.gradeLevel == grade,
+                    orElse: () => GradeEnrollmentBreakdown(
+                      gradeLevel: grade,
+                      male: 0,
+                      female: 0,
+                      total: 0,
+                    ),
+                  ).total
+                : null;
+
+            final diff = hasPrev ? (curr - (prev ?? 0)) : null;
+
             return TableRow(
               children: [
                 Padding(
                   padding: const EdgeInsets.all(10),
-                  child: Text('Grade ${g.gradeLevel}'),
-                ),
-                Padding(
-                  padding: const EdgeInsets.all(10),
-                  child: Text(g.male.toString()),
-                ),
-                Padding(
-                  padding: const EdgeInsets.all(10),
-                  child: Text(g.female.toString()),
+                  child: Text('Grade $grade'),
                 ),
                 Padding(
                   padding: const EdgeInsets.all(10),
                   child: Text(
-                    g.total.toString(),
-                    style: const TextStyle(fontWeight: FontWeight.bold),
+                    hasPrev ? '$prev' : '—',
+                    textAlign: TextAlign.center,
+                  ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.all(10),
+                  child: Text(
+                    '$curr',
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(fontWeight: FontWeight.w600),
+                  ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.all(10),
+                  child: Center(
+                    child: _buildDifferenceCell(diff, hasPreviousYear: hasPrev, isDark: isDark),
+                  ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 8),
+                  child: Center(
+                    child: _buildRemarkBadge(diff, hasPreviousYear: hasPrev, isDark: isDark),
                   ),
                 ),
               ],
             );
           }),
+
           // SHS Subtotal Row
           TableRow(
             decoration: BoxDecoration(
@@ -991,31 +1225,116 @@ class _TransparencyBoardContentState extends ConsumerState<_TransparencyBoardCon
               const Padding(
                 padding: EdgeInsets.all(10),
                 child: Text(
-                  'Key Stage 4 Total',
+                  'Key Stage 4 (SHS) Total',
                   style: TextStyle(fontWeight: FontWeight.bold),
                 ),
               ),
               Padding(
                 padding: const EdgeInsets.all(10),
                 child: Text(
-                  summary.shsTotal.male.toString(),
+                  hasPrev ? '${previousYear.enrollment.shsTotal.total}' : '—',
+                  textAlign: TextAlign.center,
                   style: const TextStyle(fontWeight: FontWeight.bold),
                 ),
               ),
               Padding(
                 padding: const EdgeInsets.all(10),
                 child: Text(
-                  summary.shsTotal.female.toString(),
-                  style: const TextStyle(fontWeight: FontWeight.bold),
-                ),
-              ),
-              Padding(
-                padding: const EdgeInsets.all(10),
-                child: Text(
-                  summary.shsTotal.total.toString(),
+                  '${latestYear.enrollment.shsTotal.total}',
+                  textAlign: TextAlign.center,
                   style: const TextStyle(
                     fontWeight: FontWeight.bold,
                     color: AppColors.primaryGreen,
+                  ),
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.all(10),
+                child: Center(
+                  child: _buildDifferenceCell(
+                    hasPrev
+                        ? (latestYear.enrollment.shsTotal.total -
+                            previousYear.enrollment.shsTotal.total)
+                        : null,
+                    hasPreviousYear: hasPrev,
+                    isDark: isDark,
+                  ),
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 8),
+                child: Center(
+                  child: _buildRemarkBadge(
+                    hasPrev
+                        ? (latestYear.enrollment.shsTotal.total -
+                            previousYear.enrollment.shsTotal.total)
+                        : null,
+                    hasPreviousYear: hasPrev,
+                    isDark: isDark,
+                  ),
+                ),
+              ),
+            ],
+          ),
+
+          // ── Overall Total Row ──
+          TableRow(
+            decoration: BoxDecoration(
+              color: AppColors.primaryGreen.withValues(alpha: 0.12),
+            ),
+            children: [
+              const Padding(
+                padding: EdgeInsets.all(10),
+                child: Text(
+                  'Overall Total (JHS + SHS)',
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.primaryGreen,
+                  ),
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.all(10),
+                child: Text(
+                  hasPrev ? '${previousYear.enrollment.overallTotal.total}' : '—',
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(fontWeight: FontWeight.bold),
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.all(10),
+                child: Text(
+                  '${latestYear.enrollment.overallTotal.total}',
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.primaryGreen,
+                  ),
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.all(10),
+                child: Center(
+                  child: _buildDifferenceCell(
+                    hasPrev
+                        ? (latestYear.enrollment.overallTotal.total -
+                            previousYear.enrollment.overallTotal.total)
+                        : null,
+                    hasPreviousYear: hasPrev,
+                    isDark: isDark,
+                  ),
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 8),
+                child: Center(
+                  child: _buildRemarkBadge(
+                    hasPrev
+                        ? (latestYear.enrollment.overallTotal.total -
+                            previousYear.enrollment.overallTotal.total)
+                        : null,
+                    hasPreviousYear: hasPrev,
+                    isDark: isDark,
                   ),
                 ),
               ),
@@ -1025,7 +1344,7 @@ class _TransparencyBoardContentState extends ConsumerState<_TransparencyBoardCon
       ),
     );
 
-    return _responsiveTable(child: tableWidget, minWidth: 580);
+    return _responsiveTable(child: tableWidget, minWidth: 620);
   }
 
   // â”€â”€ Section 2: Dropouts & Transferees â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€

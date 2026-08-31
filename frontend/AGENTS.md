@@ -457,13 +457,13 @@ Files backup/restore - mirror mode or zip -->
 - table dropdowns only status have dropdown, other convert to icon click to change the sorting order -->
 
 # REPORT SCREEN
-- Compliance & analytics -> "Students per year" section -> add inactive status
-- Compliance & analytics -> fix the layout for windows app it has overflow 
-- Compliance & analytics -> remove the storage chip
+- deped transparency board -> remove the access and equity -> change the enrollment by sex & year to data on enrollment which compares the previous year students count and active year students count, difference, and remarks if increasing or decreasing, separate the jhs and shs
 
 --- 
 
 # DONT DO
+
+- make the admin side that resets user password send into their email the link to reset password add expiration time -> then push notif the admin that successful or not that email link, if not successful or the time has expired send notif to admin, if successfull push notif the user and admin 
 
 - teacher no assigned section theme color
 - bug in bulk add student enrollment
