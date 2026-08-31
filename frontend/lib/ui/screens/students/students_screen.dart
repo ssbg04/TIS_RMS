@@ -369,10 +369,14 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
               message: 'Cancel selection',
               child: IconButton(
                 icon: Icon(Icons.close, color: buttonColor),
-                onPressed: () => setState(() {
-                  _selectedStudentIds.clear();
-                  _showMultiSelect = false;
-                }),
+                onPressed: () {
+                  setState(() {
+                    _selectedStudentIds.clear();
+                    _showMultiSelect = false;
+                  });
+                  ref.read(studentMultiSelectProvider.notifier).state = false;
+                  ref.read(studentSelectedIdsProvider.notifier).state = [];
+                },
               ),
             ),
             const SizedBox(width: 8),
@@ -792,6 +796,21 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
       query.limit != 20,
     ].where((v) => v).length;
 
+    final multiSelectFromProvider = ref.watch(studentMultiSelectProvider);
+    if (multiSelectFromProvider != _showMultiSelect) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted && multiSelectFromProvider != _showMultiSelect) {
+          setState(() {
+            _showMultiSelect = multiSelectFromProvider;
+            if (!multiSelectFromProvider) _selectedStudentIds.clear();
+          });
+        }
+      });
+    }
+
+    final isMobileOrAndroid = MediaQuery.of(context).size.width < 800 ||
+        defaultTargetPlatform == TargetPlatform.android;
+
     return CallbackShortcuts(
       bindings: <ShortcutActivator, VoidCallback>{
         const SingleActivator(LogicalKeyboardKey.keyF, control: true): () {
@@ -811,6 +830,8 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
             _showMultiSelect = false;
             _selectedStudentIds.clear();
           });
+          ref.read(studentMultiSelectProvider.notifier).state = false;
+          ref.read(studentSelectedIdsProvider.notifier).state = [];
           return;
         }
         ref.read(activeTabProvider.notifier).setTab('Dashboard');
@@ -849,7 +870,7 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
                         _buildInlineMultiSelectHeader(
                           pageAsync.value?.students ?? [],
                         )
-                      else
+                      else if (!isMobileOrAndroid)
                         Padding(
                           padding: const EdgeInsets.only(
                             left: AppSizes.p24,
@@ -862,7 +883,9 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
                             ref,
                             activeCount,
                           ),
-                        ),
+                        )
+                      else
+                        const SizedBox(height: 12),
                       const SizedBox(height: AppSizes.p24),
 
                       // ── Data Table / Cards ──

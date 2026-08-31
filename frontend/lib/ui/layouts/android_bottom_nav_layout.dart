@@ -26,6 +26,8 @@ import '../providers/navigation_provider.dart';
 import '../providers/connected_users_provider.dart';
 import '../screens/capstone_members/capstone_members_screen.dart';
 import '../shared/dialogs/disconnected_dialog.dart';
+import '../screens/students/widgets/student_filter_dialog.dart';
+import '../shared/inputs/app_search_bar.dart';
 
 // Dummy screen for placeholders
 class PlaceholderScreen extends StatelessWidget {
@@ -80,6 +82,46 @@ class _AndroidBottomNavLayoutState extends ConsumerState<AndroidBottomNavLayout>
         }
       };
     });
+  }
+
+  void _showStudentSearchDialog(BuildContext context, WidgetRef ref) {
+    final currentSearch = ref.read(studentQueryProvider).search;
+    final searchController = TextEditingController(text: currentSearch);
+    final searchFocusNode = FocusNode();
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      searchFocusNode.requestFocus();
+    });
+
+    showDialog(
+      context: context,
+      barrierColor: Colors.black54,
+      builder: (ctx) {
+        final isDark = Theme.of(ctx).brightness == Brightness.dark;
+        return Align(
+          alignment: Alignment.topCenter,
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(16, kToolbarHeight + 24, 16, 0),
+            child: Material(
+              color: isDark ? AppColors.darkSurfaceCard : Colors.white,
+              elevation: 4,
+              borderRadius: BorderRadius.circular(12),
+              child: AppSearchBar(
+                controller: searchController,
+                focusNode: searchFocusNode,
+                collapsible: false,
+                hint: 'Search by LRN or name...',
+                maxWidth: 600,
+                onSubmitted: (value) {
+                  Navigator.of(ctx).pop();
+                  ref.read(studentQueryProvider.notifier).setSearch(value);
+                },
+              ),
+            ),
+          ),
+        );
+      },
+    );
   }
 
   void _initTabs() {
@@ -332,6 +374,87 @@ class _AndroidBottomNavLayoutState extends ConsumerState<AndroidBottomNavLayout>
                   ),
                   elevation: 0,
                   surfaceTintColor: Colors.transparent,
+                  actions: [
+                    if (activeTab == 'Students') ...[
+                      // 1. Search Icon
+                      Consumer(
+                        builder: (context, ref, _) {
+                          final query = ref.watch(studentQueryProvider);
+                          return Tooltip(
+                            message: query.search.isNotEmpty
+                                ? 'Clear Search'
+                                : 'Search Students',
+                            child: IconButton(
+                              icon: Icon(
+                                query.search.isNotEmpty
+                                    ? Icons.close
+                                    : Icons.search,
+                                size: 22,
+                              ),
+                              onPressed: () {
+                                if (query.search.isNotEmpty) {
+                                  ref.read(studentQueryProvider.notifier).setSearch('');
+                                } else {
+                                  _showStudentSearchDialog(context, ref);
+                                }
+                              },
+                            ),
+                          );
+                        },
+                      ),
+                      // 2. Multi-Select Toggle (for non-teachers)
+                      if (widget.userRole != 'teacher')
+                        Consumer(
+                          builder: (context, ref, _) {
+                            final isMultiSelect = ref.watch(studentMultiSelectProvider);
+                            return Tooltip(
+                              message: isMultiSelect
+                                  ? 'Exit Multi-Select'
+                                  : 'Multi-Select',
+                              child: IconButton(
+                                icon: Icon(
+                                  Icons.checklist_rounded,
+                                  size: 22,
+                                  color: isMultiSelect
+                                      ? AppColors.primaryGreen
+                                      : null,
+                                ),
+                                onPressed: () {
+                                  final next = !isMultiSelect;
+                                  ref.read(studentMultiSelectProvider.notifier).state = next;
+                                  if (!next) {
+                                    ref.read(studentSelectedIdsProvider.notifier).state = [];
+                                  }
+                                },
+                              ),
+                            );
+                          },
+                        ),
+                      // 3. Filter Icon with Badge
+                      Consumer(
+                        builder: (context, ref, _) {
+                          final activeCount = ref.watch(studentActiveFilterCountProvider);
+                          final query = ref.watch(studentQueryProvider);
+                          return Tooltip(
+                            message: 'Filter Students',
+                            child: IconButton(
+                              onPressed: () =>
+                                  StudentFilterDialog.show(context, query: query),
+                              icon: Badge(
+                                isLabelVisible: activeCount > 0,
+                                label: Text(activeCount.toString()),
+                                child: const Icon(
+                                  Icons.tune_rounded,
+                                  size: 22,
+                                ),
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+                      const SizedBox(width: 4),
+                    ],
+                  ],
                 ),
           drawer: Drawer(
             backgroundColor: Theme.of(context).colorScheme.surface,
@@ -716,8 +839,8 @@ class _PageSkeletonLoaderState extends State<_PageSkeletonLoader>
               child: ListView.separated(
                 itemCount: 5,
                 physics: const NeverScrollableScrollPhysics(),
-                separatorBuilder: (_, __) => const SizedBox(height: 16),
-                itemBuilder: (_, __) => Container(
+                separatorBuilder: (_, _) => const SizedBox(height: 16),
+                itemBuilder: (_, _) => Container(
                   height: 60,
                   decoration: BoxDecoration(
                     color: secondaryColor,

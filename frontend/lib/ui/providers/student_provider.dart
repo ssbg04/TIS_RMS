@@ -201,6 +201,25 @@ class StudentQueryNotifier extends Notifier<StudentQueryParams> {
 }
 
 // ============================================================
+// Multi-Select & Filter State Providers
+// ============================================================
+final studentMultiSelectProvider = StateProvider<bool>((ref) => false);
+final studentSelectedIdsProvider = StateProvider<List<int>>((ref) => []);
+
+final studentActiveFilterCountProvider = Provider<int>((ref) {
+  final query = ref.watch(studentQueryProvider);
+  return [
+    query.gradeLevel.isNotEmpty,
+    query.section.isNotEmpty,
+    query.status.isNotEmpty,
+    query.schoolYear.isNotEmpty,
+    query.is4Ps.isNotEmpty,
+    query.sortBy.isNotEmpty,
+    query.limit != 20,
+  ].where((v) => v).length;
+});
+
+// ============================================================
 // Async data provider — re-fetches when query changes
 // ============================================================
 final studentPageProvider = FutureProvider.autoDispose<StudentPage>((
