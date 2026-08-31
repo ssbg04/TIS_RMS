@@ -8,32 +8,62 @@ const { getDetectedTunnelUrl } = require('../services/tunnelService');
 
 // ── Base URL Helper (Auto-detects Tunnel vs LAN IP vs Domain) ────────────────
 const getBestServerBaseUrl = (req) => {
-    // 1. Explicit environment override
-    if (process.env.APP_URL && process.env.APP_URL.trim()) {
-        return process.env.APP_URL.trim().replace(/\/+$/, '');
+    // 1. Explicit environment public URLs (PUBLIC_URL, APP_URL, CLOUDFLARE_TUNNEL_PUBLIC_URL)
+    const envPublicUrl = process.env.APP_URL || process.env.CLOUDFLARE_TUNNEL_PUBLIC_URL || process.env.PUBLIC_URL;
+    if (envPublicUrl && envPublicUrl.trim()) {
+        return envPublicUrl.trim().replace(/\/api\/?$/, '').replace(/\/+$/, '');
     }
 
-    const forwardedProto = req.headers['x-forwarded-proto'];
-    const forwardedHost = req.headers['x-forwarded-host'];
-    const proto = forwardedProto || req.protocol || 'http';
-    let host = forwardedHost || req.get('host') || `localhost:${process.env.PORT || 18484}`;
-
-    // 2. If caller is connecting via a real remote hostname / public domain / LAN IP (not localhost/127.0.0.1)
-    if (!host.startsWith('localhost') && !host.startsWith('127.0.0.1')) {
-        return `${proto}://${host}`;
-    }
-
-    // 3. If live Cloudflare Tunnel is connected and detected
+    // 2. If live Cloudflare Tunnel is connected and detected
     const activeTunnelUrl = getDetectedTunnelUrl();
     if (activeTunnelUrl) {
         return activeTunnelUrl;
     }
 
-    if (process.env.CLOUDFLARE_TUNNEL_PUBLIC_URL && process.env.CLOUDFLARE_TUNNEL_PUBLIC_URL.trim()) {
-        return process.env.CLOUDFLARE_TUNNEL_PUBLIC_URL.trim().replace(/\/+$/, '');
+    const forwardedProto = req.headers['x-forwarded-proto'];
+    const forwardedHost = req.headers['x-forwarded-host'];
+    const proto = forwardedProto || req.protocol || 'http';
+    const host = forwardedHost || req.get('host') || `localhost:${process.env.PORT || 18484}`;
+
+    // 3. Helper to detect private LAN/localhost IPs
+    const isPrivateOrLocal = (h) => {
+        if (!h) return true;
+        const cleanHost = h.split(':')[0].toLowerCase();
+        return (
+            cleanHost === 'localhost' ||
+            cleanHost === '127.0.0.1' ||
+            cleanHost.startsWith('192.168.') ||
+            cleanHost.startsWith('10.') ||
+            cleanHost.startsWith('172.16.') ||
+            cleanHost.startsWith('172.17.') ||
+            cleanHost.startsWith('172.18.') ||
+            cleanHost.startsWith('172.19.') ||
+            cleanHost.startsWith('172.20.') ||
+            cleanHost.startsWith('172.21.') ||
+            cleanHost.startsWith('172.22.') ||
+            cleanHost.startsWith('172.23.') ||
+            cleanHost.startsWith('172.24.') ||
+            cleanHost.startsWith('172.25.') ||
+            cleanHost.startsWith('172.26.') ||
+            cleanHost.startsWith('172.27.') ||
+            cleanHost.startsWith('172.28.') ||
+            cleanHost.startsWith('172.29.') ||
+            cleanHost.startsWith('172.30.') ||
+            cleanHost.startsWith('172.31.')
+        );
+    };
+
+    // 4. If caller is connecting via a public domain name
+    if (!isPrivateOrLocal(host)) {
+        return `${proto}://${host}`;
     }
 
-    // 4. Fallback: Automatically detect primary local IPv4 address of this server on the LAN
+    // 5. If caller is on LAN (e.g. 192.168.x.x) and no public domain is configured
+    if (!host.startsWith('localhost') && !host.startsWith('127.0.0.1')) {
+        return `${proto}://${host}`;
+    }
+
+    // 6. Fallback: Automatically detect primary local IPv4 address of this server on the LAN
     const port = process.env.PORT || 18484;
     const interfaces = os.networkInterfaces();
     for (const name of Object.keys(interfaces)) {
@@ -44,7 +74,7 @@ const getBestServerBaseUrl = (req) => {
         }
     }
 
-    // 5. Ultimate fallback
+    // 7. Ultimate fallback
     return `${proto}://${host}`;
 };
 
