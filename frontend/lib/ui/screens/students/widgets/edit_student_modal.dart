@@ -254,13 +254,15 @@ class _EditStudentModalState extends ConsumerState<EditStudentModal> {
           best = e;
           continue;
         }
-        final ya = e.yearRange ?? '';
-        final yb = best.yearRange ?? '';
-        final cmp = ya.compareTo(yb);
-        if (cmp > 0) {
+        if (e.gradeLevel > best.gradeLevel) {
           best = e;
-        } else if (cmp == 0 && e.gradeLevel > best.gradeLevel) {
-          best = e;
+        } else if (e.gradeLevel == best.gradeLevel) {
+          final ya = e.yearRange ?? '';
+          final yb = best.yearRange ?? '';
+          final cmp = ya.compareTo(yb);
+          if (cmp > 0) {
+            best = e;
+          }
         }
       }
       return best?.gradeLevel;

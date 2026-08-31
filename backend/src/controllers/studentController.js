@@ -117,6 +117,69 @@ const findDuplicateStudentByName = (firstName, middleName, lastName, excludeId =
 };
 
 // ============================================================
+// HELPER — validate enrollment progression (prevent downgrade across academic years)
+// ============================================================
+const validateEnrollmentProgression = (studentId, academicYearId, gradeLevel, excludeEnrollmentId = null) => {
+    const targetAY = db.prepare('SELECT id, year_range FROM academic_years WHERE id = ?').get(academicYearId);
+    if (!targetAY) {
+        return { valid: false, message: 'Selected academic year does not exist.' };
+    }
+
+    const gLevel = parseInt(gradeLevel, 10);
+    if (isNaN(gLevel) || gLevel <= 0) {
+        return { valid: false, message: 'Invalid grade level.' };
+    }
+
+    let query = `
+        SELECT e.id, e.grade_level, e.academic_year_id, ay.year_range, sec.name as section_name
+        FROM enrollments e
+        JOIN academic_years ay ON e.academic_year_id = ay.id
+        LEFT JOIN sections sec ON e.section_id = sec.id
+        WHERE e.student_id = ?
+    `;
+    const params = [studentId];
+    if (excludeEnrollmentId) {
+        query += ` AND e.id != ?`;
+        params.push(excludeEnrollmentId);
+    }
+
+    const existingEnrollments = db.prepare(query).all(...params);
+
+    for (const other of existingEnrollments) {
+        // 1. Prevent multiple enrollments in the same academic year
+        if (other.academic_year_id === targetAY.id || other.year_range === targetAY.year_range) {
+            return {
+                valid: false,
+                message: `Cannot enroll student. This student is already enrolled in Grade ${other.grade_level}${other.section_name ? ` - ${other.section_name}` : ''} for S.Y. ${other.year_range}.`,
+            };
+        }
+
+        // 2. Chronological comparison based on year_range (e.g. "2023-2024" vs "2024-2025")
+        // If other is earlier than target, target gradeLevel must be >= other.grade_level (cannot downgrade in future years)
+        if (other.year_range < targetAY.year_range) {
+            if (gLevel < other.grade_level) {
+                return {
+                    valid: false,
+                    message: `Cannot enroll student in Grade ${gLevel} for S.Y. ${targetAY.year_range}. The student was already enrolled in Grade ${other.grade_level}${other.section_name ? ` - ${other.section_name}` : ''} in earlier S.Y. ${other.year_range}. Downgrading grade levels across academic years is not allowed.`,
+                };
+            }
+        }
+
+        // If other is later/subsequent than target, target gradeLevel must be <= other.grade_level (cannot have higher grade in past years)
+        if (other.year_range > targetAY.year_range) {
+            if (gLevel > other.grade_level) {
+                return {
+                    valid: false,
+                    message: `Cannot enroll student in Grade ${gLevel} for S.Y. ${targetAY.year_range}. The student is already enrolled in Grade ${other.grade_level}${other.section_name ? ` - ${other.section_name}` : ''} in subsequent S.Y. ${other.year_range}. Downgrading grade levels across academic years is not allowed.`,
+                };
+            }
+        }
+    }
+
+    return { valid: true, targetAY };
+};
+
+// ============================================================
 // GET /api/students — paginated, searchable, filterable
 // ============================================================
 exports.getAllStudents = (req, res) => {
@@ -188,7 +251,7 @@ exports.getAllStudents = (req, res) => {
                    JOIN academic_years ay_inner ON e.academic_year_id = ay_inner.id
                    WHERE e.student_id = s.id
                      ${filterYearRange ? 'AND ay_inner.year_range = ?' : ''}
-                   ORDER BY ay_inner.year_range DESC, e.grade_level DESC, e.id DESC LIMIT 1
+                   ORDER BY e.grade_level DESC, ay_inner.year_range DESC, e.id DESC LIMIT 1
                )
                JOIN sections sec ON sec.id = e_latest.section_id
                JOIN academic_years ay ON ay.id = e_latest.academic_year_id`;
@@ -252,7 +315,7 @@ exports.getAllStudents = (req, res) => {
                     JOIN academic_years ay_inner ON e.academic_year_id = ay_inner.id
                     WHERE e.student_id = s.id
                       ${filterYearRange ? `AND ay_inner.year_range = '${filterYearRange.replace(/'/g, "''")}'` : ''}
-                    ORDER BY ay_inner.year_range DESC, e.grade_level DESC, e.id DESC LIMIT 1
+                    ORDER BY e.grade_level DESC, ay_inner.year_range DESC, e.id DESC LIMIT 1
                 ) as latest_grade_level,
                 (
                     SELECT sec.name FROM enrollments enr
@@ -260,7 +323,7 @@ exports.getAllStudents = (req, res) => {
                     JOIN academic_years ay_inner ON enr.academic_year_id = ay_inner.id
                     WHERE enr.student_id = s.id
                       ${filterYearRange ? `AND ay_inner.year_range = '${filterYearRange.replace(/'/g, "''")}'` : ''}
-                    ORDER BY ay_inner.year_range DESC, enr.grade_level DESC, enr.id DESC LIMIT 1
+                    ORDER BY enr.grade_level DESC, ay_inner.year_range DESC, enr.id DESC LIMIT 1
                 ) as latest_section,
                 (
                     SELECT COUNT(*)
@@ -369,7 +432,7 @@ exports.getStudentById = (req, res) => {
             JOIN academic_years ay ON e.academic_year_id = ay.id
             JOIN sections sec       ON e.section_id = sec.id
             WHERE e.student_id = ?
-            ORDER BY e.academic_year_id DESC, e.grade_level DESC
+            ORDER BY e.grade_level DESC, ay.year_range DESC, e.id DESC
         `).all(student.id);
 
         res.json({ ...student, enrollments });
@@ -633,6 +696,16 @@ exports.updateStudent = (req, res) => {
                     LIMIT 1
                 `).get(id, academicYearId);
 
+                const progressionCheck = validateEnrollmentProgression(
+                    id,
+                    academicYearId,
+                    gradeLevel,
+                    existingEnrollment ? existingEnrollment.id : null
+                );
+                if (!progressionCheck.valid) {
+                    return res.status(400).json({ message: progressionCheck.message });
+                }
+
                 if (existingEnrollment) {
                     // Update grade_level, section, and track_strand if they differ
                     if (existingEnrollment.grade_level !== parseInt(gradeLevel) ||
@@ -739,6 +812,14 @@ exports.bulkEnrollStudents = (req, res) => {
                 if (st) studentRows.push(st);
                 const lrn = st?.lrn || studentId;
                 const existing = getExistingEnrollment.get(studentId, academicYearId);
+                const excludeId = existing ? existing.id : null;
+
+                const progressionCheck = validateEnrollmentProgression(studentId, academicYearId, gradeLevel, excludeId);
+                if (!progressionCheck.valid) {
+                    const studentLabel = st ? `${st.last_name || 'Student'} (${maskLrn(lrn)})` : `Student ID ${studentId}`;
+                    throw new Error(`${studentLabel}: ${progressionCheck.message}`);
+                }
+
                 if (existing) {
                     if (existing.grade_level !== parseInt(gradeLevel) ||
                         existing.section_id !== parseInt(sectionId) ||
@@ -833,20 +914,9 @@ exports.addEnrollment = (req, res) => {
     const student = db.prepare('SELECT id FROM students WHERE id = ?').get(studentId);
     if (!student) return res.status(404).json({ message: 'Student not found.' });
 
-    // ---- Check if student is already enrolled in this academic year ----
-    const existingEnrollment = db.prepare(`
-        SELECT e.grade_level, sec.name as section_name, ay.year_range
-        FROM enrollments e
-        JOIN academic_years ay ON e.academic_year_id = ay.id
-        LEFT JOIN sections sec ON e.section_id = sec.id
-        WHERE e.student_id = ? AND e.academic_year_id = ?
-        LIMIT 1
-    `).get(studentId, academicYearId);
-
-    if (existingEnrollment) {
-        return res.status(400).json({
-            message: `Cannot add enrollment. This student is already enrolled in Grade ${existingEnrollment.grade_level}${existingEnrollment.section_name ? ` - ${existingEnrollment.section_name}` : ''} for S.Y. ${existingEnrollment.year_range}.`,
-        });
+    const progressionCheck = validateEnrollmentProgression(studentId, academicYearId, gradeLevel);
+    if (!progressionCheck.valid) {
+        return res.status(400).json({ message: progressionCheck.message });
     }
 
     try {
@@ -880,20 +950,9 @@ exports.updateEnrollment = (req, res) => {
     const existing = db.prepare('SELECT * FROM enrollments WHERE id = ?').get(enrollmentId);
     if (!existing) return res.status(404).json({ message: 'Enrollment not found.' });
 
-    // ---- Prevent multiple enrollments in the same academic year ----
-    const duplicateInYear = db.prepare(`
-        SELECT e.grade_level, sec.name as section_name, ay.year_range
-        FROM enrollments e
-        JOIN academic_years ay ON e.academic_year_id = ay.id
-        LEFT JOIN sections sec ON e.section_id = sec.id
-        WHERE e.student_id = ? AND e.academic_year_id = ? AND e.id != ?
-        LIMIT 1
-    `).get(existing.student_id, academicYearId, enrollmentId);
-
-    if (duplicateInYear) {
-        return res.status(400).json({
-            message: `Cannot update enrollment. This student already has an enrollment in Grade ${duplicateInYear.grade_level}${duplicateInYear.section_name ? ` - ${duplicateInYear.section_name}` : ''} for S.Y. ${duplicateInYear.year_range}.`,
-        });
+    const progressionCheck = validateEnrollmentProgression(existing.student_id, academicYearId, gradeLevel, enrollmentId);
+    if (!progressionCheck.valid) {
+        return res.status(400).json({ message: progressionCheck.message });
     }
 
     try {

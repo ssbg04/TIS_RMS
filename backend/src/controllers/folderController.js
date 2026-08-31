@@ -75,11 +75,11 @@ exports.getFolders = (req, res) => {
                    (SELECT COUNT(*) FROM documents d WHERE d.student_id = f.student_id AND d.deleted_at IS NULL AND d.status = 'Completed') as document_count,
                    -- Which tier (JHS/SHS) applies to this student based on latest enrollment
                    (
-                       SELECT CASE WHEN e_tier.grade_level <= 10 THEN 'JHS' ELSE 'SHS' END
-                       FROM enrollments e_tier
-                       JOIN academic_years ay ON e_tier.academic_year_id = ay.id
-                       WHERE e_tier.student_id = f.student_id
-                       ORDER BY ay.year_range DESC, e_tier.grade_level DESC, e_tier.id DESC LIMIT 1
+                        SELECT CASE WHEN e_tier.grade_level <= 10 THEN 'JHS' ELSE 'SHS' END
+                        FROM enrollments e_tier
+                        JOIN academic_years ay ON e_tier.academic_year_id = ay.id
+                        WHERE e_tier.student_id = f.student_id
+                        ORDER BY e_tier.grade_level DESC, ay.year_range DESC, e_tier.id DESC LIMIT 1
                    ) as student_tier,
                    -- Total enabled mandatory JHS requirements
                    (SELECT COUNT(*) FROM document_requirements WHERE category='JHS' AND is_mandatory=1 AND is_enabled=1) as jhs_total,

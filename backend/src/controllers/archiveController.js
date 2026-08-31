@@ -66,7 +66,7 @@ exports.getArchivedStudents = (req, res) => {
                    SELECT e2.id FROM enrollments e2
                    JOIN academic_years ay ON e2.academic_year_id = ay.id
                    WHERE e2.student_id = s.id
-                   ORDER BY ay.year_range DESC, e2.grade_level DESC, e2.id DESC LIMIT 1
+                   ORDER BY e2.grade_level DESC, ay.year_range DESC, e2.id DESC LIMIT 1
                )
                JOIN teacher_sections ts ON ts.section_id = e_teacher.section_id AND ts.teacher_id = ?`
             : '';
@@ -374,7 +374,7 @@ exports.getArchivedStudentFolders = (req, res) => {
                     SELECT e2.id FROM enrollments e2
                     JOIN academic_years ay ON e2.academic_year_id = ay.id
                     WHERE e2.student_id = f.student_id
-                    ORDER BY ay.year_range DESC, e2.grade_level DESC, e2.id DESC LIMIT 1
+                    ORDER BY e2.grade_level DESC, ay.year_range DESC, e2.id DESC LIMIT 1
                 )
                 JOIN teacher_sections ts ON ts.section_id = e_teacher.section_id AND ts.teacher_id = ?`;
             params.unshift(teacherId);

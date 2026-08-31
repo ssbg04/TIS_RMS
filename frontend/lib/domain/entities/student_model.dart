@@ -68,14 +68,22 @@ class StudentModel {
   String get fullName => listDisplayName;
 
   /// Traverses the enrollments list and dynamically resolves parameters matching
-  /// the highest value of academicYearId or the highest lexicographical string sequence in yearRange.
+  /// the highest grade level, followed by highest yearRange / academicYearId, and enrollment ID.
   EnrollmentModel? get latestEnrollment {
     if (enrollments == null || enrollments!.isEmpty) return null;
     EnrollmentModel best = enrollments!.first;
     for (int i = 1; i < enrollments!.length; i++) {
       final current = enrollments![i];
 
-      // Compare yearRange lexicographically first
+      // Compare gradeLevel first (highest grade level)
+      if (current.gradeLevel != best.gradeLevel) {
+        if (current.gradeLevel > best.gradeLevel) {
+          best = current;
+        }
+        continue;
+      }
+
+      // If gradeLevel is same, compare yearRange lexicographically
       final currentRange = current.yearRange ?? '';
       final bestRange = best.yearRange ?? '';
       final rangeCmp = currentRange.compareTo(bestRange);
@@ -89,14 +97,6 @@ class StudentModel {
       // If yearRange is same, compare academicYearId
       if (current.academicYearId != best.academicYearId) {
         if (current.academicYearId > best.academicYearId) {
-          best = current;
-        }
-        continue;
-      }
-
-      // If academicYearId is also same, compare gradeLevel
-      if (current.gradeLevel != best.gradeLevel) {
-        if (current.gradeLevel > best.gradeLevel) {
           best = current;
         }
         continue;

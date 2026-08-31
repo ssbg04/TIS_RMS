@@ -158,7 +158,7 @@ const sendNotification = async ({ userId = null, title, body, category = 'system
                           SELECT e2.id FROM enrollments e2
                           JOIN academic_years ay ON e2.academic_year_id = ay.id
                           WHERE e2.student_id = ?
-                          ORDER BY ay.year_range DESC, e2.grade_level DESC, e2.id DESC LIMIT 1
+                          ORDER BY e2.grade_level DESC, ay.year_range DESC, e2.id DESC LIMIT 1
                       )
                 `).all(entityId, entityId).map(r => r.token);
                 tokens.push(...teacherTokens);
@@ -175,7 +175,7 @@ const sendNotification = async ({ userId = null, title, body, category = 'system
                           SELECT e2.id FROM enrollments e2
                           JOIN academic_years ay ON e2.academic_year_id = ay.id
                           WHERE e2.student_id = d.student_id
-                          ORDER BY ay.year_range DESC, e2.grade_level DESC, e2.id DESC LIMIT 1
+                          ORDER BY e2.grade_level DESC, ay.year_range DESC, e2.id DESC LIMIT 1
                       )
                 `).all(entityId, entityId).map(r => r.token);
                 tokens.push(...teacherTokens);

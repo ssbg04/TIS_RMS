@@ -1133,6 +1133,18 @@ class _AddStudentModalState extends ConsumerState<AddStudentModal> {
     final isLastStep = _currentStep == 2;
     final isOcrStep = _currentStep == 0;
 
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isWindows = Platform.isWindows;
+    final double horizontalPadding = isWindows && screenWidth > 600
+        ? (screenWidth > 1500
+            ? 320.0
+            : (screenWidth > 1200
+                ? 240.0
+                : (screenWidth > 900
+                    ? 160.0
+                    : 80.0)))
+        : 24.0;
+
     Widget stepContent;
     switch (_currentStep) {
       case 0:
@@ -1190,7 +1202,10 @@ class _AddStudentModalState extends ConsumerState<AddStudentModal> {
                 ),
               Expanded(
                 child: SingleChildScrollView(
-                  padding: const EdgeInsets.all(24),
+                  padding: EdgeInsets.symmetric(
+                    horizontal: horizontalPadding,
+                    vertical: 24,
+                  ),
                   child: stepContent,
                 ),
               ),
@@ -1201,8 +1216,8 @@ class _AddStudentModalState extends ConsumerState<AddStudentModal> {
                   final isDark = Theme.of(ctx).brightness == Brightness.dark;
                   return Container(
                     width: double.infinity,
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 24,
+                    padding: EdgeInsets.symmetric(
+                      horizontal: horizontalPadding,
                       vertical: 16,
                     ),
                     decoration: BoxDecoration(

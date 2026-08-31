@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:calendar_date_picker2/calendar_date_picker2.dart';
 import '../../../core/constants/app_colors.dart';
@@ -1284,6 +1285,44 @@ class AcademicYearFormModal extends ConsumerStatefulWidget {
       _AcademicYearFormModalState();
 }
 
+/// Formats text strictly to XXXX-XXXX (e.g. 2025-2026)
+class YearRangeInputFormatter extends TextInputFormatter {
+  @override
+  TextEditingValue formatEditUpdate(
+    TextEditingValue oldValue,
+    TextEditingValue newValue,
+  ) {
+    if (oldValue.text.length > newValue.text.length) {
+      if (oldValue.text.endsWith('-') && newValue.text.length == 4) {
+        final shortened = newValue.text.substring(0, 3);
+        return TextEditingValue(
+          text: shortened,
+          selection: TextSelection.collapsed(offset: shortened.length),
+        );
+      }
+    }
+
+    final digitsOnly = newValue.text.replaceAll(RegExp(r'\D'), '');
+    if (digitsOnly.length > 8) {
+      return oldValue;
+    }
+
+    final buffer = StringBuffer();
+    for (int i = 0; i < digitsOnly.length; i++) {
+      if (i == 4) {
+        buffer.write('-');
+      }
+      buffer.write(digitsOnly[i]);
+    }
+
+    final formatted = buffer.toString();
+    return TextEditingValue(
+      text: formatted,
+      selection: TextSelection.collapsed(offset: formatted.length),
+    );
+  }
+}
+
 class _AcademicYearFormModalState extends ConsumerState<AcademicYearFormModal> {
   final _formKey = GlobalKey<FormState>();
   late TextEditingController _yearRangeController;
@@ -1367,13 +1406,19 @@ class _AcademicYearFormModalState extends ConsumerState<AcademicYearFormModal> {
                 hintText: 'Year Range (e.g. 2025-2026)',
                 controller: _yearRangeController,
                 prefixIcon: Icons.calendar_today,
+                keyboardType: TextInputType.number,
+                maxLength: 9,
+                counterText: '',
+                inputFormatters: [
+                  YearRangeInputFormatter(),
+                ],
                 validator: (v) {
                   final val = v?.trim() ?? '';
                   if (val.isEmpty) return 'Year range is required';
-                  final regex = RegExp(r'^(\d{4})\s*-\s*(\d{4})$');
+                  final regex = RegExp(r'^(\d{4})-(\d{4})$');
                   final match = regex.firstMatch(val);
                   if (match == null) {
-                    return 'Invalid format. Use YYYY-YYYY (e.g. 2025-2026)';
+                    return 'Invalid format. Use XXXX-XXXX (e.g. 2025-2026)';
                   }
                   final startYear = int.tryParse(match.group(1)!);
                   final endYear = int.tryParse(match.group(2)!);

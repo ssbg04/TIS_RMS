@@ -64,7 +64,7 @@ exports.getStats = (req, res) => {
                     JOIN academic_years ay ON e2.academic_year_id = ay.id
                     WHERE e2.student_id = s.id
                       ${academicYearId ? 'AND e2.academic_year_id = ' + Number(academicYearId) : ''}
-                    ORDER BY ay.year_range DESC, e2.grade_level DESC, e2.id DESC LIMIT 1
+                    ORDER BY e2.grade_level DESC, ay.year_range DESC, e2.id DESC LIMIT 1
                 )
             WHERE 1=1 ${enrollWhereSql}
         `;
@@ -81,7 +81,7 @@ exports.getStats = (req, res) => {
                     JOIN academic_years ay ON e2.academic_year_id = ay.id
                     WHERE e2.student_id = s.id
                       ${academicYearId ? 'AND e2.academic_year_id = ' + Number(academicYearId) : ''}
-                    ORDER BY ay.year_range DESC, e2.grade_level DESC, e2.id DESC LIMIT 1
+                    ORDER BY e2.grade_level DESC, ay.year_range DESC, e2.id DESC LIMIT 1
                 )
             WHERE r.is_enabled = 1
               AND r.is_mandatory = 1
@@ -154,7 +154,7 @@ exports.getStats = (req, res) => {
                     JOIN academic_years ay ON e2.academic_year_id = ay.id
                     WHERE e2.student_id = s.id
                       ${academicYearId ? 'AND e2.academic_year_id = ' + Number(academicYearId) : ''}
-                    ORDER BY ay.year_range DESC, e2.grade_level DESC, e2.id DESC LIMIT 1
+                    ORDER BY e2.grade_level DESC, ay.year_range DESC, e2.id DESC LIMIT 1
                 )
             LEFT JOIN sections sec ON e_latest.section_id = sec.id
             WHERE 1=1 ${studentFilterSql.replace(/\be\./g, 'e_latest.')}
@@ -273,7 +273,7 @@ exports.getExportData = (req, res) => {
                         SELECT e2.id FROM enrollments e2
                         JOIN academic_years ay ON e2.academic_year_id = ay.id
                         WHERE e2.student_id = s.id
-                        ORDER BY ay.year_range DESC, e2.grade_level DESC, e2.id DESC LIMIT 1
+                        ORDER BY e2.grade_level DESC, ay.year_range DESC, e2.id DESC LIMIT 1
                     )
                 LEFT JOIN documents d ON s.id = d.student_id AND d.deleted_at IS NULL
                 GROUP BY s.id

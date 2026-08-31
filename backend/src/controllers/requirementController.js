@@ -300,7 +300,7 @@ exports.getMissingRequirements = (req, res) => {
             SELECT e.grade_level FROM enrollments e
             JOIN academic_years ay ON e.academic_year_id = ay.id
             WHERE e.student_id = ?
-            ORDER BY ay.year_range DESC, e.grade_level DESC, e.id DESC LIMIT 1
+            ORDER BY e.grade_level DESC, ay.year_range DESC, e.id DESC LIMIT 1
         `).get(studentId);
 
         if (!enrollment) {

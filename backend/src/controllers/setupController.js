@@ -78,12 +78,13 @@ exports.createAcademicYear = (req, res) => {
     if (startYear > currentYear) {
         return res.status(400).json({ message: `Cannot add future academic year beyond ${currentYear}-${currentYear + 1}` });
     }
+    const normalizedRange = `${startYear}-${endYear}`;
 
     try {
         // Old academic years for manual adds default to inactive
         const finalStatus = status || 'inactive';
         const result = db.prepare('INSERT INTO academic_years (year_range, status, start_date, end_date) VALUES (?, ?, ?, ?)')
-            .run(trimmedRange, finalStatus, sDate, eDate);
+            .run(normalizedRange, finalStatus, sDate, eDate);
         // If the new year is active, deactivate all others and check graduation
         if (finalStatus === 'active') {
             deactivateOtherYears(result.lastInsertRowid);
@@ -92,7 +93,7 @@ exports.createAcademicYear = (req, res) => {
         res.status(201).json({ id: result.lastInsertRowid, message: 'Academic year created successfully' });
     } catch (error) {
         if (error.message && error.message.includes('UNIQUE')) {
-            return res.status(409).json({ message: `Academic year "${trimmedRange}" already exists.` });
+            return res.status(409).json({ message: `Academic year "${normalizedRange}" already exists.` });
         }
         res.status(500).json({ message: 'Failed to create academic year', error: error.message });
     }
@@ -126,6 +127,7 @@ exports.updateAcademicYear = (req, res) => {
     if (startYear > currentYear) {
         return res.status(400).json({ message: `Cannot add future academic year beyond ${currentYear}-${currentYear + 1}` });
     }
+    const normalizedRange = `${startYear}-${endYear}`;
 
     try {
         const year = db.prepare('SELECT * FROM academic_years WHERE id = ?').get(id);
@@ -135,7 +137,7 @@ exports.updateAcademicYear = (req, res) => {
         const finalStartDate = sDate !== undefined ? sDate : (year.start_date || null);
         const finalEndDate = eDate !== undefined ? eDate : (year.end_date || null);
         db.prepare('UPDATE academic_years SET year_range = ?, status = ?, start_date = ?, end_date = ? WHERE id = ?')
-            .run(trimmedRange, finalStatus, finalStartDate, finalEndDate, id);
+            .run(normalizedRange, finalStatus, finalStartDate, finalEndDate, id);
         // If activated, deactivate all other years automatically
         if (finalStatus === 'active') {
             deactivateOtherYears(parseInt(id));
@@ -144,7 +146,7 @@ exports.updateAcademicYear = (req, res) => {
         res.json({ message: 'Academic year updated successfully' });
     } catch (error) {
         if (error.message && error.message.includes('UNIQUE')) {
-            return res.status(409).json({ message: `Academic year "${trimmedRange}" already exists.` });
+            return res.status(409).json({ message: `Academic year "${normalizedRange}" already exists.` });
         }
         res.status(500).json({ message: 'Failed to update academic year', error: error.message });
     }
