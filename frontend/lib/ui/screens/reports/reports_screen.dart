@@ -993,7 +993,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                               error: (e, st) => const SizedBox.shrink(),
                               data: (yearsList) {
                                 final sortedYears = List<AcademicYear>.from(yearsList)
-                                  ..sort((a, b) => a.yearRange.compareTo(b.yearRange));
+                                  ..sort((a, b) => b.yearRange.compareTo(a.yearRange));
                                 return DropdownButtonFormField<int?>(
                                   isExpanded: true,
                                   initialValue: selectedYearId,

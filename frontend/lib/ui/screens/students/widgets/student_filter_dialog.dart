@@ -113,7 +113,7 @@ class _StudentFilterDialogState extends ConsumerState<StudentFilterDialog> {
       ...academicYearsAsync.maybeWhen(
         data: (years) {
           final sorted = List<AcademicYearModel>.from(years)
-            ..sort((a, b) => a.yearRange.compareTo(b.yearRange));
+            ..sort((a, b) => b.yearRange.compareTo(a.yearRange));
           return sorted.map((y) => y.yearRange).toList();
         },
         orElse: () => <String>[],

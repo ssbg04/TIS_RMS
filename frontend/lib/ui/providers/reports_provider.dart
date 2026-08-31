@@ -42,7 +42,7 @@ class SelectedYearNotifier extends Notifier<int?> {
 final academicYearsProvider = FutureProvider<List<AcademicYear>>((ref) async {
   final list = await ref.read(reportRepositoryProvider).getAcademicYears();
   return List<AcademicYear>.from(list)
-    ..sort((a, b) => a.yearRange.compareTo(b.yearRange));
+    ..sort((a, b) => b.yearRange.compareTo(a.yearRange));
 });
 
 // Filter providers

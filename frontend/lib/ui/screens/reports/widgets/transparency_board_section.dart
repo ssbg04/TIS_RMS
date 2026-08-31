@@ -285,7 +285,7 @@ class _TransparencyBoardContentState extends ConsumerState<_TransparencyBoardCon
   }) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final sortedYears = List<AcademicYear>.from(academicYears)
-      ..sort((a, b) => a.yearRange.compareTo(b.yearRange));
+      ..sort((a, b) => b.yearRange.compareTo(a.yearRange));
     final activeAy = sortedYears
             .where((y) => y.status.toLowerCase() == 'active')
             .firstOrNull ??
