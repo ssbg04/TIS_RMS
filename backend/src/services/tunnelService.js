@@ -87,6 +87,22 @@ function checkInternet(timeoutMs = 6000) {
     });
 }
 
+/** Health check for the public tunnel URL. Returns the HTTP status code (e.g., 502, 200) or null on hard error. */
+function checkTunnelHealth(hostname) {
+    return new Promise((resolve) => {
+        try {
+            const req = https.get(`https://${hostname}/`, { timeout: 5000 }, (res) => {
+                res.destroy();
+                resolve(res.statusCode);
+            });
+            req.on('error', () => resolve(null));
+            req.on('timeout', () => { req.destroy(); resolve(null); });
+        } catch (_) {
+            resolve(null);
+        }
+    });
+}
+
 /** Returns exponential backoff delay for the next restart attempt. */
 function getBackoffMs() {
     return Math.min(BACKOFF_MIN_MS * Math.pow(2, Math.max(0, crashCount - 1)), BACKOFF_MAX_MS);
@@ -275,6 +291,15 @@ async function checkAndMaintainTunnel() {
             if (tunnelState === 'no_internet') crashCount = 0; // reset backoff after net recovery
             console.log('[Tunnel] Internet available — starting tunnel...');
             await startTunnel();
+        } else if (tunnelProcess && tunnelState === 'connected' && detectedTunnelHostname) {
+            // Self-healing: if tunnel is connected but public URL returns Bad Gateway, restart it
+            const statusCode = await checkTunnelHealth(detectedTunnelHostname);
+            if (statusCode === 502 || statusCode === 503 || statusCode === 504 || statusCode === 530) {
+                console.error(`[Tunnel] ✖ Health check failed (HTTP ${statusCode}). Backend disconnected. Restarting tunnel...`);
+                stopTunnel();
+                crashCount++;
+                scheduleRestart();
+            }
         }
     } else {
         consecutiveInternetFails++;
