@@ -4,31 +4,33 @@ const crypto = require('crypto');
 const os = require('os');
 const { createNotification } = require('./notificationController');
 const { sendPasswordResetLink } = require('../services/emailService');
+const { getDetectedTunnelUrl } = require('../services/tunnelService');
 
 // ── Base URL Helper (Auto-detects Tunnel vs LAN IP vs Domain) ────────────────
 const getBestServerBaseUrl = (req) => {
-    // 1. Explicit environment overrides (PUBLIC_URL, APP_URL, CLOUDFLARE_TUNNEL_PUBLIC_URL)
-    const envPublicUrl = process.env.PUBLIC_URL || process.env.APP_URL || process.env.CLOUDFLARE_TUNNEL_PUBLIC_URL;
-    if (envPublicUrl && envPublicUrl.trim()) {
-        return envPublicUrl.trim().replace(/\/+$/, '');
+    // 1. Explicit environment override
+    if (process.env.APP_URL && process.env.APP_URL.trim()) {
+        return process.env.APP_URL.trim().replace(/\/+$/, '');
     }
-
-    // 2. Database system_settings configured public URL
-    try {
-        const row = db.prepare("SELECT value FROM system_settings WHERE key IN ('public_server_url', 'app_url', 'public_url') ORDER BY updated_at DESC LIMIT 1").get();
-        if (row && row.value && row.value.trim()) {
-            return row.value.trim().replace(/\/+$/, '');
-        }
-    } catch (_) {}
 
     const forwardedProto = req.headers['x-forwarded-proto'];
     const forwardedHost = req.headers['x-forwarded-host'];
     const proto = forwardedProto || req.protocol || 'http';
     let host = forwardedHost || req.get('host') || `localhost:${process.env.PORT || 18484}`;
 
-    // 3. If caller is connecting via a real remote hostname / public domain / LAN IP (not localhost/127.0.0.1)
+    // 2. If caller is connecting via a real remote hostname / public domain / LAN IP (not localhost/127.0.0.1)
     if (!host.startsWith('localhost') && !host.startsWith('127.0.0.1')) {
         return `${proto}://${host}`;
+    }
+
+    // 3. If live Cloudflare Tunnel is connected and detected
+    const activeTunnelUrl = getDetectedTunnelUrl();
+    if (activeTunnelUrl) {
+        return activeTunnelUrl;
+    }
+
+    if (process.env.CLOUDFLARE_TUNNEL_PUBLIC_URL && process.env.CLOUDFLARE_TUNNEL_PUBLIC_URL.trim()) {
+        return process.env.CLOUDFLARE_TUNNEL_PUBLIC_URL.trim().replace(/\/+$/, '');
     }
 
     // 4. Fallback: Automatically detect primary local IPv4 address of this server on the LAN

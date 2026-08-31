@@ -1,6 +1,6 @@
 'use strict';
 
-const { spawn, execSync } = require('child_process');
+const { spawn } = require('child_process');
 const path = require('path');
 const fs = require('fs');
 const dns = require('dns');
@@ -12,8 +12,9 @@ let monitorTimer = null;
 let lastInternetCheck = false;
 let lastCheckedTime = null;
 let lastLogMessage = '';
-let tunnelState = 'stopped'; // 'stopped', 'starting', 'connected', 'error', 'no_internet'
-let retryCount = 0;
+let tunnelState = 'stopped'; // 'stopped', 'starting', 'connected', 'error', 'no_internet', 'disabled'
+let consecutiveFailures = 0;
+let detectedTunnelHostname = null;
 
 /**
  * Finds the cloudflared executable path.
@@ -35,11 +36,11 @@ function getCloudflaredPath() {
     const binaryName = isWindows ? 'cloudflared.exe' : 'cloudflared';
 
     const candidatePaths = [
-        path.join(__dirname, '..', '..', '..', 'bin', binaryName),
         path.join(__dirname, '..', '..', 'bin', binaryName),
         path.join(__dirname, '..', 'bin', binaryName),
         path.join(process.cwd(), 'bin', binaryName),
         path.join(process.cwd(), '..', 'bin', binaryName),
+        path.join(__dirname, '..', '..', '..', 'bin', binaryName),
     ];
 
     for (const cand of candidatePaths) {
@@ -49,84 +50,47 @@ function getCloudflaredPath() {
         }
     }
 
-    try {
-        const cmd = isWindows ? 'where.exe cloudflared' : 'which cloudflared';
-        const out = execSync(cmd, { encoding: 'utf8', stdio: ['pipe', 'pipe', 'ignore'] });
-        const first = out.trim().split(/\r?\n/)[0];
-        if (first && fs.existsSync(first)) {
-            setExecutable(first);
-            return first;
-        }
-    } catch (_) {}
-
     return null;
 }
 
-const dnsPromises = dns.promises;
-const publicResolver = new dnsPromises.Resolver();
-publicResolver.setServers(['1.1.1.1', '1.0.0.1', '8.8.8.8', '8.8.4.4']);
-
-let consecutiveFailures = 0;
-const MAX_CONSECUTIVE_FAILURES = 4; // 4 * 15s = 60s of sustained outage before killing
-
 /**
- * Checks if cloudflared is already running as an external process (e.g. start_tunnel.bat).
+ * Robust check for internet connectivity.
+ * Tests multiple DNS endpoints and falls back to HTTPS.
  */
-function isCloudflaredAlreadyRunning() {
-    if (process.platform !== 'win32') return false;
-    try {
-        const out = execSync('tasklist /FI "IMAGENAME eq cloudflared.exe" /NH', {
-            encoding: 'utf8',
-            stdio: ['pipe', 'pipe', 'ignore']
+function checkInternet(timeoutMs = 5000) {
+    return new Promise((resolve) => {
+        let isResolved = false;
+        const done = (val) => {
+            if (!isResolved) {
+                isResolved = true;
+                clearTimeout(timer);
+                resolve(val);
+            }
+        };
+
+        const timer = setTimeout(() => done(false), timeoutMs);
+
+        // Try DNS resolution on multiple reliable hosts in parallel
+        dns.lookup('cloudflare.com', (err1) => {
+            if (!err1) return done(true);
+
+            dns.lookup('1.1.1.1', (err2) => {
+                if (!err2) return done(true);
+
+                // Fallback HTTPS request
+                const req = https.get('https://1.1.1.1', { timeout: 3000 }, (res) => {
+                    res.destroy();
+                    done(true);
+                });
+
+                req.on('error', () => done(false));
+                req.on('timeout', () => {
+                    req.destroy();
+                    done(false);
+                });
+            });
         });
-        return out.toLowerCase().includes('cloudflared.exe');
-    } catch (_) {
-        return false;
-    }
-}
-
-/**
- * Robust, multi-tiered internet check.
- * Uses Direct Public DNS (bypassing local router/LAN DNS), OS DNS, and HTTP/HTTPS ping in parallel.
- */
-async function checkInternet(timeoutMs = 4500) {
-    const checks = [
-        // 1. Direct Public DNS query bypassing local LAN router DNS
-        publicResolver.resolve('cloudflare.com').then(() => true).catch(() => false),
-        
-        // 2. OS default DNS query
-        new Promise((resolve) => {
-            dns.lookup('cloudflare.com', (err) => resolve(!err));
-        }),
-
-        // 3. Direct HTTPS request to Cloudflare 1.1.1.1
-        new Promise((resolve) => {
-            const req = https.get('https://1.1.1.1', { timeout: 3500 }, (res) => {
-                res.destroy();
-                resolve(true);
-            });
-            req.on('error', () => resolve(false));
-            req.on('timeout', () => { req.destroy(); resolve(false); });
-        }),
-
-        // 4. HTTP request to Google 204 connectivity endpoint
-        new Promise((resolve) => {
-            const http = require('http');
-            const req = http.get('http://clients3.google.com/generate_204', { timeout: 3500 }, (res) => {
-                res.destroy();
-                resolve(res.statusCode === 204 || res.statusCode === 200);
-            });
-            req.on('error', () => resolve(false));
-            req.on('timeout', () => { req.destroy(); resolve(false); });
-        })
-    ];
-
-    try {
-        const results = await Promise.all(checks);
-        return results.some((r) => r === true);
-    } catch (_) {
-        return false;
-    }
+    });
 }
 
 /**
@@ -134,15 +98,6 @@ async function checkInternet(timeoutMs = 4500) {
  */
 async function startTunnel() {
     if (tunnelProcess || isStarting) return;
-
-    // Check if cloudflared is already active externally (e.g. from start_tunnel.bat)
-    if (isCloudflaredAlreadyRunning()) {
-        tunnelState = 'connected';
-        lastLogMessage = 'External cloudflared process detected and running.';
-        console.log('[Tunnel] External cloudflared process detected. Attached to active tunnel.');
-        return;
-    }
-
     isStarting = true;
 
     const binPath = getCloudflaredPath();
@@ -156,52 +111,55 @@ async function startTunnel() {
 
     const DEFAULT_TOKEN = 'eyJhIjoiZWRhMWQ4ZTc1MzNjMjBiMDcyNmM0ZGU1OWE5YTMxYzgiLCJ0IjoiZjJhOGYyYmMtMWE1YS00MmNmLWJjZTUtZWMzYzAxNzY4M2IyIiwicyI6Ik5EbGtOMkZpTldNdFpEYzVNUzAwTUdFMUxXSTFNalV0WW1RNVl6VXlaV1EzTVRWaiJ9';
     const rawToken = process.env.CLOUDFLARE_TUNNEL_TOKEN || DEFAULT_TOKEN;
-    const token = rawToken.replace(/[\r\n\s'"=]/g, '').trim(); // Strip any hidden CR/LF, spaces, or quotes
+    const token = rawToken.replace(/[\r\n\s'"=]/g, '').trim();
     const port = process.env.PORT || 18484;
 
-    // Use http2 on Windows to avoid QUIC UDP handshake stalls
+    // Use default auto-negotiated protocol (QUIC with HTTP/2 fallback) and --no-autoupdate
     const args = token
-        ? ['tunnel', '--protocol', 'http2', 'run', '--token', token]
-        : ['tunnel', '--protocol', 'http2', '--url', `http://localhost:${port}`];
+        ? ['tunnel', '--no-autoupdate', 'run', '--token', token]
+        : ['tunnel', '--no-autoupdate', '--url', `http://localhost:${port}`];
 
-    console.log(`[Tunnel] Launching Cloudflare tunnel: "${binPath}" ${token ? 'tunnel --protocol http2 run --token [CONFIGURED]' : args.join(' ')}`);
+    console.log(`[Tunnel] Launching Cloudflare tunnel: "${binPath}" ${token ? 'tunnel --no-autoupdate run --token [CONFIGURED]' : args.join(' ')}`);
     tunnelState = 'starting';
 
     try {
         tunnelProcess = spawn(binPath, args, {
             windowsHide: true,
             stdio: ['ignore', 'pipe', 'pipe'],
-            env: { ...process.env, NO_AUTOUPDATE: 'true', TUNNEL_METRICS: 'localhost:0' }
+            env: { ...process.env, NO_AUTOUPDATE: 'true' }
         });
 
         const pid = tunnelProcess.pid;
         console.log(`[Tunnel] Process started (PID: ${pid})`);
 
-        tunnelProcess.stdout.on('data', (data) => {
+        const handleLogStream = (data) => {
             const str = data.toString();
-            lastLogMessage = str.trim().split('\n').pop() || lastLogMessage;
-            if (str.includes('Registered tunnel connection') || (str.includes('Connection') && str.includes('registered')) || str.includes('Updated to new configuration')) {
-                tunnelState = 'connected';
-                console.log(`[Tunnel] Status: Connected to Cloudflare edge network.`);
-            }
-        });
+            const lines = str.trim().split('\n');
+            for (const line of lines) {
+                const trimmed = line.trim();
+                if (!trimmed) continue;
+                lastLogMessage = trimmed;
 
-        tunnelProcess.stderr.on('data', (data) => {
-            const str = data.toString();
-            lastLogMessage = str.trim().split('\n').pop() || lastLogMessage;
-            if (str.includes('Registered tunnel connection') || (str.includes('Connection') && str.includes('registered')) || str.includes('Updated to new configuration')) {
-                tunnelState = 'connected';
-                console.log(`[Tunnel] Status: Connected to Cloudflare edge network.`);
-            } else if (str.includes('ERR') || str.includes('Unauthorized')) {
-                if (str.includes('Unauthorized') || str.includes('Invalid tunnel secret')) {
-                    tunnelState = 'error';
-                    console.error('[Tunnel] Authorization error: Invalid tunnel secret.');
+                // Extract configured hostname if present in ingress logs
+                const hostMatch = trimmed.match(/"hostname":\s*"([^"]+)"/);
+                if (hostMatch && hostMatch[1]) {
+                    detectedTunnelHostname = hostMatch[1];
+                }
+
+                if (trimmed.includes('Registered tunnel connection') || 
+                    (trimmed.includes('Connection') && trimmed.includes('registered')) ||
+                    trimmed.includes('Tunnel connection curve preferences')) {
+                    tunnelState = 'connected';
+                    consecutiveFailures = 0;
                 }
             }
-        });
+        };
+
+        tunnelProcess.stdout.on('data', handleLogStream);
+        tunnelProcess.stderr.on('data', handleLogStream);
 
         tunnelProcess.on('error', (err) => {
-            console.error('[Tunnel] Process spawn error:', err.message);
+            console.error('[Tunnel] Process error:', err.message);
             tunnelState = 'error';
             lastLogMessage = err.message;
             tunnelProcess = null;
@@ -212,15 +170,16 @@ async function startTunnel() {
             console.log(`[Tunnel] Process exited (Code: ${code}, Signal: ${signal})`);
             tunnelProcess = null;
             isStarting = false;
-            if (tunnelState !== 'no_internet') {
+            if (tunnelState !== 'no_internet' && tunnelState !== 'disabled') {
                 tunnelState = 'stopped';
             }
         });
 
-        // Mark as connected after a short period if still alive
+        // If still alive after 4 seconds, mark as connected
         setTimeout(() => {
             if (tunnelProcess && tunnelState === 'starting') {
                 tunnelState = 'connected';
+                consecutiveFailures = 0;
             }
         }, 4000);
 
@@ -235,32 +194,35 @@ async function startTunnel() {
 }
 
 /**
- * Stops the Cloudflare Tunnel child process.
+ * Stops the Cloudflare Tunnel child process cleanly and non-blockingly.
  */
 function stopTunnel() {
     if (!tunnelProcess) return;
+    const proc = tunnelProcess;
+    tunnelProcess = null;
+    tunnelState = 'stopped';
+
     try {
-        console.log(`[Tunnel] Stopping tunnel process (PID: ${tunnelProcess.pid})...`);
-        const pid = tunnelProcess.pid;
+        console.log(`[Tunnel] Stopping tunnel process (PID: ${proc.pid})...`);
         if (process.platform === 'win32') {
-            try {
-                execSync(`taskkill /pid ${pid} /T /F`, { stdio: 'ignore' });
-            } catch (_) {
-                try { tunnelProcess.kill('SIGTERM'); } catch (__) {}
-            }
+            // Asynchronous non-blocking taskkill
+            const killer = spawn('taskkill', ['/pid', String(proc.pid), '/T', '/F'], {
+                windowsHide: true,
+                stdio: 'ignore'
+            });
+            killer.on('error', () => {
+                try { proc.kill('SIGTERM'); } catch (_) {}
+            });
         } else {
-            tunnelProcess.kill('SIGTERM');
+            proc.kill('SIGTERM');
         }
     } catch (err) {
         console.warn('[Tunnel] Error stopping tunnel:', err.message);
-    } finally {
-        tunnelProcess = null;
-        tunnelState = 'stopped';
     }
 }
 
 /**
- * Periodic check loop: checks internet and maintains tunnel state.
+ * Periodic check loop: checks internet and maintains tunnel state resiliently.
  */
 async function checkAndMaintainTunnel() {
     const isEnabled = process.env.CLOUDFLARE_TUNNEL_ENABLED !== 'false';
@@ -270,35 +232,25 @@ async function checkAndMaintainTunnel() {
         return;
     }
 
-    // If an external cloudflared process is already running, preserve connected state
-    if (!tunnelProcess && isCloudflaredAlreadyRunning()) {
-        tunnelState = 'connected';
-        lastLogMessage = 'External cloudflared process detected and active.';
-        lastInternetCheck = true;
-        lastCheckedTime = new Date().toISOString();
-        return;
-    }
-
-    const hasInternet = await checkInternet();
+    const hasInternet = await checkInternet(5000);
     lastInternetCheck = hasInternet;
     lastCheckedTime = new Date().toISOString();
 
     if (hasInternet) {
         consecutiveFailures = 0;
         if (!tunnelProcess && !isStarting) {
-            console.log('[Tunnel] Internet connection detected. Activating auto tunnel...');
+            console.log('[Tunnel] Internet connection available. Starting Cloudflare tunnel...');
             await startTunnel();
         }
     } else {
         consecutiveFailures++;
-        if (consecutiveFailures >= MAX_CONSECUTIVE_FAILURES) {
-            if (tunnelProcess) {
-                console.warn('[Tunnel] Sustained internet outage (>60s). Suspending tunnel until internet is restored...');
-                tunnelState = 'no_internet';
-                stopTunnel();
-            } else {
-                tunnelState = 'no_internet';
-            }
+        console.warn(`[Tunnel] Internet check failed (${consecutiveFailures}/3)`);
+
+        // Only suspend tunnel after 3 consecutive failures (approx 90s)
+        if (consecutiveFailures >= 3 && tunnelProcess) {
+            console.warn('[Tunnel] Persistent internet loss. Suspending tunnel...');
+            tunnelState = 'no_internet';
+            stopTunnel();
         }
     }
 }
@@ -316,11 +268,11 @@ function startAutoTunnel() {
 
     console.log('[Tunnel] Initializing Auto Cloudflare Tunnel Service...');
     
-    // Initial check immediately
-    checkAndMaintainTunnel();
+    // Initial check after a short server startup delay
+    setTimeout(checkAndMaintainTunnel, 2000);
 
-    // Periodic check interval (default: 15 seconds)
-    const intervalMs = parseInt(process.env.CLOUDFLARE_TUNNEL_CHECK_INTERVAL, 10) || 15000;
+    // Periodic check interval (default: 30 seconds to prevent aggressive CPU/DNS churn)
+    const intervalMs = parseInt(process.env.CLOUDFLARE_TUNNEL_CHECK_INTERVAL, 10) || 30000;
     if (monitorTimer) clearInterval(monitorTimer);
     monitorTimer = setInterval(checkAndMaintainTunnel, intervalMs);
 
@@ -349,9 +301,21 @@ function getTunnelStatus() {
         isRunning: !!tunnelProcess,
         pid: tunnelProcess ? tunnelProcess.pid : null,
         status: tunnelState,
+        hostname: detectedTunnelHostname,
+        publicUrl: detectedTunnelHostname ? `https://${detectedTunnelHostname}` : null,
         lastChecked: lastCheckedTime,
         lastLog: lastLogMessage
     };
+}
+
+/**
+ * Returns detected public tunnel URL (if active and discovered)
+ */
+function getDetectedTunnelUrl() {
+    if (tunnelState === 'connected' && detectedTunnelHostname) {
+        return `https://${detectedTunnelHostname}`;
+    }
+    return null;
 }
 
 module.exports = {
@@ -359,6 +323,8 @@ module.exports = {
     startTunnel,
     stopTunnel,
     getTunnelStatus,
+    getDetectedTunnelUrl,
     checkInternet,
     getCloudflaredPath
 };
+
