@@ -339,12 +339,14 @@ class _StudentArchivesModalState extends ConsumerState<StudentArchivesModal> {
 
     return CustomModal(
       title: widget.studentName.isNotEmpty
-          ? '${widget.studentName} — Archives'
+          ? '${widget.studentName} - Archives'
           : 'Archived Documents',
       icon: Icons.inventory_2_outlined,
       maxWidth: 800,
       content: ConstrainedBox(
-        constraints: const BoxConstraints(maxHeight: 700),
+        constraints: BoxConstraints(
+          maxHeight: isMobile ? MediaQuery.of(context).size.height * 0.88 : 700,
+        ),
         child: Column(
           children: [
             // Controls header or Multi-select header
@@ -491,9 +493,9 @@ class _StudentArchivesModalState extends ConsumerState<StudentArchivesModal> {
                                       .withValues(alpha: 0.08))
                               : Colors.transparent,
                           child: ListTile(
-                            contentPadding: const EdgeInsets.symmetric(
-                              horizontal: 16,
-                              vertical: 4,
+                            contentPadding: EdgeInsets.symmetric(
+                              horizontal: isMobile ? 12 : 16,
+                              vertical: isMobile ? 2 : 4,
                             ),
                             leading: _isMultiSelectMode
                                 ? Checkbox(
@@ -510,8 +512,8 @@ class _StudentArchivesModalState extends ConsumerState<StudentArchivesModal> {
                                     },
                                   )
                                 : Container(
-                                    width: 38,
-                                    height: 38,
+                                    width: isMobile ? 34 : 38,
+                                    height: isMobile ? 34 : 38,
                                     decoration: BoxDecoration(
                                       color: FileIconHelper.getColor(
                                         item.fileName,
@@ -528,14 +530,16 @@ class _StudentArchivesModalState extends ConsumerState<StudentArchivesModal> {
                                         item.fileName,
                                         docType: item.documentType,
                                       ),
-                                      size: 22,
+                                      size: isMobile ? 18 : 22,
                                     ),
                                   ),
                             title: Text(
                               item.fileName,
+                              maxLines: isMobile ? 1 : 2,
+                              overflow: TextOverflow.ellipsis,
                               style: TextStyle(
                                 fontWeight: FontWeight.bold,
-                                fontSize: 13,
+                                fontSize: isMobile ? 12 : 13,
                                 color: isDark
                                     ? AppColors.darkTextPrimary
                                     : AppColors.textPrimary,
@@ -543,9 +547,12 @@ class _StudentArchivesModalState extends ConsumerState<StudentArchivesModal> {
                             ),
                             subtitle: Padding(
                               padding: const EdgeInsets.only(top: 4.0),
-                              child: Row(
+                              child: Wrap(
+                                spacing: 6,
+                                runSpacing: 4,
+                                crossAxisAlignment: WrapCrossAlignment.center,
                                 children: [
-                                  if (item.documentType != null) ...[
+                                  if (item.documentType != null && item.documentType!.isNotEmpty)
                                     Container(
                                       padding: const EdgeInsets.symmetric(
                                         horizontal: 6,
@@ -573,8 +580,6 @@ class _StudentArchivesModalState extends ConsumerState<StudentArchivesModal> {
                                         ),
                                       ),
                                     ),
-                                    const SizedBox(width: 8),
-                                  ],
                                   Text(
                                     FileIconHelper.formatFileSize(
                                       item.fileSize ?? item.size,
@@ -586,7 +591,6 @@ class _StudentArchivesModalState extends ConsumerState<StudentArchivesModal> {
                                           : AppColors.textMuted,
                                     ),
                                   ),
-                                  const SizedBox(width: 8),
                                   Text(
                                     '• ${formatShortDate(item.createdAt)}',
                                     style: TextStyle(
@@ -779,14 +783,15 @@ class _StudentArchivesModalState extends ConsumerState<StudentArchivesModal> {
         filteredDocs.every((d) => _selectedIds.contains(d.id));
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      padding: EdgeInsets.symmetric(horizontal: isMobile ? 8 : 16, vertical: 6),
       color: isDark
           ? AppColors.darkSurfaceCard
           : AppColors.primaryGreen.withValues(alpha: 0.08),
       child: Row(
         children: [
           IconButton(
-            icon: const Icon(Icons.close, size: 20),
+            icon: const Icon(Icons.close, size: 18),
+            visualDensity: VisualDensity.compact,
             onPressed: () {
               setState(() {
                 _selectedIds.clear();
@@ -795,23 +800,24 @@ class _StudentArchivesModalState extends ConsumerState<StudentArchivesModal> {
             },
             tooltip: 'Cancel Selection',
           ),
-          const SizedBox(width: 4),
+          const SizedBox(width: 2),
           Text(
             '${_selectedIds.length} selected',
             style: TextStyle(
               fontWeight: FontWeight.bold,
-              fontSize: 14,
+              fontSize: isMobile ? 12 : 14,
               color: isDark
                   ? AppColors.darkTextPrimary
                   : AppColors.textPrimary,
             ),
           ),
-          const SizedBox(width: 8),
+          const SizedBox(width: 4),
           IconButton(
             icon: Icon(
               allSelected ? Icons.deselect : Icons.select_all,
-              size: 20,
+              size: 18,
             ),
+            visualDensity: VisualDensity.compact,
             tooltip: allSelected ? 'Unselect All' : 'Select All',
             onPressed: () {
               setState(() {
@@ -827,7 +833,8 @@ class _StudentArchivesModalState extends ConsumerState<StudentArchivesModal> {
           Tooltip(
             message: 'Download',
             child: IconButton(
-              icon: const Icon(Icons.download_rounded, size: 20),
+              icon: const Icon(Icons.download_rounded, size: 18),
+              visualDensity: VisualDensity.compact,
               onPressed: _selectedIds.isEmpty
                   ? null
                   : () => _handleBatchDownload(filteredDocs),
@@ -839,9 +846,10 @@ class _StudentArchivesModalState extends ConsumerState<StudentArchivesModal> {
               child: IconButton(
                 icon: const Icon(
                   Icons.unarchive_outlined,
-                  size: 20,
+                  size: 18,
                   color: AppColors.primaryGreen,
                 ),
+                visualDensity: VisualDensity.compact,
                 onPressed: _selectedIds.isEmpty ? null : _handleBatchRestore,
               ),
             ),
@@ -850,9 +858,10 @@ class _StudentArchivesModalState extends ConsumerState<StudentArchivesModal> {
               child: IconButton(
                 icon: const Icon(
                   Icons.delete_outline_rounded,
-                  size: 20,
+                  size: 18,
                   color: AppColors.error,
                 ),
+                visualDensity: VisualDensity.compact,
                 onPressed: _selectedIds.isEmpty ? null : _handleBatchDelete,
               ),
             ),

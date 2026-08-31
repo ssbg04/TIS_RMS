@@ -27,6 +27,9 @@ class DocumentPropertiesDialog extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final screenW = MediaQuery.of(context).size.width;
+    final isMobile = screenW < 520;
+
     final fileColor = FileIconHelper.getColor(
       document.fileName,
       docType: document.documentType,
@@ -60,12 +63,15 @@ class DocumentPropertiesDialog extends StatelessWidget {
           color: isDark ? AppColors.darkBorder : Colors.grey.shade200,
         ),
       ),
-      insetPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
+      insetPadding: EdgeInsets.symmetric(
+        horizontal: isMobile ? 14 : 20,
+        vertical: isMobile ? 16 : 24,
+      ),
       child: ConstrainedBox(
         constraints: const BoxConstraints(maxWidth: 480),
         child: SingleChildScrollView(
           child: Padding(
-            padding: const EdgeInsets.all(24),
+            padding: EdgeInsets.all(isMobile ? 16 : 24),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -75,14 +81,14 @@ class DocumentPropertiesDialog extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Container(
-                      padding: const EdgeInsets.all(12),
+                      padding: const EdgeInsets.all(10),
                       decoration: BoxDecoration(
                         color: fileColor.withValues(alpha: isDark ? 0.18 : 0.1),
-                        borderRadius: BorderRadius.circular(12),
+                        borderRadius: BorderRadius.circular(10),
                       ),
-                      child: Icon(fileIcon, color: fileColor, size: 28),
+                      child: Icon(fileIcon, color: fileColor, size: isMobile ? 24 : 28),
                     ),
-                    const SizedBox(width: 14),
+                    const SizedBox(width: 12),
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -90,7 +96,7 @@ class DocumentPropertiesDialog extends StatelessWidget {
                           Text(
                             document.fileName,
                             style: TextStyle(
-                              fontSize: 16,
+                              fontSize: isMobile ? 14 : 16,
                               fontWeight: FontWeight.bold,
                               color: isDark
                                   ? AppColors.darkTextPrimary
@@ -134,7 +140,7 @@ class DocumentPropertiesDialog extends StatelessWidget {
                     ),
                   ],
                 ),
-                const SizedBox(height: 20),
+                const SizedBox(height: 16),
                 Divider(
                   color: isDark ? AppColors.darkBorder : Colors.grey.shade200,
                   height: 1,
@@ -160,16 +166,18 @@ class DocumentPropertiesDialog extends StatelessWidget {
                   label: 'Document Type',
                   value: document.documentType ?? 'General Document',
                   icon: Icons.description_outlined,
+                  isMobile: isMobile,
                 ),
                 _buildPropertyRow(
                   context,
                   label: 'Student',
                   value: document.studentName != null
-                      ? '${document.studentName} (LRN: ${document.studentLrn ?? "—"})'
+                      ? '${document.studentName} (LRN: ${document.studentLrn ?? "-"})'
                       : (document.studentLrn != null
                           ? 'LRN: ${document.studentLrn}'
-                          : '—'),
+                          : '-'),
                   icon: Icons.person_outline_rounded,
+                  isMobile: isMobile,
                 ),
                 _buildPropertyRow(
                   context,
@@ -177,8 +185,9 @@ class DocumentPropertiesDialog extends StatelessWidget {
                   value: document.uploadedByName ??
                       (document.uploadedBy != null
                           ? 'User #${document.uploadedBy}'
-                          : '—'),
+                          : '-'),
                   icon: Icons.person_add_alt_1_outlined,
+                  isMobile: isMobile,
                 ),
                 _buildPropertyRow(
                   context,
@@ -187,18 +196,21 @@ class DocumentPropertiesDialog extends StatelessWidget {
                     document.fileSize ?? document.size,
                   ),
                   icon: Icons.data_usage_rounded,
+                  isMobile: isMobile,
                 ),
                 _buildPropertyRow(
                   context,
                   label: 'File Extension',
                   value: extension,
                   icon: Icons.extension_outlined,
+                  isMobile: isMobile,
                 ),
                 _buildPropertyRow(
                   context,
                   label: 'Created / Uploaded',
                   value: formatModalDate(document.createdAt.toIso8601String()),
                   icon: Icons.calendar_today_outlined,
+                  isMobile: isMobile,
                 ),
                 if (document.filePath.isNotEmpty) ...[
                   _buildPropertyRow(
@@ -207,10 +219,11 @@ class DocumentPropertiesDialog extends StatelessWidget {
                     value: document.filePath,
                     icon: Icons.folder_open_outlined,
                     isCopyable: true,
+                    isMobile: isMobile,
                   ),
                 ],
 
-                const SizedBox(height: 24),
+                const SizedBox(height: 20),
 
                 // Actions Footer
                 Row(
@@ -224,7 +237,7 @@ class DocumentPropertiesDialog extends StatelessWidget {
                             : AppColors.textPrimary,
                         padding: const EdgeInsets.symmetric(
                           horizontal: 16,
-                          vertical: 10,
+                          vertical: 8,
                         ),
                       ),
                       child: const Text('Close'),
@@ -245,6 +258,7 @@ class DocumentPropertiesDialog extends StatelessWidget {
     required String value,
     required IconData icon,
     bool isCopyable = false,
+    bool isMobile = false,
   }) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     return Padding(
@@ -257,9 +271,9 @@ class DocumentPropertiesDialog extends StatelessWidget {
             size: 16,
             color: isDark ? AppColors.darkTextMuted : AppColors.textMuted,
           ),
-          const SizedBox(width: 10),
+          const SizedBox(width: 8),
           SizedBox(
-            width: 120,
+            width: isMobile ? 100 : 120,
             child: Text(
               label,
               style: TextStyle(
@@ -271,15 +285,16 @@ class DocumentPropertiesDialog extends StatelessWidget {
               ),
             ),
           ),
-          const SizedBox(width: 8),
+          const SizedBox(width: 6),
           Expanded(
             child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Expanded(
                   child: SelectableText(
                     value,
                     style: TextStyle(
-                      fontSize: 13,
+                      fontSize: isMobile ? 12 : 13,
                       fontWeight: FontWeight.w600,
                       color: isDark
                           ? AppColors.darkTextPrimary
@@ -287,7 +302,8 @@ class DocumentPropertiesDialog extends StatelessWidget {
                     ),
                   ),
                 ),
-                if (isCopyable)
+                if (isCopyable) ...[
+                  const SizedBox(width: 4),
                   InkWell(
                     onTap: () {
                       Clipboard.setData(ClipboardData(text: value));
@@ -309,6 +325,7 @@ class DocumentPropertiesDialog extends StatelessWidget {
                       ),
                     ),
                   ),
+                ],
               ],
             ),
           ),
