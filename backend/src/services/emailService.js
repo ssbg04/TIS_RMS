@@ -5,8 +5,8 @@ const fs = require('fs');
 require('dotenv').config();
 
 // ── Embedded images ────────────────────────────────────────────────────────────
-// Load school logo as base64 at startup (from frontend assets folder, with fallback)
-function loadLogoBase64() {
+// Find the absolute path to the school logo
+function getLogoPath() {
     const candidates = [
         // Local copy inside backend (primary — works standalone/deployed)
         path.join(__dirname, '..', '..', 'assets', 'logo.png'),
@@ -14,17 +14,12 @@ function loadLogoBase64() {
         path.join(__dirname, '..', '..', '..', 'frontend', 'assets', 'images', 'logo.png'),
     ];
     for (const p of candidates) {
-        try {
-            if (fs.existsSync(p)) return fs.readFileSync(p).toString('base64');
-        } catch (_) {}
+        if (fs.existsSync(p)) return p;
     }
     return null;
 }
 
-const LOGO_B64 = loadLogoBase64();
-const LOGO_SRC = LOGO_B64
-    ? `data:image/png;base64,${LOGO_B64}`
-    : null;
+const LOGO_PATH = getLogoPath();
 
 // ── Transporter ────────────────────────────────────────────────────────────────
 let transporter = null;
@@ -52,8 +47,8 @@ const getTransporter = () => {
 // ── Shared layout helpers ──────────────────────────────────────────────────────
 const YEAR = new Date().getFullYear();
 
-const headerLogo = LOGO_SRC
-    ? `<img src="${LOGO_SRC}" alt="Talisay Integrated School" width="72" height="72" style="display:block;margin:0 auto 12px;border-radius:50%;border:3px solid rgba(255,255,255,0.3);">`
+const headerLogo = LOGO_PATH
+    ? `<img src="cid:school-logo" alt="Talisay Integrated School" width="72" height="72" style="display:block;margin:0 auto 12px;border-radius:50%;border:3px solid rgba(255,255,255,0.3);">`
     : '';
 
 function emailShell(bodyContent) {
@@ -158,13 +153,23 @@ const sendPasswordResetOtp = async ({ to, username, otp }) => {
     }
 
     try {
-        const info = await mailTransporter.sendMail({
+        const mailOptions = {
             from: fromAddress,
             to,
             subject: `[TIS RMS] Your password reset code: ${otp}`,
             html: htmlContent,
             text: `Hello @${username},\n\nYour TIS RMS password reset code is: ${otp}\n\nThis code expires in 10 minutes.\n\nIf you did not request this, contact your administrator.`,
-        });
+        };
+        
+        if (LOGO_PATH) {
+            mailOptions.attachments = [{
+                filename: 'logo.png',
+                path: LOGO_PATH,
+                cid: 'school-logo' // same cid value as in the html img src
+            }];
+        }
+
+        const info = await mailTransporter.sendMail(mailOptions);
         console.log(`[EmailService] OTP sent to ${to} (${info.messageId})`);
         return { success: true, messageId: info.messageId };
     } catch (err) {
@@ -237,13 +242,23 @@ const sendPasswordResetLink = async ({ to, username, resetLink, expiresMinutes =
     }
 
     try {
-        const info = await mailTransporter.sendMail({
+        const mailOptions = {
             from: fromAddress,
             to,
             subject: `[TIS RMS] Password reset link for @${username}`,
             html: htmlContent,
             text: `Hello @${username},\n\nAn administrator requested a password reset for your TIS RMS account.\n\nReset link:\n${resetLink}\n\nThis link expires in ${expiresMinutes} minutes.\n\nIf you did not request this, contact your administrator.`,
-        });
+        };
+
+        if (LOGO_PATH) {
+            mailOptions.attachments = [{
+                filename: 'logo.png',
+                path: LOGO_PATH,
+                cid: 'school-logo'
+            }];
+        }
+
+        const info = await mailTransporter.sendMail(mailOptions);
         console.log(`[EmailService] Reset link sent to ${to} (${info.messageId})`);
         return { success: true, messageId: info.messageId };
     } catch (err) {
