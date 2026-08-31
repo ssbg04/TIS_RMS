@@ -11,5 +11,5 @@ if not exist "%~dp0bin\cloudflared.exe" (
 )
 
 echo [INFO] Connecting to Cloudflare Tunnel...
-"%~dp0bin\cloudflared.exe" tunnel run --token eyJhIjoiZWRhMWQ4ZTc1MzNjMjBiMDcyNmM0ZGU1OWE5YTMxYzgiLCJ0IjoiZjJhOGYyYmMtMWE1YS00MmNmLWJjZTUtZWMzYzAxNzY4M2IyIiwicyI6Ik9EUXpZMkUyT0RNdE0yVmxNaTAwTjJVMUxXRmlZVFl0TkRKak1HSmpOR0l4WTJReSJ9
+"%~dp0bin\cloudflared.exe" tunnel --protocol http2 run --token eyJhIjoiZWRhMWQ4ZTc1MzNjMjBiMDcyNmM0ZGU1OWE5YTMxYzgiLCJ0IjoiZjJhOGYyYmMtMWE1YS00MmNmLWJjZTUtZWMzYzAxNzY4M2IyIiwicyI6Ik5EbGtOMkZpTldNdFpEYzVNUzAwTUdFMUxXSTFNalV0WW1RNVl6VXlaV1EzTVRWaiJ9
 pause

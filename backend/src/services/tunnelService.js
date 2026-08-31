@@ -159,11 +159,12 @@ async function startTunnel() {
     const token = rawToken.replace(/[\r\n\s'"=]/g, '').trim(); // Strip any hidden CR/LF, spaces, or quotes
     const port = process.env.PORT || 18484;
 
+    // Use http2 on Windows to avoid QUIC UDP handshake stalls
     const args = token
-        ? ['tunnel', '--protocol', 'auto', 'run', '--token', token]
-        : ['tunnel', '--protocol', 'auto', '--url', `http://localhost:${port}`];
+        ? ['tunnel', '--protocol', 'http2', 'run', '--token', token]
+        : ['tunnel', '--protocol', 'http2', '--url', `http://localhost:${port}`];
 
-    console.log(`[Tunnel] Launching Cloudflare tunnel: "${binPath}" ${token ? 'tunnel --protocol auto run --token [CONFIGURED]' : args.join(' ')}`);
+    console.log(`[Tunnel] Launching Cloudflare tunnel: "${binPath}" ${token ? 'tunnel --protocol http2 run --token [CONFIGURED]' : args.join(' ')}`);
     tunnelState = 'starting';
 
     try {
@@ -179,7 +180,7 @@ async function startTunnel() {
         tunnelProcess.stdout.on('data', (data) => {
             const str = data.toString();
             lastLogMessage = str.trim().split('\n').pop() || lastLogMessage;
-            if (str.includes('Registered tunnel connection') || (str.includes('Connection') && str.includes('registered'))) {
+            if (str.includes('Registered tunnel connection') || (str.includes('Connection') && str.includes('registered')) || str.includes('Updated to new configuration')) {
                 tunnelState = 'connected';
                 console.log(`[Tunnel] Status: Connected to Cloudflare edge network.`);
             }
@@ -188,12 +189,13 @@ async function startTunnel() {
         tunnelProcess.stderr.on('data', (data) => {
             const str = data.toString();
             lastLogMessage = str.trim().split('\n').pop() || lastLogMessage;
-            if (str.includes('Registered tunnel connection') || (str.includes('Connection') && str.includes('registered'))) {
+            if (str.includes('Registered tunnel connection') || (str.includes('Connection') && str.includes('registered')) || str.includes('Updated to new configuration')) {
                 tunnelState = 'connected';
                 console.log(`[Tunnel] Status: Connected to Cloudflare edge network.`);
-            } else if (str.includes('INF') || str.includes('WRN') || str.includes('ERR')) {
-                if (str.includes('error') || str.includes('ERR')) {
-                    console.warn(`[Tunnel] Notice: ${str.trim()}`);
+            } else if (str.includes('ERR') || str.includes('Unauthorized')) {
+                if (str.includes('Unauthorized') || str.includes('Invalid tunnel secret')) {
+                    tunnelState = 'error';
+                    console.error('[Tunnel] Authorization error: Invalid tunnel secret.');
                 }
             }
         });
@@ -220,7 +222,7 @@ async function startTunnel() {
             if (tunnelProcess && tunnelState === 'starting') {
                 tunnelState = 'connected';
             }
-        }, 5000);
+        }, 4000);
 
     } catch (err) {
         console.error('[Tunnel] Failed to start tunnel process:', err.message);
