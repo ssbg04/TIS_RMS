@@ -1,10 +1,16 @@
+import 'dart:io';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_sizes.dart';
+import '../../../../core/utils/download_service.dart';
+import '../../../../core/utils/transparency_board_pdf_service.dart';
 import '../../../../domain/entities/report_models.dart';
 import '../../../providers/reports_provider.dart';
+import '../../../shared/dialogs/error_dialog.dart';
+import '../../../shared/dialogs/file_save_preview_dialog.dart';
+import '../../../shared/dialogs/success_dialog.dart';
 
 class TransparencyBoardSection extends ConsumerWidget {
   const TransparencyBoardSection({super.key});
@@ -48,11 +54,121 @@ class _TransparencyBoardContent extends ConsumerStatefulWidget {
 
 class _TransparencyBoardContentState extends ConsumerState<_TransparencyBoardContent> {
   final ScrollController _enrollmentChartScrollController = ScrollController();
+  bool _isExportingPdf = false;
 
   @override
   void dispose() {
     _enrollmentChartScrollController.dispose();
     super.dispose();
+  }
+
+  Future<void> _handleExportPdf(
+    TransparencyBoardData data,
+  ) async {
+    if (_isExportingPdf) return;
+    setState(() => _isExportingPdf = true);
+
+    try {
+      final latestYear = data.years.isNotEmpty ? data.years.last : null;
+      final yearLabel = latestYear != null
+          ? latestYear.yearRange.replaceAll('-', '_')
+          : 'All';
+      final defaultFileName = 'DepEd_Transparency_Board_SY_$yearLabel.pdf';
+
+      final pdfBytes = await TransparencyBoardPdfService.generatePdf(
+        data: data,
+        schoolName: 'TIAONG INTEGRATED SCHOOL',
+        divisionName: 'DIVISION OF QUEZON',
+        regionName: 'REGION IV-A CALABARZON',
+      );
+
+      if (!mounted) return;
+      setState(() => _isExportingPdf = false);
+
+      String? savedPath;
+      final saved = await showFileSavePreviewDialog(
+        context,
+        fileName: defaultFileName,
+        fileType: SaveFileType.pdf,
+        fileBytes: pdfBytes,
+        previewRows: [
+          FilePreviewRow(
+            'School Year',
+            latestYear != null ? 'SY ${latestYear.yearRange}' : 'N/A',
+          ),
+          const FilePreviewRow('Sections', '3 Key Sections'),
+          const FilePreviewRow('Format', 'Official DepEd PDF'),
+        ],
+        onSave: (resolvedName) async {
+          await DownloadService.requestPermissions();
+          final dirPath = await DownloadService.getDownloadDirectoryPath();
+          final separator = Platform.isWindows ? '\\' : '/';
+          final targetPath = '$dirPath$separator$resolvedName';
+          final file = File(targetPath);
+          await file.writeAsBytes(pdfBytes);
+          savedPath = file.path;
+        },
+      );
+
+      if (!mounted) return;
+      if (saved == true && savedPath != null) {
+        showSuccessDialog(
+          context,
+          title: 'Export Successful',
+          message: 'Transparency Board PDF has been saved successfully.',
+          filePath: savedPath,
+        );
+      }
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _isExportingPdf = false);
+      showErrorDialog(
+        context,
+        'Export Failed',
+        'Failed to generate or save the PDF: $e',
+      );
+    }
+  }
+
+  Widget _buildExportPdfButton(
+    TransparencyBoardData data,
+  ) {
+    return ElevatedButton.icon(
+      onPressed: _isExportingPdf
+          ? null
+          : () => _handleExportPdf(data),
+      icon: _isExportingPdf
+          ? const SizedBox(
+              width: 14,
+              height: 14,
+              child: CircularProgressIndicator(
+                strokeWidth: 2,
+                color: Colors.white,
+              ),
+            )
+          : const Icon(
+              Icons.picture_as_pdf_outlined,
+              size: 16,
+              color: Colors.white,
+            ),
+      label: Text(
+        _isExportingPdf ? 'Exporting...' : 'Export PDF',
+        style: const TextStyle(
+          color: Colors.white,
+          fontSize: 12,
+          fontWeight: FontWeight.bold,
+        ),
+      ),
+      style: ElevatedButton.styleFrom(
+        backgroundColor: Colors.red.shade700,
+        foregroundColor: Colors.white,
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(8),
+        ),
+        elevation: 0,
+      ),
+    );
   }
 
   @override
@@ -127,14 +243,21 @@ class _TransparencyBoardContentState extends ConsumerState<_TransparencyBoardCon
                           ),
                         ],
                       ),
-                      if (academicYears.isNotEmpty) ...[
-                        const SizedBox(height: 8),
-                        _buildYearSelector(
-                          context,
-                          academicYears: academicYears,
-                          selectedYearId: selectedYearId,
-                        ),
-                      ],
+                      const SizedBox(height: 8),
+                      Wrap(
+                        spacing: 8,
+                        runSpacing: 8,
+                        crossAxisAlignment: WrapCrossAlignment.center,
+                        children: [
+                          if (academicYears.isNotEmpty)
+                            _buildYearSelector(
+                              context,
+                              academicYears: academicYears,
+                              selectedYearId: selectedYearId,
+                            ),
+                          _buildExportPdfButton(data),
+                        ],
+                      ),
                     ] else ...[
                       Row(
                         children: [
@@ -163,6 +286,8 @@ class _TransparencyBoardContentState extends ConsumerState<_TransparencyBoardCon
                               selectedYearId: selectedYearId,
                             ),
                           ],
+                          const SizedBox(width: 8),
+                          _buildExportPdfButton(data),
                         ],
                       ),
                     ],

@@ -1,5 +1,7 @@
 import 'dart:io';
+import 'dart:typed_data';
 import 'package:flutter/material.dart';
+import 'package:syncfusion_flutter_pdfviewer/pdfviewer.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_sizes.dart';
 import '../widgets/app_button_loader.dart';
@@ -349,13 +351,15 @@ class _FileSavePreviewDialogState extends State<_FileSavePreviewDialog> {
     return switch (widget.fileType) {
       SaveFileType.image => _buildImagePreview(isDark),
       SaveFileType.excel => _buildExcelPreview(accent, isDark),
-      SaveFileType.pdf => _buildPlaceholderPreview(
-        accent,
-        Icons.picture_as_pdf_outlined,
-        'PDF Preview',
-        'PDF rendering requires an external viewer.\nThe file will open correctly after saving.',
-        isDark,
-      ),
+      SaveFileType.pdf => widget.fileBytes != null && widget.fileBytes!.isNotEmpty
+          ? _buildPdfPreview(isDark)
+          : _buildPlaceholderPreview(
+              accent,
+              Icons.picture_as_pdf_outlined,
+              'PDF Preview',
+              'PDF rendering requires an external viewer.\nThe file will open correctly after saving.',
+              isDark,
+            ),
       SaveFileType.word => _buildPlaceholderPreview(
         accent,
         Icons.description_outlined,
@@ -371,6 +375,27 @@ class _FileSavePreviewDialogState extends State<_FileSavePreviewDialog> {
         isDark,
       ),
     };
+  }
+
+  /// Interactive live PDF preview.
+  Widget _buildPdfPreview(bool isDark) {
+    return Container(
+      decoration: BoxDecoration(
+        color: isDark ? AppColors.darkSurface2 : const Color(0xFF525659),
+        borderRadius: BorderRadius.circular(AppSizes.radiusMedium),
+        border: Border.all(
+          color: isDark ? AppColors.darkBorder : Colors.grey.shade300,
+        ),
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(AppSizes.radiusMedium),
+        child: SfPdfViewer.memory(
+          Uint8List.fromList(widget.fileBytes!),
+          canShowScrollHead: true,
+          canShowScrollStatus: true,
+        ),
+      ),
+    );
   }
 
   /// Full-size image preview.
