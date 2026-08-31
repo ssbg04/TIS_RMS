@@ -82,7 +82,6 @@ class _StudentProfileDialogShellState
 
     final isMobileOrAndroid = widget.isMobile ||
         Theme.of(context).platform == TargetPlatform.android;
-    final arrowIconSize = isMobileOrAndroid ? 20.0 : 16.0;
     final actionIconSize = isMobileOrAndroid ? 20.0 : 18.0;
     final buttonConstraints = isMobileOrAndroid
         ? const BoxConstraints(minWidth: 36, minHeight: 36)
@@ -119,7 +118,7 @@ class _StudentProfileDialogShellState
                   Container(
                     padding: const EdgeInsets.symmetric(
                       horizontal: 16,
-                      vertical: 8,
+                      vertical: 10,
                     ),
                     decoration: const BoxDecoration(
                       color: AppColors.primaryGreen,
@@ -145,72 +144,6 @@ class _StudentProfileDialogShellState
                             maxLines: 1,
                           ),
                         ),
-                        if (students.isNotEmpty && currentIndex != -1) ...[
-                          Tooltip(
-                            message: 'Previous Student',
-                            child: IconButton(
-                              icon: Icon(
-                                Icons.arrow_back_ios_new_rounded,
-                                color: currentIndex > 0
-                                    ? Colors.white
-                                    : Colors.white24,
-                                size: arrowIconSize,
-                              ),
-                              visualDensity: VisualDensity.compact,
-                              style: IconButton.styleFrom(
-                                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                                minimumSize: Size.zero,
-                                padding: buttonPadding,
-                              ),
-                              padding: buttonPadding,
-                              constraints: buttonConstraints,
-                              onPressed: currentIndex > 0
-                                  ? () => setState(() {
-                                        _currentStudentId =
-                                            students[currentIndex - 1].id;
-                                      })
-                                  : null,
-                            ),
-                          ),
-                          Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 4),
-                            child: Text(
-                              '${currentIndex + 1}/${students.length}',
-                              style: TextStyle(
-                                color: Colors.white70,
-                                fontSize: isMobileOrAndroid ? 13 : 12,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                          ),
-                          Tooltip(
-                            message: 'Next Student',
-                            child: IconButton(
-                              icon: Icon(
-                                Icons.arrow_forward_ios_rounded,
-                                color: currentIndex < students.length - 1
-                                    ? Colors.white
-                                    : Colors.white24,
-                                size: arrowIconSize,
-                              ),
-                              visualDensity: VisualDensity.compact,
-                              style: IconButton.styleFrom(
-                                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                                minimumSize: Size.zero,
-                                padding: buttonPadding,
-                              ),
-                              padding: buttonPadding,
-                              constraints: buttonConstraints,
-                              onPressed: currentIndex < students.length - 1
-                                  ? () => setState(() {
-                                        _currentStudentId =
-                                            students[currentIndex + 1].id;
-                                      })
-                                  : null,
-                            ),
-                          ),
-                          SizedBox(width: isMobileOrAndroid ? 4 : 10),
-                        ],
                         IconButton(
                           icon: Icon(
                             Icons.close,
@@ -238,80 +171,175 @@ class _StudentProfileDialogShellState
                       hideEnrollmentActions: widget.hideEnrollmentActions,
                     ),
                   ),
-                  // ── Fixed footer with action buttons / icons ──
-                  if (hasEdit || hasDelete)
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 16,
-                        vertical: 10,
-                      ),
-                      decoration: BoxDecoration(
-                        color: isDark ? AppColors.darkSurfaceCard : AppColors.surfaceWhite,
-                        border: Border(
-                          top: BorderSide(
-                            color: isDark ? AppColors.darkBorder : Colors.grey.shade200,
-                          ),
-                        ),
-                        borderRadius: const BorderRadius.vertical(bottom: Radius.circular(12)),
-                      ),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.end,
-                        children: [
-                          if (hasDelete) ...[
-                            Tooltip(
-                              message: 'Delete Student',
-                              child: OutlinedButton.icon(
-                                onPressed: () {
-                                  if (widget.onDeleteById != null) {
-                                    widget.onDeleteById!(_currentStudentId);
-                                  } else if (widget.onDelete != null) {
-                                    widget.onDelete!();
-                                  }
-                                },
-                                icon: const Icon(Icons.delete_outline_rounded, size: 18, color: AppColors.error),
-                                label: const Text(
-                                  'Delete',
-                                  style: TextStyle(color: AppColors.error, fontSize: 13, fontWeight: FontWeight.w600),
-                                ),
-                                style: OutlinedButton.styleFrom(
-                                  foregroundColor: AppColors.error,
-                                  side: const BorderSide(color: AppColors.error),
-                                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                                ),
-                              ),
-                            ),
-                            const SizedBox(width: 8),
-                          ],
-                          if (hasEdit) ...[
-                            Tooltip(
-                              message: 'Edit Student',
-                              child: ElevatedButton.icon(
-                                onPressed: () {
-                                  if (widget.onEditById != null) {
-                                    widget.onEditById!(_currentStudentId);
-                                  } else if (widget.onEdit != null) {
-                                    widget.onEdit!();
-                                  }
-                                },
-                                icon: const Icon(Icons.edit_rounded, size: 18, color: Colors.white),
-                                label: const Text(
-                                  'Edit Student',
-                                  style: TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold),
-                                ),
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: AppColors.primaryGreen,
-                                  foregroundColor: Colors.white,
-                                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                                  elevation: 0,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ],
-                      ),
+                  // ── Fixed footer with navigation + action buttons ──
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 10,
                     ),
+                    decoration: BoxDecoration(
+                      color: isDark ? AppColors.darkSurfaceCard : AppColors.surfaceWhite,
+                      border: Border(
+                        top: BorderSide(
+                          color: isDark ? AppColors.darkBorder : Colors.grey.shade200,
+                        ),
+                      ),
+                      borderRadius: const BorderRadius.vertical(bottom: Radius.circular(12)),
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        // Left: Previous / Next Navigation
+                        if (students.isNotEmpty && currentIndex != -1)
+                          Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Tooltip(
+                                message: 'Previous Student',
+                                child: IconButton(
+                                  icon: Icon(
+                                    Icons.arrow_back_ios_new_rounded,
+                                    color: currentIndex > 0
+                                        ? (isDark ? AppColors.darkTextPrimary : AppColors.textPrimary)
+                                        : (isDark ? Colors.white24 : Colors.grey.shade300),
+                                    size: 16,
+                                  ),
+                                  visualDensity: VisualDensity.compact,
+                                  style: IconButton.styleFrom(
+                                    padding: const EdgeInsets.all(6),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(8),
+                                      side: BorderSide(
+                                        color: isDark ? AppColors.darkBorder : Colors.grey.shade300,
+                                      ),
+                                    ),
+                                  ),
+                                  onPressed: currentIndex > 0
+                                      ? () => setState(() {
+                                            _currentStudentId =
+                                                students[currentIndex - 1].id;
+                                          })
+                                      : null,
+                                ),
+                              ),
+                              Padding(
+                                padding: const EdgeInsets.symmetric(horizontal: 10),
+                                child: Text(
+                                  '${currentIndex + 1} / ${students.length}',
+                                  style: TextStyle(
+                                    color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ),
+                              Tooltip(
+                                message: 'Next Student',
+                                child: IconButton(
+                                  icon: Icon(
+                                    Icons.arrow_forward_ios_rounded,
+                                    color: currentIndex < students.length - 1
+                                        ? (isDark ? AppColors.darkTextPrimary : AppColors.textPrimary)
+                                        : (isDark ? Colors.white24 : Colors.grey.shade300),
+                                    size: 16,
+                                  ),
+                                  visualDensity: VisualDensity.compact,
+                                  style: IconButton.styleFrom(
+                                    padding: const EdgeInsets.all(6),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(8),
+                                      side: BorderSide(
+                                        color: isDark ? AppColors.darkBorder : Colors.grey.shade300,
+                                      ),
+                                    ),
+                                  ),
+                                  onPressed: currentIndex < students.length - 1
+                                      ? () => setState(() {
+                                            _currentStudentId =
+                                                students[currentIndex + 1].id;
+                                          })
+                                      : null,
+                                ),
+                              ),
+                            ],
+                          )
+                        else
+                          const SizedBox.shrink(),
+
+                        // Right: Actions (Delete / Edit) - Clean text buttons with no background or border
+                        Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            if (hasDelete) ...[
+                              Tooltip(
+                                message: 'Delete Student',
+                                child: TextButton.icon(
+                                  onPressed: () {
+                                    if (widget.onDeleteById != null) {
+                                      widget.onDeleteById!(_currentStudentId);
+                                    } else if (widget.onDelete != null) {
+                                      widget.onDelete!();
+                                    }
+                                  },
+                                  icon: const Icon(Icons.delete_outline_rounded, size: 18, color: AppColors.error),
+                                  label: const Text(
+                                    'Delete',
+                                    style: TextStyle(
+                                      color: AppColors.error,
+                                      fontSize: 13,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                  style: TextButton.styleFrom(
+                                    foregroundColor: AppColors.error,
+                                    backgroundColor: Colors.transparent,
+                                    side: BorderSide.none,
+                                    shadowColor: Colors.transparent,
+                                    elevation: 0,
+                                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 4),
+                            ],
+                            if (hasEdit) ...[
+                              Tooltip(
+                                message: 'Edit Student',
+                                child: TextButton.icon(
+                                  onPressed: () {
+                                    if (widget.onEditById != null) {
+                                      widget.onEditById!(_currentStudentId);
+                                    } else if (widget.onEdit != null) {
+                                      widget.onEdit!();
+                                    }
+                                  },
+                                  icon: const Icon(Icons.edit_rounded, size: 18, color: AppColors.primaryGreen),
+                                  label: const Text(
+                                    'Edit',
+                                    style: TextStyle(
+                                      color: AppColors.primaryGreen,
+                                      fontSize: 13,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                  style: TextButton.styleFrom(
+                                    foregroundColor: AppColors.primaryGreen,
+                                    backgroundColor: Colors.transparent,
+                                    side: BorderSide.none,
+                                    shadowColor: Colors.transparent,
+                                    elevation: 0,
+                                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
                 ],
               ),
             ],
