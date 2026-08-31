@@ -1,8 +1,46 @@
 const db = require('../config/db');
 const bcrypt = require('bcrypt');
 const crypto = require('crypto');
+const os = require('os');
 const { createNotification } = require('./notificationController');
 const { sendPasswordResetLink } = require('../services/emailService');
+
+// ── Base URL Helper (Auto-detects Tunnel vs LAN IP vs Domain) ────────────────
+const getBestServerBaseUrl = (req) => {
+    // 1. Explicit environment override
+    if (process.env.APP_URL && process.env.APP_URL.trim()) {
+        return process.env.APP_URL.trim().replace(/\/+$/, '');
+    }
+
+    const forwardedProto = req.headers['x-forwarded-proto'];
+    const forwardedHost = req.headers['x-forwarded-host'];
+    const proto = forwardedProto || req.protocol || 'http';
+    let host = forwardedHost || req.get('host') || `localhost:${process.env.PORT || 18484}`;
+
+    // 2. If caller is connecting via a real remote hostname / public domain / LAN IP (not localhost/127.0.0.1)
+    if (!host.startsWith('localhost') && !host.startsWith('127.0.0.1')) {
+        return `${proto}://${host}`;
+    }
+
+    // 3. If Cloudflare Tunnel public URL is configured
+    if (process.env.CLOUDFLARE_TUNNEL_PUBLIC_URL && process.env.CLOUDFLARE_TUNNEL_PUBLIC_URL.trim()) {
+        return process.env.CLOUDFLARE_TUNNEL_PUBLIC_URL.trim().replace(/\/+$/, '');
+    }
+
+    // 4. Fallback: Automatically detect primary local IPv4 address of this server on the LAN
+    const port = process.env.PORT || 18484;
+    const interfaces = os.networkInterfaces();
+    for (const name of Object.keys(interfaces)) {
+        for (const iface of interfaces[name]) {
+            if (iface.family === 'IPv4' && !iface.internal) {
+                return `http://${iface.address}:${port}`;
+            }
+        }
+    }
+
+    // 5. Ultimate fallback
+    return `${proto}://${host}`;
+};
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 const logActivity = (userId, action, entityType, entityId, description) => {
@@ -184,10 +222,8 @@ exports.resetPassword = async (req, res) => {
             VALUES (?, ?, ?, ?, 'pending', ?)
         `).run(user.id, adminId, token, user.email.trim(), expiresAt);
 
-        // Construct reset link URL
-        const protocol = req.headers['x-forwarded-proto'] || req.protocol || 'http';
-        const host = req.headers['x-forwarded-host'] || req.get('host');
-        const baseUrl = process.env.APP_URL ? process.env.APP_URL.replace(/\/+$/, '') : `${protocol}://${host}`;
+        // Construct reset link URL (auto-detects Cloudflare Tunnel vs LAN IP)
+        const baseUrl = getBestServerBaseUrl(req);
         const resetLink = `${baseUrl}/api/auth/reset-password-web?token=${token}`;
 
         const fullName = [user.first_name, user.last_name].filter(Boolean).join(' ');
