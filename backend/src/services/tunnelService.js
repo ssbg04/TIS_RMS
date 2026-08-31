@@ -1,48 +1,76 @@
 'use strict';
 
-const { spawn } = require('child_process');
+const { spawn, spawnSync } = require('child_process');
 const path = require('path');
 const fs = require('fs');
 const dns = require('dns');
 const https = require('https');
 
-// ─── State ─────────────────────────────────────────────────────────────────
-let tunnelProcess      = null;
-let isStarting         = false;
-let monitorTimer       = null;
-let signalHandlersSet  = false;
+// ─── Constants ────────────────────────────────────────────────────────────────
+const INTERNET_TIMEOUT_MS        = 5_000;
+const INTERNET_CHECK_INTERVAL_MS = 15_000;
+const INFERRED_CONNECT_MS        = 5_000;
 
-let lastInternetCheck        = false;
-let lastCheckedTime          = null;
-let lastLogMessage           = '';
-let tunnelState              = 'stopped'; // 'stopped'|'starting'|'connected'|'error'|'no_internet'|'disabled'
-let consecutiveInternetFails = 0;
+// ─── Service State ────────────────────────────────────────────────────────────
+let tunnelProcess            = null;
+let isStarting               = false;
+let tunnelState              = 'stopped'; // 'stopped' | 'starting' | 'connected' | 'error' | 'no_internet' | 'disabled'
 let detectedTunnelHostname   = null;
-
-// Backoff config
-const BACKOFF_MIN_MS = 5_000;   // 5 s initial wait after a crash
-const BACKOFF_MAX_MS = 120_000; // 2 min cap
-let   crashCount     = 0;
-let   restartTimer   = null;
+let lastInternetCheck        = false;
+let lastLogMessage           = '';
+let internetTimer            = null;
+let inferredConnectTimer     = null;
+let signalHandlersRegistered = false;
 
 /**
- * Finds the cloudflared executable path.
+ * Extracts a hostname from a URL string if valid.
+ * @param {string} urlStr
+ * @returns {string|null}
+ */
+function extractHostname(urlStr) {
+    if (!urlStr || typeof urlStr !== 'string') return null;
+    try {
+        const parsed = new URL(urlStr.startsWith('http') ? urlStr : `https://${urlStr}`);
+        return parsed.hostname || null;
+    } catch (_) {
+        return null;
+    }
+}
+
+/**
+ * Returns the effective tunnel hostname (detected from logs, or configured via env).
+ * @returns {string|null}
+ */
+function getEffectiveHostname() {
+    if (detectedTunnelHostname) return detectedTunnelHostname;
+    if (process.env.CLOUDFLARE_TUNNEL_HOSTNAME) {
+        return process.env.CLOUDFLARE_TUNNEL_HOSTNAME.trim();
+    }
+    const envPublicUrl = process.env.PUBLIC_URL || process.env.APP_URL || process.env.CLOUDFLARE_TUNNEL_PUBLIC_URL;
+    if (envPublicUrl) {
+        return extractHostname(envPublicUrl);
+    }
+    return null;
+}
+
+/**
+ * Finds the cloudflared executable path across common workspace and system locations.
+ * @returns {string|null}
  */
 function getCloudflaredPath() {
     const isWindows = process.platform === 'win32';
+    const binaryName = isWindows ? 'cloudflared.exe' : 'cloudflared';
 
-    const setExecutable = (filePath) => {
+    const setExecutablePermission = (filePath) => {
         if (!isWindows) {
             try { fs.chmodSync(filePath, 0o755); } catch (_) {}
         }
     };
 
     if (process.env.CLOUDFLARED_PATH && fs.existsSync(process.env.CLOUDFLARED_PATH)) {
-        setExecutable(process.env.CLOUDFLARED_PATH);
+        setExecutablePermission(process.env.CLOUDFLARED_PATH);
         return process.env.CLOUDFLARED_PATH;
     }
-
-    const binaryName = isWindows ? 'cloudflared.exe' : 'cloudflared';
 
     const candidatePaths = [
         path.join(__dirname, '..', '..', 'bin', binaryName),
@@ -54,7 +82,7 @@ function getCloudflaredPath() {
 
     for (const cand of candidatePaths) {
         if (fs.existsSync(cand)) {
-            setExecutable(cand);
+            setExecutablePermission(cand);
             return path.resolve(cand);
         }
     }
@@ -62,79 +90,97 @@ function getCloudflaredPath() {
     return null;
 }
 
-/** Robust internet check — parallel DNS + HTTPS fallback, resolves on first success. */
-function checkInternet(timeoutMs = 6000) {
+/**
+ * Checks whether an internet connection is available.
+ * @param {number} timeoutMs
+ * @returns {Promise<boolean>}
+ */
+function checkInternet(timeoutMs = INTERNET_TIMEOUT_MS) {
     return new Promise((resolve) => {
-        let resolved = false;
-        const done = (val) => {
-            if (!resolved) {
-                resolved = true;
-                clearTimeout(globalTimer);
-                resolve(val);
+        let isDone = false;
+        let activeHttpsReq = null;
+
+        const finish = (result) => {
+            if (!isDone) {
+                isDone = true;
+                clearTimeout(timeoutId);
+                if (activeHttpsReq && !activeHttpsReq.destroyed) {
+                    try { activeHttpsReq.destroy(); } catch (_) {}
+                }
+                resolve(result);
             }
         };
-        const globalTimer = setTimeout(() => done(false), timeoutMs);
-        // Parallel DNS lookups
-        dns.lookup('cloudflare.com',  (e) => { if (!e) done(true); });
-        dns.lookup('8.8.8.8',         (e) => { if (!e) done(true); });
-        dns.lookup('one.one.one.one',  (e) => { if (!e) done(true); });
-        // HTTPS fallback
+
+        const timeoutId = setTimeout(() => finish(false), timeoutMs);
+
+        // Parallel DNS hostname checks
+        const domains = ['cloudflare.com', 'one.one.one.one', 'google.com', 'dns.google'];
+        domains.forEach((domain) => {
+            dns.lookup(domain, (err) => {
+                if (!err) finish(true);
+            });
+        });
+
+        // Fast HTTPS fallback
         try {
-            const req = https.get('https://1.1.1.1', { timeout: 4000 }, (res) => { res.destroy(); done(true); });
-            req.on('error', () => {});
-            req.on('timeout', () => { req.destroy(); });
+            activeHttpsReq = https.get('https://1.1.1.1', { timeout: 3000 }, (res) => {
+                res.destroy();
+                finish(true);
+            });
+            activeHttpsReq.on('error', () => {});
+            activeHttpsReq.on('timeout', () => {
+                try { activeHttpsReq.destroy(); } catch (_) {}
+            });
         } catch (_) {}
     });
 }
 
-/** Health check for the public tunnel URL. Returns the HTTP status code (e.g., 502, 200) or null on hard error. */
-function checkTunnelHealth(hostname) {
-    return new Promise((resolve) => {
-        try {
-            const req = https.get(`https://${hostname}/`, { timeout: 5000 }, (res) => {
-                res.destroy();
-                resolve(res.statusCode);
-            });
-            req.on('error', () => resolve(null));
-            req.on('timeout', () => { req.destroy(); resolve(null); });
-        } catch (_) {
-            resolve(null);
-        }
-    });
-}
-
-/** Returns exponential backoff delay for the next restart attempt. */
-function getBackoffMs() {
-    return Math.min(BACKOFF_MIN_MS * Math.pow(2, Math.max(0, crashCount - 1)), BACKOFF_MAX_MS);
-}
-
 /**
- * Schedules the next startTunnel() call with exponential backoff.
- * Safe to call multiple times — only one pending restart is ever queued.
+ * Parses cloudflared log lines to update connection status and extract hostnames.
+ * @param {string} rawChunk
  */
-function scheduleRestart() {
-    if (restartTimer) return;
-    const isEnabled = process.env.CLOUDFLARE_TUNNEL_ENABLED !== 'false';
-    if (!isEnabled) return;
+function handleProcessOutput(rawChunk) {
+    const lines = rawChunk.toString().split(/\r?\n/);
+    for (const line of lines) {
+        const text = line.trim();
+        if (!text) continue;
 
-    const delay = getBackoffMs();
-    console.log(`[Tunnel] Will retry in ${(delay / 1000).toFixed(0)} s (crash #${crashCount})...`);
-    restartTimer = setTimeout(async () => {
-        restartTimer = null;
-        if (tunnelState === 'disabled' || tunnelState === 'no_internet') return;
-        if (tunnelProcess || isStarting) return;
-        const hasInternet = await checkInternet();
-        if (hasInternet) {
-            await startTunnel();
+        lastLogMessage = text;
+
+        // 1. Hostname detection from JSON logs or plaintext output
+        const jsonHostMatch = text.match(/"hostname":\s*"([^"]+)"/);
+        if (jsonHostMatch?.[1]) {
+            detectedTunnelHostname = jsonHostMatch[1];
         } else {
-            console.warn('[Tunnel] No internet at restart time — will retry on next monitor tick');
-            tunnelState = 'no_internet';
+            const urlMatch = text.match(/https:\/\/([a-zA-Z0-9-]+\.(?:trycloudflare\.com|cfargotunnel\.com))/);
+            if (urlMatch?.[1]) {
+                detectedTunnelHostname = urlMatch[1];
+            }
         }
-    }, delay);
+
+        // 2. Connection confirmation detection
+        const isConnectedLog =
+            text.includes('Registered tunnel connection') ||
+            (text.includes('Connection') && text.includes('registered')) ||
+            text.includes('Tunnel connection curve preferences') ||
+            text.includes('protocol=quic') ||
+            text.includes('protocol=http2');
+
+        if (isConnectedLog && tunnelState !== 'connected') {
+            tunnelState = 'connected';
+            console.log('[Tunnel] ✔ Connected to Cloudflare edge network.');
+        }
+
+        // 3. Auth error detection
+        if (text.includes('Invalid token') || text.includes('failed to authenticate')) {
+            console.error('[Tunnel] ✖ Cloudflare authentication failed. Verify CLOUDFLARE_TUNNEL_TOKEN.');
+            tunnelState = 'error';
+        }
+    }
 }
 
 /**
- * Launches the cloudflared child process with crash detection and supervised restart.
+ * Launches cloudflared using only the configured tunnel token.
  */
 async function startTunnel() {
     if (tunnelProcess || isStarting) return;
@@ -143,23 +189,27 @@ async function startTunnel() {
     const binPath = getCloudflaredPath();
     if (!binPath) {
         tunnelState = 'error';
-        lastLogMessage = 'cloudflared binary not found in bin directory or PATH';
+        lastLogMessage = 'cloudflared executable not found in bin/ or PATH';
         console.warn(`[Tunnel] ${lastLogMessage}`);
         isStarting = false;
         return;
     }
 
-    const DEFAULT_TOKEN = 'eyJhIjoiZWRhMWQ4ZTc1MzNjMjBiMDcyNmM0ZGU1OWE5YTMxYzgiLCJ0IjoiZjJhOGYyYmMtMWE1YS00MmNmLWJjZTUtZWMzYzAxNzY4M2IyIiwicyI6Ik5EbGtOMkZpTldNdFpEYzVNUzAwTUdFMUxXSTFNalV0WW1RNVl6VXlaV1EzTVRWaiJ9';
-    const rawToken = process.env.CLOUDFLARE_TUNNEL_TOKEN || DEFAULT_TOKEN;
-    const token    = rawToken.replace(/[\r\n\s'"=]/g, '').trim();
+    const rawToken = process.env.CLOUDFLARE_TUNNEL_TOKEN || '';
+    const token = rawToken.replace(/[\r\n\s'"=]/g, '').trim();
 
-    const args = token
-        ? ['tunnel', '--no-autoupdate', 'run', '--token', token]
-        : ['tunnel', '--no-autoupdate', '--url', `http://localhost:${process.env.PORT || 18484}`];
+    if (!token) {
+        tunnelState = 'error';
+        lastLogMessage = 'CLOUDFLARE_TUNNEL_TOKEN is required but not configured.';
+        console.warn(`[Tunnel] ${lastLogMessage}`);
+        isStarting = false;
+        return;
+    }
 
-    console.log(`[Tunnel] Launching cloudflared (crash #${crashCount})...`);
+    const args = ['tunnel', '--no-autoupdate', 'run', '--token', token];
+
+    console.log('[Tunnel] Launching Cloudflare Tunnel with configured token...');
     tunnelState = 'starting';
-    const startedAt = Date.now();
 
     try {
         const proc = spawn(binPath, args, {
@@ -167,112 +217,86 @@ async function startTunnel() {
             stdio: ['ignore', 'pipe', 'pipe'],
             env: { ...process.env, NO_AUTOUPDATE: 'true' }
         });
+
         tunnelProcess = proc;
-        isStarting    = false;
+        isStarting = false;
         console.log(`[Tunnel] Process started (PID: ${proc.pid})`);
 
-        const handleLog = (data) => {
-            for (const line of data.toString().split('\n')) {
-                const t = line.trim();
-                if (!t) continue;
-                lastLogMessage = t;
-                const hostMatch = t.match(/"hostname":\s*"([^"]+)"/);
-                if (hostMatch?.[1]) detectedTunnelHostname = hostMatch[1];
-
-                const isConn =
-                    t.includes('Registered tunnel connection') ||
-                    (t.includes('Connection') && t.includes('registered')) ||
-                    t.includes('Tunnel connection curve preferences') ||
-                    t.includes('protocol=quic') ||
-                    t.includes('protocol=http2');
-
-                if (isConn && tunnelState !== 'connected') {
-                    tunnelState = 'connected';
-                    crashCount  = 0;  // healthy → reset backoff
-                    console.log('[Tunnel] ✔ Connected to Cloudflare edge network.');
-                }
-                if (t.includes('Invalid token') || t.includes('failed to authenticate')) {
-                    console.error('[Tunnel] ✖ Auth failure — check CLOUDFLARE_TUNNEL_TOKEN');
-                    tunnelState = 'error';
-                }
-            }
-        };
-        proc.stdout.on('data', handleLog);
-        proc.stderr.on('data', handleLog);
+        proc.stdout.on('data', handleProcessOutput);
+        proc.stderr.on('data', handleProcessOutput);
 
         proc.on('error', (err) => {
             console.error('[Tunnel] Process error:', err.message);
-            tunnelState   = 'error';
+            tunnelState = 'error';
             lastLogMessage = err.message;
             if (tunnelProcess === proc) tunnelProcess = null;
-            isStarting    = false;
-            crashCount++;
-            scheduleRestart();
+            isStarting = false;
         });
 
         proc.on('exit', (code, signal) => {
             console.log(`[Tunnel] Process exited (Code: ${code}, Signal: ${signal})`);
             if (tunnelProcess === proc) tunnelProcess = null;
             isStarting = false;
-
-            // Detect crash: process lived < 30 s
-            const uptimeMs = Date.now() - startedAt;
-            if (uptimeMs < 30_000) {
-                crashCount++;
-                console.warn(`[Tunnel] Crash detected (uptime ${(uptimeMs / 1000).toFixed(1)} s, crash #${crashCount})`);
-            } else {
-                crashCount = 0;  // lived long enough → reset
+            if (inferredConnectTimer) {
+                clearTimeout(inferredConnectTimer);
+                inferredConnectTimer = null;
             }
-
-            if (tunnelState === 'disabled' || tunnelState === 'no_internet') return;
-            tunnelState = 'stopped';
-            scheduleRestart();
+            if (tunnelState !== 'disabled') {
+                tunnelState = 'stopped';
+            }
         });
 
-        // Infer connected if still alive after 5 s with no explicit log confirmation
-        setTimeout(() => {
+        // Infer connected state if process remains active
+        if (inferredConnectTimer) clearTimeout(inferredConnectTimer);
+        inferredConnectTimer = setTimeout(() => {
             if (tunnelProcess === proc && tunnelState === 'starting') {
                 tunnelState = 'connected';
-                crashCount  = 0;
-                console.log('[Tunnel] ✔ Connected (inferred — process alive after 5 s).');
+                console.log('[Tunnel] ✔ Connected (inferred: process healthy).');
             }
-        }, 5000);
+        }, INFERRED_CONNECT_MS);
 
     } catch (err) {
-        console.error('[Tunnel] Failed to spawn process:', err.message);
-        tunnelState   = 'error';
+        console.error('[Tunnel] Failed to spawn cloudflared:', err.message);
+        tunnelState = 'error';
         lastLogMessage = err.message;
         tunnelProcess = null;
-        isStarting    = false;
-        crashCount++;
-        scheduleRestart();
+        isStarting = false;
     }
 }
 
-/** Kills the cloudflared child process cleanly and clears any pending restart timer. */
+/**
+ * Stops the cloudflared process cleanly.
+ */
 function stopTunnel() {
-    if (restartTimer) { clearTimeout(restartTimer); restartTimer = null; }
+    if (inferredConnectTimer) {
+        clearTimeout(inferredConnectTimer);
+        inferredConnectTimer = null;
+    }
     if (!tunnelProcess) return;
+
     const proc = tunnelProcess;
     tunnelProcess = null;
-    tunnelState   = 'stopped';
+    tunnelState = 'stopped';
+
     try {
         console.log(`[Tunnel] Stopping tunnel process (PID: ${proc.pid})...`);
         if (process.platform === 'win32') {
-            const { spawnSync } = require('child_process');
             spawnSync('taskkill', ['/pid', String(proc.pid), '/T', '/F'], {
-                windowsHide: true, stdio: 'ignore'
+                windowsHide: true,
+                stdio: 'ignore'
             });
         } else {
-            proc.kill('SIGKILL');
+            proc.kill('SIGTERM');
         }
     } catch (err) {
-        console.warn('[Tunnel] Error stopping tunnel:', err.message);
+        console.warn('[Tunnel] Error while stopping process:', err.message);
     }
 }
 
-/** Internet watchdog — restarts tunnel if net comes back, suspends after persistent outage. */
-async function checkAndMaintainTunnel() {
+/**
+ * Checks internet connection and auto-starts the tunnel when available.
+ */
+async function checkAndAutoStart() {
     const isEnabled = process.env.CLOUDFLARE_TUNNEL_ENABLED !== 'false';
     if (!isEnabled) {
         if (tunnelProcess) stopTunnel();
@@ -280,96 +304,93 @@ async function checkAndMaintainTunnel() {
         return;
     }
 
-    const hasInternet = await checkInternet(6000);
+    // If tunnel is already running or launching, do nothing
+    if (tunnelProcess || isStarting) return;
+
+    const hasInternet = await checkInternet();
     lastInternetCheck = hasInternet;
-    lastCheckedTime   = new Date().toISOString();
 
     if (hasInternet) {
-        consecutiveInternetFails = 0;
-        // Only start if nothing is running or pending
-        if (!tunnelProcess && !isStarting && !restartTimer) {
-            if (tunnelState === 'no_internet') crashCount = 0; // reset backoff after net recovery
-            console.log('[Tunnel] Internet available — starting tunnel...');
-            await startTunnel();
-        } else if (tunnelProcess && tunnelState === 'connected' && detectedTunnelHostname) {
-            // Self-healing: if tunnel is connected but public URL returns Bad Gateway, restart it
-            const statusCode = await checkTunnelHealth(detectedTunnelHostname);
-            if (statusCode === 502 || statusCode === 503 || statusCode === 504 || statusCode === 530) {
-                console.error(`[Tunnel] ✖ Health check failed (HTTP ${statusCode}). Backend disconnected. Restarting tunnel...`);
-                stopTunnel();
-                crashCount++;
-                scheduleRestart();
-            }
-        }
+        console.log('[Tunnel] Internet available — starting Cloudflare Tunnel...');
+        await startTunnel();
     } else {
-        consecutiveInternetFails++;
-        console.warn(`[Tunnel] Internet check failed (${consecutiveInternetFails}/3)`);
-        if (consecutiveInternetFails >= 3 && tunnelProcess) {
-            console.warn('[Tunnel] Persistent internet loss — suspending tunnel');
+        if (tunnelState !== 'no_internet') {
+            console.log('[Tunnel] No internet connection — waiting for internet to start tunnel...');
             tunnelState = 'no_internet';
-            stopTunnel();
         }
     }
 }
 
-/** Initializes the supervised tunnel service on server startup. */
+/**
+ * Initializes the tunnel on server startup with internet-aware auto start.
+ */
 function startAutoTunnel() {
     const isEnabled = process.env.CLOUDFLARE_TUNNEL_ENABLED !== 'false';
     if (!isEnabled) {
-        console.log('[Tunnel] Auto tunnel disabled (CLOUDFLARE_TUNNEL_ENABLED=false)');
+        console.log('[Tunnel] Cloudflare Tunnel is disabled (CLOUDFLARE_TUNNEL_ENABLED=false)');
         tunnelState = 'disabled';
         return;
     }
 
-    console.log('[Tunnel] Initializing supervised Cloudflare Tunnel service...');
-    checkAndMaintainTunnel();
+    console.log('[Tunnel] Initializing Cloudflare Tunnel service (auto-start on internet availability)...');
+    checkAndAutoStart();
 
-    const intervalMs = parseInt(process.env.CLOUDFLARE_TUNNEL_CHECK_INTERVAL, 10) || 30_000;
-    if (monitorTimer) clearInterval(monitorTimer);
-    monitorTimer = setInterval(checkAndMaintainTunnel, intervalMs);
+    // Check periodically so if the server started offline, it automatically starts once internet is up
+    if (internetTimer) clearInterval(internetTimer);
+    internetTimer = setInterval(checkAndAutoStart, INTERNET_CHECK_INTERVAL_MS);
 
-    // Register signal handlers exactly once to avoid duplicate-listener warnings
-    if (!signalHandlersSet) {
-        signalHandlersSet = true;
+    if (!signalHandlersRegistered) {
+        signalHandlersRegistered = true;
         const cleanExit = () => {
-            if (monitorTimer)  { clearInterval(monitorTimer); monitorTimer = null; }
-            if (restartTimer)  { clearTimeout(restartTimer);  restartTimer = null; }
+            if (internetTimer) {
+                clearInterval(internetTimer);
+                internetTimer = null;
+            }
             stopTunnel();
         };
-        process.on('exit',       cleanExit);
-        process.on('SIGINT',  () => { cleanExit(); process.exit(0); });
+
+        process.on('exit', cleanExit);
+        process.on('SIGINT', () => { cleanExit(); process.exit(0); });
         process.on('SIGTERM', () => { cleanExit(); process.exit(0); });
-        process.on('SIGUSR2', () => { cleanExit(); process.kill(process.pid, 'SIGUSR2'); }); // Nodemon restart signal
-        process.on('beforeExit',  cleanExit);
+        process.on('SIGUSR2', () => { cleanExit(); process.kill(process.pid, 'SIGUSR2'); });
+        process.on('beforeExit', cleanExit);
     }
 }
 
-/** Returns current tunnel status including crash diagnostics. */
+/**
+ * Returns current tunnel status and diagnostics.
+ * @returns {object}
+ */
 function getTunnelStatus() {
     const binPath = getCloudflaredPath();
+    const hostname = getEffectiveHostname();
+    const token = (process.env.CLOUDFLARE_TUNNEL_TOKEN || '').trim();
+
     return {
         enabled:        process.env.CLOUDFLARE_TUNNEL_ENABLED !== 'false',
         hasExecutable:  !!binPath,
         executablePath: binPath,
+        hasToken:       !!token,
         hasInternet:    lastInternetCheck,
         isRunning:      !!tunnelProcess,
         pid:            tunnelProcess ? tunnelProcess.pid : null,
         status:         tunnelState,
-        hostname:       detectedTunnelHostname,
-        publicUrl:      detectedTunnelHostname ? `https://${detectedTunnelHostname}` : null,
-        lastChecked:    lastCheckedTime,
+        hostname:       hostname,
+        publicUrl:      hostname ? `https://${hostname}` : null,
         lastLog:        lastLogMessage,
-        crashCount,
-        nextRetryMs:    restartTimer ? getBackoffMs() : null,
     };
 }
 
 /**
  * Returns detected public tunnel URL (if active and discovered)
+ * @returns {string|null}
  */
 function getDetectedTunnelUrl() {
-    if (tunnelState === 'connected' && detectedTunnelHostname) {
-        return `https://${detectedTunnelHostname}`;
+    if (tunnelState === 'connected') {
+        const hostname = getEffectiveHostname();
+        if (hostname) {
+            return `https://${hostname}`;
+        }
     }
     return null;
 }
@@ -383,4 +404,3 @@ module.exports = {
     checkInternet,
     getCloudflaredPath
 };
-
