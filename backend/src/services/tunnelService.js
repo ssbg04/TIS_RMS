@@ -148,8 +148,13 @@ async function startTunnel() {
 
                 if (trimmed.includes('Registered tunnel connection') || 
                     (trimmed.includes('Connection') && trimmed.includes('registered')) ||
-                    trimmed.includes('Tunnel connection curve preferences')) {
-                    tunnelState = 'connected';
+                    trimmed.includes('Tunnel connection curve preferences') ||
+                    trimmed.includes('protocol=quic') ||
+                    trimmed.includes('protocol=http2')) {
+                    if (tunnelState !== 'connected') {
+                        tunnelState = 'connected';
+                        console.log(`[Tunnel] Status: Connected to Cloudflare edge network.`);
+                    }
                     consecutiveFailures = 0;
                 }
             }
@@ -175,13 +180,14 @@ async function startTunnel() {
             }
         });
 
-        // If still alive after 4 seconds, mark as connected
+        // If process stays alive for 3 seconds, mark as connected
         setTimeout(() => {
             if (tunnelProcess && tunnelState === 'starting') {
                 tunnelState = 'connected';
+                console.log(`[Tunnel] Status: Connected to Cloudflare edge network.`);
                 consecutiveFailures = 0;
             }
-        }, 4000);
+        }, 3000);
 
     } catch (err) {
         console.error('[Tunnel] Failed to start tunnel process:', err.message);
@@ -205,7 +211,6 @@ function stopTunnel() {
     try {
         console.log(`[Tunnel] Stopping tunnel process (PID: ${proc.pid})...`);
         if (process.platform === 'win32') {
-            // Asynchronous non-blocking taskkill
             const killer = spawn('taskkill', ['/pid', String(proc.pid), '/T', '/F'], {
                 windowsHide: true,
                 stdio: 'ignore'
@@ -268,8 +273,8 @@ function startAutoTunnel() {
 
     console.log('[Tunnel] Initializing Auto Cloudflare Tunnel Service...');
     
-    // Initial check after a short server startup delay
-    setTimeout(checkAndMaintainTunnel, 2000);
+    // Initial check immediately
+    checkAndMaintainTunnel();
 
     // Periodic check interval (default: 30 seconds to prevent aggressive CPU/DNS churn)
     const intervalMs = parseInt(process.env.CLOUDFLARE_TUNNEL_CHECK_INTERVAL, 10) || 30000;
