@@ -139,22 +139,26 @@ class _UsersScreenState extends ConsumerState<UsersScreen> {
   }
 
   Future<void> _confirmResetPassword(SystemUser user) async {
-    final password = await showDialog<String>(
+    final result = await showDialog<Map<String, dynamic>>(
       context: context,
       builder: (ctx) => _ResetPasswordConfirmationDialog(user: user),
     );
-    if (password == null || !mounted) return;
+    if (result == null || !mounted) return;
 
     try {
-      await ref
+      final message = await ref
           .read(usersProvider.notifier)
-          .resetPassword(user.id, adminPassword: password);
+          .resetPassword(
+            user.id,
+            adminPassword: result['password'] as String,
+            expirationMinutes: result['expirationMinutes'] as int? ?? 15,
+          );
       if (!mounted) return;
 
       showSuccessDialog(
         context,
-        title: 'Password Reset',
-        message: 'Password for "${user.username}" reset to "changeme123".',
+        title: 'Reset Link Sent',
+        message: message,
       );
     } catch (e) {
       if (!mounted) return;
@@ -1993,6 +1997,9 @@ class _AddEditUserModalState extends ConsumerState<AddEditUserModal> {
 // ============================================================
 // CUSTOM RESET PASSWORD CONFIRMATION DIALOG
 // ============================================================
+// ============================================================
+// CUSTOM RESET PASSWORD CONFIRMATION DIALOG (EMAIL LINK)
+// ============================================================
 class _ResetPasswordConfirmationDialog extends StatefulWidget {
   final SystemUser user;
   const _ResetPasswordConfirmationDialog({required this.user});
@@ -2006,6 +2013,14 @@ class _ResetPasswordConfirmationDialogState
     extends State<_ResetPasswordConfirmationDialog> {
   final _passwordCtrl = TextEditingController();
   bool _obscurePassword = true;
+  int _selectedExpiration = 15;
+
+  static const _expirationOptions = [
+    {'label': '15 Minutes (Recommended)', 'value': 15},
+    {'label': '30 Minutes', 'value': 30},
+    {'label': '1 Hour', 'value': 60},
+    {'label': '24 Hours', 'value': 1440},
+  ];
 
   @override
   void initState() {
@@ -2021,28 +2036,35 @@ class _ResetPasswordConfirmationDialogState
   }
 
   void _submit() {
-    final password = _passwordCtrl.text;
+    final password = _passwordCtrl.text.trim();
 
     if (password.isEmpty) {
       showErrorDialog(
         context,
         'Missing Password',
-        'You must confirm using your admin password to reset a user\'s password.',
+        'You must confirm using your admin password to send a password reset link.',
       );
       return;
     }
 
-    Navigator.pop(context, password);
+    Navigator.pop(context, {
+      'password': password,
+      'expirationMinutes': _selectedExpiration,
+    });
   }
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final hasEmail = widget.user.email != null && widget.user.email!.trim().isNotEmpty;
+
     return Dialog(
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(AppSizes.radiusLarge),
       ),
+      backgroundColor: isDark ? AppColors.darkSurfaceCard : Colors.white,
       child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 420),
+        constraints: const BoxConstraints(maxWidth: 440),
         child: Padding(
           padding: const EdgeInsets.all(AppSizes.p24),
           child: Column(
@@ -2051,45 +2073,195 @@ class _ResetPasswordConfirmationDialogState
             children: [
               Row(
                 children: [
-                  const Icon(Icons.lock_reset, color: Colors.orange),
-                  const SizedBox(width: 8),
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: AppColors.primaryGreen.withValues(alpha: isDark ? 0.25 : 0.12),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: const Icon(
+                      Icons.mark_email_read_rounded,
+                      color: AppColors.primaryGreen,
+                      size: 22,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
                   Expanded(
-                    child: Text(
-                      'Reset Password?',
-                      style: const TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.orange,
-                      ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Send Reset Link',
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                            color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
+                          ),
+                        ),
+                        Text(
+                          'Email time-limited password reset link',
+                          style: TextStyle(
+                            fontSize: 11,
+                            color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                   IconButton(
-                    icon: const Icon(Icons.close),
+                    icon: const Icon(Icons.close, size: 20),
                     onPressed: () => Navigator.pop(context),
                   ),
                 ],
               ),
-              const SizedBox(height: 8),
-              Text(
-                'Reset the password for "${widget.user.username}"?\nTheir new password will be: changeme123\n\nPlease confirm using your admin password.',
-                style: TextStyle(
-                  fontSize: 13,
-                  color: Theme.of(context).brightness == Brightness.dark
-                      ? AppColors.darkTextSecondary
-                      : AppColors.textSecondary,
+              const SizedBox(height: 16),
+
+              // User Info Card
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: isDark ? AppColors.darkSurface2 : const Color(0xFFF8FAFC),
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(
+                    color: isDark ? AppColors.darkBorder : Colors.grey.shade200,
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    CircleAvatar(
+                      radius: 18,
+                      backgroundColor: AppColors.primaryGreen.withValues(alpha: 0.15),
+                      child: Text(
+                        widget.user.username.isNotEmpty
+                            ? widget.user.username[0].toUpperCase()
+                            : '?',
+                        style: const TextStyle(
+                          color: AppColors.primaryGreen,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            widget.user.fullName.isNotEmpty
+                                ? widget.user.fullName
+                                : widget.user.username,
+                            style: TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.bold,
+                              color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
+                            ),
+                          ),
+                          Text(
+                            '@${widget.user.username} · ${widget.user.role.toUpperCase()}',
+                            style: TextStyle(
+                              fontSize: 11,
+                              color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
                 ),
               ),
-              const Divider(height: 28),
+              const SizedBox(height: 12),
 
-              CustomTextField(
-                hintText: 'Your Admin Password',
-                prefixIcon: Icons.lock_outline,
-                controller: _passwordCtrl,
-                isPassword: true,
-                obscureText: _obscurePassword,
-                onToggleVisibility: () =>
-                    setState(() => _obscurePassword = !_obscurePassword),
-              ),
+              // Recipient Email Card / Warning
+              if (hasEmail)
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: Colors.blue.withValues(alpha: isDark ? 0.12 : 0.08),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(
+                      color: Colors.blue.withValues(alpha: isDark ? 0.3 : 0.2),
+                    ),
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.email_outlined, size: 16, color: Colors.blue),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          widget.user.email!,
+                          style: const TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.blue,
+                          ),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    ],
+                  ),
+                )
+              else
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Colors.red.withValues(alpha: isDark ? 0.15 : 0.08),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(
+                      color: Colors.red.withValues(alpha: isDark ? 0.4 : 0.25),
+                    ),
+                  ),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Icon(Icons.warning_amber_rounded, size: 18, color: Colors.redAccent),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          'No email registered. Please edit this user and provide a valid email before sending a reset link.',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: isDark ? const Color(0xFFFCA5A5) : Colors.red.shade900,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+
+              if (hasEmail) ...[
+                const SizedBox(height: 16),
+                // Expiration selector
+                DropdownButtonFormField<int>(
+                  key: ValueKey('reset_link_expiration_$_selectedExpiration'),
+                  initialValue: _selectedExpiration,
+                  decoration: const InputDecoration(
+                    labelText: 'Link Expiration Time',
+                    prefixIcon: Icon(Icons.timer_outlined),
+                    isDense: true,
+                  ),
+                  items: _expirationOptions.map((opt) {
+                    return DropdownMenuItem<int>(
+                      value: opt['value'] as int,
+                      child: Text(opt['label'] as String, style: const TextStyle(fontSize: 13)),
+                    );
+                  }).toList(),
+                  onChanged: (val) {
+                    if (val != null) setState(() => _selectedExpiration = val);
+                  },
+                ),
+                const SizedBox(height: 16),
+
+                // Admin Password
+                CustomTextField(
+                  hintText: 'Your Admin Password',
+                  prefixIcon: Icons.lock_outline,
+                  controller: _passwordCtrl,
+                  isPassword: true,
+                  obscureText: _obscurePassword,
+                  onToggleVisibility: () =>
+                      setState(() => _obscurePassword = !_obscurePassword),
+                ),
+              ],
 
               const SizedBox(height: 24),
               Row(
@@ -2100,12 +2272,12 @@ class _ResetPasswordConfirmationDialogState
                     child: const Text('CANCEL'),
                   ),
                   const SizedBox(width: 12),
-                  ElevatedButton(
+                  ElevatedButton.icon(
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.orange,
+                      backgroundColor: hasEmail ? AppColors.primaryGreen : Colors.grey,
                       foregroundColor: Colors.white,
                       padding: const EdgeInsets.symmetric(
-                        horizontal: 24,
+                        horizontal: 20,
                         vertical: 12,
                       ),
                       shape: RoundedRectangleBorder(
@@ -2114,9 +2286,10 @@ class _ResetPasswordConfirmationDialogState
                         ),
                       ),
                     ),
-                    onPressed: _submit,
-                    child: const Text(
-                      'RESET',
+                    onPressed: hasEmail ? _submit : null,
+                    icon: const Icon(Icons.send_rounded, size: 16),
+                    label: const Text(
+                      'SEND LINK',
                       style: TextStyle(fontWeight: FontWeight.bold),
                     ),
                   ),

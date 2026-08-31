@@ -13,6 +13,11 @@ router.post('/lookup-reset-options', authController.lookupResetOptions);
 router.post('/send-email-otp', authController.sendEmailOtp);
 router.post('/reset-password-email-otp', authController.resetPasswordEmailOtp);
 
+// Admin-initiated Email Password Reset (Web Form & Completion)
+router.get('/reset-password-web', authController.resetPasswordWebPage);
+router.post('/complete-password-reset', authController.completePasswordReset);
+
 router.post('/verify-password', authenticateToken, authController.verifyPassword);
 
 module.exports = router;
+

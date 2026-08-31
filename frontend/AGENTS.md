@@ -459,11 +459,13 @@ Files backup/restore - mirror mode or zip -->
 # REPORT SCREEN
 - deped transparency board -> remove the access and equity -> change the enrollment by sex & year to data on enrollment which compares the previous year students count and active year students count, difference, and remarks if increasing or decreasing, separate the jhs and shs
 
+# USER MANAGEMENT
+- make the admin side that resets user password send into their email the link to reset password add expiration time -> then push notif the admin that successful or not that email link, if not successful or the time has expired send notif to admin, if successfull push notif the user and admin 
+
 --- 
 
 # DONT DO
 
-- make the admin side that resets user password send into their email the link to reset password add expiration time -> then push notif the admin that successful or not that email link, if not successful or the time has expired send notif to admin, if successfull push notif the user and admin 
 
 - teacher no assigned section theme color
 - bug in bulk add student enrollment

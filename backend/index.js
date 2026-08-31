@@ -82,4 +82,12 @@ app.listen(PORT, '0.0.0.0', () => {
     } catch (err) {
         console.error('Failed to start auto tunnel service:', err.message);
     }
+
+    // Initialize Password Reset Link Expiration Monitor
+    try {
+        const { startResetLinkMonitor } = require('./src/services/passwordResetMonitor');
+        startResetLinkMonitor();
+    } catch (err) {
+        console.error('Failed to start password reset link monitor:', err.message);
+    }
 });

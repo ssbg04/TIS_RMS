@@ -717,6 +717,24 @@ const initSchema = () => {
             )
         `).run();
 
+        // 10c. Password Reset Links Table (Admin-initiated Email Reset Links with Expiration)
+        db.prepare(`
+            CREATE TABLE IF NOT EXISTS password_reset_links (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id INTEGER NOT NULL,
+                admin_id INTEGER,
+                token TEXT UNIQUE NOT NULL,
+                email TEXT NOT NULL,
+                status TEXT CHECK(status IN ('pending', 'completed', 'expired', 'failed')) DEFAULT 'pending',
+                expires_at DATETIME NOT NULL,
+                completed_at DATETIME,
+                expired_notified INTEGER DEFAULT 0,
+                created_at DATETIME DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ', 'now')),
+                FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+                FOREIGN KEY (admin_id) REFERENCES users(id) ON DELETE SET NULL
+            )
+        `).run();
+
         // 11. System Settings Table
         db.prepare(`
             CREATE TABLE IF NOT EXISTS system_settings (

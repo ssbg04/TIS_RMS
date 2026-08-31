@@ -88,12 +88,20 @@ class UsersNotifier extends AsyncNotifier<List<SystemUser>> {
     }
   }
 
-  Future<bool> resetPassword(int id, {required String adminPassword}) async {
+  Future<String> resetPassword(
+    int id, {
+    required String adminPassword,
+    int expirationMinutes = 15,
+  }) async {
     try {
-      await ref
+      final message = await ref
           .read(userRepositoryProvider)
-          .resetPassword(id, adminPassword: adminPassword);
-      return true;
+          .resetPassword(
+            id,
+            adminPassword: adminPassword,
+            expirationMinutes: expirationMinutes,
+          );
+      return message;
     } catch (e) {
       rethrow;
     }

@@ -54,8 +54,9 @@ class UserRepository {
         },
       );
       final tempPass = response.data['temporaryPassword'];
-      if (tempPass == null)
+      if (tempPass == null) {
         throw Exception('No temporary password in response.');
+      }
       return tempPass as String;
     } on DioException catch (e) {
       throw Exception(e.response?.data['message'] ?? 'Failed to create user.');
@@ -92,14 +93,22 @@ class UserRepository {
     }
   }
 
-  Future<void> resetPassword(int id, {required String adminPassword}) async {
+  Future<String> resetPassword(
+    int id, {
+    required String adminPassword,
+    int expirationMinutes = 15,
+  }) async {
     try {
       final options = await _getAuthOptions();
-      await _dio.put(
+      final res = await _dio.put(
         '/users/$id/reset-password',
         options: options,
-        data: {'adminPassword': adminPassword},
+        data: {
+          'adminPassword': adminPassword,
+          'expirationMinutes': expirationMinutes,
+        },
       );
+      return res.data['message'] ?? 'Password reset link sent successfully.';
     } on DioException catch (e) {
       throw Exception(
         e.response?.data['message'] ?? 'Failed to reset password.',

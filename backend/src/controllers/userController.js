@@ -1,6 +1,8 @@
 const db = require('../config/db');
 const bcrypt = require('bcrypt');
+const crypto = require('crypto');
 const { createNotification } = require('./notificationController');
+const { sendPasswordResetLink } = require('../services/emailService');
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 const logActivity = (userId, action, entityType, entityId, description) => {
@@ -135,38 +137,108 @@ exports.updateUser = (req, res) => {
 };
 
 
-// PUT /api/users/:id/reset-password - Reset a user's password
-exports.resetPassword = (req, res) => {
+// PUT /api/users/:id/reset-password - Send password reset link to user's email with expiration time
+exports.resetPassword = async (req, res) => {
     const { id } = req.params;
-    const { adminPassword } = req.body;
-    const newPassword = 'changeme123';
+    const { adminPassword, expirationMinutes } = req.body;
     const adminId = req.user.id;
+    const expMinutes = Math.min(1440, Math.max(5, parseInt(expirationMinutes, 10) || 15));
 
     try {
         if (!adminPassword) {
             return res.status(400).json({ message: 'Admin password is required to reset a password.' });
         }
 
-        const adminUser = db.prepare('SELECT password FROM users WHERE id = ?').get(adminId);
+        const adminUser = db.prepare('SELECT id, username, password FROM users WHERE id = ?').get(adminId);
         if (!adminUser || !bcrypt.compareSync(adminPassword, adminUser.password)) {
             return res.status(401).json({ message: 'Incorrect Admin Password.' });
         }
-        const user = db.prepare('SELECT id, username, first_name, last_name, role FROM users WHERE id = ?').get(id);
+
+        const user = db.prepare('SELECT id, username, first_name, last_name, role, email FROM users WHERE id = ?').get(id);
         if (!user) return res.status(404).json({ message: 'User not found.' });
+
         if (user.id === req.user.id) {
             return res.status(403).json({ message: 'Cannot reset your own password via this route. Use the Change Password profile setting.' });
         }
 
-        const hashed = bcrypt.hashSync(newPassword, 10);
-        db.prepare("UPDATE users SET password = ?, updated_at = (strftime('%Y-%m-%dT%H:%M:%SZ', 'now')) WHERE id = ?").run(hashed, id);
+        if (!user.email || !user.email.trim()) {
+            return res.status(400).json({
+                message: `User @${user.username} does not have a registered email address. Please edit the user profile and add an email address first.`
+            });
+        }
+
+        // Invalidate any previous pending reset links for this user
+        db.prepare(`
+            UPDATE password_reset_links
+            SET status = 'expired', expired_notified = 1
+            WHERE user_id = ? AND status = 'pending'
+        `).run(user.id);
+
+        // Generate cryptographically secure reset token
+        const token = crypto.randomBytes(32).toString('hex');
+        const expiresAt = new Date(Date.now() + expMinutes * 60 * 1000).toISOString();
+
+        // Insert new reset link record
+        db.prepare(`
+            INSERT INTO password_reset_links (user_id, admin_id, token, email, status, expires_at)
+            VALUES (?, ?, ?, ?, 'pending', ?)
+        `).run(user.id, adminId, token, user.email.trim(), expiresAt);
+
+        // Construct reset link URL
+        const protocol = req.headers['x-forwarded-proto'] || req.protocol || 'http';
+        const host = req.headers['x-forwarded-host'] || req.get('host');
+        const baseUrl = process.env.APP_URL ? process.env.APP_URL.replace(/\/+$/, '') : `${protocol}://${host}`;
+        const resetLink = `${baseUrl}/api/auth/reset-password-web?token=${token}`;
 
         const fullName = [user.first_name, user.last_name].filter(Boolean).join(' ');
-        logActivity(adminId, 'UPDATE', 'user', id, `Reset password for user: ${user.username}`);
-        logUserHistory(adminId, id, 'reset_password', user.username, fullName, user.role);
 
-        res.json({ message: `Password has been reset to "${newPassword}".` });
+        // Send Email with reset link
+        try {
+            await sendPasswordResetLink({
+                to: user.email.trim(),
+                username: user.username,
+                resetLink: resetLink,
+                expiresMinutes: expMinutes,
+            });
+
+            // Log activity and history
+            logActivity(adminId, 'UPDATE', 'user', id, `Sent password reset email link to @${user.username} (${user.email}) - expires in ${expMinutes}m`);
+            logUserHistory(adminId, id, 'reset_password_link', user.username, fullName, user.role);
+
+            // Push notification to the initiating Admin
+            createNotification(
+                adminId,
+                'Password Reset Link Sent',
+                `Password reset link was successfully sent to @${user.username} (${user.email}). The link will expire in ${expMinutes} minutes.`,
+                'user',
+                'user',
+                user.id
+            );
+
+            return res.json({
+                message: `Password reset link sent to ${user.email} (expires in ${expMinutes} minutes).`
+            });
+        } catch (emailErr) {
+            // Update link status as failed
+            db.prepare("UPDATE password_reset_links SET status = 'failed' WHERE token = ?").run(token);
+
+            // Push notification to Admin that delivery failed
+            createNotification(
+                adminId,
+                'Password Reset Email Failed',
+                `Failed to send password reset email to @${user.username} (${user.email}): ${emailErr.message}`,
+                'user',
+                'user',
+                user.id
+            );
+
+            return res.status(500).json({
+                message: `Failed to deliver reset email to ${user.email}. Please verify SMTP settings.`,
+                error: emailErr.message
+            });
+        }
     } catch (error) {
-        res.status(500).json({ message: 'Failed to reset password', error: error.message });
+        res.status(500).json({ message: 'Failed to initiate password reset', error: error.message });
     }
 };
 
