@@ -5,15 +5,14 @@
   "main": "index.js",
   "scripts": {
     "start": "node index.js",
-    "test": "echo \"Error: no test specified\" && exit 1",
     "dev": "nodemon index.js",
-    "service:install": "scripts\\install_service.bat",
-    "service:uninstall": "scripts\\uninstall_service.bat",
-    "service:manage": "scripts\\manage_service.bat",
-    "service:start": "net start TIS_RMSServer",
-    "service:stop": "net stop TIS_RMSServer",
-    "service:status": "sc query TIS_RMSServer",
-    "tunnel": "bin\\cloudflared.exe tunnel --url http://localhost:18484"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "service:install": "install_service.bat",
+    "service:uninstall": "uninstall_service.bat",
+    "service:start": "bin\\nssm.exe start TIS.RMS.ServerService",
+    "service:stop": "bin\\nssm.exe stop TIS.RMS.ServerService",
+    "service:restart": "bin\\nssm.exe restart TIS.RMS.ServerService",
+    "service:status": "sc query TIS.RMS.ServerService"
   },
   "keywords": [],
   "author": "",

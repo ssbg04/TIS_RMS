@@ -1,4 +1,8 @@
 @echo off
+:: NOTE: This script is kept as an emergency fallback only.
+:: The Cloudflare Tunnel is now managed automatically by Node.js (tunnelService.js).
+:: Use install_service.bat + WPF Server Manager instead of running this manually.
+::
 title TIS RMS Cloudflare Tunnel
 echo =========================================================
 echo   Starting TIS RMS Cloudflare Tunnel on port 18484
