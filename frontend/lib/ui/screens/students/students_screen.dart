@@ -1522,12 +1522,18 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
                                   ],
                                 ),
                               )
-                            : Icon(
-                                Icons.cancel_outlined,
-                                color: isDark
-                                    ? AppColors.darkTextMuted
-                                    : Colors.grey.shade400,
-                                size: 18,
+                            : Padding(
+                                padding: const EdgeInsets.only(left: 10),
+                                child: Text(
+                                  '-',
+                                  style: TextStyle(
+                                    fontSize: 15,
+                                    fontWeight: FontWeight.w600,
+                                    color: isDark
+                                        ? AppColors.darkTextMuted
+                                        : Colors.grey.shade500,
+                                  ),
+                                ),
                               ),
                         student,
                       ),

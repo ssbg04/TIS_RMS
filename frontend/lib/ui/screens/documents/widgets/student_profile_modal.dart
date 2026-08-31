@@ -496,8 +496,8 @@ class StudentProfileModalBody extends ConsumerWidget {
             spacing: 20,
             runSpacing: 8,
             children: [
-              _buildInfoItem(context, 'Sex', student.sex ?? 'N/A'),
-              _buildInfoItem(context, 'Birth Date', student.birthDate != null ? _formatDate(student.birthDate!) : 'N/A'),
+              _buildInfoItem(context, 'Sex', (student.sex != null && student.sex!.isNotEmpty) ? student.sex! : '-'),
+              _buildInfoItem(context, 'Birth Date', student.birthDate != null ? _formatDate(student.birthDate!) : '-'),
               _build4psItem(context, student.is4ps),
             ],
           ),
@@ -544,6 +544,7 @@ class StudentProfileModalBody extends ConsumerWidget {
 
   Widget _buildInfoItem(BuildContext context, String label, String value) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final displayValue = value.trim().isEmpty ? '-' : value;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -555,7 +556,7 @@ class StudentProfileModalBody extends ConsumerWidget {
           ),
         ),
         Text(
-          value,
+          displayValue,
           style: TextStyle(
             fontWeight: FontWeight.w600,
             fontSize: 13,
@@ -579,27 +580,35 @@ class StudentProfileModalBody extends ConsumerWidget {
           ),
         ),
         const SizedBox(height: 2),
-        Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(
-              is4ps ? Icons.check_circle : Icons.cancel_outlined,
-              size: 14,
-              color: is4ps ? AppColors.fourPs : Colors.grey.shade500,
-            ),
-            const SizedBox(width: 4),
-            Text(
-              is4ps ? 'Yes — 4Ps' : 'No',
-              style: TextStyle(
-                fontSize: 12,
-                fontWeight: FontWeight.w600,
-                color: is4ps
-                    ? (isDark ? const Color(0xFF8B8ED8) : AppColors.fourPs)
-                    : (isDark ? AppColors.darkTextSecondary : Colors.grey.shade600),
+        if (is4ps)
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                Icons.check_circle,
+                size: 14,
+                color: isDark ? const Color(0xFF8B8ED8) : AppColors.fourPs,
               ),
+              const SizedBox(width: 4),
+              Text(
+                'Yes - 4Ps',
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                  color: isDark ? const Color(0xFF8B8ED8) : AppColors.fourPs,
+                ),
+              ),
+            ],
+          )
+        else
+          Text(
+            '-',
+            style: TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.w600,
+              color: isDark ? AppColors.darkTextSecondary : Colors.grey.shade600,
             ),
-          ],
-        ),
+          ),
       ],
     );
   }
@@ -642,7 +651,7 @@ class StudentProfileModalBody extends ConsumerWidget {
                   ),
                 ),
                 Text(
-                  '${enrollment.sectionName ?? 'N/A'} · ${enrollment.yearRange ?? 'N/A'}',
+                  '${enrollment.sectionName ?? '-'} · ${enrollment.yearRange ?? '-'}',
                   style: TextStyle(
                     color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
                     fontSize: 12,

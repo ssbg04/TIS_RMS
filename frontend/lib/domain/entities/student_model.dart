@@ -124,11 +124,11 @@ class StudentModel {
     return _latestSection;
   }
 
-  /// e.g. "Grade 10 – Sec A"
+  /// e.g. "Grade 10 - Sec A"
   String get gradeSection {
-    if (latestGradeLevel == null) return '—';
+    if (latestGradeLevel == null) return '-';
     final section = latestSection?.isNotEmpty == true
-        ? ' — ${latestSection!}'
+        ? ' - ${latestSection!}'
         : '';
     return 'Grade $latestGradeLevel$section';
   }

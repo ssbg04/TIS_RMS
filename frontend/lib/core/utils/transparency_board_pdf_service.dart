@@ -289,7 +289,7 @@ class TransparencyBoardPdfService {
                 mainAxisSize: pw.MainAxisSize.min,
                 children: [
                   pw.Text(
-                    '“Creating Possibilities, Inspiring Innovations”',
+                    '"Creating Possibilities, Inspiring Innovations"',
                     style: pw.TextStyle(
                       fontSize: 8,
                       fontStyle: pw.FontStyle.italic,
@@ -438,7 +438,7 @@ class TransparencyBoardPdfService {
           mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
           children: [
             pw.Text(
-              'Talisay Integrated School — TIS RMS DepEd Transparency Report',
+              'Talisay Integrated School - TIS RMS DepEd Transparency Report',
               style: const pw.TextStyle(fontSize: 6.5, color: PdfColors.grey600),
             ),
             pw.Text(
