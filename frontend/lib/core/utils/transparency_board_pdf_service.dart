@@ -91,25 +91,25 @@ class TransparencyBoardPdfService {
 
             // ── Section 2: Dropouts & Transferees ────────────────────────────
             _buildSectionHeader('2. DROPOUTS & TRANSFEREES'),
-            pw.SizedBox(height: 5),
+            pw.SizedBox(height: 6),
             pw.Text(
               'A. Dropouts Summary',
               style: pw.TextStyle(fontSize: 9.5, fontWeight: pw.FontWeight.bold, color: PdfColors.red900),
             ),
             pw.SizedBox(height: 3),
             _buildMultiYearDropoutTable(years: years),
-            pw.SizedBox(height: 7),
+            pw.SizedBox(height: 8),
             pw.Text(
               'B. Transferees Summary',
               style: pw.TextStyle(fontSize: 9.5, fontWeight: pw.FontWeight.bold, color: PdfColors.orange900),
             ),
             pw.SizedBox(height: 3),
             _buildMultiYearTransfereeTable(years: years),
-            pw.SizedBox(height: 12),
+            pw.SizedBox(height: 20),
 
             // ── Section 3: 4Ps Beneficiaries ──────────────────────────────────
             _buildSectionHeader('3. 4Ps BENEFICIARIES'),
-            pw.SizedBox(height: 5),
+            pw.SizedBox(height: 8),
             _buildFourPsComparisonTable(
               latestYear: latestYear,
               previousYear: previousYear,
@@ -117,7 +117,7 @@ class TransparencyBoardPdfService {
               prevLabel: prevSyLabel,
               currentLabel: activeSyLabel,
             ),
-            pw.SizedBox(height: 20),
+            pw.SizedBox(height: 24),
 
             // ── Signatory Footer ─────────────────────────────────────────────
             _buildSignatoryBlock(),
@@ -506,7 +506,7 @@ class TransparencyBoardPdfService {
           return pw.TableRow(
             children: [
               _cellText('  Grade $grade'),
-              _cellText(hasPrev ? '$prev' : '—', align: pw.TextAlign.center),
+              _cellText(hasPrev ? '$prev' : '-', align: pw.TextAlign.center),
               _cellText('$curr', align: pw.TextAlign.center, isBold: true),
               _cellDifference(diff, hasPrev),
               _cellRemark(diff, hasPrev),
@@ -519,7 +519,7 @@ class TransparencyBoardPdfService {
           decoration: const pw.BoxDecoration(color: PdfColors.grey100),
           children: [
             _cellText('Key Stage 3 (JHS) Subtotal', isBold: true),
-            _cellText(hasPrev ? '${previousYear!.enrollment.jhsTotal.total}' : '—', isBold: true, align: pw.TextAlign.center),
+            _cellText(hasPrev ? '${previousYear!.enrollment.jhsTotal.total}' : '-', isBold: true, align: pw.TextAlign.center),
             _cellText('${latestYear.enrollment.jhsTotal.total}', isBold: true, align: pw.TextAlign.center, textColor: PdfColors.green900),
             _cellDifference(
               hasPrev ? (latestYear.enrollment.jhsTotal.total - previousYear!.enrollment.jhsTotal.total) : null,
@@ -565,7 +565,7 @@ class TransparencyBoardPdfService {
           return pw.TableRow(
             children: [
               _cellText('  Grade $grade'),
-              _cellText(hasPrev ? '$prev' : '—', align: pw.TextAlign.center),
+              _cellText(hasPrev ? '$prev' : '-', align: pw.TextAlign.center),
               _cellText('$curr', align: pw.TextAlign.center, isBold: true),
               _cellDifference(diff, hasPrev),
               _cellRemark(diff, hasPrev),
@@ -578,7 +578,7 @@ class TransparencyBoardPdfService {
           decoration: const pw.BoxDecoration(color: PdfColors.grey100),
           children: [
             _cellText('Key Stage 4 (SHS) Subtotal', isBold: true),
-            _cellText(hasPrev ? '${previousYear!.enrollment.shsTotal.total}' : '—', isBold: true, align: pw.TextAlign.center),
+            _cellText(hasPrev ? '${previousYear!.enrollment.shsTotal.total}' : '-', isBold: true, align: pw.TextAlign.center),
             _cellText('${latestYear.enrollment.shsTotal.total}', isBold: true, align: pw.TextAlign.center, textColor: PdfColors.green900),
             _cellDifference(
               hasPrev ? (latestYear.enrollment.shsTotal.total - previousYear!.enrollment.shsTotal.total) : null,
@@ -597,7 +597,7 @@ class TransparencyBoardPdfService {
           decoration: const pw.BoxDecoration(color: PdfColors.green50),
           children: [
             _cellText('OVERALL ENROLLMENT TOTAL', isBold: true, textColor: PdfColors.green900),
-            _cellText(hasPrev ? '${previousYear!.enrollment.overallTotal.total}' : '—', isBold: true, align: pw.TextAlign.center),
+            _cellText(hasPrev ? '${previousYear!.enrollment.overallTotal.total}' : '-', isBold: true, align: pw.TextAlign.center),
             _cellText('${latestYear.enrollment.overallTotal.total}', isBold: true, align: pw.TextAlign.center, textColor: PdfColors.green900),
             _cellDifference(
               hasPrev ? (latestYear.enrollment.overallTotal.total - previousYear!.enrollment.overallTotal.total) : null,
@@ -781,7 +781,7 @@ class TransparencyBoardPdfService {
           return pw.TableRow(
             children: [
               _cellText('  Grade $grade'),
-              _cellText(hasPrev ? '$prev' : '—', align: pw.TextAlign.center),
+              _cellText(hasPrev ? '$prev' : '-', align: pw.TextAlign.center),
               _cellText('$curr', align: pw.TextAlign.center, isBold: true),
               _cellDifference(diff, hasPrev),
               _cellText('${currRow.percentage}%', align: pw.TextAlign.center, textColor: PdfColors.purple900, isBold: true),
@@ -795,7 +795,7 @@ class TransparencyBoardPdfService {
           decoration: const pw.BoxDecoration(color: PdfColors.grey100),
           children: [
             _cellText('Key Stage 3 (JHS) Subtotal', isBold: true),
-            _cellText(hasPrev ? '${previousYear!.fourPs.jhsTotal.fourPsCount}' : '—', isBold: true, align: pw.TextAlign.center),
+            _cellText(hasPrev ? '${previousYear!.fourPs.jhsTotal.fourPsCount}' : '-', isBold: true, align: pw.TextAlign.center),
             _cellText('${latestYear.fourPs.jhsTotal.fourPsCount}', isBold: true, align: pw.TextAlign.center, textColor: PdfColors.purple900),
             _cellDifference(
               hasPrev ? (latestYear.fourPs.jhsTotal.fourPsCount - previousYear!.fourPs.jhsTotal.fourPsCount) : null,
@@ -843,7 +843,7 @@ class TransparencyBoardPdfService {
           return pw.TableRow(
             children: [
               _cellText('  Grade $grade'),
-              _cellText(hasPrev ? '$prev' : '—', align: pw.TextAlign.center),
+              _cellText(hasPrev ? '$prev' : '-', align: pw.TextAlign.center),
               _cellText('$curr', align: pw.TextAlign.center, isBold: true),
               _cellDifference(diff, hasPrev),
               _cellText('${currRow.percentage}%', align: pw.TextAlign.center, textColor: PdfColors.purple900, isBold: true),
@@ -857,7 +857,7 @@ class TransparencyBoardPdfService {
           decoration: const pw.BoxDecoration(color: PdfColors.grey100),
           children: [
             _cellText('Key Stage 4 (SHS) Subtotal', isBold: true),
-            _cellText(hasPrev ? '${previousYear!.fourPs.shsTotal.fourPsCount}' : '—', isBold: true, align: pw.TextAlign.center),
+            _cellText(hasPrev ? '${previousYear!.fourPs.shsTotal.fourPsCount}' : '-', isBold: true, align: pw.TextAlign.center),
             _cellText('${latestYear.fourPs.shsTotal.fourPsCount}', isBold: true, align: pw.TextAlign.center, textColor: PdfColors.purple900),
             _cellDifference(
               hasPrev ? (latestYear.fourPs.shsTotal.fourPsCount - previousYear!.fourPs.shsTotal.fourPsCount) : null,
@@ -877,7 +877,7 @@ class TransparencyBoardPdfService {
           decoration: const pw.BoxDecoration(color: PdfColors.purple100),
           children: [
             _cellText('OVERALL 4Ps BENEFICIARIES TOTAL', isBold: true, textColor: PdfColors.purple900),
-            _cellText(hasPrev ? '${previousYear!.fourPs.overallTotal.fourPsCount}' : '—', isBold: true, align: pw.TextAlign.center),
+            _cellText(hasPrev ? '${previousYear!.fourPs.overallTotal.fourPsCount}' : '-', isBold: true, align: pw.TextAlign.center),
             _cellText('${latestYear.fourPs.overallTotal.fourPsCount}', isBold: true, align: pw.TextAlign.center, textColor: PdfColors.purple900),
             _cellDifference(
               hasPrev ? (latestYear.fourPs.overallTotal.fourPsCount - previousYear!.fourPs.overallTotal.fourPsCount) : null,
@@ -963,7 +963,7 @@ class TransparencyBoardPdfService {
 
   static pw.Widget _cellDifference(int? diff, bool hasPrev, {bool isBold = false}) {
     if (!hasPrev || diff == null) {
-      return _cellText('—', align: pw.TextAlign.center);
+      return _cellText('-', align: pw.TextAlign.center);
     }
     final text = diff > 0 ? '+$diff' : '$diff';
     final color = diff > 0
