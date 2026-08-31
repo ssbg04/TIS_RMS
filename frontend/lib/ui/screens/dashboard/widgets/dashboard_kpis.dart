@@ -1307,9 +1307,13 @@ class _DocTypePieCardState extends State<_DocTypePieCard>
           decoration: BoxDecoration(
             color: isDark ? AppColors.darkSurfaceCard : Colors.white,
             borderRadius: BorderRadius.circular(16),
+            border: Border.all(
+              color: isDark ? AppColors.darkBorder : AppColors.borderLight,
+              width: 1.0,
+            ),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withValues(alpha: 0.04),
+                color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.04),
                 blurRadius: 12,
                 offset: const Offset(0, 4),
               ),
