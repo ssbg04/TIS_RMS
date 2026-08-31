@@ -65,7 +65,7 @@ class _StudentFilterDialogState extends ConsumerState<StudentFilterDialog> {
     'Dropped',
     'Inactive',
   ];
-  static const _4psItems = ['All', 'Yes', 'No'];
+  static const _fourPsItems = ['All', 'Yes', 'No'];
   static const _pageSizes = [10, 15, 20, 50, 100];
 
   @override
@@ -111,7 +111,11 @@ class _StudentFilterDialogState extends ConsumerState<StudentFilterDialog> {
     final syItems = [
       'All School Years',
       ...academicYearsAsync.maybeWhen(
-        data: (years) => years.map((y) => y.yearRange).toList(),
+        data: (years) {
+          final sorted = List<AcademicYearModel>.from(years)
+            ..sort((a, b) => a.yearRange.compareTo(b.yearRange));
+          return sorted.map((y) => y.yearRange).toList();
+        },
         orElse: () => <String>[],
       ),
     ];
@@ -360,7 +364,7 @@ class _StudentFilterDialogState extends ConsumerState<StudentFilterDialog> {
                     hasActiveFilter: _pending4Ps != 'All',
                     onReset: () => setState(() => _pending4Ps = 'All'),
                     child: _buildFilterChipGroup(
-                      items: _4psItems,
+                      items: _fourPsItems,
                       selectedValue: _pending4Ps,
                       onSelected: (v) => setState(() => _pending4Ps = v),
                     ),

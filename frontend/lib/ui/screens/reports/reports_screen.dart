@@ -991,43 +991,46 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                                 ),
                               ),
                               error: (e, st) => const SizedBox.shrink(),
-                              data: (yearsList) =>
-                                  DropdownButtonFormField<int?>(
-                                    isExpanded: true,
-                                    initialValue: selectedYearId,
-                                    decoration: _filterDecoration(
-                                      'School Year',
-                                    ),
-                                    items: [
-                                      const DropdownMenuItem<int?>(
-                                        value: null,
-                                        child: Text('All Years'),
-                                      ),
-                                      ...yearsList.map(
-                                        (y) => DropdownMenuItem<int?>(
-                                          value: y.id,
-                                          child: Text(y.yearRange),
-                                        ),
-                                      ),
-                                    ],
-                                    onChanged: (val) {
-                                      ref
-                                          .read(
-                                            selectedAcademicYearIdProvider
-                                                .notifier,
-                                          )
-                                          .select(val);
-                                      // Reset section
-                                      ref
-                                              .read(
-                                                selectedSectionIdProvider
-                                                    .notifier,
-                                              )
-                                              .state =
-                                          null;
-                                      setState(() => _currentPage = 0);
-                                    },
+                              data: (yearsList) {
+                                final sortedYears = List<AcademicYear>.from(yearsList)
+                                  ..sort((a, b) => a.yearRange.compareTo(b.yearRange));
+                                return DropdownButtonFormField<int?>(
+                                  isExpanded: true,
+                                  initialValue: selectedYearId,
+                                  decoration: _filterDecoration(
+                                    'School Year',
                                   ),
+                                  items: [
+                                    const DropdownMenuItem<int?>(
+                                      value: null,
+                                      child: Text('All Years'),
+                                    ),
+                                    ...sortedYears.map(
+                                      (y) => DropdownMenuItem<int?>(
+                                        value: y.id,
+                                        child: Text(y.yearRange),
+                                      ),
+                                    ),
+                                  ],
+                                  onChanged: (val) {
+                                    ref
+                                        .read(
+                                          selectedAcademicYearIdProvider
+                                              .notifier,
+                                        )
+                                        .select(val);
+                                    // Reset section
+                                    ref
+                                            .read(
+                                              selectedSectionIdProvider
+                                                  .notifier,
+                                            )
+                                            .state =
+                                        null;
+                                    setState(() => _currentPage = 0);
+                                  },
+                                );
+                              },
                             ),
                             // Dropdown 2: Grade Level
                             DropdownButtonFormField<int?>(

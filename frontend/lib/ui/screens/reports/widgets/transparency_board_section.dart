@@ -284,12 +284,14 @@ class _TransparencyBoardContentState extends ConsumerState<_TransparencyBoardCon
     required int? selectedYearId,
   }) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final activeAy = academicYears
+    final sortedYears = List<AcademicYear>.from(academicYears)
+      ..sort((a, b) => a.yearRange.compareTo(b.yearRange));
+    final activeAy = sortedYears
             .where((y) => y.status.toLowerCase() == 'active')
             .firstOrNull ??
-        academicYears.firstOrNull;
+        sortedYears.firstOrNull;
     final effectiveSelectedId = (selectedYearId != null &&
-            academicYears.any((y) => y.id == selectedYearId))
+            sortedYears.any((y) => y.id == selectedYearId))
         ? selectedYearId
         : activeAy?.id;
 
@@ -328,7 +330,7 @@ class _TransparencyBoardContentState extends ConsumerState<_TransparencyBoardCon
                 fontWeight: FontWeight.bold,
               ),
               icon: const Icon(Icons.arrow_drop_down, color: Colors.white, size: 20),
-              items: academicYears.map((ay) {
+              items: sortedYears.map((ay) {
                 final isActive = ay.status.toLowerCase() == 'active';
                 return DropdownMenuItem<int>(
                   value: ay.id,

@@ -3,7 +3,7 @@ const db = require('../config/db');
 // GET /api/reports/academic-years
 exports.getAcademicYears = (req, res) => {
     try {
-        const years = db.prepare('SELECT * FROM academic_years ORDER BY id DESC').all();
+        const years = db.prepare('SELECT * FROM academic_years ORDER BY year_range ASC, id ASC').all();
         res.json(years);
     } catch (error) {
         res.status(500).json({ message: 'Failed to fetch academic years', error: error.message });
