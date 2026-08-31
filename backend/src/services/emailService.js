@@ -1,91 +1,151 @@
 'use strict';
 const nodemailer = require('nodemailer');
+const path = require('path');
+const fs = require('fs');
 require('dotenv').config();
 
+// ── Embedded images ────────────────────────────────────────────────────────────
+// Load school logo as base64 at startup (from frontend assets folder, with fallback)
+function loadLogoBase64() {
+    const candidates = [
+        // Local copy inside backend (primary — works standalone/deployed)
+        path.join(__dirname, '..', '..', 'assets', 'logo.png'),
+        // Frontend assets folder (fallback — dev environment)
+        path.join(__dirname, '..', '..', '..', 'frontend', 'assets', 'images', 'logo.png'),
+    ];
+    for (const p of candidates) {
+        try {
+            if (fs.existsSync(p)) return fs.readFileSync(p).toString('base64');
+        } catch (_) {}
+    }
+    return null;
+}
+
+const LOGO_B64 = loadLogoBase64();
+const LOGO_SRC = LOGO_B64
+    ? `data:image/png;base64,${LOGO_B64}`
+    : null;
+
+// ── Transporter ────────────────────────────────────────────────────────────────
 let transporter = null;
 
 const getTransporter = () => {
     const user = process.env.SMTP_USER ? process.env.SMTP_USER.trim() : null;
     const rawPass = process.env.SMTP_PASS ? process.env.SMTP_PASS.trim() : null;
-    const pass = rawPass ? rawPass.replace(/\s+/g, '') : null; // Remove any internal spaces from 16-char code
+    const pass = rawPass ? rawPass.replace(/\s+/g, '') : null;
 
     if (!user || !pass) {
         console.log('[EmailService] SMTP_USER or SMTP_PASS not set. Emails will be logged to console in dev mode.');
         return null;
     }
 
-    // Always create/refresh transporter with sanitized credentials
     transporter = nodemailer.createTransport({
         host: 'smtp.gmail.com',
         port: 465,
-        secure: true, // true for port 465, false for other ports
-        auth: {
-            user: user,
-            pass: pass, // 16-character Google App Password (no spaces)
-        },
+        secure: true,
+        auth: { user, pass },
     });
 
     return transporter;
 };
 
+// ── Shared layout helpers ──────────────────────────────────────────────────────
+const YEAR = new Date().getFullYear();
+
+const headerLogo = LOGO_SRC
+    ? `<img src="${LOGO_SRC}" alt="Talisay Integrated School" width="72" height="72" style="display:block;margin:0 auto 12px;border-radius:50%;border:3px solid rgba(255,255,255,0.3);">`
+    : '';
+
+function emailShell(bodyContent) {
+    return `<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>TIS Record Management System</title>
+</head>
+<body style="margin:0;padding:0;background:#f0f4f8;font-family:'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
+<table width="100%" cellpadding="0" cellspacing="0" style="background:#f0f4f8;padding:32px 0;">
+  <tr><td align="center">
+    <table width="560" cellpadding="0" cellspacing="0" style="max-width:560px;width:100%;background:#ffffff;border-radius:16px;overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,0.08);">
+
+      <!-- HEADER -->
+      <tr>
+        <td style="background:linear-gradient(160deg,#14532d 0%,#166534 60%,#15803d 100%);padding:36px 32px 28px;text-align:center;">
+          ${headerLogo}
+          <div style="color:#ffffff;font-size:20px;font-weight:700;letter-spacing:0.3px;line-height:1.2;">Talisay Integrated School</div>
+          <div style="color:rgba(255,255,255,0.75);font-size:12px;margin-top:4px;letter-spacing:0.5px;text-transform:uppercase;">Record Management System</div>
+        </td>
+      </tr>
+
+      <!-- BODY -->
+      <tr><td style="padding:36px 36px 28px;">${bodyContent}</td></tr>
+
+      <!-- FOOTER -->
+      <tr>
+        <td style="background:#f8fafc;border-top:1px solid #e2e8f0;padding:20px 32px;text-align:center;">
+          <p style="margin:0;font-size:11px;color:#94a3b8;line-height:1.7;">
+            &copy; ${YEAR} Talisay Integrated School &mdash; Tiaong, Quezon<br>
+            This is an automated message from the TIS Record Management System.<br>
+            Please do not reply to this email.
+          </p>
+        </td>
+      </tr>
+
+    </table>
+  </td></tr>
+</table>
+</body>
+</html>`;
+}
+
+// ── OTP Email ──────────────────────────────────────────────────────────────────
+
 /**
- * Sends a 6-digit password reset OTP to user's email.
- * @param {Object} options
- * @param {string} options.to - Recipient email address
- * @param {string} options.username - Account username
- * @param {string} options.otp - 6-digit OTP string
+ * Sends a 6-digit password reset OTP to the user's email.
  */
 const sendPasswordResetOtp = async ({ to, username, otp }) => {
     const mailTransporter = getTransporter();
-    const fromAddress = process.env.SMTP_FROM || `"TIS Record Management System" <${process.env.SMTP_USER || 'no-reply@talisayis.edu.ph'}>`;
+    const fromAddress = process.env.SMTP_FROM
+        || `"TIS Record Management System" <${process.env.SMTP_USER || 'no-reply@talisayis.edu.ph'}>`;
 
-    const htmlContent = `
-    <!DOCTYPE html>
-    <html>
-    <head>
-        <meta charset="utf-8">
-        <style>
-            body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f8fafc; color: #1e293b; margin: 0; padding: 20px; }
-            .container { max-width: 520px; margin: 0 auto; background: #ffffff; border-radius: 12px; overflow: hidden; border: 1px solid #e2e8f0; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05); }
-            .header { background: linear-gradient(135deg, #15803D 0%, #166534 100%); color: #ffffff; padding: 24px; text-align: center; }
-            .header h1 { margin: 0; font-size: 20px; font-weight: 700; letter-spacing: 0.5px; }
-            .header p { margin: 4px 0 0 0; font-size: 13px; opacity: 0.9; }
-            .content { padding: 32px 24px; text-align: center; }
-            .greeting { font-size: 16px; font-weight: 600; color: #0f172a; margin-bottom: 8px; text-align: left; }
-            .instructions { font-size: 14px; color: #475569; line-height: 1.6; margin-bottom: 24px; text-align: left; }
-            .otp-box { background: #f0fdf4; border: 2px dashed #22c55e; border-radius: 8px; padding: 18px 24px; margin: 20px 0; display: inline-block; }
-            .otp-code { font-size: 36px; font-weight: 800; letter-spacing: 8px; color: #15803D; font-family: 'Courier New', Courier, monospace; margin: 0; }
-            .expiry-note { font-size: 12px; color: #64748b; margin-top: 12px; }
-            .warning { background: #fffbeb; border-left: 4px solid #f59e0b; padding: 12px; margin-top: 24px; text-align: left; font-size: 12px; color: #92400e; border-radius: 0 6px 6px 0; }
-            .footer { background: #f1f5f9; padding: 16px 24px; text-align: center; font-size: 11px; color: #64748b; border-top: 1px solid #e2e8f0; }
-        </style>
-    </head>
-    <body>
-        <div class="container">
-            <div class="header">
-                <h1>Talisay Integrated School</h1>
-                <p>Record Management System — Password Reset</p>
-            </div>
-            <div class="content">
-                <div class="greeting">Hello @${username},</div>
-                <div class="instructions">
-                    We received a request to reset the password for your TIS RMS account. Please use the verification code below to complete your password reset:
-                </div>
-                <div class="otp-box">
-                    <div class="otp-code">${otp}</div>
-                </div>
-                <div class="expiry-note">⏱️ This code will expire in <strong>10 minutes</strong>.</div>
-                <div class="warning">
-                    <strong>Security Notice:</strong> If you did not request this password reset, please ignore this email or notify your system administrator immediately.
-                </div>
-            </div>
-            <div class="footer">
-                &copy; ${new Date().getFullYear()} Talisay Integrated School. All rights reserved.
-            </div>
-        </div>
-    </body>
-    </html>
+    // Render OTP digits as individual styled boxes
+    const digitBoxes = otp.toString().split('').map(d =>
+        `<span style="display:inline-block;width:40px;height:52px;line-height:52px;margin:0 4px;background:#f0fdf4;border:2px solid #16a34a;border-radius:10px;font-size:28px;font-weight:800;color:#14532d;text-align:center;font-family:'Courier New',Courier,monospace;">${d}</span>`
+    ).join('');
+
+    const body = `
+      <p style="margin:0 0 6px;font-size:16px;font-weight:700;color:#0f172a;">Hello, <span style="color:#15803d;">@${username}</span></p>
+      <p style="margin:0 0 28px;font-size:14px;color:#475569;line-height:1.7;">
+        We received a request to reset the password on your TIS RMS account.
+        Use the verification code below to continue. <strong>Do not share this code with anyone.</strong>
+      </p>
+
+      <!-- OTP Digits -->
+      <table width="100%" cellpadding="0" cellspacing="0"><tr><td align="center" style="padding:8px 0 24px;">
+        ${digitBoxes}
+      </td></tr></table>
+
+      <!-- Expiry pill -->
+      <table width="100%" cellpadding="0" cellspacing="0"><tr><td align="center" style="padding-bottom:28px;">
+        <span style="display:inline-block;background:#fef9c3;border:1px solid #fde047;color:#713f12;font-size:12px;font-weight:600;padding:6px 16px;border-radius:999px;">
+          &#9201; Expires in <strong>10 minutes</strong>
+        </span>
+      </td></tr></table>
+
+      <!-- Divider -->
+      <hr style="border:none;border-top:1px solid #e2e8f0;margin:0 0 20px;">
+
+      <!-- Security notice -->
+      <table width="100%" cellpadding="0" cellspacing="0"><tr>
+        <td width="4" style="background:#f59e0b;border-radius:4px;">&nbsp;</td>
+        <td style="padding:10px 14px;font-size:12px;color:#78350f;background:#fffbeb;border-radius:0 8px 8px 0;">
+          <strong>Security Notice:</strong> If you did not request this, please ignore this email or contact your system administrator immediately. Your password will remain unchanged.
+        </td>
+      </tr></table>
     `;
+
+    const htmlContent = emailShell(body);
 
     if (!mailTransporter) {
         console.log(`\n======================================================`);
@@ -100,89 +160,71 @@ const sendPasswordResetOtp = async ({ to, username, otp }) => {
     try {
         const info = await mailTransporter.sendMail({
             from: fromAddress,
-            to: to,
-            subject: `[TIS RMS] Password Reset Code: ${otp}`,
+            to,
+            subject: `[TIS RMS] Your password reset code: ${otp}`,
             html: htmlContent,
-            text: `Hello @${username},\n\nYour TIS RMS password reset code is: ${otp}\n\nThis code will expire in 10 minutes.\n\nIf you did not request this reset, please contact your administrator.`,
+            text: `Hello @${username},\n\nYour TIS RMS password reset code is: ${otp}\n\nThis code expires in 10 minutes.\n\nIf you did not request this, contact your administrator.`,
         });
-
-        console.log(`[EmailService] Password reset OTP sent to ${to} (Message ID: ${info.messageId})`);
+        console.log(`[EmailService] OTP sent to ${to} (${info.messageId})`);
         return { success: true, messageId: info.messageId };
     } catch (err) {
-        console.error(`[EmailService] Failed to send email to ${to}:`, err.message);
+        console.error(`[EmailService] Failed to send OTP to ${to}:`, err.message);
         throw new Error(`Failed to send email OTP: ${err.message}`);
     }
 };
 
+// ── Reset Link Email ───────────────────────────────────────────────────────────
+
 /**
- * Sends a password reset link with expiration time to user's email.
- * @param {Object} options
- * @param {string} options.to - Recipient email address
- * @param {string} options.username - Account username
- * @param {string} options.resetLink - Full URL for resetting password
- * @param {number} options.expiresMinutes - Expiration duration in minutes
+ * Sends a password reset link to the user's email.
  */
 const sendPasswordResetLink = async ({ to, username, resetLink, expiresMinutes = 15 }) => {
     const mailTransporter = getTransporter();
-    const fromAddress = process.env.SMTP_FROM || `"TIS Record Management System" <${process.env.SMTP_USER || 'no-reply@talisayis.edu.ph'}>`;
+    const fromAddress = process.env.SMTP_FROM
+        || `"TIS Record Management System" <${process.env.SMTP_USER || 'no-reply@talisayis.edu.ph'}>`;
 
-    const htmlContent = `
-    <!DOCTYPE html>
-    <html>
-    <head>
-        <meta charset="utf-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <style>
-            body { font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, Roboto, Helvetica, Arial, sans-serif; background-color: #f1f5f9; color: #1e293b; margin: 0; padding: 24px 12px; }
-            .container { max-width: 540px; margin: 0 auto; background: #ffffff; border-radius: 16px; overflow: hidden; border: 1px solid #e2e8f0; box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05); }
-            .header { background: linear-gradient(135deg, #15803D 0%, #166534 100%); color: #ffffff; padding: 28px 24px; text-align: center; }
-            .header h1 { margin: 0; font-size: 22px; font-weight: 700; letter-spacing: 0.5px; }
-            .header p { margin: 6px 0 0 0; font-size: 13px; opacity: 0.92; }
-            .content { padding: 32px 28px; text-align: left; }
-            .greeting { font-size: 17px; font-weight: 700; color: #0f172a; margin-bottom: 12px; }
-            .instructions { font-size: 14px; color: #475569; line-height: 1.6; margin-bottom: 24px; }
-            .btn-container { text-align: center; margin: 28px 0; }
-            .reset-btn { display: inline-block; background-color: #15803D; color: #ffffff !important; font-size: 15px; font-weight: 700; text-decoration: none; padding: 14px 32px; border-radius: 10px; box-shadow: 0 4px 12px rgba(21, 128, 61, 0.35); transition: background-color 0.2s ease; letter-spacing: 0.3px; }
-            .expiry-badge { background-color: #fef3c7; border: 1px solid #fde68a; border-radius: 8px; padding: 10px 14px; font-size: 13px; color: #92400e; margin: 20px 0; display: flex; align-items: center; }
-            .raw-link { font-size: 12px; color: #64748b; margin-top: 24px; line-height: 1.5; word-break: break-all; }
-            .raw-link a { color: #15803D; }
-            .warning { background: #f8fafc; border-left: 4px solid #94a3b8; padding: 12px 16px; margin-top: 24px; font-size: 12px; color: #64748b; border-radius: 0 8px 8px 0; }
-            .footer { background: #f8fafc; padding: 20px 24px; text-align: center; font-size: 11px; color: #64748b; border-top: 1px solid #e2e8f0; }
-        </style>
-    </head>
-    <body>
-        <div class="container">
-            <div class="header">
-                <h1>Talisay Integrated School</h1>
-                <p>Record Management System — Password Reset</p>
-            </div>
-            <div class="content">
-                <div class="greeting">Hello @${username},</div>
-                <div class="instructions">
-                    An administrator has requested a password reset for your TIS RMS account. Please click the button below to set your new password:
-                </div>
-                <div class="btn-container">
-                    <a href="${resetLink}" target="_blank" class="reset-btn">Reset My Password</a>
-                </div>
-                <div class="expiry-badge">
-                    ⏱️ <strong>Note:</strong> This password reset link will expire in <strong>${expiresMinutes} minutes</strong>.
-                </div>
-                <div class="raw-link">
-                    If the button above does not work, copy and paste this link into your web browser:<br>
-                    <a href="${resetLink}">${resetLink}</a>
-                </div>
-                <div class="warning">
-                    <strong>Security Notice:</strong> If you did not expect this password reset or believe this was done in error, please contact your system administrator immediately.
-                </div>
-            </div>
-            <div class="footer">
-                &copy; ${new Date().getFullYear()} Talisay Integrated School. All rights reserved.<br>
-                This is an automated system notification, please do not reply directly to this email.
-            </div>
-        </div>
-    </body>
-    </html>
+    const body = `
+      <p style="margin:0 0 6px;font-size:16px;font-weight:700;color:#0f172a;">Hello, <span style="color:#15803d;">@${username}</span></p>
+      <p style="margin:0 0 28px;font-size:14px;color:#475569;line-height:1.7;">
+        An administrator has initiated a password reset for your TIS RMS account.
+        Click the button below to set a new password. This link is single-use and will expire after
+        <strong>${expiresMinutes} minutes</strong>.
+      </p>
+
+      <!-- CTA Button -->
+      <table width="100%" cellpadding="0" cellspacing="0"><tr><td align="center" style="padding:4px 0 28px;">
+        <a href="${resetLink}" target="_blank"
+           style="display:inline-block;background:#15803d;color:#ffffff;font-size:15px;font-weight:700;text-decoration:none;padding:14px 40px;border-radius:10px;letter-spacing:0.3px;box-shadow:0 4px 14px rgba(21,128,61,0.4);">
+          &#128273;&nbsp; Reset My Password
+        </a>
+      </td></tr></table>
+
+      <!-- Expiry pill -->
+      <table width="100%" cellpadding="0" cellspacing="0"><tr><td align="center" style="padding-bottom:24px;">
+        <span style="display:inline-block;background:#fef9c3;border:1px solid #fde047;color:#713f12;font-size:12px;font-weight:600;padding:6px 16px;border-radius:999px;">
+          &#9201; Link expires in <strong>${expiresMinutes} minutes</strong>
+        </span>
+      </td></tr></table>
+
+      <!-- Fallback link -->
+      <p style="margin:0 0 6px;font-size:12px;color:#64748b;">If the button doesn't work, copy and paste this link into your browser:</p>
+      <p style="margin:0 0 24px;font-size:12px;word-break:break-all;">
+        <a href="${resetLink}" style="color:#15803d;text-decoration:underline;">${resetLink}</a>
+      </p>
+
+      <!-- Divider -->
+      <hr style="border:none;border-top:1px solid #e2e8f0;margin:0 0 20px;">
+
+      <!-- Security notice -->
+      <table width="100%" cellpadding="0" cellspacing="0"><tr>
+        <td width="4" style="background:#94a3b8;border-radius:4px;">&nbsp;</td>
+        <td style="padding:10px 14px;font-size:12px;color:#475569;background:#f8fafc;border-radius:0 8px 8px 0;">
+          <strong>Security Notice:</strong> If you did not expect this email, please disregard it or contact your system administrator. Your password will not change unless you click the link above.
+        </td>
+      </tr></table>
     `;
+
+    const htmlContent = emailShell(body);
 
     if (!mailTransporter) {
         console.log(`\n======================================================`);
@@ -197,16 +239,15 @@ const sendPasswordResetLink = async ({ to, username, resetLink, expiresMinutes =
     try {
         const info = await mailTransporter.sendMail({
             from: fromAddress,
-            to: to,
-            subject: `[TIS RMS] Password Reset Link for @${username}`,
+            to,
+            subject: `[TIS RMS] Password reset link for @${username}`,
             html: htmlContent,
-            text: `Hello @${username},\n\nAn administrator requested a password reset for your TIS RMS account.\n\nPlease use this link to reset your password:\n${resetLink}\n\nThis link will expire in ${expiresMinutes} minutes.\n\nIf you did not request this, please contact your administrator.`,
+            text: `Hello @${username},\n\nAn administrator requested a password reset for your TIS RMS account.\n\nReset link:\n${resetLink}\n\nThis link expires in ${expiresMinutes} minutes.\n\nIf you did not request this, contact your administrator.`,
         });
-
-        console.log(`[EmailService] Password reset link sent to ${to} (Message ID: ${info.messageId})`);
+        console.log(`[EmailService] Reset link sent to ${to} (${info.messageId})`);
         return { success: true, messageId: info.messageId };
     } catch (err) {
-        console.error(`[EmailService] Failed to send email link to ${to}:`, err.message);
+        console.error(`[EmailService] Failed to send reset link to ${to}:`, err.message);
         throw new Error(`Failed to send email link: ${err.message}`);
     }
 };
@@ -215,4 +256,3 @@ module.exports = {
     sendPasswordResetOtp,
     sendPasswordResetLink,
 };
-
