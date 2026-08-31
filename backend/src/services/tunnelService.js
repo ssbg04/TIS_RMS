@@ -243,12 +243,12 @@ function stopTunnel() {
     try {
         console.log(`[Tunnel] Stopping tunnel process (PID: ${proc.pid})...`);
         if (process.platform === 'win32') {
-            const killer = spawn('taskkill', ['/pid', String(proc.pid), '/T', '/F'], {
+            const { spawnSync } = require('child_process');
+            spawnSync('taskkill', ['/pid', String(proc.pid), '/T', '/F'], {
                 windowsHide: true, stdio: 'ignore'
             });
-            killer.on('error', () => { try { proc.kill('SIGTERM'); } catch (_) {} });
         } else {
-            proc.kill('SIGTERM');
+            proc.kill('SIGKILL');
         }
     } catch (err) {
         console.warn('[Tunnel] Error stopping tunnel:', err.message);
@@ -314,6 +314,7 @@ function startAutoTunnel() {
         process.on('exit',       cleanExit);
         process.on('SIGINT',  () => { cleanExit(); process.exit(0); });
         process.on('SIGTERM', () => { cleanExit(); process.exit(0); });
+        process.on('SIGUSR2', () => { cleanExit(); process.kill(process.pid, 'SIGUSR2'); }); // Nodemon restart signal
         process.on('beforeExit',  cleanExit);
     }
 }
