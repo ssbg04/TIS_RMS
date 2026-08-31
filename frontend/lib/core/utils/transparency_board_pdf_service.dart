@@ -13,11 +13,24 @@ class TransparencyBoardPdfService {
   }) async {
     final pdf = pw.Document();
 
-    // Load school logo asset
-    Uint8List? logoBytes;
+    // Load official branding images
+    Uint8List? depedSealBytes;
+    Uint8List? depedQuezonBytes;
+    Uint8List? qaBytes;
+
     try {
-      final byteData = await rootBundle.load('assets/images/logo.png');
-      logoBytes = byteData.buffer.asUint8List();
+      final sealData = await rootBundle.load('assets/images/Seal_DepEd.png');
+      depedSealBytes = sealData.buffer.asUint8List();
+    } catch (_) {}
+
+    try {
+      final quezonData = await rootBundle.load('assets/images/DepEd_Quezon.png');
+      depedQuezonBytes = quezonData.buffer.asUint8List();
+    } catch (_) {}
+
+    try {
+      final qaData = await rootBundle.load('assets/images/QA.png');
+      qaBytes = qaData.buffer.asUint8List();
     } catch (_) {}
 
     final years = data.years;
@@ -35,7 +48,7 @@ class TransparencyBoardPdfService {
         pageFormat: PdfPageFormat.a4,
         margin: const pw.EdgeInsets.symmetric(horizontal: 26, vertical: 22),
         header: (pw.Context context) => _buildPdfHeader(
-          logoBytes: logoBytes,
+          depedSealBytes: depedSealBytes,
           activeSyLabel: activeSyLabel,
           prevSyLabel: prevSyLabel,
           hasPrev: hasPrev,
@@ -46,7 +59,8 @@ class TransparencyBoardPdfService {
         ),
         footer: (pw.Context context) => _buildPdfFooter(
           context: context,
-          logoBytes: logoBytes,
+          depedQuezonBytes: depedQuezonBytes,
+          qaBytes: qaBytes,
         ),
         build: (pw.Context context) {
           if (years.isEmpty || latestYear == null) {
@@ -118,7 +132,7 @@ class TransparencyBoardPdfService {
   // ── Header Component (Official DepEd Template) ─────────────────────────────
 
   static pw.Widget _buildPdfHeader({
-    required Uint8List? logoBytes,
+    required Uint8List? depedSealBytes,
     required String activeSyLabel,
     required String prevSyLabel,
     required bool hasPrev,
@@ -130,12 +144,12 @@ class TransparencyBoardPdfService {
     return pw.Column(
       crossAxisAlignment: pw.CrossAxisAlignment.center,
       children: [
-        if (logoBytes != null) ...[
+        if (depedSealBytes != null) ...[
           pw.Center(
             child: pw.Image(
-              pw.MemoryImage(logoBytes),
-              width: 42,
-              height: 42,
+              pw.MemoryImage(depedSealBytes),
+              width: 46,
+              height: 46,
             ),
           ),
           pw.SizedBox(height: 2),
@@ -245,7 +259,8 @@ class TransparencyBoardPdfService {
 
   static pw.Widget _buildPdfFooter({
     required pw.Context context,
-    required Uint8List? logoBytes,
+    required Uint8List? depedQuezonBytes,
+    required Uint8List? qaBytes,
   }) {
     return pw.Column(
       mainAxisSize: pw.MainAxisSize.min,
@@ -259,16 +274,17 @@ class TransparencyBoardPdfService {
         pw.Row(
           crossAxisAlignment: pw.CrossAxisAlignment.center,
           children: [
-            // Left: DepEd / School Logo
+            // Left: DepEd Quezon Logo (DepEd_Quezon.png)
             pw.Container(
-              width: 50,
-              height: 46,
-              alignment: pw.Alignment.center,
-              child: logoBytes != null
+              width: 75,
+              height: 44,
+              alignment: pw.Alignment.centerLeft,
+              child: depedQuezonBytes != null
                   ? pw.Image(
-                      pw.MemoryImage(logoBytes),
-                      width: 42,
-                      height: 42,
+                      pw.MemoryImage(depedQuezonBytes),
+                      width: 72,
+                      height: 40,
+                      fit: pw.BoxFit.contain,
                     )
                   : pw.Text(
                       'DepEd\nQuezon',
@@ -331,89 +347,34 @@ class TransparencyBoardPdfService {
             ),
             pw.SizedBox(width: 8),
 
-            // Right: JAS-ANZ ISO Certification Mark & Registration Number
+            // Right: JAS-ANZ QA Badge Image (QA.png) + Registration Number
             pw.Container(
               width: 85,
               child: pw.Column(
                 crossAxisAlignment: pw.CrossAxisAlignment.center,
                 mainAxisSize: pw.MainAxisSize.min,
                 children: [
-                  // Dual badge box (Red Q Quality Assured + Blue C JAS-ANZ)
-                  pw.Row(
-                    mainAxisAlignment: pw.MainAxisAlignment.center,
-                    children: [
-                      // Red Box
-                      pw.Container(
-                        width: 32,
-                        height: 22,
-                        padding: const pw.EdgeInsets.all(1.5),
-                        decoration: const pw.BoxDecoration(
-                          color: PdfColor.fromInt(0xFFC62828),
-                          borderRadius: pw.BorderRadius.only(
-                            topLeft: pw.Radius.circular(2),
-                            bottomLeft: pw.Radius.circular(2),
-                          ),
-                        ),
-                        alignment: pw.Alignment.center,
-                        child: pw.Column(
-                          mainAxisAlignment: pw.MainAxisAlignment.center,
-                          children: [
-                            pw.Text(
-                              'Q',
-                              style: pw.TextStyle(
-                                color: PdfColors.white,
-                                fontSize: 9,
-                                fontWeight: pw.FontWeight.bold,
-                              ),
-                            ),
-                            pw.Text(
-                              'QUALITY ASSURED',
-                              style: const pw.TextStyle(
-                                color: PdfColors.white,
-                                fontSize: 3.2,
-                              ),
-                            ),
-                          ],
+                  if (qaBytes != null)
+                    pw.Image(
+                      pw.MemoryImage(qaBytes),
+                      width: 65,
+                      height: 25,
+                      fit: pw.BoxFit.contain,
+                    )
+                  else
+                    pw.Container(
+                      height: 22,
+                      alignment: pw.Alignment.center,
+                      child: pw.Text(
+                        'ISO 9001:2015',
+                        style: pw.TextStyle(
+                          fontSize: 7,
+                          fontWeight: pw.FontWeight.bold,
+                          color: PdfColors.blue900,
                         ),
                       ),
-                      // Blue Box
-                      pw.Container(
-                        width: 32,
-                        height: 22,
-                        padding: const pw.EdgeInsets.all(1.5),
-                        decoration: const pw.BoxDecoration(
-                          color: PdfColor.fromInt(0xFF0D47A1),
-                          borderRadius: pw.BorderRadius.only(
-                            topRight: pw.Radius.circular(2),
-                            bottomRight: pw.Radius.circular(2),
-                          ),
-                        ),
-                        alignment: pw.Alignment.center,
-                        child: pw.Column(
-                          mainAxisAlignment: pw.MainAxisAlignment.center,
-                          children: [
-                            pw.Text(
-                              'JAS-ANZ',
-                              style: pw.TextStyle(
-                                color: PdfColors.white,
-                                fontSize: 4.5,
-                                fontWeight: pw.FontWeight.bold,
-                              ),
-                            ),
-                            pw.Text(
-                              'C',
-                              style: pw.TextStyle(
-                                color: PdfColors.white,
-                                fontSize: 8,
-                                fontWeight: pw.FontWeight.bold,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                  pw.SizedBox(height: 2),
+                    ),
+                  pw.SizedBox(height: 1.5),
                   pw.Text(
                     'Registration Number:',
                     style: const pw.TextStyle(fontSize: 6, color: PdfColors.black),
