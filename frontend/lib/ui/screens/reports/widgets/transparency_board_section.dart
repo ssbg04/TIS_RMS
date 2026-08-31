@@ -386,7 +386,7 @@ class _TransparencyBoardContentState extends ConsumerState<_TransparencyBoardCon
   static Widget _buildRemarkBadge(int? diff, {required bool hasPreviousYear, required bool isDark}) {
     if (!hasPreviousYear || diff == null) {
       return Container(
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
         decoration: BoxDecoration(
           color: isDark ? AppColors.darkSurface2 : Colors.grey.shade100,
           borderRadius: BorderRadius.circular(12),
@@ -394,27 +394,20 @@ class _TransparencyBoardContentState extends ConsumerState<_TransparencyBoardCon
             color: isDark ? AppColors.darkBorder : Colors.grey.shade300,
           ),
         ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(Icons.remove, size: 12, color: isDark ? AppColors.darkTextMuted : Colors.grey.shade600),
-            const SizedBox(width: 4),
-            Text(
-              'Baseline',
-              style: TextStyle(
-                fontSize: 11,
-                fontWeight: FontWeight.w600,
-                color: isDark ? AppColors.darkTextSecondary : Colors.grey.shade700,
-              ),
-            ),
-          ],
+        child: Text(
+          'Baseline',
+          style: TextStyle(
+            fontSize: 11,
+            fontWeight: FontWeight.w600,
+            color: isDark ? AppColors.darkTextSecondary : Colors.grey.shade700,
+          ),
         ),
       );
     }
 
     if (diff > 0) {
       return Container(
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
         decoration: BoxDecoration(
           color: isDark ? const Color(0xFF1B3828) : const Color(0xFFE8F5E9),
           borderRadius: BorderRadius.circular(12),
@@ -422,25 +415,18 @@ class _TransparencyBoardContentState extends ConsumerState<_TransparencyBoardCon
             color: isDark ? const Color(0xFF2E7D32) : const Color(0xFFA5D6A7),
           ),
         ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(Icons.trending_up, size: 13, color: isDark ? const Color(0xFF81C784) : const Color(0xFF2E7D32)),
-            const SizedBox(width: 4),
-            Text(
-              'Increasing',
-              style: TextStyle(
-                fontSize: 11,
-                fontWeight: FontWeight.bold,
-                color: isDark ? const Color(0xFF81C784) : const Color(0xFF2E7D32),
-              ),
-            ),
-          ],
+        child: Text(
+          'Increasing',
+          style: TextStyle(
+            fontSize: 11,
+            fontWeight: FontWeight.bold,
+            color: isDark ? const Color(0xFF81C784) : const Color(0xFF2E7D32),
+          ),
         ),
       );
     } else if (diff < 0) {
       return Container(
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
         decoration: BoxDecoration(
           color: isDark ? const Color(0xFF3E1F1F) : const Color(0xFFFFEBEE),
           borderRadius: BorderRadius.circular(12),
@@ -448,25 +434,18 @@ class _TransparencyBoardContentState extends ConsumerState<_TransparencyBoardCon
             color: isDark ? const Color(0xFFC62828) : const Color(0xFFEF9A9A),
           ),
         ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(Icons.trending_down, size: 13, color: isDark ? const Color(0xFFE57373) : const Color(0xFFC62828)),
-            const SizedBox(width: 4),
-            Text(
-              'Decreasing',
-              style: TextStyle(
-                fontSize: 11,
-                fontWeight: FontWeight.bold,
-                color: isDark ? const Color(0xFFE57373) : const Color(0xFFC62828),
-              ),
-            ),
-          ],
+        child: Text(
+          'Decreasing',
+          style: TextStyle(
+            fontSize: 11,
+            fontWeight: FontWeight.bold,
+            color: isDark ? const Color(0xFFE57373) : const Color(0xFFC62828),
+          ),
         ),
       );
     } else {
       return Container(
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
         decoration: BoxDecoration(
           color: isDark ? AppColors.darkSurface2 : const Color(0xFFF1F5F9),
           borderRadius: BorderRadius.circular(12),
@@ -474,20 +453,13 @@ class _TransparencyBoardContentState extends ConsumerState<_TransparencyBoardCon
             color: isDark ? AppColors.darkBorder : const Color(0xFFCBD5E1),
           ),
         ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(Icons.trending_flat, size: 13, color: isDark ? AppColors.darkTextSecondary : const Color(0xFF64748B)),
-            const SizedBox(width: 4),
-            Text(
-              'Maintained',
-              style: TextStyle(
-                fontSize: 11,
-                fontWeight: FontWeight.bold,
-                color: isDark ? AppColors.darkTextSecondary : const Color(0xFF64748B),
-              ),
-            ),
-          ],
+        child: Text(
+          'Maintained',
+          style: TextStyle(
+            fontSize: 11,
+            fontWeight: FontWeight.bold,
+            color: isDark ? AppColors.darkTextSecondary : const Color(0xFF64748B),
+          ),
         ),
       );
     }
@@ -1572,40 +1544,21 @@ class _TransparencyBoardContentState extends ConsumerState<_TransparencyBoardCon
           spacing: 12,
           runSpacing: 8,
           children: [
-            Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const Icon(
-                  Icons.family_restroom,
-                  color: Colors.deepPurple,
-                  size: 20,
-                ),
-                const SizedBox(width: 8),
-                Text(
-                  previousYear != null
-                      ? '4Ps Beneficiaries (SY ${previousYear.yearRange} vs. SY ${latestYear.yearRange})'
-                      : '4Ps Beneficiaries (SY ${latestYear.yearRange})',
-                  style: TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w600,
-                    color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
-                  ),
-                ),
-              ],
-            ),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-              decoration: BoxDecoration(
-                color: Colors.deepPurple.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(20),
+            Text(
+              previousYear != null
+                  ? '4Ps Beneficiaries (SY ${previousYear.yearRange} vs. SY ${latestYear.yearRange})'
+                  : '4Ps Beneficiaries (SY ${latestYear.yearRange})',
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+                color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
               ),
-              child: Text(
-                'Active SY Total: ${active4Ps.overallTotal.fourPsCount} of ${active4Ps.overallTotal.totalStudents} (${active4Ps.overallTotal.percentage}%)',
-                style: const TextStyle(
-                  color: Colors.deepPurple,
-                  fontWeight: FontWeight.bold,
-                  fontSize: 13,
-                ),
+            ),
+            Text(
+              'Active SY Total: ${active4Ps.overallTotal.fourPsCount} of ${active4Ps.overallTotal.totalStudents} (${active4Ps.overallTotal.percentage}%)',
+              style: const TextStyle(
+                fontWeight: FontWeight.bold,
+                color: Colors.deepPurple,
               ),
             ),
           ],
