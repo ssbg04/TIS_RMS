@@ -824,8 +824,7 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
       floatingActionButton:
           (widget.userRole == 'teacher' ||
               _showMultiSelect ||
-              _searchFocusNode.hasFocus ||
-              defaultTargetPlatform == TargetPlatform.windows)
+              _searchFocusNode.hasFocus)
           ? null
           : FloatingActionButton(
               heroTag: 'add_student_fab',

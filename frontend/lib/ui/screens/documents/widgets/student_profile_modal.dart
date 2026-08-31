@@ -7,7 +7,6 @@ import '../../../../domain/repositories/document_repository.dart'
     show MissingRequirements;
 import '../../../providers/student_provider.dart';
 import '../../../providers/document_provider.dart';
-import '../../../shared/widgets/horizontal_expandable_fab.dart';
 // ─────────────────────────────────────────────────────────────
 // Public helper – call this anywhere to show the modal
 // ─────────────────────────────────────────────────────────────
@@ -98,41 +97,6 @@ class _StudentProfileDialogShellState
     final hasDelete =
         (widget.onDelete != null || widget.onDeleteById != null) &&
             widget.userRole != 'teacher';
-
-    final fabItems = <FabActionItem>[
-      if (hasEdit)
-        FabActionItem(
-          icon: Icons.edit_rounded,
-          tooltip: 'Edit Student',
-          label: 'Edit Student',
-          heroTag: 'fab_student_profile_edit',
-          backgroundColor: AppColors.primaryGreen,
-          foregroundColor: Colors.white,
-          onPressed: () {
-            if (widget.onEditById != null) {
-              widget.onEditById!(_currentStudentId);
-            } else if (widget.onEdit != null) {
-              widget.onEdit!();
-            }
-          },
-        ),
-      if (hasDelete)
-        FabActionItem(
-          icon: Icons.delete_rounded,
-          tooltip: 'Delete Student',
-          label: 'Delete Student',
-          heroTag: 'fab_student_profile_delete',
-          backgroundColor: Colors.red.shade600,
-          foregroundColor: Colors.white,
-          onPressed: () {
-            if (widget.onDeleteById != null) {
-              widget.onDeleteById!(_currentStudentId);
-            } else if (widget.onDelete != null) {
-              widget.onDelete!();
-            }
-          },
-        ),
-    ];
 
     return Dialog(
       backgroundColor: Colors.transparent,
@@ -274,17 +238,82 @@ class _StudentProfileDialogShellState
                       hideEnrollmentActions: widget.hideEnrollmentActions,
                     ),
                   ),
+                  // ── Fixed footer with action buttons / icons ──
+                  if (hasEdit || hasDelete)
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 10,
+                      ),
+                      decoration: BoxDecoration(
+                        color: isDark ? AppColors.darkSurfaceCard : AppColors.surfaceWhite,
+                        border: Border(
+                          top: BorderSide(
+                            color: isDark ? AppColors.darkBorder : Colors.grey.shade200,
+                          ),
+                        ),
+                        borderRadius: const BorderRadius.vertical(bottom: Radius.circular(12)),
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.end,
+                        children: [
+                          if (hasDelete) ...[
+                            Tooltip(
+                              message: 'Delete Student',
+                              child: OutlinedButton.icon(
+                                onPressed: () {
+                                  if (widget.onDeleteById != null) {
+                                    widget.onDeleteById!(_currentStudentId);
+                                  } else if (widget.onDelete != null) {
+                                    widget.onDelete!();
+                                  }
+                                },
+                                icon: const Icon(Icons.delete_outline_rounded, size: 18, color: AppColors.error),
+                                label: const Text(
+                                  'Delete',
+                                  style: TextStyle(color: AppColors.error, fontSize: 13, fontWeight: FontWeight.w600),
+                                ),
+                                style: OutlinedButton.styleFrom(
+                                  foregroundColor: AppColors.error,
+                                  side: const BorderSide(color: AppColors.error),
+                                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                          ],
+                          if (hasEdit) ...[
+                            Tooltip(
+                              message: 'Edit Student',
+                              child: ElevatedButton.icon(
+                                onPressed: () {
+                                  if (widget.onEditById != null) {
+                                    widget.onEditById!(_currentStudentId);
+                                  } else if (widget.onEdit != null) {
+                                    widget.onEdit!();
+                                  }
+                                },
+                                icon: const Icon(Icons.edit_rounded, size: 18, color: Colors.white),
+                                label: const Text(
+                                  'Edit Student',
+                                  style: TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold),
+                                ),
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: AppColors.primaryGreen,
+                                  foregroundColor: Colors.white,
+                                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                                  elevation: 0,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ],
+                      ),
+                    ),
                 ],
               ),
-              if (fabItems.isNotEmpty)
-                Positioned(
-                  right: 16,
-                  bottom: 16,
-                  child: HorizontalExpandableFab(
-                    heroTag: 'fab_student_profile_actions',
-                    items: fabItems,
-                  ),
-                ),
             ],
           ),
         ),
@@ -333,7 +362,7 @@ class StudentProfileModalBody extends ConsumerWidget {
       data: (student) {
         final isDark = Theme.of(context).brightness == Brightness.dark;
         return SingleChildScrollView(
-          padding: const EdgeInsets.fromLTRB(20, 20, 20, 80),
+          padding: const EdgeInsets.all(20),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
