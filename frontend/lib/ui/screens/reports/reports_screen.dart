@@ -522,9 +522,9 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 _buildTitleAndExportActions(context),
-                const SizedBox(height: AppSizes.p24),
-                _buildViewModeToggle(),
-                const SizedBox(height: AppSizes.p24),
+                const SizedBox(height: AppSizes.p16),
+                _buildSegmentedPillNav(),
+                const SizedBox(height: AppSizes.p20),
 
                 if (_selectedViewMode == 0 || _selectedViewMode == 2) ...[
                   const TransparencyBoardSection(),
@@ -650,153 +650,109 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
     );
   }
 
-  Widget _buildViewModeToggle() {
+  Widget _buildSegmentedPillNav() {
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final items = [
+      (index: 0, icon: Icons.account_balance_outlined, label: 'DepEd Transparency Board'),
+      (index: 1, icon: Icons.fact_check_outlined, label: 'Compliance & Analytics'),
+      (index: 2, icon: Icons.view_agenda_outlined, label: 'Combined View'),
+    ];
+
     return LayoutBuilder(
       builder: (context, constraints) {
-        final isNarrow = constraints.maxWidth < 800;
-        final items = [
-          _buildToggleItem(
-            index: 0,
-            icon: Icons.dashboard_outlined,
-            title: 'DepEd Transparency Board',
-            subtitle: 'Enrollment, dropouts, & 4Ps records',
-          ),
-          _buildToggleItem(
-            index: 1,
-            icon: Icons.analytics_outlined,
-            title: 'Compliance & Analytics',
-            subtitle: 'Student masterlist & documents',
-          ),
-          _buildToggleItem(
-            index: 2,
-            icon: Icons.view_agenda_outlined,
-            title: 'Unified Combined View',
-            subtitle: 'Display all reporting modules',
-          ),
-        ];
+        final isNarrow = constraints.maxWidth < 700;
 
-        return Container(
-          padding: const EdgeInsets.all(6),
+        Widget pillRow = Container(
+          padding: const EdgeInsets.all(4),
           decoration: BoxDecoration(
-            color: isDark ? AppColors.darkSurfaceCard : AppColors.surfaceWhite,
-            borderRadius: BorderRadius.circular(AppSizes.radiusLarge),
+            color: isDark
+                ? AppColors.darkSurfaceCard
+                : const Color(0xFFF1F3F5),
+            borderRadius: BorderRadius.circular(30),
             border: Border.all(
               color: isDark
                   ? AppColors.darkBorder
-                  : Colors.grey.withValues(alpha: 0.2),
-            ),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.03),
-                blurRadius: 8,
-                offset: const Offset(0, 2),
-              ),
-            ],
-          ),
-          child: isNarrow
-              ? Column(
-                  children: items
-                      .map((item) => Padding(
-                            padding: const EdgeInsets.only(bottom: 6),
-                            child: item,
-                          ))
-                      .toList(),
-                )
-              : Row(
-                  children: items
-                      .map((item) => Expanded(
-                            child: Padding(
-                              padding: const EdgeInsets.symmetric(horizontal: 4),
-                              child: item,
-                            ),
-                          ))
-                      .toList(),
-                ),
-        );
-      },
-    );
-  }
-
-  Widget _buildToggleItem({
-    required int index,
-    required IconData icon,
-    required String title,
-    required String subtitle,
-  }) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final isSelected = _selectedViewMode == index;
-    return InkWell(
-        onTap: () => setState(() {
-          _selectedViewMode = index;
-          _rowsPerPage = 10;
-          _currentPage = 0;
-        }),
-        borderRadius: BorderRadius.circular(AppSizes.radiusMedium),
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 200),
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-          decoration: BoxDecoration(
-            color: isSelected
-                ? AppColors.primaryGreen.withValues(alpha: 0.1)
-                : Colors.transparent,
-            borderRadius: BorderRadius.circular(AppSizes.radiusMedium),
-            border: Border.all(
-              color: isSelected
-                  ? AppColors.primaryGreen
-                  : Colors.transparent,
-              width: 1.5,
+                  : Colors.grey.withValues(alpha: 0.18),
             ),
           ),
           child: Row(
-            children: [
-              Icon(
-                icon,
-                color: isSelected
-                    ? AppColors.primaryGreen
-                    : (isDark
-                        ? AppColors.darkTextSecondary
-                        : AppColors.textSecondary),
-                size: 22,
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      title,
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 13,
+            mainAxisSize: MainAxisSize.min,
+            children: items.map((item) {
+              final isSelected = _selectedViewMode == item.index;
+              return InkWell(
+                onTap: () => setState(() {
+                  _selectedViewMode = item.index;
+                  _rowsPerPage = 10;
+                  _currentPage = 0;
+                }),
+                borderRadius: BorderRadius.circular(24),
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 220),
+                  curve: Curves.easeInOut,
+                  padding: EdgeInsets.symmetric(
+                    horizontal: isNarrow ? 14 : 18,
+                    vertical: 9,
+                  ),
+                  decoration: BoxDecoration(
+                    color: isSelected
+                        ? AppColors.primaryGreen
+                        : Colors.transparent,
+                    borderRadius: BorderRadius.circular(24),
+                    boxShadow: isSelected
+                        ? [
+                            BoxShadow(
+                              color: AppColors.primaryGreen.withValues(alpha: 0.35),
+                              blurRadius: 8,
+                              offset: const Offset(0, 2),
+                            ),
+                          ]
+                        : null,
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(
+                        item.icon,
+                        size: 16,
                         color: isSelected
-                            ? AppColors.primaryGreen
-                            : (isDark
-                                ? AppColors.darkTextPrimary
-                                : AppColors.textPrimary),
-                      ),
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      subtitle,
-                      style: TextStyle(
-                        fontSize: 11,
-                        color: isSelected
-                            ? AppColors.primaryGreen.withValues(alpha: 0.8)
+                            ? Colors.white
                             : (isDark
                                 ? AppColors.darkTextSecondary
                                 : AppColors.textSecondary),
                       ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ],
+                      const SizedBox(width: 7),
+                      Text(
+                        item.label,
+                        style: TextStyle(
+                          fontSize: isNarrow ? 12 : 13.5,
+                          fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+                          color: isSelected
+                              ? Colors.white
+                              : (isDark
+                                  ? AppColors.darkTextPrimary
+                                  : AppColors.textPrimary),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
-              ),
-            ],
+              );
+            }).toList(),
           ),
-        ),
-      );
+        );
+
+        if (isNarrow) {
+          return SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            physics: const BouncingScrollPhysics(),
+            child: pillRow,
+          );
+        }
+
+        return pillRow;
+      },
+    );
   }
 
 
