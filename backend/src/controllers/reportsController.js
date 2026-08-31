@@ -508,6 +508,62 @@ exports.getTransparencyBoardData = (req, res) => {
 
             const totalTransferred = gradesTransferee.reduce((sum, g) => sum + g.transferredCount, 0);
 
+            // 4Ps breakdown by grade for this specific academic year
+            const fourPsRows = db.prepare(`
+                SELECT 
+                    e.grade_level,
+                    COUNT(DISTINCT CASE WHEN s.is_4ps = 1 THEN s.id END) as fourPsCount,
+                    COUNT(DISTINCT s.id) as totalStudents
+                FROM enrollments e
+                JOIN students s ON e.student_id = s.id
+                WHERE e.academic_year_id = ?
+                GROUP BY e.grade_level
+            `).all(ay.id);
+
+            const grades4Ps = [7, 8, 9, 10, 11, 12].map(g => {
+                const row = fourPsRows.find(r => Number(r.grade_level) === g) || { fourPsCount: 0, totalStudents: 0 };
+                const count = Number(row.fourPsCount) || 0;
+                const total = Number(row.totalStudents) || 0;
+                const percentage = total > 0 ? Number((count / total * 100).toFixed(1)) : 0;
+                return {
+                    gradeLevel: g,
+                    fourPsCount: count,
+                    totalStudents: total,
+                    percentage
+                };
+            });
+
+            const jhs4PsCount = grades4Ps.filter(g => g.gradeLevel <= 10).reduce((sum, g) => sum + g.fourPsCount, 0);
+            const jhs4PsTotalStudents = grades4Ps.filter(g => g.gradeLevel <= 10).reduce((sum, g) => sum + g.totalStudents, 0);
+            const jhs4PsPercentage = jhs4PsTotalStudents > 0 ? Number((jhs4PsCount / jhs4PsTotalStudents * 100).toFixed(1)) : 0;
+
+            const shs4PsCount = grades4Ps.filter(g => g.gradeLevel > 10).reduce((sum, g) => sum + g.fourPsCount, 0);
+            const shs4PsTotalStudents = grades4Ps.filter(g => g.gradeLevel > 10).reduce((sum, g) => sum + g.totalStudents, 0);
+            const shs4PsPercentage = shs4PsTotalStudents > 0 ? Number((shs4PsCount / shs4PsTotalStudents * 100).toFixed(1)) : 0;
+
+            const total4Ps = grades4Ps.reduce((sum, g) => sum + g.fourPsCount, 0);
+            const totalStudents4Ps = grades4Ps.reduce((sum, g) => sum + g.totalStudents, 0);
+            const overallPercentage = totalStudents4Ps > 0 ? Number((total4Ps / totalStudents4Ps * 100).toFixed(1)) : 0;
+
+            const fourPs = {
+                grades: grades4Ps,
+                jhsTotal: {
+                    fourPsCount: jhs4PsCount,
+                    totalStudents: jhs4PsTotalStudents,
+                    percentage: jhs4PsPercentage
+                },
+                shsTotal: {
+                    fourPsCount: shs4PsCount,
+                    totalStudents: shs4PsTotalStudents,
+                    percentage: shs4PsPercentage
+                },
+                overallTotal: {
+                    fourPsCount: total4Ps,
+                    totalStudents: totalStudents4Ps,
+                    percentage: overallPercentage
+                }
+            };
+
             return {
                 yearRange: ay.year_range,
                 enrollment: {
@@ -523,61 +579,30 @@ exports.getTransparencyBoardData = (req, res) => {
                 transferees: {
                     grades: gradesTransferee,
                     totalTransferred
-                }
+                },
+                fourPs
             };
         });
 
-        // 4Ps equity breakdown for latest academic year with enrollments
-        let latestAyId = null;
-        for (let i = academicYears.length - 1; i >= 0; i--) {
-            const cnt = db.prepare('SELECT COUNT(*) as count FROM enrollments WHERE academic_year_id = ?').get(academicYears[i].id).count;
-            if (cnt > 0) {
-                latestAyId = academicYears[i].id;
-                break;
+        // Top level equity4Ps uses the active / selected year's 4Ps data
+        const latestYearData = yearsData.length > 0 ? yearsData[yearsData.length - 1] : null;
+        const equity4Ps = latestYearData?.fourPs
+            ? {
+                grades: latestYearData.fourPs.grades,
+                total4Ps: latestYearData.fourPs.overallTotal.fourPsCount,
+                totalStudents: latestYearData.fourPs.overallTotal.totalStudents,
+                overallPercentage: latestYearData.fourPs.overallTotal.percentage
             }
-        }
-        if (!latestAyId && academicYears.length > 0) {
-            latestAyId = academicYears[academicYears.length - 1].id;
-        }
-        let fourPsRows = [];
-        if (latestAyId) {
-            fourPsRows = db.prepare(`
-                SELECT 
-                    e.grade_level,
-                    COUNT(DISTINCT CASE WHEN s.is_4ps = 1 THEN s.id END) as fourPsCount,
-                    COUNT(DISTINCT s.id) as totalStudents
-                FROM enrollments e
-                JOIN students s ON e.student_id = s.id
-                WHERE e.academic_year_id = ?
-                GROUP BY e.grade_level
-            `).all(latestAyId);
-        }
-
-        const grades4Ps = [7, 8, 9, 10, 11, 12].map(g => {
-            const row = fourPsRows.find(r => Number(r.grade_level) === g) || { fourPsCount: 0, totalStudents: 0 };
-            const count = Number(row.fourPsCount) || 0;
-            const total = Number(row.totalStudents) || 0;
-            const percentage = total > 0 ? Number((count / total * 100).toFixed(1)) : 0;
-            return {
-                gradeLevel: g,
-                fourPsCount: count,
-                totalStudents: total,
-                percentage
+            : {
+                grades: [7, 8, 9, 10, 11, 12].map(g => ({ gradeLevel: g, fourPsCount: 0, totalStudents: 0, percentage: 0 })),
+                total4Ps: 0,
+                totalStudents: 0,
+                overallPercentage: 0
             };
-        });
-
-        const total4Ps = grades4Ps.reduce((sum, g) => sum + g.fourPsCount, 0);
-        const totalStudents = grades4Ps.reduce((sum, g) => sum + g.totalStudents, 0);
-        const overallPercentage = totalStudents > 0 ? Number((total4Ps / totalStudents * 100).toFixed(1)) : 0;
 
         res.json({
             years: yearsData,
-            equity4Ps: {
-                grades: grades4Ps,
-                total4Ps,
-                totalStudents,
-                overallPercentage
-            }
+            equity4Ps
         });
     } catch (error) {
         res.status(500).json({ message: 'Failed to fetch transparency board data', error: error.message });

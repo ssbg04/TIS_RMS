@@ -302,18 +302,69 @@ class YearlyTransfereeSummary {
       );
 }
 
+class Stage4PsSummary {
+  final int fourPsCount;
+  final int totalStudents;
+  final double percentage;
+
+  const Stage4PsSummary({
+    required this.fourPsCount,
+    required this.totalStudents,
+    required this.percentage,
+  });
+
+  factory Stage4PsSummary.fromJson(Map<String, dynamic> j) => Stage4PsSummary(
+        fourPsCount: (j['fourPsCount'] as num?)?.toInt() ?? 0,
+        totalStudents: (j['totalStudents'] as num?)?.toInt() ?? 0,
+        percentage: (j['percentage'] as num?)?.toDouble() ?? 0.0,
+      );
+}
+
+class Yearly4PsSummary {
+  final List<Grade4PsCount> grades;
+  final Stage4PsSummary jhsTotal;
+  final Stage4PsSummary shsTotal;
+  final Stage4PsSummary overallTotal;
+
+  const Yearly4PsSummary({
+    required this.grades,
+    required this.jhsTotal,
+    required this.shsTotal,
+    required this.overallTotal,
+  });
+
+  factory Yearly4PsSummary.fromJson(Map<String, dynamic> j) => Yearly4PsSummary(
+        grades: (j['grades'] as List? ?? [])
+            .map((e) => Grade4PsCount.fromJson(e as Map<String, dynamic>))
+            .toList(),
+        jhsTotal: Stage4PsSummary.fromJson(
+            j['jhsTotal'] as Map<String, dynamic>? ?? {}),
+        shsTotal: Stage4PsSummary.fromJson(
+            j['shsTotal'] as Map<String, dynamic>? ?? {}),
+        overallTotal: Stage4PsSummary.fromJson(
+            j['overallTotal'] as Map<String, dynamic>? ?? {}),
+      );
+}
+
 /// Complete yearly Transparency Board item
 class YearlyTransparencyItem {
   final String yearRange;
   final YearlyEnrollmentSummary enrollment;
   final YearlyDropoutSummary dropouts;
   final YearlyTransfereeSummary transferees;
+  final Yearly4PsSummary fourPs;
 
   const YearlyTransparencyItem({
     required this.yearRange,
     required this.enrollment,
     required this.dropouts,
     required this.transferees,
+    this.fourPs = const Yearly4PsSummary(
+      grades: [],
+      jhsTotal: Stage4PsSummary(fourPsCount: 0, totalStudents: 0, percentage: 0.0),
+      shsTotal: Stage4PsSummary(fourPsCount: 0, totalStudents: 0, percentage: 0.0),
+      overallTotal: Stage4PsSummary(fourPsCount: 0, totalStudents: 0, percentage: 0.0),
+    ),
   });
 
   factory YearlyTransparencyItem.fromJson(Map<String, dynamic> j) =>
@@ -325,6 +376,8 @@ class YearlyTransparencyItem {
             j['dropouts'] as Map<String, dynamic>? ?? {}),
         transferees: YearlyTransfereeSummary.fromJson(
             j['transferees'] as Map<String, dynamic>? ?? {}),
+        fourPs: Yearly4PsSummary.fromJson(
+            j['fourPs'] as Map<String, dynamic>? ?? {}),
       );
 }
 

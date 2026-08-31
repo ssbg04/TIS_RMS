@@ -269,7 +269,7 @@ class _TransparencyBoardContentState extends ConsumerState<_TransparencyBoardCon
                   color: Colors.deepPurple,
                 ),
                 const SizedBox(height: AppSizes.p16),
-                _buildEquity4PsSection(context, data.equity4Ps),
+                _buildEquity4PsSection(context, data.years),
               ],
             ),
           ),
@@ -1545,13 +1545,23 @@ class _TransparencyBoardContentState extends ConsumerState<_TransparencyBoardCon
     return _responsiveTable(child: tableWidget, minWidth: 580);
   }
 
-  // â”€â”€ Section 3: 4Ps Equity â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Section 3: 4Ps Beneficiaries ──────────────────────────────────────────
 
   Widget _buildEquity4PsSection(
     BuildContext context,
-    Equity4PsSummary equity,
+    List<YearlyTransparencyItem> years,
   ) {
+    if (years.isEmpty) {
+      return const Center(child: Text('No comparative data found.'));
+    }
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final latestYear = years.last;
+    final previousYear = years.length > 1 ? years[years.length - 2] : null;
+    final hasPrev = previousYear != null;
+    final prevLabel = hasPrev ? 'SY ${previousYear.yearRange}' : 'Previous SY';
+    final currentLabel = 'SY ${latestYear.yearRange}';
+
+    final active4Ps = latestYear.fourPs;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -1572,12 +1582,13 @@ class _TransparencyBoardContentState extends ConsumerState<_TransparencyBoardCon
                 ),
                 const SizedBox(width: 8),
                 Text(
-                  '4Ps Beneficiaries by Grade',
+                  previousYear != null
+                      ? '4Ps Beneficiaries (SY ${previousYear.yearRange} vs. SY ${latestYear.yearRange})'
+                      : '4Ps Beneficiaries (SY ${latestYear.yearRange})',
                   style: TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.w600,
-                    color:
-                        isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
+                    color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
                   ),
                 ),
               ],
@@ -1589,7 +1600,7 @@ class _TransparencyBoardContentState extends ConsumerState<_TransparencyBoardCon
                 borderRadius: BorderRadius.circular(20),
               ),
               child: Text(
-                'Overall: ${equity.total4Ps} of ${equity.totalStudents} (${equity.overallPercentage}%)',
+                'Active SY Total: ${active4Ps.overallTotal.fourPsCount} of ${active4Ps.overallTotal.totalStudents} (${active4Ps.overallTotal.percentage}%)',
                 style: const TextStyle(
                   color: Colors.deepPurple,
                   fontWeight: FontWeight.bold,
@@ -1601,22 +1612,22 @@ class _TransparencyBoardContentState extends ConsumerState<_TransparencyBoardCon
         ),
         const SizedBox(height: 16),
         _responsiveTable(
-          minWidth: 580,
+          minWidth: 680,
           child: Container(
             decoration: BoxDecoration(
               border: Border.all(
-                color: isDark
-                    ? AppColors.darkBorder
-                    : Colors.grey.withValues(alpha: 0.3),
+                color: isDark ? AppColors.darkBorder : Colors.grey.withValues(alpha: 0.3),
               ),
               borderRadius: BorderRadius.circular(AppSizes.radiusMedium),
             ),
             child: Table(
               columnWidths: const {
-                0: FlexColumnWidth(2),
+                0: FlexColumnWidth(2.3),
                 1: FlexColumnWidth(1.2),
                 2: FlexColumnWidth(1.2),
-                3: FlexColumnWidth(2),
+                3: FlexColumnWidth(1.1),
+                4: FlexColumnWidth(1.1),
+                5: FlexColumnWidth(1.4),
               },
               border: TableBorder.symmetric(
                 inside: BorderSide(
@@ -1626,131 +1637,487 @@ class _TransparencyBoardContentState extends ConsumerState<_TransparencyBoardCon
                 ),
               ),
               children: [
+                // Table Header
                 TableRow(
                   decoration: BoxDecoration(
-                    color: Colors.deepPurple.withValues(alpha: 0.08),
-                  ),
-                  children: const [
-                    Padding(
-                      padding: EdgeInsets.all(10),
-                      child: Text(
-                        'Grade Level',
-                        style: TextStyle(fontWeight: FontWeight.bold),
-                      ),
+                    color: Colors.deepPurple.withValues(alpha: 0.1),
+                    borderRadius: const BorderRadius.vertical(
+                      top: Radius.circular(AppSizes.radiusMedium),
                     ),
-                    Padding(
-                      padding: EdgeInsets.all(10),
-                      child: Text(
-                        '4Ps Learners',
-                        style: TextStyle(fontWeight: FontWeight.bold),
-                      ),
-                    ),
-                    Padding(
-                      padding: EdgeInsets.all(10),
-                      child: Text(
-                        'Total Students',
-                        style: TextStyle(fontWeight: FontWeight.bold),
-                      ),
-                    ),
-                    Padding(
-                      padding: EdgeInsets.all(10),
-                      child: Text(
-                        'Percentage',
-                        style: TextStyle(fontWeight: FontWeight.bold),
-                      ),
-                    ),
-                  ],
-                ),
-                ...equity.grades.map((g) {
-                  return TableRow(
-                    children: [
-                      Padding(
-                        padding: const EdgeInsets.all(10),
-                        child: Text(
-                          'Grade ${g.gradeLevel}',
-                          style: const TextStyle(fontWeight: FontWeight.w600),
-                        ),
-                      ),
-                      Padding(
-                        padding: const EdgeInsets.all(10),
-                        child: Text(g.fourPsCount.toString()),
-                      ),
-                      Padding(
-                        padding: const EdgeInsets.all(10),
-                        child: Text(g.totalStudents.toString()),
-                      ),
-                      Padding(
-                        padding: const EdgeInsets.all(10),
-                        child: Row(
-                          children: [
-                            Expanded(
-                              child: LinearProgressIndicator(
-                                value: (g.percentage / 100).clamp(0.0, 1.0),
-                                backgroundColor: isDark
-                                    ? AppColors.darkSurface2
-                                    : Colors.grey.withValues(alpha: 0.15),
-                                color: Colors.deepPurple,
-                                minHeight: 8,
-                                borderRadius: BorderRadius.circular(4),
-                              ),
-                            ),
-                            const SizedBox(width: 8),
-                            SizedBox(
-                              width: 44,
-                              child: Text(
-                                '${g.percentage}%',
-                                style: const TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 12,
-                                  color: Colors.deepPurple,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  );
-                }),
-                // Total Row
-                TableRow(
-                  decoration: BoxDecoration(
-                    color: isDark
-                        ? AppColors.darkSurface2
-                        : Colors.grey.withValues(alpha: 0.06),
                   ),
                   children: [
                     const Padding(
                       padding: EdgeInsets.all(10),
                       child: Text(
-                        'TOTAL',
+                        'Key Stage / Grade Level',
+                        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
+                      ),
+                    ),
+                    Padding(
+                      padding: const EdgeInsets.all(10),
+                      child: Text(
+                        prevLabel,
+                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
+                        textAlign: TextAlign.center,
+                      ),
+                    ),
+                    Padding(
+                      padding: const EdgeInsets.all(10),
+                      child: Text(
+                        currentLabel,
+                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
+                        textAlign: TextAlign.center,
+                      ),
+                    ),
+                    const Padding(
+                      padding: EdgeInsets.all(10),
+                      child: Text(
+                        'Difference',
+                        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
+                        textAlign: TextAlign.center,
+                      ),
+                    ),
+                    const Padding(
+                      padding: EdgeInsets.all(10),
+                      child: Text(
+                        '4Ps Share',
+                        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
+                        textAlign: TextAlign.center,
+                      ),
+                    ),
+                    const Padding(
+                      padding: EdgeInsets.all(10),
+                      child: Text(
+                        'Remarks',
+                        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
+                        textAlign: TextAlign.center,
+                      ),
+                    ),
+                  ],
+                ),
+
+                // ── Key Stage 3 Header ──
+                TableRow(
+                  decoration: BoxDecoration(
+                    color: isDark
+                        ? AppColors.darkSurface2
+                        : Colors.grey.withValues(alpha: 0.08),
+                  ),
+                  children: const [
+                    Padding(
+                      padding: EdgeInsets.all(10),
+                      child: Text(
+                        'KEY STAGE 3 (JUNIOR HIGH SCHOOL)',
+                        style: TextStyle(
+                          fontWeight: FontWeight.w700,
+                          fontSize: 12,
+                        ),
+                      ),
+                    ),
+                    SizedBox.shrink(),
+                    SizedBox.shrink(),
+                    SizedBox.shrink(),
+                    SizedBox.shrink(),
+                    SizedBox.shrink(),
+                  ],
+                ),
+
+                // JHS Grades 7-10
+                ...[7, 8, 9, 10].map((grade) {
+                  final currRow = latestYear.fourPs.grades.firstWhere(
+                    (g) => g.gradeLevel == grade,
+                    orElse: () => Grade4PsCount(
+                      gradeLevel: grade,
+                      fourPsCount: 0,
+                      totalStudents: 0,
+                      percentage: 0.0,
+                    ),
+                  );
+
+                  final prevRow = hasPrev
+                      ? previousYear.fourPs.grades.firstWhere(
+                          (g) => g.gradeLevel == grade,
+                          orElse: () => Grade4PsCount(
+                            gradeLevel: grade,
+                            fourPsCount: 0,
+                            totalStudents: 0,
+                            percentage: 0.0,
+                          ),
+                        )
+                      : null;
+
+                  final curr = currRow.fourPsCount;
+                  final prev = prevRow?.fourPsCount;
+                  final diff = hasPrev ? (curr - (prev ?? 0)) : null;
+
+                  return TableRow(
+                    children: [
+                      Padding(
+                        padding: const EdgeInsets.all(10),
+                        child: Text('Grade $grade'),
+                      ),
+                      Padding(
+                        padding: const EdgeInsets.all(10),
+                        child: Text(
+                          hasPrev ? '$prev' : '—',
+                          textAlign: TextAlign.center,
+                        ),
+                      ),
+                      Padding(
+                        padding: const EdgeInsets.all(10),
+                        child: Text(
+                          '$curr',
+                          textAlign: TextAlign.center,
+                          style: const TextStyle(fontWeight: FontWeight.w600),
+                        ),
+                      ),
+                      Padding(
+                        padding: const EdgeInsets.all(10),
+                        child: Center(
+                          child: _buildDifferenceCell(diff, hasPreviousYear: hasPrev, isDark: isDark),
+                        ),
+                      ),
+                      Padding(
+                        padding: const EdgeInsets.all(10),
+                        child: Text(
+                          '${currRow.percentage}%',
+                          textAlign: TextAlign.center,
+                          style: const TextStyle(
+                            fontWeight: FontWeight.bold,
+                            color: Colors.deepPurple,
+                            fontSize: 12,
+                          ),
+                        ),
+                      ),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 8),
+                        child: Center(
+                          child: _buildRemarkBadge(diff, hasPreviousYear: hasPrev, isDark: isDark),
+                        ),
+                      ),
+                    ],
+                  );
+                }),
+
+                // JHS Subtotal Row
+                TableRow(
+                  decoration: BoxDecoration(
+                    color: Colors.deepPurple.withValues(alpha: 0.05),
+                  ),
+                  children: [
+                    const Padding(
+                      padding: EdgeInsets.all(10),
+                      child: Text(
+                        'Key Stage 3 (JHS) Total',
                         style: TextStyle(fontWeight: FontWeight.bold),
                       ),
                     ),
                     Padding(
                       padding: const EdgeInsets.all(10),
                       child: Text(
-                        equity.total4Ps.toString(),
-                        style: const TextStyle(
-                          fontWeight: FontWeight.bold,
-                          color: Colors.deepPurple,
-                        ),
-                      ),
-                    ),
-                    Padding(
-                      padding: const EdgeInsets.all(10),
-                      child: Text(
-                        equity.totalStudents.toString(),
+                        hasPrev ? '${previousYear.fourPs.jhsTotal.fourPsCount}' : '—',
+                        textAlign: TextAlign.center,
                         style: const TextStyle(fontWeight: FontWeight.bold),
                       ),
                     ),
                     Padding(
                       padding: const EdgeInsets.all(10),
                       child: Text(
-                        '${equity.overallPercentage}% of total',
+                        '${latestYear.fourPs.jhsTotal.fourPsCount}',
+                        textAlign: TextAlign.center,
                         style: const TextStyle(
                           fontWeight: FontWeight.bold,
                           color: Colors.deepPurple,
+                        ),
+                      ),
+                    ),
+                    Padding(
+                      padding: const EdgeInsets.all(10),
+                      child: Center(
+                        child: _buildDifferenceCell(
+                          hasPrev
+                              ? (latestYear.fourPs.jhsTotal.fourPsCount -
+                                  previousYear.fourPs.jhsTotal.fourPsCount)
+                              : null,
+                          hasPreviousYear: hasPrev,
+                          isDark: isDark,
+                        ),
+                      ),
+                    ),
+                    Padding(
+                      padding: const EdgeInsets.all(10),
+                      child: Text(
+                        '${latestYear.fourPs.jhsTotal.percentage}%',
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          color: Colors.deepPurple,
+                          fontSize: 12,
+                        ),
+                      ),
+                    ),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 8),
+                      child: Center(
+                        child: _buildRemarkBadge(
+                          hasPrev
+                              ? (latestYear.fourPs.jhsTotal.fourPsCount -
+                                  previousYear.fourPs.jhsTotal.fourPsCount)
+                              : null,
+                          hasPreviousYear: hasPrev,
+                          isDark: isDark,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+
+                // ── Key Stage 4 Header ──
+                TableRow(
+                  decoration: BoxDecoration(
+                    color: isDark
+                        ? AppColors.darkSurface2
+                        : Colors.grey.withValues(alpha: 0.08),
+                  ),
+                  children: const [
+                    Padding(
+                      padding: EdgeInsets.all(10),
+                      child: Text(
+                        'KEY STAGE 4 (SENIOR HIGH SCHOOL)',
+                        style: TextStyle(
+                          fontWeight: FontWeight.w700,
+                          fontSize: 12,
+                        ),
+                      ),
+                    ),
+                    SizedBox.shrink(),
+                    SizedBox.shrink(),
+                    SizedBox.shrink(),
+                    SizedBox.shrink(),
+                    SizedBox.shrink(),
+                  ],
+                ),
+
+                // SHS Grades 11-12
+                ...[11, 12].map((grade) {
+                  final currRow = latestYear.fourPs.grades.firstWhere(
+                    (g) => g.gradeLevel == grade,
+                    orElse: () => Grade4PsCount(
+                      gradeLevel: grade,
+                      fourPsCount: 0,
+                      totalStudents: 0,
+                      percentage: 0.0,
+                    ),
+                  );
+
+                  final prevRow = hasPrev
+                      ? previousYear.fourPs.grades.firstWhere(
+                          (g) => g.gradeLevel == grade,
+                          orElse: () => Grade4PsCount(
+                            gradeLevel: grade,
+                            fourPsCount: 0,
+                            totalStudents: 0,
+                            percentage: 0.0,
+                          ),
+                        )
+                      : null;
+
+                  final curr = currRow.fourPsCount;
+                  final prev = prevRow?.fourPsCount;
+                  final diff = hasPrev ? (curr - (prev ?? 0)) : null;
+
+                  return TableRow(
+                    children: [
+                      Padding(
+                        padding: const EdgeInsets.all(10),
+                        child: Text('Grade $grade'),
+                      ),
+                      Padding(
+                        padding: const EdgeInsets.all(10),
+                        child: Text(
+                          hasPrev ? '$prev' : '—',
+                          textAlign: TextAlign.center,
+                        ),
+                      ),
+                      Padding(
+                        padding: const EdgeInsets.all(10),
+                        child: Text(
+                          '$curr',
+                          textAlign: TextAlign.center,
+                          style: const TextStyle(fontWeight: FontWeight.w600),
+                        ),
+                      ),
+                      Padding(
+                        padding: const EdgeInsets.all(10),
+                        child: Center(
+                          child: _buildDifferenceCell(diff, hasPreviousYear: hasPrev, isDark: isDark),
+                        ),
+                      ),
+                      Padding(
+                        padding: const EdgeInsets.all(10),
+                        child: Text(
+                          '${currRow.percentage}%',
+                          textAlign: TextAlign.center,
+                          style: const TextStyle(
+                            fontWeight: FontWeight.bold,
+                            color: Colors.deepPurple,
+                            fontSize: 12,
+                          ),
+                        ),
+                      ),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 8),
+                        child: Center(
+                          child: _buildRemarkBadge(diff, hasPreviousYear: hasPrev, isDark: isDark),
+                        ),
+                      ),
+                    ],
+                  );
+                }),
+
+                // SHS Subtotal Row
+                TableRow(
+                  decoration: BoxDecoration(
+                    color: Colors.deepPurple.withValues(alpha: 0.05),
+                  ),
+                  children: [
+                    const Padding(
+                      padding: EdgeInsets.all(10),
+                      child: Text(
+                        'Key Stage 4 (SHS) Total',
+                        style: TextStyle(fontWeight: FontWeight.bold),
+                      ),
+                    ),
+                    Padding(
+                      padding: const EdgeInsets.all(10),
+                      child: Text(
+                        hasPrev ? '${previousYear.fourPs.shsTotal.fourPsCount}' : '—',
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(fontWeight: FontWeight.bold),
+                      ),
+                    ),
+                    Padding(
+                      padding: const EdgeInsets.all(10),
+                      child: Text(
+                        '${latestYear.fourPs.shsTotal.fourPsCount}',
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          color: Colors.deepPurple,
+                        ),
+                      ),
+                    ),
+                    Padding(
+                      padding: const EdgeInsets.all(10),
+                      child: Center(
+                        child: _buildDifferenceCell(
+                          hasPrev
+                              ? (latestYear.fourPs.shsTotal.fourPsCount -
+                                  previousYear.fourPs.shsTotal.fourPsCount)
+                              : null,
+                          hasPreviousYear: hasPrev,
+                          isDark: isDark,
+                        ),
+                      ),
+                    ),
+                    Padding(
+                      padding: const EdgeInsets.all(10),
+                      child: Text(
+                        '${latestYear.fourPs.shsTotal.percentage}%',
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          color: Colors.deepPurple,
+                          fontSize: 12,
+                        ),
+                      ),
+                    ),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 8),
+                      child: Center(
+                        child: _buildRemarkBadge(
+                          hasPrev
+                              ? (latestYear.fourPs.shsTotal.fourPsCount -
+                                  previousYear.fourPs.shsTotal.fourPsCount)
+                              : null,
+                          hasPreviousYear: hasPrev,
+                          isDark: isDark,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+
+                // ── Overall Total Row ──
+                TableRow(
+                  decoration: BoxDecoration(
+                    color: Colors.deepPurple.withValues(alpha: 0.12),
+                  ),
+                  children: [
+                    const Padding(
+                      padding: EdgeInsets.all(10),
+                      child: Text(
+                        'Overall Total (JHS + SHS)',
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          color: Colors.deepPurple,
+                        ),
+                      ),
+                    ),
+                    Padding(
+                      padding: const EdgeInsets.all(10),
+                      child: Text(
+                        hasPrev ? '${previousYear.fourPs.overallTotal.fourPsCount}' : '—',
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(fontWeight: FontWeight.bold),
+                      ),
+                    ),
+                    Padding(
+                      padding: const EdgeInsets.all(10),
+                      child: Text(
+                        '${latestYear.fourPs.overallTotal.fourPsCount}',
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          color: Colors.deepPurple,
+                        ),
+                      ),
+                    ),
+                    Padding(
+                      padding: const EdgeInsets.all(10),
+                      child: Center(
+                        child: _buildDifferenceCell(
+                          hasPrev
+                              ? (latestYear.fourPs.overallTotal.fourPsCount -
+                                  previousYear.fourPs.overallTotal.fourPsCount)
+                              : null,
+                          hasPreviousYear: hasPrev,
+                          isDark: isDark,
+                        ),
+                      ),
+                    ),
+                    Padding(
+                      padding: const EdgeInsets.all(10),
+                      child: Text(
+                        '${latestYear.fourPs.overallTotal.percentage}%',
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          color: Colors.deepPurple,
+                          fontSize: 12,
+                        ),
+                      ),
+                    ),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 8),
+                      child: Center(
+                        child: _buildRemarkBadge(
+                          hasPrev
+                              ? (latestYear.fourPs.overallTotal.fourPsCount -
+                                  previousYear.fourPs.overallTotal.fourPsCount)
+                              : null,
+                          hasPreviousYear: hasPrev,
+                          isDark: isDark,
                         ),
                       ),
                     ),
