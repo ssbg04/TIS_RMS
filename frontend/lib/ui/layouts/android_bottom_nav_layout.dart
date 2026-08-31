@@ -28,6 +28,8 @@ import '../screens/capstone_members/capstone_members_screen.dart';
 import '../shared/dialogs/disconnected_dialog.dart';
 import '../screens/students/widgets/student_filter_dialog.dart';
 import '../shared/inputs/app_search_bar.dart';
+import '../shared/menus/profile_dropdown_menu.dart';
+import '../shared/widgets/notification_icon_button.dart';
 
 // Dummy screen for placeholders
 class PlaceholderScreen extends StatelessWidget {
@@ -84,7 +86,11 @@ class _AndroidBottomNavLayoutState extends ConsumerState<AndroidBottomNavLayout>
     });
   }
 
-  void _showStudentSearchDialog(BuildContext context, WidgetRef ref) {
+  void _showStudentSearchDialog(
+    BuildContext context,
+    WidgetRef ref, {
+    bool navigateToStudents = false,
+  }) {
     final currentSearch = ref.read(studentQueryProvider).search;
     final searchController = TextEditingController(text: currentSearch);
     final searchFocusNode = FocusNode();
@@ -115,6 +121,10 @@ class _AndroidBottomNavLayoutState extends ConsumerState<AndroidBottomNavLayout>
                 onSubmitted: (value) {
                   Navigator.of(ctx).pop();
                   ref.read(studentQueryProvider.notifier).setSearch(value);
+                  if (navigateToStudents) {
+                    ref.invalidate(studentPageProvider);
+                    ref.read(activeTabProvider.notifier).setTab('Students');
+                  }
                 },
               ),
             ),
@@ -375,6 +385,40 @@ class _AndroidBottomNavLayoutState extends ConsumerState<AndroidBottomNavLayout>
                   elevation: 0,
                   surfaceTintColor: Colors.transparent,
                   actions: [
+                    if (activeTab == 'Dashboard') ...[
+                      // 1. Search Icon
+                      Consumer(
+                        builder: (context, ref, _) {
+                          return Tooltip(
+                            message: 'Search Students',
+                            child: IconButton(
+                              icon: const Icon(Icons.search, size: 22),
+                              onPressed: () => _showStudentSearchDialog(
+                                context,
+                                ref,
+                                navigateToStudents: true,
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+                      // 2. Notification Icon with Unread Badge
+                      const NotificationIconButton(iconSize: 22),
+                      // 3. Profile Avatar Dropdown
+                      Consumer(
+                        builder: (context, ref, _) {
+                          final user = ref.watch(authProvider).value;
+                          return Padding(
+                            padding: const EdgeInsets.only(left: 4, right: 12),
+                            child: ProfileDropdownMenu(
+                              user: user,
+                              onRefresh: () =>
+                                  ref.read(authProvider.notifier).refreshUser(),
+                            ),
+                          );
+                        },
+                      ),
+                    ],
                     if (activeTab == 'Students') ...[
                       // 1. Search Icon
                       Consumer(

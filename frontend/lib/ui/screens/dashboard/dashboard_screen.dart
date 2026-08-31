@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'dart:ui';
@@ -294,6 +295,9 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     final isAdmin = user?.role == 'admin';
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
+    final isMobileOrAndroid = MediaQuery.of(context).size.width < 800 ||
+        defaultTargetPlatform == TargetPlatform.android;
+
     // Clean up if not used
     return CallbackShortcuts(
       bindings: <ShortcutActivator, VoidCallback>{
@@ -323,7 +327,12 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                   onRefresh: _handleRefresh,
                   child: SingleChildScrollView(
                     physics: const AlwaysScrollableScrollPhysics(),
-                    padding: const EdgeInsets.fromLTRB(24, 90, 24, 76),
+                    padding: EdgeInsets.fromLTRB(
+                      24,
+                      isMobileOrAndroid ? 20 : 90,
+                      24,
+                      76,
+                    ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
@@ -363,13 +372,14 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                   ),
                 ),
               ),
-              // Sticky Blur Top Bar
-              Positioned(
-                top: 0,
-                left: 0,
-                right: 0,
-                child: _buildTopBar(context, user),
-              ),
+              // Sticky Blur Top Bar (Desktop only, as Android Top AppBar handles actions)
+              if (!isMobileOrAndroid)
+                Positioned(
+                  top: 0,
+                  left: 0,
+                  right: 0,
+                  child: _buildTopBar(context, user),
+                ),
               // Sticky Blur Bottom Bar Overlay
               Positioned(
                 bottom: 0,
