@@ -1,4 +1,5 @@
 import 'dart:typed_data';
+import 'package:flutter/services.dart' show rootBundle;
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import '../../domain/entities/report_models.dart';
@@ -11,6 +12,13 @@ class TransparencyBoardPdfService {
     String? regionName,
   }) async {
     final pdf = pw.Document();
+
+    // Load school logo asset
+    Uint8List? logoBytes;
+    try {
+      final byteData = await rootBundle.load('assets/images/logo.png');
+      logoBytes = byteData.buffer.asUint8List();
+    } catch (_) {}
 
     final years = data.years;
     final latestYear = years.isNotEmpty ? years.last : null;
@@ -25,32 +33,20 @@ class TransparencyBoardPdfService {
     pdf.addPage(
       pw.MultiPage(
         pageFormat: PdfPageFormat.a4,
-        margin: const pw.EdgeInsets.symmetric(horizontal: 28, vertical: 24),
+        margin: const pw.EdgeInsets.symmetric(horizontal: 26, vertical: 22),
         header: (pw.Context context) => _buildPdfHeader(
+          logoBytes: logoBytes,
           activeSyLabel: activeSyLabel,
           prevSyLabel: prevSyLabel,
           hasPrev: hasPrev,
           generatedDate: generatedDate,
-          schoolName: schoolName ?? 'TIAONG INTEGRATED SCHOOL',
-          divisionName: divisionName ?? 'DIVISION OF QUEZON',
-          regionName: regionName ?? 'REGION IV-A CALABARZON',
+          schoolName: schoolName ?? 'TALISAY INTEGRATED SCHOOL',
+          divisionName: divisionName ?? 'Schools Division of Quezon Province',
+          regionName: regionName ?? 'Region IV-A CALABARZON',
         ),
-        footer: (pw.Context context) => pw.Container(
-          alignment: pw.Alignment.centerRight,
-          margin: const pw.EdgeInsets.only(top: 8),
-          child: pw.Row(
-            mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
-            children: [
-              pw.Text(
-                'TIS-RMS DepEd Transparency Report',
-                style: const pw.TextStyle(fontSize: 8, color: PdfColors.grey600),
-              ),
-              pw.Text(
-                'Page ${context.pageNumber} of ${context.pagesCount}',
-                style: const pw.TextStyle(fontSize: 8, color: PdfColors.grey600),
-              ),
-            ],
-          ),
+        footer: (pw.Context context) => _buildPdfFooter(
+          context: context,
+          logoBytes: logoBytes,
         ),
         build: (pw.Context context) {
           if (years.isEmpty || latestYear == null) {
@@ -65,11 +61,11 @@ class TransparencyBoardPdfService {
           }
 
           return [
-            pw.SizedBox(height: 12),
+            pw.SizedBox(height: 10),
 
             // ── Section 1: Data on Enrollment ────────────────────────────────
             _buildSectionHeader('1. DATA ON ENROLLMENT'),
-            pw.SizedBox(height: 6),
+            pw.SizedBox(height: 5),
             _buildEnrollmentComparisonTable(
               latestYear: latestYear,
               previousYear: previousYear,
@@ -77,29 +73,29 @@ class TransparencyBoardPdfService {
               prevLabel: prevSyLabel,
               currentLabel: activeSyLabel,
             ),
-            pw.SizedBox(height: 14),
+            pw.SizedBox(height: 12),
 
             // ── Section 2: Dropouts & Transferees ────────────────────────────
             _buildSectionHeader('2. DROPOUTS & TRANSFEREES'),
-            pw.SizedBox(height: 6),
+            pw.SizedBox(height: 5),
             pw.Text(
               'A. Dropouts Summary',
-              style: pw.TextStyle(fontSize: 10, fontWeight: pw.FontWeight.bold, color: PdfColors.red900),
+              style: pw.TextStyle(fontSize: 9.5, fontWeight: pw.FontWeight.bold, color: PdfColors.red900),
             ),
-            pw.SizedBox(height: 4),
+            pw.SizedBox(height: 3),
             _buildMultiYearDropoutTable(years: years),
-            pw.SizedBox(height: 8),
+            pw.SizedBox(height: 7),
             pw.Text(
               'B. Transferees Summary',
-              style: pw.TextStyle(fontSize: 10, fontWeight: pw.FontWeight.bold, color: PdfColors.orange900),
+              style: pw.TextStyle(fontSize: 9.5, fontWeight: pw.FontWeight.bold, color: PdfColors.orange900),
             ),
-            pw.SizedBox(height: 4),
+            pw.SizedBox(height: 3),
             _buildMultiYearTransfereeTable(years: years),
-            pw.SizedBox(height: 14),
+            pw.SizedBox(height: 12),
 
             // ── Section 3: 4Ps Beneficiaries ──────────────────────────────────
             _buildSectionHeader('3. 4Ps BENEFICIARIES'),
-            pw.SizedBox(height: 6),
+            pw.SizedBox(height: 5),
             _buildFourPsComparisonTable(
               latestYear: latestYear,
               previousYear: previousYear,
@@ -107,7 +103,7 @@ class TransparencyBoardPdfService {
               prevLabel: prevSyLabel,
               currentLabel: activeSyLabel,
             ),
-            pw.SizedBox(height: 24),
+            pw.SizedBox(height: 20),
 
             // ── Signatory Footer ─────────────────────────────────────────────
             _buildSignatoryBlock(),
@@ -119,9 +115,10 @@ class TransparencyBoardPdfService {
     return pdf.save();
   }
 
-  // ── Header Component ───────────────────────────────────────────────────────
+  // ── Header Component (Official DepEd Template) ─────────────────────────────
 
   static pw.Widget _buildPdfHeader({
+    required Uint8List? logoBytes,
     required String activeSyLabel,
     required String prevSyLabel,
     required bool hasPrev,
@@ -133,63 +130,330 @@ class TransparencyBoardPdfService {
     return pw.Column(
       crossAxisAlignment: pw.CrossAxisAlignment.center,
       children: [
-        pw.Text(
-          'Republic of the Philippines',
-          style: const pw.TextStyle(fontSize: 9, color: PdfColors.grey700),
-        ),
-        pw.Text(
-          'Department of Education',
-          style: pw.TextStyle(fontSize: 11, fontWeight: pw.FontWeight.bold, color: PdfColors.black),
-        ),
-        pw.Text(
-          '$regionName • $divisionName',
-          style: const pw.TextStyle(fontSize: 9, color: PdfColors.grey800),
-        ),
-        pw.Text(
-          schoolName,
-          style: pw.TextStyle(fontSize: 13, fontWeight: pw.FontWeight.bold, color: PdfColors.green900),
-        ),
-        pw.SizedBox(height: 4),
-        pw.Container(
-          padding: const pw.EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-          decoration: pw.BoxDecoration(
-            color: PdfColors.green800,
-            borderRadius: const pw.BorderRadius.all(pw.Radius.circular(4)),
-          ),
-          child: pw.Text(
-            'DEPED TRANSPARENCY & SCHOOL PERFORMANCE BOARD REPORT',
-            style: pw.TextStyle(
-              fontSize: 10,
-              fontWeight: pw.FontWeight.bold,
-              color: PdfColors.white,
-              letterSpacing: 0.4,
+        if (logoBytes != null) ...[
+          pw.Center(
+            child: pw.Image(
+              pw.MemoryImage(logoBytes),
+              width: 42,
+              height: 42,
             ),
           ),
+          pw.SizedBox(height: 2),
+        ],
+        pw.Text(
+          'Republic of the Philippines',
+          style: const pw.TextStyle(
+            fontSize: 9.5,
+            color: PdfColors.black,
+          ),
         ),
-        pw.SizedBox(height: 4),
+        pw.SizedBox(height: 1),
+        pw.Text(
+          'Department of Education',
+          style: pw.TextStyle(
+            fontSize: 14,
+            fontWeight: pw.FontWeight.bold,
+            color: PdfColors.black,
+          ),
+        ),
+        pw.SizedBox(height: 1),
+        pw.Text(
+          regionName,
+          style: const pw.TextStyle(
+            fontSize: 9,
+            color: PdfColors.black,
+          ),
+        ),
+        pw.SizedBox(height: 1),
+        pw.Text(
+          divisionName,
+          style: const pw.TextStyle(
+            fontSize: 9,
+            color: PdfColors.black,
+          ),
+        ),
+        pw.SizedBox(height: 2),
+        pw.Text(
+          schoolName,
+          style: pw.TextStyle(
+            fontSize: 11,
+            fontWeight: pw.FontWeight.bold,
+            color: PdfColors.green900,
+          ),
+        ),
+        pw.Text(
+          'Talisay, Tiaong, Quezon',
+          style: const pw.TextStyle(
+            fontSize: 8.5,
+            color: PdfColors.grey800,
+          ),
+        ),
+        pw.SizedBox(height: 5),
+
+        // Thick prominent horizontal line from the official DepEd template
+        pw.Container(
+          height: 1.8,
+          color: PdfColors.black,
+        ),
+        pw.SizedBox(height: 5),
+
+        // Report Subheader
         pw.Row(
           mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
           children: [
+            pw.Container(
+              padding: const pw.EdgeInsets.symmetric(horizontal: 7, vertical: 2.5),
+              decoration: pw.BoxDecoration(
+                color: PdfColors.green800,
+                borderRadius: const pw.BorderRadius.all(pw.Radius.circular(3)),
+              ),
+              child: pw.Text(
+                'DEPED TRANSPARENCY & SCHOOL PERFORMANCE BOARD REPORT',
+                style: pw.TextStyle(
+                  fontSize: 8,
+                  fontWeight: pw.FontWeight.bold,
+                  color: PdfColors.white,
+                  letterSpacing: 0.3,
+                ),
+              ),
+            ),
             pw.Text(
               hasPrev
                   ? 'Reference Period: $prevSyLabel vs. $activeSyLabel'
                   : 'Reference Period: $activeSyLabel (Baseline)',
-              style: pw.TextStyle(fontSize: 8.5, fontWeight: pw.FontWeight.bold, color: PdfColors.grey800),
+              style: pw.TextStyle(
+                fontSize: 8,
+                fontWeight: pw.FontWeight.bold,
+                color: PdfColors.grey800,
+              ),
             ),
             pw.Text(
-              'Date Generated: $generatedDate',
-              style: const pw.TextStyle(fontSize: 8.5, color: PdfColors.grey700),
+              'Date: $generatedDate',
+              style: const pw.TextStyle(
+                fontSize: 7.5,
+                color: PdfColors.grey700,
+              ),
             ),
           ],
         ),
-        pw.Divider(thickness: 1, color: PdfColors.grey400),
+        pw.SizedBox(height: 3),
+      ],
+    );
+  }
+
+  // ── Footer Component (Official DepEd Quezon + Talisay IS Template) ──────────
+
+  static pw.Widget _buildPdfFooter({
+    required pw.Context context,
+    required Uint8List? logoBytes,
+  }) {
+    return pw.Column(
+      mainAxisSize: pw.MainAxisSize.min,
+      children: [
+        // Top black divider bar from template
+        pw.Container(
+          height: 1.5,
+          color: PdfColors.black,
+        ),
+        pw.SizedBox(height: 5),
+        pw.Row(
+          crossAxisAlignment: pw.CrossAxisAlignment.center,
+          children: [
+            // Left: DepEd / School Logo
+            pw.Container(
+              width: 50,
+              height: 46,
+              alignment: pw.Alignment.center,
+              child: logoBytes != null
+                  ? pw.Image(
+                      pw.MemoryImage(logoBytes),
+                      width: 42,
+                      height: 42,
+                    )
+                  : pw.Text(
+                      'DepEd\nQuezon',
+                      textAlign: pw.TextAlign.center,
+                      style: pw.TextStyle(
+                        fontSize: 8,
+                        fontWeight: pw.FontWeight.bold,
+                        color: PdfColors.green900,
+                      ),
+                    ),
+            ),
+            pw.SizedBox(width: 8),
+
+            // Center: School Info & DepEd Quezon Contacts
+            pw.Expanded(
+              child: pw.Column(
+                crossAxisAlignment: pw.CrossAxisAlignment.center,
+                mainAxisSize: pw.MainAxisSize.min,
+                children: [
+                  pw.Text(
+                    '“Creating Possibilities, Inspiring Innovations”',
+                    style: pw.TextStyle(
+                      fontSize: 8,
+                      fontStyle: pw.FontStyle.italic,
+                      fontWeight: pw.FontWeight.bold,
+                      color: PdfColors.black,
+                    ),
+                  ),
+                  pw.SizedBox(height: 1.5),
+                  pw.Text(
+                    'Address: Brgy. Talisay, Tiaong, Quezon',
+                    style: const pw.TextStyle(
+                      fontSize: 7.5,
+                      color: PdfColors.black,
+                    ),
+                  ),
+                  pw.Text(
+                    'Trunkline # (042) 784-0366, (042) 784-0164, (042) 784-0391, (042) 784-0321',
+                    style: const pw.TextStyle(
+                      fontSize: 6.8,
+                      color: PdfColors.black,
+                    ),
+                  ),
+                  pw.Text(
+                    'Email Address: quezon@deped.gov.ph / talisayis.tiaong@deped.gov.ph',
+                    style: const pw.TextStyle(
+                      fontSize: 6.8,
+                      color: PdfColors.blue800,
+                    ),
+                  ),
+                  pw.Text(
+                    'Website: www.depedquezon.com.ph',
+                    style: const pw.TextStyle(
+                      fontSize: 6.8,
+                      color: PdfColors.blue800,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            pw.SizedBox(width: 8),
+
+            // Right: JAS-ANZ ISO Certification Mark & Registration Number
+            pw.Container(
+              width: 85,
+              child: pw.Column(
+                crossAxisAlignment: pw.CrossAxisAlignment.center,
+                mainAxisSize: pw.MainAxisSize.min,
+                children: [
+                  // Dual badge box (Red Q Quality Assured + Blue C JAS-ANZ)
+                  pw.Row(
+                    mainAxisAlignment: pw.MainAxisAlignment.center,
+                    children: [
+                      // Red Box
+                      pw.Container(
+                        width: 32,
+                        height: 22,
+                        padding: const pw.EdgeInsets.all(1.5),
+                        decoration: const pw.BoxDecoration(
+                          color: PdfColor.fromInt(0xFFC62828),
+                          borderRadius: pw.BorderRadius.only(
+                            topLeft: pw.Radius.circular(2),
+                            bottomLeft: pw.Radius.circular(2),
+                          ),
+                        ),
+                        alignment: pw.Alignment.center,
+                        child: pw.Column(
+                          mainAxisAlignment: pw.MainAxisAlignment.center,
+                          children: [
+                            pw.Text(
+                              'Q',
+                              style: pw.TextStyle(
+                                color: PdfColors.white,
+                                fontSize: 9,
+                                fontWeight: pw.FontWeight.bold,
+                              ),
+                            ),
+                            pw.Text(
+                              'QUALITY ASSURED',
+                              style: const pw.TextStyle(
+                                color: PdfColors.white,
+                                fontSize: 3.2,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      // Blue Box
+                      pw.Container(
+                        width: 32,
+                        height: 22,
+                        padding: const pw.EdgeInsets.all(1.5),
+                        decoration: const pw.BoxDecoration(
+                          color: PdfColor.fromInt(0xFF0D47A1),
+                          borderRadius: pw.BorderRadius.only(
+                            topRight: pw.Radius.circular(2),
+                            bottomRight: pw.Radius.circular(2),
+                          ),
+                        ),
+                        alignment: pw.Alignment.center,
+                        child: pw.Column(
+                          mainAxisAlignment: pw.MainAxisAlignment.center,
+                          children: [
+                            pw.Text(
+                              'JAS-ANZ',
+                              style: pw.TextStyle(
+                                color: PdfColors.white,
+                                fontSize: 4.5,
+                                fontWeight: pw.FontWeight.bold,
+                              ),
+                            ),
+                            pw.Text(
+                              'C',
+                              style: pw.TextStyle(
+                                color: PdfColors.white,
+                                fontSize: 8,
+                                fontWeight: pw.FontWeight.bold,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                  pw.SizedBox(height: 2),
+                  pw.Text(
+                    'Registration Number:',
+                    style: const pw.TextStyle(fontSize: 6, color: PdfColors.black),
+                    textAlign: pw.TextAlign.center,
+                  ),
+                  pw.Text(
+                    'QAC/R63/0216',
+                    style: pw.TextStyle(
+                      fontSize: 6.5,
+                      fontWeight: pw.FontWeight.bold,
+                      color: PdfColors.black,
+                    ),
+                    textAlign: pw.TextAlign.center,
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+        pw.SizedBox(height: 3),
+        pw.Row(
+          mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+          children: [
+            pw.Text(
+              'Talisay Integrated School — TIS RMS DepEd Transparency Report',
+              style: const pw.TextStyle(fontSize: 6.5, color: PdfColors.grey600),
+            ),
+            pw.Text(
+              'Page ${context.pageNumber} of ${context.pagesCount}',
+              style: const pw.TextStyle(fontSize: 6.5, color: PdfColors.grey600),
+            ),
+          ],
+        ),
       ],
     );
   }
 
   static pw.Widget _buildSectionHeader(String title) {
     return pw.Container(
-      padding: const pw.EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      padding: const pw.EdgeInsets.symmetric(horizontal: 8, vertical: 3.5),
       decoration: const pw.BoxDecoration(
         color: PdfColors.grey200,
         borderRadius: pw.BorderRadius.all(pw.Radius.circular(3)),
@@ -199,7 +463,7 @@ class TransparencyBoardPdfService {
           pw.Text(
             title,
             style: pw.TextStyle(
-              fontSize: 10,
+              fontSize: 9.5,
               fontWeight: pw.FontWeight.bold,
               color: PdfColors.green900,
             ),
@@ -704,11 +968,11 @@ class TransparencyBoardPdfService {
     return pw.Column(
       crossAxisAlignment: pw.CrossAxisAlignment.start,
       children: [
-        pw.Text(title, style: const pw.TextStyle(fontSize: 8.5, color: PdfColors.grey700)),
-        pw.SizedBox(height: 28),
-        pw.Text(line, style: const pw.TextStyle(fontSize: 8.5)),
+        pw.Text(title, style: const pw.TextStyle(fontSize: 8, color: PdfColors.grey700)),
+        pw.SizedBox(height: 24),
+        pw.Text(line, style: const pw.TextStyle(fontSize: 8)),
         pw.SizedBox(height: 2),
-        pw.Text(role, style: pw.TextStyle(fontSize: 8, fontWeight: pw.FontWeight.bold, color: PdfColors.grey800)),
+        pw.Text(role, style: pw.TextStyle(fontSize: 7.5, fontWeight: pw.FontWeight.bold, color: PdfColors.grey800)),
       ],
     );
   }
@@ -723,12 +987,12 @@ class TransparencyBoardPdfService {
     PdfColor? textColor,
   }) {
     return pw.Padding(
-      padding: const pw.EdgeInsets.symmetric(horizontal: 5, vertical: 4),
+      padding: const pw.EdgeInsets.symmetric(horizontal: 4.5, vertical: 3.5),
       child: pw.Text(
         text,
         textAlign: align,
         style: pw.TextStyle(
-          fontSize: isHeader ? 8.5 : 8,
+          fontSize: isHeader ? 8 : 7.5,
           fontWeight: (isHeader || isBold) ? pw.FontWeight.bold : pw.FontWeight.normal,
           color: textColor ?? (isHeader ? PdfColors.black : PdfColors.grey900),
         ),

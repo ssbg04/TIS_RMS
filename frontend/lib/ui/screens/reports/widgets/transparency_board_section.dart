@@ -77,9 +77,9 @@ class _TransparencyBoardContentState extends ConsumerState<_TransparencyBoardCon
 
       final pdfBytes = await TransparencyBoardPdfService.generatePdf(
         data: data,
-        schoolName: 'TIAONG INTEGRATED SCHOOL',
-        divisionName: 'DIVISION OF QUEZON',
-        regionName: 'REGION IV-A CALABARZON',
+        schoolName: 'TALISAY INTEGRATED SCHOOL',
+        divisionName: 'Schools Division of Quezon Province',
+        regionName: 'Region IV-A CALABARZON',
       );
 
       if (!mounted) return;
