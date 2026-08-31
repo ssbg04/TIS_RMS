@@ -191,11 +191,12 @@ class _FileSavePreviewDialogState extends State<_FileSavePreviewDialog> {
       await widget.onSave(name);
       if (mounted) Navigator.of(context).pop(true);
     } catch (e) {
-      if (mounted)
+      if (mounted) {
         setState(() {
           _isSaving = false;
           _error = e.toString().replaceFirst('Exception: ', '');
         });
+      }
     }
   }
 
@@ -203,6 +204,7 @@ class _FileSavePreviewDialogState extends State<_FileSavePreviewDialog> {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final ki = MediaQuery.viewInsetsOf(context);
     final sh = MediaQuery.sizeOf(context).height;
     final maxH = (sh * 0.92 - ki.bottom).clamp(400.0, double.infinity);
@@ -210,7 +212,7 @@ class _FileSavePreviewDialogState extends State<_FileSavePreviewDialog> {
 
     return Dialog(
       insetPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
-      backgroundColor: AppColors.surfaceWhite,
+      backgroundColor: isDark ? AppColors.darkSurfaceCard : AppColors.surfaceWhite,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(AppSizes.radiusLarge),
       ),
@@ -219,13 +221,13 @@ class _FileSavePreviewDialogState extends State<_FileSavePreviewDialog> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            _buildTopBar(accent),
-            _buildBreadcrumbs(accent),
-            const Divider(height: 1),
+            _buildTopBar(accent, isDark),
+            _buildBreadcrumbs(accent, isDark),
+            Divider(height: 1, color: isDark ? AppColors.darkBorder : Colors.grey.shade200),
             // Preview — fills available space
-            Flexible(child: _buildPreviewArea(accent)),
-            const Divider(height: 1),
-            _buildBottom(accent),
+            Flexible(child: _buildPreviewArea(accent, isDark)),
+            Divider(height: 1, color: isDark ? AppColors.darkBorder : Colors.grey.shade200),
+            _buildBottom(accent, isDark),
           ],
         ),
       ),
@@ -234,14 +236,14 @@ class _FileSavePreviewDialogState extends State<_FileSavePreviewDialog> {
 
   // ── TOP BAR ───────────────────────────────────────────────────────────────
 
-  Widget _buildTopBar(Color accent) {
+  Widget _buildTopBar(Color accent, bool isDark) {
     return Container(
       padding: const EdgeInsets.symmetric(
         horizontal: AppSizes.p20,
         vertical: AppSizes.p12,
       ),
       decoration: BoxDecoration(
-        color: accent.withValues(alpha: 0.06),
+        color: accent.withValues(alpha: isDark ? 0.12 : 0.06),
         borderRadius: const BorderRadius.vertical(
           top: Radius.circular(AppSizes.radiusLarge),
         ),
@@ -251,7 +253,7 @@ class _FileSavePreviewDialogState extends State<_FileSavePreviewDialog> {
           Container(
             padding: const EdgeInsets.all(8),
             decoration: BoxDecoration(
-              color: accent.withValues(alpha: 0.12),
+              color: accent.withValues(alpha: isDark ? 0.20 : 0.12),
               borderRadius: BorderRadius.circular(8),
             ),
             child: Icon(widget.fileType.icon, color: accent, size: 22),
@@ -260,18 +262,18 @@ class _FileSavePreviewDialogState extends State<_FileSavePreviewDialog> {
           Expanded(
             child: Text(
               'Preview — ${widget.fileType.label}',
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.bold,
-                color: AppColors.textPrimary,
+                color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
               ),
             ),
           ),
           IconButton(
-            icon: const Icon(
+            icon: Icon(
               Icons.close,
               size: 20,
-              color: AppColors.textSecondary,
+              color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
             ),
             onPressed: _isSaving
                 ? null
@@ -284,23 +286,23 @@ class _FileSavePreviewDialogState extends State<_FileSavePreviewDialog> {
 
   // ── BREADCRUMBS ───────────────────────────────────────────────────────────
 
-  Widget _buildBreadcrumbs(Color accent) {
+  Widget _buildBreadcrumbs(Color accent, bool isDark) {
     // Build all chips: user-supplied rows + auto size
     final allRows = [...widget.previewRows, FilePreviewRow('Size', _sizeLabel)];
 
     return Container(
       height: 42,
       padding: const EdgeInsets.symmetric(horizontal: AppSizes.p16),
-      color: AppColors.pageBackground,
+      color: isDark ? AppColors.darkPageBackground : AppColors.pageBackground,
       child: ListView.separated(
         scrollDirection: Axis.horizontal,
         itemCount: allRows.length,
-        separatorBuilder: (_, __) => const Padding(
-          padding: EdgeInsets.symmetric(horizontal: 4),
+        separatorBuilder: (_, _) => Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 4),
           child: Icon(
             Icons.chevron_right,
             size: 14,
-            color: AppColors.textMuted,
+            color: isDark ? AppColors.darkTextMuted : AppColors.textMuted,
           ),
         ),
         itemBuilder: (_, i) {
@@ -309,18 +311,18 @@ class _FileSavePreviewDialogState extends State<_FileSavePreviewDialog> {
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
               decoration: BoxDecoration(
-                color: accent.withValues(alpha: 0.08),
+                color: accent.withValues(alpha: isDark ? 0.15 : 0.08),
                 borderRadius: BorderRadius.circular(20),
-                border: Border.all(color: accent.withValues(alpha: 0.18)),
+                border: Border.all(color: accent.withValues(alpha: isDark ? 0.32 : 0.18)),
               ),
               child: RichText(
                 text: TextSpan(
                   children: [
                     TextSpan(
                       text: '${row.label}: ',
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 11,
-                        color: AppColors.textSecondary,
+                        color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
                       ),
                     ),
                     TextSpan(
@@ -343,39 +345,43 @@ class _FileSavePreviewDialogState extends State<_FileSavePreviewDialog> {
 
   // ── PREVIEW AREA ──────────────────────────────────────────────────────────
 
-  Widget _buildPreviewArea(Color accent) {
+  Widget _buildPreviewArea(Color accent, bool isDark) {
     return switch (widget.fileType) {
-      SaveFileType.image => _buildImagePreview(),
-      SaveFileType.excel => _buildExcelPreview(accent),
+      SaveFileType.image => _buildImagePreview(isDark),
+      SaveFileType.excel => _buildExcelPreview(accent, isDark),
       SaveFileType.pdf => _buildPlaceholderPreview(
         accent,
         Icons.picture_as_pdf_outlined,
         'PDF Preview',
         'PDF rendering requires an external viewer.\nThe file will open correctly after saving.',
+        isDark,
       ),
       SaveFileType.word => _buildPlaceholderPreview(
         accent,
         Icons.description_outlined,
         'Word Document',
         'Word preview not available in-app.\nThe document will open correctly after saving.',
+        isDark,
       ),
       _ => _buildPlaceholderPreview(
         accent,
         Icons.insert_drive_file_outlined,
         'File Preview',
         'No preview available for this file type.',
+        isDark,
       ),
     };
   }
 
   /// Full-size image preview.
-  Widget _buildImagePreview() {
+  Widget _buildImagePreview(bool isDark) {
     if (widget.imageFile == null) {
       return _buildPlaceholderPreview(
         widget.fileType.color,
         Icons.image_not_supported_outlined,
         'No Image',
         'No image file was provided.',
+        isDark,
       );
     }
     return InteractiveViewer(
@@ -385,18 +391,19 @@ class _FileSavePreviewDialogState extends State<_FileSavePreviewDialog> {
         widget.imageFile!,
         width: double.infinity,
         fit: BoxFit.contain,
-        errorBuilder: (_, __, ___) => _buildPlaceholderPreview(
+        errorBuilder: (_, _, _) => _buildPlaceholderPreview(
           widget.fileType.color,
           Icons.broken_image_outlined,
           'Preview Failed',
           'Could not load image.',
+          isDark,
         ),
       ),
     );
   }
 
   /// Mini spreadsheet rendered from [SheetPreviewData].
-  Widget _buildExcelPreview(Color accent) {
+  Widget _buildExcelPreview(Color accent, bool isDark) {
     final sheets = widget.sheets;
     if (sheets.isEmpty) {
       return _buildPlaceholderPreview(
@@ -404,11 +411,12 @@ class _FileSavePreviewDialogState extends State<_FileSavePreviewDialog> {
         Icons.table_chart_outlined,
         'Excel Spreadsheet',
         'No table data provided for preview.',
+        isDark,
       );
     }
 
     if (sheets.length == 1) {
-      return _buildSheet(sheets.first, accent);
+      return _buildSheet(sheets.first, accent, isDark);
     }
 
     return DefaultTabController(
@@ -416,12 +424,12 @@ class _FileSavePreviewDialogState extends State<_FileSavePreviewDialog> {
       child: Column(
         children: [
           Container(
-            color: accent.withValues(alpha: 0.05),
+            color: accent.withValues(alpha: isDark ? 0.08 : 0.05),
             child: TabBar(
               isScrollable: true,
               tabAlignment: TabAlignment.start,
               labelColor: accent,
-              unselectedLabelColor: AppColors.textSecondary,
+              unselectedLabelColor: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
               indicatorColor: accent,
               indicatorSize: TabBarIndicatorSize.tab,
               tabs: sheets.map((s) => Tab(text: s.sheetName)).toList(),
@@ -429,7 +437,7 @@ class _FileSavePreviewDialogState extends State<_FileSavePreviewDialog> {
           ),
           Expanded(
             child: TabBarView(
-              children: sheets.map((s) => _buildSheet(s, accent)).toList(),
+              children: sheets.map((s) => _buildSheet(s, accent, isDark)).toList(),
             ),
           ),
         ],
@@ -437,13 +445,14 @@ class _FileSavePreviewDialogState extends State<_FileSavePreviewDialog> {
     );
   }
 
-  Widget _buildSheet(SheetPreviewData tp, Color accent) {
+  Widget _buildSheet(SheetPreviewData tp, Color accent, bool isDark) {
     if (tp.headers.isEmpty) {
       return _buildPlaceholderPreview(
         accent,
         Icons.table_chart_outlined,
         'Empty Sheet',
         'No data provided for this sheet.',
+        isDark,
       );
     }
 
@@ -476,7 +485,9 @@ class _FileSavePreviewDialogState extends State<_FileSavePreviewDialog> {
           // Table
           Container(
             decoration: BoxDecoration(
-              border: Border.all(color: Colors.grey.shade300),
+              border: Border.all(
+                color: isDark ? AppColors.darkBorder : Colors.grey.shade300,
+              ),
               borderRadius: BorderRadius.circular(AppSizes.radiusMedium),
             ),
             child: SingleChildScrollView(
@@ -484,20 +495,25 @@ class _FileSavePreviewDialogState extends State<_FileSavePreviewDialog> {
               child: Table(
                 defaultColumnWidth: const IntrinsicColumnWidth(),
                 border: TableBorder(
-                  horizontalInside: BorderSide(color: Colors.grey.shade200),
-                  verticalInside: BorderSide(color: Colors.grey.shade200),
+                  horizontalInside: BorderSide(
+                    color: isDark ? AppColors.darkBorder : Colors.grey.shade200,
+                  ),
+                  verticalInside: BorderSide(
+                    color: isDark ? AppColors.darkBorder : Colors.grey.shade200,
+                  ),
                 ),
                 children: [
                   // Header row
                   TableRow(
                     decoration: BoxDecoration(
-                      color: accent.withValues(alpha: 0.10),
+                      color: accent.withValues(alpha: isDark ? 0.20 : 0.10),
                     ),
                     children: tp.headers.asMap().entries.map((e) {
                       return _tableCell(
                         e.value.isEmpty ? '#' : e.value,
                         isHeader: true,
                         accent: accent,
+                        isDark: isDark,
                       );
                     }).toList(),
                   ),
@@ -506,10 +522,12 @@ class _FileSavePreviewDialogState extends State<_FileSavePreviewDialog> {
                     final isEven = rowEntry.key % 2 == 0;
                     return TableRow(
                       decoration: BoxDecoration(
-                        color: isEven ? Colors.white : Colors.grey.shade50,
+                        color: isEven
+                            ? (isDark ? AppColors.darkSurfaceCard : Colors.white)
+                            : (isDark ? AppColors.darkSurface2 : Colors.grey.shade50),
                       ),
                       children: rowEntry.value.map((cell) {
-                        return _tableCell(cell);
+                        return _tableCell(cell, isDark: isDark);
                       }).toList(),
                     );
                   }),
@@ -523,9 +541,9 @@ class _FileSavePreviewDialogState extends State<_FileSavePreviewDialog> {
               padding: const EdgeInsets.only(top: AppSizes.p8),
               child: Text(
                 '+ ${tp.rows.length - tp.maxPreviewRows} more rows not shown in preview',
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 11,
-                  color: AppColors.textMuted,
+                  color: isDark ? AppColors.darkTextMuted : AppColors.textMuted,
                   fontStyle: FontStyle.italic,
                 ),
               ),
@@ -535,7 +553,7 @@ class _FileSavePreviewDialogState extends State<_FileSavePreviewDialog> {
     );
   }
 
-  Widget _tableCell(String text, {bool isHeader = false, Color? accent}) {
+  Widget _tableCell(String text, {bool isHeader = false, Color? accent, required bool isDark}) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
       child: Text(
@@ -544,8 +562,8 @@ class _FileSavePreviewDialogState extends State<_FileSavePreviewDialog> {
           fontSize: 12,
           fontWeight: isHeader ? FontWeight.bold : FontWeight.normal,
           color: isHeader
-              ? (accent ?? AppColors.textPrimary)
-              : AppColors.textPrimary,
+              ? (accent ?? (isDark ? AppColors.darkTextPrimary : AppColors.textPrimary))
+              : (isDark ? AppColors.darkTextPrimary : AppColors.textPrimary),
         ),
       ),
     );
@@ -557,6 +575,7 @@ class _FileSavePreviewDialogState extends State<_FileSavePreviewDialog> {
     IconData icon,
     String title,
     String subtitle,
+    bool isDark,
   ) {
     return Center(
       child: Padding(
@@ -567,7 +586,7 @@ class _FileSavePreviewDialogState extends State<_FileSavePreviewDialog> {
             Container(
               padding: const EdgeInsets.all(AppSizes.p20),
               decoration: BoxDecoration(
-                color: accent.withValues(alpha: 0.08),
+                color: accent.withValues(alpha: isDark ? 0.15 : 0.08),
                 shape: BoxShape.circle,
               ),
               child: Icon(icon, size: 52, color: accent),
@@ -575,19 +594,19 @@ class _FileSavePreviewDialogState extends State<_FileSavePreviewDialog> {
             const SizedBox(height: AppSizes.p16),
             Text(
               title,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.bold,
-                color: AppColors.textPrimary,
+                color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
               ),
             ),
             const SizedBox(height: AppSizes.p8),
             Text(
               subtitle,
               textAlign: TextAlign.center,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 13,
-                color: AppColors.textSecondary,
+                color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
               ),
             ),
           ],
@@ -598,7 +617,7 @@ class _FileSavePreviewDialogState extends State<_FileSavePreviewDialog> {
 
   // ── BOTTOM: filename + actions ─────────────────────────────────────────────
 
-  Widget _buildBottom(Color accent) {
+  Widget _buildBottom(Color accent, bool isDark) {
     return Padding(
       padding: const EdgeInsets.fromLTRB(
         AppSizes.p20,
@@ -615,13 +634,34 @@ class _FileSavePreviewDialogState extends State<_FileSavePreviewDialog> {
             enabled: !_isSaving,
             textInputAction: TextInputAction.done,
             scrollPadding: const EdgeInsets.only(bottom: 120),
-            style: const TextStyle(fontSize: 13),
+            style: TextStyle(
+              fontSize: 13,
+              color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
+            ),
             decoration: InputDecoration(
               isDense: true,
               labelText: 'File Name',
+              labelStyle: TextStyle(
+                color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
+              ),
+              filled: isDark,
+              fillColor: isDark ? AppColors.darkSurface2 : null,
               prefixIcon: Icon(widget.fileType.icon, color: accent, size: 18),
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(AppSizes.radiusMedium),
+                borderSide: BorderSide(
+                  color: isDark ? AppColors.darkBorder : Colors.grey.shade400,
+                ),
+              ),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(AppSizes.radiusMedium),
+                borderSide: BorderSide(
+                  color: isDark ? AppColors.darkBorder : Colors.grey.shade400,
+                ),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(AppSizes.radiusMedium),
+                borderSide: BorderSide(color: accent, width: 1.5),
               ),
               contentPadding: const EdgeInsets.symmetric(
                 horizontal: 14,
@@ -646,8 +686,9 @@ class _FileSavePreviewDialogState extends State<_FileSavePreviewDialog> {
                       ? null
                       : () => Navigator.of(context).pop(false),
                   style: OutlinedButton.styleFrom(
-                    foregroundColor: AppColors.textSecondary,
-                    side: BorderSide(color: Colors.grey.shade300),
+                    foregroundColor: isDark ? AppColors.darkTextPrimary : AppColors.textSecondary,
+                    side: BorderSide(color: isDark ? AppColors.darkBorder : Colors.grey.shade300),
+                    backgroundColor: isDark ? AppColors.darkSurface2 : Colors.transparent,
                     padding: const EdgeInsets.symmetric(vertical: 13),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(
