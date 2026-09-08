@@ -1951,7 +1951,12 @@ class _ArchivesScreenState extends ConsumerState<ArchivesScreen>
         final paginatedFolders = folders.sublist(startIndex, endIndex);
 
         Widget containerList = Container(
-          margin: EdgeInsets.all(isMobile ? 8 : 16),
+          margin: EdgeInsets.only(
+            left: isMobile ? 8 : 16,
+            right: isMobile ? 8 : 16,
+            top: isMobile ? 12 : 16,
+            bottom: isMobile ? 16 : 16,
+          ),
           decoration: BoxDecoration(
             color: isDark ? AppColors.darkSurfaceCard : AppColors.surfaceWhite,
             borderRadius: BorderRadius.circular(12),
@@ -1971,6 +1976,7 @@ class _ArchivesScreenState extends ConsumerState<ArchivesScreen>
                 ref.invalidate(archiveDocumentPageProvider);
               },
               child: ListView.separated(
+                padding: EdgeInsets.only(top: isMobile ? 10 : 0, bottom: isMobile ? 24 : 0),
                 itemCount: paginatedFolders.length,
                 separatorBuilder: (_, _) =>
                     Divider(height: 1, color: isDark ? AppColors.darkBorder : Colors.grey.shade100),
@@ -2077,7 +2083,12 @@ class _ArchivesScreenState extends ConsumerState<ArchivesScreen>
                 ? 2
                 : (c.maxWidth / tileBase).floor().clamp(2, 6);
             return GridView.builder(
-              padding: EdgeInsets.all(isMobile ? 10 : 16),
+              padding: EdgeInsets.only(
+                left: isMobile ? 10 : 16,
+                right: isMobile ? 10 : 16,
+                top: isMobile ? 14 : 16,
+                bottom: isMobile ? 24 : 16,
+              ),
               gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
                 crossAxisCount: cols,
                 crossAxisSpacing: isMobile ? 10 : 16,
@@ -2400,7 +2411,12 @@ class _ArchivesScreenState extends ConsumerState<ArchivesScreen>
       children: [
         Expanded(
           child: Container(
-            margin: EdgeInsets.all(isMobile ? 8 : 16),
+            margin: EdgeInsets.only(
+              left: isMobile ? 8 : 16,
+              right: isMobile ? 8 : 16,
+              top: isMobile ? 12 : 16,
+              bottom: isMobile ? 16 : 16,
+            ),
             decoration: BoxDecoration(
               color: isDark ? AppColors.darkSurfaceCard : AppColors.surfaceWhite,
               borderRadius: BorderRadius.circular(12),
@@ -2419,6 +2435,7 @@ class _ArchivesScreenState extends ConsumerState<ArchivesScreen>
                   ref.invalidate(archiveDocumentPageProvider);
                 },
                 child: ListView.separated(
+                  padding: EdgeInsets.only(top: isMobile ? 10 : 0, bottom: isMobile ? 24 : 0),
                   itemCount: documents.length,
                   separatorBuilder: (_, _) =>
                       Divider(height: 1, color: isDark ? AppColors.darkBorder : Colors.grey.shade100),
@@ -2494,7 +2511,12 @@ class _ArchivesScreenState extends ConsumerState<ArchivesScreen>
           children: [
             Expanded(
               child: GridView.builder(
-                padding: EdgeInsets.all(isMobileGrid ? 10 : 16),
+                padding: EdgeInsets.only(
+                  left: isMobileGrid ? 10 : 16,
+                  right: isMobileGrid ? 10 : 16,
+                  top: isMobileGrid ? 14 : 16,
+                  bottom: isMobileGrid ? 24 : 16,
+                ),
                 gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
                   crossAxisCount: cols,
                   crossAxisSpacing: isMobileGrid ? 10 : 12,

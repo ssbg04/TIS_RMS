@@ -178,9 +178,14 @@ class _RecycleBinModalState extends ConsumerState<RecycleBinModal> {
                             : null,
                         child: Container(
                           color: isSelected
-                              ? (isDark
-                                  ? AppColors.primaryGreen.withValues(alpha: 0.15)
-                                  : AppColors.primaryGreen.withValues(alpha: 0.08))
+                              ? Color.alphaBlend(
+                                  AppColors.primaryGreen.withValues(
+                                    alpha: isDark ? 0.22 : 0.12,
+                                  ),
+                                  isDark
+                                      ? AppColors.darkSurfaceCard
+                                      : AppColors.surfaceWhite,
+                                )
                               : Colors.transparent,
                           child: ListTile(
                             contentPadding: const EdgeInsets.symmetric(
@@ -191,11 +196,8 @@ class _RecycleBinModalState extends ConsumerState<RecycleBinModal> {
                                 ? Checkbox(
                                     value: isSelected,
                                     activeColor: AppColors.primaryGreen,
-                                    side: BorderSide(
-                                      color: isDark
-                                          ? AppColors.darkTextSecondary
-                                          : Colors.grey.shade400,
-                                      width: 1.5,
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(4),
                                     ),
                                     onChanged: (val) {
                                       setState(() {
@@ -529,115 +531,80 @@ class _RecycleBinModalState extends ConsumerState<RecycleBinModal> {
     final filteredIds = filteredItems.map((i) => i.id).toSet();
     final bool allSelected = filteredIds.isNotEmpty &&
         filteredIds.every((id) => _selectedTrashIds.contains(id));
-    final buttonColor = isDark ? Colors.white : Colors.black87;
+    final count = _selectedTrashIds.length;
 
     return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+      height: 52,
+      margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      padding: const EdgeInsets.symmetric(horizontal: 6),
       decoration: BoxDecoration(
-        color: isDark
-            ? AppColors.darkSurfaceCard
-            : AppColors.primaryGreen.withValues(alpha: 0.1),
-        border: Border(
-          bottom: BorderSide(
-            color: isDark
-                ? AppColors.darkBorder
-                : AppColors.primaryGreen.withValues(alpha: 0.2),
-          ),
+        color: isDark ? AppColors.darkSurfaceCard : AppColors.primaryGreen,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: isDark ? AppColors.darkBorder : Colors.transparent,
         ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.08),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
       ),
-      child: SingleChildScrollView(
-        scrollDirection: Axis.horizontal,
-        child: Row(
-          children: [
-            Tooltip(
-              message: 'Cancel selection',
-              child: IconButton(
-                icon: Icon(Icons.close, color: buttonColor),
-                onPressed: () {
-                  setState(() {
-                    _selectedTrashIds.clear();
-                    _isMultiSelectMode = false;
-                  });
-                },
-              ),
+      child: Row(
+        children: [
+          IconButton(
+            icon: const Icon(Icons.close, color: Colors.white),
+            tooltip: 'Exit Selection',
+            onPressed: () {
+              setState(() {
+                _selectedTrashIds.clear();
+                _isMultiSelectMode = false;
+              });
+            },
+          ),
+          const SizedBox(width: 4),
+          Text(
+            count == 0 ? 'Select items' : '$count selected',
+            style: const TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.bold,
+              color: Colors.white,
             ),
-            const SizedBox(width: 8),
-            Text(
-              _selectedTrashIds.isEmpty
-                  ? 'Select items'
-                  : '${_selectedTrashIds.length} selected',
-              style: TextStyle(
-                fontWeight: FontWeight.bold,
-                fontSize: 15,
-                color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
-              ),
+          ),
+          const Spacer(),
+          IconButton(
+            icon: Icon(
+              allSelected ? Icons.deselect : Icons.select_all,
+              color: Colors.white,
             ),
-            const SizedBox(width: 8),
-            Tooltip(
-              message: allSelected ? 'Unselect All' : 'Select All',
-              child: IconButton(
-                icon: Icon(
-                  allSelected ? Icons.deselect : Icons.select_all,
-                  color: buttonColor,
-                ),
-                onPressed: filteredItems.isEmpty
-                    ? null
-                    : () {
-                        setState(() {
-                          if (allSelected) {
-                            _selectedTrashIds.clear();
-                          } else {
-                            _selectedTrashIds.addAll(filteredIds);
-                          }
-                        });
-                      },
-              ),
+            tooltip: allSelected ? 'Unselect All' : 'Select All',
+            onPressed: filteredItems.isEmpty
+                ? null
+                : () {
+                    setState(() {
+                      if (allSelected) {
+                        _selectedTrashIds.clear();
+                      } else {
+                        _selectedTrashIds.addAll(filteredIds);
+                      }
+                    });
+                  },
+          ),
+          if (count > 0) ...[
+            IconButton(
+              icon: const Icon(Icons.restore, color: Colors.white),
+              tooltip: 'Restore',
+              onPressed: () => _handleBulkRestore(_selectedTrashIds.toList()),
             ),
-            const SizedBox(width: 12),
-            Container(
-              width: 1,
-              height: 24,
-              color: isDark ? AppColors.darkBorder : Colors.grey.shade400,
-            ),
-            const SizedBox(width: 12),
-            TextButton.icon(
-              onPressed: _selectedTrashIds.isEmpty
-                  ? null
-                  : () => _handleBulkRestore(_selectedTrashIds.toList()),
-              icon: const Icon(Icons.restore, size: 18),
-              label: const Text('Restore All'),
-              style: TextButton.styleFrom(
-                foregroundColor: AppColors.primaryGreen,
-                disabledForegroundColor: isDark
-                    ? AppColors.darkTextMuted
-                    : Colors.grey.shade400,
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-              ),
-            ),
-            const SizedBox(width: 8),
-            ElevatedButton.icon(
-              onPressed: _selectedTrashIds.isEmpty
-                  ? null
-                  : () => _handleBulkPermanentDelete(
-                        _selectedTrashIds.toList(),
-                      ),
-              icon: const Icon(Icons.delete_forever, size: 18),
-              label: const Text('Delete All'),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.error,
-                foregroundColor: Colors.white,
-                disabledBackgroundColor: isDark
-                    ? AppColors.darkSurface2
-                    : Colors.grey.shade200,
-                disabledForegroundColor: isDark
-                    ? AppColors.darkTextMuted
-                    : Colors.grey.shade400,
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-              ),
+            IconButton(
+              icon: const Icon(Icons.delete_forever, color: Colors.white),
+              tooltip: 'Delete Forever',
+              onPressed: () => _handleBulkPermanentDelete(_selectedTrashIds.toList()),
             ),
           ],
-        ),
+          const SizedBox(width: 4),
+        ],
       ),
     );
   }
@@ -856,7 +823,7 @@ class _RecycleBinModalState extends ConsumerState<RecycleBinModal> {
               ),
               const SizedBox(height: 8),
               DropdownButtonFormField<String>(
-                value: tempType,
+                initialValue: tempType,
                 dropdownColor: isDark ? AppColors.darkSurface2 : Colors.white,
                 isExpanded: true,
                 style: TextStyle(

@@ -2146,7 +2146,12 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
             children: [
               Expanded(
                 child: Container(
-                  margin: EdgeInsets.all(isMobile ? 8 : 16),
+                  margin: EdgeInsets.only(
+                    left: isMobile ? 8 : 16,
+                    right: isMobile ? 8 : 16,
+                    top: isMobile ? 12 : 16,
+                    bottom: isMobile ? 16 : 16,
+                  ),
                   decoration: BoxDecoration(
                     color: isDark ? AppColors.darkSurfaceCard : AppColors.surfaceWhite,
                     borderRadius: BorderRadius.circular(12),
@@ -2161,6 +2166,7 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
                   child: ClipRRect(
                     borderRadius: BorderRadius.circular(12),
                     child: ListView.separated(
+                      padding: EdgeInsets.only(top: isMobile ? 10 : 0, bottom: isMobile ? 24 : 0),
                       itemCount: paginatedFolders.length,
                       separatorBuilder: (context, index) =>
                           Divider(height: 1, color: isDark ? AppColors.darkBorder : Colors.grey.shade100),
@@ -2278,7 +2284,12 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
                 : (c.maxWidth / tileBase).floor().clamp(2, 6);
             final childAspect = isMobile ? 0.85 : 0.95;
             final grid = GridView.builder(
-              padding: EdgeInsets.all(isMobile ? 10 : 16),
+              padding: EdgeInsets.only(
+                left: isMobile ? 10 : 16,
+                right: isMobile ? 10 : 16,
+                top: isMobile ? 14 : 16,
+                bottom: isMobile ? 24 : 16,
+              ),
               gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
                 crossAxisCount: cols,
                 crossAxisSpacing: isMobile ? 10 : 16,
@@ -2452,7 +2463,12 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
           children: [
             Expanded(
               child: GridView.builder(
-                padding: EdgeInsets.all(isMobileGrid ? 10 : 16),
+                padding: EdgeInsets.only(
+                  left: isMobileGrid ? 10 : 16,
+                  right: isMobileGrid ? 10 : 16,
+                  top: isMobileGrid ? 14 : 16,
+                  bottom: isMobileGrid ? 24 : 16,
+                ),
                 gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
                   crossAxisCount: cols,
                   crossAxisSpacing: isMobileGrid ? 10 : 12,
@@ -2522,7 +2538,12 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
       children: [
         Expanded(
           child: Container(
-            margin: EdgeInsets.all(isMobileList ? 8 : 16),
+            margin: EdgeInsets.only(
+              left: isMobileList ? 8 : 16,
+              right: isMobileList ? 8 : 16,
+              top: isMobileList ? 12 : 16,
+              bottom: isMobileList ? 16 : 16,
+            ),
             decoration: BoxDecoration(
               color: isDark ? AppColors.darkSurfaceCard : AppColors.surfaceWhite,
               borderRadius: BorderRadius.circular(12),
@@ -2541,6 +2562,7 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
                   ref.invalidate(documentPageProvider);
                 },
                 child: ListView.separated(
+                  padding: EdgeInsets.only(top: isMobileList ? 10 : 0, bottom: isMobileList ? 24 : 0),
                   itemCount: documents.length,
                   separatorBuilder: (ctx, i) =>
                       Divider(height: 1, color: isDark ? AppColors.darkBorder : Colors.grey.shade100),

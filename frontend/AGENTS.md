@@ -463,7 +463,8 @@ Files backup/restore - mirror mode or zip -->
 - make the admin side that resets user password send into their email the link to reset password add expiration time -> then push notif the admin that successful or not that email link, if not successful or the time has expired send notif to admin, if successfull push notif the user and admin  -->
 
 
-
+# DOCUMENT REQUIREMENTS
+- redesign the screen keep all logic change the layout and design only
 
 --- 
 

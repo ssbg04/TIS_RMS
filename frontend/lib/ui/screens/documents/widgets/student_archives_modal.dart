@@ -486,11 +486,14 @@ class _StudentArchivesModalState extends ConsumerState<StudentArchivesModal> {
                             : () => _handlePreview(item),
                         child: Container(
                           color: isSelected
-                              ? (isDark
-                                  ? AppColors.primaryGreen
-                                      .withValues(alpha: 0.15)
-                                  : AppColors.primaryGreen
-                                      .withValues(alpha: 0.08))
+                              ? Color.alphaBlend(
+                                  AppColors.primaryGreen.withValues(
+                                    alpha: isDark ? 0.22 : 0.12,
+                                  ),
+                                  isDark
+                                      ? AppColors.darkSurfaceCard
+                                      : AppColors.surfaceWhite,
+                                )
                               : Colors.transparent,
                           child: ListTile(
                             contentPadding: EdgeInsets.symmetric(
@@ -501,6 +504,9 @@ class _StudentArchivesModalState extends ConsumerState<StudentArchivesModal> {
                                 ? Checkbox(
                                     value: isSelected,
                                     activeColor: AppColors.primaryGreen,
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(4),
+                                    ),
                                     onChanged: (val) {
                                       setState(() {
                                         if (val == true) {
@@ -781,91 +787,87 @@ class _StudentArchivesModalState extends ConsumerState<StudentArchivesModal> {
   ) {
     final allSelected = filteredDocs.isNotEmpty &&
         filteredDocs.every((d) => _selectedIds.contains(d.id));
+    final count = _selectedIds.length;
+
 
     return Container(
-      padding: EdgeInsets.symmetric(horizontal: isMobile ? 8 : 16, vertical: 6),
-      color: isDark
-          ? AppColors.darkSurfaceCard
-          : AppColors.primaryGreen.withValues(alpha: 0.08),
+      height: 52,
+      margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      padding: const EdgeInsets.symmetric(horizontal: 6),
+      decoration: BoxDecoration(
+        color: isDark ? AppColors.darkSurfaceCard : AppColors.primaryGreen,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: isDark ? AppColors.darkBorder : Colors.transparent,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.08),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
       child: Row(
         children: [
           IconButton(
-            icon: const Icon(Icons.close, size: 18),
-            visualDensity: VisualDensity.compact,
+            icon: const Icon(Icons.close, color: Colors.white),
+            tooltip: 'Exit Selection',
             onPressed: () {
               setState(() {
                 _selectedIds.clear();
                 _isMultiSelectMode = false;
               });
             },
-            tooltip: 'Cancel Selection',
-          ),
-          const SizedBox(width: 2),
-          Text(
-            '${_selectedIds.length} selected',
-            style: TextStyle(
-              fontWeight: FontWeight.bold,
-              fontSize: isMobile ? 12 : 14,
-              color: isDark
-                  ? AppColors.darkTextPrimary
-                  : AppColors.textPrimary,
-            ),
           ),
           const SizedBox(width: 4),
+          Text(
+            count == 0 ? 'Select items' : '$count selected',
+            style: const TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.bold,
+              color: Colors.white,
+            ),
+          ),
+          const Spacer(),
           IconButton(
             icon: Icon(
               allSelected ? Icons.deselect : Icons.select_all,
-              size: 18,
+              color: Colors.white,
             ),
-            visualDensity: VisualDensity.compact,
             tooltip: allSelected ? 'Unselect All' : 'Select All',
-            onPressed: () {
-              setState(() {
-                if (allSelected) {
-                  _selectedIds.clear();
-                } else {
-                  _selectedIds.addAll(filteredDocs.map((d) => d.id));
-                }
-              });
-            },
+            onPressed: filteredDocs.isEmpty
+                ? null
+                : () {
+                    setState(() {
+                      if (allSelected) {
+                        _selectedIds.clear();
+                      } else {
+                        _selectedIds.addAll(filteredDocs.map((d) => d.id));
+                      }
+                    });
+                  },
           ),
-          const Spacer(),
-          Tooltip(
-            message: 'Download',
-            child: IconButton(
-              icon: const Icon(Icons.download_rounded, size: 18),
-              visualDensity: VisualDensity.compact,
-              onPressed: _selectedIds.isEmpty
-                  ? null
-                  : () => _handleBatchDownload(filteredDocs),
+          if (count > 0) ...[
+            IconButton(
+              icon: const Icon(Icons.download_rounded, color: Colors.white),
+              tooltip: 'Download',
+              onPressed: () => _handleBatchDownload(filteredDocs),
             ),
-          ),
-          if (_isAdmin) ...[
-            Tooltip(
-              message: 'Restore Selected',
-              child: IconButton(
-                icon: const Icon(
-                  Icons.unarchive_outlined,
-                  size: 18,
-                  color: AppColors.primaryGreen,
-                ),
-                visualDensity: VisualDensity.compact,
-                onPressed: _selectedIds.isEmpty ? null : _handleBatchRestore,
+            if (_isAdmin) ...[
+              IconButton(
+                icon: const Icon(Icons.unarchive_outlined, color: Colors.white),
+                tooltip: 'Restore',
+                onPressed: _handleBatchRestore,
               ),
-            ),
-            Tooltip(
-              message: 'Delete Selected',
-              child: IconButton(
-                icon: const Icon(
-                  Icons.delete_outline_rounded,
-                  size: 18,
-                  color: AppColors.error,
-                ),
-                visualDensity: VisualDensity.compact,
-                onPressed: _selectedIds.isEmpty ? null : _handleBatchDelete,
+              IconButton(
+                icon: const Icon(Icons.delete_outline_rounded, color: Colors.white),
+                tooltip: 'Delete',
+                onPressed: _handleBatchDelete,
               ),
-            ),
+            ],
           ],
+          const SizedBox(width: 4),
         ],
       ),
     );

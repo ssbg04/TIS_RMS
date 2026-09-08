@@ -1,8 +1,6 @@
-import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/constants/app_colors.dart';
-import '../../../core/constants/app_sizes.dart';
 import '../../shared/inputs/custom_text_field.dart';
 import '../../shared/buttons/primary_button.dart';
 import '../../shared/widgets/app_button_loader.dart';
@@ -12,14 +10,8 @@ import '../../providers/document_provider.dart';
 import '../../../domain/entities/document_requirement_model.dart';
 import '../../shared/modals/custom_modal.dart';
 
-// ─────────────────────────────────────────────────────────────
-// Sort Mode Enum
-// ─────────────────────────────────────────────────────────────
-enum _SortMode { az, za, mandatoryFirst, dueDateFirst }
+enum _SortMode { az, za, dueDateFirst }
 
-// ─────────────────────────────────────────────────────────────
-// Entry point: show as dialog from settings
-// ─────────────────────────────────────────────────────────────
 class RequirementsModal extends ConsumerStatefulWidget {
   const RequirementsModal({super.key});
 
@@ -43,18 +35,12 @@ class RequirementsModal extends ConsumerStatefulWidget {
 }
 
 class _RequirementsModalState extends ConsumerState<RequirementsModal> {
-  // ── Filters ──────────────────────────────────────────────
-  bool? _filterMandatory; // null = all
-  bool? _filterEnabled; // null = all
-
-  // ── Sort ─────────────────────────────────────────────────
+  int _selectedFilterIndex = 0; // 0: All, 1: Mandatory, 2: Optional, 3: Inactive
   _SortMode _sortMode = _SortMode.az;
 
-  // ── Multi-select ─────────────────────────────────────────
   bool _multiSelectMode = false;
   final Set<int> _selectedIds = {};
 
-  // ── Search ───────────────────────────────────────────────
   final _searchCtrl = TextEditingController();
   String _searchQuery = '';
 
@@ -68,30 +54,21 @@ class _RequirementsModalState extends ConsumerState<RequirementsModal> {
     });
   }
 
+
   @override
   void dispose() {
     _searchCtrl.dispose();
     super.dispose();
   }
 
-  // ─────────────────────────────────────────────────────────
-  // Filter + Sort pipeline
-  // ─────────────────────────────────────────────────────────
   List<DocumentRequirementModel> _applyFiltersAndSort(
     List<DocumentRequirementModel> all,
   ) {
     var result = all.where((r) {
-      // Mandatory filter
-      if (_filterMandatory != null && r.isMandatory != _filterMandatory) {
-        return false;
-      }
+      if (_selectedFilterIndex == 1 && !r.isMandatory) return false;
+      if (_selectedFilterIndex == 2 && r.isMandatory) return false;
+      if (_selectedFilterIndex == 3 && r.isEnabled) return false;
 
-      // Enabled filter
-      if (_filterEnabled != null && r.isEnabled != _filterEnabled) {
-        return false;
-      }
-
-      // Search
       if (_searchQuery.isNotEmpty) {
         final q = _searchQuery.toLowerCase();
         if (!r.name.toLowerCase().contains(q) &&
@@ -99,7 +76,6 @@ class _RequirementsModalState extends ConsumerState<RequirementsModal> {
           return false;
         }
       }
-
       return true;
     }).toList();
 
@@ -110,17 +86,9 @@ class _RequirementsModalState extends ConsumerState<RequirementsModal> {
       case _SortMode.za:
         result.sort((a, b) => b.name.compareTo(a.name));
         break;
-      case _SortMode.mandatoryFirst:
-        result.sort((a, b) {
-          if (a.isMandatory == b.isMandatory) return a.name.compareTo(b.name);
-          return a.isMandatory ? -1 : 1;
-        });
-        break;
       case _SortMode.dueDateFirst:
         result.sort((a, b) {
-          if (a.dueDate == null && b.dueDate == null) {
-            return a.name.compareTo(b.name);
-          }
+          if (a.dueDate == null && b.dueDate == null) return a.name.compareTo(b.name);
           if (a.dueDate == null) return 1;
           if (b.dueDate == null) return -1;
           return a.dueDate!.compareTo(b.dueDate!);
@@ -131,9 +99,6 @@ class _RequirementsModalState extends ConsumerState<RequirementsModal> {
     return result;
   }
 
-  // ─────────────────────────────────────────────────────────
-  // Multi-select helpers
-  // ─────────────────────────────────────────────────────────
   void _toggleMultiSelect() {
     setState(() {
       _multiSelectMode = !_multiSelectMode;
@@ -161,51 +126,34 @@ class _RequirementsModalState extends ConsumerState<RequirementsModal> {
     });
   }
 
-  // ─────────────────────────────────────────────────────────
-  // Dialogs
-  // ─────────────────────────────────────────────────────────
-  void _showDetailModal(DocumentRequirementModel req) {
+  void _showFormModal({DocumentRequirementModel? requirement, String? defaultCategory}) {
     showDialog(
       context: context,
-      builder: (_) => _RequirementDetailModal(
-        requirement: req,
-        onEdit: () {
-          Navigator.pop(context);
-          _showFormModal(requirement: req);
-        },
-        onDelete: () {
-          Navigator.pop(context);
-          _confirmDelete([req]);
-        },
+      builder: (_) => RequirementFormModal(
+        requirement: requirement,
+        defaultCategory: defaultCategory,
       ),
-    );
-  }
-
-  void _showFormModal({DocumentRequirementModel? requirement}) {
-    showDialog(
-      context: context,
-      builder: (_) => RequirementFormModal(requirement: requirement),
     );
   }
 
   void _confirmDelete(List<DocumentRequirementModel> targets) {
     final isBulk = targets.length > 1;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(AppSizes.radiusLarge),
-        ),
+        backgroundColor: isDark ? AppColors.darkSurfaceCard : Colors.white,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         title: Text(
-          isBulk
-              ? 'Delete ${targets.length} Requirements'
-              : 'Delete Requirement',
-          style: const TextStyle(color: AppColors.error),
+          isBulk ? 'Delete ${targets.length} Requirements' : 'Delete Requirement',
+          style: const TextStyle(fontWeight: FontWeight.bold, color: AppColors.error),
         ),
         content: Text(
           isBulk
-              ? 'Are you sure you want to delete ${targets.length} selected requirements? This cannot be undone.'
+              ? 'Are you sure you want to delete ${targets.length} selected requirements?'
               : 'Are you sure you want to delete "${targets.first.name}"?',
+          style: TextStyle(color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary),
         ),
         actions: [
           TextButton(
@@ -216,14 +164,13 @@ class _RequirementsModalState extends ConsumerState<RequirementsModal> {
             style: ElevatedButton.styleFrom(
               backgroundColor: AppColors.error,
               foregroundColor: Colors.white,
+              elevation: 0,
             ),
             onPressed: () async {
               Navigator.pop(ctx);
               try {
                 for (final t in targets) {
-                  await ref
-                      .read(requirementMutationProvider.notifier)
-                      .deleteRequirement(t.id);
+                  await ref.read(requirementMutationProvider.notifier).deleteRequirement(t.id);
                 }
                 if (!mounted) return;
                 setState(() {
@@ -232,9 +179,7 @@ class _RequirementsModalState extends ConsumerState<RequirementsModal> {
                 });
                 showSuccessDialog(
                   context,
-                  message: isBulk
-                      ? '${targets.length} requirements deleted'
-                      : 'Requirement deleted successfully',
+                  message: isBulk ? '${targets.length} requirements deleted' : 'Requirement deleted',
                 );
               } catch (e) {
                 if (!mounted) return;
@@ -263,1529 +208,815 @@ class _RequirementsModalState extends ConsumerState<RequirementsModal> {
     );
   }
 
-  // ─────────────────────────────────────────────────────────
-  // Build
-  // ─────────────────────────────────────────────────────────
+  String _formatFileTypes(String raw) {
+    final clean = raw.replaceAll(' ', '').toLowerCase();
+    if (clean.contains('xls') || clean.split(',').length >= 5) return 'All Formats';
+    if (clean.contains('doc')) return 'PDF, Docs';
+    if (clean.contains('jpg') || clean.contains('png')) return 'PDF, Images';
+    if (clean == 'pdf') return 'PDF';
+    return clean.toUpperCase();
+  }
+
   @override
   Widget build(BuildContext context) {
     final screenSize = MediaQuery.of(context).size;
     final isAndroid = Theme.of(context).platform == TargetPlatform.android;
+    final isWide = screenSize.width >= 720;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final settingsAsync = ref.watch(requirementsSettingsProvider);
-    final isDark = Theme.of(context).brightness == Brightness.dark;
 
-    final content = Column(
-      children: [
-        _buildSearchAndControls(isAndroid),
-        _buildFilterBar(isAndroid),
-        const Divider(height: 1),
-        TabBar(
-          labelColor: AppColors.primaryGreen,
-          unselectedLabelColor: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
-          indicatorColor: AppColors.primaryGreen,
-          tabs: const [
-            Tab(text: 'JHS'),
-            Tab(text: 'SHS'),
-          ],
-        ),
-        const Divider(height: 1),
-        Expanded(
-          child: TabBarView(
+    final jhsList = settingsAsync.asData?.value.jhs ?? [];
+    final shsList = settingsAsync.asData?.value.shs ?? [];
+
+    return DefaultTabController(
+      length: 2,
+      child: Builder(
+        builder: (tabContext) {
+          final tabController = DefaultTabController.of(tabContext);
+          final currentList = tabController.index == 0 ? jhsList : shsList;
+          final currentFiltered = _applyFiltersAndSort(currentList);
+          final allCurrentSelected = currentFiltered.isNotEmpty &&
+              currentFiltered.every((r) => _selectedIds.contains(r.id));
+          final selectedTargets =
+              currentList.where((r) => _selectedIds.contains(r.id)).toList();
+
+          final bodyContent = Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              settingsAsync.when(
-                data: (settings) {
-                  final filtered = _applyFiltersAndSort(settings.jhs);
-                  return _buildTable(filtered, isAndroid);
-                },
-                loading: () => const Center(child: CircularProgressIndicator()),
-                error: (e, _) => Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      const Icon(
-                        Icons.error_outline,
-                        size: 48,
-                        color: AppColors.error,
-                      ),
-                      const SizedBox(height: AppSizes.p16),
-                      Text(
-                        'Error: $e',
-                        style: const TextStyle(color: AppColors.error),
-                      ),
-                      const SizedBox(height: AppSizes.p16),
-                      TextButton(
-                        onPressed: () =>
-                            ref.invalidate(requirementsSettingsProvider),
-                        child: const Text('Retry'),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-              settingsAsync.when(
-                data: (settings) {
-                  final filtered = _applyFiltersAndSort(settings.shs);
-                  return _buildTable(filtered, isAndroid);
-                },
-                loading: () => const Center(child: CircularProgressIndicator()),
-                error: (e, _) => Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      const Icon(
-                        Icons.error_outline,
-                        size: 48,
-                        color: AppColors.error,
-                      ),
-                      const SizedBox(height: AppSizes.p16),
-                      Text(
-                        'Error: $e',
-                        style: const TextStyle(color: AppColors.error),
-                      ),
-                      const SizedBox(height: AppSizes.p16),
-                      TextButton(
-                        onPressed: () =>
-                            ref.invalidate(requirementsSettingsProvider),
-                        child: const Text('Retry'),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ],
-    );
-
-    Widget result;
-    if (isAndroid) {
-      result = Scaffold(
-        backgroundColor: isDark ? AppColors.darkPageBackground : AppColors.surfaceWhite,
-        appBar: AppBar(
-          backgroundColor: AppColors.primaryGreen,
-          foregroundColor: Colors.white,
-          iconTheme: const IconThemeData(color: Colors.white),
-          title: const Text(
-            'Document Requirements',
-            style: TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.w600,
-              color: Colors.white,
-            ),
-          ),
-        ),
-        body: SafeArea(child: content),
-        floatingActionButton: _buildFAB(context),
-      );
-    } else {
-      result = CustomModal(
-        title: 'Document Requirements',
-        maxWidth: 900,
-        content: SizedBox(
-          height: screenSize.height * 0.8,
-          child: Scaffold(
-            backgroundColor: Colors.transparent,
-            body: content,
-            floatingActionButton: _buildFAB(context),
-          ),
-        ),
-      );
-    }
-
-    return DefaultTabController(length: 2, child: result);
-  }
-
-  // ─────────────────────────────────────────────────────────
-  // Search row + sort
-  // ─────────────────────────────────────────────────────────
-  Widget _buildSearchAndControls(bool isNarrow) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(
-        AppSizes.p16,
-        AppSizes.p12,
-        AppSizes.p16,
-        0,
-      ),
-      child: Row(
-        children: [
-          Expanded(
-            child: SizedBox(
-              height: 40,
-              child: TextField(
-                controller: _searchCtrl,
-                onChanged: (v) => setState(() => _searchQuery = v),
-                decoration: InputDecoration(
-                  hintText: 'Search requirements…',
-                  hintStyle: TextStyle(
-                    fontSize: 13,
-                    color: isDark ? AppColors.darkTextMuted : AppColors.textMuted,
-                  ),
-                  prefixIcon: Icon(
-                    Icons.search,
-                    size: 18,
-                    color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
-                  ),
-                  suffixIcon: _searchQuery.isNotEmpty
-                      ? IconButton(
-                          icon: Icon(
-                            Icons.clear,
-                            size: 16,
-                            color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
-                          ),
-                          onPressed: () {
-                            _searchCtrl.clear();
-                            setState(() => _searchQuery = '');
-                          },
-                        )
-                      : null,
-                  contentPadding: const EdgeInsets.symmetric(
-                    vertical: 0,
-                    horizontal: 12,
-                  ),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(8),
-                    borderSide: BorderSide(color: isDark ? AppColors.darkBorder : Colors.grey.shade300),
-                  ),
-                  enabledBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(8),
-                    borderSide: BorderSide(color: isDark ? AppColors.darkBorder : Colors.grey.shade300),
-                  ),
-                  focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(8),
-                    borderSide: const BorderSide(
-                      color: AppColors.primaryGreen,
-                      width: 1.5,
-                    ),
-                  ),
-                  filled: true,
-                  fillColor: isDark ? AppColors.darkSurface2 : Colors.grey.shade50,
-                ),
-              ),
-            ),
-          ),
-          const SizedBox(width: AppSizes.p8),
-          // Sort menu
-          PopupMenuButton<_SortMode>(
-            tooltip: 'Sort',
-            initialValue: _sortMode,
-            onSelected: (v) => setState(() => _sortMode = v),
-            itemBuilder: (_) => [
-              _sortMenuItem(_SortMode.az, Icons.sort_by_alpha, 'A → Z'),
-              _sortMenuItem(_SortMode.za, Icons.sort_by_alpha, 'Z → A'),
-              _sortMenuItem(
-                _SortMode.mandatoryFirst,
-                Icons.star,
-                'Mandatory first',
-              ),
-              _sortMenuItem(
-                _SortMode.dueDateFirst,
-                Icons.calendar_today,
-                'Due date first',
-              ),
-            ],
-          child: Container(
-              height: 40,
-              padding: const EdgeInsets.symmetric(horizontal: 12),
-              decoration: BoxDecoration(
-                color: isDark ? AppColors.darkSurface2 : Colors.grey.shade50,
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: isDark ? AppColors.darkBorder : Colors.grey.shade300),
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(
-                    Icons.sort,
-                    size: 16,
-                    color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
-                  ),
-                  if (!isNarrow) ...[
-                    const SizedBox(width: 4),
-                    Text(
-                      'Sort',
-                      style: TextStyle(
-                        fontSize: 13,
-                        color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
-                      ),
-                    ),
-                  ],
-                ],
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  PopupMenuItem<_SortMode> _sortMenuItem(
-    _SortMode mode,
-    IconData icon,
-    String label,
-  ) {
-    return PopupMenuItem(
-      value: mode,
-      child: Row(
-        children: [
-          Icon(
-            icon,
-            size: 16,
-            color: _sortMode == mode
-                ? AppColors.primaryGreen
-                : AppColors.textSecondary,
-          ),
-          const SizedBox(width: 8),
-          Text(
-            label,
-            style: TextStyle(
-              color: _sortMode == mode
-                  ? AppColors.primaryGreen
-                  : AppColors.textPrimary,
-              fontWeight: _sortMode == mode
-                  ? FontWeight.w600
-                  : FontWeight.normal,
-            ),
-          ),
-          if (_sortMode == mode) ...[
-            const Spacer(),
-            const Icon(Icons.check, size: 14, color: AppColors.primaryGreen),
-          ],
-        ],
-      ),
-    );
-  }
-
-  // ─────────────────────────────────────────────────────────
-  // Filter chips bar
-  // ─────────────────────────────────────────────────────────
-  Widget _buildFilterBar(bool isNarrow) {
-    return SingleChildScrollView(
-      scrollDirection: Axis.horizontal,
-      padding: const EdgeInsets.fromLTRB(
-        AppSizes.p16,
-        AppSizes.p8,
-        AppSizes.p16,
-        AppSizes.p8,
-      ),
-      child: Row(
-        children: [
-          const Row(
-            children: [
-              Icon(Icons.filter_list, size: 16, color: AppColors.textSecondary),
-              SizedBox(width: 4),
-              Text(
-                'Filters:',
-                style: TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w600,
-                  color: AppColors.textSecondary,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(width: AppSizes.p8),
-
-          // Mandatory
-          _buildToggleChip(
-            labels: const ['All', 'Mandatory', 'Optional'],
-            selectedIndex: _filterMandatory == null
-                ? 0
-                : _filterMandatory!
-                ? 1
-                : 2,
-            color: AppColors.error,
-            onSelected: (i) => setState(() {
-              _filterMandatory = i == 0 ? null : i == 1;
-            }),
-          ),
-          const SizedBox(width: AppSizes.p12),
-
-          const SizedBox(
-            height: 16,
-            child: VerticalDivider(
-              width: 1,
-              thickness: 1,
-            ),
-          ),
-          const SizedBox(width: AppSizes.p12),
-
-          // Enabled
-          _buildToggleChip(
-            labels: const ['All', 'Enabled', 'Disabled'],
-            selectedIndex: _filterEnabled == null
-                ? 0
-                : _filterEnabled!
-                ? 1
-                : 2,
-            color: AppColors.success,
-            onSelected: (i) => setState(() {
-              _filterEnabled = i == 0 ? null : i == 1;
-            }),
-          ),
-
-          const SizedBox(width: AppSizes.p12),
-          const SizedBox(
-            height: 16,
-            child: VerticalDivider(
-              width: 1,
-              thickness: 1,
-            ),
-          ),
-          const SizedBox(width: AppSizes.p12),
-
-          // Multi-select text button (no icon)
-          TextButton(
-            onPressed: _toggleMultiSelect,
-            style: TextButton.styleFrom(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-              minimumSize: Size.zero,
-              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-            ),
-            child: Text(
-              _multiSelectMode ? 'Exit Selection' : 'Select Multiple',
-              style: TextStyle(
-                fontSize: 12,
-                fontWeight: FontWeight.w600,
-                color: _multiSelectMode ? Colors.redAccent : AppColors.primaryGreen,
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildToggleChip({
-    required List<String> labels,
-    required int selectedIndex,
-    required Color color,
-    required ValueChanged<int> onSelected,
-  }) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    return Container(
-      decoration: BoxDecoration(
-        color: isDark ? AppColors.darkSurface2 : Colors.grey.shade100,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: isDark ? AppColors.darkBorder : Colors.grey.shade300),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: List.generate(labels.length, (i) {
-          final isActive = selectedIndex == i;
-          return GestureDetector(
-            onTap: () => onSelected(i),
-            child: AnimatedContainer(
-              duration: const Duration(milliseconds: 150),
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-              decoration: BoxDecoration(
-                color: isActive
-                    ? color.withValues(alpha: 0.12)
-                    : Colors.transparent,
-                borderRadius: BorderRadius.circular(20),
-              ),
-              child: Text(
-                labels[i],
-                style: TextStyle(
-                  fontSize: 12,
-                  fontWeight: isActive ? FontWeight.w700 : FontWeight.normal,
-                  color: isActive ? color : (isDark ? AppColors.darkTextSecondary : AppColors.textSecondary),
-                ),
-              ),
-            ),
-          );
-        }),
-      ),
-    );
-  }
-
-  // ─────────────────────────────────────────────────────────
-  // Table list
-  // ─────────────────────────────────────────────────────────
-  Widget _buildTable(List<DocumentRequirementModel> filtered, bool isNarrow) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    if (filtered.isEmpty) {
-      return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              Icons.folder_off_outlined,
-              size: 56,
-              color: isDark ? AppColors.darkBorder : Colors.grey.shade300,
-            ),
-            const SizedBox(height: AppSizes.p16),
-            Text(
-              'No requirements match your filters',
-              style: TextStyle(color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary, fontSize: 15),
-            ),
-            const SizedBox(height: AppSizes.p8),
-            TextButton(
-              onPressed: () => setState(() {
-                _filterMandatory = null;
-                _filterEnabled = null;
-                _searchQuery = '';
-                _searchCtrl.clear();
-              }),
-              child: const Text('Clear filters'),
-            ),
-          ],
-        ),
-      );
-    }
-
-    return Column(
-      children: [
-        // Table header
-        Container(
-          color: isDark ? AppColors.darkSurface2 : Colors.grey.shade50,
-          padding: const EdgeInsets.symmetric(
-            horizontal: AppSizes.p16,
-            vertical: AppSizes.p8,
-          ),
-          child: Row(
-            children: [
-              if (_multiSelectMode) ...[
-                SizedBox(
-                  width: 36,
-                  child: Checkbox(
-                    value: _selectedIds.length == filtered.length,
-                    tristate: true,
-                    onChanged: (_) => _selectAll(filtered),
-                    activeColor: AppColors.primaryGreen,
-                    materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                  ),
-                ),
-              ],
-              Expanded(
-                flex: 5,
-                child: Text(
-                  _multiSelectMode
-                      ? '${_selectedIds.length} of ${filtered.length} selected'
-                      : 'DOCUMENT NAME',
-                  style: TextStyle(
-                    fontSize: 11,
-                    fontWeight: FontWeight.w700,
-                    color: _multiSelectMode
-                        ? AppColors.primaryGreen
-                        : (isDark ? AppColors.darkTextMuted : AppColors.textMuted),
-                    letterSpacing: 0.5,
-                  ),
-                ),
-              ),
-              if (!isNarrow)
-                SizedBox(
-                  width: 80,
-                  child: Text(
-                    'CATEGORY',
-                    style: TextStyle(
-                      fontSize: 11,
-                      fontWeight: FontWeight.w700,
-                      color: isDark ? AppColors.darkTextMuted : AppColors.textMuted,
-                      letterSpacing: 0.5,
-                    ),
-                    textAlign: TextAlign.center,
-                  ),
-                ),
-              const SizedBox(width: 24),
-            ],
-          ),
-        ),
-        const Divider(height: 1),
-        // Rows
-        Expanded(
-          child: ListView.separated(
-            padding: const EdgeInsets.only(bottom: 100),
-            itemCount: filtered.length,
-            separatorBuilder: (ctx, i) =>
-                Divider(height: 1, color: isDark ? AppColors.darkBorder : Colors.grey.shade100),
-            itemBuilder: (context, index) =>
-                _buildRow(filtered[index], isNarrow),
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildRow(DocumentRequirementModel req, bool isNarrow) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final isSelected = _selectedIds.contains(req.id);
-    final catColor = req.category.toUpperCase() == 'JHS'
-        ? Colors.blue
-        : Colors.purple;
-
-    return Material(
-      color: isSelected
-          ? AppColors.primaryGreen.withValues(alpha: 0.06)
-          : Colors.transparent,
-      child: InkWell(
-        onTap: () {
-          if (_multiSelectMode) {
-            _toggleItem(req.id);
-          } else {
-            _showDetailModal(req);
-          }
-        },
-        onLongPress: () {
-          if (!_multiSelectMode) {
-            setState(() {
-              _multiSelectMode = true;
-              _selectedIds.add(req.id);
-            });
-          }
-        },
-        child: Padding(
-          padding: const EdgeInsets.symmetric(
-            horizontal: AppSizes.p16,
-            vertical: 12,
-          ),
-          child: Row(
-            children: [
-              // Checkbox (multiselect)
-              if (_multiSelectMode) ...[
-                SizedBox(
-                  width: 36,
-                  child: Checkbox(
-                    value: isSelected,
-                    onChanged: (_) => _toggleItem(req.id),
-                    activeColor: AppColors.primaryGreen,
-                    materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                  ),
-                ),
-              ],
-
-              // Document icon
+              // ── Header Segment / Tabs ──
               Container(
-                width: 34,
-                height: 34,
                 decoration: BoxDecoration(
-                  color: req.isMandatory
-                      ? AppColors.error.withValues(alpha: 0.08)
-                      : AppColors.primaryGreen.withValues(alpha: 0.08),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Icon(
-                  req.isMandatory
-                      ? Icons.description
-                      : Icons.description_outlined,
-                  size: 18,
-                  color: req.isMandatory
-                      ? AppColors.error
-                      : AppColors.primaryGreen,
-                ),
-              ),
-              const SizedBox(width: AppSizes.p12),
-
-              // Name + badges
-              Expanded(
-                flex: 5,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      req.name,
-                      style: TextStyle(
-                        fontWeight: FontWeight.w600,
-                        fontSize: 14,
-                        color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
-                      ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
+                  color: isDark ? AppColors.darkSurfaceCard : Colors.white,
+                  border: Border(
+                    bottom: BorderSide(
+                      color: isDark ? AppColors.darkBorder : const Color(0xFFE9ECEF),
                     ),
-                    const SizedBox(height: 3),
-                    Row(
-                      children: [
-                        // Category badge on narrow screens
-                        if (isNarrow) ...[
-                          _catBadge(req.category, catColor),
-                          const SizedBox(width: 4),
+                  ),
+                ),
+                child: TabBar(
+                  labelColor: AppColors.primaryGreen,
+                  unselectedLabelColor: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
+                  indicatorColor: AppColors.primaryGreen,
+                  indicatorWeight: 3,
+                  labelStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13.5),
+                  tabs: [
+                    Tab(
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          const Text('Junior High School'),
+                          const SizedBox(width: 8),
+                          _countBadge(jhsList.length, isDark),
                         ],
-                        AnimatedSwitcher(
-                          duration: const Duration(milliseconds: 300),
-                          child: req.isMandatory
-                              ? _badge(
-                                  'Mandatory',
-                                  AppColors.primaryGreen,
-                                  key: const ValueKey('man'),
-                                )
-                              : _badge(
-                                  'Optional',
-                                  isDark ? AppColors.darkTextSecondary : Colors.grey.shade600,
-                                  key: const ValueKey('opt'),
-                                ),
-                        ),
-                        if (req.isMandatory && !req.isEnabled)
-                          const SizedBox(width: 4),
-                        if (!req.isEnabled)
-                          _badge('Disabled', isDark ? AppColors.darkTextMuted : Colors.grey.shade500),
-                        if (req.dueDate != null) ...[
-                          const SizedBox(width: 4),
-                          Row(
-                            children: [
-                              Icon(
-                                Icons.calendar_today,
-                                size: 10,
-                                color: isDark ? AppColors.darkTextMuted : Colors.grey.shade400,
-                              ),
-                              const SizedBox(width: 2),
-                              Text(
-                                _formatDate(req.dueDate!),
-                                style: TextStyle(
-                                  fontSize: 10,
-                                  color: isDark ? AppColors.darkTextSecondary : Colors.grey.shade500,
-                                ),
-                              ),
-                            ],
-                          ),
+                      ),
+                    ),
+                    Tab(
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          const Text('Senior High School'),
+                          const SizedBox(width: 8),
+                          _countBadge(shsList.length, isDark),
                         ],
-                      ],
+                      ),
                     ),
                   ],
                 ),
               ),
 
-              // Category badge (wide screens)
-              if (!isNarrow) ...[
-                SizedBox(
-                  width: 80,
-                  child: Center(child: _catBadge(req.category, catColor)),
+              // ── Focused Filter & Search Bar ──
+              _buildControlBar(isWide, isDark, () {
+                final activeCategory = tabController.index == 0 ? 'JHS' : 'SHS';
+                _showFormModal(defaultCategory: activeCategory);
+              }),
+
+              // ── Multi-Select Banner (Desktop only; Android uses Contextual Action Bar) ──
+              if (_multiSelectMode) ...[
+                _buildMultiSelectBanner(
+                  currentList,
+                  isDark,
+                  isAndroid,
                 ),
               ],
 
-              // Chevron
-              const Icon(
-                Icons.chevron_right,
-                size: 18,
-                color: AppColors.textMuted,
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _catBadge(String category, Color color) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: color.withValues(alpha: 0.3)),
-      ),
-      child: Text(
-        category.toUpperCase(),
-        style: TextStyle(
-          fontSize: 11,
-          fontWeight: FontWeight.w700,
-          color: color,
-        ),
-      ),
-    );
-  }
-
-  Widget _badge(String label, Color color, {Key? key}) {
-    return Container(
-      key: key,
-      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(4),
-      ),
-      child: Text(
-        label,
-        style: TextStyle(
-          fontSize: 10,
-          fontWeight: FontWeight.w600,
-          color: color,
-        ),
-      ),
-    );
-  }
-
-  // ─────────────────────────────────────────────────────────
-  // FAB
-  // ─────────────────────────────────────────────────────────
-  Widget _buildFAB(BuildContext context) {
-    if (_multiSelectMode && _selectedIds.isNotEmpty) {
-      return _buildMultiSelectBar();
-    }
-
-    return FloatingActionButton(
-      backgroundColor: AppColors.primaryGreen,
-      foregroundColor: Colors.white,
-      elevation: 4,
-      tooltip: 'Add requirement',
-      onPressed: () => _showFormModal(),
-      child: const Icon(Icons.add, size: 28),
-    );
-  }
-
-  Widget _buildMultiSelectBar() {
-    final isNarrow = MediaQuery.of(context).size.width < 480;
-
-    return Container(
-      margin: const EdgeInsets.only(bottom: 8),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(32),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.1),
-            blurRadius: 12,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(32),
-        child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-          child: Container(
-            color: Colors.black.withValues(alpha: 0.8),
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const SizedBox(width: 4),
-                Text(
-                  '${_selectedIds.length} selected',
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 13,
-                    fontWeight: FontWeight.w600,
+              // ── Focused Requirements List ──
+              Expanded(
+                child: settingsAsync.when(
+                  loading: () => const Center(
+                    child: CircularProgressIndicator(color: AppColors.primaryGreen),
                   ),
-                ),
-                const SizedBox(width: 12),
-                // Edit button (only if single selection)
-                if (_selectedIds.length == 1)
-                  _fabBarButton(
-                    icon: Icons.edit,
-                    label: 'Edit',
-                    showLabel: !isNarrow,
-                    color: Colors.white,
-                    onTap: () {
-                      final settingsAsync = ref.read(
-                        requirementsSettingsProvider,
-                      );
-                      settingsAsync.whenData((settings) {
-                        final all = [...settings.jhs, ...settings.shs];
-                        final req = all.firstWhere(
-                          (r) => r.id == _selectedIds.first,
-                          orElse: () => all.first,
-                        );
-                        setState(() {
-                          _selectedIds.clear();
-                          _multiSelectMode = false;
-                        });
-                        _showFormModal(requirement: req);
-                      });
-                    },
-                  ),
-                if (_selectedIds.length > 1) ...[
-                  _fabBarButton(
-                    icon: Icons.edit,
-                    label: 'Bulk Edit',
-                    showLabel: !isNarrow,
-                    color: Colors.white,
-                    onTap: () {
-                      final settingsAsync = ref.read(
-                        requirementsSettingsProvider,
-                      );
-                      settingsAsync.whenData((settings) {
-                        final all = [...settings.jhs, ...settings.shs];
-                        final targets = all
-                            .where((r) => _selectedIds.contains(r.id))
-                            .toList();
-                        _bulkEdit(targets);
-                      });
-                    },
-                  ),
-                ],
-                const SizedBox(width: 4),
-                _fabBarButton(
-                  icon: Icons.delete,
-                  label: 'Delete',
-                  showLabel: !isNarrow,
-                  color: Colors.redAccent.shade100,
-                  onTap: () {
-                    final settingsAsync = ref.read(
-                      requirementsSettingsProvider,
-                    );
-                    settingsAsync.whenData((settings) {
-                      final all = [...settings.jhs, ...settings.shs];
-                      final targets = all
-                          .where((r) => _selectedIds.contains(r.id))
-                          .toList();
-                      _confirmDelete(targets);
-                    });
-                  },
-                ),
-                const SizedBox(width: 4),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _fabBarButton({
-    required IconData icon,
-    required String label,
-    required bool showLabel,
-    required Color color,
-    required VoidCallback onTap,
-  }) {
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(24),
-        child: Padding(
-          padding: EdgeInsets.symmetric(
-            horizontal: showLabel ? 10 : 6,
-            vertical: 6,
-          ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(icon, size: 16, color: color),
-              if (showLabel) ...[
-                const SizedBox(width: 4),
-                Text(
-                  label,
-                  style: TextStyle(
-                    color: color,
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ],
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  String _formatDate(DateTime date) => '${date.month}/${date.day}/${date.year}';
-}
-
-// ─────────────────────────────────────────────────────────────
-// Detail Modal — shows full info + Edit / Delete
-// ─────────────────────────────────────────────────────────────
-class _RequirementDetailModal extends StatelessWidget {
-  final DocumentRequirementModel requirement;
-  final VoidCallback onEdit;
-  final VoidCallback onDelete;
-
-  const _RequirementDetailModal({
-    required this.requirement,
-    required this.onEdit,
-    required this.onDelete,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final req = requirement;
-    final catColor = req.category.toUpperCase() == 'JHS'
-        ? Colors.blue
-        : Colors.purple;
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-
-    return Dialog(
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(AppSizes.radiusLarge),
-      ),
-      child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 480),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            // Header
-            Container(
-              padding: const EdgeInsets.all(AppSizes.p20),
-              decoration: BoxDecoration(
-                color: AppColors.primaryGreen.withValues(alpha: isDark ? 0.12 : 0.05),
-                borderRadius: const BorderRadius.vertical(
-                  top: Radius.circular(AppSizes.radiusLarge),
-                ),
-                border: Border(bottom: BorderSide(color: isDark ? AppColors.darkBorder : Colors.grey.shade200)),
-              ),
-              child: Row(
-                children: [
-                  Container(
-                    width: 44,
-                    height: 44,
-                    decoration: BoxDecoration(
-                      color: req.isMandatory
-                          ? AppColors.error.withValues(alpha: 0.1)
-                          : AppColors.primaryGreen.withValues(alpha: 0.1),
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    child: Icon(
-                      req.isMandatory
-                          ? Icons.description
-                          : Icons.description_outlined,
-                      color: req.isMandatory
-                          ? AppColors.error
-                          : AppColors.primaryGreen,
-                      size: 22,
-                    ),
-                  ),
-                  const SizedBox(width: AppSizes.p12),
-                  Expanded(
+                  error: (e, _) => Center(
                     child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
                       children: [
+                        const Icon(Icons.error_outline, size: 40, color: AppColors.error),
+                        const SizedBox(height: 12),
                         Text(
-                          req.name,
+                          'Failed to load requirements',
                           style: TextStyle(
-                            fontSize: 16,
+                            fontSize: 14,
                             fontWeight: FontWeight.bold,
                             color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
                           ),
                         ),
-                        const SizedBox(height: 4),
-                        Row(children: [_catChip(req.category, catColor)]),
-                      ],
-                    ),
-                  ),
-                  IconButton(
-                    icon: const Icon(Icons.close, size: 20),
-                    onPressed: () => Navigator.pop(context),
-                  ),
-                ],
-              ),
-            ),
-
-            // Body
-            Flexible(
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.all(AppSizes.p20),
-                child: Column(
-                  children: [
-                    _detailTile(
-                      context,
-                      Icons.notes,
-                      'Description',
-                      (req.description?.isNotEmpty == true)
-                          ? req.description!
-                          : 'No description provided',
-                      valueColor: (req.description?.isNotEmpty == true)
-                          ? null
-                          : AppColors.textMuted,
-                    ),
-                    Divider(height: 20, color: isDark ? AppColors.darkBorder : null),
-                    _detailTile(
-                      context,
-                      Icons.calendar_today,
-                      'Due Date',
-                      req.dueDate != null
-                          ? _formatDate(req.dueDate!)
-                          : 'No due date',
-                      valueColor: req.dueDate != null
-                          ? null
-                          : AppColors.textMuted,
-                    ),
-                    Divider(height: 20, color: isDark ? AppColors.darkBorder : null),
-                    _detailTile(
-                      context,
-                      Icons.attach_file,
-                      'Accepted File Types',
-                      req.acceptedFileTypes.replaceAll(',', ', '),
-                    ),
-                    Divider(height: 20, color: isDark ? AppColors.darkBorder : null),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: _statusCard(
-                            context,
-                            label: 'Mandatory',
-                            value: req.isMandatory,
-                            trueLabel: 'Mandatory',
-                            falseLabel: 'Optional',
-                            trueColor: AppColors.error,
-                            falseColor: AppColors.textMuted,
-                          ),
-                        ),
-                        const SizedBox(width: AppSizes.p12),
-                        Expanded(
-                          child: _statusCard(
-                            context,
-                            label: 'Status',
-                            value: req.isEnabled,
-                            trueLabel: 'Enabled',
-                            falseLabel: 'Disabled',
-                            trueColor: AppColors.success,
-                            falseColor: Colors.grey,
-                          ),
+                        const SizedBox(height: 8),
+                        TextButton(
+                          onPressed: () => ref.invalidate(requirementsSettingsProvider),
+                          child: const Text('RETRY'),
                         ),
                       ],
                     ),
-                  ],
+                  ),
+                  data: (_) => TabBarView(
+                    children: [
+                      _buildRequirementsList(jhsList, isWide, isDark, 'JHS'),
+                      _buildRequirementsList(shsList, isWide, isDark, 'SHS'),
+                    ],
+                  ),
                 ),
               ),
-            ),
+            ],
+          );
 
-            // Actions
-            Container(
-              padding: const EdgeInsets.symmetric(
-                horizontal: AppSizes.p16,
-                vertical: AppSizes.p12,
-              ),
-              decoration: BoxDecoration(
-                border: Border(top: BorderSide(color: isDark ? AppColors.darkBorder : Colors.grey.shade200)),
-              ),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: OutlinedButton.icon(
-                      onPressed: onDelete,
-                      icon: const Icon(
-                        Icons.delete_outline,
-                        size: 16,
-                        color: AppColors.error,
-                      ),
-                      label: const Text(
-                        'Delete',
-                        style: TextStyle(color: AppColors.error),
-                      ),
-                      style: OutlinedButton.styleFrom(
-                        side: BorderSide(
-                          color: AppColors.error.withValues(alpha: 0.5),
+          if (isAndroid) {
+            return PopScope(
+              canPop: !_multiSelectMode,
+              onPopInvokedWithResult: (didPop, _) {
+                if (didPop) return;
+                if (_multiSelectMode) {
+                  setState(() {
+                    _multiSelectMode = false;
+                    _selectedIds.clear();
+                  });
+                }
+              },
+              child: Scaffold(
+                backgroundColor: isDark ? AppColors.darkPageBackground : const Color(0xFFF8F9FA),
+                appBar: _multiSelectMode
+                    ? AppBar(
+                        backgroundColor: isDark ? AppColors.darkSurfaceCard : AppColors.primaryGreen,
+                        foregroundColor: Colors.white,
+                        elevation: 1,
+                        leading: IconButton(
+                          icon: const Icon(Icons.close, color: Colors.white),
+                          tooltip: 'Exit Selection',
+                          onPressed: _toggleMultiSelect,
                         ),
-                        padding: const EdgeInsets.symmetric(vertical: 10),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(
-                            AppSizes.radiusMedium,
+                        title: Text(
+                          '${_selectedIds.length} selected',
+                          style: const TextStyle(
+                            fontSize: 17,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white,
                           ),
                         ),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: AppSizes.p12),
-                  Expanded(
-                    child: ElevatedButton.icon(
-                      onPressed: onEdit,
-                      icon: const Icon(
-                        Icons.edit_outlined,
-                        size: 16,
-                        color: Colors.white,
-                      ),
-                      label: const Text(
-                        'Edit',
-                        style: TextStyle(color: Colors.white),
-                      ),
-                      style: ElevatedButton.styleFrom(
+                        actions: [
+                          IconButton(
+                            icon: Icon(
+                              allCurrentSelected ? Icons.deselect : Icons.select_all,
+                              color: Colors.white,
+                            ),
+                            tooltip: allCurrentSelected ? 'Unselect All' : 'Select All',
+                            onPressed: () => _selectAll(currentFiltered),
+                          ),
+                          if (_selectedIds.isNotEmpty) ...[
+                            IconButton(
+                              icon: const Icon(Icons.tune_rounded, color: Colors.white),
+                              tooltip: 'Bulk Edit',
+                              onPressed: () => _bulkEdit(selectedTargets),
+                            ),
+                            IconButton(
+                              icon: const Icon(Icons.delete_outline_rounded, color: Colors.white),
+                              tooltip: 'Delete Selected',
+                              onPressed: () => _confirmDelete(selectedTargets),
+                            ),
+                          ],
+                        ],
+                      )
+                    : AppBar(
                         backgroundColor: AppColors.primaryGreen,
-                        padding: const EdgeInsets.symmetric(vertical: 10),
+                        foregroundColor: Colors.white,
                         elevation: 0,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(
-                            AppSizes.radiusMedium,
-                          ),
+                        title: const Text(
+                          'Document Requirements',
+                          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white),
                         ),
+                        actions: [
+                          IconButton(
+                            icon: const Icon(Icons.checklist_rounded, color: Colors.white),
+                            tooltip: 'Select Multiple',
+                            onPressed: _toggleMultiSelect,
+                          ),
+                        ],
                       ),
-                    ),
-                  ),
-                ],
+                body: SafeArea(child: bodyContent),
+                floatingActionButton: _multiSelectMode
+                    ? null
+                    : FloatingActionButton(
+                        backgroundColor: AppColors.primaryGreen,
+                        foregroundColor: Colors.white,
+                        elevation: 3,
+                        onPressed: () {
+                          final activeCategory = tabController.index == 0 ? 'JHS' : 'SHS';
+                          _showFormModal(defaultCategory: activeCategory);
+                        },
+                        child: const Icon(Icons.add),
+                      ),
+              ),
+            );
+          }
+
+          return CustomModal(
+            title: 'Document Requirements',
+            maxWidth: 840,
+            content: SizedBox(
+              height: screenSize.height * 0.78,
+              child: Scaffold(
+                backgroundColor: Colors.transparent,
+                body: bodyContent,
               ),
             ),
-          ],
-        ),
+          );
+        },
       ),
     );
   }
 
-  Widget _catChip(String category, Color color) {
+  Widget _countBadge(int count, bool isDark) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
       decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.1),
+        color: isDark ? AppColors.darkSurface2 : const Color(0xFFE9ECEF),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: color.withValues(alpha: 0.3)),
       ),
       child: Text(
-        category.toUpperCase(),
+        '$count',
         style: TextStyle(
           fontSize: 11,
-          fontWeight: FontWeight.w700,
-          color: color,
+          fontWeight: FontWeight.bold,
+          color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
         ),
       ),
     );
   }
 
-  Widget _detailTile(
-    BuildContext context,
-    IconData icon,
-    String label,
-    String value, {
-    Color? valueColor,
-  }) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Icon(icon, size: 16, color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary),
-        const SizedBox(width: AppSizes.p8),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                label,
-                style: TextStyle(
-                  fontSize: 11,
-                  fontWeight: FontWeight.w700,
-                  color: isDark ? AppColors.darkTextMuted : AppColors.textMuted,
-                  letterSpacing: 0.4,
-                ),
-              ),
-              const SizedBox(height: 2),
-              Text(
-                value,
-                style: TextStyle(
-                  fontSize: 13,
-                  color: valueColor ?? (isDark ? AppColors.darkTextPrimary : AppColors.textPrimary),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _statusCard(
-    BuildContext context, {
-    required String label,
-    required bool value,
-    required String trueLabel,
-    required String falseLabel,
-    required Color trueColor,
-    required Color falseColor,
-  }) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final color = value ? trueColor : falseColor;
-    final displayLabel = value ? trueLabel : falseLabel;
+  // ─────────────────────────────────────────────────────────
+  // Control Bar (Search, Direct Filter Chips, Sort & Add)
+  // ─────────────────────────────────────────────────────────
+  Widget _buildControlBar(bool isWide, bool isDark, VoidCallback onAdd) {
     return Container(
-      padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 12),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.07),
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: color.withValues(alpha: 0.2)),
-      ),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+      color: isDark ? AppColors.darkSurfaceCard : Colors.white,
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            label,
-            style: TextStyle(
-              fontSize: 10,
-              fontWeight: FontWeight.w700,
-              color: isDark ? AppColors.darkTextMuted : AppColors.textMuted,
-              letterSpacing: 0.4,
-            ),
-          ),
-          const SizedBox(height: 4),
           Row(
             children: [
-              Icon(
-                value ? Icons.check_circle : Icons.cancel_outlined,
-                size: 14,
-                color: color,
-              ),
-              const SizedBox(width: 4),
-              Text(
-                displayLabel,
-                style: TextStyle(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w600,
-                  color: color,
+              // Search Input
+              Expanded(
+                child: SizedBox(
+                  height: 38,
+                  child: TextField(
+                    controller: _searchCtrl,
+                    onChanged: (v) => setState(() => _searchQuery = v),
+                    style: TextStyle(
+                      fontSize: 13,
+                      color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
+                    ),
+                    decoration: InputDecoration(
+                      hintText: 'Search requirements...',
+                      hintStyle: TextStyle(
+                        fontSize: 13,
+                        color: isDark ? AppColors.darkTextMuted : AppColors.textMuted,
+                      ),
+                      prefixIcon: const Icon(Icons.search, size: 18),
+                      suffixIcon: _searchQuery.isNotEmpty
+                          ? IconButton(
+                              icon: const Icon(Icons.clear, size: 16),
+                              onPressed: () {
+                                _searchCtrl.clear();
+                                setState(() => _searchQuery = '');
+                              },
+                            )
+                          : null,
+                      contentPadding: EdgeInsets.zero,
+                      filled: true,
+                      fillColor: isDark ? AppColors.darkSurface2 : const Color(0xFFF1F3F5),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8),
+                        borderSide: BorderSide.none,
+                      ),
+                    ),
+                  ),
                 ),
               ),
+              const SizedBox(width: 8),
+
+              // Sort Mode Dropdown
+              PopupMenuButton<_SortMode>(
+                tooltip: 'Sort by',
+                initialValue: _sortMode,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                color: isDark ? AppColors.darkSurfaceCard : Colors.white,
+                onSelected: (mode) => setState(() => _sortMode = mode),
+                itemBuilder: (_) => [
+                  _sortItem(_SortMode.az, 'Name: A to Z'),
+                  _sortItem(_SortMode.za, 'Name: Z to A'),
+                  _sortItem(_SortMode.dueDateFirst, 'Due Date'),
+                ],
+                child: Container(
+                  height: 38,
+                  padding: const EdgeInsets.symmetric(horizontal: 10),
+                  decoration: BoxDecoration(
+                    color: isDark ? AppColors.darkSurface2 : const Color(0xFFF1F3F5),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Icon(
+                    Icons.sort_rounded,
+                    size: 18,
+                    color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
+                  ),
+                ),
+              ),
+
+              if (isWide) ...[
+                const SizedBox(width: 8),
+                // Select button
+                OutlinedButton.icon(
+                  onPressed: _toggleMultiSelect,
+                  icon: Icon(
+                    _multiSelectMode ? Icons.check_box : Icons.checklist_rounded,
+                    size: 16,
+                  ),
+                  label: Text(_multiSelectMode ? 'Cancel' : 'Select'),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: _multiSelectMode
+                        ? AppColors.primaryGreen
+                        : (isDark ? AppColors.darkTextPrimary : AppColors.textPrimary),
+                    side: BorderSide(
+                      color: _multiSelectMode
+                          ? AppColors.primaryGreen
+                          : (isDark ? AppColors.darkBorder : const Color(0xFFCED4DA)),
+                    ),
+                    minimumSize: const Size(0, 38),
+                    padding: const EdgeInsets.symmetric(horizontal: 12),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                  ),
+                ),
+                const SizedBox(width: 8),
+
+                // Add button
+                ElevatedButton.icon(
+                  onPressed: onAdd,
+                  icon: const Icon(Icons.add, size: 18),
+                  label: const Text('Add Requirement', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.primaryGreen,
+                    foregroundColor: Colors.white,
+                    elevation: 0,
+                    minimumSize: const Size(0, 38),
+                    padding: const EdgeInsets.symmetric(horizontal: 14),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                  ),
+                ),
+              ],
             ],
+          ),
+
+          const SizedBox(height: 8),
+
+          // Quick Filter Segmented Chips (All / Mandatory / Optional / Inactive)
+          SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: Row(
+              children: [
+                _filterChip(0, 'All', isDark),
+                const SizedBox(width: 6),
+                _filterChip(1, 'Mandatory', isDark),
+                const SizedBox(width: 6),
+                _filterChip(2, 'Optional', isDark),
+                const SizedBox(width: 6),
+                _filterChip(3, 'Inactive', isDark),
+              ],
+            ),
           ),
         ],
       ),
     );
   }
 
-  String _formatDate(DateTime date) => '${date.month}/${date.day}/${date.year}';
-}
-
-// ─────────────────────────────────────────────────────────────
-// Bulk Edit Modal — edit mandatory/enabled for multiple items
-// ─────────────────────────────────────────────────────────────
-class _BulkEditModal extends ConsumerStatefulWidget {
-  final List<DocumentRequirementModel> targets;
-  final VoidCallback onDone;
-
-  const _BulkEditModal({required this.targets, required this.onDone});
-
-  @override
-  ConsumerState<_BulkEditModal> createState() => _BulkEditModalState();
-}
-
-class _BulkEditModalState extends ConsumerState<_BulkEditModal> {
-  bool? _isMandatory;
-  bool? _isEnabled;
-  bool _isLoading = false;
-
-  @override
-  Widget build(BuildContext context) {
-    final screenSize = MediaQuery.of(context).size;
-    final isNarrow = screenSize.width < 480;
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-
-    return Dialog(
-      backgroundColor: Colors.transparent,
-      elevation: 0,
-      insetPadding: isNarrow
-          ? const EdgeInsets.symmetric(horizontal: 16, vertical: 24)
-          : const EdgeInsets.symmetric(horizontal: 40, vertical: 40),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(AppSizes.radiusLarge),
-        child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
-          child: Container(
-            color: isDark ? AppColors.darkSurfaceCard.withValues(alpha: 0.85) : AppColors.surfaceWhite.withValues(alpha: 0.85),
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 400),
-              child: Padding(
-                padding: const EdgeInsets.all(AppSizes.p24),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Container(
-                          padding: const EdgeInsets.all(8),
-                          decoration: BoxDecoration(
-                            color: AppColors.primaryGreen.withValues(
-                              alpha: 0.1,
-                            ),
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          child: const Icon(
-                            Icons.edit,
-                            color: AppColors.primaryGreen,
-                            size: 18,
-                          ),
-                        ),
-                        const SizedBox(width: AppSizes.p12),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              const Text(
-                                'Bulk Edit',
-                                style: TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                              Text(
-                                'Editing ${widget.targets.length} requirements',
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        IconButton(
-                          icon: const Icon(Icons.close, size: 20),
-                          onPressed: () => Navigator.pop(context),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: AppSizes.p20),
-                    Text(
-                      'Leave a field as "No change" to keep each requirement\'s current value.',
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
-                      ),
-                    ),
-                    const SizedBox(height: AppSizes.p16),
-                    _buildSelectRow(
-                      label: 'Mandatory',
-                      value: _isMandatory,
-                      trueLabel: 'Set Mandatory',
-                      falseLabel: 'Set Optional',
-                      onChanged: (v) => setState(() => _isMandatory = v),
-                    ),
-                    const SizedBox(height: AppSizes.p12),
-                    _buildSelectRow(
-                      label: 'Enabled',
-                      value: _isEnabled,
-                      trueLabel: 'Set Enabled',
-                      falseLabel: 'Set Disabled',
-                      onChanged: (v) => setState(() => _isEnabled = v),
-                    ),
-                    const SizedBox(height: AppSizes.p24),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: OutlinedButton(
-                            onPressed: () => Navigator.pop(context),
-                            child: const Text('CANCEL'),
-                          ),
-                        ),
-                        const SizedBox(width: AppSizes.p12),
-                        Expanded(
-                          child: ElevatedButton(
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: AppColors.primaryGreen,
-                              foregroundColor: Colors.white,
-                            ),
-                            onPressed:
-                                (_isMandatory == null && _isEnabled == null) ||
-                                    _isLoading
-                                ? null
-                                : _handleBulkSave,
-                            child: _isLoading
-                                ? const AppButtonLoader(
-                                    size: 16,
-                                    color: Colors.white,
-                                  )
-                                : const Text('APPLY'),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildSelectRow({
-    required String label,
-    required bool? value,
-    required String trueLabel,
-    required String falseLabel,
-    required ValueChanged<bool?> onChanged,
-  }) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          label,
-          style: TextStyle(
-            fontSize: 12,
-            fontWeight: FontWeight.w600,
-            color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
-          ),
-        ),
-        const SizedBox(height: 6),
-        Row(
-          children: [
-            _selectChip('No change', value == null, () => onChanged(null)),
-            const SizedBox(width: 6),
-            _selectChip(
-              trueLabel,
-              value == true,
-              () => onChanged(true),
-              color: AppColors.primaryGreen,
-            ),
-            const SizedBox(width: 6),
-            _selectChip(
-              falseLabel,
-              value == false,
-              () => onChanged(false),
-              color: AppColors.textSecondary,
-            ),
-          ],
-        ),
-      ],
-    );
-  }
-
-  Widget _selectChip(
-    String label,
-    bool selected,
-    VoidCallback onTap, {
-    Color color = AppColors.textMuted,
-  }) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    return GestureDetector(
-      onTap: onTap,
+  Widget _filterChip(int index, String label, bool isDark) {
+    final isSelected = _selectedFilterIndex == index;
+    return InkWell(
+      onTap: () => setState(() => _selectedFilterIndex = index),
+      borderRadius: BorderRadius.circular(6),
       child: AnimatedContainer(
-        duration: const Duration(milliseconds: 120),
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+        duration: const Duration(milliseconds: 150),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
         decoration: BoxDecoration(
-          color: selected
-              ? color.withValues(alpha: 0.12)
-              : (isDark ? AppColors.darkSurface2 : Colors.grey.shade100),
-          borderRadius: BorderRadius.circular(8),
-          border: Border.all(
-            color: selected ? color : (isDark ? AppColors.darkBorder : Colors.grey.shade300),
-            width: 1.5,
-          ),
+          color: isSelected
+              ? AppColors.primaryGreen
+              : (isDark ? AppColors.darkSurface2 : const Color(0xFFF1F3F5)),
+          borderRadius: BorderRadius.circular(6),
         ),
         child: Text(
           label,
           style: TextStyle(
             fontSize: 12,
-            fontWeight: selected ? FontWeight.w700 : FontWeight.normal,
-            color: selected ? color : (isDark ? AppColors.darkTextSecondary : AppColors.textSecondary),
+            fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+            color: isSelected
+                ? Colors.white
+                : (isDark ? AppColors.darkTextSecondary : AppColors.textSecondary),
           ),
         ),
       ),
     );
   }
 
-  Future<void> _handleBulkSave() async {
-    setState(() => _isLoading = true);
-    try {
-      for (final req in widget.targets) {
-        final updated = req.copyWith(
-          isMandatory: _isMandatory ?? req.isMandatory,
-          isEnabled: _isEnabled ?? req.isEnabled,
-        );
-        await ref
-            .read(requirementMutationProvider.notifier)
-            .updateRequirement(updated);
-      }
-      if (!mounted) return;
-      widget.onDone();
-      Navigator.pop(context);
-      showSuccessDialog(
-        context,
-        message: '${widget.targets.length} requirements updated successfully',
+  PopupMenuItem<_SortMode> _sortItem(_SortMode mode, String label) {
+    final isSelected = _sortMode == mode;
+    return PopupMenuItem<_SortMode>(
+      value: mode,
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(label, style: TextStyle(fontSize: 13, fontWeight: isSelected ? FontWeight.bold : FontWeight.normal)),
+          if (isSelected) const Icon(Icons.check, size: 16, color: AppColors.primaryGreen),
+        ],
+      ),
+    );
+  }
+
+  // ─────────────────────────────────────────────────────────
+  // Multi-Select Banner
+  // ─────────────────────────────────────────────────────────
+  Widget _buildMultiSelectBanner(
+    List<DocumentRequirementModel> visibleList,
+    bool isDark,
+    bool isAndroid,
+  ) {
+    if (isAndroid) return const SizedBox.shrink();
+
+    final filtered = _applyFiltersAndSort(visibleList);
+    final allSelected = filtered.isNotEmpty && filtered.every((r) => _selectedIds.contains(r.id));
+    final targets = visibleList.where((r) => _selectedIds.contains(r.id)).toList();
+
+    return Container(
+      width: double.infinity,
+      color: AppColors.primaryGreen.withValues(alpha: isDark ? 0.2 : 0.08),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+      child: SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Checkbox(
+              value: allSelected,
+              activeColor: AppColors.primaryGreen,
+              onChanged: (_) => _selectAll(filtered),
+            ),
+            Text(
+              '${_selectedIds.length} of ${filtered.length} selected',
+              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: AppColors.primaryGreen),
+            ),
+            const SizedBox(width: 16),
+            if (_selectedIds.isNotEmpty) ...[
+              OutlinedButton.icon(
+                onPressed: () => _bulkEdit(targets),
+                icon: const Icon(Icons.tune_rounded, size: 15),
+                label: const Text('Bulk Edit', style: TextStyle(fontSize: 12)),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: AppColors.primaryGreen,
+                  side: const BorderSide(color: AppColors.primaryGreen),
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  minimumSize: const Size(0, 32),
+                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                ),
+              ),
+              const SizedBox(width: 8),
+              OutlinedButton.icon(
+                onPressed: () => _confirmDelete(targets),
+                icon: const Icon(Icons.delete_outline_rounded, size: 15, color: AppColors.error),
+                label: const Text('Delete', style: TextStyle(fontSize: 12, color: AppColors.error)),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: AppColors.error,
+                  side: const BorderSide(color: AppColors.error),
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  minimumSize: const Size(0, 32),
+                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                ),
+              ),
+              const SizedBox(width: 8),
+            ],
+            IconButton(
+              icon: const Icon(Icons.close, size: 18),
+              tooltip: 'Cancel',
+              onPressed: _toggleMultiSelect,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // ─────────────────────────────────────────────────────────
+  // Focused Requirements List
+  // ─────────────────────────────────────────────────────────
+  Widget _buildRequirementsList(
+    List<DocumentRequirementModel> rawList,
+    bool isWide,
+    bool isDark,
+    String defaultCategory,
+  ) {
+    final items = _applyFiltersAndSort(rawList);
+
+    if (items.isEmpty) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(Icons.inventory_2_outlined, size: 48, color: Colors.grey.shade400),
+              const SizedBox(height: 12),
+              Text(
+                'No requirements found',
+                style: TextStyle(
+                  fontSize: 15,
+                  fontWeight: FontWeight.bold,
+                  color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
+                ),
+              ),
+              const SizedBox(height: 6),
+              Text(
+                _searchQuery.isNotEmpty || _selectedFilterIndex != 0
+                    ? 'Try adjusting your search or filter.'
+                    : 'Get started by creating your first document requirement.',
+                style: TextStyle(fontSize: 12, color: isDark ? AppColors.darkTextMuted : AppColors.textMuted),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 16),
+              ElevatedButton.icon(
+                onPressed: () => _showFormModal(defaultCategory: defaultCategory),
+                icon: const Icon(Icons.add, size: 16),
+                label: const Text('Add Requirement'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.primaryGreen,
+                  foregroundColor: Colors.white,
+                  elevation: 0,
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                ),
+              ),
+            ],
+          ),
+        ),
       );
-    } catch (e) {
-      if (!mounted) return;
-      showErrorDialog(context, 'Bulk update failed', e.toString());
-    } finally {
-      if (mounted) setState(() => _isLoading = false);
     }
+
+    return ListView.separated(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      itemCount: items.length,
+      separatorBuilder: (_, _) => const SizedBox(height: 8),
+      itemBuilder: (context, index) {
+        final req = items[index];
+        final isSelected = _selectedIds.contains(req.id);
+
+        return Container(
+          decoration: BoxDecoration(
+            color: isSelected
+                ? AppColors.primaryGreen.withValues(alpha: isDark ? 0.15 : 0.08)
+                : (isDark ? AppColors.darkSurfaceCard : Colors.white),
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(
+              color: isSelected
+                  ? AppColors.primaryGreen
+                  : (isDark ? AppColors.darkBorder : const Color(0xFFE9ECEF)),
+              width: isSelected ? 1.5 : 1,
+            ),
+          ),
+          child: Material(
+            color: Colors.transparent,
+            child: InkWell(
+              borderRadius: BorderRadius.circular(10),
+              onTap: () {
+                if (_multiSelectMode) {
+                  _toggleItem(req.id);
+                } else {
+                  _showFormModal(requirement: req, defaultCategory: defaultCategory);
+                }
+              },
+              onLongPress: () {
+                if (!_multiSelectMode) {
+                  setState(() {
+                    _multiSelectMode = true;
+                    _selectedIds.add(req.id);
+                  });
+                }
+              },
+              child: Opacity(
+                opacity: req.isEnabled ? 1.0 : 0.65,
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                  child: Row(
+                    children: [
+                      // Checkbox or Leading Icon
+                      if (_multiSelectMode)
+                        Padding(
+                          padding: const EdgeInsets.only(right: 12),
+                          child: Checkbox(
+                            value: isSelected,
+                            activeColor: AppColors.primaryGreen,
+                            onChanged: (_) => _toggleItem(req.id),
+                          ),
+                        )
+                      else
+                        Container(
+                          width: 36,
+                          height: 36,
+                          margin: const EdgeInsets.only(right: 12),
+                          decoration: BoxDecoration(
+                            color: (req.isMandatory ? AppColors.error : AppColors.primaryGreen)
+                                .withValues(alpha: 0.1),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Icon(
+                            req.isMandatory ? Icons.assignment_outlined : Icons.description_outlined,
+                            size: 18,
+                            color: req.isMandatory ? AppColors.error : AppColors.primaryGreen,
+                          ),
+                        ),
+
+                      // Document Name + Focused Metadata
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: Text(
+                                    req.name,
+                                    style: TextStyle(
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.w600,
+                                      color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(width: 8),
+
+                                // Mandatory Tag
+                                Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                  decoration: BoxDecoration(
+                                    color: req.isMandatory
+                                        ? AppColors.error.withValues(alpha: 0.1)
+                                        : (isDark ? AppColors.darkSurface2 : const Color(0xFFF1F3F5)),
+                                    borderRadius: BorderRadius.circular(4),
+                                  ),
+                                  child: Text(
+                                    req.isMandatory ? 'Required' : 'Optional',
+                                    style: TextStyle(
+                                      fontSize: 10.5,
+                                      fontWeight: FontWeight.bold,
+                                      color: req.isMandatory
+                                          ? AppColors.error
+                                          : (isDark ? AppColors.darkTextSecondary : AppColors.textSecondary),
+                                    ),
+                                  ),
+                                ),
+
+                                // Inactive Tag
+                                if (!req.isEnabled) ...[
+                                  const SizedBox(width: 6),
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                    decoration: BoxDecoration(
+                                      color: Colors.orange.withValues(alpha: 0.12),
+                                      borderRadius: BorderRadius.circular(4),
+                                    ),
+                                    child: const Text(
+                                      'Inactive',
+                                      style: TextStyle(
+                                        fontSize: 10.5,
+                                        fontWeight: FontWeight.bold,
+                                        color: Colors.orange,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ],
+                            ),
+
+                            // Subtitle: Description snippet (if any) or format and due date
+                            const SizedBox(height: 4),
+                            Row(
+                              children: [
+                                if (req.description != null && req.description!.trim().isNotEmpty) ...[
+                                  Expanded(
+                                    child: Text(
+                                      req.description!,
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: TextStyle(
+                                        fontSize: 11.5,
+                                        color: isDark ? AppColors.darkTextMuted : AppColors.textSecondary,
+                                      ),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 8),
+                                ],
+
+                                // Format
+                                Flexible(
+                                  child: Text(
+                                    _formatFileTypes(req.acceptedFileTypes),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: TextStyle(
+                                      fontSize: 10.5,
+                                      fontWeight: FontWeight.w500,
+                                      color: isDark ? AppColors.darkTextMuted : AppColors.textMuted,
+                                    ),
+                                  ),
+                                ),
+
+                                // Due Date
+                                if (req.dueDate != null) ...[
+                                  const SizedBox(width: 8),
+                                  Icon(Icons.event, size: 12, color: Colors.grey.shade500),
+                                  const SizedBox(width: 3),
+                                  Text(
+                                    '${req.dueDate!.month}/${req.dueDate!.day}/${req.dueDate!.year}',
+                                    style: TextStyle(
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.w500,
+                                      color: isDark ? AppColors.darkTextMuted : AppColors.textSecondary,
+                                    ),
+                                  ),
+                                ],
+                              ],
+                            ),
+                          ],
+                        ),
+                      ),
+
+                      // Trailing Actions (Desktop: Switch + Edit + Delete)
+                      if (isWide && !_multiSelectMode) ...[
+                        const SizedBox(width: 12),
+                        Tooltip(
+                          message: req.isEnabled ? 'Active (Click to disable)' : 'Inactive (Click to enable)',
+                          child: Switch(
+                            value: req.isEnabled,
+                            activeThumbColor: AppColors.primaryGreen,
+                            onChanged: (val) async {
+                              try {
+                                await ref
+                                    .read(requirementMutationProvider.notifier)
+                                    .updateRequirement(req.copyWith(isEnabled: val));
+                              } catch (e) {
+                                if (!context.mounted) return;
+                                showErrorDialog(context, 'Update Failed', e.toString());
+                              }
+                            },
+                          ),
+                        ),
+                        IconButton(
+                          icon: const Icon(Icons.edit_outlined, size: 18),
+                          tooltip: 'Edit',
+                          onPressed: () => _showFormModal(requirement: req, defaultCategory: defaultCategory),
+                        ),
+                        IconButton(
+                          icon: const Icon(Icons.delete_outline, size: 18, color: AppColors.error),
+                          tooltip: 'Delete',
+                          onPressed: () => _confirmDelete([req]),
+                        ),
+                      ] else ...[
+                        const SizedBox(width: 4),
+                        const Icon(Icons.chevron_right, size: 18, color: Colors.grey),
+                      ],
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+        );
+      },
+    );
   }
 }
 
 // ─────────────────────────────────────────────────────────────
-// Add / Edit Form Modal
+// Add / Edit Form Modal (Focused & Intuitive)
 // ─────────────────────────────────────────────────────────────
 class RequirementFormModal extends ConsumerStatefulWidget {
   final DocumentRequirementModel? requirement;
+  final String? defaultCategory;
 
-  const RequirementFormModal({super.key, this.requirement});
+  const RequirementFormModal({super.key, this.requirement, this.defaultCategory});
 
   @override
-  ConsumerState<RequirementFormModal> createState() =>
-      _RequirementFormModalState();
+  ConsumerState<RequirementFormModal> createState() => _RequirementFormModalState();
 }
 
 class _RequirementFormModalState extends ConsumerState<RequirementFormModal> {
@@ -1794,7 +1025,6 @@ class _RequirementFormModalState extends ConsumerState<RequirementFormModal> {
   late TextEditingController _descController;
   late TextEditingController _dueDateController;
 
-  // Category — both can be checked; stored as category field
   late bool _catJhs;
   late bool _catShs;
   late bool _isMandatory;
@@ -1815,16 +1045,20 @@ class _RequirementFormModalState extends ConsumerState<RequirementFormModal> {
           : '',
     );
 
-    // Category checkboxes
-    final cat = req?.category.toUpperCase() ?? 'JHS';
-    _catJhs = cat == 'JHS' || cat == 'BOTH';
-    _catShs = cat == 'SHS' || cat == 'BOTH';
+    if (req != null) {
+      final cat = req.category.toUpperCase();
+      _catJhs = cat == 'JHS' || cat == 'BOTH';
+      _catShs = cat == 'SHS' || cat == 'BOTH';
+    } else {
+      final def = widget.defaultCategory?.toUpperCase() ?? 'JHS';
+      _catJhs = def == 'JHS' || def == 'BOTH';
+      _catShs = def == 'SHS' || def == 'BOTH';
+    }
 
     _isMandatory = req?.isMandatory ?? true;
     _isEnabled = req?.isEnabled ?? true;
 
-    String savedTypes = (req?.acceptedFileTypes ?? 'pdf,jpg,jpeg,png')
-        .replaceAll(' ', '');
+    String savedTypes = (req?.acceptedFileTypes ?? 'pdf,jpg,jpeg,png').replaceAll(' ', '');
     const validItems = [
       'pdf',
       'pdf,jpg,jpeg,png',
@@ -1846,344 +1080,218 @@ class _RequirementFormModalState extends ConsumerState<RequirementFormModal> {
     super.dispose();
   }
 
+  Future<void> _pickDueDate() async {
+    DateTime initial = DateTime.now();
+    if (_dueDateController.text.trim().isNotEmpty) {
+      final parts = _dueDateController.text.trim().split('/');
+      if (parts.length == 3) {
+        initial = DateTime.tryParse('${parts[2]}-${parts[0].padLeft(2, '0')}-${parts[1].padLeft(2, '0')}') ?? DateTime.now();
+      }
+    }
+
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: initial,
+      firstDate: DateTime(2000),
+      lastDate: DateTime(2100),
+    );
+
+    if (picked != null) {
+      setState(() {
+        _dueDateController.text = '${picked.month}/${picked.day}/${picked.year}';
+      });
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final isEditing = widget.requirement != null;
-    final screenSize = MediaQuery.of(context).size;
-    final isNarrow = screenSize.width < 480;
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Dialog(
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(AppSizes.radiusLarge),
-      ),
-      insetPadding: isNarrow
-          ? const EdgeInsets.symmetric(horizontal: 12, vertical: 24)
-          : const EdgeInsets.symmetric(horizontal: 40, vertical: 40),
+      backgroundColor: isDark ? AppColors.darkSurfaceCard : Colors.white,
+      insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 500),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            // Header
-            Container(
-              padding: const EdgeInsets.fromLTRB(
-                AppSizes.p20,
-                AppSizes.p16,
-                AppSizes.p12,
-                AppSizes.p16,
-              ),
-              decoration: BoxDecoration(
-                color: AppColors.primaryGreen.withValues(alpha: isDark ? 0.12 : 0.05),
-                borderRadius: const BorderRadius.vertical(
-                  top: Radius.circular(AppSizes.radiusLarge),
-                ),
-                border: Border(bottom: BorderSide(color: isDark ? AppColors.darkBorder : Colors.grey.shade200)),
-              ),
-              child: Row(
+        constraints: const BoxConstraints(maxWidth: 480),
+        child: Padding(
+          padding: const EdgeInsets.all(20),
+          child: Form(
+            key: _formKey,
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Container(
-                    padding: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(
-                      color: AppColors.primaryGreen.withValues(alpha: 0.12),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: const Icon(
-                      Icons.document_scanner,
-                      color: AppColors.primaryGreen,
-                      size: 18,
-                    ),
-                  ),
-                  const SizedBox(width: AppSizes.p12),
-                  Expanded(
-                    child: Text(
-                      isEditing ? 'Edit Requirement' : 'Add Requirement',
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                        color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
-                      ),
-                    ),
-                  ),
-                  IconButton(
-                    icon: const Icon(Icons.close, size: 20),
-                    onPressed: () => Navigator.pop(context),
-                  ),
-                ],
-              ),
-            ),
-
-            // Form body
-            Flexible(
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.all(AppSizes.p20),
-                child: Form(
-                  key: _formKey,
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      CustomTextField(
-                        hintText: 'Document Name *',
-                        controller: _nameController,
-                        prefixIcon: Icons.description,
-                        validator: (v) => v?.trim().isEmpty == true
-                            ? 'Name is required'
-                            : null,
+                      Text(
+                        isEditing ? 'Edit Requirement' : 'New Requirement',
+                        style: const TextStyle(fontSize: 17, fontWeight: FontWeight.bold),
                       ),
-                      const SizedBox(height: AppSizes.p16),
-                      CustomTextField(
-                        hintText: 'Description (optional)',
-                        controller: _descController,
-                        prefixIcon: Icons.notes,
-                        maxLines: 3,
+                      IconButton(
+                        icon: const Icon(Icons.close, size: 20),
+                        onPressed: () => Navigator.pop(context),
                       ),
-                      const SizedBox(height: AppSizes.p16),
-                      CustomTextField(
-                        hintText: 'Due Date (MM/DD/YYYY) — optional',
+                    ],
+                  ),
+                  const Divider(height: 20),
+
+                  // Name
+                  CustomTextField(
+                    hintText: 'Requirement Name *',
+                    controller: _nameController,
+                    validator: (v) => v?.trim().isEmpty == true ? 'Name is required' : null,
+                  ),
+                  const SizedBox(height: 12),
+
+                  // Description
+                  CustomTextField(
+                    hintText: 'Description (optional)',
+                    controller: _descController,
+                    maxLines: 2,
+                  ),
+                  const SizedBox(height: 12),
+
+                  // Due date with picker
+                  InkWell(
+                    onTap: _pickDueDate,
+                    child: IgnorePointer(
+                      child: CustomTextField(
+                        hintText: 'Due Date (MM/DD/YYYY) - optional',
                         controller: _dueDateController,
                         prefixIcon: Icons.calendar_today,
                       ),
-                      const SizedBox(height: AppSizes.p16),
+                    ),
+                  ),
+                  const SizedBox(height: 14),
 
-                      // Category checkboxes
-                      Text(
-                        'Category',
-                        style: TextStyle(
-                          fontSize: 13,
-                          fontWeight: FontWeight.w600,
-                          color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      Container(
-                        decoration: BoxDecoration(
-                          color: isDark ? AppColors.darkSurface2 : Colors.grey.shade50,
-                          borderRadius: BorderRadius.circular(8),
-                          border: Border.all(color: isDark ? AppColors.darkBorder : Colors.grey.shade300),
-                        ),
-                        child: Column(
+                  // Category Selection
+                  const Text('Applicable Level *', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                  const SizedBox(height: 6),
+                  Wrap(
+                    spacing: 16,
+                    runSpacing: 6,
+                    crossAxisAlignment: WrapCrossAlignment.center,
+                    children: [
+                      InkWell(
+                        onTap: () => setState(() => _catJhs = !_catJhs),
+                        borderRadius: BorderRadius.circular(4),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
                           children: [
-                            _buildCategoryCheckTile(
-                              label: 'JHS (Junior High School)',
+                            Checkbox(
                               value: _catJhs,
-                              color: Colors.blue,
-                              onChanged: (v) => setState(() => _catJhs = v!),
+                              activeColor: AppColors.primaryGreen,
+                              materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                              visualDensity: VisualDensity.compact,
+                              onChanged: (v) => setState(() => _catJhs = v ?? false),
                             ),
-                            Divider(height: 1, color: isDark ? AppColors.darkBorder : null),
-                            _buildCategoryCheckTile(
-                              label: 'SHS (Senior High School)',
-                              value: _catShs,
-                              color: Colors.purple,
-                              onChanged: (v) => setState(() => _catShs = v!),
-                            ),
+                            const SizedBox(width: 6),
+                            const Text('Junior High (JHS)', style: TextStyle(fontSize: 13)),
                           ],
                         ),
                       ),
-                      if (!_catJhs && !_catShs)
-                        Padding(
-                          padding: const EdgeInsets.only(top: 4, left: 4),
-                          child: Text(
-                            'Please select at least one category',
-                            style: TextStyle(
-                              fontSize: 11,
-                              color: AppColors.error,
-                            ),
-                          ),
-                        ),
-                      const SizedBox(height: AppSizes.p16),
-
-                      // File types dropdown
-                      DropdownButtonFormField<String>(
-                        initialValue: _acceptedFileTypes,
-                        decoration: InputDecoration(
-                          labelText: 'Accepted File Types',
-                          prefixIcon: const Icon(
-                            Icons.attach_file,
-                            color: AppColors.primaryGreen,
-                          ),
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          enabledBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(8),
-                            borderSide: BorderSide(color: isDark ? AppColors.darkBorder : Colors.grey.shade300),
-                          ),
-                          focusedBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(8),
-                            borderSide: const BorderSide(
-                              color: AppColors.primaryGreen,
-                              width: 2,
-                            ),
-                          ),
-                          filled: true,
-                          fillColor: isDark ? AppColors.darkSurface2 : Colors.grey.shade50,
-                        ),
-                        items: const [
-                          DropdownMenuItem(
-                            value: 'pdf',
-                            child: Text('PDF only'),
-                          ),
-                          DropdownMenuItem(
-                            value: 'pdf,jpg,jpeg,png',
-                            child: Text('PDF, JPG, PNG'),
-                          ),
-                          DropdownMenuItem(
-                            value: 'pdf,doc,docx',
-                            child: Text('PDF & Word'),
-                          ),
-                          DropdownMenuItem(
-                            value: 'pdf,doc,docx,xls,xlsx',
-                            child: Text('PDF, Word & Excel'),
-                          ),
-                          DropdownMenuItem(
-                            value: 'pdf,jpg,jpeg,png,doc,docx,xls,xlsx',
-                            child: Text('All Formats'),
-                          ),
-                        ],
-                        onChanged: (v) =>
-                            setState(() => _acceptedFileTypes = v!),
-                      ),
-                      const SizedBox(height: AppSizes.p20),
-
-                      // Switches
-                      Container(
-                        decoration: BoxDecoration(
-                          color: isDark ? AppColors.darkSurface2 : Colors.grey.shade50,
-                          borderRadius: BorderRadius.circular(8),
-                          border: Border.all(color: isDark ? AppColors.darkBorder : Colors.grey.shade200),
-                        ),
-                        child: Column(
+                      InkWell(
+                        onTap: () => setState(() => _catShs = !_catShs),
+                        borderRadius: BorderRadius.circular(4),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
                           children: [
-                            SwitchListTile(
-                              title: const Text(
-                                'Mandatory Requirement',
-                                style: TextStyle(
-                                  fontWeight: FontWeight.w500,
-                                  fontSize: 14,
-                                ),
-                              ),
-                              subtitle: const Text(
-                                'Students must upload this document',
-                                style: TextStyle(fontSize: 12),
-                              ),
-                              value: _isMandatory,
-                              onChanged: (v) =>
-                                  setState(() => _isMandatory = v),
-                              activeThumbColor: AppColors.error,
+                            Checkbox(
+                              value: _catShs,
+                              activeColor: AppColors.primaryGreen,
+                              materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                              visualDensity: VisualDensity.compact,
+                              onChanged: (v) => setState(() => _catShs = v ?? false),
                             ),
-                            Divider(height: 1, color: isDark ? AppColors.darkBorder : null),
-                            SwitchListTile(
-                              title: const Text(
-                                'Enabled',
-                                style: TextStyle(
-                                  fontWeight: FontWeight.w500,
-                                  fontSize: 14,
-                                ),
-                              ),
-                              subtitle: const Text(
-                                'Show this requirement in the system',
-                                style: TextStyle(fontSize: 12),
-                              ),
-                              value: _isEnabled,
-                              onChanged: (v) => setState(() => _isEnabled = v),
-                              activeThumbColor: AppColors.success,
-                            ),
+                            const SizedBox(width: 6),
+                            const Text('Senior High (SHS)', style: TextStyle(fontSize: 13)),
                           ],
                         ),
                       ),
                     ],
                   ),
-                ),
-              ),
-            ),
+                  if (!_catJhs && !_catShs)
+                    const Padding(
+                      padding: EdgeInsets.only(top: 4, left: 4),
+                      child: Text('Select at least one level', style: TextStyle(color: AppColors.error, fontSize: 11)),
+                    ),
 
-            // Footer actions
-            Container(
-              padding: const EdgeInsets.symmetric(
-                horizontal: AppSizes.p16,
-                vertical: AppSizes.p12,
-              ),
-              decoration: BoxDecoration(
-                border: Border(top: BorderSide(color: isDark ? AppColors.darkBorder : Colors.grey.shade200)),
-              ),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: SizedBox(
-                      height: 44,
-                      child: OutlinedButton(
-                        onPressed: () => Navigator.pop(context),
-                        style: OutlinedButton.styleFrom(
-                          padding: EdgeInsets.zero,
-                          side: BorderSide(
-                            color: isDark ? AppColors.darkBorder : Colors.grey.shade300,
-                          ),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(
-                              AppSizes.radiusMedium,
-                            ),
-                          ),
-                        ),
-                        child: Text(
-                          'CANCEL',
-                          style: TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 13,
-                            color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
-                          ),
-                        ),
-                      ),
+                  const SizedBox(height: 12),
+
+                  // Accepted Formats Dropdown
+                  DropdownButtonFormField<String>(
+                    initialValue: _acceptedFileTypes,
+                    decoration: const InputDecoration(
+                      labelText: 'Accepted Formats',
+                      border: OutlineInputBorder(),
+                      contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
                     ),
+                    items: const [
+                      DropdownMenuItem(value: 'pdf', child: Text('PDF only')),
+                      DropdownMenuItem(value: 'pdf,jpg,jpeg,png', child: Text('PDF, JPG, PNG')),
+                      DropdownMenuItem(value: 'pdf,doc,docx', child: Text('PDF, Word')),
+                      DropdownMenuItem(value: 'pdf,doc,docx,xls,xlsx', child: Text('PDF, Word, Excel')),
+                      DropdownMenuItem(value: 'pdf,jpg,jpeg,png,doc,docx,xls,xlsx', child: Text('All Formats')),
+                    ],
+                    onChanged: (v) => setState(() => _acceptedFileTypes = v!),
                   ),
-                  const SizedBox(width: AppSizes.p12),
-                  Expanded(
-                    child: SizedBox(
-                      height: 44,
-                      child: PrimaryButton(
-                        label: isEditing ? 'UPDATE' : 'CREATE',
-                        isLoading: _isLoading,
-                        onPressed: _handleSubmit,
+
+                  const SizedBox(height: 12),
+
+                  // Mandatory Switch
+                  SwitchListTile(
+                    title: const Text('Mandatory Requirement', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13.5)),
+                    subtitle: const Text('Students must upload this document', style: TextStyle(fontSize: 11.5)),
+                    value: _isMandatory,
+                    activeThumbColor: AppColors.error,
+                    onChanged: (v) => setState(() => _isMandatory = v),
+                  ),
+
+                  // Active Switch
+                  SwitchListTile(
+                    title: const Text('Active', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13.5)),
+                    subtitle: const Text('Visible in the student portal', style: TextStyle(fontSize: 11.5)),
+                    value: _isEnabled,
+                    activeThumbColor: AppColors.primaryGreen,
+                    onChanged: (v) => setState(() => _isEnabled = v),
+                  ),
+
+                  const SizedBox(height: 16),
+
+                  // Buttons
+                  Row(
+                    children: [
+                      Expanded(
+                        child: OutlinedButton(
+                          onPressed: () => Navigator.pop(context),
+                          child: const Text('CANCEL'),
+                        ),
                       ),
-                    ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: PrimaryButton(
+                          label: isEditing ? 'UPDATE' : 'SAVE',
+                          isLoading: _isLoading,
+                          onPressed: _handleSubmit,
+                        ),
+                      ),
+                    ],
                   ),
                 ],
               ),
             ),
-          ],
+          ),
         ),
       ),
-    );
-  }
-
-  Widget _buildCategoryCheckTile({
-    required String label,
-    required bool value,
-    required Color color,
-    required ValueChanged<bool?> onChanged,
-  }) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    return CheckboxListTile(
-      title: Text(
-        label,
-        style: TextStyle(
-          fontSize: 13,
-          fontWeight: FontWeight.w500,
-          color: value ? color : (isDark ? AppColors.darkTextPrimary : AppColors.textPrimary),
-        ),
-      ),
-      value: value,
-      onChanged: onChanged,
-      activeColor: color,
-      controlAffinity: ListTileControlAffinity.leading,
-      dense: true,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
     );
   }
 
   Future<void> _handleSubmit() async {
     if (!_formKey.currentState!.validate()) return;
-    if (!_catJhs && !_catShs) return; // Category validation
+    if (!_catJhs && !_catShs) return;
 
     setState(() => _isLoading = true);
 
@@ -2200,7 +1308,6 @@ class _RequirementFormModalState extends ConsumerState<RequirementFormModal> {
         }
       }
 
-      // If both categories selected, create/update for each separately
       final categories = <String>[];
       if (_catJhs && _catShs) {
         categories.addAll(['JHS', 'SHS']);
@@ -2212,13 +1319,9 @@ class _RequirementFormModalState extends ConsumerState<RequirementFormModal> {
 
       for (final cat in categories) {
         final requirement = DocumentRequirementModel(
-          id: (categories.length == 1)
-              ? (widget.requirement?.id ?? 0)
-              : 0, // new record for second category
+          id: (categories.length == 1) ? (widget.requirement?.id ?? 0) : 0,
           name: _nameController.text.trim(),
-          description: _descController.text.trim().isEmpty
-              ? null
-              : _descController.text.trim(),
+          description: _descController.text.trim().isEmpty ? null : _descController.text.trim(),
           category: cat,
           isMandatory: _isMandatory,
           isEnabled: _isEnabled,
@@ -2228,13 +1331,9 @@ class _RequirementFormModalState extends ConsumerState<RequirementFormModal> {
         );
 
         if (widget.requirement != null && categories.length == 1) {
-          await ref
-              .read(requirementMutationProvider.notifier)
-              .updateRequirement(requirement);
+          await ref.read(requirementMutationProvider.notifier).updateRequirement(requirement);
         } else {
-          await ref
-              .read(requirementMutationProvider.notifier)
-              .createRequirement(requirement);
+          await ref.read(requirementMutationProvider.notifier).createRequirement(requirement);
         }
       }
 
@@ -2242,13 +1341,133 @@ class _RequirementFormModalState extends ConsumerState<RequirementFormModal> {
       Navigator.pop(context);
       showSuccessDialog(
         context,
-        message: widget.requirement != null
-            ? 'Requirement updated successfully'
-            : 'Requirement created successfully',
+        message: widget.requirement != null ? 'Requirement updated' : 'Requirement created',
       );
     } catch (e) {
       if (!mounted) return;
-      showErrorDialog(context, 'Failed to save requirement', e.toString());
+      showErrorDialog(context, 'Failed to save', e.toString());
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+}
+
+// ─────────────────────────────────────────────────────────────
+// Bulk Edit Modal
+// ─────────────────────────────────────────────────────────────
+class _BulkEditModal extends ConsumerStatefulWidget {
+  final List<DocumentRequirementModel> targets;
+  final VoidCallback onDone;
+
+  const _BulkEditModal({required this.targets, required this.onDone});
+
+  @override
+  ConsumerState<_BulkEditModal> createState() => _BulkEditModalState();
+}
+
+class _BulkEditModalState extends ConsumerState<_BulkEditModal> {
+  bool? _isMandatory;
+  bool? _isEnabled;
+  bool _isLoading = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    return Dialog(
+      backgroundColor: isDark ? AppColors.darkSurfaceCard : Colors.white,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 380),
+        child: Padding(
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Bulk Edit (${widget.targets.length} items)',
+                style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 16),
+
+              DropdownButtonFormField<bool?>(
+                initialValue: _isMandatory,
+                decoration: const InputDecoration(labelText: 'Mandatory Status', border: OutlineInputBorder()),
+                items: const [
+                  DropdownMenuItem(value: null, child: Text('No change')),
+                  DropdownMenuItem(value: true, child: Text('Set Required')),
+                  DropdownMenuItem(value: false, child: Text('Set Optional')),
+                ],
+                onChanged: (v) => setState(() => _isMandatory = v),
+              ),
+              const SizedBox(height: 14),
+
+              DropdownButtonFormField<bool?>(
+                initialValue: _isEnabled,
+                decoration: const InputDecoration(labelText: 'Availability', border: OutlineInputBorder()),
+                items: const [
+                  DropdownMenuItem(value: null, child: Text('No change')),
+                  DropdownMenuItem(value: true, child: Text('Set Active')),
+                  DropdownMenuItem(value: false, child: Text('Set Inactive')),
+                ],
+                onChanged: (v) => setState(() => _isEnabled = v),
+              ),
+              const SizedBox(height: 20),
+
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton(
+                      onPressed: () => Navigator.pop(context),
+                      child: const Text('CANCEL'),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.primaryGreen,
+                        foregroundColor: Colors.white,
+                        elevation: 0,
+                      ),
+                      onPressed: (_isMandatory == null && _isEnabled == null) || _isLoading
+                          ? null
+                          : _handleBulkSave,
+                      child: _isLoading
+                          ? const AppButtonLoader(size: 16, color: Colors.white)
+                          : const Text('APPLY'),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _handleBulkSave() async {
+    setState(() => _isLoading = true);
+    try {
+      for (final req in widget.targets) {
+        final updated = req.copyWith(
+          isMandatory: _isMandatory ?? req.isMandatory,
+          isEnabled: _isEnabled ?? req.isEnabled,
+        );
+        await ref.read(requirementMutationProvider.notifier).updateRequirement(updated);
+      }
+      if (!mounted) return;
+      widget.onDone();
+      Navigator.pop(context);
+      showSuccessDialog(
+        context,
+        message: '${widget.targets.length} requirements updated',
+      );
+    } catch (e) {
+      if (!mounted) return;
+      showErrorDialog(context, 'Bulk update failed', e.toString());
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }

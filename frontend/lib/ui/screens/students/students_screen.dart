@@ -16,6 +16,7 @@ import 'widgets/add_student_modal.dart';
 import 'widgets/edit_student_modal.dart';
 import 'widgets/bulk_ocr_import_dialog.dart';
 import 'widgets/student_filter_dialog.dart';
+import 'widgets/student_bulk_actions.dart';
 import '../../providers/setup_provider.dart';
 import '../../shared/inputs/app_search_bar.dart';
 import '../../providers/navigation_provider.dart';
@@ -49,9 +50,18 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
   Timer? _dragResetTimer;
   ProviderSubscription<String>? _tabListener;
 
+  void _updateSelection(void Function() updateFn) {
+    setState(updateFn);
+    ref.read(studentSelectedIdsProvider.notifier).state =
+        List.from(_selectedStudentIds);
+  }
+
   @override
   void initState() {
     super.initState();
+
+    _showMultiSelect = ref.read(studentMultiSelectProvider);
+    _selectedStudentIds.addAll(ref.read(studentSelectedIdsProvider));
 
     _searchController.addListener(_onSearchChanged);
     _searchFocusNode.addListener(_onSearchFocusChanged);
@@ -74,10 +84,11 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
           if (_searchController.text.isNotEmpty) _searchController.clear();
           ref.read(studentQueryProvider.notifier).reset();
           if (_showMultiSelect || _selectedStudentIds.isNotEmpty) {
-            setState(() {
+            _updateSelection(() {
               _showMultiSelect = false;
               _selectedStudentIds.clear();
             });
+            ref.read(studentMultiSelectProvider.notifier).state = false;
           }
         } else {
           Future.delayed(const Duration(milliseconds: 120), () {
@@ -320,17 +331,18 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
     if (choice == 'edit') {
       await _openModal(student: student);
     } else if (choice == 'select') {
-      setState(() {
+      _updateSelection(() {
         _showMultiSelect = true;
         if (!_selectedStudentIds.contains(student.id)) {
           _selectedStudentIds.add(student.id);
         }
       });
+      ref.read(studentMultiSelectProvider.notifier).state = true;
     }
   }
 
   void _toggleSelectAll(List<StudentModel> students) {
-    setState(() {
+    _updateSelection(() {
       if (_selectedStudentIds.length == students.length) {
         _selectedStudentIds.clear();
       } else {
@@ -344,252 +356,88 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final count = _selectedStudentIds.length;
     final allSelected = allStudents.isNotEmpty && count == allStudents.length;
-    final buttonColor = isDark ? Colors.white : Colors.black;
 
     return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      height: 52,
+      padding: const EdgeInsets.symmetric(horizontal: 8),
       decoration: BoxDecoration(
-        color: isDark
-            ? AppColors.darkSurfaceCard
-            : AppColors.primaryGreen.withValues(alpha: 0.1),
-        border: Border(
-          bottom: BorderSide(
-            color: isDark
-                ? AppColors.darkBorder
-                : AppColors.primaryGreen.withValues(alpha: 0.2),
-          ),
+        color: isDark ? AppColors.darkSurfaceCard : AppColors.primaryGreen,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: isDark ? AppColors.darkBorder : Colors.transparent,
         ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.08),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
       ),
-      child: SingleChildScrollView(
-        scrollDirection: Axis.horizontal,
-        child: Row(
-          children: [
-            Tooltip(
-              message: 'Cancel selection',
-              child: IconButton(
-                icon: Icon(Icons.close, color: buttonColor),
-                onPressed: () {
-                  setState(() {
-                    _selectedStudentIds.clear();
-                    _showMultiSelect = false;
-                  });
-                  ref.read(studentMultiSelectProvider.notifier).state = false;
-                  ref.read(studentSelectedIdsProvider.notifier).state = [];
-                },
-              ),
+      child: Row(
+        children: [
+          IconButton(
+            icon: const Icon(Icons.close, color: Colors.white),
+            tooltip: 'Exit Selection',
+            onPressed: () {
+              _updateSelection(() {
+                _selectedStudentIds.clear();
+                _showMultiSelect = false;
+              });
+              ref.read(studentMultiSelectProvider.notifier).state = false;
+            },
+          ),
+          const SizedBox(width: 8),
+          Text(
+            '$count selected',
+            style: const TextStyle(
+              fontSize: 17,
+              fontWeight: FontWeight.bold,
+              color: Colors.white,
             ),
-            const SizedBox(width: 8),
-            Text(
-              count == 0 ? 'Select items' : '$count selected',
-              style: TextStyle(
-                fontWeight: FontWeight.bold,
-                fontSize: 16,
-                color: isDark
-                    ? AppColors.darkTextPrimary
-                    : AppColors.textPrimary,
-              ),
+          ),
+          const Spacer(),
+          IconButton(
+            icon: Icon(
+              allSelected ? Icons.deselect : Icons.select_all,
+              color: Colors.white,
             ),
-            const SizedBox(width: 8),
-            Tooltip(
-              message: allSelected ? 'Unselect All' : 'Select All',
-              child: IconButton(
-                icon: Icon(
-                  allSelected ? Icons.deselect : Icons.select_all,
-                  color: buttonColor,
-                ),
-                onPressed: allStudents.isEmpty
-                    ? null
-                    : () => _toggleSelectAll(allStudents),
-              ),
+            tooltip: allSelected ? 'Unselect All' : 'Select All',
+            onPressed: () => _toggleSelectAll(allStudents),
+          ),
+          if (count > 0 && widget.userRole != 'teacher') ...[
+            IconButton(
+              icon: const Icon(Icons.group_add_rounded, color: Colors.white),
+              tooltip: 'Bulk Enroll',
+              onPressed: () => StudentBulkActions.bulkEnroll(context, ref),
             ),
-            const SizedBox(width: 16),
-            Container(
-              width: 1,
-              height: 24,
-              color: isDark ? AppColors.darkBorder : Colors.grey.shade400,
+            IconButton(
+              icon: const Icon(Icons.school_rounded, color: Colors.white),
+              tooltip: 'Bulk Graduate',
+              onPressed: () => StudentBulkActions.bulkGraduate(context, ref),
             ),
-            const SizedBox(width: 12),
-            Tooltip(
-              message: 'Enroll',
-              child: IconButton(
-                icon: Icon(Icons.group_add_rounded, color: buttonColor),
-                onPressed: count == 0 ? null : _showBulkEnrollModal,
-              ),
+            IconButton(
+              icon: const Icon(Icons.transfer_within_a_station_rounded, color: Colors.white),
+              tooltip: 'Transfer',
+              onPressed: () => StudentBulkActions.bulkChangeStatus(context, ref, 'Transferred'),
             ),
-            Tooltip(
-              message: 'Graduate',
-              child: IconButton(
-                icon: Icon(Icons.school_rounded, color: buttonColor),
-                onPressed: count == 0 ? null : _showBulkGraduateConfirm,
-              ),
+            IconButton(
+              icon: const Icon(Icons.person_off_rounded, color: Colors.white),
+              tooltip: 'Drop',
+              onPressed: () => StudentBulkActions.bulkChangeStatus(context, ref, 'Dropped'),
             ),
-            Tooltip(
-              message: 'Transfer',
-              child: IconButton(
-                icon: Icon(
-                  Icons.transfer_within_a_station_rounded,
-                  color: buttonColor,
-                ),
-                onPressed: count == 0
-                    ? null
-                    : () => _showBulkChangeStatusConfirm(
-                        'Transferred',
-                        allStudents,
-                      ),
-              ),
-            ),
-            Tooltip(
-              message: 'Drop',
-              child: IconButton(
-                icon: Icon(Icons.person_off_rounded, color: buttonColor),
-                onPressed: count == 0
-                    ? null
-                    : () =>
-                        _showBulkChangeStatusConfirm('Dropped', allStudents),
-              ),
-            ),
-            Tooltip(
-              message: 'Inactive',
-              child: IconButton(
-                icon: Icon(
-                  Icons.do_not_disturb_on_total_silence_rounded,
-                  color: buttonColor,
-                ),
-                onPressed: count == 0
-                    ? null
-                    : () =>
-                        _showBulkChangeStatusConfirm('Inactive', allStudents),
-              ),
+            IconButton(
+              icon: const Icon(Icons.do_not_disturb_on_total_silence_rounded, color: Colors.white),
+              tooltip: 'Set Inactive',
+              onPressed: () => StudentBulkActions.bulkChangeStatus(context, ref, 'Inactive'),
             ),
           ],
-        ),
-      ),
-    );
-  }
-
-  void _showBulkEnrollModal() {
-    showDialog(
-      context: context,
-      builder: (context) => BulkEnrollDialog(
-        studentIds: _selectedStudentIds,
-        onSuccess: () {
-          setState(() {
-            _selectedStudentIds.clear();
-            _showMultiSelect = false;
-          });
-          showSuccessDialog(
-            context,
-            message: 'Students successfully enrolled.',
-          );
-        },
-      ),
-    );
-  }
-
-  void _showBulkGraduateConfirm() async {
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Bulk Graduate'),
-        content: Text(
-          'Are you sure you want to change the status of ${_selectedStudentIds.length} selected student(s) to "Graduated"?',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop(false),
-            child: const Text('CANCEL'),
-          ),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.blue,
-              foregroundColor: Colors.white,
-            ),
-            onPressed: () => Navigator.of(ctx).pop(true),
-            child: const Text('GRADUATE'),
-          ),
+          const SizedBox(width: 4),
         ],
       ),
     );
-    if (confirmed == true && mounted) {
-      try {
-        await ref
-            .read(studentMutationProvider.notifier)
-            .bulkGraduate(_selectedStudentIds);
-        if (mounted) {
-          setState(() {
-            _selectedStudentIds.clear();
-            _showMultiSelect = false;
-          });
-          showSuccessDialog(
-            context,
-            message: 'Students successfully graduated.',
-          );
-        }
-      } catch (e) {
-        if (mounted) {
-          final errMsg = e.toString().replaceAll('Exception: ', '');
-          showErrorDialog(context, 'Error', errMsg);
-        }
-      }
-    }
   }
 
-  void _showBulkChangeStatusConfirm(
-    String newStatus,
-    List<StudentModel> allStudents,
-  ) async {
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: Text('Bulk $newStatus'),
-        content: Text(
-          'Are you sure you want to change the status of ${_selectedStudentIds.length} selected student(s) to "$newStatus"?',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop(false),
-            child: const Text('CANCEL'),
-          ),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: newStatus == 'Dropped'
-                  ? Colors.red
-                  : Colors.orange,
-              foregroundColor: Colors.white,
-            ),
-            onPressed: () => Navigator.of(ctx).pop(true),
-            child: Text(newStatus.toUpperCase()),
-          ),
-        ],
-      ),
-    );
-    if (confirmed == true && mounted) {
-      try {
-        final selectedStudents = allStudents
-            .where((s) => _selectedStudentIds.contains(s.id))
-            .toList();
-        await ref
-            .read(studentMutationProvider.notifier)
-            .bulkChangeStatus(selectedStudents, newStatus);
-        if (mounted) {
-          setState(() {
-            _selectedStudentIds.clear();
-            _showMultiSelect = false;
-          });
-          showSuccessDialog(
-            context,
-            message: 'Students successfully updated to $newStatus.',
-          );
-        }
-      } catch (e) {
-        if (mounted) {
-          final errMsg = e.toString().replaceAll('Exception: ', '');
-          showErrorDialog(context, 'Error', errMsg);
-        }
-      }
-    }
-  }
 
   // ----------------------------------------------------------------
   // DELETE CONFIRM
@@ -796,20 +644,25 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
       query.limit != 20,
     ].where((v) => v).length;
 
-    final multiSelectFromProvider = ref.watch(studentMultiSelectProvider);
-    if (multiSelectFromProvider != _showMultiSelect) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted && multiSelectFromProvider != _showMultiSelect) {
-          setState(() {
-            _showMultiSelect = multiSelectFromProvider;
-            if (!multiSelectFromProvider) _selectedStudentIds.clear();
-          });
-        }
-      });
-    }
+    ref.listen<bool>(studentMultiSelectProvider, (previous, next) {
+      if (_showMultiSelect != next) {
+        setState(() {
+          _showMultiSelect = next;
+          if (!next) _selectedStudentIds.clear();
+        });
+      }
+    });
 
-    final isMobileOrAndroid = MediaQuery.of(context).size.width < 800 ||
-        defaultTargetPlatform == TargetPlatform.android;
+    ref.listen<List<int>>(studentSelectedIdsProvider, (previous, next) {
+      if (!listEquals(_selectedStudentIds, next)) {
+        setState(() {
+          _selectedStudentIds.clear();
+          _selectedStudentIds.addAll(next);
+        });
+      }
+    });
+
+    final isAndroid = defaultTargetPlatform == TargetPlatform.android;
 
     return CallbackShortcuts(
       bindings: <ShortcutActivator, VoidCallback>{
@@ -826,12 +679,11 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
         if (didPop) return;
         if (ref.read(activeTabProvider) != 'Students') return;
         if (_showMultiSelect || _selectedStudentIds.isNotEmpty) {
-          setState(() {
+          _updateSelection(() {
             _showMultiSelect = false;
             _selectedStudentIds.clear();
           });
           ref.read(studentMultiSelectProvider.notifier).state = false;
-          ref.read(studentSelectedIdsProvider.notifier).state = [];
           return;
         }
         ref.read(activeTabProvider.notifier).setTab('Dashboard');
@@ -866,11 +718,19 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       // ── Header + Controls or Inline Multi-Select Header ──
-                      if (_showMultiSelect)
-                        _buildInlineMultiSelectHeader(
-                          pageAsync.value?.students ?? [],
-                        )
-                      else if (!isMobileOrAndroid)
+                      if (_showMultiSelect && !isAndroid) ...[
+                        Padding(
+                          padding: const EdgeInsets.only(
+                            left: AppSizes.p24,
+                            right: AppSizes.p24,
+                            top: AppSizes.p24,
+                          ),
+                          child: _buildInlineMultiSelectHeader(
+                            pageAsync.value?.students ?? [],
+                          ),
+                        ),
+                        const SizedBox(height: AppSizes.p24),
+                      ] else if (!isAndroid) ...[
                         Padding(
                           padding: const EdgeInsets.only(
                             left: AppSizes.p24,
@@ -883,10 +743,9 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
                             ref,
                             activeCount,
                           ),
-                        )
-                      else
-                        const SizedBox(height: 12),
-                      const SizedBox(height: AppSizes.p24),
+                        ),
+                        const SizedBox(height: AppSizes.p24),
+                      ],
 
                       // ── Data Table / Cards ──
                       Expanded(
@@ -1140,10 +999,12 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
           shadowColor: Colors.transparent,
         ),
         onPressed: () {
-          setState(() {
-            _showMultiSelect = !_showMultiSelect;
-            if (!_showMultiSelect) _selectedStudentIds.clear();
+          final next = !_showMultiSelect;
+          _updateSelection(() {
+            _showMultiSelect = next;
+            if (!next) _selectedStudentIds.clear();
           });
+          ref.read(studentMultiSelectProvider.notifier).state = next;
         },
         icon: Icon(
           Icons.checklist_rounded,
@@ -1238,7 +1099,19 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
                 ),
               ),
             ),
-            onTap: () => _viewProfile(student),
+            onTap: () {
+              if (_showMultiSelect) {
+                _updateSelection(() {
+                  if (_selectedStudentIds.contains(student.id)) {
+                    _selectedStudentIds.remove(student.id);
+                  } else {
+                    _selectedStudentIds.add(student.id);
+                  }
+                });
+              } else {
+                _viewProfile(student);
+              }
+            },
           );
         }
 
@@ -1349,31 +1222,32 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
                   if (widget.userRole != 'teacher' && _showMultiSelect)
                     DataColumn2(
                       fixedWidth: 40,
-                      label: defaultTargetPlatform == TargetPlatform.windows
-                          ? const SizedBox.shrink()
-                          : Checkbox(
-                              activeColor: AppColors.primaryGreen,
-                              value:
-                                  students.isNotEmpty &&
-                                  students.every(
-                                    (s) => _selectedStudentIds.contains(s.id),
-                                  ),
-                              onChanged: (val) {
-                                setState(() {
-                                  if (val == true) {
-                                    for (var s in students) {
-                                      if (!_selectedStudentIds.contains(s.id)) {
-                                        _selectedStudentIds.add(s.id);
-                                      }
-                                    }
-                                  } else {
-                                    for (var s in students) {
-                                      _selectedStudentIds.remove(s.id);
-                                    }
-                                  }
-                                });
-                              },
+                      label: Checkbox(
+                        activeColor: AppColors.primaryGreen,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                        value:
+                            students.isNotEmpty &&
+                            students.every(
+                              (s) => _selectedStudentIds.contains(s.id),
                             ),
+                        onChanged: (val) {
+                          _updateSelection(() {
+                            if (val == true) {
+                              for (var s in students) {
+                                if (!_selectedStudentIds.contains(s.id)) {
+                                  _selectedStudentIds.add(s.id);
+                                }
+                              }
+                            } else {
+                              for (var s in students) {
+                                _selectedStudentIds.remove(s.id);
+                              }
+                            }
+                          });
+                        },
+                      ),
                     ),
                   DataColumn2(
                     size: ColumnSize.M,
@@ -1472,16 +1346,31 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
                 ],
                 rows: students.map((student) {
                   final isSelected = _selectedStudentIds.contains(student.id);
+                  final rowColor = isSelected
+                      ? Color.alphaBlend(
+                          AppColors.primaryGreen.withValues(alpha: isDark ? 0.20 : 0.08),
+                          isDark ? AppColors.darkSurfaceCard : AppColors.surfaceWhite,
+                        )
+                      : null;
                   return DataRow(
                     selected: isSelected,
+                    color: WidgetStateProperty.resolveWith<Color?>((states) {
+                      if (states.contains(WidgetState.selected)) {
+                        return rowColor;
+                      }
+                      return null;
+                    }),
                     cells: [
                       if (widget.userRole != 'teacher' && _showMultiSelect)
                         DataCell(
                           Checkbox(
                             activeColor: AppColors.primaryGreen,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(4),
+                            ),
                             value: isSelected,
                             onChanged: (val) {
-                              setState(() {
+                              _updateSelection(() {
                                 if (val == true) {
                                   _selectedStudentIds.add(student.id);
                                 } else {
@@ -1607,10 +1496,23 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
       },
       child: ListView.separated(
           physics: const AlwaysScrollableScrollPhysics(),
+          padding: const EdgeInsets.only(top: 14, bottom: 24),
           itemCount: students.length,
           separatorBuilder: (ctx, index) => const SizedBox(height: AppSizes.p12),
-          itemBuilder: (_, i) {
+          itemBuilder: (context, i) {
           final s = students[i];
+          final isSelected = _selectedStudentIds.contains(s.id);
+          final isDark = Theme.of(context).brightness == Brightness.dark;
+          final baseCardColor =
+              isDark ? AppColors.darkSurfaceCard : AppColors.surfaceWhite;
+          final cardColor = (_showMultiSelect && isSelected)
+              ? Color.alphaBlend(
+                  AppColors.primaryGreen.withValues(
+                    alpha: isDark ? 0.22 : 0.12,
+                  ),
+                  baseCardColor,
+                )
+              : baseCardColor;
 
           return GestureDetector(
             onSecondaryTapDown: defaultTargetPlatform == TargetPlatform.windows
@@ -1622,8 +1524,8 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
                 : null,
             child: InkWell(
               onTap: () {
-        if (_showMultiSelect || _selectedStudentIds.isNotEmpty) {
-                  setState(() {
+                if (_showMultiSelect || _selectedStudentIds.isNotEmpty) {
+                  _updateSelection(() {
                     if (_selectedStudentIds.contains(s.id)) {
                       _selectedStudentIds.remove(s.id);
                     } else {
@@ -1637,48 +1539,57 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
               onLongPress: defaultTargetPlatform != TargetPlatform.windows &&
                       widget.userRole != 'teacher'
                   ? () {
-                      setState(() {
+                      _updateSelection(() {
                         _showMultiSelect = true;
                         if (!_selectedStudentIds.contains(s.id)) {
                           _selectedStudentIds.add(s.id);
                         }
                       });
+                      ref.read(studentMultiSelectProvider.notifier).state = true;
                     }
                   : null,
               borderRadius: BorderRadius.circular(AppSizes.radiusLarge),
               child: Container(
                 padding: const EdgeInsets.all(AppSizes.p16),
                 decoration: BoxDecoration(
-                color: Theme.of(context).brightness == Brightness.dark ? AppColors.darkSurfaceCard : AppColors.surfaceWhite,
-                borderRadius: BorderRadius.circular(AppSizes.radiusLarge),
-                border: Border.all(color: Theme.of(context).brightness == Brightness.dark ? AppColors.darkBorder : Colors.transparent),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.04),
-                    blurRadius: 8,
-                    offset: const Offset(0, 2),
-                  ),
-                ],
-              ),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  if (widget.userRole != 'teacher' && _showMultiSelect) ...[
-                    Checkbox(
-                      activeColor: AppColors.primaryGreen,
-                      value: _selectedStudentIds.contains(s.id),
-                      onChanged: (val) {
-                        setState(() {
-                          if (val == true) {
-                            _selectedStudentIds.add(s.id);
-                          } else {
-                            _selectedStudentIds.remove(s.id);
-                          }
-                        });
-                      },
+                  color: cardColor,
+                  borderRadius: BorderRadius.circular(AppSizes.radiusLarge),
+                      border: Border.all(
+                        color: (_showMultiSelect && isSelected)
+                            ? AppColors.primaryGreen
+                            : (isDark ? AppColors.darkBorder : Colors.transparent),
+                        width: (_showMultiSelect && isSelected) ? 1.5 : 1,
+                      ),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.04),
+                          blurRadius: 8,
+                          offset: const Offset(0, 2),
+                        ),
+                      ],
                     ),
-                    const SizedBox(width: 4),
-                  ],
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        if (widget.userRole != 'teacher' && _showMultiSelect) ...[
+                          Checkbox(
+                            activeColor: AppColors.primaryGreen,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(4),
+                            ),
+                            value: isSelected,
+                            onChanged: (val) {
+                              _updateSelection(() {
+                                if (val == true) {
+                                  _selectedStudentIds.add(s.id);
+                                } else {
+                                  _selectedStudentIds.remove(s.id);
+                                }
+                              });
+                            },
+                          ),
+                          const SizedBox(width: 4),
+                        ],
                   // Avatar
                   Padding(
                     padding: const EdgeInsets.only(top: 4.0),

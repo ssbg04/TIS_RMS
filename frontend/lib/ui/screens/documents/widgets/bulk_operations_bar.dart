@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/utils/theme_extension.dart';
@@ -37,108 +38,180 @@ class BulkOperationsBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isDark = context.isDark;
-    final buttonColor = isDark ? Colors.white : Colors.black;
+    final isMobile = MediaQuery.of(context).size.width < 700 ||
+        defaultTargetPlatform == TargetPlatform.android;
 
     return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      decoration: BoxDecoration(
-        color: isDark ? AppColors.darkSurfaceCard : AppColors.primaryGreen.withValues(alpha: 0.1),
-        border: Border(
-          bottom: BorderSide(
-            color: isDark ? AppColors.darkBorder : AppColors.primaryGreen.withValues(alpha: 0.2),
-          ),
-        ),
+      height: 52,
+      margin: EdgeInsets.symmetric(
+        horizontal: isMobile ? 12 : 20,
+        vertical: 8,
       ),
-      child: SingleChildScrollView(
-        scrollDirection: Axis.horizontal,
-        child: Row(
-          children: [
-            Tooltip(
-              message: 'Cancel selection',
-              child: IconButton(
-                icon: Icon(Icons.close, color: buttonColor),
+      padding: const EdgeInsets.symmetric(horizontal: 6),
+      decoration: BoxDecoration(
+        color: isDark ? AppColors.darkSurfaceCard : AppColors.primaryGreen,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: isDark ? AppColors.darkBorder : Colors.transparent,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.08),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final isCompact = constraints.maxWidth < 560;
+
+          return Row(
+            children: [
+              IconButton(
+                icon: const Icon(Icons.close, color: Colors.white),
+                tooltip: 'Exit Selection',
                 onPressed: onCancel,
               ),
-            ),
-            const SizedBox(width: 8),
-            Text(
-              selectedCount == 0 ? 'Select items' : '$selectedCount selected',
-              style: TextStyle(
-                fontWeight: FontWeight.bold,
-                fontSize: 16,
-                color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
+              const SizedBox(width: 4),
+              Text(
+                selectedCount == 0 ? 'Select items' : '$selectedCount selected',
+                style: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.white,
+                ),
               ),
-            ),
-            const SizedBox(width: 8),
-            Tooltip(
-              message: allSelected ? 'Unselect All' : 'Select All',
-              child: IconButton(
+              const Spacer(),
+              IconButton(
                 icon: Icon(
                   allSelected ? Icons.deselect : Icons.select_all,
-                  color: buttonColor,
+                  color: Colors.white,
                 ),
+                tooltip: allSelected ? 'Unselect All' : 'Select All',
                 onPressed: onToggleSelectAll,
               ),
-            ),
-            const SizedBox(width: 16),
-            Container(
-              width: 1,
-              height: 24,
-              color: isDark ? AppColors.darkBorder : Colors.grey.shade400,
-            ),
-            const SizedBox(width: 12),
-            Tooltip(
-              message: 'Print',
-              child: IconButton(
-                icon: Icon(Icons.print_rounded, color: buttonColor),
-                onPressed: selectedCount == 0 ? null : onBatchPrint,
-              ),
-            ),
-            Tooltip(
-              message: 'Copy',
-              child: IconButton(
-                icon: Icon(Icons.copy_rounded, color: buttonColor),
-                onPressed: selectedCount == 0 ? null : onBatchCopy,
-              ),
-            ),
-            Tooltip(
-              message: 'Download',
-              child: IconButton(
-                icon: Icon(Icons.download_rounded, color: buttonColor),
-                onPressed: selectedCount == 0 ? null : onBatchDownload,
-              ),
-            ),
-            if (isArchiveScreen) ...[
-              Tooltip(
-                message: 'Restore',
-                child: IconButton(
-                  icon: Icon(Icons.unarchive_outlined, color: buttonColor),
-                  onPressed: selectedCount == 0
-                      ? null
-                      : (onBatchRestore ?? () => onBatchStatus('Completed')),
-                ),
-              ),
-            ] else ...[
-              Tooltip(
-                message: 'Archive',
-                child: IconButton(
-                  icon: Icon(Icons.archive_outlined, color: buttonColor),
-                  onPressed: selectedCount == 0 ? null : onBatchArchive,
-                ),
-              ),
+              if (selectedCount > 0) ...[
+                if (!isCompact) ...[
+                  IconButton(
+                    icon: const Icon(Icons.print_rounded, color: Colors.white),
+                    tooltip: 'Print',
+                    onPressed: onBatchPrint,
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.copy_rounded, color: Colors.white),
+                    tooltip: 'Copy',
+                    onPressed: onBatchCopy,
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.download_rounded, color: Colors.white),
+                    tooltip: 'Download',
+                    onPressed: onBatchDownload,
+                  ),
+                  if (isArchiveScreen)
+                    IconButton(
+                      icon: const Icon(Icons.unarchive_rounded, color: Colors.white),
+                      tooltip: 'Restore',
+                      onPressed: onBatchRestore ?? () => onBatchStatus('Completed'),
+                    )
+                  else
+                    IconButton(
+                      icon: const Icon(Icons.archive_rounded, color: Colors.white),
+                      tooltip: 'Archive',
+                      onPressed: onBatchArchive,
+                    ),
+                  if (isAdmin && onBatchDelete != null)
+                    IconButton(
+                      icon: const Icon(Icons.delete_outline_rounded, color: Colors.white),
+                      tooltip: 'Delete',
+                      onPressed: onBatchDelete,
+                    ),
+                ] else ...[
+                  IconButton(
+                    icon: const Icon(Icons.download_rounded, color: Colors.white),
+                    tooltip: 'Download',
+                    onPressed: onBatchDownload,
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.print_rounded, color: Colors.white),
+                    tooltip: 'Print',
+                    onPressed: onBatchPrint,
+                  ),
+                  PopupMenuButton<String>(
+                    icon: const Icon(Icons.more_vert_rounded, color: Colors.white),
+                    tooltip: 'More Actions',
+                    onSelected: (val) {
+                      switch (val) {
+                        case 'copy':
+                          onBatchCopy();
+                          break;
+                        case 'archive':
+                          onBatchArchive();
+                          break;
+                        case 'restore':
+                          if (onBatchRestore != null) {
+                            onBatchRestore!();
+                          } else {
+                            onBatchStatus('Completed');
+                          }
+                          break;
+                        case 'delete':
+                          onBatchDelete?.call();
+                          break;
+                      }
+                    },
+                    itemBuilder: (context) => [
+                      const PopupMenuItem(
+                        value: 'copy',
+                        child: Row(
+                          children: [
+                            Icon(Icons.copy_rounded, size: 20),
+                            SizedBox(width: 10),
+                            Text('Copy'),
+                          ],
+                        ),
+                      ),
+                      if (isArchiveScreen)
+                        const PopupMenuItem(
+                          value: 'restore',
+                          child: Row(
+                            children: [
+                              Icon(Icons.unarchive_rounded, size: 20),
+                              SizedBox(width: 10),
+                              Text('Restore'),
+                            ],
+                          ),
+                        )
+                      else
+                        const PopupMenuItem(
+                          value: 'archive',
+                          child: Row(
+                            children: [
+                              Icon(Icons.archive_rounded, size: 20),
+                              SizedBox(width: 10),
+                              Text('Archive'),
+                            ],
+                          ),
+                        ),
+                      if (isAdmin && onBatchDelete != null)
+                        const PopupMenuItem(
+                          value: 'delete',
+                          child: Row(
+                            children: [
+                              Icon(Icons.delete_outline_rounded, size: 20, color: Colors.redAccent),
+                              SizedBox(width: 10),
+                              Text('Delete', style: TextStyle(color: Colors.redAccent)),
+                            ],
+                          ),
+                        ),
+                    ],
+                  ),
+                ],
+              ],
+              const SizedBox(width: 4),
             ],
-            if (isAdmin) ...[
-              Tooltip(
-                message: 'Delete',
-                child: IconButton(
-                  icon: const Icon(Icons.delete_outline_rounded, color: AppColors.error),
-                  onPressed: selectedCount == 0 ? null : onBatchDelete,
-                ),
-              ),
-            ],
-          ],
-        ),
+          );
+        },
       ),
     );
   }

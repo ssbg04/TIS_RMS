@@ -222,6 +222,14 @@ class _FileFolderCardState extends State<FileFolderCard> {
   // ════════════════════════════════════════
   Widget _buildGridCard(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final baseCardColor = isDark ? AppColors.darkSurfaceCard : AppColors.surfaceWhite;
+    final cardColor = widget.isSelected
+        ? Color.alphaBlend(
+            AppColors.primaryGreen.withValues(alpha: isDark ? 0.22 : 0.12),
+            baseCardColor,
+          )
+        : baseCardColor;
+
     return GestureDetector(
       // Desktop: right-click opens context menu
       onSecondaryTapDown: (details) =>
@@ -236,9 +244,7 @@ class _FileFolderCardState extends State<FileFolderCard> {
         borderRadius: BorderRadius.circular(AppSizes.radiusLarge),
         child: Ink(
           decoration: BoxDecoration(
-            color: widget.isSelected
-                ? AppColors.primaryGreen.withValues(alpha: 0.05)
-                : (isDark ? AppColors.darkSurfaceCard : AppColors.surfaceWhite),
+            color: cardColor,
             borderRadius: BorderRadius.circular(AppSizes.radiusLarge),
             border: Border.all(
               color: widget.isSelected
@@ -263,6 +269,9 @@ class _FileFolderCardState extends State<FileFolderCard> {
                   child: Checkbox(
                     value: widget.isSelected,
                     activeColor: AppColors.primaryGreen,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(4),
+                    ),
                     onChanged: widget.onSelectedChanged,
                   ),
                 ),
@@ -304,6 +313,14 @@ class _FileFolderCardState extends State<FileFolderCard> {
   // ════════════════════════════════════════
   Widget _buildListRow(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final baseRowColor = isDark ? AppColors.darkSurfaceCard : AppColors.surfaceWhite;
+    final rowColor = widget.isSelected
+        ? Color.alphaBlend(
+            AppColors.primaryGreen.withValues(alpha: isDark ? 0.22 : 0.12),
+            baseRowColor,
+          )
+        : null;
+
     return GestureDetector(
       onSecondaryTapDown: (details) =>
           _showContextMenu(context, details.globalPosition),
@@ -315,9 +332,7 @@ class _FileFolderCardState extends State<FileFolderCard> {
             : widget.onTap,
         borderRadius: BorderRadius.circular(AppSizes.radiusSmall),
         child: Ink(
-          color: widget.isSelected
-              ? AppColors.primaryGreen.withValues(alpha: 0.05)
-              : null,
+          color: rowColor,
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
             child: Row(
@@ -326,6 +341,9 @@ class _FileFolderCardState extends State<FileFolderCard> {
                   Checkbox(
                     value: widget.isSelected,
                     activeColor: AppColors.primaryGreen,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(4),
+                    ),
                     onChanged: widget.onSelectedChanged,
                   ),
                   const SizedBox(width: 8),

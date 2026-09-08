@@ -30,6 +30,7 @@ import '../screens/students/widgets/student_filter_dialog.dart';
 import '../shared/inputs/app_search_bar.dart';
 import '../shared/menus/profile_dropdown_menu.dart';
 import '../shared/widgets/notification_icon_button.dart';
+import '../screens/students/widgets/student_bulk_actions.dart';
 
 // Dummy screen for placeholders
 class PlaceholderScreen extends StatelessWidget {
@@ -253,6 +254,10 @@ class _AndroidBottomNavLayoutState extends ConsumerState<AndroidBottomNavLayout>
   }
 
   void _onNavTapped(String label) {
+    if (ref.read(studentMultiSelectProvider)) {
+      ref.read(studentMultiSelectProvider.notifier).state = false;
+      ref.read(studentSelectedIdsProvider.notifier).state = [];
+    }
     setState(() {
       _isTabLoading = true;
     });
@@ -362,144 +367,256 @@ class _AndroidBottomNavLayoutState extends ConsumerState<AndroidBottomNavLayout>
                 isDark ? Brightness.light : Brightness.dark,
             systemNavigationBarDividerColor: Colors.transparent,
           );
+          final isStudentMultiSelect = (activeTab == 'Students') &&
+              ref.watch(studentMultiSelectProvider);
+
           return AnnotatedRegion<SystemUiOverlayStyle>(
-            value: overlayStyle,
+            value: isStudentMultiSelect ? SystemUiOverlayStyle.light : overlayStyle,
             child: MediaQuery(
               data: lockedMediaQuery,
               child: Scaffold(
                 key: _scaffoldKey,
+                drawerEnableOpenDragGesture: !isStudentMultiSelect,
                 resizeToAvoidBottomInset: false,
                 backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-                appBar: AppBar(
-                  systemOverlayStyle: overlayStyle,
-                  backgroundColor: Theme.of(context).appBarTheme.backgroundColor,
-                  foregroundColor: Theme.of(context).colorScheme.onSurface,
-                  iconTheme: IconThemeData(color: Theme.of(context).colorScheme.onSurface),
-                  title: Text(
-                    activeTab,
-                    style: TextStyle(
-                      fontWeight: FontWeight.bold,
-                      color: Theme.of(context).colorScheme.onSurface,
-                    ),
-                  ),
-                  elevation: 0,
-                  surfaceTintColor: Colors.transparent,
-                  actions: [
-                    if (activeTab == 'Dashboard') ...[
-                      // 1. Search Icon
-                      Consumer(
-                        builder: (context, ref, _) {
-                          return Tooltip(
-                            message: 'Search Students',
-                            child: IconButton(
-                              icon: const Icon(Icons.search, size: 22),
-                              onPressed: () => _showStudentSearchDialog(
-                                context,
-                                ref,
-                                navigateToStudents: true,
-                              ),
-                            ),
-                          );
-                        },
-                      ),
-                      // 2. Notification Icon with Unread Badge
-                      const NotificationIconButton(iconSize: 22),
-                      // 3. Profile Avatar Dropdown
-                      Consumer(
-                        builder: (context, ref, _) {
-                          final user = ref.watch(authProvider).value;
-                          return Padding(
-                            padding: const EdgeInsets.only(left: 4, right: 12),
-                            child: ProfileDropdownMenu(
-                              user: user,
-                              onRefresh: () =>
-                                  ref.read(authProvider.notifier).refreshUser(),
-                            ),
-                          );
-                        },
-                      ),
-                    ],
-                    if (activeTab == 'Students') ...[
-                      // 1. Search Icon
-                      Consumer(
-                        builder: (context, ref, _) {
-                          final query = ref.watch(studentQueryProvider);
-                          return Tooltip(
-                            message: query.search.isNotEmpty
-                                ? 'Clear Search'
-                                : 'Search Students',
-                            child: IconButton(
-                              icon: Icon(
-                                query.search.isNotEmpty
-                                    ? Icons.close
-                                    : Icons.search,
-                                size: 22,
-                              ),
-                              onPressed: () {
-                                if (query.search.isNotEmpty) {
-                                  ref.read(studentQueryProvider.notifier).setSearch('');
-                                } else {
-                                  _showStudentSearchDialog(context, ref);
-                                }
-                              },
-                            ),
-                          );
-                        },
-                      ),
-                      // 2. Multi-Select Toggle (for non-teachers)
-                      if (widget.userRole != 'teacher')
-                        Consumer(
+                appBar: isStudentMultiSelect
+                    ? AppBar(
+                        systemOverlayStyle: SystemUiOverlayStyle.light,
+                        backgroundColor: isDark
+                            ? AppColors.darkSurfaceCard
+                            : AppColors.primaryGreen,
+                        foregroundColor: Colors.white,
+                        elevation: 1,
+                        leading: IconButton(
+                          icon: const Icon(Icons.close, color: Colors.white),
+                          tooltip: 'Exit Selection',
+                          onPressed: () {
+                            ref.read(studentMultiSelectProvider.notifier).state = false;
+                            ref.read(studentSelectedIdsProvider.notifier).state = [];
+                          },
+                        ),
+                        title: Consumer(
                           builder: (context, ref, _) {
-                            final isMultiSelect = ref.watch(studentMultiSelectProvider);
-                            return Tooltip(
-                              message: isMultiSelect
-                                  ? 'Exit Multi-Select'
-                                  : 'Multi-Select',
-                              child: IconButton(
-                                icon: Icon(
-                                  Icons.checklist_rounded,
-                                  size: 22,
-                                  color: isMultiSelect
-                                      ? AppColors.primaryGreen
-                                      : null,
-                                ),
-                                onPressed: () {
-                                  final next = !isMultiSelect;
-                                  ref.read(studentMultiSelectProvider.notifier).state = next;
-                                  if (!next) {
-                                    ref.read(studentSelectedIdsProvider.notifier).state = [];
-                                  }
-                                },
+                            final selectedIds = ref.watch(studentSelectedIdsProvider);
+                            return Text(
+                              '${selectedIds.length} selected',
+                              style: const TextStyle(
+                                fontSize: 17,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.white,
                               ),
                             );
                           },
                         ),
-                      // 3. Filter Icon with Badge
-                      Consumer(
-                        builder: (context, ref, _) {
-                          final activeCount = ref.watch(studentActiveFilterCountProvider);
-                          final query = ref.watch(studentQueryProvider);
-                          return Tooltip(
-                            message: 'Filter Students',
-                            child: IconButton(
-                              onPressed: () =>
-                                  StudentFilterDialog.show(context, query: query),
-                              icon: Badge(
-                                isLabelVisible: activeCount > 0,
-                                label: Text(activeCount.toString()),
-                                child: const Icon(
-                                  Icons.tune_rounded,
-                                  size: 22,
+                        actions: [
+                          Consumer(
+                            builder: (context, ref, _) {
+                              final selectedIds = ref.watch(studentSelectedIdsProvider);
+                              final pageAsync = ref.watch(studentPageProvider);
+                              final currentStudents = pageAsync.value?.students ?? [];
+                              final allSelected = currentStudents.isNotEmpty &&
+                                  currentStudents.every((s) => selectedIds.contains(s.id));
+
+                              return IconButton(
+                                icon: Icon(
+                                  allSelected ? Icons.deselect : Icons.select_all,
+                                  color: Colors.white,
+                                ),
+                                tooltip: allSelected ? 'Unselect All' : 'Select All',
+                                onPressed: () {
+                                  if (allSelected) {
+                                    ref.read(studentSelectedIdsProvider.notifier).state = [];
+                                  } else {
+                                    ref.read(studentSelectedIdsProvider.notifier).state =
+                                        currentStudents.map((s) => s.id).toList();
+                                  }
+                                },
+                              );
+                            },
+                          ),
+                          if (widget.userRole != 'teacher')
+                            Consumer(
+                              builder: (context, ref, _) {
+                                final selectedIds = ref.watch(studentSelectedIdsProvider);
+                                if (selectedIds.isEmpty) return const SizedBox(width: 4);
+
+                                return Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    IconButton(
+                                      icon: const Icon(Icons.group_add_rounded, color: Colors.white),
+                                      tooltip: 'Enroll',
+                                      onPressed: () => StudentBulkActions.bulkEnroll(context, ref),
+                                    ),
+                                    IconButton(
+                                      icon: const Icon(Icons.school_rounded, color: Colors.white),
+                                      tooltip: 'Graduate',
+                                      onPressed: () => StudentBulkActions.bulkGraduate(context, ref),
+                                    ),
+                                    PopupMenuButton<String>(
+                                      icon: const Icon(Icons.more_vert_rounded, color: Colors.white),
+                                      tooltip: 'More Actions',
+                                      onSelected: (action) {
+                                        if (action == 'Transferred' || action == 'Dropped' || action == 'Inactive') {
+                                          StudentBulkActions.bulkChangeStatus(context, ref, action);
+                                        }
+                                      },
+                                      itemBuilder: (context) => [
+                                        const PopupMenuItem(
+                                          value: 'Transferred',
+                                          child: Row(
+                                            children: [
+                                              Icon(Icons.transfer_within_a_station_rounded, size: 20, color: AppColors.primaryGreen),
+                                              SizedBox(width: 10),
+                                              Text('Transfer'),
+                                            ],
+                                          ),
+                                        ),
+                                        const PopupMenuItem(
+                                          value: 'Dropped',
+                                          child: Row(
+                                            children: [
+                                              Icon(Icons.person_off_rounded, size: 20, color: Colors.redAccent),
+                                              SizedBox(width: 10),
+                                              Text('Drop'),
+                                            ],
+                                          ),
+                                        ),
+                                        const PopupMenuItem(
+                                          value: 'Inactive',
+                                          child: Row(
+                                            children: [
+                                              Icon(Icons.do_not_disturb_on_total_silence_rounded, size: 20, color: Colors.orangeAccent),
+                                              SizedBox(width: 10),
+                                              Text('Set Inactive'),
+                                            ],
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                    const SizedBox(width: 4),
+                                  ],
+                                );
+                              },
+                            ),
+                        ],
+                      )
+                    : AppBar(
+                        systemOverlayStyle: overlayStyle,
+                        backgroundColor: Theme.of(context).appBarTheme.backgroundColor,
+                        foregroundColor: Theme.of(context).colorScheme.onSurface,
+                        iconTheme: IconThemeData(color: Theme.of(context).colorScheme.onSurface),
+                        title: Text(
+                          activeTab,
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            color: Theme.of(context).colorScheme.onSurface,
+                          ),
+                        ),
+                        elevation: 0,
+                        surfaceTintColor: Colors.transparent,
+                        actions: [
+                          if (activeTab == 'Dashboard') ...[
+                            // 1. Search Icon
+                            Consumer(
+                              builder: (context, ref, _) {
+                                return Tooltip(
+                                  message: 'Search Students',
+                                  child: IconButton(
+                                    icon: const Icon(Icons.search, size: 22),
+                                    onPressed: () => _showStudentSearchDialog(
+                                      context,
+                                      ref,
+                                      navigateToStudents: true,
+                                    ),
+                                  ),
+                                );
+                              },
+                            ),
+                            // 2. Notification Icon with Unread Badge
+                            const NotificationIconButton(iconSize: 22),
+                            // 3. Profile Avatar Dropdown
+                            Consumer(
+                              builder: (context, ref, _) {
+                                final user = ref.watch(authProvider).value;
+                                return Padding(
+                                  padding: const EdgeInsets.only(left: 4, right: 12),
+                                  child: ProfileDropdownMenu(
+                                    user: user,
+                                    onRefresh: () =>
+                                        ref.read(authProvider.notifier).refreshUser(),
+                                  ),
+                                );
+                              },
+                            ),
+                          ],
+                          if (activeTab == 'Students') ...[
+                            // 1. Search Icon
+                            Consumer(
+                              builder: (context, ref, _) {
+                                final query = ref.watch(studentQueryProvider);
+                                return Tooltip(
+                                  message: query.search.isNotEmpty
+                                      ? 'Clear Search'
+                                      : 'Search Students',
+                                  child: IconButton(
+                                    icon: Icon(
+                                      query.search.isNotEmpty
+                                          ? Icons.close
+                                          : Icons.search,
+                                      size: 22,
+                                    ),
+                                    onPressed: () {
+                                      if (query.search.isNotEmpty) {
+                                        ref.read(studentQueryProvider.notifier).setSearch('');
+                                      } else {
+                                        _showStudentSearchDialog(context, ref);
+                                      }
+                                    },
+                                  ),
+                                );
+                              },
+                            ),
+                            // 2. Multi-Select Toggle (for non-teachers)
+                            if (widget.userRole != 'teacher')
+                              Tooltip(
+                                message: 'Select Multiple',
+                                child: IconButton(
+                                  icon: const Icon(
+                                    Icons.checklist_rounded,
+                                    size: 22,
+                                  ),
+                                  onPressed: () {
+                                    ref.read(studentMultiSelectProvider.notifier).state = true;
+                                  },
                                 ),
                               ),
+                            // 3. Filter Icon with Badge
+                            Consumer(
+                              builder: (context, ref, _) {
+                                final activeCount = ref.watch(studentActiveFilterCountProvider);
+                                final query = ref.watch(studentQueryProvider);
+                                return Tooltip(
+                                  message: 'Filter Students',
+                                  child: IconButton(
+                                    onPressed: () =>
+                                        StudentFilterDialog.show(context, query: query),
+                                    icon: Badge(
+                                      isLabelVisible: activeCount > 0,
+                                      label: Text(activeCount.toString()),
+                                      child: const Icon(
+                                        Icons.tune_rounded,
+                                        size: 22,
+                                      ),
+                                    ),
+                                  ),
+                                );
+                              },
                             ),
-                          );
-                        },
+                            const SizedBox(width: 4),
+                          ],
+                        ],
                       ),
-                      const SizedBox(width: 4),
-                    ],
-                  ],
-                ),
           drawer: Drawer(
             backgroundColor: Theme.of(context).colorScheme.surface,
             surfaceTintColor: Colors.transparent,
