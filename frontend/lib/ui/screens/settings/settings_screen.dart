@@ -5,7 +5,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_sizes.dart';
 import '../../shared/inputs/custom_text_field.dart';
-import '../../shared/buttons/primary_button.dart';
 import '../../shared/dialogs/success_dialog.dart';
 import '../../shared/dialogs/error_dialog.dart';
 import '../../providers/auth_provider.dart';
@@ -20,6 +19,7 @@ import 'teacher_management_screen.dart';
 import '../../../domain/entities/setup_models.dart';
 import '../../providers/system_settings_provider.dart';
 import '../../providers/theme_provider.dart';
+import 'widgets/change_password_modal.dart';
 class TitleCaseTextInputFormatter extends TextInputFormatter {
   @override
   TextEditingValue formatEditUpdate(TextEditingValue oldValue, TextEditingValue newValue) {
@@ -79,59 +79,10 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   final _emailCtrl = TextEditingController();
 
   final _profileFormKey = GlobalKey<FormState>();
-  final _passwordFormKey = GlobalKey<FormState>();
-
-  // Password controllers
-  final _newPassCtrl = TextEditingController();
-  final _confirmPassCtrl = TextEditingController();
-
-  bool _isPassVisible = false;
 
   int? _lastUserId;
   bool _isProfileLoading = false;
-  bool _isPasswordLoading = false;
   ProviderSubscription<String>? _tabListener;
-
-  double _passwordStrength = 0.0;
-  Color _passwordStrengthColor = Colors.grey;
-  String _passwordStrengthText = '';
-
-  void _evaluatePasswordStrength() {
-    final password = _newPassCtrl.text;
-    double strength = 0.0;
-
-    if (password.isNotEmpty) {
-      if (password.length >= 8) strength += 0.25;
-      if (RegExp(r'[A-Z]').hasMatch(password)) strength += 0.25;
-      if (RegExp(r'[0-9]').hasMatch(password)) strength += 0.25;
-      if (RegExp(r'[^A-Za-z0-9]').hasMatch(password)) strength += 0.25;
-    }
-
-    Color color = Colors.grey;
-    String text = '';
-    if (password.isEmpty) {
-      color = Colors.grey;
-      text = '';
-    } else if (strength <= 0.25) {
-      color = Colors.red;
-      text = 'Weak';
-    } else if (strength == 0.5) {
-      color = Colors.orange;
-      text = 'Fair';
-    } else if (strength == 0.75) {
-      color = Colors.yellow.shade700;
-      text = 'Good';
-    } else {
-      color = Colors.green;
-      text = 'Strong';
-    }
-
-    setState(() {
-      _passwordStrength = strength;
-      _passwordStrengthColor = color;
-      _passwordStrengthText = text;
-    });
-  }
 
   void _refreshAllSettingsData() {
     ref.invalidate(academicYearsListProvider);
@@ -144,7 +95,6 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   @override
   void initState() {
     super.initState();
-    _newPassCtrl.addListener(_evaluatePasswordStrength);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
       _refreshAllSettingsData();
@@ -156,18 +106,12 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         if (next == 'Settings') {
           _refreshAllSettingsData();
           if (previous != 'Settings') {
-            _newPassCtrl.clear();
-            _confirmPassCtrl.clear();
             _firstNameCtrl.clear();
             _middleNameCtrl.clear();
             _lastNameCtrl.clear();
             _extCtrl.clear();
             _phoneCtrl.clear();
             _emailCtrl.clear();
-            setState(() {
-              _isPassVisible = false;
-            });
-            _passwordFormKey.currentState?.reset();
             _profileFormKey.currentState?.reset();
             _lastUserId = null;
           }
@@ -185,8 +129,6 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     _extCtrl.dispose();
     _phoneCtrl.dispose();
     _emailCtrl.dispose();
-    _newPassCtrl.dispose();
-    _confirmPassCtrl.dispose();
     super.dispose();
   }
 
@@ -311,104 +253,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     }
   }
 
-  Future<void> _handleChangePassword() async {
-    if (!_passwordFormKey.currentState!.validate()) return;
 
-    final newPass = _newPassCtrl.text;
-    final confirm = _confirmPassCtrl.text;
-    if (newPass != confirm) {
-      showErrorDialog(context, 'Validation Error', 'Passwords do not match.');
-      return;
-    }
-
-    final currentPassword = await showDialog<String>(
-      context: context,
-      builder: (ctx) {
-        final ctrl = TextEditingController();
-        bool obscure = true;
-        final dialogFormKey = GlobalKey<FormState>();
-        return StatefulBuilder(
-          builder: (ctx, setState) {
-            return AlertDialog(
-              title: const Text('Enter Current Password'),
-              content: Form(
-                key: dialogFormKey,
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    const Text(
-                      'Please verify your current password to proceed.',
-                      style: TextStyle(fontSize: 14),
-                    ),
-                    const SizedBox(height: 16),
-                    CustomTextField(
-                      hintText: 'Current Password',
-                      prefixIcon: Icons.lock_outline,
-                      controller: ctrl,
-                      isPassword: true,
-                      obscureText: obscure,
-                      onToggleVisibility: () =>
-                          setState(() => obscure = !obscure),
-                      validator: (v) =>
-                          AppValidators.validateRequired(v, 'Password'),
-                    ),
-                  ],
-                ),
-              ),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.pop(ctx, null),
-                  child: const Text(
-                    'CANCEL',
-                    style: TextStyle(color: Colors.grey),
-                  ),
-                ),
-                TextButton(
-                  onPressed: () {
-                    if (dialogFormKey.currentState!.validate()) {
-                      Navigator.pop(ctx, ctrl.text);
-                    }
-                  },
-                  child: const Text(
-                    'CONFIRM',
-                    style: TextStyle(
-                      color: AppColors.primaryGreen,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ),
-              ],
-            );
-          },
-        );
-      },
-    );
-
-    if (currentPassword == null || currentPassword.isEmpty) return;
-
-    setState(() => _isPasswordLoading = true);
-    try {
-      final repo = ref.read(authRepositoryProvider);
-      await repo.changePassword(
-        currentPassword: currentPassword,
-        newPassword: newPass,
-        confirmPassword: confirm,
-      );
-      if (!mounted) return;
-      showSuccessDialog(context, message: 'Password changed successfully!');
-      _newPassCtrl.clear();
-      _confirmPassCtrl.clear();
-    } catch (e) {
-      if (!mounted) return;
-      showErrorDialog(
-        context,
-        'Update Failed',
-        e.toString().replaceAll('Exception: ', ''),
-      );
-    } finally {
-      if (mounted) setState(() => _isPasswordLoading = false);
-    }
-  }
 
   Future<void> _handleRunAutoGraduation(
     BuildContext context,
@@ -1024,12 +869,12 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                                             padding: const EdgeInsets.all(10),
                                             decoration: BoxDecoration(
                                               color: isDark
-                                                  ? Colors.blue.withOpacity(0.08)
+                                                  ? Colors.blue.withValues(alpha: 0.08)
                                                   : Colors.blue.shade50,
                                               borderRadius: BorderRadius.circular(8),
                                               border: Border.all(
                                                 color: isDark
-                                                    ? Colors.blue.withOpacity(0.2)
+                                                    ? Colors.blue.withValues(alpha: 0.2)
                                                     : Colors.blue.shade200,
                                               ),
                                             ),
@@ -1294,7 +1139,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                                       const SizedBox(height: AppSizes.p16),
                                       Row(
                                         children: [
-                                          Icon(Icons.access_time, size: 18, color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6)),
+                                          Icon(Icons.access_time, size: 18, color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6)),
                                           const SizedBox(width: 8),
                                           const Text(
                                             'Execution Time:',
@@ -1412,13 +1257,15 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
 
                       // ── Change Password Card ──────────────────────────────
                       _buildCard(
-                        child: Form(
-                          key: _passwordFormKey,
+                        child: InkWell(
+                          borderRadius: BorderRadius.circular(
+                            AppSizes.radiusLarge,
+                          ),
+                          onTap: () => ChangePasswordModal.show(context),
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Row(
-                                crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   const Icon(
                                     Icons.lock_outline,
@@ -1438,7 +1285,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                                           ),
                                         ),
                                         Text(
-                                          'Set a new password for your account.',
+                                          'Set a new password for your account',
                                           style: TextStyle(
                                             fontSize: 13,
                                             color: Theme.of(context)
@@ -1450,92 +1297,11 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                                       ],
                                     ),
                                   ),
-                                ],
-                              ),
-                              const Divider(height: 28),
-
-                              CustomTextField(
-                                hintText: 'New Password',
-                                prefixIcon: Icons.lock_outline,
-                                controller: _newPassCtrl,
-                                isPassword: true,
-                                obscureText: !_isPassVisible,
-                                onToggleVisibility: () => setState(
-                                  () => _isPassVisible = !_isPassVisible,
-                                ),
-                                onChanged: (v) {
-                                  // Re-validate confirm field if it's not empty
-                                  if (_confirmPassCtrl.text.isNotEmpty) {
-                                    _passwordFormKey.currentState?.validate();
-                                  }
-                                },
-                                validator:
-                                    AppValidators.validatePasswordComplexity,
-                              ),
-                              if (_newPassCtrl.text.isNotEmpty) ...[
-                                const SizedBox(height: 8),
-                                Row(
-                                  children: [
-                                    Expanded(
-                                      child: ClipRRect(
-                                        borderRadius: BorderRadius.circular(4),
-                                        child: LinearProgressIndicator(
-                                          value: _passwordStrength,
-                                          backgroundColor: Colors.grey.shade200,
-                                          color: _passwordStrengthColor,
-                                          minHeight: 6,
-                                        ),
-                                      ),
-                                    ),
-                                    const SizedBox(width: 12),
-                                    SizedBox(
-                                      width: 50,
-                                      child: Text(
-                                        _passwordStrengthText,
-                                        style: TextStyle(
-                                          fontSize: 12,
-                                          fontWeight: FontWeight.bold,
-                                          color: _passwordStrengthColor,
-                                        ),
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ],
-                              const SizedBox(height: AppSizes.p12),
-                              CustomTextField(
-                                hintText: 'Confirm New Password',
-                                prefixIcon: Icons.lock_outline,
-                                controller: _confirmPassCtrl,
-                                isPassword: true,
-                                obscureText: !_isPassVisible,
-                                onToggleVisibility: () => setState(
-                                  () => _isPassVisible = !_isPassVisible,
-                                ),
-                                autovalidateMode:
-                                    AutovalidateMode.onUserInteraction,
-                                validator: (v) {
-                                  final req = AppValidators.validateRequired(
-                                    v,
-                                    'Confirm Password',
-                                  );
-                                  if (req != null) return req;
-                                  if (v != _newPassCtrl.text)
-                                    return 'Passwords do not match';
-                                  return null;
-                                },
-                              ),
-                              const SizedBox(height: AppSizes.p24),
-                              Align(
-                                alignment: Alignment.centerRight,
-                                child: SizedBox(
-                                  width: 200,
-                                  child: PrimaryButton(
-                                    label: 'UPDATE',
-                                    isLoading: _isPasswordLoading,
-                                    onPressed: _handleChangePassword,
+                                  const Icon(
+                                    Icons.chevron_right,
+                                    color: Colors.grey,
                                   ),
-                                ),
+                                ],
                               ),
                             ],
                           ),
@@ -1580,8 +1346,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                                         AppColors.darkPageBackground.withValues(alpha: 0.15),
                                       ]
                                     : [
-                                        Colors.white.withOpacity(0.85),
-                                        Colors.white.withOpacity(0.15),
+                                        Colors.white.withValues(alpha: 0.85),
+                                        Colors.white.withValues(alpha: 0.15),
                                       ],
                               ),
                             ),
@@ -1622,8 +1388,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                                         AppColors.darkPageBackground.withValues(alpha: 0.85),
                                       ]
                                     : [
-                                        Colors.white.withOpacity(0.0),
-                                        Colors.white.withOpacity(0.85),
+                                        Colors.white.withValues(alpha: 0.0),
+                                        Colors.white.withValues(alpha: 0.85),
                                       ],
                               ),
                             ),

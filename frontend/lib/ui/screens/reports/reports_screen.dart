@@ -545,6 +545,9 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                     data: (data) => Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
+                        _buildComplianceHeader(context, data),
+                        const SizedBox(height: AppSizes.p20),
+
                         // 1. Filter Panel (collapsible)
                         _buildFilterPanel(context),
                         const SizedBox(height: AppSizes.p20),
@@ -755,69 +758,104 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
     );
   }
 
-
-  // â”€â”€ Header + Export Actions â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-  Widget _buildTitleAndExportActions(BuildContext context) {
+  Widget _buildComplianceHeader(BuildContext context, ReportStats data) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final statsAsync = ref.watch(reportStatsProvider);
     final isDesktop = MediaQuery.of(context).size.width > 900;
+
+    if (isDesktop) {
+      return Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Student Document Compliance & Analytics',
+                  style: TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                    color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  'Track document requirements, submission compliance, and export reports',
+                  style: TextStyle(
+                    fontSize: 13,
+                    color: isDark ? AppColors.darkTextSecondary : Colors.grey.shade600,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          SizedBox(
+            width: 175,
+            child: PrimaryButton(
+              label: 'EXPORT',
+              isLoading: _isExporting,
+              onPressed: () => _handleExportExcel(data),
+            ),
+          ),
+        ],
+      );
+    }
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'System Reports & Analytics',
-                    style: TextStyle(
-                      fontSize: 28,
-                      fontWeight: FontWeight.bold,
-                      color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
-                    ),
-                  ),
-                  const SizedBox(height: AppSizes.p8),
-                  Text(
-                    'Document Compliance & Statistics Dashboard Tiaong Integrated School',
-                    style: TextStyle(
-                      fontSize: 15,
-                      color: isDark ? AppColors.darkTextSecondary : Colors.grey.shade600,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            if (isDesktop && statsAsync.hasValue) ...[
-              SizedBox(
-                width: 185,
-                child: PrimaryButton(
-                  label: 'EXPORT',
-                  isLoading: _isExporting,
-                  onPressed: () => _handleExportExcel(statsAsync.value!),
-                ),
-              ),
-            ],
-          ],
-        ),
-        // Mobile Actions
-        if (!isDesktop && statsAsync.hasValue) ...[
-          const SizedBox(height: AppSizes.p16),
-          Row(
-            children: [
-              Expanded(
-                child: PrimaryButton(
-                  label: 'EXPORT',
-                  isLoading: _isExporting,
-                  onPressed: () => _handleExportExcel(statsAsync.value!),
-                ),
-              ),
-            ],
+        Text(
+          'Student Document Compliance & Analytics',
+          style: TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.bold,
+            color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
           ),
-        ],
+        ),
+        const SizedBox(height: 4),
+        Text(
+          'Track document requirements, submission compliance, and export reports',
+          style: TextStyle(
+            fontSize: 12,
+            color: isDark ? AppColors.darkTextSecondary : Colors.grey.shade600,
+          ),
+        ),
+        const SizedBox(height: AppSizes.p12),
+        SizedBox(
+          width: double.infinity,
+          child: PrimaryButton(
+            label: 'EXPORT',
+            isLoading: _isExporting,
+            onPressed: () => _handleExportExcel(data),
+          ),
+        ),
+      ],
+    );
+  }
+
+  // ── Header ─────────────────────────────────────────────────────────────
+  Widget _buildTitleAndExportActions(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'System Reports & Analytics',
+          style: TextStyle(
+            fontSize: 28,
+            fontWeight: FontWeight.bold,
+            color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
+          ),
+        ),
+        const SizedBox(height: AppSizes.p8),
+        Text(
+          'Document Compliance & Statistics Dashboard Tiaong Integrated School',
+          style: TextStyle(
+            fontSize: 15,
+            color: isDark ? AppColors.darkTextSecondary : Colors.grey.shade600,
+          ),
+        ),
       ],
     );
   }

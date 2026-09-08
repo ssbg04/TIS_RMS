@@ -463,8 +463,17 @@ Files backup/restore - mirror mode or zip -->
 - make the admin side that resets user password send into their email the link to reset password add expiration time -> then push notif the admin that successful or not that email link, if not successful or the time has expired send notif to admin, if successfull push notif the user and admin  -->
 
 
-# DOCUMENT REQUIREMENTS
-- redesign the screen keep all logic change the layout and design only
+<!-- # DOCUMENT REQUIREMENTS
+- redesign the screen keep all logic change the layout and design only -->
+
+# SETTINGS SCREEN
+- make it modal, add current password then new password, keep the indicators for password strength
+
+# REPORT SCREEN
+- move the export button inside of the compliance section
+
+# DOCUMENT SCREEN AND ARCHIVES SCREEN
+- grid view -> minimize the cards, make it 24x24 px cards
 
 --- 
 
@@ -497,12 +506,6 @@ Windows Service - NSSM nodejs
 - service: controls windows service stop start restart
 - logs, server logs, error logs
 - settings backup path, file backup path, database location
-
----
-
-## (dont do) add some features
-- dark mode -> ongoing
-
 
 
 ---

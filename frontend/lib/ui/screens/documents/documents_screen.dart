@@ -2277,23 +2277,23 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
 
         return LayoutBuilder(
           builder: (ctx, c) {
-            // On mobile use 2 columns with a narrower tile width base
-            final tileBase = isMobile ? 140.0 : 200.0;
+            // Use compact tile base for minimized cards
+            final tileBase = isMobile ? 100.0 : 110.0;
             int cols = isMobile
-                ? 2
-                : (c.maxWidth / tileBase).floor().clamp(2, 6);
-            final childAspect = isMobile ? 0.85 : 0.95;
+                ? (c.maxWidth / tileBase).floor().clamp(2, 4)
+                : (c.maxWidth / tileBase).floor().clamp(3, 12);
+            final childAspect = isMobile ? 0.88 : 0.95;
             final grid = GridView.builder(
               padding: EdgeInsets.only(
-                left: isMobile ? 10 : 16,
-                right: isMobile ? 10 : 16,
-                top: isMobile ? 14 : 16,
-                bottom: isMobile ? 24 : 16,
+                left: isMobile ? 8 : 12,
+                right: isMobile ? 8 : 12,
+                top: isMobile ? 10 : 12,
+                bottom: isMobile ? 20 : 16,
               ),
               gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
                 crossAxisCount: cols,
-                crossAxisSpacing: isMobile ? 10 : 16,
-                mainAxisSpacing: isMobile ? 10 : 16,
+                crossAxisSpacing: isMobile ? 8 : 10,
+                mainAxisSpacing: isMobile ? 8 : 10,
                 childAspectRatio: childAspect,
               ),
               itemCount: paginatedFolders.length,
@@ -2327,31 +2327,31 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
                         ref.read(documentQueryProvider.notifier).setSearch('');
                       }
                     },
-                    borderRadius: BorderRadius.circular(12),
+                    borderRadius: BorderRadius.circular(8),
                     child: Container(
                       decoration: BoxDecoration(
                         color: isDark ? AppColors.darkSurfaceCard : AppColors.surfaceWhite,
-                        borderRadius: BorderRadius.circular(12),
+                        borderRadius: BorderRadius.circular(8),
                         border: Border.all(color: isDark ? AppColors.darkBorder : Colors.grey.shade200),
                         boxShadow: [
                           BoxShadow(
                             color: Colors.black.withValues(alpha: 0.03),
-                            blurRadius: 6,
-                            offset: const Offset(0, 2),
+                            blurRadius: 4,
+                            offset: const Offset(0, 1),
                           ),
                         ],
                       ),
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          Icon(
+                          const Icon(
                             Icons.folder_rounded,
-                            size: isMobile ? 36 : 48,
+                            size: 24,
                             color: Colors.orange,
                           ),
-                          SizedBox(height: isMobile ? 8 : 12),
+                          const SizedBox(height: 4),
                           Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 8),
+                            padding: const EdgeInsets.symmetric(horizontal: 6),
                             child: Text(
                               folder.name,
                               textAlign: TextAlign.center,
@@ -2359,12 +2359,13 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
                               overflow: TextOverflow.ellipsis,
                               style: TextStyle(
                                 fontWeight: FontWeight.bold,
-                                fontSize: isMobile ? 11 : 13,
+                                fontSize: 11,
+                                height: 1.15,
                                 color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
                               ),
                             ),
                           ),
-                          const SizedBox(height: 6),
+                          const SizedBox(height: 3),
                           Padding(
                             padding: const EdgeInsets.symmetric(horizontal: 4),
                             child: _buildFolderCompletionBadge(folder),
@@ -2456,23 +2457,26 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
     final isMobileGrid = screenW < 700;
     return LayoutBuilder(
       builder: (ctx, c) {
-        // Mobile: always 2 columns; desktop: derive from tile width
-        int cols = isMobileGrid ? 2 : (c.maxWidth / 180).floor().clamp(2, 6);
-        final aspect = isMobileGrid ? 0.80 : 1.0;
+        // Minimized cards: compact tile base
+        final tileBase = isMobileGrid ? 100.0 : 110.0;
+        int cols = isMobileGrid
+            ? (c.maxWidth / tileBase).floor().clamp(2, 4)
+            : (c.maxWidth / tileBase).floor().clamp(3, 12);
+        final aspect = isMobileGrid ? 0.88 : 0.92;
         return Column(
           children: [
             Expanded(
               child: GridView.builder(
                 padding: EdgeInsets.only(
-                  left: isMobileGrid ? 10 : 16,
-                  right: isMobileGrid ? 10 : 16,
-                  top: isMobileGrid ? 14 : 16,
-                  bottom: isMobileGrid ? 24 : 16,
+                  left: isMobileGrid ? 8 : 12,
+                  right: isMobileGrid ? 8 : 12,
+                  top: isMobileGrid ? 10 : 12,
+                  bottom: isMobileGrid ? 20 : 16,
                 ),
                 gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
                   crossAxisCount: cols,
-                  crossAxisSpacing: isMobileGrid ? 10 : 12,
-                  mainAxisSpacing: isMobileGrid ? 10 : 12,
+                  crossAxisSpacing: isMobileGrid ? 8 : 10,
+                  mainAxisSpacing: isMobileGrid ? 8 : 10,
                   childAspectRatio: aspect,
                 ),
                 itemCount: documents.length,
