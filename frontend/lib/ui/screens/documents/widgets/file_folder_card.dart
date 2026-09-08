@@ -237,71 +237,74 @@ class _FileFolderCardState extends State<FileFolderCard> {
       // Mobile: long press opens context menu
       onLongPressStart: (details) =>
           _showContextMenu(context, details.globalPosition),
-      child: InkWell(
-        onTap: widget.isMultiSelectMode
-            ? () => widget.onSelectedChanged?.call(!widget.isSelected)
-            : widget.onTap,
+      child: Material(
+        color: cardColor,
         borderRadius: BorderRadius.circular(AppSizes.radiusLarge),
-        child: Ink(
-          decoration: BoxDecoration(
-            color: cardColor,
-            borderRadius: BorderRadius.circular(AppSizes.radiusLarge),
-            border: Border.all(
-              color: widget.isSelected
-                  ? AppColors.primaryGreen
-                  : (isDark ? AppColors.darkBorder : Colors.grey.shade200),
-              width: widget.isSelected ? 1.5 : 1.0,
+        child: InkWell(
+          onTap: widget.isMultiSelectMode
+              ? () => widget.onSelectedChanged?.call(!widget.isSelected)
+              : widget.onTap,
+          borderRadius: BorderRadius.circular(AppSizes.radiusLarge),
+          child: Container(
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(AppSizes.radiusLarge),
+              border: Border.all(
+                color: widget.isSelected
+                    ? AppColors.primaryGreen
+                    : (isDark ? AppColors.darkBorder : Colors.grey.shade200),
+                width: widget.isSelected ? 1.5 : 1.0,
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.03),
+                  blurRadius: 6,
+                  offset: const Offset(0, 2),
+                ),
+              ],
             ),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.03),
-                blurRadius: 6,
-                offset: const Offset(0, 2),
-              ),
-            ],
-          ),
-          child: Stack(
-            children: [
-              if (widget.isMultiSelectMode)
-                Positioned(
-                  top: 4,
-                  left: 4,
-                  child: Checkbox(
-                    value: widget.isSelected,
-                    activeColor: AppColors.primaryGreen,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(4),
-                    ),
-                    onChanged: widget.onSelectedChanged,
-                  ),
-                ),
-              Center(
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 12),
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(_fileIcon, size: 42, color: _fileColor),
-                      const SizedBox(height: 8),
-                      Text(
-                        widget.document.fileName,
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                        textAlign: TextAlign.center,
-                        style: TextStyle(
-                          fontWeight: FontWeight.w600,
-                          fontSize: 12,
-                          color: isDark
-                              ? AppColors.darkTextPrimary
-                              : AppColors.textPrimary,
-                        ),
+            child: Stack(
+              children: [
+                if (widget.isMultiSelectMode)
+                  Positioned(
+                    top: 4,
+                    left: 4,
+                    child: Checkbox(
+                      value: widget.isSelected,
+                      activeColor: AppColors.primaryGreen,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(4),
                       ),
-                    ],
+                      onChanged: widget.onSelectedChanged,
+                    ),
+                  ),
+                Center(
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 12),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(_fileIcon, size: 42, color: _fileColor),
+                        const SizedBox(height: 8),
+                        Text(
+                          widget.document.fileName,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            fontWeight: FontWeight.w600,
+                            fontSize: 12,
+                            color: isDark
+                                ? AppColors.darkTextPrimary
+                                : AppColors.textPrimary,
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),
@@ -326,13 +329,12 @@ class _FileFolderCardState extends State<FileFolderCard> {
           _showContextMenu(context, details.globalPosition),
       onLongPressStart: (details) =>
           _showContextMenu(context, details.globalPosition),
-      child: InkWell(
-        onTap: widget.isMultiSelectMode
-            ? () => widget.onSelectedChanged?.call(!widget.isSelected)
-            : widget.onTap,
-        borderRadius: BorderRadius.circular(AppSizes.radiusSmall),
-        child: Ink(
-          color: rowColor,
+      child: Material(
+        color: rowColor ?? Colors.transparent,
+        child: InkWell(
+          onTap: widget.isMultiSelectMode
+              ? () => widget.onSelectedChanged?.call(!widget.isSelected)
+              : widget.onTap,
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
             child: Row(

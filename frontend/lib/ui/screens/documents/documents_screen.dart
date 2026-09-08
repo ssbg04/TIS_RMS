@@ -2166,7 +2166,7 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
                   child: ClipRRect(
                     borderRadius: BorderRadius.circular(12),
                     child: ListView.separated(
-                      padding: EdgeInsets.only(top: isMobile ? 10 : 0, bottom: isMobile ? 24 : 0),
+                      padding: EdgeInsets.zero,
                       itemCount: paginatedFolders.length,
                       separatorBuilder: (context, index) =>
                           Divider(height: 1, color: isDark ? AppColors.darkBorder : Colors.grey.shade100),
@@ -2562,7 +2562,7 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
                   ref.invalidate(documentPageProvider);
                 },
                 child: ListView.separated(
-                  padding: EdgeInsets.only(top: isMobileList ? 10 : 0, bottom: isMobileList ? 24 : 0),
+                  padding: EdgeInsets.zero,
                   itemCount: documents.length,
                   separatorBuilder: (ctx, i) =>
                       Divider(height: 1, color: isDark ? AppColors.darkBorder : Colors.grey.shade100),

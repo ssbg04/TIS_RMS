@@ -1976,7 +1976,7 @@ class _ArchivesScreenState extends ConsumerState<ArchivesScreen>
                 ref.invalidate(archiveDocumentPageProvider);
               },
               child: ListView.separated(
-                padding: EdgeInsets.only(top: isMobile ? 10 : 0, bottom: isMobile ? 24 : 0),
+                padding: EdgeInsets.zero,
                 itemCount: paginatedFolders.length,
                 separatorBuilder: (_, _) =>
                     Divider(height: 1, color: isDark ? AppColors.darkBorder : Colors.grey.shade100),
@@ -2435,7 +2435,7 @@ class _ArchivesScreenState extends ConsumerState<ArchivesScreen>
                   ref.invalidate(archiveDocumentPageProvider);
                 },
                 child: ListView.separated(
-                  padding: EdgeInsets.only(top: isMobile ? 10 : 0, bottom: isMobile ? 24 : 0),
+                  padding: EdgeInsets.zero,
                   itemCount: documents.length,
                   separatorBuilder: (_, _) =>
                       Divider(height: 1, color: isDark ? AppColors.darkBorder : Colors.grey.shade100),
