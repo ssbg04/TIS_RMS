@@ -495,9 +495,11 @@ exports.getKpis = (req, res) => {
                 )
             `).get(userId)?.total || 0;
 
+            const totalRequirementsTeacher = studentDocStats.reduce((sum, s) => sum + s.totalRequired, 0);
+
             statusDistribution = [
-                { status: 'Completed', count: totalCompletedReqsTeacher },
-                { status: 'Archived', count: archivedDocsTeacher }
+                { status: 'Completed', count: totalCompletedReqsTeacher, total: totalRequirementsTeacher },
+                { status: 'Archived', count: archivedDocsTeacher, total: totalRequirementsTeacher }
             ];
 
             docTypeBreakdown = Object.entries(docTypeByGrade)
@@ -789,9 +791,11 @@ exports.getKpis = (req, res) => {
                 AND ay.year_range = ?
             `).get(activeAy.year_range)?.total || 0 : 0;
 
+            const totalRequirementsAdmin = studentDocStats.reduce((sum, s) => sum + s.totalRequired, 0);
+
             statusDistribution = [
-                { status: 'Completed', count: totalCompletedReqsAdmin },
-                { status: 'Archived', count: archivedDocsAdmin }
+                { status: 'Completed', count: totalCompletedReqsAdmin, total: totalRequirementsAdmin },
+                { status: 'Archived', count: archivedDocsAdmin, total: totalRequirementsAdmin }
             ];
 
             docTypeBreakdown = Object.entries(docTypeByGrade)

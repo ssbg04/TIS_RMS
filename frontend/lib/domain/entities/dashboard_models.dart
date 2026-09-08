@@ -216,11 +216,17 @@ class ActivityByDayEntry {
 class StatusDistributionEntry {
   final String status;
   final int count;
-  const StatusDistributionEntry({required this.status, required this.count});
+  final int total;
+  const StatusDistributionEntry({
+    required this.status,
+    required this.count,
+    this.total = 0,
+  });
   factory StatusDistributionEntry.fromJson(Map<String, dynamic> j) =>
       StatusDistributionEntry(
         status: j['status'] as String? ?? '',
         count: (j['count'] as num?)?.toInt() ?? 0,
+        total: (j['total'] as num?)?.toInt() ?? 0,
       );
 }
 

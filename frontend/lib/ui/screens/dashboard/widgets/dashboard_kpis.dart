@@ -620,8 +620,12 @@ class _StatusDistributionCard extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           ...entries.map((e) {
-            final pct = total == 0 ? 0.0 : e.count / total;
+            final targetTotal = e.total > 0 ? e.total : total;
+            final pct = targetTotal == 0 ? 0.0 : (e.count / targetTotal).clamp(0.0, 1.0);
             final color = _colorMap[e.status] ?? (isDark ? Colors.grey.shade400 : Colors.grey.shade500);
+            final countLabel = e.total > 0
+                ? '${e.count}/${e.total} (${(pct * 100).toStringAsFixed(1)}%)'
+                : '${e.count} (${(pct * 100).toStringAsFixed(1)}%)';
             return Padding(
               padding: const EdgeInsets.only(bottom: 12),
               child: Column(
@@ -639,7 +643,7 @@ class _StatusDistributionCard extends StatelessWidget {
                         ),
                       ),
                       Text(
-                        '${e.count} (${(pct * 100).toStringAsFixed(1)}%)',
+                        countLabel,
                         style: TextStyle(
                           fontSize: 12,
                           color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
@@ -683,7 +687,9 @@ class _StatusDistributionCard extends StatelessWidget {
                   ),
                 ),
                 Text(
-                  '$total',
+                  entries.any((e) => e.total > 0)
+                      ? '$total/${entries.firstWhere((e) => e.total > 0).total}'
+                      : '$total',
                   style: TextStyle(
                     fontSize: 13,
                     fontWeight: FontWeight.bold,
