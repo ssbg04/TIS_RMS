@@ -2078,22 +2078,21 @@ class _ArchivesScreenState extends ConsumerState<ArchivesScreen>
         // Grid view
         Widget gridView = LayoutBuilder(
           builder: (ctx, c) {
-            final tileBase = isMobile ? 100.0 : 110.0;
             final cols = isMobile
-                ? (c.maxWidth / tileBase).floor().clamp(2, 4)
-                : (c.maxWidth / tileBase).floor().clamp(3, 12);
+                ? 2
+                : (c.maxWidth / 160.0).floor().clamp(2, 6);
             return GridView.builder(
               padding: EdgeInsets.only(
-                left: isMobile ? 8 : 12,
-                right: isMobile ? 8 : 12,
-                top: isMobile ? 10 : 12,
-                bottom: isMobile ? 20 : 16,
+                left: isMobile ? 10 : 16,
+                right: isMobile ? 10 : 16,
+                top: isMobile ? 14 : 16,
+                bottom: isMobile ? 24 : 16,
               ),
               gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
                 crossAxisCount: cols,
-                crossAxisSpacing: isMobile ? 8 : 10,
-                mainAxisSpacing: isMobile ? 8 : 10,
-                childAspectRatio: isMobile ? 0.88 : 0.95,
+                crossAxisSpacing: isMobile ? 10 : 14,
+                mainAxisSpacing: isMobile ? 10 : 14,
+                childAspectRatio: isMobile ? 0.85 : 0.95,
               ),
               itemCount: paginatedFolders.length,
               itemBuilder: (ctx, i) {
@@ -2121,64 +2120,64 @@ class _ArchivesScreenState extends ConsumerState<ArchivesScreen>
                             .setStudentId(folder.studentId);
                       }
                     },
-                    borderRadius: BorderRadius.circular(8),
+                    borderRadius: BorderRadius.circular(12),
                     child: Container(
                       decoration: BoxDecoration(
                         color: isDark ? AppColors.darkSurfaceCard : AppColors.surfaceWhite,
-                        borderRadius: BorderRadius.circular(8),
+                        borderRadius: BorderRadius.circular(12),
                         border: Border.all(color: isDark ? AppColors.darkBorder : Colors.grey.shade200),
                         boxShadow: [
                           BoxShadow(
                             color: Colors.black.withValues(alpha: 0.03),
-                            blurRadius: 4,
-                            offset: const Offset(0, 1),
+                            blurRadius: 6,
+                            offset: const Offset(0, 2),
                           ),
                         ],
                       ),
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          const Icon(
-                            Icons.folder_special_rounded,
-                            size: 24,
-                            color: Colors.deepOrange,
-                          ),
-                          const SizedBox(height: 4),
-                          Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 6),
-                            child: Text(
-                              studentName,
-                              textAlign: TextAlign.center,
-                              maxLines: 2,
-                              overflow: TextOverflow.ellipsis,
-                              style: TextStyle(
-                                fontWeight: FontWeight.bold,
-                                fontSize: 11,
-                                height: 1.15,
-                                color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
+                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 8),
+                      child: Center(
+                        child: FittedBox(
+                          fit: BoxFit.scaleDown,
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(
+                                Icons.folder_special_rounded,
+                                size: isMobile ? 38 : 46,
+                                color: Colors.deepOrange,
                               ),
-                            ),
+                              SizedBox(height: isMobile ? 6 : 8),
+                              Padding(
+                                padding: const EdgeInsets.symmetric(horizontal: 6),
+                                child: Text(
+                                  studentName,
+                                  textAlign: TextAlign.center,
+                                  maxLines: 2,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: isMobile ? 12 : 13,
+                                    height: 1.2,
+                                    color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              _buildStudentStatusChip(
+                                folder.studentStatus ?? 'Archived',
+                              ),
+                              const SizedBox(height: 2),
+                              Text(
+                                '${folder.documentCount ?? 0} docs',
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
+                                ),
+                              ),
+                            ],
                           ),
-                          const SizedBox(height: 3),
-                          _buildStudentStatusChip(
-                            folder.studentStatus ?? 'Archived',
-                          ),
-                          const SizedBox(height: 2),
-                          Text(
-                            '${folder.documentCount ?? 0} docs',
-                            style: TextStyle(
-                              fontSize: 10,
-                              color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
-                            ),
-                          ),
-                          if (_isAdmin) ...[
-                            const SizedBox(height: 4),
-                            _buildFolderActionMenu(
-                              folder.studentId!,
-                              studentName,
-                            ),
-                          ],
-                        ],
+                        ),
                       ),
                     ),
                   ),
@@ -2505,25 +2504,24 @@ class _ArchivesScreenState extends ConsumerState<ArchivesScreen>
     return LayoutBuilder(
       builder: (ctx, c) {
         final isMobileGrid = isMobile;
-        final tileBase = isMobileGrid ? 100.0 : 110.0;
         final cols = isMobileGrid
-            ? (c.maxWidth / tileBase).floor().clamp(2, 4)
-            : (c.maxWidth / tileBase).floor().clamp(3, 12);
-        final aspect = isMobileGrid ? 0.88 : 0.92;
+            ? 2
+            : (c.maxWidth / 160.0).floor().clamp(2, 6);
+        final aspect = isMobileGrid ? 0.82 : 0.95;
         return Column(
           children: [
             Expanded(
               child: GridView.builder(
                 padding: EdgeInsets.only(
-                  left: isMobileGrid ? 8 : 12,
-                  right: isMobileGrid ? 8 : 12,
-                  top: isMobileGrid ? 10 : 12,
-                  bottom: isMobileGrid ? 20 : 16,
+                  left: isMobileGrid ? 10 : 16,
+                  right: isMobileGrid ? 10 : 16,
+                  top: isMobileGrid ? 12 : 16,
+                  bottom: isMobileGrid ? 24 : 16,
                 ),
                 gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
                   crossAxisCount: cols,
-                  crossAxisSpacing: isMobileGrid ? 8 : 10,
-                  mainAxisSpacing: isMobileGrid ? 8 : 10,
+                  crossAxisSpacing: isMobileGrid ? 10 : 12,
+                  mainAxisSpacing: isMobileGrid ? 10 : 12,
                   childAspectRatio: aspect,
                 ),
                 itemCount: documents.length,
@@ -2649,16 +2647,16 @@ class _ArchivesScreenState extends ConsumerState<ArchivesScreen>
       mainAxisSize: MainAxisSize.min,
       children: [
         Container(
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
           decoration: BoxDecoration(
             color: bg,
-            borderRadius: BorderRadius.circular(10),
+            borderRadius: BorderRadius.circular(8),
             border: Border.all(color: fg.withValues(alpha: 0.3)),
           ),
           child: Text(
             status,
             style: TextStyle(
-              fontSize: 11,
+              fontSize: 10,
               fontWeight: FontWeight.w600,
               color: fg,
             ),

@@ -2580,47 +2580,61 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                               ? () => setState(() => _currentPage--)
                               : null,
                         ),
-                        ...List.generate(
-                          totalPages,
-                          (i) => i,
-                        ).where((p) => (p - _currentPage).abs() <= 2).map((p) {
-                          final isActive = p == _currentPage;
-                          return GestureDetector(
-                            onTap: () => setState(() => _currentPage = p),
-                            child: Container(
-                              width: 32,
-                              height: 32,
-                              margin:
-                                  const EdgeInsets.symmetric(horizontal: 2),
-                              decoration: BoxDecoration(
-                                color: isActive
-                                    ? AppColors.primaryGreen
-                                    : Colors.transparent,
-                                borderRadius: BorderRadius.circular(6),
-                                border: isActive
-                                    ? null
-                                    : Border.all(
-                                        color: isDark
-                                            ? AppColors.darkBorder
-                                            : Colors.grey.shade300,
-                                      ),
-                              ),
-                              child: Center(
-                                child: Text(
-                                  '${p + 1}',
-                                  style: TextStyle(
-                                    fontSize: 13,
-                                    fontWeight: FontWeight.w600,
-                                    color: isActive
-                                        ? Colors.white
-                                        : (isDark
-                                            ? AppColors.darkTextSecondary
-                                            : AppColors.textSecondary),
+                        ..._buildReportPageList(_currentPage + 1, totalPages).map((p) {
+                          if (p is int) {
+                            final pageZero = p - 1;
+                            final isActive = pageZero == _currentPage;
+                            return GestureDetector(
+                              onTap: () => setState(() => _currentPage = pageZero),
+                              child: Container(
+                                width: 32,
+                                height: 32,
+                                margin:
+                                    const EdgeInsets.symmetric(horizontal: 2),
+                                decoration: BoxDecoration(
+                                  color: isActive
+                                      ? AppColors.primaryGreen
+                                      : Colors.transparent,
+                                  borderRadius: BorderRadius.circular(6),
+                                  border: isActive
+                                      ? null
+                                      : Border.all(
+                                          color: isDark
+                                              ? AppColors.darkBorder
+                                              : Colors.grey.shade300,
+                                        ),
+                                ),
+                                child: Center(
+                                  child: Text(
+                                    '$p',
+                                    style: TextStyle(
+                                      fontSize: 13,
+                                      fontWeight: FontWeight.w600,
+                                      color: isActive
+                                          ? Colors.white
+                                          : (isDark
+                                              ? AppColors.darkTextSecondary
+                                              : AppColors.textSecondary),
+                                    ),
                                   ),
                                 ),
                               ),
-                            ),
-                          );
+                            );
+                          } else {
+                            return Padding(
+                              padding: const EdgeInsets.symmetric(horizontal: 4),
+                              child: Text(
+                                '...',
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.bold,
+                                  color: isDark
+                                      ? AppColors.darkTextSecondary
+                                      : AppColors.textSecondary,
+                                ),
+                              ),
+                            );
+                          }
                         }),
                         IconButton(
                           icon: const Icon(Icons.chevron_right, size: 20),
@@ -2637,6 +2651,29 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
         ],
       ),
     );
+  }
+
+  List<dynamic> _buildReportPageList(int cur, int total) {
+    if (total <= 1) return [];
+    if (total <= 3) {
+      return List.generate(total, (i) => i + 1);
+    }
+    final safe = cur.clamp(1, total);
+    final pages = <dynamic>[];
+    pages.add(1);
+    if (safe == 1) {
+      pages.add('...');
+      pages.add(total);
+    } else if (safe == total) {
+      pages.add('...');
+      pages.add(total);
+    } else {
+      if (safe > 2) pages.add('...');
+      pages.add(safe);
+      if (safe < total - 1) pages.add('...');
+      pages.add(total);
+    }
+    return pages;
   }
 
 

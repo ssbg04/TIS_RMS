@@ -238,15 +238,15 @@ class _FileFolderCardState extends State<FileFolderCard> {
           _showContextMenu(context, details.globalPosition),
       child: Material(
         color: cardColor,
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(12),
         child: InkWell(
           onTap: widget.isMultiSelectMode
               ? () => widget.onSelectedChanged?.call(!widget.isSelected)
               : widget.onTap,
-          borderRadius: BorderRadius.circular(8),
+          borderRadius: BorderRadius.circular(12),
           child: Container(
             decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(8),
+              borderRadius: BorderRadius.circular(12),
               border: Border.all(
                 color: widget.isSelected
                     ? AppColors.primaryGreen
@@ -256,8 +256,8 @@ class _FileFolderCardState extends State<FileFolderCard> {
               boxShadow: [
                 BoxShadow(
                   color: Colors.black.withValues(alpha: 0.03),
-                  blurRadius: 4,
-                  offset: const Offset(0, 1),
+                  blurRadius: 6,
+                  offset: const Offset(0, 2),
                 ),
               ],
             ),
@@ -265,16 +265,16 @@ class _FileFolderCardState extends State<FileFolderCard> {
               children: [
                 if (widget.isMultiSelectMode)
                   Positioned(
-                    top: 2,
-                    left: 2,
+                    top: 4,
+                    left: 4,
                     child: SizedBox(
-                      width: 20,
-                      height: 20,
+                      width: 22,
+                      height: 22,
                       child: Checkbox(
                         value: widget.isSelected,
                         activeColor: AppColors.primaryGreen,
                         shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(3),
+                          borderRadius: BorderRadius.circular(4),
                         ),
                         materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
                         onChanged: widget.onSelectedChanged,
@@ -283,28 +283,31 @@ class _FileFolderCardState extends State<FileFolderCard> {
                   ),
                 Center(
                   child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 6),
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(_fileIcon, size: 24, color: _fileColor),
-                        const SizedBox(height: 4),
-                        Text(
-                          widget.document.fileName,
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                          textAlign: TextAlign.center,
-                          style: TextStyle(
-                            fontWeight: FontWeight.w600,
-                            fontSize: 11,
-                            height: 1.15,
-                            color: isDark
-                                ? AppColors.darkTextPrimary
-                                : AppColors.textPrimary,
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
+                    child: FittedBox(
+                      fit: BoxFit.scaleDown,
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(_fileIcon, size: 40, color: _fileColor),
+                          const SizedBox(height: 6),
+                          Text(
+                            widget.document.fileName,
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              fontWeight: FontWeight.w600,
+                              fontSize: 12,
+                              height: 1.2,
+                              color: isDark
+                                  ? AppColors.darkTextPrimary
+                                  : AppColors.textPrimary,
+                            ),
                           ),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
                   ),
                 ),

@@ -132,7 +132,9 @@ class _ChangePasswordModalState extends ConsumerState<ChangePasswordModal> {
       title: 'Change Password',
       icon: Icons.lock_outline,
       maxWidth: 480,
-      content: Form(
+      content: SingleChildScrollView(
+        padding: const EdgeInsets.all(AppSizes.p24),
+        child: Form(
         key: _formKey,
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -286,6 +288,7 @@ class _ChangePasswordModalState extends ConsumerState<ChangePasswordModal> {
           ],
         ),
       ),
+    ),
     );
   }
 }

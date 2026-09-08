@@ -466,14 +466,18 @@ Files backup/restore - mirror mode or zip -->
 <!-- # DOCUMENT REQUIREMENTS
 - redesign the screen keep all logic change the layout and design only -->
 
-# SETTINGS SCREEN
+<!-- # SETTINGS SCREEN
 - make it modal, add current password then new password, keep the indicators for password strength
 
 # REPORT SCREEN
-- move the export button inside of the compliance section
+- move the export button inside of the compliance section -->
 
-# DOCUMENT SCREEN AND ARCHIVES SCREEN
-- grid view -> minimize the cards, make it 24x24 px cards
+<!-- # DOCUMENT SCREEN AND ARCHIVES SCREEN
+- grid view -> fix overflow folders card 
+
+# SETTINGS SCREEN
+- add padding reset password modal -->
+ 
 
 --- 
 

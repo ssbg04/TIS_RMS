@@ -14,38 +14,29 @@ class AppPagination extends StatelessWidget {
   });
 
   List<dynamic> _buildPageList() {
-    if (totalPages <= 7) {
+    if (totalPages <= 1) return [];
+    if (totalPages <= 3) {
       return List.generate(totalPages, (i) => i + 1);
     }
+
+    final safeCurrent = currentPage.clamp(1, totalPages);
     final pages = <dynamic>[];
     pages.add(1);
 
-    int start = currentPage - 1;
-    int end = currentPage + 1;
-
-    if (currentPage <= 3) {
-      start = 2;
-      end = 4;
-    } else if (currentPage >= totalPages - 2) {
-      start = totalPages - 3;
-      end = totalPages - 1;
-    }
-
-    if (start > 2) {
+    if (safeCurrent == 1) {
       pages.add('...');
-    }
-
-    for (int i = start; i <= end; i++) {
-      if (i > 1 && i < totalPages) {
-        pages.add(i);
+      pages.add(totalPages);
+    } else if (safeCurrent == totalPages) {
+      pages.add('...');
+      pages.add(totalPages);
+    } else {
+      if (safeCurrent > 2) {
+        pages.add('...');
       }
-    }
-
-    if (end < totalPages - 1) {
-      pages.add('...');
-    }
-
-    if (totalPages > 1) {
+      pages.add(safeCurrent);
+      if (safeCurrent < totalPages - 1) {
+        pages.add('...');
+      }
       pages.add(totalPages);
     }
 
