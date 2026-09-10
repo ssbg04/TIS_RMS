@@ -885,6 +885,39 @@ class _RequirementsModalState extends ConsumerState<RequirementsModal> {
                                   ),
                                 ),
 
+                                // Max Files Tag
+                                const SizedBox(width: 6),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                  decoration: BoxDecoration(
+                                    color: (isDark ? AppColors.darkSurface2 : const Color(0xFFF1F3F5)),
+                                    borderRadius: BorderRadius.circular(4),
+                                    border: Border.all(
+                                      color: isDark ? AppColors.darkBorder : Colors.grey.shade300,
+                                      width: 0.5,
+                                    ),
+                                  ),
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Icon(
+                                        Icons.file_copy_outlined,
+                                        size: 10,
+                                        color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
+                                      ),
+                                      const SizedBox(width: 3),
+                                      Text(
+                                        req.maxFiles == 1 ? '1 file' : 'Max: ${req.maxFiles} files',
+                                        style: TextStyle(
+                                          fontSize: 10.5,
+                                          fontWeight: FontWeight.w600,
+                                          color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+
                                 // Inactive Tag
                                 if (!req.isEnabled) ...[
                                   const SizedBox(width: 6),
@@ -1030,6 +1063,7 @@ class _RequirementFormModalState extends ConsumerState<RequirementFormModal> {
   late bool _isMandatory;
   late bool _isEnabled;
   late String _acceptedFileTypes;
+  late int _maxFiles;
 
   bool _isLoading = false;
 
@@ -1057,6 +1091,7 @@ class _RequirementFormModalState extends ConsumerState<RequirementFormModal> {
 
     _isMandatory = req?.isMandatory ?? true;
     _isEnabled = req?.isEnabled ?? true;
+    _maxFiles = req?.maxFiles ?? 1;
 
     String savedTypes = (req?.acceptedFileTypes ?? 'pdf,jpg,jpeg,png').replaceAll(' ', '');
     const validItems = [
@@ -1241,6 +1276,26 @@ class _RequirementFormModalState extends ConsumerState<RequirementFormModal> {
 
                   const SizedBox(height: 12),
 
+                  // Maximum Files Allowed Dropdown
+                  DropdownButtonFormField<int>(
+                    initialValue: _maxFiles,
+                    decoration: const InputDecoration(
+                      labelText: 'Maximum Files Allowed',
+                      helperText: 'Number of files that can be uploaded for this requirement',
+                      border: OutlineInputBorder(),
+                      contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                    ),
+                    items: [1, 2, 3, 4, 5, 10, 15, 20].map((n) {
+                      return DropdownMenuItem<int>(
+                        value: n,
+                        child: Text(n == 1 ? '1 file (Single upload)' : '$n files'),
+                      );
+                    }).toList(),
+                    onChanged: (v) => setState(() => _maxFiles = v ?? 1),
+                  ),
+
+                  const SizedBox(height: 12),
+
                   // Mandatory Switch
                   SwitchListTile(
                     title: const Text('Mandatory Requirement', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13.5)),
@@ -1328,6 +1383,7 @@ class _RequirementFormModalState extends ConsumerState<RequirementFormModal> {
           dueDate: dueDate,
           acceptedFileTypes: _acceptedFileTypes,
           schoolLevels: 'JHS,SHS',
+          maxFiles: _maxFiles,
         );
 
         if (widget.requirement != null && categories.length == 1) {

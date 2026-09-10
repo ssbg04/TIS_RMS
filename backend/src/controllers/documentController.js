@@ -164,27 +164,47 @@ exports.uploadDocument = (req, res) => {
     try {
         const reqId = requirementId && requirementId !== 'null' ? requirementId : null;
 
-        // Duplicate Guard: Ensure only one file per document type / requirement exists per student
-        const existingDoc = reqId
-            ? db.prepare(`
-                SELECT id, file_name, document_type FROM documents 
-                WHERE student_id = ? AND deleted_at IS NULL
-                  AND (document_type = ? OR requirement_id = ?)
+        // Dynamic Upload Limit: Check how many files are allowed for this requirement
+        let maxFiles = 1;
+        let reqRow = null;
+        if (reqId) {
+            reqRow = db.prepare('SELECT id, name, max_files FROM document_requirements WHERE id = ?').get(reqId);
+        }
+        if (!reqRow && documentType) {
+            reqRow = db.prepare(`
+                SELECT id, name, max_files FROM document_requirements 
+                WHERE name = ? OR (category || ' - ' || name) = ?
                 LIMIT 1
-            `).get(studentId, documentType, reqId)
+            `).get(documentType, documentType);
+        }
+        if (reqRow && reqRow.max_files) {
+            const parsed = parseInt(reqRow.max_files, 10);
+            if (!isNaN(parsed) && parsed >= 1) maxFiles = parsed;
+        }
+
+        // Count existing non-deleted documents for this student matching requirement or document_type
+        const existingCountRow = reqId
+            ? db.prepare(`
+                SELECT COUNT(*) as count FROM documents 
+                WHERE student_id = ? AND deleted_at IS NULL
+                  AND (requirement_id = ? OR document_type = ?)
+            `).get(studentId, reqId, documentType)
             : db.prepare(`
-                SELECT id, file_name, document_type FROM documents 
+                SELECT COUNT(*) as count FROM documents 
                 WHERE student_id = ? AND deleted_at IS NULL
                   AND document_type = ?
-                LIMIT 1
             `).get(studentId, documentType);
 
-        if (existingDoc) {
+        const currentCount = existingCountRow ? existingCountRow.count : 0;
+
+        if (currentCount >= maxFiles) {
             if (file.path && fs.existsSync(file.path)) {
                 try { fs.unlinkSync(file.path); } catch (_) {}
             }
             return res.status(400).json({ 
-                message: `A document of type "${documentType}" already exists for this student (${existingDoc.file_name}). Duplicate uploads of the same document type are not allowed.` 
+                message: maxFiles === 1
+                    ? `A document of type "${documentType}" already exists for this student. Duplicate uploads of the same document type are not allowed.`
+                    : `Requirement "${documentType}" allows a maximum of ${maxFiles} file(s). This student already has ${currentCount} file(s) uploaded.`
             });
         }
 

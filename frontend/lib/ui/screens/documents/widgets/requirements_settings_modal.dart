@@ -162,8 +162,8 @@ class _RequirementsSettingsModalState
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       Switch(
-                        value: req.isEnabled ?? true,
-                        activeColor: AppColors.primaryGreen,
+                        value: req.isEnabled,
+                        activeThumbColor: AppColors.primaryGreen,
                         onChanged: (val) {
                           _toggleRequirement(req, val);
                         },
@@ -193,17 +193,7 @@ class _RequirementsSettingsModalState
 
   void _toggleRequirement(DocumentRequirementModel req, bool isEnabled) async {
     try {
-      final updatedReq = DocumentRequirementModel(
-        id: req.id,
-        name: req.name,
-        description: req.description,
-        category: req.category,
-        isMandatory: req.isMandatory,
-        isEnabled: isEnabled,
-        dueDate: req.dueDate,
-        acceptedFileTypes: req.acceptedFileTypes,
-        schoolLevels: req.schoolLevels,
-      );
+      final updatedReq = req.copyWith(isEnabled: isEnabled);
       await ref
           .read(requirementMutationProvider.notifier)
           .updateRequirement(updatedReq);

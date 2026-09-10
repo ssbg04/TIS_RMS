@@ -500,8 +500,6 @@ Files backup/restore - mirror mode or zip -->
 --- 
 
 # DONT DO
-- documents screen -> add 
-
 - teacher no assigned section theme color
 - bug in bulk add student enrollment
 

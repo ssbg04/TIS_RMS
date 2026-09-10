@@ -8,6 +8,7 @@ class DocumentRequirementModel {
   final DateTime? dueDate;
   final String acceptedFileTypes;
   final String schoolLevels;
+  final int maxFiles;
   final DateTime? createdAt;
   final DateTime? updatedAt;
 
@@ -21,11 +22,15 @@ class DocumentRequirementModel {
     this.dueDate,
     this.acceptedFileTypes = 'pdf,jpg,jpeg,png',
     this.schoolLevels = 'JHS,SHS',
+    this.maxFiles = 1,
     this.createdAt,
     this.updatedAt,
   });
 
   factory DocumentRequirementModel.fromJson(Map<String, dynamic> json) {
+    final rawMax = json['max_files'] ?? json['maxFiles'];
+    final parsedMax = rawMax != null ? (rawMax as num).toInt() : 1;
+
     return DocumentRequirementModel(
       id: json['id'] as int,
       name: json['name'] as String,
@@ -39,6 +44,7 @@ class DocumentRequirementModel {
           : null,
       acceptedFileTypes: json['accepted_file_types'] ?? 'pdf,jpg,jpeg,png',
       schoolLevels: json['school_levels'] ?? 'JHS,SHS',
+      maxFiles: parsedMax >= 1 ? parsedMax : 1,
       createdAt:
           (json['created_at'] != null &&
               json['created_at'].toString().isNotEmpty)
@@ -63,6 +69,8 @@ class DocumentRequirementModel {
       'dueDate': dueDate?.toIso8601String(),
       'acceptedFileTypes': acceptedFileTypes,
       'schoolLevels': schoolLevels,
+      'maxFiles': maxFiles,
+      'max_files': maxFiles,
     };
   }
 
@@ -76,6 +84,7 @@ class DocumentRequirementModel {
     DateTime? dueDate,
     String? acceptedFileTypes,
     String? schoolLevels,
+    int? maxFiles,
   }) {
     return DocumentRequirementModel(
       id: id ?? this.id,
@@ -87,6 +96,7 @@ class DocumentRequirementModel {
       dueDate: dueDate ?? this.dueDate,
       acceptedFileTypes: acceptedFileTypes ?? this.acceptedFileTypes,
       schoolLevels: schoolLevels ?? this.schoolLevels,
+      maxFiles: maxFiles ?? this.maxFiles,
       createdAt: createdAt,
       updatedAt: updatedAt,
     );

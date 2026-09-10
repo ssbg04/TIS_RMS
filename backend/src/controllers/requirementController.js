@@ -33,7 +33,7 @@ exports.getRequirements = (req, res) => {
         const whereClause = conditions.length ? `WHERE ${conditions.join(' AND ')}` : '';
 
         const sql = `
-            SELECT id, category || ' - ' || name as name, description, category, is_mandatory, is_enabled, due_date, accepted_file_types, school_levels, created_at, updated_at
+            SELECT id, category || ' - ' || name as name, description, category, is_mandatory, is_enabled, due_date, accepted_file_types, school_levels, max_files, created_at, updated_at
             FROM document_requirements
             ${whereClause}
             ORDER BY category ASC, name ASC
@@ -75,7 +75,9 @@ exports.createRequirement = (req, res) => {
         isEnabled = true,
         dueDate,
         acceptedFileTypes = 'pdf,jpg,jpeg,png',
-        schoolLevels = 'JHS,SHS'
+        schoolLevels = 'JHS,SHS',
+        maxFiles,
+        max_files
     } = req.body;
 
     // Validation
@@ -94,13 +96,16 @@ exports.createRequirement = (req, res) => {
         return res.status(409).json({ message: 'A requirement with this name already exists for this category' });
     }
 
+    const parsedMax = parseInt(maxFiles ?? max_files, 10);
+    const finalMaxFiles = (!isNaN(parsedMax) && parsedMax >= 1) ? parsedMax : 1;
+
     try {
         const result = db.prepare(`
             INSERT INTO document_requirements (
                 name, description, category, is_mandatory, is_enabled,
-                due_date, accepted_file_types, school_levels
+                due_date, accepted_file_types, school_levels, max_files
             )
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
         `).run(
             name.trim(),
             description?.trim() || null,
@@ -109,7 +114,8 @@ exports.createRequirement = (req, res) => {
             isEnabled ? 1 : 0,
             dueDate || null,
             acceptedFileTypes,
-            schoolLevels
+            schoolLevels,
+            finalMaxFiles
         );
 
         res.status(201).json({
@@ -135,7 +141,9 @@ exports.updateRequirement = (req, res) => {
         isEnabled,
         dueDate,
         acceptedFileTypes,
-        schoolLevels
+        schoolLevels,
+        maxFiles,
+        max_files
     } = req.body;
 
     const requirement = db.prepare('SELECT * FROM document_requirements WHERE id = ?').get(id);
@@ -152,6 +160,11 @@ exports.updateRequirement = (req, res) => {
         }
     }
 
+    const parsedMax = (maxFiles !== undefined || max_files !== undefined)
+        ? parseInt(maxFiles ?? max_files, 10)
+        : null;
+    const finalMaxFiles = (parsedMax !== null && !isNaN(parsedMax) && parsedMax >= 1) ? parsedMax : null;
+
     try {
         db.prepare(`
             UPDATE document_requirements SET
@@ -163,6 +176,7 @@ exports.updateRequirement = (req, res) => {
                 due_date = ?,
                 accepted_file_types = COALESCE(?, accepted_file_types),
                 school_levels = COALESCE(?, school_levels),
+                max_files = COALESCE(?, max_files),
                 updated_at = (strftime('%Y-%m-%dT%H:%M:%SZ', 'now'))
             WHERE id = ?
         `).run(
@@ -174,6 +188,7 @@ exports.updateRequirement = (req, res) => {
             dueDate,
             acceptedFileTypes,
             schoolLevels,
+            finalMaxFiles,
             id
         );
 
@@ -261,9 +276,10 @@ exports.bulkUpdateRequirements = (req, res) => {
     try {
         const updateStmt = db.prepare(`
             UPDATE document_requirements SET
-                is_mandatory = ?,
-                is_enabled = ?,
+                is_mandatory = COALESCE(?, is_mandatory),
+                is_enabled = COALESCE(?, is_enabled),
                 due_date = ?,
+                max_files = COALESCE(?, max_files),
                 updated_at = (strftime('%Y-%m-%dT%H:%M:%SZ', 'now'))
             WHERE id = ?
         `);
@@ -271,10 +287,15 @@ exports.bulkUpdateRequirements = (req, res) => {
         db.transaction(() => {
             for (const req of requirements) {
                 if (req.id) {
+                    const parsedMax = (req.maxFiles !== undefined || req.max_files !== undefined)
+                        ? parseInt(req.maxFiles ?? req.max_files, 10)
+                        : null;
+                    const finalMax = (parsedMax !== null && !isNaN(parsedMax) && parsedMax >= 1) ? parsedMax : null;
                     updateStmt.run(
-                        req.isMandatory ? 1 : 0,
-                        req.isEnabled ? 1 : 0,
+                        req.isMandatory !== undefined ? (req.isMandatory ? 1 : 0) : null,
+                        req.isEnabled !== undefined ? (req.isEnabled ? 1 : 0) : null,
                         req.dueDate || null,
+                        finalMax,
                         req.id
                     );
                 }

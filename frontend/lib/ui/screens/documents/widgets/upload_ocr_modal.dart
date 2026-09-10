@@ -18,6 +18,7 @@ import '../../../shared/inputs/custom_text_field.dart';
 import '../../../shared/buttons/primary_button.dart';
 import '../../../shared/dialogs/error_dialog.dart';
 import '../../../../domain/entities/student_model.dart';
+import '../../../../domain/entities/document_requirement_model.dart';
 import 'package:wolt_modal_sheet/wolt_modal_sheet.dart';
 import 'upload_modal_header.dart';
 
@@ -727,23 +728,32 @@ class _UploadOcrModalState extends ConsumerState<UploadOcrModal> {
       return;
     }
 
-    // Check for duplicate document types within the same upload batch
-    final docTypeCounts = <String, int>{};
+    // Check against max allowed files per requirement within the same upload batch
+    final requirements = ref.read(documentRequirementsProvider).value ?? [];
+    final reqMap = <int, dynamic>{for (final r in requirements) r.id: r};
+
+    final reqCounts = <int, int>{};
     for (final e in pending) {
-      final dt = e.selectedDocumentType;
-      if (dt != null && dt.isNotEmpty) {
-        docTypeCounts[dt] = (docTypeCounts[dt] ?? 0) + 1;
+      if (e.selectedRequirementId != null) {
+        reqCounts[e.selectedRequirementId!] = (reqCounts[e.selectedRequirementId!] ?? 0) + 1;
       }
     }
-    final duplicatesInBatch = docTypeCounts.entries
-        .where((entry) => entry.value > 1)
-        .map((entry) => entry.key)
-        .toList();
-    if (duplicatesInBatch.isNotEmpty) {
+
+    final exceededInBatch = <String>[];
+    for (final entry in reqCounts.entries) {
+      final req = reqMap[entry.key];
+      final maxAllowed = (req is DocumentRequirementModel) ? req.maxFiles : 1;
+      if (entry.value > maxAllowed) {
+        final reqName = req != null ? req.name : 'Selected Requirement';
+        exceededInBatch.add('• $reqName (${entry.value} files selected, max allowed: $maxAllowed)');
+      }
+    }
+
+    if (exceededInBatch.isNotEmpty) {
       showErrorDialog(
         context,
-        'Duplicate Document Types',
-        'Multiple files have the same document type (${duplicatesInBatch.join(", ")}).\n\nOnly one file per document type is allowed per student. Please assign distinct document types.',
+        'Upload Limit Exceeded',
+        'The following document requirement(s) exceed their allowed file limit:\n\n${exceededInBatch.join('\n')}\n\nPlease adjust your selected files or document types.',
       );
       return;
     }
@@ -1353,9 +1363,11 @@ class _UploadOcrModalState extends ConsumerState<UploadOcrModal> {
         ),
       ));
       for (final r in jhs) {
+        final maxF = (r is DocumentRequirementModel) ? r.maxFiles : 1;
+        final limitHint = maxF > 1 ? ' (Max $maxF files)' : '';
         entries.add(DropdownMenuEntry<int>(
           value: r.id as int,
-          label: '${r.name}${r.isMandatory ? " *" : ""}',
+          label: '${r.name}${r.isMandatory ? " *" : ""}$limitHint',
         ));
       }
     }
@@ -1371,9 +1383,11 @@ class _UploadOcrModalState extends ConsumerState<UploadOcrModal> {
         ),
       ));
       for (final r in shs) {
+        final maxF = (r is DocumentRequirementModel) ? r.maxFiles : 1;
+        final limitHint = maxF > 1 ? ' (Max $maxF files)' : '';
         entries.add(DropdownMenuEntry<int>(
           value: r.id as int,
-          label: '${r.name}${r.isMandatory ? " *" : ""}',
+          label: '${r.name}${r.isMandatory ? " *" : ""}$limitHint',
         ));
       }
     }

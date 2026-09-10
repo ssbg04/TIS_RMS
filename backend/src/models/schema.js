@@ -459,10 +459,17 @@ const initSchema = () => {
                 due_date DATE,
                 accepted_file_types TEXT DEFAULT 'pdf,jpg,jpeg,png',
                 school_levels TEXT DEFAULT 'JHS,SHS',
+                max_files INTEGER DEFAULT 1,
                 created_at DATETIME DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ', 'now')),
                 updated_at DATETIME DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ', 'now'))
             )
         `).run();
+
+        // Safe non-destructive column migration for existing databases
+        const reqCols = db.prepare("PRAGMA table_info(document_requirements)").all();
+        if (!reqCols.some(c => c.name === 'max_files')) {
+            db.prepare("ALTER TABLE document_requirements ADD COLUMN max_files INTEGER DEFAULT 1").run();
+        }
 
         // 8b. DocumentFolders Table (for manual folder management)
         db.prepare(`
@@ -777,8 +784,8 @@ const initSchema = () => {
                 { name: '2x2 Photo', description: 'Two pieces of 2x2 colored ID photos', category: 'SHS', is_mandatory: 1 },
             ];
             const insertReq = db.prepare(`
-                INSERT INTO document_requirements (name, description, category, is_mandatory, is_enabled, accepted_file_types, school_levels)
-                VALUES (?, ?, ?, ?, 1, 'pdf,jpg,jpeg,png', 'JHS,SHS')
+                INSERT INTO document_requirements (name, description, category, is_mandatory, is_enabled, accepted_file_types, school_levels, max_files)
+                VALUES (?, ?, ?, ?, 1, 'pdf,jpg,jpeg,png', 'JHS,SHS', 1)
             `);
             for (const req of defaultRequirements) {
                 insertReq.run(req.name, req.description, req.category, req.is_mandatory);
