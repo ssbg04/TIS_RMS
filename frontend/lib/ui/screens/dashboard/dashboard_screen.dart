@@ -106,7 +106,9 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
 
   void _startPolling() {
     _pollingTimer?.cancel();
-    _pollingTimer = Timer.periodic(const Duration(seconds: 5), (_) {
+    // On Android mobile, avoid aggressive 5s background polling to save battery and eliminate UI stutter
+    if (defaultTargetPlatform == TargetPlatform.android) return;
+    _pollingTimer = Timer.periodic(const Duration(seconds: 15), (_) {
       if (mounted &&
           ref.read(authProvider).value != null &&
           ref.read(activeTabProvider) == 'Dashboard') {
@@ -328,10 +330,10 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                   child: SingleChildScrollView(
                     physics: const AlwaysScrollableScrollPhysics(),
                     padding: EdgeInsets.fromLTRB(
-                      24,
-                      isMobileOrAndroid ? 20 : 90,
-                      24,
-                      76,
+                      isMobileOrAndroid ? 16 : 24,
+                      isMobileOrAndroid ? 16 : 90,
+                      isMobileOrAndroid ? 16 : 24,
+                      isMobileOrAndroid ? 24 : 76,
                     ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -380,8 +382,9 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                   right: 0,
                   child: _buildTopBar(context, user),
                 ),
-              // Sticky Blur Bottom Bar Overlay
-              Positioned(
+              // Sticky Blur Bottom Bar Overlay (Desktop only, Android has bottom nav bar and avoid GPU blur overhead)
+              if (!isMobileOrAndroid)
+                Positioned(
                 bottom: 0,
                 left: 0,
                 right: 0,
@@ -923,7 +926,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
         final isWindowsApp =
             Theme.of(context).platform == TargetPlatform.windows ||
             constraints.maxWidth >= 800;
-        final int crossAxisCount = isWindowsApp ? (isAdmin ? 4 : 3) : 1;
+        final int crossAxisCount = isWindowsApp ? (isAdmin ? 4 : 3) : 2;
         final bool isSquare = isWindowsApp;
 
         return GridView(
@@ -931,9 +934,9 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
           physics: const NeverScrollableScrollPhysics(),
           gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
             crossAxisCount: crossAxisCount,
-            crossAxisSpacing: 16,
-            mainAxisSpacing: 16,
-            mainAxisExtent: isSquare ? 135 : 94,
+            crossAxisSpacing: isWindowsApp ? 16 : 10,
+            mainAxisSpacing: isWindowsApp ? 16 : 10,
+            mainAxisExtent: isSquare ? 135 : 84,
           ),
           children: [
             StatCard(
@@ -1075,9 +1078,45 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
 
   Widget _buildActivitiesList(List<RecentActivity> activities) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final isMobileOrAndroid = MediaQuery.of(context).size.width < 800 ||
+        defaultTargetPlatform == TargetPlatform.android;
+    final displayList = isMobileOrAndroid ? activities.take(5).toList() : activities;
+
     if (activities.isEmpty) {
-      return Container(
-        padding: const EdgeInsets.all(24),
+      return RepaintBoundary(
+        child: Container(
+          height: 420,
+          padding: const EdgeInsets.all(24),
+          decoration: BoxDecoration(
+            color: isDark ? AppColors.darkSurfaceCard : Colors.white,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+              color: isDark ? AppColors.darkBorder : AppColors.borderLight,
+              width: 1.0,
+            ),
+            boxShadow: isMobileOrAndroid
+                ? null
+                : [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.03),
+                      blurRadius: 10,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
+          ),
+          child: const Center(
+            child: Text(
+              'No recent activities yet.',
+              style: TextStyle(color: Colors.grey),
+            ),
+          ),
+        ),
+      );
+    }
+
+    return RepaintBoundary(
+      child: Container(
+        height: 420,
         decoration: BoxDecoration(
           color: isDark ? AppColors.darkSurfaceCard : Colors.white,
           borderRadius: BorderRadius.circular(12),
@@ -1085,47 +1124,24 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
             color: isDark ? AppColors.darkBorder : AppColors.borderLight,
             width: 1.0,
           ),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.03),
-              blurRadius: 10,
-              offset: const Offset(0, 4),
-            ),
-          ],
+          boxShadow: isMobileOrAndroid
+              ? null
+              : [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.03),
+                    blurRadius: 10,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
         ),
-        child: const Center(
-          child: Text(
-            'No recent activities yet.',
-            style: TextStyle(color: Colors.grey),
-          ),
-        ),
-      );
-    }
-
-    return Container(
-      decoration: BoxDecoration(
-        color: isDark ? AppColors.darkSurfaceCard : Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: isDark ? AppColors.darkBorder : AppColors.borderLight,
-          width: 1.0,
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.03),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: ListView.separated(
-        shrinkWrap: true,
-        physics: const NeverScrollableScrollPhysics(),
-        itemCount: activities.length,
-        separatorBuilder: (_, _) =>
-            Divider(height: 1, color: Theme.of(context).dividerColor),
-        itemBuilder: (context, index) {
-          final a = activities[index];
+        child: ListView.separated(
+          padding: EdgeInsets.zero,
+          physics: const ClampingScrollPhysics(),
+          itemCount: displayList.length,
+          separatorBuilder: (_, _) =>
+              Divider(height: 1, color: Theme.of(context).dividerColor),
+          itemBuilder: (context, index) {
+            final a = displayList[index];
 
           return Material(
             color: Colors.transparent,
@@ -1162,7 +1178,9 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      _formatFriendlyDescription(a.description),
+                      _formatFriendlyDescription(a.description).replaceAll(RegExp(r'[\r\n]+'), ' ').trim(),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                       style: TextStyle(
                         fontWeight: FontWeight.w500,
                         fontSize: 13,
@@ -1172,6 +1190,8 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                     const SizedBox(height: 4),
                     Text(
                       '${a.performedBy ?? a.username ?? 'System'} · ${_formatDate(a.createdAt)}',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                       style: TextStyle(
                         fontSize: 12,
                         color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
@@ -1189,14 +1209,51 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
           );
         },
       ),
+    ),
     );
   }
 
   Widget _buildUserHistoryList(List<UserHistoryEntry> history) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final isMobileOrAndroid = MediaQuery.of(context).size.width < 800 ||
+        defaultTargetPlatform == TargetPlatform.android;
+    final displayList = isMobileOrAndroid ? history.take(5).toList() : history;
+
     if (history.isEmpty) {
-      return Container(
-        padding: const EdgeInsets.all(24),
+      return RepaintBoundary(
+        child: Container(
+          height: 420,
+          padding: const EdgeInsets.all(24),
+          decoration: BoxDecoration(
+            color: isDark ? AppColors.darkSurfaceCard : Colors.white,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+              color: isDark ? AppColors.darkBorder : AppColors.borderLight,
+              width: 1.0,
+            ),
+            boxShadow: isMobileOrAndroid
+                ? null
+                : [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.03),
+                      blurRadius: 10,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
+          ),
+          child: const Center(
+            child: Text(
+              'No user history yet.',
+              style: TextStyle(color: Colors.grey),
+            ),
+          ),
+        ),
+      );
+    }
+
+    return RepaintBoundary(
+      child: Container(
+        height: 420,
         decoration: BoxDecoration(
           color: isDark ? AppColors.darkSurfaceCard : Colors.white,
           borderRadius: BorderRadius.circular(12),
@@ -1204,47 +1261,24 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
             color: isDark ? AppColors.darkBorder : AppColors.borderLight,
             width: 1.0,
           ),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.03),
-              blurRadius: 10,
-              offset: const Offset(0, 4),
-            ),
-          ],
+          boxShadow: isMobileOrAndroid
+              ? null
+              : [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.03),
+                    blurRadius: 10,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
         ),
-        child: const Center(
-          child: Text(
-            'No user history yet.',
-            style: TextStyle(color: Colors.grey),
-          ),
-        ),
-      );
-    }
-
-    return Container(
-      decoration: BoxDecoration(
-        color: isDark ? AppColors.darkSurfaceCard : Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: isDark ? AppColors.darkBorder : AppColors.borderLight,
-          width: 1.0,
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.03),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: ListView.separated(
-        shrinkWrap: true,
-        physics: const NeverScrollableScrollPhysics(),
-        itemCount: history.length,
-        separatorBuilder: (_, _) =>
-            Divider(height: 1, color: Theme.of(context).dividerColor),
-        itemBuilder: (context, index) {
-          final h = history[index];
+        child: ListView.separated(
+          padding: EdgeInsets.zero,
+          physics: const ClampingScrollPhysics(),
+          itemCount: displayList.length,
+          separatorBuilder: (_, _) =>
+              Divider(height: 1, color: Theme.of(context).dividerColor),
+          itemBuilder: (context, index) {
+            final h = displayList[index];
           final desc = _getUserHistoryDescription(h);
 
           return Material(
@@ -1293,7 +1327,9 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      desc,
+                      desc.replaceAll(RegExp(r'[\r\n]+'), ' ').trim(),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                       style: TextStyle(
                         fontWeight: FontWeight.w500,
                         fontSize: 13,
@@ -1303,6 +1339,8 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                     const SizedBox(height: 4),
                     Text(
                       '${h.performedByName ?? h.performedByUsername ?? 'System'} · ${_formatDate(h.createdAt)}',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                       style: TextStyle(
                         fontSize: 12,
                         color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
@@ -1320,6 +1358,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
           );
         },
       ),
+    ),
     );
   }
 

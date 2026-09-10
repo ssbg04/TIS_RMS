@@ -1,4 +1,5 @@
 import 'dart:math';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:fl_chart/fl_chart.dart';
@@ -287,24 +288,29 @@ class _ChartCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: isDark ? AppColors.darkSurfaceCard : Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: isDark ? AppColors.darkBorder : AppColors.borderLight,
-          width: 1.0,
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.04),
-            blurRadius: 12,
-            offset: const Offset(0, 4),
+    final isMobile = MediaQuery.of(context).size.width < 800 ||
+        defaultTargetPlatform == TargetPlatform.android;
+    return RepaintBoundary(
+      child: Container(
+        padding: EdgeInsets.all(isMobile ? 14 : 20),
+        decoration: BoxDecoration(
+          color: isDark ? AppColors.darkSurfaceCard : Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: isDark ? AppColors.darkBorder : AppColors.borderLight,
+            width: 1.0,
           ),
-        ],
-      ),
-      child: Column(
+          boxShadow: isMobile
+              ? null
+              : [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.04),
+                    blurRadius: 12,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
+        ),
+        child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
@@ -341,6 +347,7 @@ class _ChartCard extends StatelessWidget {
           child,
         ],
       ),
+    ),
     );
   }
 }
@@ -406,33 +413,24 @@ class _DonutTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final pctInt = (percent * 100).toInt();
+    final clampedPct = percent.clamp(0.0, 1.0);
     return Column(
       children: [
         SizedBox(
-          height: 80,
-          width: 80,
+          height: 76,
+          width: 76,
           child: Stack(
             alignment: Alignment.center,
             children: [
-              PieChart(
-                PieChartData(
-                  sectionsSpace: 0,
-                  centerSpaceRadius: 28,
-                  startDegreeOffset: -90,
-                  sections: [
-                    PieChartSectionData(
-                      value: digitized.toDouble(),
-                      color: color,
-                      radius: 12,
-                      showTitle: false,
-                    ),
-                    PieChartSectionData(
-                      value: max(0, total - digitized).toDouble(),
-                      color: color.withValues(alpha: 0.12),
-                      radius: 12,
-                      showTitle: false,
-                    ),
-                  ],
+              SizedBox(
+                height: 64,
+                width: 64,
+                child: CircularProgressIndicator(
+                  value: clampedPct,
+                  strokeWidth: 7.5,
+                  strokeCap: StrokeCap.round,
+                  backgroundColor: color.withValues(alpha: 0.12),
+                  valueColor: AlwaysStoppedAnimation<Color>(color),
                 ),
               ),
               Text(
@@ -765,6 +763,10 @@ class _DocTypePieCardState extends State<_DocTypePieCard>
     if (names.isNotEmpty) {
       _selectedDocType = names.first;
     }
+    // Disable continuous 60fps auto-rotation animation ticker on mobile/Android to prevent jank & save battery
+    final isMobile = defaultTargetPlatform == TargetPlatform.android;
+    _isAutoRotating = !isMobile;
+
     _countdownController = AnimationController(
       vsync: this,
       duration: const Duration(seconds: 5),
@@ -1054,18 +1056,26 @@ class _DocTypePieCardState extends State<_DocTypePieCard>
                       : 'Auto-rotation paused (Click to resume)',
                   child: InkWell(
                     onTap: _toggleAutoRotation,
-                    borderRadius: BorderRadius.circular(16),
+                    borderRadius: BorderRadius.circular(8),
                     child: Container(
                       width: 28,
                       height: 28,
                       alignment: Alignment.center,
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(8),
+                        color: isDark ? AppColors.darkSurface2 : Colors.grey.shade100,
+                        border: Border.all(
+                          color: isDark ? AppColors.darkBorder : AppColors.borderLight,
+                          width: 1.0,
+                        ),
+                      ),
                       child: Stack(
                         alignment: Alignment.center,
                         children: [
                           if (_isAutoRotating)
                             SizedBox(
-                              width: 24,
-                              height: 24,
+                              width: 22,
+                              height: 22,
                               child: CircularProgressIndicator(
                                 value: 1.0 - _countdownController.value,
                                 strokeWidth: 2.2,
@@ -1078,7 +1088,7 @@ class _DocTypePieCardState extends State<_DocTypePieCard>
                             size: 14,
                             color: _isAutoRotating
                                 ? AppColors.primaryGreen
-                                : Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5),
+                                : Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7),
                           ),
                         ],
                       ),
@@ -1308,26 +1318,29 @@ class _DocTypePieCardState extends State<_DocTypePieCard>
           }),
         );
 
-        return Container(
-          padding: const EdgeInsets.all(20),
-          decoration: BoxDecoration(
-            color: isDark ? AppColors.darkSurfaceCard : Colors.white,
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(
-              color: isDark ? AppColors.darkBorder : AppColors.borderLight,
-              width: 1.0,
-            ),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.04),
-                blurRadius: 12,
-                offset: const Offset(0, 4),
+        return RepaintBoundary(
+          child: Container(
+            padding: EdgeInsets.all(isMobile ? 14 : 20),
+            decoration: BoxDecoration(
+              color: isDark ? AppColors.darkSurfaceCard : Colors.white,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(
+                color: isDark ? AppColors.darkBorder : AppColors.borderLight,
+                width: 1.0,
               ),
-            ],
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
+              boxShadow: isMobile
+                  ? null
+                  : [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.04),
+                        blurRadius: 12,
+                        offset: const Offset(0, 4),
+                      ),
+                    ],
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
               // Header
               if (isMobile) ...[
                 Row(
@@ -1422,6 +1435,7 @@ class _DocTypePieCardState extends State<_DocTypePieCard>
                 ),
             ],
           ),
+        ),
         );
   }
 }

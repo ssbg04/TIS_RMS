@@ -4,7 +4,6 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../providers/notification_provider.dart';
-import '../../../providers/auth_provider.dart';
 import '../../../../domain/entities/notification_model.dart';
 import '../../../../core/utils/date_utils.dart' as pht;
 

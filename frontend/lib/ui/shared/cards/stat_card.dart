@@ -26,11 +26,11 @@ class StatCard extends StatelessWidget {
     return LayoutBuilder(
       builder: (context, constraints) {
         final isSmall = constraints.maxWidth < 220;
-        final iconSize = isSmall ? 22.0 : 26.0;
-        final titleFontSize = isSmall ? 11.5 : 13.0;
-        final valueFontSize = isSmall ? 22.0 : 26.0;
-        final subtitleFontSize = isSmall ? 11.0 : 12.5;
-        final padding = isSmall ? 10.0 : 14.0;
+        final iconSize = isSmall ? 20.0 : 26.0;
+        final titleFontSize = isSmall ? 11.0 : 13.0;
+        final valueFontSize = isSmall ? 20.0 : 26.0;
+        final subtitleFontSize = isSmall ? 10.5 : 12.5;
+        final padding = isSmall ? 8.0 : 14.0;
 
         final isDark = Theme.of(context).brightness == Brightness.dark;
 
@@ -42,13 +42,15 @@ class StatCard extends StatelessWidget {
               color: isDark ? AppColors.darkBorder : AppColors.borderLight,
               width: 1.0,
             ),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.03),
-                blurRadius: 8,
-                offset: const Offset(0, 3),
-              ),
-            ],
+            boxShadow: isSmall
+                ? null
+                : [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.03),
+                      blurRadius: 8,
+                      offset: const Offset(0, 3),
+                    ),
+                  ],
           ),
           child: Material(
             color: Colors.transparent,
@@ -148,7 +150,7 @@ class StatCard extends StatelessWidget {
                         children: [
                           // Icon Container
                           Container(
-                            padding: const EdgeInsets.all(8),
+                            padding: EdgeInsets.all(isSmall ? 6 : 8),
                             decoration: BoxDecoration(
                               borderRadius: BorderRadius.circular(8),
                             ),
@@ -158,7 +160,7 @@ class StatCard extends StatelessWidget {
                               color: iconColor ?? const Color(0xFF1C8248),
                             ),
                           ),
-                          const SizedBox(width: 12),
+                          SizedBox(width: isSmall ? 8 : 12),
                           // Text Details
                           Expanded(
                             child: Column(

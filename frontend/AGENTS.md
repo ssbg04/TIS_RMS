@@ -479,6 +479,25 @@ Files backup/restore - mirror mode or zip -->
 - add padding reset password modal -->
  
 
+# STUDENT SCREEN
+- add/edit student birthdate use date picker 
+
+# TEACHERS & ACADEMIC SETUP
+- years tab -> add/edit -> use toggle acad year not dropdown 
+- acad year success dialog title overflow
+
+# DOCUMENT SCREEN
+- upload dialog success
+- page/limit upload count in documents 
+
+# ARCHIVE SCREEN
+- archive purge remove
+
+# BACKEND SERVICES
+- remind all teachers (email)
+- notif fix
+- email reset password
+
 --- 
 
 # DONT DO
