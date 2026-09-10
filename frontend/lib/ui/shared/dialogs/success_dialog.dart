@@ -37,7 +37,13 @@ Future<void> showSuccessDialog(
           children: [
             const Icon(Icons.check_circle, color: AppColors.success, size: 28),
             const SizedBox(width: 8),
-            Text(title),
+            Expanded(
+              child: Text(
+                title,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
           ],
         ),
         content: Column(

@@ -487,21 +487,20 @@ Files backup/restore - mirror mode or zip -->
 - acad year success dialog title overflow
 
 # DOCUMENT SCREEN
-- upload dialog success
-- page/limit upload count in documents 
+- upload dialog success title fix overflow 
 
 # ARCHIVE SCREEN
-- archive purge remove
+- archive purge remove in frontend and backend, prevent removal of student information and documents when deleting archives files
 
 # BACKEND SERVICES
-- remind all teachers (email)
-- notif fix
-- email reset password
+- remind all teachers (email) -> send list of students need attentions
+- notif fix not pushing notif on android
+- email reset password cant send an email
 
 --- 
 
 # DONT DO
-
+- documents screen -> add 
 
 - teacher no assigned section theme color
 - bug in bulk add student enrollment

@@ -161,22 +161,6 @@ exports.restoreArchive = (req, res) => {
     }
 };
 
-exports.purgeArchive = (req, res) => {
-    const { id } = req.params;
-
-    const existing = db.prepare('SELECT id FROM students WHERE id = ?').get(id);
-    if (!existing) return res.status(404).json({ message: 'Student not found.' });
-
-    try {
-        // Due to CASCADE DELETE on constraints in schema.js, deleting the student will delete their documents, grades, and enrollments
-        db.prepare('DELETE FROM students WHERE id = ?').run(id);
-        res.json({ message: 'Record permanently purged successfully' });
-    } catch (error) {
-        console.error('purgeArchive error:', error);
-        res.status(500).json({ message: 'Failed to purge record', error: error.message });
-    }
-};
-
 // ============================================================
 // GET /api/archives/documents — paginated archived docs
 // Includes:

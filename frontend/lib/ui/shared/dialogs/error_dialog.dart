@@ -37,7 +37,13 @@ void showErrorDialog(
               size: 28,
             ),
             const SizedBox(width: 8),
-            Text(title),
+            Expanded(
+              child: Text(
+                title,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
           ],
         ),
         content: Text(message),

@@ -116,6 +116,18 @@ class UserRepository {
     }
   }
 
+  Future<Map<String, dynamic>> remindTeachers() async {
+    try {
+      final options = await _getAuthOptions();
+      final res = await _dio.post('/users/remind-teachers', options: options);
+      return (res.data as Map).cast<String, dynamic>();
+    } on DioException catch (e) {
+      throw Exception(
+        e.response?.data?['message'] ?? 'Failed to send teacher reminders.',
+      );
+    }
+  }
+
   Future<void> deleteUser(
     int id, {
     required String reason,

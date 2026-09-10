@@ -177,7 +177,7 @@ const sendNotification = async ({ userId = null, title, body, category = 'system
                           WHERE e2.student_id = d.student_id
                           ORDER BY e2.grade_level DESC, ay.year_range DESC, e2.id DESC LIMIT 1
                       )
-                `).all(entityId, entityId).map(r => r.token);
+                `).all(entityId).map(r => r.token);
                 tokens.push(...teacherTokens);
             } else if (entityType === 'section' && entityId) {
                 const teacherTokens = db.prepare(`

@@ -6,6 +6,7 @@ const { authenticateToken, authorizeRoles } = require('../middleware/auth');
 // All routes require authentication + role guard
 router.get('/',                  authenticateToken, authorizeRoles('admin'), userController.getUsers);
 router.post('/',                 authenticateToken, authorizeRoles('admin'), userController.createUser);
+router.post('/remind-teachers',  authenticateToken, authorizeRoles('admin'), userController.remindTeachers);
 router.put('/:id',               authenticateToken, authorizeRoles('admin'), userController.updateUser);
 router.put('/:id/reset-password',authenticateToken, authorizeRoles('admin'), userController.resetPassword);
 router.put('/:id/status',        authenticateToken, authorizeRoles('admin'), userController.toggleUserStatus);

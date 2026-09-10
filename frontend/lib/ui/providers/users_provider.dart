@@ -107,6 +107,15 @@ class UsersNotifier extends AsyncNotifier<List<SystemUser>> {
     }
   }
 
+  Future<Map<String, dynamic>> remindTeachers() async {
+    try {
+      final res = await ref.read(userRepositoryProvider).remindTeachers();
+      return res;
+    } catch (e) {
+      rethrow;
+    }
+  }
+
   Future<bool> deleteUser(
     int id, {
     required String reason,

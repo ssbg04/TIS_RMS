@@ -21,27 +21,81 @@ function getLogoPath() {
 
 const LOGO_PATH = getLogoPath();
 
-// ── Transporter ────────────────────────────────────────────────────────────────
-let transporter = null;
+// ── Transporter with Pooling & Fallback ───────────────────────────────────────
+let primaryTransporter = null;
+let fallbackTransporter = null;
 
-const getTransporter = () => {
+const createTransporter = (port, secure) => {
     const user = process.env.SMTP_USER ? process.env.SMTP_USER.trim() : null;
     const rawPass = process.env.SMTP_PASS ? process.env.SMTP_PASS.trim() : null;
     const pass = rawPass ? rawPass.replace(/\s+/g, '') : null;
 
     if (!user || !pass) {
-        console.log('[EmailService] SMTP_USER or SMTP_PASS not set. Emails will be logged to console in dev mode.');
         return null;
     }
 
-    transporter = nodemailer.createTransport({
-        host: 'smtp.gmail.com',
-        port: 465,
-        secure: true,
+    return nodemailer.createTransport({
+        host: process.env.SMTP_HOST || 'smtp.gmail.com',
+        port,
+        secure,
+        pool: true,
+        maxConnections: 3,
+        connectionTimeout: 10000,
+        greetingTimeout: 10000,
+        socketTimeout: 15000,
         auth: { user, pass },
     });
+};
 
-    return transporter;
+const getPrimaryTransporter = () => {
+    if (!primaryTransporter) {
+        const port = parseInt(process.env.SMTP_PORT || '465', 10);
+        primaryTransporter = createTransporter(port, port === 465);
+    }
+    return primaryTransporter;
+};
+
+const getFallbackTransporter = () => {
+    if (!fallbackTransporter) {
+        fallbackTransporter = createTransporter(587, false);
+    }
+    return fallbackTransporter;
+};
+
+const isConfigured = () => {
+    const user = process.env.SMTP_USER ? process.env.SMTP_USER.trim() : null;
+    const rawPass = process.env.SMTP_PASS ? process.env.SMTP_PASS.trim() : null;
+    return !!(user && rawPass);
+};
+
+const sendMailWithFallback = async (mailOptions) => {
+    if (!isConfigured()) {
+        console.log(`\n======================================================`);
+        console.log(`[EmailService DEV] Simulated email to: ${mailOptions.to}`);
+        console.log(`Subject: ${mailOptions.subject}`);
+        console.log(`======================================================\n`);
+        return { success: true, mode: 'dev-console' };
+    }
+
+    const primary = getPrimaryTransporter();
+    try {
+        const info = await primary.sendMail(mailOptions);
+        console.log(`[EmailService] Mail sent to ${mailOptions.to} (${info.messageId})`);
+        return { success: true, messageId: info.messageId };
+    } catch (primaryErr) {
+        console.warn(`[EmailService] Primary transport failed (${primaryErr.message}). Attempting port 587 fallback...`);
+        try {
+            const fallback = getFallbackTransporter();
+            if (fallback) {
+                const info = await fallback.sendMail(mailOptions);
+                console.log(`[EmailService] Fallback sent to ${mailOptions.to} (${info.messageId})`);
+                return { success: true, messageId: info.messageId, fallbackUsed: true };
+            }
+        } catch (fallbackErr) {
+            console.error('[EmailService] Fallback transport also failed:', fallbackErr.message);
+        }
+        throw primaryErr;
+    }
 };
 
 // ── Shared layout helpers ──────────────────────────────────────────────────────
@@ -100,7 +154,6 @@ function emailShell(bodyContent) {
  * Sends a 6-digit password reset OTP to the user's email.
  */
 const sendPasswordResetOtp = async ({ to, username, otp }) => {
-    const mailTransporter = getTransporter();
     const fromAddress = process.env.SMTP_FROM
         || `"TIS Record Management System" <${process.env.SMTP_USER || 'no-reply@talisayis.edu.ph'}>`;
 
@@ -142,36 +195,24 @@ const sendPasswordResetOtp = async ({ to, username, otp }) => {
 
     const htmlContent = emailShell(body);
 
-    if (!mailTransporter) {
-        console.log(`\n======================================================`);
-        console.log(`[EmailService DEV] PASSWORD RESET OTP FOR @${username}`);
-        console.log(`To: ${to}`);
-        console.log(`OTP Code: ${otp}`);
-        console.log(`Expires in: 10 minutes`);
-        console.log(`======================================================\n`);
-        return { success: true, mode: 'dev-console' };
+    const mailOptions = {
+        from: fromAddress,
+        to,
+        subject: `[TIS RMS] Your password reset code: ${otp}`,
+        html: htmlContent,
+        text: `Hello @${username},\n\nYour TIS RMS password reset code is: ${otp}\n\nThis code expires in 10 minutes.\n\nIf you did not request this, contact your administrator.`,
+    };
+
+    if (LOGO_PATH) {
+        mailOptions.attachments = [{
+            filename: 'logo.png',
+            path: LOGO_PATH,
+            cid: 'school-logo'
+        }];
     }
 
     try {
-        const mailOptions = {
-            from: fromAddress,
-            to,
-            subject: `[TIS RMS] Your password reset code: ${otp}`,
-            html: htmlContent,
-            text: `Hello @${username},\n\nYour TIS RMS password reset code is: ${otp}\n\nThis code expires in 10 minutes.\n\nIf you did not request this, contact your administrator.`,
-        };
-        
-        if (LOGO_PATH) {
-            mailOptions.attachments = [{
-                filename: 'logo.png',
-                path: LOGO_PATH,
-                cid: 'school-logo' // same cid value as in the html img src
-            }];
-        }
-
-        const info = await mailTransporter.sendMail(mailOptions);
-        console.log(`[EmailService] OTP sent to ${to} (${info.messageId})`);
-        return { success: true, messageId: info.messageId };
+        return await sendMailWithFallback(mailOptions);
     } catch (err) {
         console.error(`[EmailService] Failed to send OTP to ${to}:`, err.message);
         throw new Error(`Failed to send email OTP: ${err.message}`);
@@ -184,7 +225,6 @@ const sendPasswordResetOtp = async ({ to, username, otp }) => {
  * Sends a password reset link to the user's email.
  */
 const sendPasswordResetLink = async ({ to, username, resetLink, expiresMinutes = 15 }) => {
-    const mailTransporter = getTransporter();
     const fromAddress = process.env.SMTP_FROM
         || `"TIS Record Management System" <${process.env.SMTP_USER || 'no-reply@talisayis.edu.ph'}>`;
 
@@ -231,43 +271,124 @@ const sendPasswordResetLink = async ({ to, username, resetLink, expiresMinutes =
 
     const htmlContent = emailShell(body);
 
-    if (!mailTransporter) {
-        console.log(`\n======================================================`);
-        console.log(`[EmailService DEV] PASSWORD RESET LINK FOR @${username}`);
-        console.log(`To: ${to}`);
-        console.log(`Reset Link: ${resetLink}`);
-        console.log(`Expires in: ${expiresMinutes} minutes`);
-        console.log(`======================================================\n`);
-        return { success: true, mode: 'dev-console' };
+    const mailOptions = {
+        from: fromAddress,
+        to,
+        subject: `[TIS RMS] Password reset link for @${username}`,
+        html: htmlContent,
+        text: `Hello @${username},\n\nAn administrator requested a password reset for your TIS RMS account.\n\nReset link:\n${resetLink}\n\nThis link expires in ${expiresMinutes} minutes.\n\nIf you did not request this, contact your administrator.`,
+    };
+
+    if (LOGO_PATH) {
+        mailOptions.attachments = [{
+            filename: 'logo.png',
+            path: LOGO_PATH,
+            cid: 'school-logo'
+        }];
     }
 
     try {
-        const mailOptions = {
-            from: fromAddress,
-            to,
-            subject: `[TIS RMS] Password reset link for @${username}`,
-            html: htmlContent,
-            text: `Hello @${username},\n\nAn administrator requested a password reset for your TIS RMS account.\n\nReset link:\n${resetLink}\n\nThis link expires in ${expiresMinutes} minutes.\n\nIf you did not request this, contact your administrator.`,
-        };
-
-        if (LOGO_PATH) {
-            mailOptions.attachments = [{
-                filename: 'logo.png',
-                path: LOGO_PATH,
-                cid: 'school-logo'
-            }];
-        }
-
-        const info = await mailTransporter.sendMail(mailOptions);
-        console.log(`[EmailService] Reset link sent to ${to} (${info.messageId})`);
-        return { success: true, messageId: info.messageId };
+        return await sendMailWithFallback(mailOptions);
     } catch (err) {
         console.error(`[EmailService] Failed to send reset link to ${to}:`, err.message);
         throw new Error(`Failed to send email link: ${err.message}`);
     }
 };
 
+// ── Teacher Attention Reminder Email ──────────────────────────────────────────
+
+/**
+ * Sends a list of students needing document attention to their advisory teacher.
+ */
+const sendTeacherAttentionReminder = async ({ to, teacherName, sectionsWithStudents }) => {
+    const fromAddress = process.env.SMTP_FROM
+        || `"TIS Record Management System" <${process.env.SMTP_USER || 'no-reply@talisayis.edu.ph'}>`;
+
+    let totalStudents = 0;
+    let sectionsHtml = '';
+
+    for (const sec of sectionsWithStudents) {
+        totalStudents += sec.students.length;
+        const rows = sec.students.map(s => `
+          <tr style="border-bottom: 1px solid #e2e8f0;">
+            <td style="padding: 10px 12px; font-weight: 600; color: #1e293b; font-size: 13px;">
+              ${s.name}
+            </td>
+            <td style="padding: 10px 12px; color: #475569; font-size: 12px; font-family: 'Courier New', Courier, monospace;">
+              ${s.lrn || 'N/A'}
+            </td>
+            <td style="padding: 10px 12px; color: #b91c1c; font-size: 12px; font-weight: 500;">
+              ${s.missingDocs.join(', ')}
+            </td>
+          </tr>
+        `).join('');
+
+        sectionsHtml += `
+          <div style="margin-bottom: 24px;">
+            <div style="background: #f1f5f9; padding: 8px 12px; border-radius: 6px; font-weight: 700; color: #0f172a; font-size: 13px; margin-bottom: 8px;">
+              &#128194; Grade ${sec.gradeLevel} - ${sec.sectionName}
+              <span style="font-size: 11px; font-weight: normal; color: #64748b; margin-left: 8px;">(${sec.students.length} student${sec.students.length > 1 ? 's' : ''})</span>
+            </div>
+            <table width="100%" cellpadding="0" cellspacing="0" style="border-collapse: collapse; font-size: 12px; width: 100%;">
+              <thead>
+                <tr style="background: #f8fafc; border-bottom: 2px solid #cbd5e1; text-align: left; color: #475569;">
+                  <th style="padding: 8px 12px; font-size: 11px; text-transform: uppercase;">Student Name</th>
+                  <th style="padding: 8px 12px; font-size: 11px; text-transform: uppercase;">LRN</th>
+                  <th style="padding: 8px 12px; font-size: 11px; text-transform: uppercase;">Missing Mandatory Requirement(s)</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${rows}
+              </tbody>
+            </table>
+          </div>
+        `;
+    }
+
+    const body = `
+      <p style="margin:0 0 6px;font-size:16px;font-weight:700;color:#0f172a;">Hello Teacher <span style="color:#15803d;">${teacherName}</span>,</p>
+      <p style="margin:0 0 20px;font-size:14px;color:#475569;line-height:1.6;">
+        This is an automated advisory reminder from the <strong>TIS Record Management System</strong>.
+        The following <strong>${totalStudents} student${totalStudents > 1 ? 's' : ''}</strong> in your advised section${sectionsWithStudents.length > 1 ? 's' : ''} currently have missing mandatory document requirements (&ldquo;Needs Attention&rdquo;):
+      </p>
+
+      ${sectionsHtml}
+
+      <div style="background: #fef2f2; border: 1px solid #fecaca; border-radius: 8px; padding: 12px 16px; margin: 20px 0;">
+        <p style="margin: 0; font-size: 12px; color: #991b1b; line-height: 1.5;">
+          <strong>Action Required:</strong> Please coordinate with the concerned students or parents to submit their required documents. You may view and track their document status directly in the TIS RMS advisory portal.
+        </p>
+      </div>
+    `;
+
+    const htmlContent = emailShell(body);
+
+    const mailOptions = {
+        from: fromAddress,
+        to,
+        subject: `[TIS RMS] Advisory Reminder: ${totalStudents} Student${totalStudents > 1 ? 's' : ''} Need Document Attention`,
+        html: htmlContent,
+        text: `Hello ${teacherName},\n\nYou have ${totalStudents} students with missing mandatory documents in your advised sections. Please log into TIS RMS to review your advisory classes.\n\nThank you.`,
+    };
+
+    if (LOGO_PATH) {
+        mailOptions.attachments = [{
+            filename: 'logo.png',
+            path: LOGO_PATH,
+            cid: 'school-logo'
+        }];
+    }
+
+    try {
+        return await sendMailWithFallback(mailOptions);
+    } catch (err) {
+        console.error(`[EmailService] Failed to send attention reminder to ${to}:`, err.message);
+        throw new Error(`Failed to send reminder email: ${err.message}`);
+    }
+};
+
 module.exports = {
     sendPasswordResetOtp,
     sendPasswordResetLink,
+    sendTeacherAttentionReminder,
 };

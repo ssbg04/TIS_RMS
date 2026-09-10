@@ -115,21 +115,6 @@ class ArchiveMutationNotifier extends AsyncNotifier<void> {
       rethrow;
     }
   }
-
-  Future<void> purgeArchive(int id) async {
-    state = const AsyncLoading();
-    try {
-      final repo = ref.read(archiveRepositoryProvider);
-      await repo.purgeArchive(id);
-      state = const AsyncData(null);
-      ref.invalidate(archivePageProvider);
-      ref.invalidate(archiveDocumentPageProvider);
-      ref.invalidate(archiveStudentFoldersProvider);
-    } catch (e, st) {
-      state = AsyncError(e, st);
-      rethrow;
-    }
-  }
 }
 
 // ============================================================

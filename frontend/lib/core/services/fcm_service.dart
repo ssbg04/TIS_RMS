@@ -3,15 +3,38 @@ import 'package:dio/dio.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart' show kIsWeb, debugPrint;
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../network/api_constants.dart';
 import 'notification_service.dart';
 
 /// Top-level background message handler — required by firebase_messaging.
-/// FCM automatically shows the notification when the app is killed/backgrounded
-/// if the message has a `notification` payload. Nothing extra needed here.
+/// When app is killed/backgrounded, presents the local notification banner.
 @pragma('vm:entry-point')
-Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {}
+Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
+  try {
+    await Firebase.initializeApp();
+    final title = message.notification?.title ??
+        message.data['title']?.toString() ??
+        'TIS RMS';
+    final body = message.notification?.body ??
+        message.data['body']?.toString() ??
+        '';
+    int? notifId;
+    if (message.data['id'] != null && message.data['id'].toString().isNotEmpty) {
+      notifId = int.tryParse(message.data['id'].toString());
+    }
+    if (body.isNotEmpty) {
+      await NotificationService().showNotification(
+        id: notifId,
+        title: title,
+        body: body,
+      );
+    }
+  } catch (e) {
+    debugPrint('[FcmBackground] Handler error: $e');
+  }
+}
 
 class FcmService {
   static bool get _isMobile => !kIsWeb && (Platform.isAndroid || Platform.isIOS);
@@ -65,8 +88,11 @@ class FcmService {
       final clean = rawUrl.replaceAll(RegExp(r'/+$'), '');
       final baseUrl = clean.endsWith('/api') ? clean : '$clean/api';
 
-      final jwtToken = prefs.getString('jwt_token') ?? '';
-      if (jwtToken.isEmpty) return;
+      String? jwtToken = prefs.getString('jwt_token');
+      if (jwtToken == null || jwtToken.isEmpty) {
+        jwtToken = await const FlutterSecureStorage().read(key: 'jwt_token');
+      }
+      if (jwtToken == null || jwtToken.isEmpty) return;
 
       final dio = Dio(BaseOptions(
         baseUrl: baseUrl,
@@ -92,8 +118,11 @@ class FcmService {
       final clean = rawUrl.replaceAll(RegExp(r'/+$'), '');
       final baseUrl = clean.endsWith('/api') ? clean : '$clean/api';
 
-      final jwtToken = prefs.getString('jwt_token') ?? '';
-      if (jwtToken.isNotEmpty) {
+      String? jwtToken = prefs.getString('jwt_token');
+      if (jwtToken == null || jwtToken.isEmpty) {
+        jwtToken = await const FlutterSecureStorage().read(key: 'jwt_token');
+      }
+      if (jwtToken != null && jwtToken.isNotEmpty) {
         final dio = Dio(BaseOptions(
           baseUrl: baseUrl,
           connectTimeout: const Duration(seconds: 5),

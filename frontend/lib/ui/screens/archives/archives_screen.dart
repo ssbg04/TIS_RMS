@@ -18,7 +18,6 @@ import '../../providers/document_provider.dart';
 import '../../providers/student_provider.dart';
 import '../../shared/dialogs/success_dialog.dart';
 import '../../shared/dialogs/error_dialog.dart';
-import '../../shared/inputs/custom_text_field.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/navigation_provider.dart';
 import '../../providers/conversion_provider.dart';
@@ -307,156 +306,6 @@ class _ArchivesScreenState extends ConsumerState<ArchivesScreen>
       showErrorDialog(
         context,
         'Restore Failed',
-        e.toString().replaceFirst('Exception: ', ''),
-      );
-    }
-  }
-
-  // ── Purge archived student (admin) ──────────────────────────────
-  void _handlePurgeStudent(int studentId, String studentName) async {
-    if (!_isAdmin) return;
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Row(
-          children: [
-            Icon(Icons.delete_forever, color: AppColors.error),
-            SizedBox(width: 8),
-            Text('Permanent Purge', style: TextStyle(color: AppColors.error)),
-          ],
-        ),
-        content: Text(
-          'Permanently delete $studentName and ALL their documents? This CANNOT be undone.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('CANCEL'),
-          ),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.error,
-              foregroundColor: Colors.white,
-            ),
-            onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('PROCEED'),
-          ),
-        ],
-      ),
-    );
-    if (confirmed != true) return;
-
-    // ── Password Confirmation ──
-    if (!mounted) return;
-    final passwordController = TextEditingController();
-    bool obscurePassword = true;
-    String? errorMessage;
-
-    final passwordConfirmed = await showDialog<bool>(
-      context: context,
-      barrierDismissible: false,
-      builder: (ctx) => StatefulBuilder(
-        builder: (ctx, setState) => AlertDialog(
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
-          ),
-          title: const Row(
-            children: [
-              Icon(Icons.security, color: AppColors.error),
-              SizedBox(width: 8),
-              Text(
-                'Security Verification',
-                style: TextStyle(color: AppColors.error),
-              ),
-            ],
-          ),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text(
-                'Please enter your admin password to confirm the permanent purge:',
-              ),
-              const SizedBox(height: 16),
-              CustomTextField(
-                hintText: 'Admin Password',
-                prefixIcon: Icons.lock_outline,
-                controller: passwordController,
-                isPassword: true,
-                obscureText: obscurePassword,
-                onToggleVisibility: () =>
-                    setState(() => obscurePassword = !obscurePassword),
-              ),
-              if (errorMessage != null) ...[
-                const SizedBox(height: 8),
-                Text(
-                  errorMessage!,
-                  style: const TextStyle(color: AppColors.error, fontSize: 13),
-                ),
-              ],
-            ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(ctx, false),
-              child: const Text('CANCEL'),
-            ),
-            ElevatedButton(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.error,
-                foregroundColor: Colors.white,
-              ),
-              onPressed: () async {
-                final pwd = passwordController.text;
-                if (pwd.isEmpty) {
-                  setState(() => errorMessage = 'Password is required');
-                  return;
-                }
-                try {
-                  final isVerified = await ref
-                      .read(authProvider.notifier)
-                      .verifyPassword(pwd);
-                  if (ctx.mounted) {
-                    if (isVerified) {
-                      Navigator.pop(ctx, true);
-                    } else {
-                      setState(() => errorMessage = 'Incorrect password');
-                    }
-                  }
-                } catch (e) {
-                  if (ctx.mounted) {
-                    setState(() => errorMessage = 'Error verifying password');
-                  }
-                }
-              },
-              child: const Text('CONFIRM PURGE'),
-            ),
-          ],
-        ),
-      ),
-    );
-
-    if (passwordConfirmed != true) return;
-
-    try {
-      await ref.read(archiveMutationProvider.notifier).purgeArchive(studentId);
-      if (!mounted) return;
-      showSuccessDialog(
-        context,
-        message: '$studentName has been permanently purged.',
-      );
-      if (_openedFolderStudentId == studentId) {
-        setState(() {
-          _openedFolderStudentId = null;
-          _openedFolderName = null;
-        });
-      }
-    } catch (e) {
-      if (!mounted) return;
-      showErrorDialog(
-        context,
-        'Purge Failed',
         e.toString().replaceFirst('Exception: ', ''),
       );
     }
@@ -2257,16 +2106,6 @@ class _ArchivesScreenState extends ConsumerState<ArchivesScreen>
               ],
             ),
           ),
-          const PopupMenuItem(
-            value: 'purge',
-            child: Row(
-              children: [
-                Icon(Icons.delete_forever, size: 18, color: AppColors.error),
-                SizedBox(width: 12),
-                Text('Permanently Purge', style: TextStyle(fontSize: 14, color: AppColors.error)),
-              ],
-            ),
-          ),
         ],
       ],
     );
@@ -2289,8 +2128,6 @@ class _ArchivesScreenState extends ConsumerState<ArchivesScreen>
       );
     } else if (value == 'restore') {
       _handleRestoreStudent(folder.studentId!, studentName);
-    } else if (value == 'purge') {
-      _handlePurgeStudent(folder.studentId!, studentName);
     }
   }
 
@@ -2309,8 +2146,6 @@ class _ArchivesScreenState extends ConsumerState<ArchivesScreen>
           );
         } else if (val == 'restore') {
           _handleRestoreStudent(studentId, studentName);
-        } else if (val == 'purge') {
-          _handlePurgeStudent(studentId, studentName);
         }
       },
       itemBuilder: (ctx) => [
@@ -2337,19 +2172,6 @@ class _ArchivesScreenState extends ConsumerState<ArchivesScreen>
               Text(
                 'Restore to Active',
                 style: TextStyle(color: AppColors.primaryGreen),
-              ),
-            ],
-          ),
-        ),
-        const PopupMenuItem(
-          value: 'purge',
-          child: Row(
-            children: [
-              Icon(Icons.delete_forever, color: AppColors.error, size: 18),
-              SizedBox(width: 8),
-              Text(
-                'Permanently Purge',
-                style: TextStyle(color: AppColors.error),
               ),
             ],
           ),

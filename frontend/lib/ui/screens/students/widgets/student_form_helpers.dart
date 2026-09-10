@@ -391,6 +391,25 @@ class _DobPickerState extends State<DobPicker> {
     widget.onChanged(parsed);
   }
 
+  Future<void> _pickDate() async {
+    final now = DateTime.now();
+    final defaultYear = now.year - 14;
+    final initial = _lastParsedDate ?? DateTime(defaultYear, 1, 1);
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: initial.isAfter(now) ? now : initial,
+      firstDate: DateTime(1900),
+      lastDate: now,
+      helpText: 'SELECT BIRTHDATE',
+    );
+    if (picked != null) {
+      final formatted = _fmt(picked);
+      _ctrl.text = formatted;
+      _lastParsedDate = picked;
+      widget.onChanged(picked);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return TextFormField(
@@ -401,19 +420,37 @@ class _DobPickerState extends State<DobPicker> {
       decoration: InputDecoration(
         labelText: 'DATE OF BIRTH (Optional)',
         hintText: 'MM-DD-YYYY',
-        prefixIcon: const Icon(
-          Icons.cake_outlined,
-          color: AppColors.textSecondary,
+        prefixIcon: IconButton(
+          icon: const Icon(
+            Icons.cake_outlined,
+            color: AppColors.textSecondary,
+          ),
+          tooltip: 'Pick date from calendar',
+          onPressed: _pickDate,
         ),
-        suffixIcon: _ctrl.text.isNotEmpty
-            ? IconButton(
+        suffixIcon: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (_ctrl.text.isNotEmpty)
+              IconButton(
                 icon: const Icon(Icons.clear, size: 18),
+                tooltip: 'Clear',
                 onPressed: () {
                   _ctrl.clear();
                   widget.onChanged(null);
                 },
-              )
-            : null,
+              ),
+            IconButton(
+              icon: const Icon(
+                Icons.calendar_month_rounded,
+                size: 20,
+                color: AppColors.primaryGreen,
+              ),
+              tooltip: 'Choose date',
+              onPressed: _pickDate,
+            ),
+          ],
+        ),
       ),
     );
   }

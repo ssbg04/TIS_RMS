@@ -90,4 +90,11 @@ app.listen(PORT, '0.0.0.0', () => {
     } catch (err) {
         console.error('Failed to start password reset link monitor:', err.message);
     }
+
+    // Initialize Firebase Cloud Messaging for Push Notifications
+    try {
+        require('./src/services/fcmService').init();
+    } catch (err) {
+        console.error('Failed to initialize FCM service:', err.message);
+    }
 });

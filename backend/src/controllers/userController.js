@@ -3,7 +3,7 @@ const bcrypt = require('bcrypt');
 const crypto = require('crypto');
 const os = require('os');
 const { createNotification } = require('./notificationController');
-const { sendPasswordResetLink } = require('../services/emailService');
+const { sendPasswordResetLink, sendTeacherAttentionReminder } = require('../services/emailService');
 const { getDetectedTunnelUrl } = require('../services/tunnelService');
 
 // ── Base URL Helper (Auto-detects Tunnel vs LAN IP vs Domain) ────────────────
@@ -489,5 +489,156 @@ exports.getUserHistory = (req, res) => {
         });
     } catch (error) {
         res.status(500).json({ message: 'Failed to fetch user history', error: error.message });
+    }
+};
+
+// POST /api/users/remind-teachers (admin only)
+exports.remindTeachers = async (req, res) => {
+    try {
+        // 1. Get all active teachers who have an email address
+        const teachers = db.prepare(`
+            SELECT id, username, first_name, middle_name, last_name, email
+            FROM users
+            WHERE role = 'teacher' AND is_active = 1 AND email IS NOT NULL AND TRIM(email) != ''
+        `).all();
+
+        if (teachers.length === 0) {
+            return res.json({
+                message: 'No active teachers with valid email addresses found.',
+                count: 0
+            });
+        }
+
+        let sentCount = 0;
+        let skippedCount = 0;
+        const results = [];
+
+        for (const teacher of teachers) {
+            const teacherName = `${teacher.first_name} ${teacher.last_name}`.trim();
+
+            // 2. Get sections assigned to this teacher
+            const sections = db.prepare(`
+                SELECT s.id, s.name, s.grade_level
+                FROM teacher_sections ts
+                JOIN sections s ON ts.section_id = s.id
+                WHERE ts.teacher_id = ?
+                ORDER BY s.grade_level ASC, s.name ASC
+            `).all(teacher.id);
+
+            if (sections.length === 0) {
+                skippedCount++;
+                continue;
+            }
+
+            const sectionsWithAttentionStudents = [];
+
+            for (const section of sections) {
+                // Find enrolled students in this section who have missing mandatory requirements
+                const students = db.prepare(`
+                    SELECT s.id, s.lrn, s.first_name, s.middle_name, s.last_name, s.extension
+                    FROM enrollments e
+                    JOIN students s ON e.student_id = s.id
+                    WHERE e.section_id = ? AND s.status = 'Enrolled'
+                    ORDER BY s.last_name ASC, s.first_name ASC
+                `).all(section.id);
+
+                const sectionAttentionStudents = [];
+
+                for (const student of students) {
+                    const studentFullName = [student.last_name, student.first_name, student.middle_name, student.extension]
+                        .filter(Boolean)
+                        .join(' ');
+
+                    // Query missing mandatory docs for this student
+                    const missingDocs = db.prepare(`
+                        SELECT dr.name
+                        FROM document_requirements dr
+                        WHERE dr.is_mandatory = 1
+                          AND dr.is_enabled = 1
+                          AND dr.category IN (
+                              SELECT DISTINCT CASE WHEN grade_level <= 10 THEN 'JHS' ELSE 'SHS' END
+                              FROM enrollments WHERE student_id = ?
+                          )
+                          AND dr.id NOT IN (
+                              SELECT requirement_id FROM documents
+                              WHERE student_id = ? AND status = 'Completed' AND requirement_id IS NOT NULL AND deleted_at IS NULL
+                          )
+                    `).all(student.id, student.id).map(r => r.name);
+
+                    if (missingDocs.length > 0) {
+                        sectionAttentionStudents.push({
+                            id: student.id,
+                            lrn: student.lrn,
+                            name: studentFullName,
+                            missingDocs
+                        });
+                    }
+                }
+
+                if (sectionAttentionStudents.length > 0) {
+                    sectionsWithAttentionStudents.push({
+                        sectionId: section.id,
+                        sectionName: section.name,
+                        gradeLevel: section.grade_level,
+                        students: sectionAttentionStudents
+                    });
+                }
+            }
+
+            if (sectionsWithAttentionStudents.length > 0) {
+                try {
+                    await sendTeacherAttentionReminder({
+                        to: teacher.email,
+                        teacherName,
+                        sectionsWithStudents: sectionsWithAttentionStudents
+                    });
+                    sentCount++;
+                    results.push({
+                        teacherId: teacher.id,
+                        teacherName,
+                        email: teacher.email,
+                        status: 'sent',
+                        sectionsCount: sectionsWithAttentionStudents.length
+                    });
+                } catch (err) {
+                    console.error(`[RemindTeachers] Failed to send email to ${teacher.email}:`, err.message);
+                    results.push({
+                        teacherId: teacher.id,
+                        teacherName,
+                        email: teacher.email,
+                        status: 'failed',
+                        error: err.message
+                    });
+                }
+            } else {
+                skippedCount++;
+            }
+        }
+
+        // Activity log
+        logActivity(
+            req.user?.id,
+            'NOTIFY',
+            'user',
+            null,
+            `Sent document attention reminder emails to ${sentCount} teacher(s)`
+        );
+
+        createNotification(
+            null,
+            'Teacher Reminders Sent',
+            `Sent document attention reminder emails to ${sentCount} teacher(s).`,
+            'user'
+        );
+
+        res.json({
+            message: `Sent attention reminders to ${sentCount} teacher${sentCount !== 1 ? 's' : ''}.`,
+            sentCount,
+            skippedCount,
+            results
+        });
+    } catch (error) {
+        console.error('remindTeachers error:', error);
+        res.status(500).json({ message: 'Failed to send reminders to teachers', error: error.message });
     }
 };

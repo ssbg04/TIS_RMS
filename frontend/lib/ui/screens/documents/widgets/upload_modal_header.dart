@@ -45,7 +45,11 @@ class UploadModalHeaderWidget extends StatelessWidget {
                 ),
                 const SizedBox(height: 4),
                 // Stepper
-                _buildStepper(context, isDark),
+                FittedBox(
+                  fit: BoxFit.scaleDown,
+                  alignment: Alignment.centerLeft,
+                  child: _buildStepper(context, isDark),
+                ),
               ],
             ),
           ),

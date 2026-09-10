@@ -161,9 +161,71 @@ class _TeacherManagementModalState extends ConsumerState<TeacherManagementModal>
 // ============================================================
 // TEACHERS TAB
 // ============================================================
-class _TeachersTab extends ConsumerWidget {
+class _TeachersTab extends ConsumerStatefulWidget {
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<_TeachersTab> createState() => _TeachersTabState();
+}
+
+class _TeachersTabState extends ConsumerState<_TeachersTab> {
+  bool _isSending = false;
+
+  Future<void> _handleRemindAll() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Row(
+          children: [
+            Icon(Icons.mark_email_read_outlined, color: AppColors.primaryGreen, size: 24),
+            SizedBox(width: 8),
+            Expanded(child: Text('Remind All Teachers')),
+          ],
+        ),
+        content: const Text(
+          'Send reminder emails to all active teachers with the list of students in their assigned sections who currently have missing mandatory documents?',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('CANCEL'),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.primaryGreen,
+              foregroundColor: Colors.white,
+            ),
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('SEND REMINDERS'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true || !mounted) return;
+
+    setState(() => _isSending = true);
+    try {
+      final res = await ref.read(usersProvider.notifier).remindTeachers();
+      if (!mounted) return;
+      showSuccessDialog(
+        context,
+        title: 'Reminders Sent',
+        message: res['message']?.toString() ?? 'Teacher reminders sent successfully.',
+      );
+    } catch (e) {
+      if (!mounted) return;
+      showErrorDialog(
+        context,
+        'Reminder Failed',
+        e.toString().replaceAll('Exception: ', ''),
+      );
+    } finally {
+      if (mounted) setState(() => _isSending = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final usersAsync = ref.watch(usersProvider);
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
@@ -198,12 +260,52 @@ class _TeachersTab extends ConsumerWidget {
             ),
           );
         }
-        return ListView.builder(
-          padding: const EdgeInsets.all(AppSizes.p16),
-          itemCount: teachers.length,
-          itemBuilder: (context, index) {
-            return _TeacherCard(teacher: teachers[index]);
-          },
+        return Column(
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(AppSizes.p16, AppSizes.p12, AppSizes.p16, 0),
+              child: Row(
+                children: [
+                  Text(
+                    '${teachers.length} Active Teachers',
+                    style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                      color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
+                    ),
+                  ),
+                  const Spacer(),
+                  ElevatedButton.icon(
+                    onPressed: _isSending ? null : _handleRemindAll,
+                    icon: _isSending
+                        ? const SizedBox(
+                            width: 14,
+                            height: 14,
+                            child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                          )
+                        : const Icon(Icons.mark_email_read_outlined, size: 16),
+                    label: Text(_isSending ? 'Sending...' : 'Remind All Teachers'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.primaryGreen,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                      textStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Expanded(
+              child: ListView.builder(
+                padding: const EdgeInsets.all(AppSizes.p16),
+                itemCount: teachers.length,
+                itemBuilder: (context, index) {
+                  return _TeacherCard(teacher: teachers[index]);
+                },
+              ),
+            ),
+          ],
         );
       },
       loading: () => const Center(child: CircularProgressIndicator()),
@@ -1436,29 +1538,60 @@ class _AcademicYearFormModalState extends ConsumerState<AcademicYearFormModal> {
                 },
               ),
               const SizedBox(height: AppSizes.p16),
-              DropdownButtonFormField<String>(
-                initialValue: _status,
-                decoration: const InputDecoration(
-                  labelText: 'Status',
-                  prefixIcon: Icon(Icons.toggle_on_outlined),
-                  border: OutlineInputBorder(),
+              Container(
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(AppSizes.radiusMedium),
+                  border: Border.all(
+                    color: isDark ? AppColors.darkBorder : Colors.grey.shade300,
+                  ),
+                  color: isDark ? AppColors.darkSurface2 : Colors.grey.shade50,
                 ),
-                items: [
-                  DropdownMenuItem(
-                    value: 'active',
-                    child: Text(
-                      isNarrow
-                          ? 'Active (deactivates others)'
-                          : 'Active (will deactivate others)',
-                      overflow: TextOverflow.ellipsis,
+                child: SwitchListTile(
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(AppSizes.radiusMedium),
+                  ),
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 14,
+                    vertical: 2,
+                  ),
+                  title: Text(
+                    _status == 'active'
+                        ? 'Active Academic Year'
+                        : 'Inactive Academic Year',
+                    style: const TextStyle(
+                      fontWeight: FontWeight.w600,
+                      fontSize: 14,
                     ),
                   ),
-                  const DropdownMenuItem(
-                    value: 'inactive',
-                    child: Text('Inactive'),
+                  subtitle: Text(
+                    _status == 'active'
+                        ? (isNarrow
+                            ? 'Active (will deactivate others)'
+                            : 'Currently active (will deactivate other years)')
+                        : 'Inactive (archived / previous year)',
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: isDark
+                          ? AppColors.darkTextSecondary
+                          : AppColors.textSecondary,
+                    ),
                   ),
-                ],
-                onChanged: (v) => setState(() => _status = v!),
+                  secondary: Icon(
+                    _status == 'active'
+                        ? Icons.check_circle_outline_rounded
+                        : Icons.pause_circle_outline_rounded,
+                    color: _status == 'active'
+                        ? AppColors.success
+                        : AppColors.textSecondary,
+                  ),
+                  value: _status == 'active',
+                  activeTrackColor: AppColors.primaryGreen,
+                  onChanged: (val) {
+                    setState(() {
+                      _status = val ? 'active' : 'inactive';
+                    });
+                  },
+                ),
               ),
               const SizedBox(height: AppSizes.p16),
               // Date Range Picker (1 picker only using calendar_date_picker2)

@@ -78,16 +78,6 @@ class ArchiveRepository {
     }
   }
 
-  Future<void> purgeArchive(int id) async {
-    try {
-      final options = await _getAuthOptions();
-      await _dio.delete('/archives/$id', options: options);
-    } on DioException catch (e) {
-      final msg = e.response?.data?['message'] ?? 'Failed to purge archive.';
-      throw Exception(msg);
-    }
-  }
-
   // ----------------------------------------------------------------
   // New document-centric endpoints (for redesigned Archive screen)
   // ----------------------------------------------------------------
