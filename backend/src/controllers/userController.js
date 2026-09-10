@@ -3,7 +3,12 @@ const bcrypt = require('bcrypt');
 const crypto = require('crypto');
 const os = require('os');
 const { createNotification } = require('./notificationController');
-const { sendPasswordResetLink, sendTeacherAttentionReminder } = require('../services/emailService');
+const {
+    sendPasswordResetLink,
+    sendTeacherAttentionReminder,
+    sendAccountCreatedEmail,
+    sendAccountStatusEmail,
+} = require('../services/emailService');
 const { getDetectedTunnelUrl } = require('../services/tunnelService');
 
 // ── Base URL Helper (Auto-detects Tunnel vs LAN IP vs Domain) ────────────────
@@ -150,6 +155,19 @@ exports.createUser = (req, res) => {
         logActivity(req.user?.id, 'CREATE', 'user', uid, `Added user: ${username} as ${role}`);
         logUserHistory(req.user?.id, uid, 'created', username, fullName, role);
         createNotification(null, 'User Registered', `New ${role} user "${username}" (${fullName}) was registered.`, 'user');
+
+        // Asynchronously send welcome email with credentials if email is provided
+        if (email && email.trim()) {
+            sendAccountCreatedEmail({
+                to: email.trim(),
+                username,
+                fullName,
+                role,
+                temporaryPassword,
+            }).catch(emailErr => {
+                console.error(`[UserController] Failed to send account created email to ${email}:`, emailErr.message);
+            });
+        }
 
         res.status(201).json({
             message: 'User created successfully',
@@ -376,7 +394,7 @@ exports.toggleUserStatus = (req, res) => {
     }
 
     try {
-        const user = db.prepare('SELECT id, username, first_name, last_name, role, is_active FROM users WHERE id = ?').get(id);
+        const user = db.prepare('SELECT id, username, first_name, last_name, role, email, is_active FROM users WHERE id = ?').get(id);
         if (!user) return res.status(404).json({ message: 'User not found.' });
 
         const newStatus = user.is_active === 1 ? 0 : 1;
@@ -392,6 +410,19 @@ exports.toggleUserStatus = (req, res) => {
         const fullName = [user.first_name, user.last_name].filter(Boolean).join(' ');
         logActivity(adminId, 'UPDATE', 'user', id, `${statusLabel} user: ${user.username}`);
         logUserHistory(adminId, id, statusLabel.toLowerCase(), user.username, fullName, user.role);
+
+        // Asynchronously send status change email if user has a registered email
+        if (user.email && user.email.trim()) {
+            sendAccountStatusEmail({
+                to: user.email.trim(),
+                username: user.username,
+                fullName,
+                role: user.role,
+                isActive: newStatus === 1,
+            }).catch(emailErr => {
+                console.error(`[UserController] Failed to send account status email to ${user.email}:`, emailErr.message);
+            });
+        }
 
         res.json({ message: `User "${user.username}" has been ${statusLabel.toLowerCase()}.`, is_active: newStatus });
     } catch (error) {

@@ -387,8 +387,163 @@ const sendTeacherAttentionReminder = async ({ to, teacherName, sectionsWithStude
     }
 };
 
+/**
+ * Sends welcome email with initial login credentials when an account is created.
+ */
+const sendAccountCreatedEmail = async ({ to, username, fullName, role, temporaryPassword }) => {
+    const fromAddress = process.env.SMTP_FROM
+        || `"TIS Record Management System" <${process.env.SMTP_USER || 'no-reply@talisayis.edu.ph'}>`;
+
+    const displayName = fullName || `@${username}`;
+    const roleUpper = (role || 'user').toUpperCase();
+
+    const body = `
+      <p style="margin:0 0 6px;font-size:16px;font-weight:700;color:#0f172a;">Welcome, <span style="color:#15803d;">${displayName}</span>!</p>
+      <p style="margin:0 0 20px;font-size:14px;color:#475569;line-height:1.7;">
+        An account has been created for you on the <strong>Talisay Integrated School Record Management System</strong>.
+        You can now sign in using the credentials below:
+      </p>
+
+      <!-- Credentials Card -->
+      <table width="100%" cellpadding="0" cellspacing="0" style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;margin:0 0 24px;overflow:hidden;">
+        <tr>
+          <td style="padding:16px 20px;border-bottom:1px solid #e2e8f0;background:#f1f5f9;">
+            <strong style="color:#334155;font-size:13px;text-transform:uppercase;letter-spacing:0.5px;">Your Account Credentials</strong>
+          </td>
+        </tr>
+        <tr>
+          <td style="padding:16px 20px;">
+            <table width="100%" cellpadding="0" cellspacing="0" style="font-size:13px;line-height:1.8;">
+              <tr>
+                <td width="140" style="color:#64748b;font-weight:600;">Username:</td>
+                <td style="color:#0f172a;font-weight:700;font-family:'Courier New',Courier,monospace;">${username}</td>
+              </tr>
+              <tr>
+                <td width="140" style="color:#64748b;font-weight:600;">Assigned Role:</td>
+                <td style="color:#15803d;font-weight:700;">${roleUpper}</td>
+              </tr>
+              <tr>
+                <td width="140" style="color:#64748b;font-weight:600;">Temporary Password:</td>
+                <td style="color:#0f172a;font-weight:700;font-family:'Courier New',Courier,monospace;">${temporaryPassword}</td>
+              </tr>
+            </table>
+          </td>
+        </tr>
+      </table>
+
+      <!-- First time warning pill -->
+      <table width="100%" cellpadding="0" cellspacing="0"><tr><td align="center" style="padding-bottom:24px;">
+        <span style="display:inline-block;background:#eff6ff;border:1px solid #bfdbfe;color:#1e40af;font-size:12px;font-weight:600;padding:6px 16px;border-radius:999px;">
+          &#128274; For security, please change your password immediately upon your first sign-in.
+        </span>
+      </td></tr></table>
+
+      <hr style="border:none;border-top:1px solid #e2e8f0;margin:0 0 16px;">
+
+      <p style="margin:0;font-size:12px;color:#64748b;line-height:1.6;">
+        If you did not expect this account, please contact the school administration immediately.
+      </p>
+    `;
+
+    const htmlContent = emailShell(body);
+
+    const mailOptions = {
+        from: fromAddress,
+        to,
+        subject: `Welcome to TIS Record Management System - Your Account Details`,
+        html: htmlContent,
+        text: `Welcome to TIS Record Management System, ${displayName}!\n\nAn account has been created for you:\nUsername: ${username}\nRole: ${roleUpper}\nTemporary Password: ${temporaryPassword}\n\nPlease sign in and change your password upon first login.`,
+    };
+
+    if (LOGO_PATH) {
+        mailOptions.attachments = [{
+            filename: 'logo.png',
+            path: LOGO_PATH,
+            cid: 'school-logo'
+        }];
+    }
+
+    try {
+        return await sendMailWithFallback(mailOptions);
+    } catch (err) {
+        console.error(`[EmailService] Failed to send account creation email to ${to}:`, err.message);
+        throw new Error(`Failed to send account creation email: ${err.message}`);
+    }
+};
+
+/**
+ * Sends an email notification when a user account is activated or deactivated.
+ */
+const sendAccountStatusEmail = async ({ to, username, fullName, role, isActive }) => {
+    const fromAddress = process.env.SMTP_FROM
+        || `"TIS Record Management System" <${process.env.SMTP_USER || 'no-reply@talisayis.edu.ph'}>`;
+
+    const displayName = fullName || `@${username}`;
+    const statusLabel = isActive ? 'Activated' : 'Deactivated';
+    const statusColor = isActive ? '#15803d' : '#b91c1c';
+    const statusBg = isActive ? '#f0fdf4' : '#fef2f2';
+    const statusBorder = isActive ? '#bbf7d0' : '#fecaca';
+
+    const body = `
+      <p style="margin:0 0 6px;font-size:16px;font-weight:700;color:#0f172a;">Hello, <span style="color:#0f172a;">${displayName}</span></p>
+      
+      <!-- Status Badge -->
+      <div style="margin:16px 0 20px;padding:14px 18px;background:${statusBg};border:1px solid ${statusBorder};border-radius:10px;">
+        <div style="font-size:15px;font-weight:700;color:${statusColor};margin-bottom:4px;">
+          Account Status: ${statusLabel}
+        </div>
+        <p style="margin:0;font-size:13px;color:#334155;line-height:1.6;">
+          ${isActive 
+            ? 'Your account has been <strong>activated</strong> by an administrator. You can now log into the TIS Record Management System and access school records according to your role.'
+            : 'Your account has been <strong>deactivated</strong> by an administrator. Your active sessions have been revoked and system access has been suspended.'
+          }
+        </p>
+      </div>
+
+      <p style="margin:0 0 16px;font-size:13px;color:#64748b;line-height:1.6;">
+        ${isActive
+            ? 'If you have forgotten your password, you can use the "Forgot Password" option on the sign-in screen.'
+            : 'If you believe this status change was made in error, please contact your school administrator or ICT coordinator.'
+        }
+      </p>
+
+      <hr style="border:none;border-top:1px solid #e2e8f0;margin:0 0 16px;">
+
+      <p style="margin:0;font-size:11.5px;color:#94a3b8;line-height:1.6;">
+        Account Username: <strong>${username}</strong> | Role: <strong>${(role || 'user').toUpperCase()}</strong>
+      </p>
+    `;
+
+    const htmlContent = emailShell(body);
+
+    const mailOptions = {
+        from: fromAddress,
+        to,
+        subject: `[TIS RMS] Account ${statusLabel}: Your Account Has Been ${statusLabel}`,
+        html: htmlContent,
+        text: `Hello ${displayName},\n\nYour TIS Record Management System account has been ${statusLabel.toLowerCase()} by an administrator.\n\n${isActive ? 'You may now log in to the system.' : 'Your access has been suspended. Please contact the administrator if this was in error.'}`,
+    };
+
+    if (LOGO_PATH) {
+        mailOptions.attachments = [{
+            filename: 'logo.png',
+            path: LOGO_PATH,
+            cid: 'school-logo'
+        }];
+    }
+
+    try {
+        return await sendMailWithFallback(mailOptions);
+    } catch (err) {
+        console.error(`[EmailService] Failed to send account status email to ${to}:`, err.message);
+        throw new Error(`Failed to send account status email: ${err.message}`);
+    }
+};
+
 module.exports = {
     sendPasswordResetOtp,
     sendPasswordResetLink,
     sendTeacherAttentionReminder,
+    sendAccountCreatedEmail,
+    sendAccountStatusEmail,
 };

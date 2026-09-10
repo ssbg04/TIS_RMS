@@ -344,42 +344,47 @@ class _UsersScreenState extends ConsumerState<UsersScreen> {
                       Widget buildActionButton({
                         required IconData icon,
                         required String label,
-                        required Color color,
                         required VoidCallback onTap,
+                        bool isDestructive = false,
                       }) {
+                        final fgColor = isDestructive
+                            ? (isDark ? Colors.red.shade300 : Colors.red.shade700)
+                            : textPrimary;
+                        final border = isDestructive
+                            ? (isDark ? Colors.red.withValues(alpha: 0.3) : Colors.red.shade200)
+                            : (isDark ? AppColors.darkBorder : Colors.grey.shade300);
+                        final bg = isDark ? AppColors.darkSurfaceCard : Colors.white;
+
                         return Material(
-                          color: color.withValues(alpha: isDark ? 0.12 : 0.08),
-                          borderRadius: BorderRadius.circular(10),
+                          color: bg,
+                          borderRadius: BorderRadius.circular(8),
                           child: InkWell(
                             onTap: () {
                               HapticService.light();
                               onTap();
                             },
-                            borderRadius: BorderRadius.circular(10),
+                            borderRadius: BorderRadius.circular(8),
                             child: Container(
                               padding: EdgeInsets.symmetric(
-                                horizontal: isCompact ? 8 : 14,
-                                vertical: isCompact ? 10 : 10,
+                                horizontal: isCompact ? 6 : 12,
+                                vertical: 10,
                               ),
                               decoration: BoxDecoration(
-                                borderRadius: BorderRadius.circular(10),
-                                border: Border.all(
-                                  color: color.withValues(alpha: isDark ? 0.35 : 0.28),
-                                  width: 1,
-                                ),
+                                borderRadius: BorderRadius.circular(8),
+                                border: Border.all(color: border, width: 1),
                               ),
                               child: Row(
                                 mainAxisAlignment: MainAxisAlignment.center,
                                 mainAxisSize: MainAxisSize.min,
                                 children: [
-                                  Icon(icon, size: isCompact ? 16 : 17, color: color),
+                                  Icon(icon, size: isCompact ? 15 : 16, color: fgColor),
                                   const SizedBox(width: 6),
                                   Flexible(
                                     child: Text(
                                       label,
                                       style: TextStyle(
-                                        color: color,
-                                        fontSize: isCompact ? 12 : 13,
+                                        color: fgColor,
+                                        fontSize: isCompact ? 11.5 : 12.5,
                                         fontWeight: FontWeight.w600,
                                       ),
                                       maxLines: 1,
@@ -396,7 +401,6 @@ class _UsersScreenState extends ConsumerState<UsersScreen> {
                       final editBtn = buildActionButton(
                         icon: Icons.edit_outlined,
                         label: 'Edit',
-                        color: AppColors.primaryGreen,
                         onTap: () {
                           Navigator.of(context, rootNavigator: true).pop();
                           _openModal(user: user);
@@ -405,8 +409,7 @@ class _UsersScreenState extends ConsumerState<UsersScreen> {
 
                       final resetBtn = buildActionButton(
                         icon: Icons.lock_reset_rounded,
-                        label: 'Reset Pass',
-                        color: Colors.orange.shade700,
+                        label: isCompact ? 'Reset Pass' : 'Reset Password',
                         onTap: () {
                           Navigator.of(context, rootNavigator: true).pop();
                           _confirmResetPassword(user);
@@ -419,9 +422,7 @@ class _UsersScreenState extends ConsumerState<UsersScreen> {
                                   ? Icons.block_rounded
                                   : Icons.check_circle_outline_rounded,
                               label: user.isActive ? 'Deactivate' : 'Activate',
-                              color: user.isActive
-                                  ? Colors.red.shade600
-                                  : AppColors.primaryGreen,
+                              isDestructive: user.isActive,
                               onTap: () {
                                 Navigator.of(context, rootNavigator: true).pop();
                                 _confirmToggleStatus(user);
@@ -888,6 +889,7 @@ class _UsersScreenState extends ConsumerState<UsersScreen> {
             ),
             headingTextStyle: TextStyle(
               fontWeight: FontWeight.bold,
+              fontSize: 13,
               color: textPrimary,
             ),
             columnSpacing: 24,
@@ -895,12 +897,17 @@ class _UsersScreenState extends ConsumerState<UsersScreen> {
             dataRowMinHeight: 50,
             showBottomBorder: true,
             columns: const [
-              DataColumn(label: Text('User')),
+              DataColumn(label: Text('Full Name')),
               DataColumn(label: Text('Username')),
-              DataColumn(label: Text('Access Role')),
+              DataColumn(label: Text('Role')),
               DataColumn(label: Text('Status')),
               DataColumn(label: Text('Contact')),
-              DataColumn(label: SizedBox.shrink()), // Trailing icon
+              DataColumn(
+                label: Align(
+                  alignment: Alignment.centerRight,
+                  child: Text('Action'),
+                ),
+              ),
             ],
             rows: users.isEmpty
                 ? [

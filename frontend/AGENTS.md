@@ -479,7 +479,7 @@ Files backup/restore - mirror mode or zip -->
 - add padding reset password modal -->
  
 
-# STUDENT SCREEN
+<!-- # STUDENT SCREEN
 - add/edit student birthdate use date picker 
 
 # TEACHERS & ACADEMIC SETUP
@@ -495,11 +495,18 @@ Files backup/restore - mirror mode or zip -->
 # BACKEND SERVICES
 - remind all teachers (email) -> send list of students need attentions
 - notif fix not pushing notif on android
-- email reset password cant send an email
+- email reset password cant send an email -->
+
+<!-- # USER MANAGEMENT SCREEN
+- fix the table column title
+- user detail modal -> redesign the three action buttons make it simple, dont use many colors
+- add send an email that their account was deactivated/activated, created -->
 
 --- 
 
 # DONT DO
+<!-- - documents screen -> add how many files can be uploaded into a document requirement, the current limitation is only 1, so we can dynamically choose number files that can be uploaded into that document, update both frontend and backend, but first give me suggestion where will put the setting of this, ask me first   -->
+
 - teacher no assigned section theme color
 - bug in bulk add student enrollment
 
