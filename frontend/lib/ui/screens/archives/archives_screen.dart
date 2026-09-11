@@ -1029,10 +1029,12 @@ class _ArchivesScreenState extends ConsumerState<ArchivesScreen>
                 icon: Badge(
                   isLabelVisible: _getActiveFilterCount() > 0,
                   label: Text(_getActiveFilterCount().toString()),
-                  child: const Icon(
+                  child: Icon(
                     Icons.tune_rounded,
                     size: 20,
-                    color: AppColors.primaryGreen,
+                    color: _getActiveFilterCount() > 0
+                        ? AppColors.primaryGreen
+                        : (isDark ? AppColors.darkTextPrimary : Colors.black87),
                   ),
                 ),
               ),

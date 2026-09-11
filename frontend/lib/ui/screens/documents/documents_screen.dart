@@ -1130,8 +1130,8 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
 
           const SizedBox(width: 4),
 
-          // Multi-Select Toggle (Desktop only, icon only, no background, no border)
-          if (!isMobile && widget.userRole != 'teacher' && (_tabController.index == 1 || isFolderOpened)) ...[
+          // Multi-Select Toggle (Desktop non-Windows only, icon only, no background, no border)
+          if (!isMobile && defaultTargetPlatform != TargetPlatform.windows && widget.userRole != 'teacher' && (_tabController.index == 1 || isFolderOpened)) ...[
             Tooltip(
               message: _isMultiSelectMode ? 'Exit Multi-Select' : 'Multi-Select',
               child: IconButton(
@@ -1158,7 +1158,7 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
             const SizedBox(width: 4),
           ],
 
-          // Filter button (Icon only, between Multi-Select and Upload/Bulk Add)
+          // Filter button (Icon only, between Search and Upload/Bulk Add)
           if (_tabController.index == 1 || isFolderOpened) ...[
             Tooltip(
               message: 'Filter Documents',
@@ -1171,10 +1171,12 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
                 icon: Badge(
                   isLabelVisible: _getActiveFilterCount() > 0,
                   label: Text(_getActiveFilterCount().toString()),
-                  child: const Icon(
+                  child: Icon(
                     Icons.tune_rounded,
                     size: 20,
-                    color: AppColors.primaryGreen,
+                    color: _getActiveFilterCount() > 0
+                        ? AppColors.primaryGreen
+                        : (isDark ? AppColors.darkTextPrimary : Colors.black87),
                   ),
                 ),
               ),

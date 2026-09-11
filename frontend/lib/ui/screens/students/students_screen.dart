@@ -946,9 +946,11 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
                 icon: Badge(
                   isLabelVisible: activeCount > 0,
                   label: Text(activeCount.toString()),
-                  child: const Icon(
+                  child: Icon(
                     Icons.tune_rounded,
-                    color: AppColors.primaryGreen,
+                    color: activeCount > 0
+                        ? AppColors.primaryGreen
+                        : (isDark ? AppColors.darkTextPrimary : Colors.black87),
                   ),
                 ),
               ),
