@@ -14,22 +14,34 @@ import 'notification_service.dart';
 Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   try {
     await Firebase.initializeApp();
-    final title = message.notification?.title ??
-        message.data['title']?.toString() ??
-        'TIS RMS';
-    final body = message.notification?.body ??
-        message.data['body']?.toString() ??
-        '';
-    int? notifId;
-    if (message.data['id'] != null && message.data['id'].toString().isNotEmpty) {
-      notifId = int.tryParse(message.data['id'].toString());
+    final notifIdStr = message.data['id']?.toString();
+    int? notifId = (notifIdStr != null && notifIdStr.isNotEmpty)
+        ? int.tryParse(notifIdStr)
+        : null;
+
+    // Advance last_seen_notification_id so AlarmReceiver and Workmanager won't duplicate it
+    if (notifId != null) {
+      try {
+        final prefs = await SharedPreferences.getInstance();
+        final currentLastId = prefs.getInt('last_seen_notification_id') ?? 0;
+        if (notifId > currentLastId) {
+          await prefs.setInt('last_seen_notification_id', notifId);
+        }
+      } catch (_) {}
     }
-    if (body.isNotEmpty) {
-      await NotificationService().showNotification(
-        id: notifId,
-        title: title,
-        body: body,
-      );
+
+    // On Android, if message.notification != null, Google Play Services has already
+    // presented the notification in the tray. Only present manually for data-only messages.
+    if (message.notification == null) {
+      final title = message.data['title']?.toString() ?? 'TIS RMS';
+      final body = message.data['body']?.toString() ?? '';
+      if (body.isNotEmpty) {
+        await NotificationService().showNotification(
+          id: notifId,
+          title: title,
+          body: body,
+        );
+      }
     }
   } catch (e) {
     debugPrint('[FcmBackground] Handler error: $e');
@@ -54,16 +66,28 @@ class FcmService {
 
       // Foreground: show local notification banner (with deduplication)
       FirebaseMessaging.onMessage.listen((RemoteMessage message) async {
+        final notifIdStr = message.data['id']?.toString();
+        int? notifId = (notifIdStr != null && notifIdStr.isNotEmpty)
+            ? int.tryParse(notifIdStr)
+            : null;
+
+        // Advance last_seen_notification_id so polling or background sync won't repeat it
+        if (notifId != null) {
+          try {
+            final prefs = await SharedPreferences.getInstance();
+            final currentLastId = prefs.getInt('last_seen_notification_id') ?? 0;
+            if (notifId > currentLastId) {
+              await prefs.setInt('last_seen_notification_id', notifId);
+            }
+          } catch (_) {}
+        }
+
         final title = message.notification?.title ??
             message.data['title']?.toString() ??
             'TIS RMS';
         final body = message.notification?.body ??
             message.data['body']?.toString() ??
             '';
-        int? notifId;
-        if (message.data['id'] != null && message.data['id'].toString().isNotEmpty) {
-          notifId = int.tryParse(message.data['id'].toString());
-        }
         if (body.isNotEmpty) {
           await NotificationService().showNotification(
             id: notifId,
@@ -72,6 +96,9 @@ class FcmService {
           );
         }
       });
+
+      // Eagerly register token with backend on startup if an active session exists
+      registerToken();
     } catch (e) {
       debugPrint('[FcmService] Init error: $e');
     }
@@ -96,13 +123,13 @@ class FcmService {
 
       final dio = Dio(BaseOptions(
         baseUrl: baseUrl,
-        connectTimeout: const Duration(seconds: 5),
-        receiveTimeout: const Duration(seconds: 5),
+        connectTimeout: const Duration(seconds: 8),
+        receiveTimeout: const Duration(seconds: 8),
         headers: {'Authorization': 'Bearer $jwtToken'},
       ));
 
       await dio.post('/notifications/fcm-token', data: {'token': token});
-      debugPrint('[FcmService] Token registered');
+      debugPrint('[FcmService] FCM token registered successfully with backend');
     } catch (e) {
       debugPrint('[FcmService] Token registration failed: $e');
     }

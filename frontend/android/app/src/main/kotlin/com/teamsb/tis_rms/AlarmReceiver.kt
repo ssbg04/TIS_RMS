@@ -68,8 +68,20 @@ class AlarmReceiver : BroadcastReceiver() {
         if (list.length() == 0) return
 
         val highestOldId = prefs.getInt(KEY_LAST_ID, 0)
-        var newHighestId = highestOldId
+        if (highestOldId == 0) {
+            // Seed KEY_LAST_ID on initial check to avoid spamming past notifications
+            var maxId = 0
+            for (i in 0 until list.length()) {
+                val id = list.getJSONObject(i).optInt("id", 0)
+                if (id > maxId) maxId = id
+            }
+            if (maxId > 0) {
+                prefs.edit().putInt(KEY_LAST_ID, maxId).apply()
+            }
+            return
+        }
 
+        var newHighestId = highestOldId
         ensureChannel(context)
         val notifManager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
 
@@ -81,8 +93,7 @@ class AlarmReceiver : BroadcastReceiver() {
             val isReadRaw = item.opt("is_read")
             val isRead = isReadRaw == true || isReadRaw == 1
 
-            val isNew = if (highestOldId == 0) !isRead else (id > highestOldId && !isRead)
-            if (!isNew) continue
+            if (id <= highestOldId || isRead) continue
 
             val title = item.optString("title", "TIS RMS Notification")
             val message = item.optString("message", "")
@@ -97,7 +108,7 @@ class AlarmReceiver : BroadcastReceiver() {
             )
 
             val notification = Notification.Builder(context, CHANNEL_ID)
-                .setSmallIcon(R.mipmap.ic_launcher)
+                .setSmallIcon(R.drawable.ic_launcher_foreground)
                 .setContentTitle(title)
                 .setContentText(message)
                 .setAutoCancel(true)

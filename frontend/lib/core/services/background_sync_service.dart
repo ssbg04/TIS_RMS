@@ -46,13 +46,20 @@ void callbackDispatcher() {
         // 3. Find the last seen notification ID
         final highestOldId = prefs.getInt('last_seen_notification_id') ?? 0;
 
+        // On first run, seed last_seen_notification_id to latest ID to prevent alert storms of past items
+        if (highestOldId == 0) {
+          final ids = list.map((e) => e['id'] as int? ?? 0).toList();
+          if (ids.isNotEmpty) {
+            final newHighestId = ids.reduce(math.max);
+            await prefs.setInt('last_seen_notification_id', newHighestId);
+          }
+          return Future.value(true);
+        }
+
         // Find new unread notifications
         final newNotes = list.where((e) {
           final id = e['id'] as int? ?? 0;
           final isRead = (e['is_read'] == 1 || e['is_read'] == true);
-          if (highestOldId == 0) {
-            return !isRead;
-          }
           return id > highestOldId && !isRead;
         }).toList();
 

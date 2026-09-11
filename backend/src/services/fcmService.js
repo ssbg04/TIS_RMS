@@ -101,7 +101,10 @@ const _sendMulticast = async (tokens, title, body, category = 'system', notifica
                         priority: 'high',
                         defaultSound: true,
                         defaultVibrateTimings: true,
-                        visibility: 'public'
+                        visibility: 'public',
+                        icon: 'ic_launcher_foreground',
+                        clickAction: 'FLUTTER_NOTIFICATION_CLICK',
+                        tag: notificationId ? String(notificationId) : undefined
                     }
                 }
             });
@@ -188,9 +191,16 @@ const sendNotification = async ({ userId = null, title, body, category = 'system
                     WHERE ts.section_id = ? AND u.role = 'teacher' AND u.is_active = 1
                 `).all(entityId).map(r => r.token);
                 tokens.push(...teacherTokens);
+            } else if (!entityType) {
+                // Broadcast to all active teachers for unscoped system notifications
+                const allTeacherTokens = db.prepare(`
+                    SELECT ft.token 
+                    FROM fcm_tokens ft
+                    JOIN users u ON ft.user_id = u.id
+                    WHERE u.role = 'teacher' AND u.is_active = 1
+                `).all().map(r => r.token);
+                tokens.push(...allTeacherTokens);
             }
-            // Note: Unscoped notifications (entityType is null or not student/document/section)
-            // are delivered solely to Admins and not broadcast to teachers.
         }
 
         await _sendMulticast(tokens, title, body, category, notificationId);

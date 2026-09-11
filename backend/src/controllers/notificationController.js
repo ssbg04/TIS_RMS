@@ -2,9 +2,28 @@ const db = require('../config/db');
 const fcmService = require('../services/fcmService');
 fcmService.init();
 
+// In-memory debouncer to prevent rapid duplicate notification creation (within 2 seconds)
+const _recentCreates = new Map();
+
 // Programmatic helper to create notifications (can be called from other controllers)
 // category: 'student' | 'document' | 'user' | 'system'
 exports.createNotification = (userId, title, message, category = 'system', entityType = null, entityId = null) => {
+    // Deduplication check: suppress identical notifications fired within 2000ms
+    const dedupeKey = `${userId || 'all'}_${title}_${message}_${entityType || ''}_${entityId || ''}`;
+    const now = Date.now();
+    const lastCreated = _recentCreates.get(dedupeKey);
+    if (lastCreated && (now - lastCreated < 2000)) {
+        return; // Suppress duplicate call
+    }
+    _recentCreates.set(dedupeKey, now);
+
+    // Evict old cache entries periodically
+    if (_recentCreates.size > 200) {
+        for (const [k, t] of _recentCreates.entries()) {
+            if (now - t > 10000) _recentCreates.delete(k);
+        }
+    }
+
     let notifId = null;
     try {
         const result = db.prepare('INSERT INTO notifications (user_id, title, message, is_read, category, entity_type, entity_id) VALUES (?, ?, ?, 0, ?, ?, ?)')
@@ -44,6 +63,18 @@ exports.registerFcmToken = (req, res) => {
               SET user_id = excluded.user_id,
                   updated_at = excluded.updated_at
         `).run(req.user.id, token);
+
+        // Prune stale tokens: keep only the 3 most recently updated tokens for this user
+        db.prepare(`
+            DELETE FROM fcm_tokens 
+            WHERE user_id = ? AND id NOT IN (
+                SELECT id FROM fcm_tokens 
+                WHERE user_id = ? 
+                ORDER BY updated_at DESC, id DESC 
+                LIMIT 3
+            )
+        `).run(req.user.id, req.user.id);
+
         res.json({ message: 'FCM token registered' });
     } catch (error) {
         res.status(500).json({ message: 'Failed to register FCM token', error: error.message });

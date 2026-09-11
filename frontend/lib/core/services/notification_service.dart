@@ -1,5 +1,6 @@
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
-import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:flutter/foundation.dart' show kIsWeb, debugPrint;
+import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:io' show Platform;
 
 class NotificationService {
@@ -55,7 +56,6 @@ class NotificationService {
                 .resolvePlatformSpecificImplementation<
                   AndroidFlutterLocalNotificationsPlugin
                 >();
-        await androidImplementation?.requestNotificationsPermission();
 
         const AndroidNotificationChannel channel = AndroidNotificationChannel(
           'tis_rms_activities_channel',
@@ -66,6 +66,10 @@ class NotificationService {
           enableVibration: true,
         );
         await androidImplementation?.createNotificationChannel(channel);
+
+        try {
+          await androidImplementation?.requestNotificationsPermission();
+        } catch (_) {}
       }
     } catch (_) {}
 
@@ -84,16 +88,31 @@ class NotificationService {
 
     if (!_initialized) await initialize();
 
-    // Deduplication check (prevents duplicate triggers from FCM + Polling + Stream)
-    final dedupeKey = '${id ?? ''}_${title.trim()}_${body.trim()}';
+    // Deduplication check: key primarily by notification ID if available, otherwise by content
+    final dedupeKey = id != null
+        ? 'id_$id'
+        : 'msg_${title.trim()}_${body.trim()}';
+
     if (_recentlyShown.contains(dedupeKey)) {
+      debugPrint('[NotificationService] Suppressed duplicate notification: $dedupeKey');
       return;
     }
     _recentlyShown.add(dedupeKey);
-    // Evict after 15 seconds
-    Future.delayed(const Duration(seconds: 15), () {
+    // Evict after 60 seconds (covers rapid polling cycles and AlarmManager checks)
+    Future.delayed(const Duration(seconds: 60), () {
       _recentlyShown.remove(dedupeKey);
     });
+
+    // Advance last_seen_notification_id in SharedPreferences
+    if (id != null) {
+      try {
+        final prefs = await SharedPreferences.getInstance();
+        final current = prefs.getInt('last_seen_notification_id') ?? 0;
+        if (id > current) {
+          await prefs.setInt('last_seen_notification_id', id);
+        }
+      } catch (_) {}
+    }
 
     const AndroidNotificationDetails androidPlatformChannelSpecifics =
         AndroidNotificationDetails(
