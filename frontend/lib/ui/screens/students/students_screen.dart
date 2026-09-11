@@ -1492,8 +1492,8 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
     if (students.isEmpty) return _buildEmptyState(noSections: noSections);
 
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final isMobileOrAndroid = MediaQuery.of(context).size.width < 800 ||
-        defaultTargetPlatform == TargetPlatform.android;
+    final isAndroid = defaultTargetPlatform == TargetPlatform.android;
+    final isMobileOrAndroid = MediaQuery.of(context).size.width < 800 || isAndroid;
 
     return RefreshIndicator(
       color: AppColors.primaryGreen,
@@ -1547,8 +1547,9 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
                     _viewProfile(s);
                   }
                 },
-                onLongPress: defaultTargetPlatform != TargetPlatform.windows &&
-                        widget.userRole != 'teacher'
+                onLongPress: (!isAndroid &&
+                        defaultTargetPlatform != TargetPlatform.windows &&
+                        widget.userRole != 'teacher')
                     ? () {
                         _updateSelection(() {
                           _showMultiSelect = true;
@@ -1609,20 +1610,58 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
                       // Avatar
                       Padding(
                         padding: EdgeInsets.only(top: isMobileOrAndroid ? 2.0 : 4.0),
-                        child: CircleAvatar(
-                          radius: isMobileOrAndroid ? 20 : 22,
-                          backgroundColor: AppColors.primaryGreen.withValues(
-                            alpha: 0.1,
-                          ),
-                          child: Text(
-                            '${s.firstName.isNotEmpty ? s.firstName[0] : ''}${s.lastName.isNotEmpty ? s.lastName[0] : ''}',
-                            style: TextStyle(
-                              color: AppColors.primaryGreen,
-                              fontWeight: FontWeight.bold,
-                              fontSize: isMobileOrAndroid ? 14 : 16,
-                            ),
-                          ),
-                        ),
+                        child: isAndroid
+                            ? GestureDetector(
+                                behavior: HitTestBehavior.opaque,
+                                onTap: widget.userRole != 'teacher'
+                                    ? () {
+                                        HapticFeedback.selectionClick();
+                                        _updateSelection(() {
+                                          if (!_showMultiSelect) {
+                                            _showMultiSelect = true;
+                                            if (!_selectedStudentIds.contains(s.id)) {
+                                              _selectedStudentIds.add(s.id);
+                                            }
+                                            ref.read(studentMultiSelectProvider.notifier).state = true;
+                                          } else {
+                                            if (_selectedStudentIds.contains(s.id)) {
+                                              _selectedStudentIds.remove(s.id);
+                                            } else {
+                                              _selectedStudentIds.add(s.id);
+                                            }
+                                          }
+                                        });
+                                      }
+                                    : null,
+                                child: CircleAvatar(
+                                  radius: 20,
+                                  backgroundColor: AppColors.primaryGreen.withValues(
+                                    alpha: 0.1,
+                                  ),
+                                  child: Text(
+                                    '${s.firstName.isNotEmpty ? s.firstName[0] : ''}${s.lastName.isNotEmpty ? s.lastName[0] : ''}',
+                                    style: const TextStyle(
+                                      color: AppColors.primaryGreen,
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 14,
+                                    ),
+                                  ),
+                                ),
+                              )
+                            : CircleAvatar(
+                                radius: isMobileOrAndroid ? 20 : 22,
+                                backgroundColor: AppColors.primaryGreen.withValues(
+                                  alpha: 0.1,
+                                ),
+                                child: Text(
+                                  '${s.firstName.isNotEmpty ? s.firstName[0] : ''}${s.lastName.isNotEmpty ? s.lastName[0] : ''}',
+                                  style: TextStyle(
+                                    color: AppColors.primaryGreen,
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: isMobileOrAndroid ? 14 : 16,
+                                  ),
+                                ),
+                              ),
                       ),
                       SizedBox(width: isMobileOrAndroid ? 12 : AppSizes.p16),
 
@@ -1889,6 +1928,9 @@ class _DocumentProgressBar extends StatelessWidget {
   final int totalCount;
   final List<String> missingDocuments;
 
+  static final RegExp _jhsRegex = RegExp(r'^\[JHS\]\s*', caseSensitive: false);
+  static final RegExp _shsRegex = RegExp(r'^\[SHS\]\s*', caseSensitive: false);
+
   const _DocumentProgressBar({
     required this.missingCount,
     required this.totalCount,
@@ -1951,20 +1993,15 @@ class _DocumentProgressBar extends StatelessWidget {
       ],
     );
 
-    // On mobile / Android, bypass heavy Tooltip parsing and gesture recognizers
-    if (isMobileOrAndroid) {
-      return content;
-    }
-
     InlineSpan richMessage;
     if (!isComplete && missingDocuments.isNotEmpty) {
       final jhsDocs = missingDocuments
           .where((d) => d.toUpperCase().startsWith('[JHS]'))
-          .map((d) => d.replaceFirst(RegExp(r'^\[JHS\]\s*', caseSensitive: false), '').trim())
+          .map((d) => d.replaceFirst(_jhsRegex, '').trim())
           .toList();
       final shsDocs = missingDocuments
           .where((d) => d.toUpperCase().startsWith('[SHS]'))
-          .map((d) => d.replaceFirst(RegExp(r'^\[SHS\]\s*', caseSensitive: false), '').trim())
+          .map((d) => d.replaceFirst(_shsRegex, '').trim())
           .toList();
       final otherDocs = missingDocuments
           .where((d) =>
