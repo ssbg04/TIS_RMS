@@ -502,6 +502,12 @@ Files backup/restore - mirror mode or zip -->
 - user detail modal -> redesign the three action buttons make it simple, dont use many colors
 - add send an email that their account was deactivated/activated, created -->
 
+<!-- # STUDENT SCREEN
+- optimize the cards like from "DASHBOARD SCREEN" ->  improve the components for low end android phones -->
+
+# USER MANAGEMENT SCREEN
+- make table column header title fixed on top when scroll down  
+
 --- 
 
 # DONT DO

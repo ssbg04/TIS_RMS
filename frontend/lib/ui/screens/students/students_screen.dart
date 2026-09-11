@@ -354,28 +354,34 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
 
   Widget _buildInlineMultiSelectHeader(List<StudentModel> allStudents) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final isMobileOrAndroid = MediaQuery.of(context).size.width < 800 ||
+        defaultTargetPlatform == TargetPlatform.android;
     final count = _selectedStudentIds.length;
     final allSelected = allStudents.isNotEmpty && count == allStudents.length;
 
-    return Container(
-      height: 52,
-      padding: const EdgeInsets.symmetric(horizontal: 8),
-      decoration: BoxDecoration(
-        color: isDark ? AppColors.darkSurfaceCard : AppColors.primaryGreen,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: isDark ? AppColors.darkBorder : Colors.transparent,
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.08),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
+    return RepaintBoundary(
+      child: Container(
+        height: 52,
+        padding: const EdgeInsets.symmetric(horizontal: 8),
+        decoration: BoxDecoration(
+          color: isDark ? AppColors.darkSurfaceCard : AppColors.primaryGreen,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: isDark ? AppColors.darkBorder : AppColors.primaryGreen,
+            width: 1.0,
           ),
-        ],
-      ),
-      child: Row(
-        children: [
+          boxShadow: isMobileOrAndroid
+              ? null
+              : [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.08),
+                    blurRadius: 8,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
+        ),
+        child: Row(
+          children: [
           IconButton(
             icon: const Icon(Icons.close, color: Colors.white),
             tooltip: 'Exit Selection',
@@ -435,6 +441,7 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
           const SizedBox(width: 4),
         ],
       ),
+    ),
     );
   }
 
@@ -1484,6 +1491,10 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
   }) {
     if (students.isEmpty) return _buildEmptyState(noSections: noSections);
 
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final isMobileOrAndroid = MediaQuery.of(context).size.width < 800 ||
+        defaultTargetPlatform == TargetPlatform.android;
+
     return RefreshIndicator(
       color: AppColors.primaryGreen,
       onRefresh: () async {
@@ -1495,14 +1506,13 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
         await ref.read(studentPageProvider.future);
       },
       child: ListView.separated(
-          physics: const AlwaysScrollableScrollPhysics(),
-          padding: const EdgeInsets.only(top: 14, bottom: 24),
-          itemCount: students.length,
-          separatorBuilder: (ctx, index) => const SizedBox(height: AppSizes.p12),
-          itemBuilder: (context, i) {
+        physics: const AlwaysScrollableScrollPhysics(),
+        padding: const EdgeInsets.only(top: 14, bottom: 24),
+        itemCount: students.length,
+        separatorBuilder: (ctx, index) => const SizedBox(height: AppSizes.p12),
+        itemBuilder: (context, i) {
           final s = students[i];
           final isSelected = _selectedStudentIds.contains(s.id);
-          final isDark = Theme.of(context).brightness == Brightness.dark;
           final baseCardColor =
               isDark ? AppColors.darkSurfaceCard : AppColors.surfaceWhite;
           final cardColor = (_showMultiSelect && isSelected)
@@ -1514,218 +1524,225 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
                 )
               : baseCardColor;
 
-          return GestureDetector(
-            onSecondaryTapDown: defaultTargetPlatform == TargetPlatform.windows
-                ? (details) => _showStudentContextMenu(
-                      context,
-                      details.globalPosition,
-                      s,
-                    )
-                : null,
-            child: InkWell(
-              onTap: () {
-                if (_showMultiSelect || _selectedStudentIds.isNotEmpty) {
-                  _updateSelection(() {
-                    if (_selectedStudentIds.contains(s.id)) {
-                      _selectedStudentIds.remove(s.id);
-                    } else {
-                      _selectedStudentIds.add(s.id);
-                    }
-                  });
-                } else {
-                  _viewProfile(s);
-                }
-              },
-              onLongPress: defaultTargetPlatform != TargetPlatform.windows &&
-                      widget.userRole != 'teacher'
-                  ? () {
-                      _updateSelection(() {
-                        _showMultiSelect = true;
-                        if (!_selectedStudentIds.contains(s.id)) {
-                          _selectedStudentIds.add(s.id);
-                        }
-                      });
-                      ref.read(studentMultiSelectProvider.notifier).state = true;
-                    }
+          return RepaintBoundary(
+            child: GestureDetector(
+              onSecondaryTapDown: defaultTargetPlatform == TargetPlatform.windows
+                  ? (details) => _showStudentContextMenu(
+                        context,
+                        details.globalPosition,
+                        s,
+                      )
                   : null,
-              borderRadius: BorderRadius.circular(AppSizes.radiusLarge),
-              child: Container(
-                padding: const EdgeInsets.all(AppSizes.p16),
-                decoration: BoxDecoration(
-                  color: cardColor,
-                  borderRadius: BorderRadius.circular(AppSizes.radiusLarge),
-                      border: Border.all(
-                        color: (_showMultiSelect && isSelected)
-                            ? AppColors.primaryGreen
-                            : (isDark ? AppColors.darkBorder : Colors.transparent),
-                        width: (_showMultiSelect && isSelected) ? 1.5 : 1,
-                      ),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withValues(alpha: 0.04),
-                          blurRadius: 8,
-                          offset: const Offset(0, 2),
-                        ),
-                      ],
-                    ),
-                    child: Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        if (widget.userRole != 'teacher' && _showMultiSelect) ...[
-                          Checkbox(
-                            activeColor: AppColors.primaryGreen,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(4),
-                            ),
-                            value: isSelected,
-                            onChanged: (val) {
-                              _updateSelection(() {
-                                if (val == true) {
-                                  _selectedStudentIds.add(s.id);
-                                } else {
-                                  _selectedStudentIds.remove(s.id);
-                                }
-                              });
-                            },
-                          ),
-                          const SizedBox(width: 4),
-                        ],
-                  // Avatar
-                  Padding(
-                    padding: const EdgeInsets.only(top: 4.0),
-                    child: CircleAvatar(
-                      radius: 22,
-                      backgroundColor: AppColors.primaryGreen.withValues(
-                        alpha: 0.1,
-                      ),
-                      child: Text(
-                        '${s.firstName.isNotEmpty ? s.firstName[0] : ''}${s.lastName.isNotEmpty ? s.lastName[0] : ''}',
-                        style: const TextStyle(
-                          color: AppColors.primaryGreen,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 16,
-                        ),
-                      ),
-                    ),
+              child: InkWell(
+                onTap: () {
+                  if (_showMultiSelect || _selectedStudentIds.isNotEmpty) {
+                    _updateSelection(() {
+                      if (_selectedStudentIds.contains(s.id)) {
+                        _selectedStudentIds.remove(s.id);
+                      } else {
+                        _selectedStudentIds.add(s.id);
+                      }
+                    });
+                  } else {
+                    _viewProfile(s);
+                  }
+                },
+                onLongPress: defaultTargetPlatform != TargetPlatform.windows &&
+                        widget.userRole != 'teacher'
+                    ? () {
+                        _updateSelection(() {
+                          _showMultiSelect = true;
+                          if (!_selectedStudentIds.contains(s.id)) {
+                            _selectedStudentIds.add(s.id);
+                          }
+                        });
+                        ref.read(studentMultiSelectProvider.notifier).state = true;
+                      }
+                    : null,
+                borderRadius: BorderRadius.circular(AppSizes.radiusLarge),
+                child: Container(
+                  padding: EdgeInsets.symmetric(
+                    horizontal: isMobileOrAndroid ? 14 : AppSizes.p16,
+                    vertical: isMobileOrAndroid ? 12 : AppSizes.p16,
                   ),
-                  const SizedBox(width: AppSizes.p16),
+                  decoration: BoxDecoration(
+                    color: cardColor,
+                    borderRadius: BorderRadius.circular(AppSizes.radiusLarge),
+                    border: Border.all(
+                      color: (_showMultiSelect && isSelected)
+                          ? AppColors.primaryGreen
+                          : (isDark ? AppColors.darkBorder : AppColors.borderLight),
+                      width: (_showMultiSelect && isSelected) ? 1.5 : 1.0,
+                    ),
+                    boxShadow: isMobileOrAndroid
+                        ? null
+                        : [
+                            BoxShadow(
+                              color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.04),
+                              blurRadius: 8,
+                              offset: const Offset(0, 2),
+                            ),
+                          ],
+                  ),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      if (widget.userRole != 'teacher' && _showMultiSelect) ...[
+                        Checkbox(
+                          activeColor: AppColors.primaryGreen,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                          value: isSelected,
+                          onChanged: (val) {
+                            _updateSelection(() {
+                              if (val == true) {
+                                _selectedStudentIds.add(s.id);
+                              } else {
+                                _selectedStudentIds.remove(s.id);
+                              }
+                            });
+                          },
+                        ),
+                        const SizedBox(width: 4),
+                      ],
+                      // Avatar
+                      Padding(
+                        padding: EdgeInsets.only(top: isMobileOrAndroid ? 2.0 : 4.0),
+                        child: CircleAvatar(
+                          radius: isMobileOrAndroid ? 20 : 22,
+                          backgroundColor: AppColors.primaryGreen.withValues(
+                            alpha: 0.1,
+                          ),
+                          child: Text(
+                            '${s.firstName.isNotEmpty ? s.firstName[0] : ''}${s.lastName.isNotEmpty ? s.lastName[0] : ''}',
+                            style: TextStyle(
+                              color: AppColors.primaryGreen,
+                              fontWeight: FontWeight.bold,
+                              fontSize: isMobileOrAndroid ? 14 : 16,
+                            ),
+                          ),
+                        ),
+                      ),
+                      SizedBox(width: isMobileOrAndroid ? 12 : AppSizes.p16),
 
-                  // Info Column
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
+                      // Info Column
+                      Expanded(
+                        child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Expanded(
-                              child: Text(
-                                s.listDisplayName,
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: TextStyle(
-                                  fontSize: 15,
-                                  fontWeight: FontWeight.bold,
-                                  color: Theme.of(context).brightness == Brightness.dark ? AppColors.darkTextPrimary : AppColors.textPrimary,
-                                ),
-                              ),
-                            ),
-                            const SizedBox(width: 8),
-                            if (s.is4ps) ...[
-                              Container(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 6,
-                                  vertical: 2,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: (Theme.of(context).brightness ==
-                                              Brightness.dark
-                                          ? const Color(0xFF8B8ED8)
-                                          : AppColors.fourPs)
-                                      .withValues(
-                                    alpha: Theme.of(context).brightness ==
-                                            Brightness.dark
-                                        ? 0.2
-                                        : 0.08,
-                                  ),
-                                  borderRadius: BorderRadius.circular(4),
-                                  border: Border.all(
-                                    color: (Theme.of(context).brightness ==
-                                                Brightness.dark
-                                            ? const Color(0xFF8B8ED8)
-                                            : AppColors.fourPs)
-                                        .withValues(
-                                      alpha: Theme.of(context).brightness ==
-                                              Brightness.dark
-                                          ? 0.6
-                                          : 0.35,
+                            Row(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Expanded(
+                                  child: Text(
+                                    s.listDisplayName,
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: TextStyle(
+                                      fontSize: 15,
+                                      fontWeight: FontWeight.bold,
+                                      color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
                                     ),
                                   ),
                                 ),
-                                child: Text(
-                                  '4Ps',
-                                  style: TextStyle(
-                                    color: Theme.of(context).brightness ==
-                                            Brightness.dark
-                                        ? const Color(0xFF8B8ED8)
-                                        : AppColors.fourPs,
-                                    fontSize: 10,
-                                    fontWeight: FontWeight.bold,
+                                const SizedBox(width: 8),
+                                if (s.is4ps) ...[
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 6,
+                                      vertical: 2,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: (isDark
+                                              ? const Color(0xFF8B8ED8)
+                                              : AppColors.fourPs)
+                                          .withValues(
+                                        alpha: isDark ? 0.2 : 0.08,
+                                      ),
+                                      borderRadius: BorderRadius.circular(4),
+                                      border: Border.all(
+                                        color: (isDark
+                                                    ? const Color(0xFF8B8ED8)
+                                                    : AppColors.fourPs)
+                                            .withValues(
+                                          alpha: isDark ? 0.6 : 0.35,
+                                        ),
+                                      ),
+                                    ),
+                                    child: Text(
+                                      '4Ps',
+                                      style: TextStyle(
+                                        color: isDark
+                                            ? const Color(0xFF8B8ED8)
+                                            : AppColors.fourPs,
+                                        fontSize: 10,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 8),
+                                ],
+                                _StatusChip(status: s.status),
+                              ],
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              'LRN: ${s.lrn}  ·  ${s.gradeSection}',
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
+                              ),
+                            ),
+                            Padding(
+                              padding: EdgeInsets.symmetric(vertical: isMobileOrAndroid ? 8 : 10),
+                              child: Divider(
+                                height: 1,
+                                color: isDark ? AppColors.darkBorder : Colors.grey.shade200,
+                              ),
+                            ),
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              crossAxisAlignment: CrossAxisAlignment.center,
+                              children: [
+                                Flexible(
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Icon(
+                                        Icons.folder_outlined,
+                                        size: 14,
+                                        color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
+                                      ),
+                                      const SizedBox(width: 4),
+                                      Flexible(
+                                        child: _DocumentProgressBar(
+                                          missingCount: s.missingDocumentsCount,
+                                          totalCount: s.totalDocumentsCount,
+                                          missingDocuments: s.missingDocuments,
+                                        ),
+                                      ),
+                                    ],
                                   ),
                                 ),
-                              ),
-                              const SizedBox(width: 8),
-                            ],
-                            _StatusChip(status: s.status),
-                          ],
-                        ),
-                        const SizedBox(height: 2),
-                        Text(
-                          'LRN: ${s.lrn}  ·  ${s.gradeSection}',
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: Theme.of(context).brightness == Brightness.dark ? AppColors.darkTextSecondary : AppColors.textSecondary,
-                          ),
-                        ),
-                        Padding(
-                          padding: const EdgeInsets.symmetric(vertical: 10),
-                          child: Divider(height: 1, color: Theme.of(context).brightness == Brightness.dark ? AppColors.darkBorder : Colors.grey.shade200),
-                        ),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          crossAxisAlignment: CrossAxisAlignment.center,
-                          children: [
-                            Row(
-                              children: [
-                                Icon(
-                                  Icons.folder_outlined,
-                                  size: 14,
-                                  color: Theme.of(context).brightness == Brightness.dark ? AppColors.darkTextSecondary : AppColors.textSecondary,
-                                ),
-                                const SizedBox(width: 4),
-                                _DocumentProgressBar(
-                                  missingCount: s.missingDocumentsCount,
-                                  totalCount: s.totalDocumentsCount,
-                                  missingDocuments: s.missingDocuments,
+                                const SizedBox(width: 8),
+                                _ActionButtons(
+                                  onOpenDocuments: () => _openDocumentsFolder(s),
                                 ),
                               ],
                             ),
-                            _ActionButtons(
-                              onOpenDocuments: () => _openDocumentsFolder(s),
-                            ),
                           ],
                         ),
-                      ],
-                    ),
+                      ),
+                    ],
                   ),
-                ],
+                ),
               ),
             ),
-          ),
-        );
-      },
+          );
+        },
       ),
     );
   }
@@ -1882,11 +1899,62 @@ class _DocumentProgressBar extends StatelessWidget {
   Widget build(BuildContext context) {
     // Calculate how many documents are completed
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final isMobileOrAndroid = MediaQuery.of(context).size.width < 800 ||
+        defaultTargetPlatform == TargetPlatform.android;
     final int completedCount = (totalCount - missingCount).clamp(0, totalCount);
 
     // Prevent division by zero if totalCount is 0 (e.g. no requirements)
     final double progress = totalCount == 0 ? 1.0 : completedCount / totalCount;
     final bool isComplete = missingCount == 0 && totalCount > 0;
+
+    final content = Column(
+      mainAxisAlignment: MainAxisAlignment.center,
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              '$completedCount / $totalCount Docs',
+              style: TextStyle(
+                fontSize: isMobileOrAndroid ? 11.5 : 12,
+                fontWeight: FontWeight.bold,
+                color: isComplete
+                    ? AppColors.primaryGreen
+                    : (isDark ? AppColors.darkTextPrimary : AppColors.textPrimary),
+              ),
+            ),
+            if (isComplete) ...[
+              const SizedBox(width: 4),
+              const Icon(
+                Icons.check_circle,
+                color: AppColors.primaryGreen,
+                size: 14,
+              ),
+            ],
+          ],
+        ),
+        SizedBox(height: isMobileOrAndroid ? 4 : 6),
+        SizedBox(
+          width: isMobileOrAndroid ? 80 : 100, // Compact on mobile to avoid overflow
+          child: LinearProgressIndicator(
+            value: progress,
+            backgroundColor: isDark ? AppColors.darkBorder : Colors.grey.shade200,
+            color: isComplete
+                ? AppColors.primaryGreen
+                : Colors.orange, // Orange indicates pending docs
+            minHeight: isMobileOrAndroid ? 5 : 6,
+            borderRadius: BorderRadius.circular(AppSizes.radiusCircular),
+          ),
+        ),
+      ],
+    );
+
+    // On mobile / Android, bypass heavy Tooltip parsing and gesture recognizers
+    if (isMobileOrAndroid) {
+      return content;
+    }
 
     InlineSpan richMessage;
     if (!isComplete && missingDocuments.isNotEmpty) {
@@ -2047,49 +2115,7 @@ class _DocumentProgressBar extends StatelessWidget {
         ],
       ),
       preferBelow: false,
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                '$completedCount / $totalCount Docs',
-                style: TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.bold,
-                  color: isComplete
-                      ? AppColors.primaryGreen
-                      : (isDark ? AppColors.darkTextPrimary : AppColors.textPrimary),
-                ),
-              ),
-              if (isComplete) ...[
-                const SizedBox(width: 4),
-                const Icon(
-                  Icons.check_circle,
-                  color: AppColors.primaryGreen,
-                  size: 14,
-                ),
-              ],
-            ],
-          ),
-          const SizedBox(height: 6),
-          SizedBox(
-            width: 100, // Fixed width to keep column formatting tidy
-            child: LinearProgressIndicator(
-              value: progress,
-              backgroundColor: isDark ? AppColors.darkBorder : Colors.grey.shade200,
-              color: isComplete
-                  ? AppColors.primaryGreen
-                  : Colors.orange, // Orange indicates pending docs
-              minHeight: 6,
-              borderRadius: BorderRadius.circular(AppSizes.radiusCircular),
-            ),
-          ),
-        ],
-      ),
+      child: content,
     );
   }
 }
@@ -2102,8 +2128,11 @@ class _ActionButtons extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return IconButton(
-      icon: const Icon(Icons.folder_open, color: Colors.orange, size: 22),
+      icon: const Icon(Icons.folder_open, color: Colors.orange, size: 20),
       tooltip: 'Open Folder',
+      padding: EdgeInsets.zero,
+      constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
+      splashRadius: 20,
       onPressed: onOpenDocuments,
     );
   }
