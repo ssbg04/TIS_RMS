@@ -505,8 +505,8 @@ Files backup/restore - mirror mode or zip -->
 <!-- # STUDENT SCREEN
 - optimize the cards like from "DASHBOARD SCREEN" ->  improve the components for low end android phones -->
 
-# USER MANAGEMENT SCREEN
-- make table column header title fixed on top when scroll down  
+<!-- # USER MANAGEMENT SCREEN
+- make table column header title fixed on top when scroll down -->  
 
 --- 
 

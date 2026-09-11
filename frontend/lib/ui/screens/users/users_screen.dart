@@ -22,6 +22,7 @@ import '../../shared/modals/custom_modal.dart';
 import '../../../core/services/sound_service.dart';
 import '../../../core/services/haptic_service.dart';
 import 'package:wolt_modal_sheet/wolt_modal_sheet.dart';
+import 'package:data_table_2/data_table_2.dart';
 
 class UsersScreen extends ConsumerStatefulWidget {
   const UsersScreen({super.key});
@@ -879,116 +880,133 @@ class _UsersScreenState extends ConsumerState<UsersScreen> {
       ),
       child: ClipRRect(
         borderRadius: BorderRadius.circular(AppSizes.radiusLarge),
-        child: SingleChildScrollView(
-          child: DataTable(
-            showCheckboxColumn: false,
-            headingRowColor: WidgetStateProperty.all(
-              isDark
-                  ? Colors.white.withValues(alpha: 0.03)
-                  : AppColors.primaryGreen.withValues(alpha: 0.05),
+        child: DataTable2(
+          fixedTopRows: 1,
+          minWidth: 900,
+          columnSpacing: 24,
+          horizontalMargin: 20,
+          headingRowHeight: 52,
+          dataRowHeight: 65,
+          showCheckboxColumn: false,
+          showBottomBorder: true,
+          isVerticalScrollBarVisible: true,
+          isHorizontalScrollBarVisible: true,
+          empty: Center(
+            child: Text(
+              'No users found.',
+              style: TextStyle(color: textSecondary),
             ),
-            headingTextStyle: TextStyle(
-              fontWeight: FontWeight.bold,
-              fontSize: 13,
-              color: textPrimary,
-            ),
-            columnSpacing: 24,
-            dataRowMaxHeight: 65,
-            dataRowMinHeight: 50,
-            showBottomBorder: true,
-            columns: const [
-              DataColumn(label: Text('Full Name')),
-              DataColumn(label: Text('Username')),
-              DataColumn(label: Text('Role')),
-              DataColumn(label: Text('Status')),
-              DataColumn(label: Text('Contact')),
-              DataColumn(
-                label: Align(
-                  alignment: Alignment.centerRight,
-                  child: Text('Action'),
-                ),
-              ),
-            ],
-            rows: users.isEmpty
-                ? [
-                    DataRow(
-                      cells: [
-                        DataCell(Text('No users found.', style: TextStyle(color: textSecondary))),
-                        const DataCell(Text('')),
-                        const DataCell(Text('')),
-                        const DataCell(Text('')),
-                        const DataCell(Text('')),
-                        const DataCell(Text('')),
-                      ],
-                    ),
-                  ]
-                : users
-                      .map(
-                        (user) => DataRow(
-                          onSelectChanged: (_) => _showUserDetailModal(user),
-                          cells: [
-                            DataCell(
-                              Row(
-                                children: [
-                                  CircleAvatar(
-                                    radius: 18,
-                                    backgroundColor: _roleColor(
-                                      user.role,
-                                    ).withValues(alpha: 0.15),
-                                    child: Text(
-                                      user.initials,
-                                      style: TextStyle(
-                                        fontSize: 12,
-                                        fontWeight: FontWeight.bold,
-                                        color: _roleColor(user.role),
-                                      ),
-                                    ),
-                                  ),
-                                  const SizedBox(width: 12),
-                                  Text(
-                                    user.fullName,
-                                    style: TextStyle(
-                                      fontWeight: FontWeight.w600,
-                                      fontSize: 14,
-                                      color: textPrimary,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                            DataCell(
-                              Text(
-                                '@${user.username}',
-                                style: TextStyle(
-                                  color: textSecondary,
-                                ),
-                              ),
-                            ),
-                            DataCell(_buildRoleChip(user.role)),
-                            DataCell(_buildStatusChip(user.isActive)),
-                            DataCell(
-                              Text(
-                                user.email ?? user.phone ?? '—',
-                                style: TextStyle(
-                                  color: textSecondary,
-                                  fontSize: 13,
-                                ),
-                              ),
-                            ),
-                            const DataCell(
-                              Align(
-                                alignment: Alignment.centerRight,
-                                child: Icon(
-                                  Icons.chevron_right,
-                                  color: Colors.grey,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      )
-                      .toList(),
           ),
+          headingRowColor: WidgetStateProperty.all(
+            isDark
+                ? Colors.white.withValues(alpha: 0.03)
+                : AppColors.primaryGreen.withValues(alpha: 0.05),
+          ),
+          headingTextStyle: TextStyle(
+            fontWeight: FontWeight.bold,
+            fontSize: 13,
+            color: textPrimary,
+          ),
+          columns: const [
+            DataColumn2(
+              size: ColumnSize.L,
+              label: Text('Full Name'),
+            ),
+            DataColumn2(
+              size: ColumnSize.M,
+              label: Text('Username'),
+            ),
+            DataColumn2(
+              size: ColumnSize.S,
+              label: Text('Role'),
+            ),
+            DataColumn2(
+              size: ColumnSize.S,
+              label: Text('Status'),
+            ),
+            DataColumn2(
+              size: ColumnSize.M,
+              label: Text('Contact'),
+            ),
+            DataColumn2(
+              fixedWidth: 80,
+              label: Align(
+                alignment: Alignment.centerRight,
+                child: Text('Action'),
+              ),
+            ),
+          ],
+          rows: users
+              .map(
+                (user) => DataRow(
+                  onSelectChanged: (_) => _showUserDetailModal(user),
+                  cells: [
+                    DataCell(
+                      Row(
+                        children: [
+                          CircleAvatar(
+                            radius: 18,
+                            backgroundColor: _roleColor(
+                              user.role,
+                            ).withValues(alpha: 0.15),
+                            child: Text(
+                              user.initials,
+                              style: TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.bold,
+                                color: _roleColor(user.role),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Flexible(
+                            child: Text(
+                              user.fullName,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                fontWeight: FontWeight.w600,
+                                fontSize: 14,
+                                color: textPrimary,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    DataCell(
+                      Text(
+                        '@${user.username}',
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          color: textSecondary,
+                        ),
+                      ),
+                    ),
+                    DataCell(_buildRoleChip(user.role)),
+                    DataCell(_buildStatusChip(user.isActive)),
+                    DataCell(
+                      Text(
+                        user.email ?? user.phone ?? '—',
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          color: textSecondary,
+                          fontSize: 13,
+                        ),
+                      ),
+                    ),
+                    const DataCell(
+                      Align(
+                        alignment: Alignment.centerRight,
+                        child: Icon(
+                          Icons.chevron_right,
+                          color: Colors.grey,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              )
+              .toList(),
         ),
       ),
     );
