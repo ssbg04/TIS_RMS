@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/utils/date_utils.dart';
@@ -37,6 +38,10 @@ class FileFolderCard extends StatefulWidget {
 }
 
 class _FileFolderCardState extends State<FileFolderCard> {
+  static final bool _isMobileOrAndroid =
+      defaultTargetPlatform == TargetPlatform.android ||
+      defaultTargetPlatform == TargetPlatform.iOS;
+
   bool get _isExcel => FileIconHelper.isExcel(
         widget.document.fileName,
         docType: widget.document.documentType,
@@ -217,11 +222,12 @@ class _FileFolderCardState extends State<FileFolderCard> {
   }
 
   // ════════════════════════════════════════
-  // GRID CARD — Compact: Filename and Icon only, no chips or 3 dots
+  // GRID CARD — 2-section design optimized for mobile & desktop
   // ════════════════════════════════════════
   Widget _buildGridCard(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final baseCardColor = isDark ? AppColors.darkSurfaceCard : AppColors.surfaceWhite;
+    final baseCardColor =
+        isDark ? AppColors.darkSurfaceCard : AppColors.surfaceWhite;
     final cardColor = widget.isSelected
         ? Color.alphaBlend(
             AppColors.primaryGreen.withValues(alpha: isDark ? 0.22 : 0.12),
@@ -229,47 +235,181 @@ class _FileFolderCardState extends State<FileFolderCard> {
           )
         : baseCardColor;
 
-    return GestureDetector(
-      // Desktop: right-click opens context menu
-      onSecondaryTapDown: (details) =>
-          _showContextMenu(context, details.globalPosition),
-      // Mobile: long press opens context menu
-      onLongPressStart: (details) =>
-          _showContextMenu(context, details.globalPosition),
-      child: Material(
-        color: cardColor,
-        borderRadius: BorderRadius.circular(12),
-        child: InkWell(
-          onTap: widget.isMultiSelectMode
-              ? () => widget.onSelectedChanged?.call(!widget.isSelected)
-              : widget.onTap,
+    return RepaintBoundary(
+      child: GestureDetector(
+        // Desktop: right-click opens context menu
+        onSecondaryTapDown: (details) =>
+            _showContextMenu(context, details.globalPosition),
+        // Mobile: long press opens context menu
+        onLongPressStart: (details) =>
+            _showContextMenu(context, details.globalPosition),
+        child: Material(
+          color: cardColor,
           borderRadius: BorderRadius.circular(12),
-          child: Container(
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(
-                color: widget.isSelected
-                    ? AppColors.primaryGreen
-                    : (isDark ? AppColors.darkBorder : Colors.grey.shade200),
-                width: widget.isSelected ? 1.5 : 1.0,
-              ),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.03),
-                  blurRadius: 6,
-                  offset: const Offset(0, 2),
+          child: InkWell(
+            onTap: widget.isMultiSelectMode
+                ? () => widget.onSelectedChanged?.call(!widget.isSelected)
+                : widget.onTap,
+            borderRadius: BorderRadius.circular(12),
+            child: Container(
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                  color: widget.isSelected
+                      ? AppColors.primaryGreen
+                      : (isDark ? AppColors.darkBorder : Colors.grey.shade200),
+                  width: widget.isSelected ? 1.5 : 1.0,
                 ),
-              ],
+                boxShadow: _isMobileOrAndroid
+                    ? null
+                    : [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.03),
+                          blurRadius: 6,
+                          offset: const Offset(0, 2),
+                        ),
+                      ],
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  // Top section: File preview canvas with icon & quick actions
+                  Expanded(
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: _fileColor.withValues(
+                          alpha: isDark ? 0.09 : 0.06,
+                        ),
+                        borderRadius: const BorderRadius.vertical(
+                          top: Radius.circular(11),
+                        ),
+                      ),
+                      child: Stack(
+                        alignment: Alignment.center,
+                        children: [
+                          Icon(_fileIcon, size: 36, color: _fileColor),
+                          if (widget.isMultiSelectMode)
+                            Positioned(
+                              top: 4,
+                              left: 4,
+                              child: SizedBox(
+                                width: 22,
+                                height: 22,
+                                child: Checkbox(
+                                  value: widget.isSelected,
+                                  activeColor: AppColors.primaryGreen,
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(4),
+                                  ),
+                                  materialTapTargetSize:
+                                      MaterialTapTargetSize.shrinkWrap,
+                                  onChanged: widget.onSelectedChanged,
+                                ),
+                              ),
+                            )
+                          else
+                            Positioned(
+                              top: 2,
+                              right: 2,
+                              child: SizedBox(
+                                width: 26,
+                                height: 26,
+                                child: PopupMenuButton<String>(
+                                  padding: EdgeInsets.zero,
+                                  icon: Icon(
+                                    Icons.more_vert,
+                                    size: 16,
+                                    color: isDark
+                                        ? AppColors.darkTextSecondary
+                                        : AppColors.textSecondary,
+                                  ),
+                                  onSelected: widget.onActionSelected,
+                                  itemBuilder: (_) => _buildMenuItems(),
+                                ),
+                              ),
+                            ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  // Bottom section: File name & metadata
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(8, 6, 8, 8),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          widget.document.fileName,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            fontWeight: FontWeight.w600,
+                            fontSize: 12,
+                            height: 1.25,
+                            color: isDark
+                                ? AppColors.darkTextPrimary
+                                : AppColors.textPrimary,
+                          ),
+                        ),
+                        const SizedBox(height: 3),
+                        Text(
+                          '${FileIconHelper.formatFileSize(widget.document.fileSize ?? widget.document.size)} • ${formatShortDate(widget.document.createdAt)}',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            fontSize: 10,
+                            color: isDark
+                                ? AppColors.darkTextMuted
+                                : AppColors.textMuted,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
             ),
-            child: Stack(
-              children: [
-                if (widget.isMultiSelectMode)
-                  Positioned(
-                    top: 4,
-                    left: 4,
-                    child: SizedBox(
-                      width: 22,
-                      height: 22,
+          ),
+        ),
+      ),
+    );
+  }
+
+  // ════════════════════════════════════════
+  // LIST ROW — Premium card row with 40x40 badge & combined metadata
+  // ════════════════════════════════════════
+  Widget _buildListRow(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final baseRowColor =
+        isDark ? AppColors.darkSurfaceCard : AppColors.surfaceWhite;
+    final rowColor = widget.isSelected
+        ? Color.alphaBlend(
+            AppColors.primaryGreen.withValues(alpha: isDark ? 0.22 : 0.12),
+            baseRowColor,
+          )
+        : null;
+
+    return RepaintBoundary(
+      child: GestureDetector(
+        onSecondaryTapDown: (details) =>
+            _showContextMenu(context, details.globalPosition),
+        onLongPressStart: (details) =>
+            _showContextMenu(context, details.globalPosition),
+        child: Material(
+          color: rowColor ?? Colors.transparent,
+          child: InkWell(
+            onTap: widget.isMultiSelectMode
+                ? () => widget.onSelectedChanged?.call(!widget.isSelected)
+                : widget.onTap,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+              child: Row(
+                children: [
+                  if (widget.isMultiSelectMode) ...[
+                    SizedBox(
+                      width: 24,
+                      height: 24,
                       child: Checkbox(
                         value: widget.isSelected,
                         activeColor: AppColors.primaryGreen,
@@ -280,163 +420,116 @@ class _FileFolderCardState extends State<FileFolderCard> {
                         onChanged: widget.onSelectedChanged,
                       ),
                     ),
+                    const SizedBox(width: 8),
+                  ],
+                  // Premium 40x40 tinted badge
+                  Container(
+                    width: 40,
+                    height: 40,
+                    decoration: BoxDecoration(
+                      color: _fileColor.withValues(
+                        alpha: isDark ? 0.16 : 0.10,
+                      ),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Center(
+                      child: Icon(_fileIcon, size: 22, color: _fileColor),
+                    ),
                   ),
-                Center(
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
-                    child: FittedBox(
-                      fit: BoxFit.scaleDown,
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(_fileIcon, size: 40, color: _fileColor),
-                          const SizedBox(height: 6),
-                          Text(
-                            widget.document.fileName,
-                            maxLines: 2,
-                            overflow: TextOverflow.ellipsis,
-                            textAlign: TextAlign.center,
-                            style: TextStyle(
-                              fontWeight: FontWeight.w600,
-                              fontSize: 12,
-                              height: 1.2,
-                              color: isDark
-                                  ? AppColors.darkTextPrimary
-                                  : AppColors.textPrimary,
-                            ),
+                  const SizedBox(width: 12),
+
+                  // File name & Combined metadata subtitle
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          widget.document.fileName,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            fontWeight: FontWeight.w600,
+                            fontSize: 13,
+                            color: isDark
+                                ? AppColors.darkTextPrimary
+                                : AppColors.textPrimary,
                           ),
-                        ],
-                      ),
+                        ),
+                        const SizedBox(height: 3),
+                        Row(
+                          children: [
+                            Flexible(
+                              child: Text(
+                                '${FileIconHelper.formatFileSize(widget.document.fileSize ?? widget.document.size)} • ${formatShortDate(widget.document.createdAt)}',
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  color: isDark
+                                      ? AppColors.darkTextSecondary
+                                      : AppColors.textSecondary,
+                                ),
+                              ),
+                            ),
+                            if (widget.document.documentType != null &&
+                                widget.document.documentType!.isNotEmpty) ...[
+                              const SizedBox(width: 6),
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 5,
+                                  vertical: 1,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: isDark
+                                      ? Colors.white10
+                                      : Colors.grey.shade100,
+                                  borderRadius: BorderRadius.circular(4),
+                                  border: Border.all(
+                                    color: isDark
+                                        ? AppColors.darkBorder
+                                        : Colors.grey.shade300,
+                                    width: 0.5,
+                                  ),
+                                ),
+                                child: Text(
+                                  widget.document.documentType!,
+                                  style: TextStyle(
+                                    fontSize: 9.5,
+                                    fontWeight: FontWeight.w500,
+                                    color: isDark
+                                        ? AppColors.darkTextMuted
+                                        : AppColors.textMuted,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ],
+                        ),
+                      ],
                     ),
                   ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
 
-  // ════════════════════════════════════════
-  // LIST ROW — Matches folder style: Name, size below, date right, 3 dots
-  // ════════════════════════════════════════
-  Widget _buildListRow(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final baseRowColor = isDark ? AppColors.darkSurfaceCard : AppColors.surfaceWhite;
-    final rowColor = widget.isSelected
-        ? Color.alphaBlend(
-            AppColors.primaryGreen.withValues(alpha: isDark ? 0.22 : 0.12),
-            baseRowColor,
-          )
-        : null;
-
-    return GestureDetector(
-      onSecondaryTapDown: (details) =>
-          _showContextMenu(context, details.globalPosition),
-      onLongPressStart: (details) =>
-          _showContextMenu(context, details.globalPosition),
-      child: Material(
-        color: rowColor ?? Colors.transparent,
-        child: InkWell(
-          onTap: widget.isMultiSelectMode
-              ? () => widget.onSelectedChanged?.call(!widget.isSelected)
-              : widget.onTap,
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-            child: Row(
-              children: [
-                if (widget.isMultiSelectMode) ...[
-                  Checkbox(
-                    value: widget.isSelected,
-                    activeColor: AppColors.primaryGreen,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(4),
-                    ),
-                    onChanged: widget.onSelectedChanged,
-                  ),
-                  const SizedBox(width: 8),
-                ] else ...[
-                  const SizedBox(width: 4),
-                ],
-                // File icon
-                SizedBox(
-                  width: 32,
-                  height: 32,
-                  child: Center(
-                    child: Icon(_fileIcon, size: 24, color: _fileColor),
-                  ),
-                ),
-                const SizedBox(width: 12),
-
-                // File name & Size below
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(
-                        widget.document.fileName,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: TextStyle(
-                          fontWeight: FontWeight.w600,
-                          fontSize: 13,
-                          color: isDark
-                              ? AppColors.darkTextPrimary
-                              : AppColors.textPrimary,
-                        ),
-                      ),
-                      const SizedBox(height: 2),
-                      Text(
-                        FileIconHelper.formatFileSize(
-                          widget.document.fileSize ?? widget.document.size,
-                        ),
-                        style: TextStyle(
-                          fontSize: 11,
+                  // ⋮ Actions button
+                  if (!widget.isMultiSelectMode)
+                    SizedBox(
+                      width: 32,
+                      height: 32,
+                      child: PopupMenuButton<String>(
+                        padding: EdgeInsets.zero,
+                        icon: Icon(
+                          Icons.more_vert,
+                          size: 18,
                           color: isDark
                               ? AppColors.darkTextSecondary
                               : AppColors.textSecondary,
                         ),
+                        onSelected: widget.onActionSelected,
+                        itemBuilder: (_) => _buildMenuItems(),
                       ),
-                    ],
-                  ),
-                ),
-
-                const SizedBox(width: 12),
-
-                // Date on right side
-                Text(
-                  formatShortDate(widget.document.createdAt),
-                  style: TextStyle(
-                    fontSize: 11,
-                    color: isDark
-                        ? AppColors.darkTextMuted
-                        : AppColors.textMuted,
-                  ),
-                ),
-
-                const SizedBox(width: 4),
-
-                // ⋮ Actions — visible on desktop & mobile
-                SizedBox(
-                  width: 36,
-                  child: widget.isMultiSelectMode
-                      ? const SizedBox.shrink()
-                      : PopupMenuButton<String>(
-                          icon: Icon(
-                            Icons.more_vert,
-                            size: 18,
-                            color: isDark
-                                ? AppColors.darkTextSecondary
-                                : AppColors.textSecondary,
-                          ),
-                          onSelected: widget.onActionSelected,
-                          itemBuilder: (_) => _buildMenuItems(),
-                        ),
-                ),
-              ],
+                    ),
+                ],
+              ),
             ),
           ),
         ),

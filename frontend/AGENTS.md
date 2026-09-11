@@ -508,6 +508,12 @@ Files backup/restore - mirror mode or zip -->
 <!-- # USER MANAGEMENT SCREEN
 - make table column header title fixed on top when scroll down -->  
 
+# DOCUMENTS SCREEN
+- redesign the tab and its top header, make it simple and responsive, make the design similar to the multi select menu (done) -> improve the design for lower end android, add redesign the list view and its grid (done)
+
+# ARCHIVES SCREEN
+- redesign the tab and its top header, make it simple and responsive, make the design similar to the multi select menu (done) -> improve the design for lower end android, add redesign the list view and its grid (done)
+
 --- 
 
 # DONT DO

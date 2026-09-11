@@ -838,52 +838,11 @@ class _ArchivesScreenState extends ConsumerState<ArchivesScreen>
               else
                 _buildTopHeader(isMobile, isFolderOpened, query),
 
-              // ── TabBar ──
-              Container(
-                color: Theme.of(context).brightness == Brightness.dark ? AppColors.darkSurfaceCard : AppColors.surfaceWhite,
-                child: TabBar(
-                  controller: _tabController,
-                  onTap: (index) {
-                    if (index == _tabController.index &&
-                        index == 0 &&
-                        _openedFolderStudentId != null) {
-                      setState(() {
-                        _openedFolderStudentId = null;
-                        _openedFolderName = null;
-                      });
-                      ref
-                          .read(archiveDocumentQueryProvider.notifier)
-                          .setStudentId(null);
-                      _clearFilters();
-                      ref.invalidate(archiveDocumentPageProvider);
-                      ref.invalidate(archiveStudentFoldersProvider);
-                    }
-                  },
-                  labelColor: AppColors.primaryGreen,
-                  unselectedLabelColor: Theme.of(context).brightness == Brightness.dark ? AppColors.darkTextSecondary : AppColors.textSecondary,
-                  indicatorColor: AppColors.primaryGreen,
-                  indicatorWeight: 2.5,
-                  labelStyle: const TextStyle(
-                    fontWeight: FontWeight.w600,
-                    fontSize: 13,
-                  ),
-                  tabs: const [
-                    Tab(
-                      text: 'Student Folders',
-                    ),
-                    Tab(
-                      text: 'All Archived Docs',
-                    ),
-                  ],
-                ),
-              ),
-
-              Divider(height: 1, color: Theme.of(context).brightness == Brightness.dark ? AppColors.darkBorder : Colors.grey.shade200),
-
               // ── Tab Body ──
               Expanded(
                 child: TabBarView(
                   controller: _tabController,
+                  physics: const NeverScrollableScrollPhysics(),
                   children: [
                     // Tab 0: Student Folders
                     _buildFoldersTab(foldersAsync, docState, query, isMobile),
@@ -946,131 +905,397 @@ class _ArchivesScreenState extends ConsumerState<ArchivesScreen>
   }
 
   // ════════════════════════════════════════════════════════════════
-  // TOP HEADER
+  // TOP HEADER (Unified with Segmented Tabs, styled like Multi-Select)
   // ════════════════════════════════════════════════════════════════
+  void _closeFolder() {
+    setState(() {
+      _openedFolderStudentId = null;
+      _openedFolderName = null;
+      _isMultiSelectMode = false;
+      _selectedDocumentIds.clear();
+    });
+    ref.read(openedArchiveFolderProvider.notifier).setFolder(null);
+    ref.read(archiveDocumentQueryProvider.notifier).setStudentId(null);
+    _clearFilters();
+    ref.invalidate(archiveDocumentPageProvider);
+    ref.invalidate(archiveStudentFoldersProvider);
+  }
+
+  Widget _buildSegmentedTabSwitcher(
+    bool isDark,
+    bool isMobile,
+    bool isMobileOrAndroid,
+  ) {
+    final activeIndex = _tabController.index;
+    return Container(
+      height: 36,
+      padding: const EdgeInsets.all(3),
+      decoration: BoxDecoration(
+        color: isDark ? AppColors.darkSurface2 : const Color(0xFFF1F3F5),
+        borderRadius: BorderRadius.circular(9),
+        border: Border.all(
+          color: isDark ? AppColors.darkBorder : const Color(0xFFE9ECEF),
+          width: 1,
+        ),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          _buildSegmentedTabItem(
+            index: 0,
+            icon: Icons.folder_outlined,
+            activeIcon: Icons.folder_rounded,
+            label: isMobile ? 'Folders' : 'Student Folders',
+            isSelected: activeIndex == 0,
+            isDark: isDark,
+            isMobile: isMobile,
+            isMobileOrAndroid: isMobileOrAndroid,
+          ),
+          const SizedBox(width: 2),
+          _buildSegmentedTabItem(
+            index: 1,
+            icon: Icons.inventory_2_outlined,
+            activeIcon: Icons.inventory_2_rounded,
+            label: isMobile ? 'Archived' : 'All Archived Docs',
+            isSelected: activeIndex == 1,
+            isDark: isDark,
+            isMobile: isMobile,
+            isMobileOrAndroid: isMobileOrAndroid,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSegmentedTabItem({
+    required int index,
+    required IconData icon,
+    required IconData activeIcon,
+    required String label,
+    required bool isSelected,
+    required bool isDark,
+    required bool isMobile,
+    required bool isMobileOrAndroid,
+  }) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(7),
+        onTap: () {
+          if (_tabController.index == index) {
+            if (index == 0 && _openedFolderStudentId != null) {
+              _closeFolder();
+            }
+          } else {
+            _tabController.animateTo(index);
+          }
+        },
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 180),
+          curve: Curves.easeInOut,
+          padding: EdgeInsets.symmetric(
+            horizontal: isMobile ? 8 : 13,
+            vertical: 4,
+          ),
+          decoration: BoxDecoration(
+            color: isSelected ? AppColors.primaryGreen : Colors.transparent,
+            borderRadius: BorderRadius.circular(7),
+            boxShadow: isSelected && !isDark && !isMobileOrAndroid
+                ? [
+                    BoxShadow(
+                      color: AppColors.primaryGreen.withValues(alpha: 0.25),
+                      blurRadius: 4,
+                      offset: const Offset(0, 1),
+                    ),
+                  ]
+                : null,
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                isSelected ? activeIcon : icon,
+                size: 15,
+                color: isSelected
+                    ? Colors.white
+                    : (isDark
+                        ? AppColors.darkTextSecondary
+                        : AppColors.textSecondary),
+              ),
+              const SizedBox(width: 5),
+              Text(
+                label,
+                style: TextStyle(
+                  fontSize: isMobile ? 12 : 12.5,
+                  fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
+                  color: isSelected
+                      ? Colors.white
+                      : (isDark
+                          ? AppColors.darkTextSecondary
+                          : AppColors.textSecondary),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   Widget _buildTopHeader(
     bool isMobile,
     bool isFolderOpened,
     ArchiveDocumentQueryParams query,
   ) {
-    final hPad = isMobile ? 12.0 : 20.0;
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    return Container(
-      color: isDark ? AppColors.darkSurfaceCard : AppColors.surfaceWhite,
-      padding: EdgeInsets.symmetric(horizontal: hPad, vertical: 12),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: [
-          // Back button if folder opened
-          if (isFolderOpened) ...[
-            IconButton(
-              icon: const Icon(
-                Icons.arrow_back_ios_new_rounded,
-                size: 20,
-              ),
-              color: AppColors.primaryGreen,
-              tooltip: 'Back to Folders',
-              onPressed: () {
-                setState(() {
-                  _openedFolderStudentId = null;
-                  _openedFolderName = null;
-                  _isMultiSelectMode = false;
-                  _selectedDocumentIds.clear();
-                });
-                ref
-                    .read(archiveDocumentQueryProvider.notifier)
-                    .setStudentId(null);
-              },
-            ),
-            const SizedBox(width: 6),
-          ],
+    final isMobileOrAndroid =
+        isMobile || defaultTargetPlatform == TargetPlatform.android;
 
-          // Screen title
-          Expanded(
-            child: Text(
-              _openedFolderName ?? 'System Archive',
-              style: TextStyle(
-                fontSize: isMobile ? 17 : 21,
-                fontWeight: FontWeight.bold,
-                color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
-              ),
-              overflow: TextOverflow.ellipsis,
-            ),
+    return RepaintBoundary(
+      child: Container(
+        height: 52,
+        margin: EdgeInsets.symmetric(
+          horizontal: isMobile ? 12 : 20,
+          vertical: 8,
+        ),
+        padding: EdgeInsets.symmetric(horizontal: isMobile ? 8 : 12),
+        decoration: BoxDecoration(
+          color: isDark ? AppColors.darkSurfaceCard : Colors.white,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: isDark ? AppColors.darkBorder : AppColors.borderLight,
+            width: 1.0,
           ),
-          
-          if (!isFolderOpened) ...[
-            Tooltip(
-              richMessage: const TextSpan(
-                text: 'Search Archives ',
-                children: [
-                  TextSpan(
-                    text: '(Ctrl+F)',
-                    style: TextStyle(fontStyle: FontStyle.italic),
+          boxShadow: isMobileOrAndroid
+              ? null
+              : [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.05),
+                    blurRadius: 8,
+                    offset: const Offset(0, 2),
                   ),
                 ],
-              ),
-              child: IconButton(
-                icon: Icon(
-                  Icons.search, 
-                  size: 28, 
-                  color: isDark ? AppColors.darkTextPrimary : Colors.black87,
+        ),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            // Left side: Folder breadcrumb or Segmented Tabs
+            if (isFolderOpened) ...[
+              IconButton(
+                icon: const Icon(
+                  Icons.arrow_back_ios_new_rounded,
+                  size: 18,
                 ),
-                onPressed: () => _showSearchDialog(context),
+                color: AppColors.primaryGreen,
+                tooltip: 'Back to Folders',
+                padding: const EdgeInsets.all(8),
+                constraints: const BoxConstraints(minWidth: 34, minHeight: 34),
+                onPressed: _closeFolder,
               ),
-            ),
-            const SizedBox(width: 8),
-          ],
+              const SizedBox(width: 4),
+              Expanded(
+                child: Row(
+                  children: [
+                    if (!isMobile) ...[
+                      InkWell(
+                        onTap: _closeFolder,
+                        child: Text(
+                          'Student Folders',
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w500,
+                            color: isDark
+                                ? AppColors.darkTextSecondary
+                                : AppColors.textSecondary,
+                          ),
+                        ),
+                      ),
+                      Text(
+                        ' / ',
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w500,
+                          color: isDark
+                              ? AppColors.darkTextSecondary
+                              : AppColors.textSecondary,
+                        ),
+                      ),
+                    ],
+                    Flexible(
+                      child: Text(
+                        _openedFolderName!,
+                        style: TextStyle(
+                          fontSize: isMobile ? 14.5 : 15,
+                          fontWeight: FontWeight.bold,
+                          color: isDark
+                              ? AppColors.darkTextPrimary
+                              : AppColors.textPrimary,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ] else ...[
+              _buildSegmentedTabSwitcher(isDark, isMobile, isMobileOrAndroid),
+              const Spacer(),
+            ],
 
-          if (_tabController.index == 1 || isFolderOpened) ...[
-            Tooltip(
-              message: 'Filter Documents',
-              child: IconButton(
-                onPressed: _openFilterDialog,
-                icon: Badge(
-                  isLabelVisible: _getActiveFilterCount() > 0,
-                  label: Text(_getActiveFilterCount().toString()),
-                  child: Icon(
-                    Icons.tune_rounded,
+            // Action buttons
+            if (!isFolderOpened) ...[
+              Tooltip(
+                richMessage: (_searchController.text.isNotEmpty ||
+                        query.search.isNotEmpty)
+                    ? const TextSpan(text: 'Clear Search')
+                    : const TextSpan(
+                        text: 'Search Archives ',
+                        children: [
+                          TextSpan(
+                            text: '(Ctrl+F)',
+                            style: TextStyle(fontStyle: FontStyle.italic),
+                          ),
+                        ],
+                      ),
+                child: IconButton(
+                  icon: Icon(
+                    (_searchController.text.isNotEmpty ||
+                            query.search.isNotEmpty)
+                        ? Icons.close
+                        : Icons.search,
                     size: 20,
-                    color: _getActiveFilterCount() > 0
+                    color: isDark ? AppColors.darkTextPrimary : Colors.black87,
+                  ),
+                  padding: const EdgeInsets.all(8),
+                  constraints:
+                      const BoxConstraints(minWidth: 36, minHeight: 36),
+                  onPressed: () {
+                    if (_searchController.text.isNotEmpty ||
+                        query.search.isNotEmpty) {
+                      _searchController.clear();
+                      ref
+                          .read(archiveDocumentQueryProvider.notifier)
+                          .setSearch('');
+                      setState(() => _foldersPage = 1);
+                      ref.invalidate(archiveStudentFoldersProvider);
+                      ref.invalidate(archiveDocumentPageProvider);
+                    } else {
+                      _showSearchDialog(context);
+                    }
+                  },
+                ),
+              ),
+            ],
+
+            const SizedBox(width: 2),
+
+            // Multi-Select Toggle (Desktop non-Windows only, icon only)
+            if (!isMobile &&
+                defaultTargetPlatform != TargetPlatform.windows &&
+                widget.userRole != 'teacher' &&
+                (_tabController.index == 1 || isFolderOpened)) ...[
+              Tooltip(
+                message: _isMultiSelectMode
+                    ? 'Exit Multi-Select'
+                    : 'Multi-Select',
+                child: IconButton(
+                  style: IconButton.styleFrom(
+                    backgroundColor: Colors.transparent,
+                    side: BorderSide.none,
+                    shadowColor: Colors.transparent,
+                    padding: const EdgeInsets.all(8),
+                  ),
+                  constraints:
+                      const BoxConstraints(minWidth: 36, minHeight: 36),
+                  onPressed: () {
+                    setState(() {
+                      _isMultiSelectMode = !_isMultiSelectMode;
+                      if (!_isMultiSelectMode) _selectedDocumentIds.clear();
+                    });
+                  },
+                  icon: Icon(
+                    Icons.checklist_rounded,
+                    size: 20,
+                    color: _isMultiSelectMode
                         ? AppColors.primaryGreen
-                        : (isDark ? AppColors.darkTextPrimary : Colors.black87),
+                        : (isDark
+                            ? AppColors.darkTextPrimary
+                            : AppColors.textSecondary),
                   ),
                 ),
               ),
-            ),
-            const SizedBox(width: 4),
-          ],
+              const SizedBox(width: 2),
+            ],
 
-          if (defaultTargetPlatform != TargetPlatform.android && !isMobile && widget.userRole != 'teacher') ...[
+            // Filter button (Icon only, between Search and Print)
+            if (_tabController.index == 1 || isFolderOpened) ...[
+              Tooltip(
+                message: 'Filter Documents',
+                child: IconButton(
+                  padding: const EdgeInsets.all(8),
+                  constraints:
+                      const BoxConstraints(minWidth: 36, minHeight: 36),
+                  onPressed: _openFilterDialog,
+                  icon: Badge(
+                    isLabelVisible: _getActiveFilterCount() > 0,
+                    label: Text(_getActiveFilterCount().toString()),
+                    child: Icon(
+                      Icons.tune_rounded,
+                      size: 20,
+                      color: _getActiveFilterCount() > 0
+                          ? AppColors.primaryGreen
+                          : (isDark
+                              ? AppColors.darkTextPrimary
+                              : Colors.black87),
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 2),
+            ],
+
+            // Print List Button (Desktop non-mobile)
+            if (defaultTargetPlatform != TargetPlatform.android &&
+                !isMobile &&
+                widget.userRole != 'teacher') ...[
+              SizedBox(
+                height: 36,
+                child: _buildPrintQueueButton(compact: false),
+              ),
+              const SizedBox(width: 6),
+            ],
+
+            // Dropdown Menu
             SizedBox(
               height: 36,
-              child: _buildPrintQueueButton(compact: false),
+              width: 36,
+              child: _buildMoreOptionsDropdown(isMobile),
             ),
-            const SizedBox(width: 8),
+
+            if (!isMobile) ...[
+              const SizedBox(width: 2),
+              // Info Button for Download Guide (Desktop)
+              IconButton(
+                icon: const Icon(
+                  Icons.info_outline,
+                  color: AppColors.primaryGreen,
+                  size: 20,
+                ),
+                padding: const EdgeInsets.all(8),
+                constraints:
+                    const BoxConstraints(minWidth: 36, minHeight: 36),
+                tooltip: 'Download Guide',
+                onPressed: () {
+                  showDialog(
+                    context: context,
+                    builder: (_) => const DownloadGuideDialog(),
+                  );
+                },
+              ),
+            ],
           ],
-
-          // Dropdown Menu
-          SizedBox(height: 38, child: _buildMoreOptionsDropdown(isMobile)),
-
-          const SizedBox(width: 4),
-
-          // Info Button for Download Guide (Moved to right end)
-          IconButton(
-            icon: const Icon(
-              Icons.info_outline,
-              color: AppColors.primaryGreen,
-              size: 20,
-            ),
-            tooltip: 'Download Guide',
-            onPressed: () {
-              showDialog(
-                context: context,
-                builder: (_) => const DownloadGuideDialog(),
-              );
-            },
-          ),
-        ],
+        ),
       ),
     );
   }
@@ -1659,6 +1884,11 @@ class _ArchivesScreenState extends ConsumerState<ArchivesScreen>
             context: context,
             builder: (_) => const RecycleBinModal(),
           );
+        } else if (value == 'download_guide') {
+          showDialog(
+            context: context,
+            builder: (_) => const DownloadGuideDialog(),
+          );
         }
       },
       itemBuilder: (context) => [
@@ -1726,6 +1956,23 @@ class _ArchivesScreenState extends ConsumerState<ArchivesScreen>
             ],
           ),
         ),
+        if (isMobile) ...[
+          const PopupMenuDivider(),
+          const PopupMenuItem(
+            value: 'download_guide',
+            child: Row(
+              children: [
+                Icon(
+                  Icons.info_outline,
+                  size: 20,
+                  color: AppColors.primaryGreen,
+                ),
+                SizedBox(width: 8),
+                Text('Download Guide', style: TextStyle(fontSize: 14)),
+              ],
+            ),
+          ),
+        ],
       ],
     );
   }
@@ -1811,13 +2058,20 @@ class _ArchivesScreenState extends ConsumerState<ArchivesScreen>
           decoration: BoxDecoration(
             color: isDark ? AppColors.darkSurfaceCard : AppColors.surfaceWhite,
             borderRadius: BorderRadius.circular(12),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.04),
-                blurRadius: 10,
-                offset: const Offset(0, 2),
-              ),
-            ],
+            border: isMobile
+                ? Border.all(
+                    color: isDark ? AppColors.darkBorder : Colors.grey.shade200,
+                  )
+                : null,
+            boxShadow: isMobile
+                ? null
+                : [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.04),
+                      blurRadius: 10,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
           ),
           child: ClipRRect(
             borderRadius: BorderRadius.circular(12),
@@ -1836,86 +2090,100 @@ class _ArchivesScreenState extends ConsumerState<ArchivesScreen>
                   final studentName =
                       '${folder.studentLastName ?? ''}, ${folder.studentFirstName ?? ''}';
 
-                  return GestureDetector(
-                    onSecondaryTapDown: (details) => _showFolderContextMenu(
-                      details.globalPosition,
-                      folder,
-                    ),
-                    onLongPressStart: (details) => _showFolderContextMenu(
-                      details.globalPosition,
-                      folder,
-                    ),
-                    child: InkWell(
-                      onTap: () {
-                        if (folder.studentId != null) {
-                          setState(() {
-                            _openedFolderStudentId = folder.studentId;
-                            _openedFolderName = studentName;
-                          });
-                          ref
-                              .read(archiveDocumentQueryProvider.notifier)
-                              .setStudentId(folder.studentId);
-                        }
-                      },
-                      child: Padding(
-                        padding: EdgeInsets.symmetric(
-                          horizontal: isMobile ? 12 : 16,
-                          vertical: isMobile ? 10 : 12,
-                        ),
-                        child: Row(
-                          children: [
-                            const Icon(
-                              Icons.folder_special_rounded,
-                              size: 28,
-                              color: Colors.deepOrange,
-                            ),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Text(
-                                    studentName,
-                                    style: TextStyle(
-                                      fontWeight: FontWeight.bold,
-                                      fontSize: 13,
-                                      color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
+                  return RepaintBoundary(
+                    child: GestureDetector(
+                      onSecondaryTapDown: (details) => _showFolderContextMenu(
+                        details.globalPosition,
+                        folder,
+                      ),
+                      onLongPressStart: (details) => _showFolderContextMenu(
+                        details.globalPosition,
+                        folder,
+                      ),
+                      child: InkWell(
+                        onTap: () {
+                          if (folder.studentId != null) {
+                            setState(() {
+                              _openedFolderStudentId = folder.studentId;
+                              _openedFolderName = studentName;
+                            });
+                            ref
+                                .read(archiveDocumentQueryProvider.notifier)
+                                .setStudentId(folder.studentId);
+                          }
+                        },
+                        child: Padding(
+                          padding: EdgeInsets.symmetric(
+                            horizontal: isMobile ? 12 : 16,
+                            vertical: isMobile ? 10 : 12,
+                          ),
+                          child: Row(
+                            children: [
+                              Container(
+                                width: 40,
+                                height: 40,
+                                decoration: BoxDecoration(
+                                  color: Colors.deepOrange.withValues(
+                                    alpha: isDark ? 0.16 : 0.10,
+                                  ),
+                                  borderRadius: BorderRadius.circular(10),
+                                ),
+                                child: const Center(
+                                  child: Icon(
+                                    Icons.folder_special_rounded,
+                                    size: 22,
+                                    color: Colors.deepOrange,
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Text(
+                                      studentName,
+                                      style: TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 13,
+                                        color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
+                                      ),
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
                                     ),
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                  ),
-                                  const SizedBox(height: 3),
-                                  Row(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      Text(
-                                        '${folder.documentCount ?? 0} ${folder.documentCount == 1 ? "item" : "items"}',
-                                        style: TextStyle(
-                                          fontSize: 11,
-                                          color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
+                                    const SizedBox(height: 3),
+                                    Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        Text(
+                                          '${folder.documentCount ?? 0} ${folder.documentCount == 1 ? "item" : "items"}',
+                                          style: TextStyle(
+                                            fontSize: 11,
+                                            color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
+                                          ),
                                         ),
-                                      ),
-                                      const SizedBox(width: 8),
-                                      _buildStudentStatusChip(
-                                        folder.studentStatus ?? 'Archived',
-                                      ),
-                                    ],
-                                  ),
-                                ],
+                                        const SizedBox(width: 8),
+                                        _buildStudentStatusChip(
+                                          folder.studentStatus ?? 'Archived',
+                                        ),
+                                      ],
+                                    ),
+                                  ],
+                                ),
                               ),
-                            ),
-                            if (_isAdmin)
-                              _buildFolderActionMenu(
-                                folder.studentId!,
-                                studentName,
+                              if (_isAdmin)
+                                _buildFolderActionMenu(
+                                  folder.studentId!,
+                                  studentName,
+                                ),
+                              Icon(
+                                Icons.chevron_right,
+                                size: 18,
+                                color: isDark ? AppColors.darkTextMuted : AppColors.textMuted,
                               ),
-                            Icon(
-                              Icons.chevron_right,
-                              size: 18,
-                              color: isDark ? AppColors.darkTextMuted : AppColors.textMuted,
-                            ),
-                          ],
+                            ],
+                          ),
                         ),
                       ),
                     ),
@@ -1950,83 +2218,87 @@ class _ArchivesScreenState extends ConsumerState<ArchivesScreen>
                 final folder = paginatedFolders[i];
                 final studentName =
                     '${folder.studentLastName ?? ''}, ${folder.studentFirstName ?? ''}';
-                return GestureDetector(
-                  onSecondaryTapDown: (details) => _showFolderContextMenu(
-                    details.globalPosition,
-                    folder,
-                  ),
-                  onLongPressStart: (details) => _showFolderContextMenu(
-                    details.globalPosition,
-                    folder,
-                  ),
-                  child: InkWell(
-                    onTap: () {
-                      if (folder.studentId != null) {
-                        setState(() {
-                          _openedFolderStudentId = folder.studentId;
-                          _openedFolderName = studentName;
-                        });
-                        ref
-                            .read(archiveDocumentQueryProvider.notifier)
-                            .setStudentId(folder.studentId);
-                      }
-                    },
-                    borderRadius: BorderRadius.circular(12),
-                    child: Container(
-                      decoration: BoxDecoration(
-                        color: isDark ? AppColors.darkSurfaceCard : AppColors.surfaceWhite,
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: isDark ? AppColors.darkBorder : Colors.grey.shade200),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withValues(alpha: 0.03),
-                            blurRadius: 6,
-                            offset: const Offset(0, 2),
-                          ),
-                        ],
-                      ),
-                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 8),
-                      child: Center(
-                        child: FittedBox(
-                          fit: BoxFit.scaleDown,
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Icon(
-                                Icons.folder_special_rounded,
-                                size: isMobile ? 38 : 46,
-                                color: Colors.deepOrange,
-                              ),
-                              SizedBox(height: isMobile ? 6 : 8),
-                              Padding(
-                                padding: const EdgeInsets.symmetric(horizontal: 6),
-                                child: Text(
-                                  studentName,
-                                  textAlign: TextAlign.center,
-                                  maxLines: 2,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: TextStyle(
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: isMobile ? 12 : 13,
-                                    height: 1.2,
-                                    color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
+                return RepaintBoundary(
+                  child: GestureDetector(
+                    onSecondaryTapDown: (details) => _showFolderContextMenu(
+                      details.globalPosition,
+                      folder,
+                    ),
+                    onLongPressStart: (details) => _showFolderContextMenu(
+                      details.globalPosition,
+                      folder,
+                    ),
+                    child: InkWell(
+                      onTap: () {
+                        if (folder.studentId != null) {
+                          setState(() {
+                            _openedFolderStudentId = folder.studentId;
+                            _openedFolderName = studentName;
+                          });
+                          ref
+                              .read(archiveDocumentQueryProvider.notifier)
+                              .setStudentId(folder.studentId);
+                        }
+                      },
+                      borderRadius: BorderRadius.circular(12),
+                      child: Container(
+                        decoration: BoxDecoration(
+                          color: isDark ? AppColors.darkSurfaceCard : AppColors.surfaceWhite,
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: isDark ? AppColors.darkBorder : Colors.grey.shade200),
+                          boxShadow: isMobile
+                              ? null
+                              : [
+                                  BoxShadow(
+                                    color: Colors.black.withValues(alpha: 0.03),
+                                    blurRadius: 6,
+                                    offset: const Offset(0, 2),
+                                  ),
+                                ],
+                        ),
+                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 8),
+                        child: Center(
+                          child: FittedBox(
+                            fit: BoxFit.scaleDown,
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(
+                                  Icons.folder_special_rounded,
+                                  size: isMobile ? 38 : 46,
+                                  color: Colors.deepOrange,
+                                ),
+                                SizedBox(height: isMobile ? 6 : 8),
+                                Padding(
+                                  padding: const EdgeInsets.symmetric(horizontal: 6),
+                                  child: Text(
+                                    studentName,
+                                    textAlign: TextAlign.center,
+                                    maxLines: 2,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: isMobile ? 12 : 13,
+                                      height: 1.2,
+                                      color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
+                                    ),
                                   ),
                                 ),
-                              ),
-                              const SizedBox(height: 4),
-                              _buildStudentStatusChip(
-                                folder.studentStatus ?? 'Archived',
-                              ),
-                              const SizedBox(height: 2),
-                              Text(
-                                '${folder.documentCount ?? 0} docs',
-                                style: TextStyle(
-                                  fontSize: 11,
-                                  color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
+                                const SizedBox(height: 4),
+                                _buildStudentStatusChip(
+                                  folder.studentStatus ?? 'Archived',
                                 ),
-                              ),
-                            ],
+                                const SizedBox(height: 2),
+                                Text(
+                                  '${folder.documentCount ?? 0} docs',
+                                  style: TextStyle(
+                                    fontSize: 11,
+                                    color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
+                                  ),
+                                ),
+                              ],
+                            ),
                           ),
                         ),
                       ),
@@ -2244,13 +2516,20 @@ class _ArchivesScreenState extends ConsumerState<ArchivesScreen>
             decoration: BoxDecoration(
               color: isDark ? AppColors.darkSurfaceCard : AppColors.surfaceWhite,
               borderRadius: BorderRadius.circular(12),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.04),
-                  blurRadius: 10,
-                  offset: const Offset(0, 2),
-                ),
-              ],
+              border: isMobile
+                  ? Border.all(
+                      color: isDark ? AppColors.darkBorder : Colors.grey.shade200,
+                    )
+                  : null,
+              boxShadow: isMobile
+                  ? null
+                  : [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.04),
+                        blurRadius: 10,
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
             ),
             child: ClipRRect(
               borderRadius: BorderRadius.circular(12),
