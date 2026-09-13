@@ -103,6 +103,7 @@ class _WindowsSidebarLayoutState extends ConsumerState<WindowsSidebarLayout> {
         ref.invalidate(yearlyComparisonProvider);
         break;
       case 'Users':
+        ref.read(userSearchQueryProvider.notifier).state = '';
         ref.invalidate(usersProvider);
         break;
       case 'Settings':

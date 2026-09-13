@@ -135,6 +135,52 @@ class _AndroidBottomNavLayoutState extends ConsumerState<AndroidBottomNavLayout>
     );
   }
 
+  void _showUserSearchDialog(
+    BuildContext context,
+    WidgetRef ref,
+  ) {
+    final currentSearch = ref.read(userSearchQueryProvider);
+    final searchController = TextEditingController(text: currentSearch);
+    final searchFocusNode = FocusNode();
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      searchFocusNode.requestFocus();
+    });
+
+    showDialog(
+      context: context,
+      barrierColor: Colors.black54,
+      builder: (ctx) {
+        final isDark = Theme.of(ctx).brightness == Brightness.dark;
+        return Align(
+          alignment: Alignment.topCenter,
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(16, kToolbarHeight + 24, 16, 0),
+            child: Material(
+              color: isDark ? AppColors.darkSurfaceCard : Colors.white,
+              elevation: 4,
+              borderRadius: BorderRadius.circular(12),
+              child: AppSearchBar(
+                controller: searchController,
+                focusNode: searchFocusNode,
+                collapsible: false,
+                hint: 'Search by username, name, email or role...',
+                maxWidth: 600,
+                onChanged: (value) {
+                  ref.read(userSearchQueryProvider.notifier).state = value;
+                },
+                onSubmitted: (value) {
+                  Navigator.of(ctx).pop();
+                  ref.read(userSearchQueryProvider.notifier).state = value;
+                },
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
   void _initTabs() {
     final primaryTabsConfig = [
       {
@@ -240,6 +286,7 @@ class _AndroidBottomNavLayoutState extends ConsumerState<AndroidBottomNavLayout>
         ref.invalidate(yearlyComparisonProvider);
         break;
       case 'Users':
+        ref.read(userSearchQueryProvider.notifier).state = '';
         ref.invalidate(usersProvider);
         break;
       case 'Settings':
@@ -612,6 +659,43 @@ class _AndroidBottomNavLayoutState extends ConsumerState<AndroidBottomNavLayout>
                                   ),
                                 );
                               },
+                            ),
+                            const SizedBox(width: 4),
+                          ],
+                          if (activeTab == 'Users') ...[
+                            // 1. Search Icon
+                            Consumer(
+                              builder: (context, ref, _) {
+                                final query = ref.watch(userSearchQueryProvider);
+                                return Tooltip(
+                                  message: query.isNotEmpty
+                                      ? 'Clear Search'
+                                      : 'Search Users',
+                                  child: IconButton(
+                                    icon: Icon(
+                                      query.isNotEmpty
+                                          ? Icons.close
+                                          : Icons.search,
+                                      size: 22,
+                                    ),
+                                    onPressed: () {
+                                      if (query.isNotEmpty) {
+                                        ref.read(userSearchQueryProvider.notifier).state = '';
+                                      } else {
+                                        _showUserSearchDialog(context, ref);
+                                      }
+                                    },
+                                  ),
+                                );
+                              },
+                            ),
+                            // 2. Add User Button
+                            Tooltip(
+                              message: 'Add User',
+                              child: IconButton(
+                                icon: const Icon(Icons.person_add_rounded, size: 22),
+                                onPressed: () => AddEditUserModal.show(context),
+                              ),
                             ),
                             const SizedBox(width: 4),
                           ],

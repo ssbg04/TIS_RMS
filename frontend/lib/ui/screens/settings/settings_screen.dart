@@ -20,6 +20,7 @@ import '../../../domain/entities/setup_models.dart';
 import '../../providers/system_settings_provider.dart';
 import '../../providers/theme_provider.dart';
 import 'widgets/change_password_modal.dart';
+import '../../../core/services/haptic_service.dart';
 class TitleCaseTextInputFormatter extends TextInputFormatter {
   @override
   TextEditingValue formatEditUpdate(TextEditingValue oldValue, TextEditingValue newValue) {
@@ -83,6 +84,11 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   int? _lastUserId;
   bool _isProfileLoading = false;
   ProviderSubscription<String>? _tabListener;
+
+  // Collapsible sections state
+  bool _isProfileExpanded = false;
+  bool _isAcademicYearExpanded = false;
+  bool _isAutoEnrollExpanded = false;
 
   void _refreshAllSettingsData() {
     ref.invalidate(academicYearsListProvider);
@@ -417,61 +423,37 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                       ),
                       const SizedBox(height: AppSizes.p32),
 
-                      // ── Profile Card ──────────────────────────────────────
-                      _buildCard(
+                      // ── Profile Card (Collapsible) ──────────────────────────
+                      _buildCollapsibleCard(
+                        leading: const CircleAvatar(
+                          radius: 24,
+                          backgroundColor: AppColors.primaryGreen,
+                          child: Icon(
+                            Icons.person,
+                            size: 24,
+                            color: Colors.white,
+                          ),
+                        ),
+                        title: 'Profile Details',
+                        subtitle: 'Role: ${user.role.toUpperCase().replaceAll('_', ' ')}',
+                        isExpanded: _isProfileExpanded,
+                        onToggle: () => setState(() => _isProfileExpanded = !_isProfileExpanded),
+                        headerActions: [
+                          if (_isProfileLoading)
+                            const Padding(
+                              padding: EdgeInsets.only(right: 8),
+                              child: SizedBox(
+                                width: 20,
+                                height: 20,
+                                child: CircularProgressIndicator(strokeWidth: 2),
+                              ),
+                            ),
+                        ],
                         child: Form(
                           key: _profileFormKey,
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Row(
-                                children: [
-                                  const CircleAvatar(
-                                    radius: 30,
-                                    backgroundColor: AppColors.primaryGreen,
-                                    child: Icon(
-                                      Icons.person,
-                                      size: 30,
-                                      color: Colors.white,
-                                    ),
-                                  ),
-                                  const SizedBox(width: AppSizes.p16),
-                                  Expanded(
-                                    child: Column(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
-                                      children: [
-                                        const Text(
-                                          'Profile Details',
-                                          style: TextStyle(
-                                            fontSize: 18,
-                                            fontWeight: FontWeight.bold,
-                                          ),
-                                        ),
-                                        Text(
-                                          'Role: ${user.role.toUpperCase().replaceAll('_', ' ')}',
-                                          style: const TextStyle(
-                                            color: AppColors.primaryGreen,
-                                            fontWeight: FontWeight.w600,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                  if (_isProfileLoading)
-                                    const SizedBox(
-                                      width: 24,
-                                      height: 24,
-                                      child: CircularProgressIndicator(strokeWidth: 2),
-                                    )
-                                ],
-                              ),
-                              const Padding(
-                                padding: EdgeInsets.symmetric(
-                                  vertical: AppSizes.p24,
-                                ),
-                                child: Divider(),
-                              ),
                               CustomTextField(
                                 hintText: 'First Name',
                                 prefixIcon: Icons.badge_outlined,
@@ -592,6 +574,38 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                                   );
                                 }
                               ),
+                              if (_hasProfileChanges()) ...[
+                                const SizedBox(height: AppSizes.p16),
+                                Row(
+                                  mainAxisAlignment: MainAxisAlignment.end,
+                                  children: [
+                                    TextButton(
+                                      onPressed: () {
+                                        setState(() {
+                                          _revertProfileChanges();
+                                        });
+                                      },
+                                      child: const Text('Cancel'),
+                                    ),
+                                    const SizedBox(width: 8),
+                                    ElevatedButton(
+                                      onPressed: _isProfileLoading ? null : _handleUpdateProfile,
+                                      style: ElevatedButton.styleFrom(
+                                        backgroundColor: AppColors.primaryGreen,
+                                        foregroundColor: Colors.white,
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 16,
+                                          vertical: 10,
+                                        ),
+                                        shape: RoundedRectangleBorder(
+                                          borderRadius: BorderRadius.circular(8),
+                                        ),
+                                      ),
+                                      child: const Text('Save Profile'),
+                                    ),
+                                  ],
+                                ),
+                              ],
                             ],
                           ),
                         ),
@@ -778,47 +792,24 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                         Consumer(
                           builder: (context, ref, _) {
                             final academicYearsAsync = ref.watch(academicYearsListProvider);
-                            return _buildCard(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Row(
-                                    children: [
-                                      const Icon(
-                                        Icons.school_rounded,
-                                        color: AppColors.primaryGreen,
-                                      ),
-                                      const SizedBox(width: AppSizes.p8),
-                                      const Expanded(
-                                        child: Column(
-                                          crossAxisAlignment: CrossAxisAlignment.start,
-                                          children: [
-                                            Text(
-                                              'Academic Year & Auto-Graduation',
-                                              style: TextStyle(
-                                                fontSize: 18,
-                                                fontWeight: FontWeight.bold,
-                                              ),
-                                            ),
-                                            Text(
-                                              'Configure schedule dates for automatic sequential graduation of Grade 10 & 12 students',
-                                              style: TextStyle(
-                                                fontSize: 13,
-                                                color: Colors.grey,
-                                              ),
-                                            ),
-                                          ],
-                                        ),
-                                      ),
-                                      IconButton(
-                                        icon: const Icon(Icons.refresh, size: 20),
-                                        tooltip: 'Refresh Academic Year',
-                                        onPressed: () => ref.invalidate(academicYearsListProvider),
-                                      ),
-                                    ],
-                                  ),
-                                  const SizedBox(height: 16),
-                                  academicYearsAsync.when(
+                            return _buildCollapsibleCard(
+                              leading: const Icon(
+                                Icons.school_rounded,
+                                color: AppColors.primaryGreen,
+                                size: 26,
+                              ),
+                              title: 'Academic Year & Auto-Graduation',
+                              subtitle: 'Configure schedule dates for automatic sequential graduation of Grade 10 & 12 students',
+                              isExpanded: _isAcademicYearExpanded,
+                              onToggle: () => setState(() => _isAcademicYearExpanded = !_isAcademicYearExpanded),
+                              headerActions: [
+                                IconButton(
+                                  icon: const Icon(Icons.refresh, size: 20),
+                                  tooltip: 'Refresh Academic Year',
+                                  onPressed: () => ref.invalidate(academicYearsListProvider),
+                                ),
+                              ],
+                              child: academicYearsAsync.when(
                                     data: (years) {
                                       final isDark = Theme.of(context).brightness == Brightness.dark;
                                       final activeYear = years.cast<AcademicYearModel?>().firstWhere(
@@ -1029,8 +1020,6 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                                     loading: () => const Center(child: CircularProgressIndicator()),
                                     error: (err, _) => Text('Error loading academic years: $err', style: const TextStyle(color: Colors.red)),
                                   ),
-                                ],
-                              ),
                             );
                           },
                         ),
@@ -1045,57 +1034,47 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                                 (settingsMap['auto_update_enrollment_from_sf'] ?? 'true') == 'true';
                             final frequency = settingsMap['auto_update_enrollment_from_sf_frequency'] ?? 'immediate';
                             final timeVal = settingsMap['auto_update_enrollment_from_sf_time'] ?? '00:00';
+                            final isDark = Theme.of(context).brightness == Brightness.dark;
 
-                            return _buildCard(
+                            return _buildCollapsibleCard(
+                              leading: const Icon(
+                                Icons.auto_awesome_outlined,
+                                color: AppColors.primaryGreen,
+                                size: 26,
+                              ),
+                              title: 'Student Enrollment Auto-Update',
+                              subtitle: 'Automatically extract Academic Year, Grade Level, and Section from SF10/SF9 documents',
+                              isExpanded: _isAutoEnrollExpanded,
+                              onToggle: () => setState(() => _isAutoEnrollExpanded = !_isAutoEnrollExpanded),
+                              headerActions: [
+                                Switch(
+                                  value: isAutoEnrollEnabled,
+                                  activeThumbColor: AppColors.primaryGreen,
+                                  onChanged: (val) {
+                                    ref
+                                        .read(systemSettingsProvider.notifier)
+                                        .updateSetting(
+                                          'auto_update_enrollment_from_sf',
+                                          val ? 'true' : 'false',
+                                        );
+                                  },
+                                ),
+                              ],
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  Row(
-                                    children: [
-                                      const Icon(
-                                        Icons.auto_awesome_outlined,
-                                        color: AppColors.primaryGreen,
-                                      ),
-                                      const SizedBox(width: AppSizes.p8),
-                                      const Expanded(
-                                        child: Column(
-                                          crossAxisAlignment: CrossAxisAlignment.start,
-                                          children: [
-                                            Text(
-                                              'Student Enrollment Auto-Update',
-                                              style: TextStyle(
-                                                fontSize: 18,
-                                                fontWeight: FontWeight.bold,
-                                              ),
-                                            ),
-                                            Text(
-                                              'Automatically extract Academic Year, Grade Level, and Section from uploaded or scanned SF10/SF9 documents to update student enrollment records.',
-                                              style: TextStyle(
-                                                fontSize: 13,
-                                                color: Colors.grey,
-                                              ),
-                                            ),
-                                          ],
+                                  if (!isAutoEnrollEnabled)
+                                    Padding(
+                                      padding: const EdgeInsets.symmetric(vertical: 8.0),
+                                      child: Text(
+                                        'Auto-update from SF10/SF9 is currently disabled. Toggle the switch above to enable automatic extraction and updates.',
+                                        style: TextStyle(
+                                          fontSize: 13,
+                                          color: isDark ? AppColors.darkTextSecondary : Colors.grey.shade600,
                                         ),
                                       ),
-                                      Switch(
-                                        value: isAutoEnrollEnabled,
-                                        activeThumbColor: AppColors.primaryGreen,
-                                        onChanged: (val) {
-                                          ref
-                                              .read(systemSettingsProvider.notifier)
-                                              .updateSetting(
-                                                'auto_update_enrollment_from_sf',
-                                                val ? 'true' : 'false',
-                                              );
-                                        },
-                                      ),
-                                    ],
-                                  ),
+                                    ),
                                   if (isAutoEnrollEnabled) ...[
-                                    const SizedBox(height: AppSizes.p16),
-                                    const Divider(color: Colors.grey),
-                                    const SizedBox(height: AppSizes.p12),
                                     Text(
                                       'Update Frequency',
                                       style: TextStyle(
@@ -1432,6 +1411,114 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         ),
       ),
       child: child,
+    );
+  }
+
+  Widget _buildCollapsibleCard({
+    required Widget leading,
+    required String title,
+    required String subtitle,
+    required bool isExpanded,
+    required VoidCallback onToggle,
+    List<Widget>? headerActions,
+    required Widget child,
+  }) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
+    return Container(
+      width: double.infinity,
+      decoration: BoxDecoration(
+        color: isDark ? AppColors.darkSurfaceCard : AppColors.surfaceWhite,
+        borderRadius: BorderRadius.circular(AppSizes.radiusLarge),
+        boxShadow: [
+          BoxShadow(
+            color: isDark
+                ? Colors.black.withValues(alpha: 0.25)
+                : Colors.black.withValues(alpha: 0.03),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+        border: Border.all(
+          color: isDark ? AppColors.darkBorder : Colors.grey.shade200,
+        ),
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Material(
+            color: Colors.transparent,
+            child: InkWell(
+              onTap: () {
+                HapticService.light();
+                onToggle();
+              },
+              child: Padding(
+                padding: const EdgeInsets.all(AppSizes.p24),
+                child: Row(
+                  children: [
+                    leading,
+                    const SizedBox(width: AppSizes.p16),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            title,
+                            style: const TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            subtitle,
+                            style: TextStyle(
+                              fontSize: 13,
+                              color: isDark ? AppColors.darkTextSecondary : Colors.grey,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    ...?headerActions,
+                    const SizedBox(width: 8),
+                    AnimatedRotation(
+                      turns: isExpanded ? 0.5 : 0.0,
+                      duration: const Duration(milliseconds: 250),
+                      curve: Curves.easeInOut,
+                      child: Icon(
+                        Icons.keyboard_arrow_down_rounded,
+                        color: isDark ? AppColors.darkTextSecondary : Colors.grey.shade600,
+                        size: 24,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+          AnimatedCrossFade(
+            firstChild: const SizedBox(width: double.infinity, height: 0),
+            secondChild: Padding(
+              padding: const EdgeInsets.fromLTRB(AppSizes.p24, 0, AppSizes.p24, AppSizes.p24),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Divider(),
+                  const SizedBox(height: AppSizes.p16),
+                  child,
+                ],
+              ),
+            ),
+            crossFadeState: isExpanded ? CrossFadeState.showSecond : CrossFadeState.showFirst,
+            duration: const Duration(milliseconds: 250),
+            sizeCurve: Curves.easeInOut,
+          ),
+        ],
+      ),
     );
   }
 

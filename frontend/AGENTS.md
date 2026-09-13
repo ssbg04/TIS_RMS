@@ -508,11 +508,24 @@ Files backup/restore - mirror mode or zip -->
 <!-- # USER MANAGEMENT SCREEN
 - make table column header title fixed on top when scroll down -->  
 
-# DOCUMENTS SCREEN
+<!-- # DOCUMENTS SCREEN
 - redesign the tab and its top header, make it simple and responsive, make the design similar to the multi select menu (done) -> improve the design for lower end android, add redesign the list view and its grid (done)
 
 # ARCHIVES SCREEN
-- redesign the tab and its top header, make it simple and responsive, make the design similar to the multi select menu (done) -> improve the design for lower end android, add redesign the list view and its grid (done)
+- redesign the tab and its top header, make it simple and responsive, make the design similar to the multi select menu (done) -> improve the design for lower end android, add redesign the list view and its grid (done) -->
+
+<!-- # USER SCREEN
+- reset password modal it has overflow under the buttons (done)
+
+# SETTINGS SCREEN
+- make the user details, academic year & auto graduation, auto enrollment into collapse (done)
+
+# USER MANAGEMENT SCREEN
+- move the add FAB and search icon into the navigation header like same from student screen and dashboard screen (done)
+- remove the title and description of the screen (done)
+
+# REPORT SCREENS 
+- remove the title and description of the screen (done) -->
 
 --- 
 

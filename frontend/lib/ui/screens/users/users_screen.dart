@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_sizes.dart';
@@ -37,7 +38,7 @@ class _UsersScreenState extends ConsumerState<UsersScreen> {
   final FocusNode _shortcutFocusNode = FocusNode();
   final ScrollController _filterScrollController = ScrollController();
   ProviderSubscription<String>? _tabListener;
-  String _searchQuery = '';
+  ProviderSubscription<String>? _searchListener;
   String _roleFilter = 'all'; // 'all', 'admin', 'teacher'
   int _currentPage = 1;
   final int _itemsPerPage = 20;
@@ -47,17 +48,41 @@ class _UsersScreenState extends ConsumerState<UsersScreen> {
     super.initState();
     _searchFocusNode.addListener(_onSearchFocusChanged);
     _searchController.addListener(() {
-      setState(() {
-        _searchQuery = _searchController.text.toLowerCase();
-        _currentPage = 1;
-      });
+      final text = _searchController.text;
+      if (ref.read(userSearchQueryProvider) != text) {
+        ref.read(userSearchQueryProvider.notifier).state = text;
+      }
     });
+
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
+
+      final initialSearch = ref.read(userSearchQueryProvider);
+      if (initialSearch.isNotEmpty && _searchController.text != initialSearch) {
+        _searchController.text = initialSearch;
+      }
 
       if (ref.read(activeTabProvider) == 'Users') {
         _shortcutFocusNode.requestFocus();
       }
+
+      _searchListener = ref.listenManual<String>(userSearchQueryProvider, (
+        previous,
+        next,
+      ) {
+        if (!mounted) return;
+        if (_searchController.text != next) {
+          _searchController.value = _searchController.value.copyWith(
+            text: next,
+            selection: TextSelection.collapsed(offset: next.length),
+          );
+        }
+        if (_currentPage != 1) {
+          setState(() {
+            _currentPage = 1;
+          });
+        }
+      });
 
       _tabListener = ref.listenManual<String>(activeTabProvider, (
         previous,
@@ -72,9 +97,10 @@ class _UsersScreenState extends ConsumerState<UsersScreen> {
           });
           if (previous != 'Users') {
             _searchController.clear();
+            ref.read(userSearchQueryProvider.notifier).state = '';
             setState(() {
               _roleFilter = 'all';
-              _searchQuery = '';
+              _currentPage = 1;
             });
           }
         }
@@ -85,6 +111,7 @@ class _UsersScreenState extends ConsumerState<UsersScreen> {
   @override
   void dispose() {
     _tabListener?.close();
+    _searchListener?.close();
     _searchFocusNode.removeListener(_onSearchFocusChanged);
     _searchController.dispose();
     _searchFocusNode.dispose();
@@ -97,7 +124,7 @@ class _UsersScreenState extends ConsumerState<UsersScreen> {
     if (mounted) setState(() {});
   }
 
-  List<SystemUser> _filter(List<SystemUser> users) {
+  List<SystemUser> _filter(List<SystemUser> users, String query) {
     var result = users;
     // Apply status and role filter
     if (_roleFilter == 'inactive') {
@@ -110,27 +137,33 @@ class _UsersScreenState extends ConsumerState<UsersScreen> {
       // 'all' shows all active users
       result = result.where((u) => u.isActive).toList();
     }
-    bool isFuzzyMatch(String text, String query) {
-      if (query.isEmpty) return true;
-      int j = 0;
-      for (int i = 0; i < text.length && j < query.length; i++) {
-        if (text[i] == query[j]) {
-          j++;
-        }
-      }
-      return j == query.length;
-    }
 
-    // Then apply search filter
-    if (_searchQuery.isNotEmpty) {
-      result = result
-          .where(
-            (u) =>
-                isFuzzyMatch(u.username.toLowerCase(), _searchQuery) ||
-                isFuzzyMatch(u.fullName.toLowerCase(), _searchQuery) ||
-                isFuzzyMatch(u.role.toLowerCase(), _searchQuery),
-          )
-          .toList();
+    final q = query.trim().toLowerCase();
+    if (q.isNotEmpty) {
+      bool isFuzzyMatch(String text, String pattern) {
+        if (pattern.isEmpty) return true;
+        int j = 0;
+        for (int i = 0; i < text.length && j < pattern.length; i++) {
+          if (text[i] == pattern[j]) {
+            j++;
+          }
+        }
+        return j == pattern.length;
+      }
+
+      result = result.where((u) {
+        final username = u.username.toLowerCase();
+        final fullName = u.fullName.toLowerCase();
+        final email = (u.email ?? '').toLowerCase();
+        final role = u.role.toLowerCase();
+
+        return username.contains(q) ||
+            fullName.contains(q) ||
+            email.contains(q) ||
+            role.contains(q) ||
+            isFuzzyMatch(username, q) ||
+            isFuzzyMatch(fullName, q);
+      }).toList();
     }
     return result;
   }
@@ -592,6 +625,8 @@ class _UsersScreenState extends ConsumerState<UsersScreen> {
   @override
   Widget build(BuildContext context) {
     final usersAsync = ref.watch(usersProvider);
+    final userSearch = ref.watch(userSearchQueryProvider);
+    final isAndroid = defaultTargetPlatform == TargetPlatform.android;
 
     return CallbackShortcuts(
       bindings: <ShortcutActivator, VoidCallback>{
@@ -605,122 +640,134 @@ class _UsersScreenState extends ConsumerState<UsersScreen> {
         child: Scaffold(
           resizeToAvoidBottomInset: false,
           backgroundColor: Colors.transparent,
-      floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
-      floatingActionButton: (MediaQuery.of(context).size.width > 800 ||
-              _searchFocusNode.hasFocus ||
-              _searchQuery.isNotEmpty)
-          ? null
-          : FloatingActionButton(
-              heroTag: 'add_user_fab',
-              onPressed: () => _openModal(),
-              backgroundColor: AppColors.primaryGreen,
-              foregroundColor: Colors.white,
-              shape: const CircleBorder(),
-              child: const Icon(Icons.add),
-            ),
-      body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.all(AppSizes.p24),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              _buildHeader(context),
-              const SizedBox(height: AppSizes.p24),
-              Expanded(
-                child: usersAsync.when(
-                  loading: () =>
-                      const Center(child: CircularProgressIndicator()),
-                  error: (err, _) => AppErrorState.fromError(
-                    error: err,
-                    onRetry: _handleRefresh,
-                  ),
-                  data: (users) {
-                    final filtered = _filter(users);
-                    final int totalPages = (filtered.length / _itemsPerPage).ceil();
-                    final int startIndex = (_currentPage - 1) * _itemsPerPage;
-                    final int endIndex = (startIndex + _itemsPerPage).clamp(0, filtered.length);
-                    final paginated = filtered.isEmpty ? <SystemUser>[] : filtered.sublist(startIndex, endIndex);
+          body: SafeArea(
+            child: Padding(
+              padding: const EdgeInsets.all(AppSizes.p24),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(
+                    child: usersAsync.when(
+                      loading: () =>
+                          const Center(child: CircularProgressIndicator()),
+                      error: (err, _) => AppErrorState.fromError(
+                        error: err,
+                        onRetry: _handleRefresh,
+                      ),
+                      data: (users) {
+                        final filtered = _filter(users, userSearch);
+                        final int totalPages = (filtered.length / _itemsPerPage).ceil().clamp(1, 9999);
+                        final int safeCurrentPage = _currentPage.clamp(1, totalPages);
+                        final int startIndex = (safeCurrentPage - 1) * _itemsPerPage;
+                        final int endIndex = (startIndex + _itemsPerPage).clamp(0, filtered.length);
+                        final paginated = filtered.isEmpty ? <SystemUser>[] : filtered.sublist(startIndex, endIndex);
 
-                    final activeUsers = users.where((u) => u.isActive).toList();
-                    final activeAdmins = activeUsers.where((u) => u.role == 'admin').toList();
-                    final activeTeachers = activeUsers.where((u) => u.role == 'teacher').toList();
-                    final inactiveUsers = users.where((u) => !u.isActive).toList();
+                        final activeUsers = users.where((u) => u.isActive).toList();
+                        final activeAdmins = activeUsers.where((u) => u.role == 'admin').toList();
+                        final activeTeachers = activeUsers.where((u) => u.role == 'teacher').toList();
+                        final inactiveUsers = users.where((u) => !u.isActive).toList();
 
-                    final isDark = Theme.of(context).brightness == Brightness.dark;
-                    return Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
+                        final isDark = Theme.of(context).brightness == Brightness.dark;
+                        return Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  SingleChildScrollView(
-                                    controller: _filterScrollController,
-                                    scrollDirection: Axis.horizontal,
-                                    child: Row(
-                                      children: [
-                                        _buildAnimatedFilter('All', 'all', activeUsers.length),
-                                        _buildAnimatedFilter(
-                                          'Admin',
-                                          'admin',
-                                          activeAdmins.length,
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      SingleChildScrollView(
+                                        controller: _filterScrollController,
+                                        scrollDirection: Axis.horizontal,
+                                        child: Row(
+                                          children: [
+                                            _buildAnimatedFilter('All', 'all', activeUsers.length),
+                                            _buildAnimatedFilter(
+                                              'Admin',
+                                              'admin',
+                                              activeAdmins.length,
+                                            ),
+                                            _buildAnimatedFilter(
+                                              'Teacher',
+                                              'teacher',
+                                              activeTeachers.length,
+                                            ),
+                                            _buildAnimatedFilter(
+                                              'Inactive',
+                                              'inactive',
+                                              inactiveUsers.length,
+                                            ),
+                                          ],
                                         ),
-                                        _buildAnimatedFilter(
-                                          'Teacher',
-                                          'teacher',
-                                          activeTeachers.length,
-                                        ),
-                                        _buildAnimatedFilter(
-                                          'Inactive',
-                                          'inactive',
-                                          inactiveUsers.length,
-                                        ),
-                                      ],
+                                      ),
+                                      _CustomHorizontalScrollBar(
+                                        controller: _filterScrollController,
+                                        isDark: isDark,
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                if (!isAndroid && !_searchFocusNode.hasFocus) ...[
+                                  Tooltip(
+                                    richMessage: userSearch.isNotEmpty
+                                        ? const TextSpan(text: 'Clear Search')
+                                        : const TextSpan(
+                                            text: 'Search Users ',
+                                            children: [
+                                              TextSpan(
+                                                text: '(Ctrl+F)',
+                                                style: TextStyle(fontStyle: FontStyle.italic),
+                                              ),
+                                            ],
+                                          ),
+                                    child: IconButton(
+                                      icon: Icon(
+                                        userSearch.isNotEmpty ? Icons.close : Icons.search,
+                                        size: 28,
+                                        color: isDark
+                                            ? AppColors.darkTextPrimary
+                                            : Colors.black87,
+                                      ),
+                                      onPressed: () {
+                                        if (userSearch.isNotEmpty) {
+                                          _searchController.clear();
+                                          ref.read(userSearchQueryProvider.notifier).state = '';
+                                        } else {
+                                          _showSearchDialog(context);
+                                        }
+                                      },
                                     ),
                                   ),
-                                  _CustomHorizontalScrollBar(
-                                    controller: _filterScrollController,
-                                    isDark: isDark,
+                                  const SizedBox(width: 8),
+                                  ElevatedButton.icon(
+                                    icon: const Icon(Icons.add, size: 18),
+                                    label: const Text(
+                                      'Add User',
+                                      style: TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 14,
+                                      ),
+                                    ),
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: AppColors.primaryGreen,
+                                      foregroundColor: Colors.white,
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 16,
+                                        vertical: 10,
+                                      ),
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(8),
+                                      ),
+                                      elevation: 0,
+                                    ),
+                                    onPressed: () => _openModal(),
                                   ),
                                 ],
-                              ),
+                              ],
                             ),
-                            if (!_searchFocusNode.hasFocus)
-                              Tooltip(
-                                richMessage: _searchQuery.isNotEmpty
-                                    ? const TextSpan(text: 'Clear Search')
-                                    : const TextSpan(
-                                        text: 'Search Users ',
-                                        children: [
-                                          TextSpan(
-                                            text: '(Ctrl+F)',
-                                            style: TextStyle(fontStyle: FontStyle.italic),
-                                          ),
-                                        ],
-                                      ),
-                                child: IconButton(
-                                  icon: Icon(
-                                    _searchQuery.isNotEmpty ? Icons.close : Icons.search,
-                                    size: 28,
-                                    color: isDark
-                                        ? AppColors.darkTextPrimary
-                                        : Colors.black87,
-                                  ),
-                                  onPressed: () {
-                                    if (_searchQuery.isNotEmpty) {
-                                      _searchController.clear();
-                                    } else {
-                                      _showSearchDialog(context);
-                                    }
-                                  },
-                                ),
-                              ),
-                          ],
-                        ),
-                        const SizedBox(height: AppSizes.p16),
+                            const SizedBox(height: AppSizes.p16),
                          Expanded(
                            child: Padding(
                              padding: const EdgeInsets.symmetric(vertical: 4.0),
@@ -761,61 +808,6 @@ class _UsersScreenState extends ConsumerState<UsersScreen> {
     );
   }
 
-  Widget _buildHeader(BuildContext context) {
-    final isDesktop = MediaQuery.of(context).size.width > 800;
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final textPrimary = isDark ? AppColors.darkTextPrimary : AppColors.textPrimary;
-    final textSecondary = isDark ? AppColors.darkTextSecondary : AppColors.textSecondary;
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Text(
-              'User Management',
-              style: TextStyle(
-                fontSize: 28,
-                fontWeight: FontWeight.bold,
-                color: textPrimary,
-              ),
-            ),
-            if (isDesktop)
-              ElevatedButton.icon(
-                icon: const Icon(Icons.add, size: 18),
-                label: const Text(
-                  'Add User',
-                  style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 14,
-                  ),
-                ),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.primaryGreen,
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 20,
-                    vertical: 12,
-                  ),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  elevation: 0,
-                ),
-                onPressed: () => _openModal(),
-              ),
-          ],
-        ),
-        const SizedBox(height: 4),
-        Text(
-          'Manage system accounts and access roles.',
-          style: TextStyle(fontSize: 14, color: textSecondary),
-        ),
-      ],
-    );
-  }
-
   Future<void> _showSearchDialog(BuildContext context) async {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -837,13 +829,17 @@ class _UsersScreenState extends ConsumerState<UsersScreen> {
               elevation: 4,
               borderRadius: BorderRadius.circular(12),
               child: AppSearchBar(
-                hint: 'Search by username, name or role...',
+                hint: 'Search by username, name, email or role...',
                 controller: _searchController,
                 focusNode: _searchFocusNode,
                 collapsible: false,
                 maxWidth: 600,
+                onChanged: (val) {
+                  ref.read(userSearchQueryProvider.notifier).state = val;
+                },
                 onSubmitted: (val) {
                   Navigator.of(context).pop();
+                  ref.read(userSearchQueryProvider.notifier).state = val;
                 },
               ),
             ),
@@ -2088,101 +2084,45 @@ class _ResetPasswordConfirmationDialogState
         borderRadius: BorderRadius.circular(AppSizes.radiusLarge),
       ),
       backgroundColor: isDark ? AppColors.darkSurfaceCard : Colors.white,
+      insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
       child: ConstrainedBox(
         constraints: const BoxConstraints(maxWidth: 440),
-        child: Padding(
-          padding: const EdgeInsets.all(AppSizes.p24),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(
-                      color: AppColors.primaryGreen.withValues(alpha: isDark ? 0.25 : 0.12),
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    child: const Icon(
-                      Icons.mark_email_read_rounded,
-                      color: AppColors.primaryGreen,
-                      size: 22,
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Send Reset Link',
-                          style: TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                            color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
-                          ),
-                        ),
-                        Text(
-                          'Email time-limited password reset link',
-                          style: TextStyle(
-                            fontSize: 11,
-                            color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  IconButton(
-                    icon: const Icon(Icons.close, size: 20),
-                    onPressed: () => Navigator.pop(context),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 16),
-
-              // User Info Card
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: isDark ? AppColors.darkSurface2 : const Color(0xFFF8FAFC),
-                  borderRadius: BorderRadius.circular(10),
-                  border: Border.all(
-                    color: isDark ? AppColors.darkBorder : Colors.grey.shade200,
-                  ),
-                ),
-                child: Row(
+        child: SingleChildScrollView(
+          child: Padding(
+            padding: const EdgeInsets.all(AppSizes.p24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
                   children: [
-                    CircleAvatar(
-                      radius: 18,
-                      backgroundColor: AppColors.primaryGreen.withValues(alpha: 0.15),
-                      child: Text(
-                        widget.user.username.isNotEmpty
-                            ? widget.user.username[0].toUpperCase()
-                            : '?',
-                        style: const TextStyle(
-                          color: AppColors.primaryGreen,
-                          fontWeight: FontWeight.bold,
-                        ),
+                    Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: AppColors.primaryGreen.withValues(alpha: isDark ? 0.25 : 0.12),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: const Icon(
+                        Icons.mark_email_read_rounded,
+                        color: AppColors.primaryGreen,
+                        size: 22,
                       ),
                     ),
-                    const SizedBox(width: 10),
+                    const SizedBox(width: 12),
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            widget.user.fullName.isNotEmpty
-                                ? widget.user.fullName
-                                : widget.user.username,
+                            'Send Reset Link',
                             style: TextStyle(
-                              fontSize: 13,
+                              fontSize: 18,
                               fontWeight: FontWeight.bold,
                               color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
                             ),
                           ),
                           Text(
-                            '@${widget.user.username} · ${widget.user.role.toUpperCase()}',
+                            'Email time-limited password reset link',
                             style: TextStyle(
                               fontSize: 11,
                               color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
@@ -2191,136 +2131,197 @@ class _ResetPasswordConfirmationDialogState
                         ],
                       ),
                     ),
+                    IconButton(
+                      icon: const Icon(Icons.close, size: 20),
+                      onPressed: () => Navigator.pop(context),
+                    ),
                   ],
                 ),
-              ),
-              const SizedBox(height: 12),
+                const SizedBox(height: 16),
 
-              // Recipient Email Card / Warning
-              if (hasEmail)
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                  decoration: BoxDecoration(
-                    color: Colors.blue.withValues(alpha: isDark ? 0.12 : 0.08),
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(
-                      color: Colors.blue.withValues(alpha: isDark ? 0.3 : 0.2),
-                    ),
-                  ),
-                  child: Row(
-                    children: [
-                      const Icon(Icons.email_outlined, size: 16, color: Colors.blue),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: Text(
-                          widget.user.email!,
-                          style: const TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.w600,
-                            color: Colors.blue,
-                          ),
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ),
-                    ],
-                  ),
-                )
-              else
+                // User Info Card
                 Container(
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: Colors.red.withValues(alpha: isDark ? 0.15 : 0.08),
-                    borderRadius: BorderRadius.circular(8),
+                    color: isDark ? AppColors.darkSurface2 : const Color(0xFFF8FAFC),
+                    borderRadius: BorderRadius.circular(10),
                     border: Border.all(
-                      color: Colors.red.withValues(alpha: isDark ? 0.4 : 0.25),
+                      color: isDark ? AppColors.darkBorder : Colors.grey.shade200,
                     ),
                   ),
                   child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Icon(Icons.warning_amber_rounded, size: 18, color: Colors.redAccent),
-                      const SizedBox(width: 8),
-                      Expanded(
+                      CircleAvatar(
+                        radius: 18,
+                        backgroundColor: AppColors.primaryGreen.withValues(alpha: 0.15),
                         child: Text(
-                          'No email registered. Please edit this user and provide a valid email before sending a reset link.',
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: isDark ? const Color(0xFFFCA5A5) : Colors.red.shade900,
+                          widget.user.username.isNotEmpty
+                              ? widget.user.username[0].toUpperCase()
+                              : '?',
+                          style: const TextStyle(
+                            color: AppColors.primaryGreen,
+                            fontWeight: FontWeight.bold,
                           ),
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              widget.user.fullName.isNotEmpty
+                                  ? widget.user.fullName
+                                  : widget.user.username,
+                              style: TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.bold,
+                                color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
+                              ),
+                            ),
+                            Text(
+                              '@${widget.user.username} · ${widget.user.role.toUpperCase()}',
+                              style: TextStyle(
+                                fontSize: 11,
+                                color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
+                              ),
+                            ),
+                          ],
                         ),
                       ),
                     ],
                   ),
                 ),
+                const SizedBox(height: 12),
 
-              if (hasEmail) ...[
-                const SizedBox(height: 16),
-                // Expiration selector
-                DropdownButtonFormField<int>(
-                  key: ValueKey('reset_link_expiration_$_selectedExpiration'),
-                  initialValue: _selectedExpiration,
-                  decoration: const InputDecoration(
-                    labelText: 'Link Expiration Time',
-                    prefixIcon: Icon(Icons.timer_outlined),
-                    isDense: true,
-                  ),
-                  items: _expirationOptions.map((opt) {
-                    return DropdownMenuItem<int>(
-                      value: opt['value'] as int,
-                      child: Text(opt['label'] as String, style: const TextStyle(fontSize: 13)),
-                    );
-                  }).toList(),
-                  onChanged: (val) {
-                    if (val != null) setState(() => _selectedExpiration = val);
-                  },
-                ),
-                const SizedBox(height: 16),
-
-                // Admin Password
-                CustomTextField(
-                  hintText: 'Your Admin Password',
-                  prefixIcon: Icons.lock_outline,
-                  controller: _passwordCtrl,
-                  isPassword: true,
-                  obscureText: _obscurePassword,
-                  onToggleVisibility: () =>
-                      setState(() => _obscurePassword = !_obscurePassword),
-                ),
-              ],
-
-              const SizedBox(height: 24),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.end,
-                children: [
-                  TextButton(
-                    onPressed: () => Navigator.pop(context),
-                    child: const Text('CANCEL'),
-                  ),
-                  const SizedBox(width: 12),
-                  ElevatedButton.icon(
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: hasEmail ? AppColors.primaryGreen : Colors.grey,
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 20,
-                        vertical: 12,
+                // Recipient Email Card / Warning
+                if (hasEmail)
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    decoration: BoxDecoration(
+                      color: Colors.blue.withValues(alpha: isDark ? 0.12 : 0.08),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(
+                        color: Colors.blue.withValues(alpha: isDark ? 0.3 : 0.2),
                       ),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(
-                          AppSizes.radiusMedium,
+                    ),
+                    child: Row(
+                      children: [
+                        const Icon(Icons.email_outlined, size: 16, color: Colors.blue),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            widget.user.email!,
+                            style: const TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                              color: Colors.blue,
+                            ),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      ],
+                    ),
+                  )
+                else
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Colors.red.withValues(alpha: isDark ? 0.15 : 0.08),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(
+                        color: Colors.red.withValues(alpha: isDark ? 0.4 : 0.25),
+                      ),
+                    ),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Icon(Icons.warning_amber_rounded, size: 18, color: Colors.redAccent),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            'No email registered. Please edit this user and provide a valid email before sending a reset link.',
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: isDark ? const Color(0xFFFCA5A5) : Colors.red.shade900,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+
+                if (hasEmail) ...[
+                  const SizedBox(height: 16),
+                  // Expiration selector
+                  DropdownButtonFormField<int>(
+                    key: ValueKey('reset_link_expiration_$_selectedExpiration'),
+                    initialValue: _selectedExpiration,
+                    decoration: const InputDecoration(
+                      labelText: 'Link Expiration Time',
+                      prefixIcon: Icon(Icons.timer_outlined),
+                      isDense: true,
+                    ),
+                    items: _expirationOptions.map((opt) {
+                      return DropdownMenuItem<int>(
+                        value: opt['value'] as int,
+                        child: Text(opt['label'] as String, style: const TextStyle(fontSize: 13)),
+                      );
+                    }).toList(),
+                    onChanged: (val) {
+                      if (val != null) setState(() => _selectedExpiration = val);
+                    },
+                  ),
+                  const SizedBox(height: 16),
+
+                  // Admin Password
+                  CustomTextField(
+                    hintText: 'Your Admin Password',
+                    prefixIcon: Icons.lock_outline,
+                    controller: _passwordCtrl,
+                    isPassword: true,
+                    obscureText: _obscurePassword,
+                    onToggleVisibility: () =>
+                        setState(() => _obscurePassword = !_obscurePassword),
+                  ),
+                ],
+
+                const SizedBox(height: 24),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    TextButton(
+                      onPressed: () => Navigator.pop(context),
+                      child: const Text('CANCEL'),
+                    ),
+                    const SizedBox(width: 12),
+                    Flexible(
+                      child: ElevatedButton.icon(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: hasEmail ? AppColors.primaryGreen : Colors.grey,
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 20,
+                            vertical: 12,
+                          ),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(
+                              AppSizes.radiusMedium,
+                            ),
+                          ),
+                        ),
+                        onPressed: hasEmail ? _submit : null,
+                        icon: const Icon(Icons.send_rounded, size: 16),
+                        label: const Text(
+                          'SEND LINK',
+                          style: TextStyle(fontWeight: FontWeight.bold),
                         ),
                       ),
                     ),
-                    onPressed: hasEmail ? _submit : null,
-                    icon: const Icon(Icons.send_rounded, size: 16),
-                    label: const Text(
-                      'SEND LINK',
-                      style: TextStyle(fontWeight: FontWeight.bold),
-                    ),
-                  ),
-                ],
-              ),
-            ],
+                  ],
+                ),
+              ],
+            ),
           ),
         ),
       ),

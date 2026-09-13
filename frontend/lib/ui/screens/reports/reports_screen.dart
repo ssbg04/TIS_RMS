@@ -521,8 +521,6 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                _buildTitleAndExportActions(context),
-                const SizedBox(height: AppSizes.p16),
                 _buildSegmentedPillNav(),
                 const SizedBox(height: AppSizes.p20),
 
@@ -827,33 +825,6 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
             label: 'EXPORT',
             isLoading: _isExporting,
             onPressed: () => _handleExportExcel(data),
-          ),
-        ),
-      ],
-    );
-  }
-
-  // ── Header ─────────────────────────────────────────────────────────────
-  Widget _buildTitleAndExportActions(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          'System Reports & Analytics',
-          style: TextStyle(
-            fontSize: 28,
-            fontWeight: FontWeight.bold,
-            color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
-          ),
-        ),
-        const SizedBox(height: AppSizes.p8),
-        Text(
-          'Document Compliance & Statistics Dashboard Tiaong Integrated School',
-          style: TextStyle(
-            fontSize: 15,
-            color: isDark ? AppColors.darkTextSecondary : Colors.grey.shade600,
           ),
         ),
       ],

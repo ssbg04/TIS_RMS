@@ -12,6 +12,8 @@ final usersProvider = AsyncNotifierProvider<UsersNotifier, List<SystemUser>>(
   },
 );
 
+final userSearchQueryProvider = StateProvider<String>((ref) => '');
+
 class UsersNotifier extends AsyncNotifier<List<SystemUser>> {
   @override
   Future<List<SystemUser>> build() async {
