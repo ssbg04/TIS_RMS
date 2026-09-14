@@ -1,4 +1,4 @@
-name: Build & Release Desktop Client
+name: Build & Release Client (Windows & Android)
 
 on:
   push:
@@ -7,8 +7,8 @@ on:
   workflow_dispatch: # Allows manual trigger from the GitHub Actions tab
 
 jobs:
-  build-windows:
-    name: Build Windows Inno Setup Installer
+  build-and-release:
+    name: Build Windows Installer & Android APK
     runs-on: windows-latest
     permissions:
       contents: write # Grants permission to create GitHub Release
@@ -42,10 +42,18 @@ jobs:
         run: |
           & "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" frontend/TIS_RMS_Client.iss
 
-      - name: Upload Installer to GitHub Release
+      - name: Build Flutter Android APK
+        working-directory: frontend
+        run: |
+          flutter build apk --release
+          copy build\app\outputs\flutter-apk\app-release.apk ..\installers\TIS_RMS_Client.apk
+
+      - name: Upload Artifacts to GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          files: installers/TIS_RMS_Client_Setup.exe
+          files: |
+            installers/TIS_RMS_Client_Setup.exe
+            installers/TIS_RMS_Client.apk
           generate_release_notes: true
           draft: false
           prerelease: false
