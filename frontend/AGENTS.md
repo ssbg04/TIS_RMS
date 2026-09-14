@@ -527,6 +527,13 @@ Files backup/restore - mirror mode or zip -->
 # REPORT SCREENS 
 - remove the title and description of the screen (done) -->
 
+<!-- # SETTINGS SCREEN
+- fix overflow in auto graduation skip dialog title (done)
+- edit schedule section add selectable years from academic years can select not add new acad year, if selected automatic active that selection status into active year (make this realtime fetch from backend) (done)
+
+# STUDENT SCREEN
+- edit student screen -> enrollment tab -> add enrollment modal -> add list of all current enrollments can delete, edit (make this realtime fetch from backend) (done) -->
+
 --- 
 
 # DONT DO

@@ -13,8 +13,10 @@ import '../../../core/utils/validators.dart';
 import 'requirements_settings_screen.dart';
 import '../../shared/widgets/app_error_state.dart';
 import 'package:dio/dio.dart';
+import 'package:calendar_date_picker2/calendar_date_picker2.dart';
 import '../../providers/setup_provider.dart';
 import '../../shared/dialogs/info_dialog.dart';
+import '../../shared/modals/custom_modal.dart';
 import 'teacher_management_screen.dart';
 import '../../../domain/entities/setup_models.dart';
 import '../../providers/system_settings_provider.dart';
@@ -260,6 +262,32 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   }
 
 
+
+  Future<void> _handleActivateAcademicYear(AcademicYearModel selectedYear) async {
+    try {
+      await ref.read(setupMutationProvider.notifier).updateAcademicYear(
+            id: selectedYear.id,
+            yearRange: selectedYear.yearRange,
+            status: 'active',
+            startDate: selectedYear.startDate,
+            endDate: selectedYear.endDate,
+          );
+      ref.invalidate(academicYearsListProvider);
+      if (!mounted) return;
+      showSuccessDialog(
+        context,
+        message: 'Academic Year ${selectedYear.yearRange} is now Active!',
+      );
+    } catch (e) {
+      if (!mounted) return;
+      showErrorDialog(
+        context,
+        'Activation Failed',
+        e.toString().replaceAll('Exception: ', ''),
+      );
+      ref.invalidate(academicYearsListProvider);
+    }
+  }
 
   Future<void> _handleRunAutoGraduation(
     BuildContext context,
@@ -816,204 +844,265 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                                         (y) => y?.status == 'active',
                                         orElse: () => null,
                                       );
-                                      if (activeYear == null) {
+                                      if (years.isEmpty) {
                                         return const Text(
-                                          'No active academic year found. Configure an active academic year in Teacher Management first.',
+                                          'No academic years found. Configure an academic year in Teachers & Academic Setup first.',
                                           style: TextStyle(color: AppColors.warning, fontSize: 13),
                                         );
                                       }
                                       return Column(
                                         crossAxisAlignment: CrossAxisAlignment.start,
                                         children: [
-                                          Wrap(
-                                            spacing: 16,
-                                            runSpacing: 8,
-                                            crossAxisAlignment: WrapCrossAlignment.center,
-                                            children: [
-                                              Container(
-                                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                                                decoration: BoxDecoration(
-                                                  color: AppColors.primaryGreen.withValues(alpha: 0.1),
-                                                  borderRadius: BorderRadius.circular(12),
-                                                ),
-                                                child: Text(
-                                                  'Active AY: ${activeYear.yearRange}',
-                                                  style: const TextStyle(
-                                                    fontWeight: FontWeight.w600,
-                                                    color: AppColors.primaryGreen,
-                                                    fontSize: 13,
-                                                  ),
-                                                ),
+                                          DropdownButtonFormField<int>(
+                                            key: ValueKey('ay_dropdown_${activeYear?.id}'),
+                                            initialValue: activeYear?.id,
+                                            decoration: InputDecoration(
+                                              labelText: 'Academic Year',
+                                              prefixIcon: const Icon(Icons.calendar_month, color: AppColors.primaryGreen),
+                                              helperText: 'Select an academic year to activate it system-wide.',
+                                              border: OutlineInputBorder(
+                                                borderRadius: BorderRadius.circular(8),
                                               ),
-                                              Text(
-                                                'Start Date: ${activeYear.startDate ?? "Not set"}',
-                                                style: const TextStyle(fontSize: 13),
-                                              ),
-                                              Text(
-                                                'End Date: ${activeYear.endDate ?? "Not set"}',
-                                                style: const TextStyle(fontSize: 13),
-                                              ),
-                                            ],
-                                          ),
-                                          const SizedBox(height: 12),
-                                          Container(
-                                            padding: const EdgeInsets.all(10),
-                                            decoration: BoxDecoration(
-                                              color: isDark
-                                                  ? Colors.blue.withValues(alpha: 0.08)
-                                                  : Colors.blue.shade50,
-                                              borderRadius: BorderRadius.circular(8),
-                                              border: Border.all(
-                                                color: isDark
-                                                    ? Colors.blue.withValues(alpha: 0.2)
-                                                    : Colors.blue.shade200,
-                                              ),
+                                              contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
                                             ),
-                                            child: Row(
+                                            items: years.map((y) {
+                                              final isActive = y.status == 'active';
+                                              return DropdownMenuItem<int>(
+                                                value: y.id,
+                                                child: Row(
+                                                  mainAxisSize: MainAxisSize.min,
+                                                  children: [
+                                                    Text(
+                                                      y.yearRange,
+                                                      style: TextStyle(
+                                                        fontWeight: isActive ? FontWeight.bold : FontWeight.normal,
+                                                      ),
+                                                    ),
+                                                    const SizedBox(width: 8),
+                                                    Container(
+                                                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                                      decoration: BoxDecoration(
+                                                        color: isActive
+                                                            ? AppColors.primaryGreen.withValues(alpha: 0.15)
+                                                            : Colors.grey.withValues(alpha: 0.15),
+                                                        borderRadius: BorderRadius.circular(8),
+                                                      ),
+                                                      child: Text(
+                                                        isActive ? 'Active' : 'Inactive',
+                                                        style: TextStyle(
+                                                          fontSize: 11,
+                                                          color: isActive ? AppColors.primaryGreen : Colors.grey,
+                                                          fontWeight: FontWeight.w600,
+                                                        ),
+                                                      ),
+                                                    ),
+                                                  ],
+                                                ),
+                                              );
+                                            }).toList(),
+                                            onChanged: (selectedId) async {
+                                              if (selectedId == null || selectedId == activeYear?.id) return;
+                                              final selectedYear = years.firstWhere((y) => y.id == selectedId);
+                                              await _handleActivateAcademicYear(selectedYear);
+                                            },
+                                          ),
+                                          const SizedBox(height: 16),
+                                          if (activeYear == null) ...[
+                                            const Text(
+                                              'No active academic year found. Select an academic year from the dropdown above to activate it.',
+                                              style: TextStyle(color: AppColors.warning, fontSize: 13),
+                                            ),
+                                          ] else ...[
+                                            Wrap(
+                                              spacing: 16,
+                                              runSpacing: 8,
+                                              crossAxisAlignment: WrapCrossAlignment.center,
                                               children: [
-                                                const Icon(Icons.info_outline, size: 16, color: Colors.blue),
-                                                const SizedBox(width: 8),
-                                                Expanded(
+                                                Container(
+                                                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                                                  decoration: BoxDecoration(
+                                                    color: AppColors.primaryGreen.withValues(alpha: 0.1),
+                                                    borderRadius: BorderRadius.circular(12),
+                                                  ),
                                                   child: Text(
-                                                    'Note: If Start Date or End Date is not set, auto-graduation will not execute automatically. When the end date arrives, Grade 10 students are graduated first, then Grade 12 students.',
-                                                    style: TextStyle(
-                                                      fontSize: 12,
-                                                      color: isDark ? Colors.blue.shade300 : Colors.blue,
+                                                    'Active AY: ${activeYear.yearRange}',
+                                                    style: const TextStyle(
+                                                      fontWeight: FontWeight.w600,
+                                                      color: AppColors.primaryGreen,
+                                                      fontSize: 13,
                                                     ),
                                                   ),
+                                                ),
+                                                Text(
+                                                  'Start Date: ${activeYear.startDate ?? "Not set"}',
+                                                  style: const TextStyle(fontSize: 13),
+                                                ),
+                                                Text(
+                                                  'End Date: ${activeYear.endDate ?? "Not set"}',
+                                                  style: const TextStyle(fontSize: 13),
                                                 ),
                                               ],
                                             ),
-                                          ),
-                                          const SizedBox(height: 16),
-                                          Builder(
-                                            builder: (ctx) {
-                                              final isNarrow =
-                                                  MediaQuery.of(ctx).size.width < 650 ||
-                                                      Theme.of(ctx).platform ==
-                                                          TargetPlatform.android;
-                                              if (isNarrow) {
-                                                return Column(
-                                                  crossAxisAlignment:
-                                                      CrossAxisAlignment.stretch,
+                                            const SizedBox(height: 12),
+                                            Container(
+                                              padding: const EdgeInsets.all(10),
+                                              decoration: BoxDecoration(
+                                                color: isDark
+                                                    ? Colors.blue.withValues(alpha: 0.08)
+                                                    : Colors.blue.shade50,
+                                                borderRadius: BorderRadius.circular(8),
+                                                border: Border.all(
+                                                  color: isDark
+                                                      ? Colors.blue.withValues(alpha: 0.2)
+                                                      : Colors.blue.shade200,
+                                                ),
+                                              ),
+                                              child: Row(
+                                                children: [
+                                                  const Icon(Icons.info_outline, size: 16, color: Colors.blue),
+                                                  const SizedBox(width: 8),
+                                                  Expanded(
+                                                    child: Text(
+                                                      'Note: If Start Date or End Date is not set, auto-graduation will not execute automatically. When the end date arrives, Grade 10 students are graduated first, then Grade 12 students.',
+                                                      style: TextStyle(
+                                                        fontSize: 12,
+                                                        color: isDark ? Colors.blue.shade300 : Colors.blue,
+                                                      ),
+                                                    ),
+                                                  ),
+                                                ],
+                                              ),
+                                            ),
+                                            const SizedBox(height: 16),
+                                            Builder(
+                                              builder: (ctx) {
+                                                final isNarrow =
+                                                    MediaQuery.of(ctx).size.width < 650 ||
+                                                        Theme.of(ctx).platform ==
+                                                            TargetPlatform.android;
+                                                if (isNarrow) {
+                                                  return Column(
+                                                    crossAxisAlignment:
+                                                        CrossAxisAlignment.stretch,
+                                                    children: [
+                                                      OutlinedButton.icon(
+                                                        onPressed: () => showDialog(
+                                                          context: context,
+                                                          builder: (_) =>
+                                                              _EditScheduleDatesDialog(
+                                                            year: activeYear,
+                                                          ),
+                                                        ),
+                                                        icon: const Icon(
+                                                          Icons.date_range,
+                                                        ),
+                                                        label: const Text(
+                                                          'Edit Schedule Dates',
+                                                        ),
+                                                        style:
+                                                            OutlinedButton.styleFrom(
+                                                          padding:
+                                                              const EdgeInsets.symmetric(
+                                                            vertical: 14,
+                                                          ),
+                                                          side: const BorderSide(
+                                                            color: AppColors
+                                                                .primaryGreen,
+                                                          ),
+                                                        ),
+                                                      ),
+                                                      const SizedBox(height: 12),
+                                                      FilledButton.icon(
+                                                        onPressed: () =>
+                                                            _handleRunAutoGraduation(
+                                                          context,
+                                                          ref,
+                                                        ),
+                                                        icon: const Icon(
+                                                          Icons.school,
+                                                        ),
+                                                        label: const Text(
+                                                          'Check / Run Auto-Graduation Now',
+                                                        ),
+                                                        style:
+                                                            FilledButton.styleFrom(
+                                                          backgroundColor:
+                                                              AppColors
+                                                                  .primaryGreen,
+                                                          foregroundColor:
+                                                              isDark ? Colors.white : Colors.black,
+                                                          padding:
+                                                              const EdgeInsets.symmetric(
+                                                            vertical: 14,
+                                                          ),
+                                                        ),
+                                                      ),
+                                                    ],
+                                                  );
+                                                }
+                                                return Row(
                                                   children: [
-                                                    OutlinedButton.icon(
-                                                      onPressed: () => showDialog(
-                                                        context: context,
-                                                        builder: (_) =>
-                                                            AcademicYearFormModal(
-                                                          year: activeYear,
+                                                    Expanded(
+                                                      child: OutlinedButton.icon(
+                                                        onPressed: () => showDialog(
+                                                          context: context,
+                                                          builder: (_) =>
+                                                              _EditScheduleDatesDialog(
+                                                            year: activeYear,
+                                                          ),
                                                         ),
-                                                      ),
-                                                      icon: const Icon(
-                                                        Icons.date_range,
-                                                      ),
-                                                      label: const Text(
-                                                        'Edit Schedule Dates',
-                                                      ),
-                                                      style:
-                                                          OutlinedButton.styleFrom(
-                                                        padding:
-                                                            const EdgeInsets.symmetric(
-                                                          vertical: 14,
+                                                        icon: const Icon(
+                                                          Icons.date_range,
                                                         ),
-                                                        side: const BorderSide(
-                                                          color: AppColors
-                                                              .primaryGreen,
+                                                        label: const Text(
+                                                          'Edit Schedule Dates',
+                                                        ),
+                                                        style:
+                                                            OutlinedButton.styleFrom(
+                                                          padding:
+                                                              const EdgeInsets.symmetric(
+                                                            vertical: 14,
+                                                          ),
+                                                          side: const BorderSide(
+                                                            color: AppColors
+                                                                .primaryGreen,
+                                                          ),
                                                         ),
                                                       ),
                                                     ),
-                                                    const SizedBox(height: 12),
-                                                    FilledButton.icon(
-                                                      onPressed: () =>
-                                                          _handleRunAutoGraduation(
-                                                        context,
-                                                        ref,
-                                                      ),
-                                                      icon: const Icon(
-                                                        Icons.school,
-                                                      ),
-                                                      label: const Text(
-                                                        'Check / Run Auto-Graduation Now',
-                                                      ),
-                                                      style:
-                                                          FilledButton.styleFrom(
-                                                        backgroundColor:
-                                                            AppColors
-                                                                .primaryGreen,
-                                                        foregroundColor:
-                                                            isDark ? Colors.white : Colors.black,
-                                                        padding:
-                                                            const EdgeInsets.symmetric(
-                                                          vertical: 14,
+                                                    const SizedBox(width: 16),
+                                                    Expanded(
+                                                      child: FilledButton.icon(
+                                                        onPressed: () =>
+                                                            _handleRunAutoGraduation(
+                                                          context,
+                                                          ref,
+                                                        ),
+                                                        icon: const Icon(
+                                                          Icons.school,
+                                                        ),
+                                                        label: const Text(
+                                                          'Check / Run Auto-Graduation Now',
+                                                        ),
+                                                        style:
+                                                            FilledButton.styleFrom(
+                                                          backgroundColor:
+                                                              AppColors
+                                                                  .primaryGreen,
+                                                          foregroundColor:
+                                                              isDark ? Colors.white : Colors.black,
+                                                          padding:
+                                                              const EdgeInsets.symmetric(
+                                                            vertical: 14,
+                                                          ),
                                                         ),
                                                       ),
                                                     ),
                                                   ],
                                                 );
-                                              }
-                                              return Row(
-                                                children: [
-                                                  Expanded(
-                                                    child: OutlinedButton.icon(
-                                                      onPressed: () => showDialog(
-                                                        context: context,
-                                                        builder: (_) =>
-                                                            AcademicYearFormModal(
-                                                          year: activeYear,
-                                                        ),
-                                                      ),
-                                                      icon: const Icon(
-                                                        Icons.date_range,
-                                                      ),
-                                                      label: const Text(
-                                                        'Edit Schedule Dates',
-                                                      ),
-                                                      style:
-                                                          OutlinedButton.styleFrom(
-                                                        padding:
-                                                            const EdgeInsets.symmetric(
-                                                          vertical: 14,
-                                                        ),
-                                                        side: const BorderSide(
-                                                          color: AppColors
-                                                              .primaryGreen,
-                                                        ),
-                                                      ),
-                                                    ),
-                                                  ),
-                                                  const SizedBox(width: 16),
-                                                  Expanded(
-                                                    child: FilledButton.icon(
-                                                      onPressed: () =>
-                                                          _handleRunAutoGraduation(
-                                                        context,
-                                                        ref,
-                                                      ),
-                                                      icon: const Icon(
-                                                        Icons.school,
-                                                      ),
-                                                      label: const Text(
-                                                        'Check / Run Auto-Graduation Now',
-                                                      ),
-                                                      style:
-                                                          FilledButton.styleFrom(
-                                                        backgroundColor:
-                                                            AppColors
-                                                                .primaryGreen,
-                                                        foregroundColor:
-                                                            isDark ? Colors.white : Colors.black,
-                                                        padding:
-                                                            const EdgeInsets.symmetric(
-                                                          vertical: 14,
-                                                        ),
-                                                      ),
-                                                    ),
-                                                  ),
-                                                ],
-                                              );
-                                            },
-                                          ),
+                                              },
+                                            ),
+                                          ],
                                         ],
                                       );
                                     },
@@ -1804,6 +1893,251 @@ class _TransferProgressDialogState extends State<_TransferProgressDialog> {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _EditScheduleDatesDialog extends ConsumerStatefulWidget {
+  final AcademicYearModel year;
+  const _EditScheduleDatesDialog({required this.year});
+
+  @override
+  ConsumerState<_EditScheduleDatesDialog> createState() =>
+      _EditScheduleDatesDialogState();
+}
+
+class _EditScheduleDatesDialogState
+    extends ConsumerState<_EditScheduleDatesDialog> {
+  DateTime? _startDate;
+  DateTime? _endDate;
+  bool _isLoading = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _startDate = widget.year.startDate != null
+        ? DateTime.tryParse(widget.year.startDate!)
+        : null;
+    _endDate = widget.year.endDate != null
+        ? DateTime.tryParse(widget.year.endDate!)
+        : null;
+  }
+
+  String? _formatYmd(DateTime? dt) {
+    if (dt == null) return null;
+    return '${dt.year.toString().padLeft(4, '0')}-${dt.month.toString().padLeft(2, '0')}-${dt.day.toString().padLeft(2, '0')}';
+  }
+
+  Future<void> _handleSave() async {
+    setState(() => _isLoading = true);
+    try {
+      await ref.read(setupMutationProvider.notifier).updateAcademicYear(
+            id: widget.year.id,
+            yearRange: widget.year.yearRange,
+            status: widget.year.status,
+            startDate: _formatYmd(_startDate),
+            endDate: _formatYmd(_endDate),
+          );
+      ref.invalidate(academicYearsListProvider);
+      if (!mounted) return;
+      Navigator.pop(context);
+      showSuccessDialog(
+        context,
+        message:
+            'Schedule dates updated for Academic Year ${widget.year.yearRange}!',
+      );
+    } catch (e) {
+      if (!mounted) return;
+      showErrorDialog(
+        context,
+        'Save Failed',
+        e.toString().replaceAll('Exception: ', ''),
+      );
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final isNarrow = MediaQuery.of(context).size.width < 500 ||
+        Theme.of(context).platform == TargetPlatform.android;
+
+    return CustomModal(
+      title: 'Edit Schedule Dates',
+      icon: Icons.calendar_today,
+      maxWidth: 460,
+      content: Padding(
+        padding: EdgeInsets.all(isNarrow ? 14 : AppSizes.p20),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: isDark ? AppColors.darkSurface2 : Colors.grey.shade50,
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(
+                  color: isDark ? AppColors.darkBorder : Colors.grey.shade300,
+                ),
+              ),
+              child: Row(
+                children: [
+                  const Icon(Icons.school, size: 20, color: AppColors.primaryGreen),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'Academic Year: ${widget.year.yearRange} (${widget.year.status.toUpperCase()})',
+                      style:
+                          const TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 16),
+            Container(
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(
+                  color: isDark ? AppColors.darkBorder : Colors.grey.shade300,
+                ),
+                color: isDark ? AppColors.darkSurface2 : Colors.grey.shade50,
+              ),
+              child: InkWell(
+                borderRadius: BorderRadius.circular(8),
+                onTap: () async {
+                  final initialDates = <DateTime>[];
+                  if (_startDate != null) initialDates.add(_startDate!);
+                  if (_endDate != null) initialDates.add(_endDate!);
+
+                  final results = await showCalendarDatePicker2Dialog(
+                    context: context,
+                    config: CalendarDatePicker2WithActionButtonsConfig(
+                      calendarType: CalendarDatePicker2Type.range,
+                      firstDate: DateTime(1990),
+                      lastDate: DateTime(2100),
+                      selectedDayHighlightColor: AppColors.primaryGreen,
+                      okButton: const Text(
+                        'APPLY',
+                        style: TextStyle(
+                          color: AppColors.primaryGreen,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      cancelButton: const Text(
+                        'CANCEL',
+                        style: TextStyle(color: AppColors.textSecondary),
+                      ),
+                    ),
+                    dialogSize: const Size(325, 400),
+                    value: initialDates,
+                    borderRadius: BorderRadius.circular(16),
+                  );
+
+                  if (results != null && results.isNotEmpty) {
+                    setState(() {
+                      _startDate = results.first;
+                      _endDate =
+                          results.length > 1 ? results.last : results.first;
+                    });
+                  }
+                },
+                child: Padding(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                  child: Row(
+                    children: [
+                      const Icon(
+                        Icons.date_range_outlined,
+                        size: 20,
+                        color: AppColors.primaryGreen,
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Text(
+                          (_startDate != null && _endDate != null)
+                              ? '${_formatYmd(_startDate)}  to  ${_formatYmd(_endDate)}'
+                              : _startDate != null
+                                  ? 'Start: ${_formatYmd(_startDate)} (Select End Date)'
+                                  : 'Select Schedule Dates (Optional)',
+                          style: TextStyle(
+                            fontSize: 13,
+                            color: (_startDate != null || _endDate != null)
+                                ? (isDark
+                                    ? AppColors.darkTextPrimary
+                                    : AppColors.textPrimary)
+                                : (isDark
+                                    ? AppColors.darkTextMuted
+                                    : AppColors.textMuted),
+                            fontWeight: (_startDate != null || _endDate != null)
+                                ? FontWeight.w600
+                                : FontWeight.normal,
+                          ),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                      if (_startDate != null || _endDate != null)
+                        IconButton(
+                          icon: const Icon(Icons.clear, size: 18),
+                          padding: EdgeInsets.zero,
+                          constraints: const BoxConstraints(),
+                          tooltip: 'Clear dates',
+                          onPressed: () {
+                            setState(() {
+                              _startDate = null;
+                              _endDate = null;
+                            });
+                          },
+                        ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(height: 24),
+            Row(
+              children: [
+                Expanded(
+                  child: SizedBox(
+                    height: 44,
+                    child: OutlinedButton(
+                      onPressed: () => Navigator.pop(context),
+                      child: const Text('Cancel'),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: SizedBox(
+                    height: 44,
+                    child: ElevatedButton(
+                      onPressed: _isLoading ? null : _handleSave,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.primaryGreen,
+                        foregroundColor: Colors.white,
+                      ),
+                      child: _isLoading
+                          ? const SizedBox(
+                              width: 20,
+                              height: 20,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                color: Colors.white,
+                              ),
+                            )
+                          : const Text('Save Dates'),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
       ),
     );
   }

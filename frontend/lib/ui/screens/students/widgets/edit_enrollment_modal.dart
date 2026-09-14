@@ -7,6 +7,7 @@ import '../../../shared/widgets/app_button_loader.dart';
 import '../../../providers/student_provider.dart';
 import '../../../providers/setup_provider.dart';
 import '../../../../domain/entities/setup_models.dart';
+import '../../../../domain/entities/student_model.dart';
 
 class EditEnrollmentModal extends ConsumerStatefulWidget {
   final int studentId;
@@ -55,6 +56,7 @@ class _EditEnrollmentModalState extends ConsumerState<EditEnrollmentModal> {
         ref.invalidate(academicYearsListProvider);
         ref.invalidate(gradeLevelsListProvider);
         ref.invalidate(sectionsListProvider);
+        ref.invalidate(studentDetailProvider(widget.studentId));
       }
     });
   }
@@ -73,6 +75,91 @@ class _EditEnrollmentModalState extends ConsumerState<EditEnrollmentModal> {
         ],
       ),
     );
+  }
+
+  void _populateForEdit(dynamic enrollment) {
+    setState(() {
+      _currentEnrollment = enrollment;
+      _selectedAcademicYearId = enrollment.academicYearId;
+      _selectedGradeLevel = enrollment.gradeLevel;
+      _selectedSectionId = enrollment.sectionId;
+      _trackStrand = enrollment.trackStrand;
+      _errorMessage = null;
+      _successMessage = null;
+    });
+  }
+
+  void _cancelEdit() {
+    setState(() {
+      _currentEnrollment = null;
+      _selectedGradeLevel = 7;
+      _selectedSectionId = null;
+      _trackStrand = null;
+      _errorMessage = null;
+      _successMessage = null;
+    });
+  }
+
+  Future<void> _handleDeleteEnrollment(dynamic enrollment) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Delete Enrollment'),
+        content: Text(
+          'Are you sure you want to delete Grade ${enrollment.gradeLevel} (${enrollment.sectionName ?? "Section"} · ${enrollment.yearRange ?? ""})? This action cannot be undone.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.of(ctx).pop(true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.error,
+              foregroundColor: Colors.white,
+            ),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true) return;
+
+    setState(() {
+      _isLoading = true;
+      _errorMessage = null;
+      _successMessage = null;
+    });
+
+    try {
+      await ref.read(studentMutationProvider.notifier).deleteEnrollment(
+            studentId: widget.studentId,
+            enrollmentId: enrollment.id,
+          );
+      if (_currentEnrollment?.id == enrollment.id) {
+        _currentEnrollment = null;
+        _selectedGradeLevel = 7;
+        _selectedSectionId = null;
+        _trackStrand = null;
+      }
+      ref.invalidate(studentDetailProvider(widget.studentId));
+      ref.invalidate(studentPageProvider);
+      if (!mounted) return;
+      setState(() {
+        _isLoading = false;
+        _successMessage = 'Enrollment deleted successfully.';
+      });
+    } catch (e) {
+      if (!mounted) return;
+      final raw = e.toString();
+      final msg = raw.startsWith('Exception: ') ? raw.substring(11) : raw;
+      setState(() {
+        _isLoading = false;
+        _errorMessage = msg;
+      });
+    }
   }
 
   Future<void> _handleSave() async {
@@ -118,6 +205,9 @@ class _EditEnrollmentModalState extends ConsumerState<EditEnrollmentModal> {
           trackStrand: _trackStrand,
         );
       }
+
+      ref.invalidate(studentDetailProvider(widget.studentId));
+      ref.invalidate(studentPageProvider);
 
       if (!mounted) return;
       Navigator.of(context).pop(true);
@@ -214,6 +304,9 @@ class _EditEnrollmentModalState extends ConsumerState<EditEnrollmentModal> {
         );
       }
 
+      ref.invalidate(studentDetailProvider(widget.studentId));
+      ref.invalidate(studentPageProvider);
+
       if (!mounted) return;
       setState(() {
         _isLoading = false;
@@ -241,13 +334,18 @@ class _EditEnrollmentModalState extends ConsumerState<EditEnrollmentModal> {
     final yearsAsync = ref.watch(academicYearsListProvider);
     final gradeLevelsAsync = ref.watch(gradeLevelsListProvider);
     final sectionsAsync = ref.watch(sectionsListProvider);
+    final studentDetailAsync =
+        ref.watch(studentDetailProvider(widget.studentId));
 
     final viewInsets = MediaQuery.viewInsetsOf(context);
     final screenHeight = MediaQuery.sizeOf(context).height;
     final screenWidth = MediaQuery.sizeOf(context).width;
     final isMobile = screenWidth < 600;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
-    double maxDialogHeight = isMobile ? (screenHeight * 0.85) : 520;
+    double maxDialogHeight = isMobile
+        ? (screenHeight * 0.85)
+        : (screenHeight * 0.85).clamp(520.0, 700.0);
     double dialogHeight = maxDialogHeight.clamp(
       200.0,
       screenHeight - viewInsets.bottom - 24.0,
@@ -262,6 +360,12 @@ class _EditEnrollmentModalState extends ConsumerState<EditEnrollmentModal> {
         List<GradeLevelModel>.from(gradeLevelsAsync.asData?.value ?? [])
           ..sort((a, b) => a.level.compareTo(b.level));
     final allSections = sectionsAsync.asData?.value ?? [];
+
+    final studentDetail = studentDetailAsync.asData?.value;
+    final enrollments =
+        studentDetail?.enrollments ?? <EnrollmentModel>[];
+    final sortedEnrollments = List<EnrollmentModel>.from(enrollments)
+      ..sort((a, b) => b.gradeLevel.compareTo(a.gradeLevel));
 
     // 1. Determine active/effective Academic Year
     final activeYears =
@@ -340,7 +444,7 @@ class _EditEnrollmentModalState extends ConsumerState<EditEnrollmentModal> {
       icon: _currentEnrollment == null
           ? Icons.add_box_outlined
           : Icons.edit_document,
-      maxWidth: 480,
+      maxWidth: 520,
       onClose: () => Navigator.of(context).pop(),
       content: ConstrainedBox(
         constraints: BoxConstraints(maxHeight: dialogHeight),
@@ -352,9 +456,56 @@ class _EditEnrollmentModalState extends ConsumerState<EditEnrollmentModal> {
                   horizontal: 16,
                   vertical: 8,
                 ),
-                child: Form(
-                  key: _formKey,
-                  child: Column(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    if (_currentEnrollment != null) ...[
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 8,
+                        ),
+                        margin: const EdgeInsets.only(bottom: 12),
+                        decoration: BoxDecoration(
+                          color: Colors.blue.withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(
+                            color: Colors.blue.withValues(alpha: 0.3),
+                          ),
+                        ),
+                        child: Row(
+                          children: [
+                            const Icon(
+                              Icons.edit_note,
+                              color: Colors.blue,
+                              size: 20,
+                            ),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Text(
+                                'Editing Grade ${_currentEnrollment.gradeLevel} Enrollment',
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.w600,
+                                  color: Colors.blue,
+                                  fontSize: 13,
+                                ),
+                              ),
+                            ),
+                            TextButton(
+                              onPressed: _cancelEdit,
+                              style: TextButton.styleFrom(
+                                visualDensity: VisualDensity.compact,
+                                foregroundColor: Colors.blue,
+                              ),
+                              child: const Text('Cancel Edit'),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                    Form(
+                      key: _formKey,
+                      child: Column(
                     children: [
                       if (isAsyncLoading)
                         const Padding(
@@ -502,7 +653,7 @@ class _EditEnrollmentModalState extends ConsumerState<EditEnrollmentModal> {
                           const SizedBox(height: AppSizes.p16),
                           TextFormField(
                             key: ValueKey(
-                                'edit_enrollment_track_strand_$effectiveGradeLevel'),
+                                'edit_enrollment_track_strand_${effectiveGradeLevel}_${_currentEnrollment?.id}'),
                             initialValue: _trackStrand,
                             decoration: const InputDecoration(
                               labelText: 'Track & Strand (for SHS)',
@@ -516,8 +667,228 @@ class _EditEnrollmentModalState extends ConsumerState<EditEnrollmentModal> {
                     ],
                   ),
                 ),
+
+                // ── Current Enrollments List ────────────────────────────
+                const SizedBox(height: AppSizes.p20),
+                const Divider(),
+                const SizedBox(height: 8),
+                Row(
+                  children: [
+                    const Icon(
+                      Icons.school_outlined,
+                      size: 18,
+                      color: AppColors.primaryGreen,
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        'Current Enrollments (${sortedEnrollments.length})',
+                        style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 14,
+                        ),
+                      ),
+                    ),
+                    if (studentDetailAsync.isLoading)
+                      const SizedBox(
+                        width: 16,
+                        height: 16,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    else
+                      IconButton(
+                        icon: const Icon(Icons.refresh, size: 18),
+                        tooltip: 'Refresh enrollments',
+                        onPressed: () => ref.invalidate(
+                          studentDetailProvider(widget.studentId),
+                        ),
+                      ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                if (studentDetailAsync.isLoading && sortedEnrollments.isEmpty)
+                  const Center(
+                    child: Padding(
+                      padding: EdgeInsets.all(16.0),
+                      child: CircularProgressIndicator(),
+                    ),
+                  )
+                else if (sortedEnrollments.isEmpty)
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: isDark
+                          ? AppColors.darkSurfaceCard
+                          : Colors.grey.shade50,
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(
+                        color: isDark
+                            ? AppColors.darkBorder
+                            : Colors.grey.shade200,
+                      ),
+                    ),
+                    child: const Text(
+                      'No enrollment records found for this student.',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Colors.grey,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                  )
+                else
+                  ListView.separated(
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    itemCount: sortedEnrollments.length,
+                    separatorBuilder: (context, index) => const SizedBox(height: 8),
+                    itemBuilder: (ctx, index) {
+                      final item = sortedEnrollments[index];
+                      final isCurrentlyEditing =
+                          _currentEnrollment?.id == item.id;
+                      return Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 10,
+                        ),
+                        decoration: BoxDecoration(
+                          color: isCurrentlyEditing
+                              ? AppColors.primaryGreen
+                                  .withValues(alpha: 0.08)
+                              : (isDark
+                                  ? AppColors.darkSurfaceCard
+                                  : Colors.white),
+                          borderRadius: BorderRadius.circular(10),
+                          border: Border.all(
+                            color: isCurrentlyEditing
+                                ? AppColors.primaryGreen
+                                : (isDark
+                                    ? AppColors.darkBorder
+                                    : Colors.grey.shade200),
+                            width: isCurrentlyEditing ? 1.5 : 1.0,
+                          ),
+                        ),
+                        child: Row(
+                          children: [
+                            Container(
+                              width: 36,
+                              height: 36,
+                              decoration: BoxDecoration(
+                                color: isCurrentlyEditing
+                                    ? AppColors.primaryGreen
+                                        .withValues(alpha: 0.2)
+                                    : Colors.blue.withValues(alpha: 0.1),
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: Icon(
+                                Icons.school,
+                                color: isCurrentlyEditing
+                                    ? AppColors.primaryGreen
+                                    : Colors.blue,
+                                size: 18,
+                              ),
+                            ),
+                            const SizedBox(width: 10),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment:
+                                    CrossAxisAlignment.start,
+                                children: [
+                                  Row(
+                                    children: [
+                                      Text(
+                                        'Grade ${item.gradeLevel}',
+                                        style: TextStyle(
+                                          fontWeight: FontWeight.w600,
+                                          fontSize: 13,
+                                          color: isDark
+                                              ? AppColors.darkTextPrimary
+                                              : AppColors.textPrimary,
+                                        ),
+                                      ),
+                                      if (isCurrentlyEditing) ...[
+                                        const SizedBox(width: 6),
+                                        Container(
+                                          padding:
+                                              const EdgeInsets.symmetric(
+                                            horizontal: 6,
+                                            vertical: 1,
+                                          ),
+                                          decoration: BoxDecoration(
+                                            color: AppColors.primaryGreen
+                                                .withValues(alpha: 0.15),
+                                            borderRadius:
+                                                BorderRadius.circular(4),
+                                          ),
+                                          child: const Text(
+                                            'Editing',
+                                            style: TextStyle(
+                                              fontSize: 10,
+                                              color:
+                                                  AppColors.primaryGreen,
+                                              fontWeight: FontWeight.bold,
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    ],
+                                  ),
+                                  const SizedBox(height: 2),
+                                  Text(
+                                    '${item.sectionName ?? 'N/A'} · ${item.yearRange ?? 'N/A'}',
+                                    style: TextStyle(
+                                      color: isDark
+                                          ? AppColors.darkTextSecondary
+                                          : AppColors.textSecondary,
+                                      fontSize: 12,
+                                    ),
+                                  ),
+                                  if (item.trackStrand != null &&
+                                      item.trackStrand!.isNotEmpty)
+                                    Text(
+                                      'Track: ${item.trackStrand}',
+                                      style: TextStyle(
+                                        color: isDark
+                                            ? AppColors.darkTextSecondary
+                                            : AppColors.textSecondary,
+                                        fontSize: 11,
+                                      ),
+                                    ),
+                                ],
+                              ),
+                            ),
+                            IconButton(
+                              icon: const Icon(
+                                Icons.edit_outlined,
+                                size: 18,
+                                color: Colors.blue,
+                              ),
+                              tooltip: 'Edit Enrollment',
+                              onPressed: _isLoading
+                                  ? null
+                                  : () => _populateForEdit(item),
+                            ),
+                            IconButton(
+                              icon: const Icon(
+                                Icons.delete_outline,
+                                size: 18,
+                                color: AppColors.error,
+                              ),
+                              tooltip: 'Delete Enrollment',
+                              onPressed: _isLoading
+                                  ? null
+                                  : () => _handleDeleteEnrollment(item),
+                            ),
+                          ],
+                        ),
+                      );
+                    },
+                  ),
+                ],
               ),
             ),
+          ),
 
             if (_successMessage != null) ...[
               const SizedBox(height: 8),
@@ -713,9 +1084,11 @@ class _EditEnrollmentModalState extends ConsumerState<EditEnrollmentModal> {
                                           size: 20,
                                           strokeWidth: 2,
                                         )
-                                      : const Text(
-                                          'SAVE',
-                                          style: TextStyle(
+                                      : Text(
+                                          _currentEnrollment == null
+                                              ? 'SAVE'
+                                              : 'UPDATE',
+                                          style: const TextStyle(
                                             fontWeight: FontWeight.bold,
                                             fontSize: 14,
                                             letterSpacing: 0.5,
@@ -819,9 +1192,11 @@ class _EditEnrollmentModalState extends ConsumerState<EditEnrollmentModal> {
                                   size: 20,
                                   strokeWidth: 2,
                                 )
-                              : const Text(
-                                  'SAVE',
-                                  style: TextStyle(
+                              : Text(
+                                  _currentEnrollment == null
+                                      ? 'SAVE'
+                                      : 'UPDATE',
+                                  style: const TextStyle(
                                     fontWeight: FontWeight.bold,
                                     fontSize: 14,
                                     letterSpacing: 0.5,
