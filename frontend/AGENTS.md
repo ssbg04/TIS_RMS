@@ -534,6 +534,15 @@ Files backup/restore - mirror mode or zip -->
 # STUDENT SCREEN
 - edit student screen -> enrollment tab -> add enrollment modal -> add list of all current enrollments can delete, edit (make this realtime fetch from backend) (done) -->
 
+<!-- # SETTINGS SCREEN
+- all widgets that is collapse only title and collapse icon, move inside other components (done)
+- add in appearance enable/disable sound and vibration, update the title and make it collapse only title and collapse icon (done) -->
+
+# SETTINGS SCREEN
+- default the vibration into disable, vibration hide in windows app (done)
+- in academic & auto graduation collapse too many information, remove the duplicated information in this section (done)
+- auto uncollapse all collapsable component when leave from this screen (done)
+
 --- 
 
 # DONT DO

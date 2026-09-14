@@ -5,8 +5,11 @@ import 'package:vibration/vibration.dart';
 
 /// Centralized service for dynamic hardware vibration and haptic feedback across Android devices.
 class HapticService {
+  /// Whether dynamic vibration and haptic feedback are enabled (default disabled).
+  static bool isEnabled = false;
+
   static bool get _isMobile =>
-      !kIsWeb && (Platform.isAndroid || Platform.isIOS);
+      isEnabled && !kIsWeb && (Platform.isAndroid || Platform.isIOS);
 
   /// Success dynamic pattern: Crisp double vibration pulse
   static Future<void> success() async {

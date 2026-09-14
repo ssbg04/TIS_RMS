@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'dart:io' show Platform;
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'dart:ui';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -21,6 +23,7 @@ import 'teacher_management_screen.dart';
 import '../../../domain/entities/setup_models.dart';
 import '../../providers/system_settings_provider.dart';
 import '../../providers/theme_provider.dart';
+import '../../providers/preferences_provider.dart';
 import 'widgets/change_password_modal.dart';
 import '../../../core/services/haptic_service.dart';
 class TitleCaseTextInputFormatter extends TextInputFormatter {
@@ -91,6 +94,14 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   bool _isProfileExpanded = false;
   bool _isAcademicYearExpanded = false;
   bool _isAutoEnrollExpanded = false;
+  bool _isAppearanceExpanded = false;
+
+  void _collapseAllSections() {
+    _isProfileExpanded = false;
+    _isAcademicYearExpanded = false;
+    _isAutoEnrollExpanded = false;
+    _isAppearanceExpanded = false;
+  }
 
   void _refreshAllSettingsData() {
     ref.invalidate(academicYearsListProvider);
@@ -111,9 +122,17 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         next,
       ) {
         if (!mounted) return;
+        if (previous == 'Settings' && next != 'Settings') {
+          setState(() {
+            _collapseAllSections();
+          });
+        }
         if (next == 'Settings') {
           _refreshAllSettingsData();
           if (previous != 'Settings') {
+            setState(() {
+              _collapseAllSections();
+            });
             _firstNameCtrl.clear();
             _middleNameCtrl.clear();
             _lastNameCtrl.clear();
@@ -453,34 +472,61 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
 
                       // ── Profile Card (Collapsible) ──────────────────────────
                       _buildCollapsibleCard(
-                        leading: const CircleAvatar(
-                          radius: 24,
-                          backgroundColor: AppColors.primaryGreen,
-                          child: Icon(
-                            Icons.person,
-                            size: 24,
-                            color: Colors.white,
-                          ),
-                        ),
                         title: 'Profile Details',
-                        subtitle: 'Role: ${user.role.toUpperCase().replaceAll('_', ' ')}',
                         isExpanded: _isProfileExpanded,
                         onToggle: () => setState(() => _isProfileExpanded = !_isProfileExpanded),
-                        headerActions: [
-                          if (_isProfileLoading)
-                            const Padding(
-                              padding: EdgeInsets.only(right: 8),
-                              child: SizedBox(
-                                width: 20,
-                                height: 20,
-                                child: CircularProgressIndicator(strokeWidth: 2),
-                              ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                const CircleAvatar(
+                                  radius: 24,
+                                  backgroundColor: AppColors.primaryGreen,
+                                  child: Icon(
+                                    Icons.person,
+                                    size: 24,
+                                    color: Colors.white,
+                                  ),
+                                ),
+                                const SizedBox(width: AppSizes.p16),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        '${user.firstName} ${user.lastName}',
+                                        style: const TextStyle(
+                                          fontSize: 16,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 2),
+                                      Text(
+                                        'Role: ${user.role.toUpperCase().replaceAll('_', ' ')}',
+                                        style: TextStyle(
+                                          fontSize: 13,
+                                          color: Theme.of(context).brightness == Brightness.dark
+                                              ? AppColors.darkTextSecondary
+                                              : Colors.grey,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                if (_isProfileLoading)
+                                  const SizedBox(
+                                    width: 20,
+                                    height: 20,
+                                    child: CircularProgressIndicator(strokeWidth: 2),
+                                  ),
+                              ],
                             ),
-                        ],
-                        child: Form(
-                          key: _profileFormKey,
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
+                            const SizedBox(height: AppSizes.p20),
+                            Form(
+                              key: _profileFormKey,
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               CustomTextField(
                                 hintText: 'First Name',
@@ -632,12 +678,14 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                                       child: const Text('Save Profile'),
                                     ),
                                   ],
-                                ),
-                              ],
-                            ],
-                          ),
-                        ),
-                      ),
+                                 ),
+                               ],
+                             ],
+                           ),
+                         ),
+                       ],
+                     ),
+                   ),
 
                       const SizedBox(height: AppSizes.p24),
 
@@ -820,24 +868,41 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                         Consumer(
                           builder: (context, ref, _) {
                             final academicYearsAsync = ref.watch(academicYearsListProvider);
+                            final isDark = Theme.of(context).brightness == Brightness.dark;
                             return _buildCollapsibleCard(
-                              leading: const Icon(
-                                Icons.school_rounded,
-                                color: AppColors.primaryGreen,
-                                size: 26,
-                              ),
                               title: 'Academic Year & Auto-Graduation',
-                              subtitle: 'Configure schedule dates for automatic sequential graduation of Grade 10 & 12 students',
                               isExpanded: _isAcademicYearExpanded,
                               onToggle: () => setState(() => _isAcademicYearExpanded = !_isAcademicYearExpanded),
-                              headerActions: [
-                                IconButton(
-                                  icon: const Icon(Icons.refresh, size: 20),
-                                  tooltip: 'Refresh Academic Year',
-                                  onPressed: () => ref.invalidate(academicYearsListProvider),
-                                ),
-                              ],
-                              child: academicYearsAsync.when(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Row(
+                                    crossAxisAlignment: CrossAxisAlignment.center,
+                                    children: [
+                                      const Icon(
+                                        Icons.school_rounded,
+                                        color: AppColors.primaryGreen,
+                                        size: 24,
+                                      ),
+                                      const SizedBox(width: AppSizes.p12),
+                                      Expanded(
+                                        child: Text(
+                                          'Manage active academic year and auto-graduation schedule',
+                                          style: TextStyle(
+                                            fontSize: 13,
+                                            color: isDark ? AppColors.darkTextSecondary : Colors.grey.shade600,
+                                          ),
+                                        ),
+                                      ),
+                                      IconButton(
+                                        icon: const Icon(Icons.refresh, size: 20),
+                                        tooltip: 'Refresh Academic Year',
+                                        onPressed: () => ref.invalidate(academicYearsListProvider),
+                                      ),
+                                    ],
+                                  ),
+                                  const SizedBox(height: AppSizes.p16),
+                                  academicYearsAsync.when(
                                     data: (years) {
                                       final isDark = Theme.of(context).brightness == Brightness.dark;
                                       final activeYear = years.cast<AcademicYearModel?>().firstWhere(
@@ -914,32 +979,31 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                                             ),
                                           ] else ...[
                                             Wrap(
-                                              spacing: 16,
+                                              spacing: 20,
                                               runSpacing: 8,
                                               crossAxisAlignment: WrapCrossAlignment.center,
                                               children: [
-                                                Container(
-                                                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                                                  decoration: BoxDecoration(
-                                                    color: AppColors.primaryGreen.withValues(alpha: 0.1),
-                                                    borderRadius: BorderRadius.circular(12),
-                                                  ),
-                                                  child: Text(
-                                                    'Active AY: ${activeYear.yearRange}',
-                                                    style: const TextStyle(
-                                                      fontWeight: FontWeight.w600,
-                                                      color: AppColors.primaryGreen,
-                                                      fontSize: 13,
+                                                Row(
+                                                  mainAxisSize: MainAxisSize.min,
+                                                  children: [
+                                                    const Icon(Icons.calendar_today_outlined, size: 15, color: AppColors.primaryGreen),
+                                                    const SizedBox(width: 6),
+                                                    Text(
+                                                      'Start: ${activeYear.startDate ?? "Not set"}',
+                                                      style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500),
                                                     ),
-                                                  ),
+                                                  ],
                                                 ),
-                                                Text(
-                                                  'Start Date: ${activeYear.startDate ?? "Not set"}',
-                                                  style: const TextStyle(fontSize: 13),
-                                                ),
-                                                Text(
-                                                  'End Date: ${activeYear.endDate ?? "Not set"}',
-                                                  style: const TextStyle(fontSize: 13),
+                                                Row(
+                                                  mainAxisSize: MainAxisSize.min,
+                                                  children: [
+                                                    const Icon(Icons.event_available_outlined, size: 15, color: AppColors.primaryGreen),
+                                                    const SizedBox(width: 6),
+                                                    Text(
+                                                      'End: ${activeYear.endDate ?? "Not set"}',
+                                                      style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500),
+                                                    ),
+                                                  ],
                                                 ),
                                               ],
                                             ),
@@ -963,7 +1027,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                                                   const SizedBox(width: 8),
                                                   Expanded(
                                                     child: Text(
-                                                      'Note: If Start Date or End Date is not set, auto-graduation will not execute automatically. When the end date arrives, Grade 10 students are graduated first, then Grade 12 students.',
+                                                      'Auto-graduation runs sequentially (Grade 10 then Grade 12) once end date is reached. Requires both dates set.',
                                                       style: TextStyle(
                                                         fontSize: 12,
                                                         color: isDark ? Colors.blue.shade300 : Colors.blue,
@@ -1109,7 +1173,9 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                                     loading: () => const Center(child: CircularProgressIndicator()),
                                     error: (err, _) => Text('Error loading academic years: $err', style: const TextStyle(color: Colors.red)),
                                   ),
-                            );
+                                 ],
+                               ),
+                             );
                           },
                         ),
                         const SizedBox(height: AppSizes.p24),
@@ -1126,32 +1192,58 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                             final isDark = Theme.of(context).brightness == Brightness.dark;
 
                             return _buildCollapsibleCard(
-                              leading: const Icon(
-                                Icons.auto_awesome_outlined,
-                                color: AppColors.primaryGreen,
-                                size: 26,
-                              ),
                               title: 'Student Enrollment Auto-Update',
-                              subtitle: 'Automatically extract Academic Year, Grade Level, and Section from SF10/SF9 documents',
                               isExpanded: _isAutoEnrollExpanded,
                               onToggle: () => setState(() => _isAutoEnrollExpanded = !_isAutoEnrollExpanded),
-                              headerActions: [
-                                Switch(
-                                  value: isAutoEnrollEnabled,
-                                  activeThumbColor: AppColors.primaryGreen,
-                                  onChanged: (val) {
-                                    ref
-                                        .read(systemSettingsProvider.notifier)
-                                        .updateSetting(
-                                          'auto_update_enrollment_from_sf',
-                                          val ? 'true' : 'false',
-                                        );
-                                  },
-                                ),
-                              ],
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
+                                  Row(
+                                    children: [
+                                      const Icon(
+                                        Icons.auto_awesome_outlined,
+                                        color: AppColors.primaryGreen,
+                                        size: 24,
+                                      ),
+                                      const SizedBox(width: AppSizes.p12),
+                                      Expanded(
+                                        child: Column(
+                                          crossAxisAlignment: CrossAxisAlignment.start,
+                                          children: [
+                                            Text(
+                                              'Auto-Update Enrollment',
+                                              style: TextStyle(
+                                                fontSize: 14,
+                                                fontWeight: FontWeight.w600,
+                                                color: Theme.of(context).colorScheme.onSurface,
+                                              ),
+                                            ),
+                                            const SizedBox(height: 2),
+                                            Text(
+                                              'Automatically extract Academic Year, Grade Level, and Section from SF10/SF9 documents',
+                                              style: TextStyle(
+                                                fontSize: 12,
+                                                color: isDark ? AppColors.darkTextSecondary : Colors.grey.shade600,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                      Switch(
+                                        value: isAutoEnrollEnabled,
+                                        activeThumbColor: AppColors.primaryGreen,
+                                        onChanged: (val) {
+                                          ref
+                                              .read(systemSettingsProvider.notifier)
+                                              .updateSetting(
+                                                'auto_update_enrollment_from_sf',
+                                                val ? 'true' : 'false',
+                                              );
+                                        },
+                                      ),
+                                    ],
+                                  ),
+                                  const SizedBox(height: AppSizes.p16),
                                   if (!isAutoEnrollEnabled)
                                     Padding(
                                       padding: const EdgeInsets.symmetric(vertical: 8.0),
@@ -1239,31 +1331,35 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                         const SizedBox(height: AppSizes.p24),
                       ],
 
-                      // ── Appearance / Dark Mode Card ────────────────────────
-                      _buildCard(
+                      // ── Appearance & Feedback Card (Collapsible) ───────────
+                      _buildCollapsibleCard(
+                        title: 'Appearance & Feedback',
+                        isExpanded: _isAppearanceExpanded,
+                        onToggle: () => setState(() => _isAppearanceExpanded = !_isAppearanceExpanded),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Row(
-                              crossAxisAlignment: CrossAxisAlignment.start,
+                              crossAxisAlignment: CrossAxisAlignment.center,
                               children: [
-                                Icon(
+                                const Icon(
                                   Icons.palette_outlined,
                                   color: AppColors.primaryGreen,
+                                  size: 22,
                                 ),
-                                SizedBox(width: AppSizes.p8),
+                                const SizedBox(width: AppSizes.p12),
                                 Expanded(
                                   child: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
+                                    crossAxisAlignment: CrossAxisAlignment.start,
                                     children: [
-                                      Text(
-                                        'Appearance',
+                                      const Text(
+                                        'Theme Mode',
                                         style: TextStyle(
-                                          fontSize: 18,
-                                          fontWeight: FontWeight.bold,
+                                          fontSize: 15,
+                                          fontWeight: FontWeight.w600,
                                         ),
                                       ),
+                                      const SizedBox(height: 2),
                                       Text(
                                         'Choose your preferred theme mode.',
                                         style: TextStyle(
@@ -1279,7 +1375,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                                 ),
                               ],
                             ),
-                            const Divider(height: 28),
+                            const SizedBox(height: AppSizes.p16),
                             Consumer(
                               builder: (context, ref, child) {
                                 final themeNotifier =
@@ -1318,6 +1414,110 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                                 );
                               },
                             ),
+                            const Divider(height: 32),
+                            // Sound Effects Toggle
+                            Consumer(
+                              builder: (context, ref, _) {
+                                final isSoundEnabled = ref.watch(soundEnabledProvider);
+                                final isDark = Theme.of(context).brightness == Brightness.dark;
+                                return Row(
+                                  children: [
+                                    const Icon(
+                                      Icons.volume_up_outlined,
+                                      color: AppColors.primaryGreen,
+                                      size: 22,
+                                    ),
+                                    const SizedBox(width: AppSizes.p12),
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          const Text(
+                                            'Sound Effects',
+                                            style: TextStyle(
+                                              fontSize: 15,
+                                              fontWeight: FontWeight.w600,
+                                            ),
+                                          ),
+                                          const SizedBox(height: 2),
+                                          Text(
+                                            'Play audio feedback on user actions and alerts',
+                                            style: TextStyle(
+                                              fontSize: 13,
+                                              color: isDark
+                                                  ? AppColors.darkTextSecondary
+                                                  : Colors.grey.shade600,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                    Switch(
+                                      value: isSoundEnabled,
+                                      activeThumbColor: AppColors.primaryGreen,
+                                      onChanged: (val) {
+                                        ref
+                                            .read(soundEnabledProvider.notifier)
+                                            .setSoundEnabled(val);
+                                      },
+                                    ),
+                                  ],
+                                );
+                              },
+                            ),
+                            if (kIsWeb || !Platform.isWindows) ...[
+                              const SizedBox(height: AppSizes.p16),
+                              // Vibration & Haptics Toggle
+                              Consumer(
+                                builder: (context, ref, _) {
+                                  final isVibrationEnabled = ref.watch(vibrationEnabledProvider);
+                                  final isDark = Theme.of(context).brightness == Brightness.dark;
+                                  return Row(
+                                    children: [
+                                      const Icon(
+                                        Icons.vibration_rounded,
+                                        color: AppColors.primaryGreen,
+                                        size: 22,
+                                      ),
+                                      const SizedBox(width: AppSizes.p12),
+                                      Expanded(
+                                        child: Column(
+                                          crossAxisAlignment: CrossAxisAlignment.start,
+                                          children: [
+                                            const Text(
+                                              'Vibration & Haptics',
+                                              style: TextStyle(
+                                                fontSize: 15,
+                                                fontWeight: FontWeight.w600,
+                                              ),
+                                            ),
+                                            const SizedBox(height: 2),
+                                            Text(
+                                              'Enable haptic feedback on touch interactions (mobile)',
+                                              style: TextStyle(
+                                                fontSize: 13,
+                                                color: isDark
+                                                    ? AppColors.darkTextSecondary
+                                                    : Colors.grey.shade600,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                      Switch(
+                                        value: isVibrationEnabled,
+                                        activeThumbColor: AppColors.primaryGreen,
+                                        onChanged: (val) {
+                                          ref
+                                              .read(vibrationEnabledProvider.notifier)
+                                              .setVibrationEnabled(val);
+                                        },
+                                      ),
+                                    ],
+                                  );
+                                },
+                              ),
+                            ],
                           ],
                         ),
                       ),
@@ -1504,12 +1704,9 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   }
 
   Widget _buildCollapsibleCard({
-    required Widget leading,
     required String title,
-    required String subtitle,
     required bool isExpanded,
     required VoidCallback onToggle,
-    List<Widget>? headerActions,
     required Widget child,
   }) {
     final theme = Theme.of(context);
@@ -1548,32 +1745,15 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 padding: const EdgeInsets.all(AppSizes.p24),
                 child: Row(
                   children: [
-                    leading,
-                    const SizedBox(width: AppSizes.p16),
                     Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            title,
-                            style: const TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                          const SizedBox(height: 2),
-                          Text(
-                            subtitle,
-                            style: TextStyle(
-                              fontSize: 13,
-                              color: isDark ? AppColors.darkTextSecondary : Colors.grey,
-                            ),
-                          ),
-                        ],
+                      child: Text(
+                        title,
+                        style: const TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
                     ),
-                    ...?headerActions,
-                    const SizedBox(width: 8),
                     AnimatedRotation(
                       turns: isExpanded ? 0.5 : 0.0,
                       duration: const Duration(milliseconds: 250),
