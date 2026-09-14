@@ -22,7 +22,21 @@ class SearchHistoryNotifier extends Notifier<List<String>> {
       final data = prefs.getString(_searchHistoryKey);
       if (data != null) {
         final List<dynamic> decoded = jsonDecode(data);
-        state = decoded.map((e) => e.toString()).toList();
+        final loaded = decoded
+            .map((e) => e.toString().trim())
+            .where((e) => e.isNotEmpty)
+            .toList();
+
+        final merged = [...state];
+        for (final item in loaded) {
+          if (!merged.contains(item)) {
+            merged.add(item);
+          }
+        }
+        if (merged.length > 10) {
+          merged.removeRange(10, merged.length);
+        }
+        state = merged;
       }
     } catch (e) {
       // Ignore errors on load
@@ -49,15 +63,20 @@ class SearchHistoryNotifier extends Notifier<List<String>> {
   }
 
   Future<void> removeSearch(String query) async {
-    final newList = List<String>.from(state)..remove(query);
+    final trimQuery = query.trim();
+    final newList = List<String>.from(state)..remove(trimQuery);
     state = newList;
     await _saveHistory(newList);
   }
 
   Future<void> clearHistory() async {
     state = [];
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.remove(_searchHistoryKey);
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.remove(_searchHistoryKey);
+    } catch (e) {
+      // Ignore errors on clear
+    }
   }
 
   Future<void> _saveHistory(List<String> list) async {

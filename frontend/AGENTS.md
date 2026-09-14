@@ -538,10 +538,13 @@ Files backup/restore - mirror mode or zip -->
 - all widgets that is collapse only title and collapse icon, move inside other components (done)
 - add in appearance enable/disable sound and vibration, update the title and make it collapse only title and collapse icon (done) -->
 
-# SETTINGS SCREEN
+<!-- # SETTINGS SCREEN
 - default the vibration into disable, vibration hide in windows app (done)
 - in academic & auto graduation collapse too many information, remove the duplicated information in this section (done)
-- auto uncollapse all collapsable component when leave from this screen (done)
+- auto uncollapse all collapsable component when leave from this screen (done) -->
+
+<!-- # SEARCH BAR HISTORY
+- fix the history make sure it works at all .net framework, the history not working when clear and closing the history, and sometimes it works but the history disappears you need to active the search bar again to appear (done) -->
 
 --- 
 
