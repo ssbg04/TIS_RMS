@@ -3,7 +3,9 @@
 ; Features: Ultra-compressed release, automated silent .NET & VC++ runtime installer, selectable install directory, desktop shortcut checkbox, uninstaller, no auto-start.
 
 #define MyAppName "TIS RMS Client"
+#ifndef MyAppVersion
 #define MyAppVersion "1.0.0"
+#endif
 #define MyAppPublisher "Talisay Integrated School"
 #define MyAppURL "https://tis-rms.cc.cd"
 #define MyAppExeName "frontend.exe"

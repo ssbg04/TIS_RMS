@@ -134,46 +134,73 @@ jobs:
           Write-Host "google-services.json restored."
 
       # ------------------------------------------------------------
-      # Determine Release Tag
+      # Determine Release Tag & Version
       # ------------------------------------------------------------
-      - name: Determine Release Tag
+      - name: Determine Release Tag & Version
         id: release_info
         shell: pwsh
         run: |
           $ErrorActionPreference = 'Stop'
 
           $inputTag = '${{ github.event.inputs.tag_name }}'.Trim()
+          $runNumber = '${{ github.run_number }}'
 
-          if (
-            '${{ github.event_name }}' -eq 'push' -and
-            '${{ github.ref }}'.StartsWith('refs/tags/')
-          ) {
-            $tag = '${{ github.ref_name }}'
+          $versionLine = Get-Content frontend/pubspec.yaml |
+            Select-String '^version:' |
+            Select-Object -First 1
+
+          if (-not $versionLine) {
+            throw "Could not find version: in frontend/pubspec.yaml"
+          }
+
+          $rawVer = ($versionLine.Line -split ':', 2)[1].Trim()
+          $verParts = $rawVer.Split('+')
+          $semVer = $verParts[0]
+
+          $semParts = $semVer.Split('.')
+          $major = if ($semParts.Length -ge 1) { $semParts[0] } else { "1" }
+          $minor = if ($semParts.Length -ge 2) { $semParts[1] } else { "0" }
+
+          $isTagPush = '${{ github.event_name }}' -eq 'push' -and '${{ github.ref }}'.StartsWith('refs/tags/')
+
+          if ($isTagPush) {
+            $refTag = '${{ github.ref_name }}'
+            $tag = if ($refTag.StartsWith('v')) { $refTag } else { "v$refTag" }
+            $verName = $tag.TrimStart('v')
           }
           elseif ($inputTag) {
-            $tag = $inputTag
+            $tag = if ($inputTag.StartsWith('v')) { $inputTag } else { "v$inputTag" }
+            $verName = $tag.TrimStart('v')
           }
           else {
-            $versionLine = Get-Content frontend/pubspec.yaml |
-              Select-String '^version:' |
-              Select-Object -First 1
-
-            if (-not $versionLine) {
-              throw "Could not find version: in frontend/pubspec.yaml"
-            }
-
-            $rawVer = ($versionLine.Line -split ':', 2)[1].Trim().Split('+')[0]
-
-            $tag = "v$rawVer"
+            # Auto-increment patch using GitHub Actions run_number
+            $verName = "$major.$minor.$runNumber"
+            $tag = "v$verName"
           }
+
+          $buildNumber = $runNumber
 
           if ($tag -notmatch '^v\d+\.\d+\.\d+(?:[-+][0-9A-Za-z.-]+)?$') {
             throw "Invalid release tag '$tag'. Expected format like v1.0.0."
           }
 
-          Write-Host "Release tag: $tag"
+          Write-Host "Release tag  : $tag"
+          Write-Host "Version name : $verName"
+          Write-Host "Build number : $buildNumber"
 
           "tag=$tag" |
+            Out-File `
+              -FilePath $env:GITHUB_OUTPUT `
+              -Encoding utf8 `
+              -Append
+
+          "version_name=$verName" |
+            Out-File `
+              -FilePath $env:GITHUB_OUTPUT `
+              -Encoding utf8 `
+              -Append
+
+          "build_number=$buildNumber" |
             Out-File `
               -FilePath $env:GITHUB_OUTPUT `
               -Encoding utf8 `
@@ -234,7 +261,9 @@ jobs:
           flutter build windows `
             --release `
             --obfuscate `
-            --split-debug-info=build/windows/symbols
+            --split-debug-info=build/windows/symbols `
+            --build-name="${{ steps.release_info.outputs.version_name }}" `
+            --build-number="${{ steps.release_info.outputs.build_number }}"
 
           if ($LASTEXITCODE -ne 0) {
             throw "Flutter Windows build failed."
@@ -256,6 +285,7 @@ jobs:
             Out-Null
 
           & "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" `
+            "/DMyAppVersion=${{ steps.release_info.outputs.version_name }}" `
             TIS_RMS_Client.iss
 
           if ($LASTEXITCODE -ne 0) {
@@ -282,7 +312,9 @@ jobs:
           flutter build apk `
             --release `
             --obfuscate `
-            --split-debug-info=build/app/outputs/symbols
+            --split-debug-info=build/app/outputs/symbols `
+            --build-name="${{ steps.release_info.outputs.version_name }}" `
+            --build-number="${{ steps.release_info.outputs.build_number }}"
 
           if ($LASTEXITCODE -ne 0) {
             throw "Flutter Android APK build failed."
