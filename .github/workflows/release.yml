@@ -3,86 +3,333 @@ name: Build & Release Client (Windows & Android)
 on:
   push:
     tags:
-      - 'v*' # Triggers whenever you push a tag like v1.0.0
+      - 'v*'
+
   workflow_dispatch:
     inputs:
       tag_name:
-        description: 'Release Tag (leave empty to use version from pubspec.yaml, e.g. v1.0.0)'
+        description: 'Release tag (e.g. v1.0.0). Leave empty to use pubspec.yaml version.'
         required: false
         default: ''
+        type: string
 
 jobs:
   build-and-release:
     name: Build Windows & Android Artifacts
     runs-on: windows-latest
+
     permissions:
-      contents: write # Grants permission to create GitHub Release
+      contents: write
 
     steps:
+      # ------------------------------------------------------------
+      # Checkout
+      # ------------------------------------------------------------
       - name: Checkout Repository
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
+      # ------------------------------------------------------------
+      # Java
+      # ------------------------------------------------------------
       - name: Setup Java
         uses: actions/setup-java@v4
         with:
-          distribution: 'zulu'
+          distribution: temurin
           java-version: '17'
+          cache: gradle
 
+      - name: Verify Java
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+
+          Write-Host "JAVA_HOME = $env:JAVA_HOME"
+
+          if (-not $env:JAVA_HOME) {
+            throw "JAVA_HOME is not set."
+          }
+
+          if (-not (Test-Path "$env:JAVA_HOME\bin\java.exe")) {
+            throw "Java executable was not found at $env:JAVA_HOME\bin\java.exe"
+          }
+
+          & "$env:JAVA_HOME\bin\java.exe" -version
+
+      # ------------------------------------------------------------
+      # Flutter
+      # ------------------------------------------------------------
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
         with:
-          channel: 'stable'
+          channel: stable
           cache: true
 
-      - name: Install Inno Setup
-        run: choco install innosetup --no-progress
-
-      - name: Restore google-services.json from Secret
-        if: env.GOOGLE_SERVICES_JSON != ''
-        working-directory: frontend/android/app
+      - name: Flutter Doctor
+        working-directory: frontend
+        shell: pwsh
         run: |
-          Set-Content -Path "google-services.json" -Value $env:GOOGLE_SERVICES_JSON
+          $ErrorActionPreference = 'Stop'
+          flutter doctor -v
+
+      # ------------------------------------------------------------
+      # Android / Gradle Java Fix
+      # ------------------------------------------------------------
+      - name: Fix Android Gradle Java Configuration
+        working-directory: frontend
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+
+          $gradleProperties = "android\gradle.properties"
+
+          if (Test-Path $gradleProperties) {
+            Write-Host "Checking $gradleProperties"
+
+            $content = Get-Content $gradleProperties
+
+            $filtered = $content | Where-Object {
+              $_ -notmatch '^\s*org\.gradle\.java\.home\s*='
+            }
+
+            if ($filtered.Count -ne $content.Count) {
+              Write-Host "Removing stale org.gradle.java.home configuration..."
+              Set-Content -Path $gradleProperties -Value $filtered -Encoding utf8
+            } else {
+              Write-Host "No org.gradle.java.home override found."
+            }
+          } else {
+            Write-Host "$gradleProperties does not exist."
+          }
+
+          Write-Host ""
+          Write-Host "Java used by GitHub Actions:"
+          Write-Host "JAVA_HOME = $env:JAVA_HOME"
+
+          & "$env:JAVA_HOME\bin\java.exe" -version
+
+      # ------------------------------------------------------------
+      # Google Services
+      # ------------------------------------------------------------
+      - name: Restore google-services.json from Secret
+        if: ${{ secrets.GOOGLE_SERVICES_JSON != '' }}
+        working-directory: frontend/android/app
+        shell: pwsh
         env:
           GOOGLE_SERVICES_JSON: ${{ secrets.GOOGLE_SERVICES_JSON }}
-
-      - name: Build Windows Desktop App
-        working-directory: frontend
         run: |
-          flutter pub get
-          flutter build windows --release --obfuscate --split-debug-info=build/windows/symbols
+          $ErrorActionPreference = 'Stop'
 
-      - name: Compile Inno Setup Windows Installer
-        working-directory: frontend
-        run: |
-          New-Item -ItemType Directory -Force -Path ..\installers
-          & "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" TIS_RMS_Client.iss
+          Set-Content `
+            -Path "google-services.json" `
+            -Value $env:GOOGLE_SERVICES_JSON `
+            -Encoding utf8
 
-      - name: Build Android Universal APK
-        working-directory: frontend
-        run: |
-          flutter build apk --release --obfuscate --split-debug-info=build/app/outputs/symbols
-          Copy-Item build\app\outputs\flutter-apk\app-release.apk ..\installers\TIS_RMS_Android_Universal.apk -Force
+          Write-Host "google-services.json restored."
 
+      # ------------------------------------------------------------
+      # Determine Release Tag
+      # ------------------------------------------------------------
       - name: Determine Release Tag
         id: release_info
         shell: pwsh
         run: |
-          $inputTag = "${{ github.event.inputs.tag_name }}"
-          if ($inputTag) {
+          $ErrorActionPreference = 'Stop'
+
+          $inputTag = '${{ github.event.inputs.tag_name }}'.Trim()
+
+          if (
+            '${{ github.event_name }}' -eq 'push' -and
+            '${{ github.ref }}'.StartsWith('refs/tags/')
+          ) {
+            $tag = '${{ github.ref_name }}'
+          }
+          elseif ($inputTag) {
             $tag = $inputTag
-          } elseif ("${{ github.ref }}".StartsWith("refs/tags/")) {
-            $tag = "${{ github.ref_name }}"
-          } else {
-            $rawVer = (Get-Content frontend/pubspec.yaml | Select-String '^version:').Line.Split(':')[1].Split('+')[0].Trim()
+          }
+          else {
+            $versionLine = Get-Content frontend/pubspec.yaml |
+              Select-String '^version:' |
+              Select-Object -First 1
+
+            if (-not $versionLine) {
+              throw "Could not find version: in frontend/pubspec.yaml"
+            }
+
+            $rawVer = ($versionLine.Line -split ':', 2)[1].Trim().Split('+')[0]
+
             $tag = "v$rawVer"
           }
-          Write-Host "Releasing tag: $tag"
-          Add-Content -Path $env:GITHUB_OUTPUT -Value "tag=$tag"
 
-      - name: Upload Artifacts to GitHub Release
+          if ($tag -notmatch '^v\d+\.\d+\.\d+(?:[-+][0-9A-Za-z.-]+)?$') {
+            throw "Invalid release tag '$tag'. Expected format like v1.0.0."
+          }
+
+          Write-Host "Release tag: $tag"
+
+          "tag=$tag" |
+            Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+
+      # ------------------------------------------------------------
+      # Manual Release Tag
+      # ------------------------------------------------------------
+      - name: Create Git Tag for Manual Release
+        if: ${{ github.event_name == 'workflow_dispatch' }}
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RELEASE_TAG: ${{ steps.release_info.outputs.tag }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+
+          Write-Host "Checking whether tag $env:RELEASE_TAG exists..."
+
+          gh api `
+            "repos/${{ github.repository }}/git/ref/tags/$env:RELEASE_TAG" `
+            --silent 2>$null
+
+          if ($LASTEXITCODE -eq 0) {
+            Write-Host "Tag $env:RELEASE_TAG already exists."
+          }
+          else {
+            Write-Host "Creating tag $env:RELEASE_TAG..."
+
+            gh api `
+              --method POST `
+              "repos/${{ github.repository }}/git/refs" `
+              -f "ref=refs/tags/$env:RELEASE_TAG" `
+              -f "sha=${{ github.sha }}"
+
+            if ($LASTEXITCODE -ne 0) {
+              throw "Failed to create tag $env:RELEASE_TAG"
+            }
+
+            Write-Host "Tag $env:RELEASE_TAG created successfully."
+          }
+
+      # ------------------------------------------------------------
+      # Windows Build
+      # ------------------------------------------------------------
+      - name: Build Windows Desktop App
+        working-directory: frontend
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+
+          flutter pub get
+
+          if ($LASTEXITCODE -ne 0) {
+            throw "flutter pub get failed."
+          }
+
+          flutter build windows `
+            --release `
+            --obfuscate `
+            --split-debug-info=build/windows/symbols
+
+          if ($LASTEXITCODE -ne 0) {
+            throw "Flutter Windows build failed."
+          }
+
+      # ------------------------------------------------------------
+      # Windows Installer
+      # ------------------------------------------------------------
+      - name: Compile Inno Setup Windows Installer
+        working-directory: frontend
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+
+          New-Item `
+            -ItemType Directory `
+            -Force `
+            -Path ..\installers |
+            Out-Null
+
+          & "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" `
+            TIS_RMS_Client.iss
+
+          if ($LASTEXITCODE -ne 0) {
+            throw "Inno Setup compilation failed."
+          }
+
+      # ------------------------------------------------------------
+      # Android Build
+      # ------------------------------------------------------------
+      - name: Build Android Universal APK
+        working-directory: frontend
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+
+          Write-Host "Using JAVA_HOME:"
+          Write-Host $env:JAVA_HOME
+
+          & "$env:JAVA_HOME\bin\java.exe" -version
+
+          Write-Host ""
+          Write-Host "Building Android APK..."
+
+          flutter build apk `
+            --release `
+            --obfuscate `
+            --split-debug-info=build/app/outputs/symbols
+
+          if ($LASTEXITCODE -ne 0) {
+            throw "Flutter Android APK build failed."
+          }
+
+          $apkPath = "build\app\outputs\flutter-apk\app-release.apk"
+          $outputPath = "..\installers\TIS_RMS_Android_Universal.apk"
+
+          if (-not (Test-Path $apkPath)) {
+            throw "Android build completed without producing $apkPath"
+          }
+
+          Copy-Item `
+            $apkPath `
+            $outputPath `
+            -Force
+
+          Write-Host "Android APK copied to $outputPath"
+
+      # ------------------------------------------------------------
+      # Verify Artifacts
+      # ------------------------------------------------------------
+      - name: Verify Release Artifacts
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+
+          $files = @(
+            "installers\TIS_RMS_Client_Setup.exe",
+            "installers\TIS_RMS_Android_Universal.apk"
+          )
+
+          foreach ($file in $files) {
+            if (-not (Test-Path $file)) {
+              throw "Missing release artifact: $file"
+            }
+
+            $size = (Get-Item $file).Length
+
+            if ($size -le 0) {
+              throw "Release artifact is empty: $file"
+            }
+
+            Write-Host "Found: $file"
+            Write-Host "Size: $size bytes"
+          }
+
+      # ------------------------------------------------------------
+      # GitHub Release
+      # ------------------------------------------------------------
+      - name: Create GitHub Release and Upload Artifacts
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ steps.release_info.outputs.tag }}
+          target_commitish: ${{ github.sha }}
           name: Release ${{ steps.release_info.outputs.tag }}
           files: |
             installers/TIS_RMS_Client_Setup.exe
