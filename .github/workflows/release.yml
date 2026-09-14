@@ -1,0 +1,53 @@
+name: Build & Release Desktop Client
+
+on:
+  push:
+    tags:
+      - 'v*' # Triggers whenever you push a tag like v1.0.0
+  workflow_dispatch: # Allows manual trigger from the GitHub Actions tab
+
+jobs:
+  build-windows:
+    name: Build Windows Inno Setup Installer
+    runs-on: windows-latest
+    permissions:
+      contents: write # Grants permission to create GitHub Release
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Java (needed for Android if building APK)
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'zulu'
+          java-version: '17'
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: 'stable'
+          cache: true
+
+      - name: Install Inno Setup
+        run: choco install innosetup --no-progress
+
+      - name: Build Flutter Windows App
+        working-directory: frontend
+        run: |
+          flutter pub get
+          flutter build windows --release
+
+      - name: Compile Inno Setup Installer
+        run: |
+          & "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" frontend/TIS_RMS_Client.iss
+
+      - name: Upload Installer to GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: installers/TIS_RMS_Client_Setup.exe
+          generate_release_notes: true
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
