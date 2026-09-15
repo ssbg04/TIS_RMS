@@ -161,4 +161,89 @@ void main() {
     // Overlay is dismissed
     expect(find.text('Recent Searches'), findsNothing);
   });
+
+  testWidgets('AppSearchBar inside showDialog supports clear all and item deletion', (tester) async {
+    final container = ProviderContainer();
+    addTearDown(container.dispose);
+
+    container.read(searchHistoryProvider);
+    await tester.pump(const Duration(milliseconds: 100));
+
+    final searchController = TextEditingController();
+    final searchFocusNode = FocusNode();
+
+    await tester.pumpWidget(
+      UncontrolledProviderScope(
+        container: container,
+        child: MaterialApp(
+          home: Scaffold(
+            body: Builder(
+              builder: (context) {
+                return ElevatedButton(
+                  onPressed: () {
+                    showDialog(
+                      context: context,
+                      barrierColor: Colors.black54,
+                      builder: (ctx) {
+                        return Align(
+                          alignment: Alignment.topCenter,
+                          child: Padding(
+                            padding: const EdgeInsets.fromLTRB(16, 80, 16, 0),
+                            child: Material(
+                              child: AppSearchBar(
+                                controller: searchController,
+                                focusNode: searchFocusNode,
+                                collapsible: false,
+                                hint: 'Search students by LRN or Name...',
+                                maxWidth: 600,
+                              ),
+                            ),
+                          ),
+                        );
+                      },
+                    );
+                    searchFocusNode.requestFocus();
+                  },
+                  child: const Text('Open Search Dialog'),
+                );
+              },
+            ),
+          ),
+        ),
+      ),
+    );
+
+    await tester.pump();
+    await tester.tap(find.text('Open Search Dialog'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Recent Searches'), findsOneWidget);
+    expect(find.text('test item 1'), findsOneWidget);
+    expect(find.text('test item 2'), findsOneWidget);
+
+    // Find the close buttons in the history list
+    final closeIcons = find.byIcon(Icons.close_rounded);
+    expect(closeIcons, findsWidgets);
+
+    // Tap the first history item's delete button
+    await tester.tap(closeIcons.first);
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 200));
+
+    // Item 1 should be removed, item 2 should still be there, and overlay should remain open!
+    expect(container.read(searchHistoryProvider), isNot(contains('test item 1')));
+    expect(container.read(searchHistoryProvider), contains('test item 2'));
+    expect(find.text('Recent Searches'), findsOneWidget);
+    expect(find.text('test item 2'), findsOneWidget);
+
+    // Tap Clear all
+    await tester.tap(find.text('Clear all'));
+    await tester.pumpAndSettle();
+
+    // All items cleared and overlay closed
+    expect(container.read(searchHistoryProvider), isEmpty);
+    expect(find.text('Recent Searches'), findsNothing);
+  });
 }
+
+
