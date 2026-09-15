@@ -8,7 +8,7 @@ installers/
 
 backend/node_modules
 backend/bin/cloudflared.exe
-backend/bin/LibreOffice/
+backend/bin/LibreOffice
 backend/logs/
 requirements
 TIS*
