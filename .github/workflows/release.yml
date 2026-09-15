@@ -206,6 +206,13 @@ jobs:
               -Encoding utf8 `
               -Append
 
+          # Sync calculated version and build number into pubspec.yaml
+          $pubspecPath = "frontend/pubspec.yaml"
+          $pubContent = Get-Content $pubspecPath
+          $updatedPub = $pubContent -replace '^version:.*', "version: $verName+$buildNumber"
+          Set-Content -Path $pubspecPath -Value $updatedPub -Encoding utf8
+          Write-Host "Updated $pubspecPath to version: $verName+$buildNumber"
+
       # ------------------------------------------------------------
       # Manual Release Tag
       # ------------------------------------------------------------

@@ -15,7 +15,9 @@ TIS*
 !*.iss
 screenshots/
 issues/
-
+.agents/
+Pictures/
+plans/
 # Environment secrets
 backend/.env
 backend/.env.*
