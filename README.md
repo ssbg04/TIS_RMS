@@ -1,68 +1,85 @@
-# TIS RMS (Records Management System)
+<div align="center">
 
-A comprehensive, client-server Records Management System designed to streamline document handling, student records management, and automated data extraction.
+# TIS RMS
 
-## 🏗 Architecture Overview
+### Records Management System
 
-This project is divided into two primary components:
+**A full-stack, offline-capable platform for managing student records, documents, and OCR-powered data extraction in Philippine educational institutions.**
 
-### 1. Frontend (Flutter Windows Application)
-A modern, performant desktop application tailored for Windows, built using **Flutter**. 
-- **Key Technologies:** Flutter, Riverpod (State Management), Dio (Networking), Syncfusion PDF Viewer.
-- **Core Modules:**
-  - **Dashboard:** Overview of recent activities and user history.
-  - **Document Management:** Upload, preview, and manage student records and documents.
-  - **OCR Integration:** Automatically extract data from scanned documents directly into the system.
-  - **User & Student Management:** Interface to manage student profiles, teacher records, and administrative settings.
-  - **Reports Generation:** Support for standard educational Excel templates (e.g., School Form 10).
+<br/>
 
-### 2. Backend (Node.js REST API)
-A robust and lightweight local server providing data persistence and powerful OCR processing capabilities.
-- **Key Technologies:** Node.js, Express.js, SQLite (`better-sqlite3`), JWT (Authentication), Multer (File Uploads).
-- **Core Features:**
-  - **Authentication:** Secure login and session management using `bcrypt` and `jsonwebtoken`.
-  - **Local Database:** Utilizes a fast, local SQLite database (`tis_rms.db`) for portability and simple deployment.
-  - **OCR & PDF Engine:** Integrates locally bundled **Tesseract OCR** and **Ghostscript** to securely process and extract text from images and PDFs completely offline.
-  - **File Handling:** Secure temporary storage and parsing pipeline for incoming files.
+![Flutter](https://img.shields.io/badge/Flutter-3.x-02569B?style=for-the-badge&logo=flutter&logoColor=white)
+![Node.js](https://img.shields.io/badge/Node.js-18+-339933?style=for-the-badge&logo=node.js&logoColor=white)
+![SQLite](https://img.shields.io/badge/SQLite-003B57?style=for-the-badge&logo=sqlite&logoColor=white)
+![Firebase](https://img.shields.io/badge/Firebase-FFCA28?style=for-the-badge&logo=firebase&logoColor=black)
+![Windows](https://img.shields.io/badge/Windows-Desktop-0078D6?style=for-the-badge&logo=windows&logoColor=white)
+![Android](https://img.shields.io/badge/Android-Mobile-3DDC84?style=for-the-badge&logo=android&logoColor=white)
+![Version](https://img.shields.io/github/v/tag/ssbg04/TIS_RMS?style=for-the-badge&label=version&color=4CAF50)
+
+</div>
+
+---
+
+## ✨ Features
+
+- 📂 **Document Management** — Upload, preview, and organize student documents (PDFs & images)
+- 🎓 **Student Records** — Track enrollment status, LRN, grade level, strand, and document completion
+- 🔍 **OCR Extraction** — Extract data from scanned documents via bundled Tesseract OCR (fully offline)
+- 📊 **Reports** — Generate DepEd School Form 10 (SF10) for JHS & SHS using bundled Excel templates
+- 🔔 **Push Notifications** — Real-time alerts via Firebase Cloud Messaging
+- 🔐 **Authentication** — JWT-based sessions with bcrypt password hashing
+- 🛠️ **Windows Service** — Backend can run as a persistent Windows Service via NSSM
+
+---
+
+## 🏗️ Architecture
+
+Two components communicating over a local network:
+
+- **Frontend** — Flutter multi-platform client supporting **Windows** (desktop) and **Android** (mobile), built with Riverpod, Dio, Syncfusion PDF Viewer, and Socket.IO
+- **Backend** — Node.js + Express REST API with a local SQLite database, Tesseract OCR, and Ghostscript bundled for offline document processing
+
+---
 
 ## 🚀 Getting Started
 
-### Prerequisites
-- Node.js (v18 or higher recommended)
-- Flutter SDK (stable channel)
-- Visual Studio with C++ workload (for compiling the Windows Flutter app)
+**Prerequisites:** Node.js v18+, Flutter SDK (stable), Visual Studio 2022 with C++ workload.
 
-### Backend Setup
-1. Navigate to the `backend` directory:
-   ```bash
-   cd backend
-   ```
-2. Install dependencies:
-   ```bash
-   npm install
-   ```
-3. Copy `.example.env` to `.env` and configure your environment variables.
-4. Start the server:
-   ```bash
-   npm start
-   ```
-   *(For development, you can use `npm run dev` if nodemon is configured)*
+> Tesseract OCR and Ghostscript are bundled — no extra installation needed.
 
-### Frontend Setup
-1. Navigate to the `frontend` directory:
-   ```bash
-   cd frontend
-   ```
-2. Fetch dependencies:
-   ```bash
-   flutter pub get
-   ```
-3. Run the Windows application:
-   ```bash
-   flutter run -d windows
-   ```
-   *(To build the release executable, run `flutter build windows`)*
+### Backend
+```bash
+cd backend
+npm install
+copy .example.env .env   # configure port, JWT secret, etc.
+npm run dev              # or: npm start
+```
 
-## 📦 Included Dependencies & Tooling
-- **Tesseract & Ghostscript binaries:** The backend repository includes bundled Windows binaries for Tesseract OCR and Ghostscript to guarantee that document processing works out-of-the-box without requiring complex system path configurations.
-- **Inno Setup:** Includes an installer script (`TIS_Frontend.iss`) for easily packaging and distributing the compiled Flutter application.
+### Frontend
+```bash
+cd frontend
+flutter pub get
+
+# Windows
+flutter run -d windows
+flutter build windows
+
+# Android
+flutter run -d android
+flutter build apk
+```
+
+To build a Windows installer, compile `frontend/TIS_RMS_Client.iss` with **Inno Setup**, or run:
+```powershell
+.\build_release.ps1
+```
+
+---
+
+## 📜 License
+
+Developed by **BSIT3DSB** — PLSP.
+
+<div align="center">
+  <sub>Built with ❤️ using Flutter &amp; Node.js · TIS Records Management System</sub>
+</div>
