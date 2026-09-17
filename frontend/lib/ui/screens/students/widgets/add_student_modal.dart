@@ -18,7 +18,8 @@ import 'student_form_helpers.dart';
 import '../../../shared/widgets/app_button_loader.dart';
 
 class AddStudentModal extends ConsumerStatefulWidget {
-  const AddStudentModal({super.key});
+  final bool isDialog;
+  const AddStudentModal({super.key, this.isDialog = false});
 
   @override
   ConsumerState<AddStudentModal> createState() => _AddStudentModalState();
@@ -1135,7 +1136,7 @@ class _AddStudentModalState extends ConsumerState<AddStudentModal> {
 
     final screenWidth = MediaQuery.of(context).size.width;
     final isWindows = Platform.isWindows;
-    final double horizontalPadding = isWindows && screenWidth > 600
+    final double horizontalPadding = (!widget.isDialog && isWindows && screenWidth > 600)
         ? (screenWidth > 1500
             ? 320.0
             : (screenWidth > 1200

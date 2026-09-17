@@ -22,7 +22,6 @@ import '../../shared/dialogs/confirm_dialog.dart';
 import '../../shared/modals/custom_modal.dart';
 import '../../../core/services/sound_service.dart';
 import '../../../core/services/haptic_service.dart';
-import 'package:wolt_modal_sheet/wolt_modal_sheet.dart';
 import 'package:data_table_2/data_table_2.dart';
 
 class UsersScreen extends ConsumerStatefulWidget {
@@ -249,330 +248,22 @@ class _UsersScreenState extends ConsumerState<UsersScreen> {
   }
 
   Future<void> _openModal({SystemUser? user}) async {
-    final success = await AddEditUserModal.show(context, user: user);
-    if (success == true && mounted && user != null) {
-      showSuccessDialog(
-        context,
-        title: 'User Updated',
-        message: 'User updated successfully!',
-      );
-    }
-  }
-
-  void _showUserDetailModal(SystemUser user) {
-    final currentUser = ref.watch(authProvider).value;
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final textPrimary = isDark ? AppColors.darkTextPrimary : AppColors.textPrimary;
-    final textSecondary = isDark ? AppColors.darkTextSecondary : AppColors.textSecondary;
-    final headerBg = isDark ? AppColors.darkSurface2 : Colors.grey.shade50;
-    final borderCol = isDark ? AppColors.darkBorder : Colors.grey.shade200;
-    final roleCol = _roleColor(user.role);
-
-    CustomModal.show(
-      context: context,
-      title: 'User Profile Details',
-      icon: Icons.person_outline,
-      maxWidth: 540,
-      content: SingleChildScrollView(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Header with Profile Identity & Badges
-            Container(
-              padding: const EdgeInsets.all(AppSizes.p20),
-              decoration: BoxDecoration(
-                color: headerBg,
-                border: Border(bottom: BorderSide(color: borderCol)),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.center,
-                    children: [
-                      Stack(
-                        clipBehavior: Clip.none,
-                        children: [
-                          CircleAvatar(
-                            radius: 28,
-                            backgroundColor: roleCol.withValues(alpha: 0.15),
-                            child: Text(
-                              user.initials,
-                              style: TextStyle(
-                                fontSize: 20,
-                                fontWeight: FontWeight.bold,
-                                color: roleCol,
-                              ),
-                            ),
-                          ),
-                          Positioned(
-                            right: 0,
-                            bottom: 0,
-                            child: Container(
-                              width: 14,
-                              height: 14,
-                              decoration: BoxDecoration(
-                                color: user.isActive ? AppColors.success : Colors.grey,
-                                shape: BoxShape.circle,
-                                border: Border.all(
-                                  color: headerBg,
-                                  width: 2.5,
-                                ),
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(width: AppSizes.p16),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Row(
-                              children: [
-                                Expanded(
-                                  child: Text(
-                                    user.fullName,
-                                    style: TextStyle(
-                                      fontSize: 18,
-                                      fontWeight: FontWeight.bold,
-                                      color: textPrimary,
-                                    ),
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                  ),
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: 3),
-                            Row(
-                              children: [
-                                Text(
-                                  '@${user.username}',
-                                  style: TextStyle(
-                                    fontSize: 13,
-                                    color: textSecondary,
-                                    fontWeight: FontWeight.w500,
-                                  ),
-                                ),
-                                const SizedBox(width: 8),
-                                _buildRoleChip(user.role),
-                                const SizedBox(width: 6),
-                                _buildStatusChip(user.isActive),
-                              ],
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: AppSizes.p16),
-
-                  // Responsive Action Buttons Toolbar for Android & Windows
-                  LayoutBuilder(
-                    builder: (context, constraints) {
-                      final isCompact = constraints.maxWidth < 420;
-                      final canToggle = user.id != currentUser?.id;
-
-                      Widget buildActionButton({
-                        required IconData icon,
-                        required String label,
-                        required VoidCallback onTap,
-                        bool isDestructive = false,
-                      }) {
-                        final fgColor = isDestructive
-                            ? (isDark ? Colors.red.shade300 : Colors.red.shade700)
-                            : textPrimary;
-                        final border = isDestructive
-                            ? (isDark ? Colors.red.withValues(alpha: 0.3) : Colors.red.shade200)
-                            : (isDark ? AppColors.darkBorder : Colors.grey.shade300);
-                        final bg = isDark ? AppColors.darkSurfaceCard : Colors.white;
-
-                        return Material(
-                          color: bg,
-                          borderRadius: BorderRadius.circular(8),
-                          child: InkWell(
-                            onTap: () {
-                              HapticService.light();
-                              onTap();
-                            },
-                            borderRadius: BorderRadius.circular(8),
-                            child: Container(
-                              padding: EdgeInsets.symmetric(
-                                horizontal: isCompact ? 6 : 12,
-                                vertical: 10,
-                              ),
-                              decoration: BoxDecoration(
-                                borderRadius: BorderRadius.circular(8),
-                                border: Border.all(color: border, width: 1),
-                              ),
-                              child: Row(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Icon(icon, size: isCompact ? 15 : 16, color: fgColor),
-                                  const SizedBox(width: 6),
-                                  Flexible(
-                                    child: Text(
-                                      label,
-                                      style: TextStyle(
-                                        color: fgColor,
-                                        fontSize: isCompact ? 11.5 : 12.5,
-                                        fontWeight: FontWeight.w600,
-                                      ),
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-                        );
-                      }
-
-                      final editBtn = buildActionButton(
-                        icon: Icons.edit_outlined,
-                        label: 'Edit',
-                        onTap: () {
-                          Navigator.of(context, rootNavigator: true).pop();
-                          _openModal(user: user);
-                        },
-                      );
-
-                      final resetBtn = buildActionButton(
-                        icon: Icons.lock_reset_rounded,
-                        label: isCompact ? 'Reset Pass' : 'Reset Password',
-                        onTap: () {
-                          Navigator.of(context, rootNavigator: true).pop();
-                          _confirmResetPassword(user);
-                        },
-                      );
-
-                      final toggleBtn = canToggle
-                          ? buildActionButton(
-                              icon: user.isActive
-                                  ? Icons.block_rounded
-                                  : Icons.check_circle_outline_rounded,
-                              label: user.isActive ? 'Deactivate' : 'Activate',
-                              isDestructive: user.isActive,
-                              onTap: () {
-                                Navigator.of(context, rootNavigator: true).pop();
-                                _confirmToggleStatus(user);
-                              },
-                            )
-                          : null;
-
-                      return Row(
-                        children: [
-                          Expanded(child: editBtn),
-                          const SizedBox(width: 8),
-                          Expanded(child: resetBtn),
-                          if (toggleBtn != null) ...[
-                            const SizedBox(width: 8),
-                            Expanded(child: toggleBtn),
-                          ],
-                        ],
-                      );
-                    },
-                  ),
-                ],
-              ),
-            ),
-
-            // Profile Information Body
-            Padding(
-              padding: const EdgeInsets.all(AppSizes.p20),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  _detailRow(
-                    icon: Icons.admin_panel_settings_outlined,
-                    label: 'Access Role',
-                    value: user.role.toUpperCase().replaceAll('_', ' '),
-                  ),
-                  const SizedBox(height: AppSizes.p16),
-                  _detailRow(
-                    icon: Icons.verified_user_outlined,
-                    label: 'Account Status',
-                    value: user.isActive ? 'Active (Can login)' : 'Inactive (Access blocked)',
-                    valueColor: user.isActive ? Colors.green.shade700 : Colors.red.shade700,
-                  ),
-                  const SizedBox(height: AppSizes.p16),
-                  _detailRow(
-                    icon: Icons.calendar_today_outlined,
-                    label: 'Date Joined',
-                    value: user.createdAt?.split('T').first ?? '—',
-                  ),
-                  const SizedBox(height: AppSizes.p16),
-                  _detailRow(
-                    icon: Icons.email_outlined,
-                    label: 'Email',
-                    value: user.email?.isNotEmpty == true ? user.email! : '—',
-                  ),
-                  const SizedBox(height: AppSizes.p16),
-                  _detailRow(
-                    icon: Icons.phone_outlined,
-                    label: 'Phone',
-                    value: user.phone?.isNotEmpty == true ? user.phone! : '—',
-                  ),
-                  const SizedBox(height: AppSizes.p16),
-                  _detailRow(
-                    icon: Icons.person_add_outlined,
-                    label: 'Added By',
-                    value: user.addedByName != null
-                        ? '${user.addedByName} (@${user.addedByUsername})'
-                        : 'System',
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
+    await AddEditUserModal.show(
+      context,
+      user: user,
+      initialEditMode: user != null,
+      onResetPassword: _confirmResetPassword,
+      onToggleStatus: _confirmToggleStatus,
     );
   }
 
-  Widget _detailRow({
-    required IconData icon,
-    required String label,
-    required String value,
-    Color? valueColor,
-  }) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final textPrimary = isDark ? AppColors.darkTextPrimary : AppColors.textPrimary;
-    final textSecondary = isDark ? AppColors.darkTextSecondary : AppColors.textSecondary;
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Icon(icon, size: 18, color: textSecondary.withValues(alpha: 0.8)),
-        const SizedBox(width: 12),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                label,
-                style: TextStyle(
-                  fontSize: 12,
-                  color: textSecondary,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-              const SizedBox(height: 2),
-              Text(
-                value,
-                style: TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w500,
-                  color: valueColor ?? textPrimary,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ],
+  void _showUserDetailModal(SystemUser user) {
+    AddEditUserModal.show(
+      context,
+      user: user,
+      initialEditMode: false,
+      onResetPassword: _confirmResetPassword,
+      onToggleStatus: _confirmToggleStatus,
     );
   }
 
@@ -1166,136 +857,181 @@ class _UsersScreenState extends ConsumerState<UsersScreen> {
 }
 
 // ============================================================
-// ADD / EDIT MODAL
+// ADD / EDIT MODAL & USER PROFILE DETAILS (CUSTOM MODAL)
 // ============================================================
-class AddEditUserModal extends ConsumerStatefulWidget {
-  final SystemUser? user;
-  const AddEditUserModal({super.key, this.user});
-
-  static Future<bool?> show(BuildContext context, {SystemUser? user}) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    return WoltModalSheet.show<bool>(
-      context: context,
-      pageListBuilder: (modalSheetContext) {
-        return [
-          WoltModalSheetPage(
-            backgroundColor: isDark ? AppColors.darkSurfaceCard : AppColors.surfaceWhite,
-            hasSabGradient: false,
-            hasTopBarLayer: false,
-            child: AddEditUserModal(user: user),
-          ),
-        ];
-      },
-    );
+class AddEditUserModal {
+  static Future<bool?> show(
+    BuildContext context, {
+    SystemUser? user,
+    bool initialEditMode = false,
+    void Function(SystemUser)? onResetPassword,
+    void Function(SystemUser)? onToggleStatus,
+  }) {
+    if (user != null) {
+      return CustomModal.show<bool>(
+        context: context,
+        title: initialEditMode ? 'Edit User Profile' : 'User Profile Details',
+        icon: initialEditMode ? Icons.edit_outlined : Icons.person_outline,
+        maxWidth: 540,
+        content: _UserDetailAndEditModalContent(
+          user: user,
+          initialEditMode: initialEditMode,
+          onResetPassword: onResetPassword,
+          onToggleStatus: onToggleStatus,
+        ),
+      );
+    } else {
+      return CustomModal.show<bool>(
+        context: context,
+        title: 'Add New User',
+        icon: Icons.person_add_outlined,
+        maxWidth: 540,
+        content: const _AddUserModalContent(),
+      );
+    }
   }
-
-  @override
-  ConsumerState<AddEditUserModal> createState() => _AddEditUserModalState();
 }
 
-class _AddEditUserModalState extends ConsumerState<AddEditUserModal> {
-  final List<GlobalKey<FormState>> _stepKeys = [
-    GlobalKey<FormState>(),
-    GlobalKey<FormState>(),
-    GlobalKey<FormState>(),
-  ];
-  int _currentStep = 0;
-  late TextEditingController _usernameCtrl;
+// ------------------------------------------------------------
+// USER DETAIL AND IN-PLACE EDIT MODAL CONTENT
+// ------------------------------------------------------------
+class _UserDetailAndEditModalContent extends ConsumerStatefulWidget {
+  final SystemUser user;
+  final bool initialEditMode;
+  final void Function(SystemUser)? onResetPassword;
+  final void Function(SystemUser)? onToggleStatus;
+
+  const _UserDetailAndEditModalContent({
+    required this.user,
+    this.initialEditMode = false,
+    this.onResetPassword,
+    this.onToggleStatus,
+  });
+
+  @override
+  ConsumerState<_UserDetailAndEditModalContent> createState() =>
+      _UserDetailAndEditModalContentState();
+}
+
+class _UserDetailAndEditModalContentState
+    extends ConsumerState<_UserDetailAndEditModalContent> {
+  late SystemUser _currentUser;
+  late bool _isEditing;
   late TextEditingController _firstNameCtrl;
   late TextEditingController _middleNameCtrl;
   late TextEditingController _lastNameCtrl;
   late TextEditingController _extCtrl;
   late TextEditingController _emailCtrl;
   late TextEditingController _phoneCtrl;
-  String _selectedRole = 'teacher';
+  late String _selectedRole;
   bool _isLoading = false;
-
-  bool get _isEdit => widget.user != null;
-
-  Color _roleColor(String role) {
-    if (role == 'admin') return Colors.blue;
-    return AppColors.primaryGreen;
-  }
+  final _formKey = GlobalKey<FormState>();
 
   @override
   void initState() {
     super.initState();
-    final u = widget.user;
-    _usernameCtrl = TextEditingController(text: u?.username ?? '');
-    _firstNameCtrl = TextEditingController(text: u?.firstName ?? '');
-    _middleNameCtrl = TextEditingController(text: u?.middleName ?? '');
-    _lastNameCtrl = TextEditingController(text: u?.lastName ?? '');
-    _extCtrl = TextEditingController(text: u?.extension ?? '');
-    _emailCtrl = TextEditingController(text: u?.email ?? '');
-    _phoneCtrl = TextEditingController(text: u?.phone ?? '');
-    if (u != null) _selectedRole = u.role;
+    _currentUser = widget.user;
+    _isEditing = widget.initialEditMode;
+    _firstNameCtrl = TextEditingController(text: _currentUser.firstName);
+    _middleNameCtrl =
+        TextEditingController(text: _currentUser.middleName ?? '');
+    _lastNameCtrl = TextEditingController(text: _currentUser.lastName);
+    _extCtrl = TextEditingController(text: _currentUser.extension ?? '');
+    _emailCtrl = TextEditingController(text: _currentUser.email ?? '');
+    _phoneCtrl = TextEditingController(text: _currentUser.phone ?? '');
+    _selectedRole = _currentUser.role;
+  }
+
+  void _resetFormValues() {
+    _firstNameCtrl.text = _currentUser.firstName;
+    _middleNameCtrl.text = _currentUser.middleName ?? '';
+    _lastNameCtrl.text = _currentUser.lastName;
+    _extCtrl.text = _currentUser.extension ?? '';
+    _emailCtrl.text = _currentUser.email ?? '';
+    _phoneCtrl.text = _currentUser.phone ?? '';
+    _selectedRole = _currentUser.role;
   }
 
   @override
   void dispose() {
-    for (final c in [
-      _usernameCtrl,
-      _firstNameCtrl,
-      _middleNameCtrl,
-      _lastNameCtrl,
-      _extCtrl,
-      _emailCtrl,
-      _phoneCtrl,
-    ]) {
-      c.dispose();
-    }
+    _firstNameCtrl.dispose();
+    _middleNameCtrl.dispose();
+    _lastNameCtrl.dispose();
+    _extCtrl.dispose();
+    _emailCtrl.dispose();
+    _phoneCtrl.dispose();
     super.dispose();
   }
 
-  Future<void> _handleSave() async {
-    for (final key in _stepKeys) {
-      if (!(key.currentState?.validate() ?? true)) return;
+  void _startEditing() {
+    HapticService.light();
+    setState(() {
+      _resetFormValues();
+      _isEditing = true;
+    });
+  }
+
+  void _cancelEditing() {
+    HapticService.light();
+    if (widget.initialEditMode) {
+      Navigator.of(context).pop(false);
+    } else {
+      setState(() {
+        _resetFormValues();
+        _isEditing = false;
+      });
     }
+  }
+
+  Future<void> _handleSave() async {
+    if (!(_formKey.currentState?.validate() ?? false)) return;
     setState(() => _isLoading = true);
 
     try {
       final notifier = ref.read(usersProvider.notifier);
-      if (_isEdit) {
-        await notifier.updateUser(
-          id: widget.user!.id,
-          firstName: _firstNameCtrl.text.trim(),
-          middleName: _middleNameCtrl.text.trim(),
-          lastName: _lastNameCtrl.text.trim(),
-          extension: _extCtrl.text.trim(),
-          role: _selectedRole,
-          email: _emailCtrl.text.trim(),
-          phone: _phoneCtrl.text.trim(),
-        );
-        if (!mounted) return;
+      await notifier.updateUser(
+        id: _currentUser.id,
+        firstName: _firstNameCtrl.text.trim(),
+        middleName: _middleNameCtrl.text.trim(),
+        lastName: _lastNameCtrl.text.trim(),
+        extension: _extCtrl.text.trim(),
+        role: _selectedRole,
+        email: _emailCtrl.text.trim(),
+        phone: _phoneCtrl.text.trim(),
+      );
+
+      if (!mounted) return;
+
+      final updatedUser = _currentUser.copyWith(
+        firstName: _firstNameCtrl.text.trim(),
+        middleName: _middleNameCtrl.text.trim(),
+        lastName: _lastNameCtrl.text.trim(),
+        extension: _extCtrl.text.trim(),
+        role: _selectedRole,
+        email: _emailCtrl.text.trim(),
+        phone: _phoneCtrl.text.trim(),
+      );
+
+      setState(() {
+        _currentUser = updatedUser;
+        _isEditing = false;
+      });
+
+      HapticService.success();
+      showSuccessDialog(
+        context,
+        title: 'User Updated',
+        message: 'User updated successfully!',
+      );
+
+      if (widget.initialEditMode) {
         Navigator.of(context).pop(true);
-      } else {
-        // Create — backend auto-generates a temporary password
-        final username = _usernameCtrl.text.trim();
-        final tempPassword = await notifier.createUser(
-          username: username,
-          firstName: _firstNameCtrl.text.trim(),
-          middleName: _middleNameCtrl.text.trim(),
-          lastName: _lastNameCtrl.text.trim(),
-          extension: _extCtrl.text.trim(),
-          role: _selectedRole,
-          email: _emailCtrl.text.trim(),
-          phone: _phoneCtrl.text.trim(),
-        );
-        if (!mounted) return;
-        Navigator.of(context).pop(true);
-        _showCredentialsDialog(
-          context,
-          username: username,
-          tempPassword: tempPassword,
-        );
       }
     } catch (e) {
       if (!mounted) return;
-
-      // ✅ Replaced SnackBar with Error Dialog
       showErrorDialog(
         context,
-        'Error',
+        'Update Failed',
         e.toString().replaceAll('Exception: ', ''),
       );
     } finally {
@@ -1303,569 +1039,675 @@ class _AddEditUserModalState extends ConsumerState<AddEditUserModal> {
     }
   }
 
-  void _showCredentialsDialog(
-    BuildContext ctx, {
-    required String username,
-    required String tempPassword,
-  }) {
-    bool copied = false;
-    showDialog(
-      context: ctx,
-      barrierDismissible: false,
-      builder: (dialogCtx) => StatefulBuilder(
-        builder: (dialogCtx, setDialogState) => AlertDialog(
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(AppSizes.radiusLarge),
-          ),
-          icon: const Icon(
-            Icons.check_circle,
-            color: AppColors.success,
-            size: 48,
-          ),
-          title: const Text(
-            'User Created!',
-            textAlign: TextAlign.center,
-            style: TextStyle(fontWeight: FontWeight.bold),
-          ),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text(
-                '⚠️ Save these credentials now. The temporary password will not be shown again.',
-                style: TextStyle(
-                  fontSize: 13,
-                  color: Colors.orange,
-                  fontWeight: FontWeight.w600,
-                ),
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 8),
-              const Text(
-                '🔒 For best protection, remind the user to change their password after first login.',
-                style: TextStyle(
-                  fontSize: 12,
-                  color: AppColors.textSecondary,
-                ),
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 20),
-              _credentialRow('Username', username),
-              const SizedBox(height: 10),
-              _credentialRow('Temp. Password', tempPassword, highlight: true),
-              const SizedBox(height: 20),
-              SizedBox(
-                width: double.infinity,
-                child: OutlinedButton.icon(
-                  icon: Icon(copied ? Icons.check : Icons.copy, size: 18),
-                  label: Text(copied ? 'Copied!' : 'Copy Credentials'),
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor: copied
-                        ? AppColors.success
-                        : AppColors.primaryGreen,
-                    side: BorderSide(
-                      color: copied
-                          ? AppColors.success
-                          : AppColors.primaryGreen,
-                    ),
-                  ),
-                  onPressed: () {
-                    Clipboard.setData(
-                      ClipboardData(
-                        text:
-                            'Username: $username\nTemporary Password: $tempPassword',
-                      ),
-                    );
-                    setDialogState(() => copied = true);
-                  },
-                ),
-              ),
-            ],
-          ),
-          actions: [
-            ElevatedButton(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.primaryGreen,
-                foregroundColor: Colors.white,
-              ),
-              onPressed: () => Navigator.of(dialogCtx).pop(),
-              child: const Text('DONE'),
-            ),
-          ],
+  Color _roleColor(String role) {
+    if (role == 'admin') return Colors.blue;
+    return AppColors.primaryGreen;
+  }
+
+  Widget _buildRoleChip(String role) {
+    final color = _roleColor(role);
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Text(
+        role.toUpperCase().replaceAll('_', ' '),
+        style: TextStyle(
+          color: color,
+          fontWeight: FontWeight.bold,
+          fontSize: 11,
         ),
       ),
     );
   }
 
-  Widget _credentialRow(String label, String value, {bool highlight = false}) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+  Widget _buildStatusChip(bool isActive) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
       decoration: BoxDecoration(
-        color: highlight
-            ? AppColors.primaryGreen.withValues(alpha: 0.07)
-            : (isDark ? AppColors.darkSurface2 : Colors.grey.shade50),
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(
-          color: highlight
-              ? AppColors.primaryGreen.withValues(alpha: 0.3)
-              : (isDark ? AppColors.darkBorder : Colors.grey.shade200),
+        color: isActive
+            ? Colors.green.withValues(alpha: 0.1)
+            : Colors.grey.withValues(alpha: 0.15),
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Text(
+        isActive ? 'Active' : 'Inactive',
+        style: TextStyle(
+          color: isActive ? Colors.green.shade700 : Colors.grey.shade600,
+          fontWeight: FontWeight.bold,
+          fontSize: 11,
         ),
       ),
-      child: Row(
-        children: [
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  label,
-                  style: TextStyle(
-                    fontSize: 11,
-                    color: isDark ? AppColors.darkTextSecondary : Colors.grey,
-                    fontWeight: FontWeight.w500,
-                  ),
+    );
+  }
+
+  Widget _detailRow({
+    required IconData icon,
+    required String label,
+    required String value,
+    Color? valueColor,
+  }) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final textPrimary = isDark ? AppColors.darkTextPrimary : AppColors.textPrimary;
+    final textSecondary = isDark ? AppColors.darkTextSecondary : AppColors.textSecondary;
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Icon(icon, size: 18, color: textSecondary.withValues(alpha: 0.8)),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                label,
+                style: TextStyle(
+                  fontSize: 12,
+                  color: textSecondary,
+                  fontWeight: FontWeight.w600,
                 ),
-                const SizedBox(height: 2),
-                Text(
-                  value,
-                  style: TextStyle(
-                    fontSize: 15,
-                    fontWeight: FontWeight.bold,
-                    color: highlight
-                        ? AppColors.primaryGreen
-                        : (isDark ? AppColors.darkTextPrimary : AppColors.textPrimary),
-                    letterSpacing: 0.5,
-                  ),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                value,
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w500,
+                  color: valueColor ?? textPrimary,
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 
   @override
   Widget build(BuildContext context) {
     final currentUser = ref.watch(authProvider).value;
-    return ConstrainedBox(
-      constraints: const BoxConstraints(maxWidth: 560),
-      child: Padding(
-        padding: const EdgeInsets.all(AppSizes.p24),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Header
-            Row(
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    color: AppColors.primaryGreen.withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Icon(
-                    _isEdit ? Icons.edit : Icons.person_add,
-                    color: AppColors.primaryGreen,
-                    size: 22,
-                  ),
-                ),
-                const SizedBox(width: AppSizes.p12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        _isEdit ? 'Edit System User' : 'Add New User',
-                        style: TextStyle(
-                          fontSize: 20,
-                          fontWeight: FontWeight.bold,
-                          color: Theme.of(context).brightness == Brightness.dark
-                              ? AppColors.darkTextPrimary
-                              : AppColors.textPrimary,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                IconButton(
-                  icon: Icon(
-                    Icons.close,
-                    color: Theme.of(context).brightness == Brightness.dark
-                        ? AppColors.darkTextSecondary
-                        : AppColors.textSecondary,
-                  ),
-                  onPressed: () => Navigator.of(context).pop(),
-                ),
-              ],
-            ),
-            const Divider(height: AppSizes.p32),
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final textPrimary = isDark ? AppColors.darkTextPrimary : AppColors.textPrimary;
+    final textSecondary = isDark ? AppColors.darkTextSecondary : AppColors.textSecondary;
+    final headerBg = isDark ? AppColors.darkSurface2 : Colors.grey.shade50;
+    final borderCol = isDark ? AppColors.darkBorder : Colors.grey.shade200;
+    final roleCol = _roleColor(_isEditing ? _selectedRole : _currentUser.role);
+    final canToggle = _currentUser.id != currentUser?.id;
+    final isSelf = _currentUser.id == currentUser?.id;
+    final isAndroid = Theme.of(context).platform == TargetPlatform.android ||
+        MediaQuery.of(context).size.width < 500;
 
-            Stepper(
-              currentStep: _currentStep,
-              type: StepperType.vertical,
-              onStepTapped: null,
-              onStepContinue: () {
-                if (_stepKeys[_currentStep].currentState?.validate() ?? false) {
-                  if (_currentStep < 2) {
-                    setState(() => _currentStep += 1);
-                  } else {
-                    _handleSave();
-                  }
-                }
-              },
-              onStepCancel: () {
-                if (_currentStep > 0) {
-                  setState(() => _currentStep -= 1);
-                } else {
-                  Navigator.pop(context);
-                }
-              },
-              controlsBuilder: (context, details) {
-                final isLastStep = _currentStep == 2;
-                return Padding(
-                  padding: const EdgeInsets.only(top: 24),
-                  child: Row(
-                    children: [
-                      SizedBox(
-                        width: 150,
-                        child: PrimaryButton(
-                          label: isLastStep
-                              ? (_isEdit ? 'UPDATE' : 'CREATE')
-                              : 'CONTINUE',
-                          isLoading: _isLoading && isLastStep,
-                          onPressed: details.onStepContinue ?? () {},
+    return SingleChildScrollView(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Header with Profile Identity & Badges
+          Container(
+            padding: const EdgeInsets.all(AppSizes.p20),
+            decoration: BoxDecoration(
+              color: headerBg,
+              border: Border(bottom: BorderSide(color: borderCol)),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    Stack(
+                      clipBehavior: Clip.none,
+                      children: [
+                        CircleAvatar(
+                          radius: 28,
+                          backgroundColor: roleCol.withValues(alpha: 0.15),
+                          child: Text(
+                            _currentUser.initials,
+                            style: TextStyle(
+                              fontSize: 20,
+                              fontWeight: FontWeight.bold,
+                              color: roleCol,
+                            ),
+                          ),
                         ),
-                      ),
-                      const SizedBox(width: 16),
-                      TextButton(
-                        onPressed: details.onStepCancel,
-                        child: Text(_currentStep == 0 ? 'CANCEL' : 'BACK'),
-                      ),
-                    ],
-                  ),
-                );
-              },
-              steps: [
-                Step(
-                  title: Text(
-                    'Personal Information',
-                    style: TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 16,
-                      color: Theme.of(context).brightness == Brightness.dark
-                          ? AppColors.darkTextPrimary
-                          : AppColors.textPrimary,
-                    ),
-                  ),
-                  isActive: _currentStep >= 0,
-                  state: _currentStep > 0
-                      ? StepState.complete
-                      : StepState.indexed,
-                  content: Form(
-                    key: _stepKeys[0],
-                    child: Padding(
-                      padding: const EdgeInsets.only(top: 16),
-                      child: LayoutBuilder(
-                        builder: (context, constraints) {
-                          final isMobile = constraints.maxWidth < 400;
-                          if (isMobile) {
-                            return Column(
-                              children: [
-                                _field(
-                                  'First Name',
-                                  null,
-                                  _firstNameCtrl,
-                                  required: true,
-                                  textCapitalization: TextCapitalization.words,
-                                  inputFormatters: [
-                                    _TitleCaseTextInputFormatter(),
-                                  ],
-                                ),
-                                const SizedBox(height: AppSizes.p12),
-                                _field(
-                                  'Middle Name',
-                                  null,
-                                  _middleNameCtrl,
-                                  textCapitalization: TextCapitalization.words,
-                                  inputFormatters: [
-                                    _TitleCaseTextInputFormatter(),
-                                  ],
-                                ),
-                                const SizedBox(height: AppSizes.p12),
-                                _field(
-                                  'Last Name',
-                                  null,
-                                  _lastNameCtrl,
-                                  required: true,
-                                  textCapitalization: TextCapitalization.words,
-                                  inputFormatters: [
-                                    _TitleCaseTextInputFormatter(),
-                                  ],
-                                ),
-                                const SizedBox(height: AppSizes.p12),
-                                _buildExtensionField(),
-                              ],
-                            );
-                          }
-                          return Column(
-                            children: [
-                              Row(
-                                children: [
-                                  Expanded(
-                                    child: _field(
-                                      'First Name',
-                                      null,
-                                      _firstNameCtrl,
-                                      required: true,
-                                      textCapitalization:
-                                          TextCapitalization.words,
-                                      inputFormatters: [
-                                        _TitleCaseTextInputFormatter(),
-                                      ],
-                                    ),
-                                  ),
-                                  const SizedBox(width: AppSizes.p12),
-                                  Expanded(
-                                    child: _field(
-                                      'Middle Name',
-                                      null,
-                                      _middleNameCtrl,
-                                      textCapitalization:
-                                          TextCapitalization.words,
-                                      inputFormatters: [
-                                        _TitleCaseTextInputFormatter(),
-                                      ],
-                                    ),
-                                  ),
-                                ],
+                        Positioned(
+                          right: 0,
+                          bottom: 0,
+                          child: Container(
+                            width: 14,
+                            height: 14,
+                            decoration: BoxDecoration(
+                              color: _currentUser.isActive
+                                  ? AppColors.success
+                                  : Colors.grey,
+                              shape: BoxShape.circle,
+                              border: Border.all(
+                                color: headerBg,
+                                width: 2.5,
                               ),
-                              const SizedBox(height: AppSizes.p12),
-                              Row(
-                                children: [
-                                  Expanded(
-                                    flex: 2,
-                                    child: _field(
-                                      'Last Name',
-                                      null,
-                                      _lastNameCtrl,
-                                      required: true,
-                                      textCapitalization:
-                                          TextCapitalization.words,
-                                      inputFormatters: [
-                                        _TitleCaseTextInputFormatter(),
-                                      ],
-                                    ),
-                                  ),
-                                  const SizedBox(width: AppSizes.p12),
-                                  Expanded(
-                                    flex: 1,
-                                    child: _buildExtensionField(),
-                                  ),
-                                ],
-                              ),
-                            ],
-                          );
-                        },
-                      ),
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
-                  ),
-                ),
-                Step(
-                  title: Text(
-                    'Account Details',
-                    style: TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 16,
-                      color: Theme.of(context).brightness == Brightness.dark
-                          ? AppColors.darkTextPrimary
-                          : AppColors.textPrimary,
-                    ),
-                  ),
-                  isActive: _currentStep >= 1,
-                  state: _currentStep > 1
-                      ? StepState.complete
-                      : StepState.indexed,
-                  content: Form(
-                    key: _stepKeys[1],
-                    child: Padding(
-                      padding: const EdgeInsets.only(top: 16),
+                    const SizedBox(width: AppSizes.p16),
+                    Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          _field(
-                            'Username',
-                            Icons.person,
-                            _usernameCtrl,
-                            required: !_isEdit,
-                            readOnly: _isEdit,
+                          Text(
+                            _currentUser.fullName,
+                            style: TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                              color: textPrimary,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
                           ),
-                          const SizedBox(height: AppSizes.p12),
-                          _buildRoleDropdown(currentUser),
+                          const SizedBox(height: 3),
+                          Wrap(
+                            crossAxisAlignment: WrapCrossAlignment.center,
+                            spacing: 8,
+                            runSpacing: 4,
+                            children: [
+                              Text(
+                                '@${_currentUser.username}',
+                                style: TextStyle(
+                                  fontSize: 13,
+                                  color: textSecondary,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                              _buildRoleChip(
+                                _isEditing ? _selectedRole : _currentUser.role,
+                              ),
+                              _buildStatusChip(_currentUser.isActive),
+                            ],
+                          ),
                         ],
                       ),
                     ),
-                  ),
+                  ],
                 ),
-                Step(
-                  title: Text(
-                    'Contact Information',
-                    style: TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 16,
-                      color: Theme.of(context).brightness == Brightness.dark
-                          ? AppColors.darkTextPrimary
-                          : AppColors.textPrimary,
+                if (_isEditing) ...[
+                  const SizedBox(height: AppSizes.p12),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 8,
+                    ),
+                    decoration: BoxDecoration(
+                      color: AppColors.primaryGreen.withValues(alpha: 0.08),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(
+                        color: AppColors.primaryGreen.withValues(alpha: 0.25),
+                      ),
+                    ),
+                    child: Row(
+                      children: [
+                        const Icon(
+                          Icons.edit_note_rounded,
+                          size: 18,
+                          color: AppColors.primaryGreen,
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          'Editing User Profile',
+                          style: TextStyle(
+                            fontSize: 12.5,
+                            fontWeight: FontWeight.w600,
+                            color: isDark
+                                ? AppColors.darkTextPrimary
+                                : AppColors.primaryGreen,
+                          ),
+                        ),
+                        const Spacer(),
+                        TextButton(
+                          onPressed: _cancelEditing,
+                          style: TextButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 4,
+                            ),
+                            visualDensity: VisualDensity.compact,
+                          ),
+                          child: const Text(
+                            'Discard',
+                            style: TextStyle(fontSize: 12),
+                          ),
+                        ),
+                      ],
                     ),
                   ),
-                  isActive: _currentStep >= 2,
-                  content: Form(
-                    key: _stepKeys[2],
-                    child: Padding(
-                      padding: const EdgeInsets.only(top: 16),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          _buildEmailField(),
-                          const SizedBox(height: AppSizes.p12),
-                          _field(
-                            'Phone Number (Starts with 09)',
-                            Icons.phone_outlined,
-                            _phoneCtrl,
-                            validator: AppValidators.validatePhone,
-                            maxLength: 11,
-                            keyboardType: TextInputType.phone,
-                            inputFormatters: [
-                              FilteringTextInputFormatter.digitsOnly,
-                            ],
-                          ),
-                          if (!_isEdit) ...[
-                            const SizedBox(height: AppSizes.p12),
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 14,
+                ] else ...[
+                  const SizedBox(height: AppSizes.p16),
+                  // Responsive Action Buttons Toolbar for Android & Windows
+                  LayoutBuilder(
+                    builder: (context, constraints) {
+                      final isCompact = constraints.maxWidth < 420;
+
+                      Widget buildActionButton({
+                        required IconData icon,
+                        required String label,
+                        required VoidCallback onTap,
+                        bool isDestructive = false,
+                        bool isPrimary = false,
+                      }) {
+                        final fgColor = isPrimary
+                            ? Colors.white
+                            : (isDestructive
+                                ? (isDark
+                                    ? Colors.red.shade300
+                                    : Colors.red.shade700)
+                                : textPrimary);
+                        final border = isPrimary
+                            ? AppColors.primaryGreen
+                            : (isDestructive
+                                ? (isDark
+                                    ? Colors.red.withValues(alpha: 0.3)
+                                    : Colors.red.shade200)
+                                : (isDark
+                                    ? AppColors.darkBorder
+                                    : Colors.grey.shade300));
+                        final bg = isPrimary
+                            ? AppColors.primaryGreen
+                            : (isDark
+                                ? AppColors.darkSurfaceCard
+                                : Colors.white);
+
+                        return Material(
+                          color: bg,
+                          borderRadius: BorderRadius.circular(8),
+                          child: InkWell(
+                            onTap: onTap,
+                            borderRadius: BorderRadius.circular(8),
+                            child: Container(
+                              padding: EdgeInsets.symmetric(
+                                horizontal: isCompact ? 6 : 12,
                                 vertical: 10,
                               ),
                               decoration: BoxDecoration(
-                                color: AppColors.primaryGreen.withValues(
-                                  alpha: 0.07,
-                                ),
                                 borderRadius: BorderRadius.circular(8),
-                                border: Border.all(
-                                  color: AppColors.primaryGreen.withValues(
-                                    alpha: 0.3,
-                                  ),
-                                ),
+                                border: Border.all(color: border, width: 1),
                               ),
                               child: Row(
-                                crossAxisAlignment: CrossAxisAlignment.start,
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                mainAxisSize: MainAxisSize.min,
                                 children: [
-                                  const Icon(
-                                    Icons.info_outline,
-                                    color: AppColors.primaryGreen,
-                                    size: 16,
-                                  ),
-                                  const SizedBox(width: 8),
-                                  Expanded(
-                                    child: RichText(
-                                      text: TextSpan(
-                                        style: const TextStyle(
-                                          fontSize: 12,
-                                          color: AppColors.primaryGreen,
-                                          fontWeight: FontWeight.w600,
-                                        ),
-                                        children: [
-                                          const TextSpan(
-                                            text: 'Temporary password will be ',
-                                          ),
-                                          TextSpan(
-                                            text: '${_usernameCtrl.text.trim().isEmpty ? '<username>' : _usernameCtrl.text.trim()}123',
-                                            style: const TextStyle(
-                                              fontWeight: FontWeight.bold,
-                                              fontFamily: 'monospace',
-                                            ),
-                                          ),
-                                          const TextSpan(
-                                            text: '. Remind the user to change it after first login.',
-                                          ),
-                                        ],
+                                  Icon(icon,
+                                      size: isCompact ? 15 : 16,
+                                      color: fgColor),
+                                  const SizedBox(width: 6),
+                                  Flexible(
+                                    child: Text(
+                                      label,
+                                      style: TextStyle(
+                                        color: fgColor,
+                                        fontSize: isCompact ? 11.5 : 12.5,
+                                        fontWeight: FontWeight.w600,
                                       ),
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
                                     ),
                                   ),
                                 ],
                               ),
                             ),
+                          ),
+                        );
+                      }
+
+                      final editBtn = buildActionButton(
+                        icon: Icons.edit_outlined,
+                        label: 'Edit',
+                        onTap: _startEditing,
+                      );
+
+                      final resetBtn = buildActionButton(
+                        icon: Icons.lock_reset_rounded,
+                        label: isCompact ? 'Reset Pass' : 'Reset Password',
+                        onTap: () {
+                          Navigator.of(context, rootNavigator: true).pop();
+                          widget.onResetPassword?.call(_currentUser);
+                        },
+                      );
+
+                      final toggleBtn = canToggle
+                          ? buildActionButton(
+                              icon: _currentUser.isActive
+                                  ? Icons.block_rounded
+                                  : Icons.check_circle_outline_rounded,
+                              label: _currentUser.isActive
+                                  ? 'Deactivate'
+                                  : 'Activate',
+                              isDestructive: _currentUser.isActive,
+                              onTap: () {
+                                Navigator.of(context, rootNavigator: true).pop();
+                                widget.onToggleStatus?.call(_currentUser);
+                              },
+                            )
+                          : null;
+
+                      return Row(
+                        children: [
+                          Expanded(child: editBtn),
+                          const SizedBox(width: 8),
+                          Expanded(child: resetBtn),
+                          if (toggleBtn != null) ...[
+                            const SizedBox(width: 8),
+                            Expanded(child: toggleBtn),
                           ],
                         ],
-                      ),
-                    ),
+                      );
+                    },
                   ),
-                ),
+                ],
               ],
             ),
-          ],
-        ),
+          ),
+
+          // Modal Body: View Details or In-Place Form
+          if (!_isEditing)
+            Padding(
+              padding: const EdgeInsets.all(AppSizes.p20),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _detailRow(
+                    icon: Icons.admin_panel_settings_outlined,
+                    label: 'Access Role',
+                    value: _currentUser.role.toUpperCase().replaceAll('_', ' '),
+                  ),
+                  const SizedBox(height: AppSizes.p16),
+                  _detailRow(
+                    icon: Icons.verified_user_outlined,
+                    label: 'Account Status',
+                    value: _currentUser.isActive
+                        ? 'Active (Can login)'
+                        : 'Inactive (Access blocked)',
+                    valueColor: _currentUser.isActive
+                        ? Colors.green.shade700
+                        : Colors.red.shade700,
+                  ),
+                  const SizedBox(height: AppSizes.p16),
+                  _detailRow(
+                    icon: Icons.calendar_today_outlined,
+                    label: 'Date Joined',
+                    value: _currentUser.createdAt?.split('T').first ?? '—',
+                  ),
+                  const SizedBox(height: AppSizes.p16),
+                  _detailRow(
+                    icon: Icons.email_outlined,
+                    label: 'Email',
+                    value: _currentUser.email?.isNotEmpty == true
+                        ? _currentUser.email!
+                        : '—',
+                  ),
+                  const SizedBox(height: AppSizes.p16),
+                  _detailRow(
+                    icon: Icons.phone_outlined,
+                    label: 'Phone',
+                    value: _currentUser.phone?.isNotEmpty == true
+                        ? _currentUser.phone!
+                        : '—',
+                  ),
+                  const SizedBox(height: AppSizes.p16),
+                  _detailRow(
+                    icon: Icons.person_add_outlined,
+                    label: 'Added By',
+                    value: _currentUser.addedByName != null
+                        ? '${_currentUser.addedByName} (@${_currentUser.addedByUsername})'
+                        : 'System',
+                  ),
+                ],
+              ),
+            )
+          else
+            Padding(
+              padding: const EdgeInsets.all(AppSizes.p20),
+              child: Form(
+                key: _formKey,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Personal Information',
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w700,
+                        color: textSecondary,
+                        letterSpacing: 0.5,
+                      ),
+                    ),
+                    const SizedBox(height: AppSizes.p12),
+                    if (isAndroid) ...[
+                      _field(
+                        'First Name',
+                        Icons.person_outline,
+                        _firstNameCtrl,
+                        required: true,
+                        textCapitalization: TextCapitalization.words,
+                        inputFormatters: [_TitleCaseTextInputFormatter()],
+                      ),
+                      const SizedBox(height: AppSizes.p12),
+                      _field(
+                        'Middle Name',
+                        null,
+                        _middleNameCtrl,
+                        textCapitalization: TextCapitalization.words,
+                        inputFormatters: [_TitleCaseTextInputFormatter()],
+                      ),
+                      const SizedBox(height: AppSizes.p12),
+                      _field(
+                        'Last Name',
+                        null,
+                        _lastNameCtrl,
+                        required: true,
+                        textCapitalization: TextCapitalization.words,
+                        inputFormatters: [_TitleCaseTextInputFormatter()],
+                      ),
+                      const SizedBox(height: AppSizes.p12),
+                      _field(
+                        'Ext. (Jr, Sr, III)',
+                        null,
+                        _extCtrl,
+                        textCapitalization: TextCapitalization.words,
+                        inputFormatters: [_TitleCaseTextInputFormatter()],
+                      ),
+                    ] else ...[
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Expanded(
+                            flex: 3,
+                            child: _field(
+                              'First Name',
+                              Icons.person_outline,
+                              _firstNameCtrl,
+                              required: true,
+                              textCapitalization: TextCapitalization.words,
+                              inputFormatters: [_TitleCaseTextInputFormatter()],
+                            ),
+                          ),
+                          const SizedBox(width: AppSizes.p12),
+                          Expanded(
+                            flex: 2,
+                            child: _field(
+                              'Middle Name',
+                              null,
+                              _middleNameCtrl,
+                              textCapitalization: TextCapitalization.words,
+                              inputFormatters: [_TitleCaseTextInputFormatter()],
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: AppSizes.p12),
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Expanded(
+                            flex: 3,
+                            child: _field(
+                              'Last Name',
+                              null,
+                              _lastNameCtrl,
+                              required: true,
+                              textCapitalization: TextCapitalization.words,
+                              inputFormatters: [_TitleCaseTextInputFormatter()],
+                            ),
+                          ),
+                          const SizedBox(width: AppSizes.p12),
+                          Expanded(
+                            flex: 2,
+                            child: _field(
+                              'Ext. (Jr, Sr, III)',
+                              null,
+                              _extCtrl,
+                              textCapitalization: TextCapitalization.words,
+                              inputFormatters: [_TitleCaseTextInputFormatter()],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                    const SizedBox(height: AppSizes.p20),
+                    Text(
+                      'Contact Information',
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w700,
+                        color: textSecondary,
+                        letterSpacing: 0.5,
+                      ),
+                    ),
+                    const SizedBox(height: AppSizes.p12),
+                    _field(
+                      'Email Address',
+                      Icons.email_outlined,
+                      _emailCtrl,
+                      onChanged: (_) => setState(() {}),
+                      validator: (v) {
+                        final email = _emailCtrl.text.trim();
+                        final phone = _phoneCtrl.text.trim();
+                        if (email.isEmpty && phone.isEmpty) {
+                          return 'Either email or phone number is required';
+                        }
+                        if (v != null && v.trim().isNotEmpty) {
+                          return AppValidators.validateEmail(v.trim());
+                        }
+                        return null;
+                      },
+                      keyboardType: TextInputType.emailAddress,
+                    ),
+                    _buildEmailDomainSuggestions(
+                      _emailCtrl,
+                      () => setState(() {}),
+                    ),
+                    const SizedBox(height: AppSizes.p12),
+                    _field(
+                      'Phone Number (Starts with 09)',
+                      Icons.phone_outlined,
+                      _phoneCtrl,
+                      onChanged: (_) => setState(() {}),
+                      validator: (v) {
+                        final email = _emailCtrl.text.trim();
+                        final phone = _phoneCtrl.text.trim();
+                        if (email.isEmpty && phone.isEmpty) {
+                          return 'Either email or phone number is required';
+                        }
+                        if (v != null && v.trim().isNotEmpty) {
+                          return AppValidators.validatePhone(v.trim());
+                        }
+                        return null;
+                      },
+                      maxLength: 11,
+                      keyboardType: TextInputType.phone,
+                      inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                    ),
+                    const SizedBox(height: AppSizes.p20),
+                    Text(
+                      'Access Role',
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w700,
+                        color: textSecondary,
+                        letterSpacing: 0.5,
+                      ),
+                    ),
+                    const SizedBox(height: AppSizes.p12),
+                    _buildRoleDropdown(
+                      currentUser: currentUser,
+                      selectedRole: _selectedRole,
+                      isSelf: isSelf,
+                      onChanged: (val) => setState(() => _selectedRole = val),
+                    ),
+                    const SizedBox(height: AppSizes.p24),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: OutlinedButton(
+                            onPressed: _cancelEditing,
+                            style: OutlinedButton.styleFrom(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 20,
+                                vertical: 14,
+                              ),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                            ),
+                            child: const Text('Cancel'),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: PrimaryButton(
+                            label: 'Save Changes',
+                            isLoading: _isLoading,
+                            onPressed: _handleSave,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ),
+        ],
       ),
     );
   }
 
-  Widget _buildExtensionField() {
-    return Autocomplete<String>(
-      optionsBuilder: (TextEditingValue textEditingValue) {
-        const commonExts = ['Jr.', 'Sr.', 'II', 'III', 'IV'];
-        if (textEditingValue.text.isEmpty) {
-          return commonExts;
-        }
-        return commonExts.where(
-          (ext) =>
-              ext.toLowerCase().contains(textEditingValue.text.toLowerCase()),
-        );
-      },
-      onSelected: (String selection) {
-        _extCtrl.text = selection;
-      },
-      fieldViewBuilder: (context, controller, focusNode, onEditingComplete) {
-        controller.addListener(() {
-          if (_extCtrl.text != controller.text) {
-            _extCtrl.text = controller.text;
-          }
-        });
-        if (controller.text.isEmpty && _extCtrl.text.isNotEmpty) {
-          controller.text = _extCtrl.text;
-        }
-        return CustomTextField(
-          hintText: 'Ext. (Jr, Sr, III)',
-          prefixIcon: null,
-          controller: controller,
-          focusNode: focusNode,
-          textCapitalization: TextCapitalization.words,
-          inputFormatters: [_TitleCaseTextInputFormatter()],
-        );
-      },
-    );
-  }
-
-  Widget _buildRoleDropdown(dynamic currentUser) {
+  Widget _buildRoleDropdown({
+    required dynamic currentUser,
+    required String selectedRole,
+    required bool isSelf,
+    required ValueChanged<String> onChanged,
+  }) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    if (_isEdit && widget.user?.id == currentUser?.id) {
+    if (isSelf) {
       return Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
         decoration: BoxDecoration(
           color: isDark ? AppColors.darkSurface2 : Colors.grey.shade100,
           borderRadius: BorderRadius.circular(AppSizes.radiusMedium),
-          border: Border.all(color: isDark ? AppColors.darkBorder : Colors.grey.shade300),
+          border: Border.all(
+            color: isDark ? AppColors.darkBorder : Colors.grey.shade300,
+          ),
         ),
         child: Row(
           children: [
-            Icon(Icons.shield, color: _roleColor(widget.user!.role), size: 20),
+            Icon(Icons.shield, color: _roleColor(selectedRole), size: 20),
             const SizedBox(width: 12),
             Text(
-              widget.user!.role.toUpperCase(),
+              selectedRole.toUpperCase(),
               style: TextStyle(
                 fontWeight: FontWeight.bold,
-                color: _roleColor(widget.user!.role),
+                color: _roleColor(selectedRole),
               ),
             ),
             const SizedBox(width: 8),
@@ -1887,132 +1729,597 @@ class _AddEditUserModalState extends ConsumerState<AddEditUserModal> {
       );
     }
     return DropdownButtonFormField<String>(
-      initialValue: _selectedRole,
+      isExpanded: true,
+      initialValue: selectedRole,
       decoration: const InputDecoration(
+        labelText: 'Role',
         prefixIcon: Icon(Icons.shield_outlined, color: AppColors.textSecondary),
       ),
       items: const [
         DropdownMenuItem(value: 'teacher', child: Text('Teacher')),
         DropdownMenuItem(value: 'admin', child: Text('Admin')),
       ],
-      onChanged: (val) => setState(() => _selectedRole = val!),
+      onChanged: (val) {
+        if (val != null) onChanged(val);
+      },
     );
   }
+}
 
-  Widget _buildEmailField() {
-    return Autocomplete<String>(
-      optionsBuilder: (TextEditingValue textEditingValue) {
-        final text = textEditingValue.text;
-        if (!text.contains('@')) {
-          return const Iterable<String>.empty();
-        }
-        final parts = text.split('@');
-        final prefix = parts[0];
-        final query = parts.length > 1 ? parts[1].toLowerCase() : '';
-        const domains = [
-          'gmail.com',
-          'yahoo.com',
-          'outlook.com',
-          'hotmail.com',
-          'deped.gov.ph',
-        ];
-        return domains
-            .where((domain) => domain.toLowerCase().startsWith(query))
-            .map((domain) => '$prefix@$domain');
-      },
-      onSelected: (String selection) {
-        _emailCtrl.text = selection;
-      },
-      optionsViewBuilder:
-          (
-            BuildContext context,
-            AutocompleteOnSelected<String> onSelected,
-            Iterable<String> options,
-          ) {
-            return Align(
-              alignment: Alignment.topLeft,
-              child: Material(
-                elevation: 4.0,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: ConstrainedBox(
-                  constraints: const BoxConstraints(
-                    maxHeight: 200,
-                    maxWidth: 300,
+// ------------------------------------------------------------
+// ADD USER MODAL CONTENT (SINGLE CUSTOM MODAL FORM)
+// ------------------------------------------------------------
+class _AddUserModalContent extends ConsumerStatefulWidget {
+  const _AddUserModalContent();
+
+  @override
+  ConsumerState<_AddUserModalContent> createState() =>
+      _AddUserModalContentState();
+}
+
+class _AddUserModalContentState extends ConsumerState<_AddUserModalContent> {
+  final _formKey = GlobalKey<FormState>();
+  final _usernameCtrl = TextEditingController();
+  final _firstNameCtrl = TextEditingController();
+  final _middleNameCtrl = TextEditingController();
+  final _lastNameCtrl = TextEditingController();
+  final _extCtrl = TextEditingController();
+  final _emailCtrl = TextEditingController();
+  final _phoneCtrl = TextEditingController();
+  String _selectedRole = 'teacher';
+  bool _isLoading = false;
+
+  @override
+  void dispose() {
+    _usernameCtrl.dispose();
+    _firstNameCtrl.dispose();
+    _middleNameCtrl.dispose();
+    _lastNameCtrl.dispose();
+    _extCtrl.dispose();
+    _emailCtrl.dispose();
+    _phoneCtrl.dispose();
+    super.dispose();
+  }
+
+  Future<void> _handleCreate() async {
+    if (!(_formKey.currentState?.validate() ?? false)) return;
+    setState(() => _isLoading = true);
+
+    try {
+      final username = _usernameCtrl.text.trim();
+      await ref.read(usersProvider.notifier).createUser(
+            username: username,
+            firstName: _firstNameCtrl.text.trim(),
+            middleName: _middleNameCtrl.text.trim(),
+            lastName: _lastNameCtrl.text.trim(),
+            extension: _extCtrl.text.trim(),
+            role: _selectedRole,
+            email: _emailCtrl.text.trim(),
+            phone: _phoneCtrl.text.trim(),
+          );
+
+      if (!mounted) return;
+      Navigator.of(context).pop(true);
+      _showUserCreatedSuccessDialog(
+        context,
+        username: username,
+        email: _emailCtrl.text.trim(),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      showErrorDialog(
+        context,
+        'Create User Failed',
+        e.toString().replaceAll('Exception: ', ''),
+      );
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final textSecondary =
+        isDark ? AppColors.darkTextSecondary : AppColors.textSecondary;
+    final isAndroid = Theme.of(context).platform == TargetPlatform.android ||
+        MediaQuery.of(context).size.width < 500;
+
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(AppSizes.p20),
+      child: Form(
+        key: _formKey,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Personal Information',
+              style: TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w700,
+                color: textSecondary,
+                letterSpacing: 0.5,
+              ),
+            ),
+            const SizedBox(height: AppSizes.p12),
+            if (isAndroid) ...[
+              _field(
+                'First Name',
+                Icons.person_outline,
+                _firstNameCtrl,
+                required: true,
+                textCapitalization: TextCapitalization.words,
+                inputFormatters: [_TitleCaseTextInputFormatter()],
+              ),
+              const SizedBox(height: AppSizes.p12),
+              _field(
+                'Middle Name',
+                null,
+                _middleNameCtrl,
+                textCapitalization: TextCapitalization.words,
+                inputFormatters: [_TitleCaseTextInputFormatter()],
+              ),
+              const SizedBox(height: AppSizes.p12),
+              _field(
+                'Last Name',
+                null,
+                _lastNameCtrl,
+                required: true,
+                textCapitalization: TextCapitalization.words,
+                inputFormatters: [_TitleCaseTextInputFormatter()],
+              ),
+              const SizedBox(height: AppSizes.p12),
+              _field(
+                'Ext. (Jr, Sr, III)',
+                null,
+                _extCtrl,
+                textCapitalization: TextCapitalization.words,
+                inputFormatters: [_TitleCaseTextInputFormatter()],
+              ),
+            ] else ...[
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(
+                    flex: 3,
+                    child: _field(
+                      'First Name',
+                      Icons.person_outline,
+                      _firstNameCtrl,
+                      required: true,
+                      textCapitalization: TextCapitalization.words,
+                      inputFormatters: [_TitleCaseTextInputFormatter()],
+                    ),
                   ),
-                  child: ListView.builder(
-                    padding: EdgeInsets.zero,
-                    shrinkWrap: true,
-                    itemCount: options.length,
-                    itemBuilder: (BuildContext context, int index) {
-                      final String option = options.elementAt(index);
-                      final display = '@${option.split('@').last}';
-                      return InkWell(
-                        onTap: () => onSelected(option),
-                        child: Padding(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 16.0,
-                            vertical: 12.0,
-                          ),
-                          child: Text(
-                            display,
-                            style: const TextStyle(fontWeight: FontWeight.w500),
-                          ),
-                        ),
-                      );
-                    },
+                  const SizedBox(width: AppSizes.p12),
+                  Expanded(
+                    flex: 2,
+                    child: _field(
+                      'Middle Name',
+                      null,
+                      _middleNameCtrl,
+                      textCapitalization: TextCapitalization.words,
+                      inputFormatters: [_TitleCaseTextInputFormatter()],
+                    ),
                   ),
+                ],
+              ),
+              const SizedBox(height: AppSizes.p12),
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(
+                    flex: 3,
+                    child: _field(
+                      'Last Name',
+                      null,
+                      _lastNameCtrl,
+                      required: true,
+                      textCapitalization: TextCapitalization.words,
+                      inputFormatters: [_TitleCaseTextInputFormatter()],
+                    ),
+                  ),
+                  const SizedBox(width: AppSizes.p12),
+                  Expanded(
+                    flex: 2,
+                    child: _field(
+                      'Ext. (Jr, Sr, III)',
+                      null,
+                      _extCtrl,
+                      textCapitalization: TextCapitalization.words,
+                      inputFormatters: [_TitleCaseTextInputFormatter()],
+                    ),
+                  ),
+                ],
+              ),
+            ],
+            const SizedBox(height: AppSizes.p20),
+            Text(
+              'Account Details',
+              style: TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w700,
+                color: textSecondary,
+                letterSpacing: 0.5,
+              ),
+            ),
+            const SizedBox(height: AppSizes.p12),
+            _field(
+              'Username',
+              Icons.alternate_email_rounded,
+              _usernameCtrl,
+              required: true,
+              onChanged: (_) => setState(() {}),
+            ),
+            const SizedBox(height: AppSizes.p12),
+            DropdownButtonFormField<String>(
+              isExpanded: true,
+              initialValue: _selectedRole,
+              decoration: const InputDecoration(
+                labelText: 'Role',
+                prefixIcon: Icon(
+                  Icons.shield_outlined,
+                  color: AppColors.textSecondary,
                 ),
               ),
-            );
-          },
-      fieldViewBuilder: (context, controller, focusNode, onEditingComplete) {
-        controller.addListener(() {
-          if (_emailCtrl.text != controller.text) {
-            _emailCtrl.text = controller.text;
-          }
-        });
-        if (controller.text.isEmpty && _emailCtrl.text.isNotEmpty) {
-          controller.text = _emailCtrl.text;
-        }
-        return CustomTextField(
-          hintText: 'Email Address',
-          prefixIcon: Icons.email_outlined,
-          controller: controller,
-          focusNode: focusNode,
-          validator: AppValidators.validateEmail,
-        );
-      },
+              items: const [
+                DropdownMenuItem(value: 'teacher', child: Text('Teacher')),
+                DropdownMenuItem(value: 'admin', child: Text('Admin')),
+              ],
+              onChanged: (val) {
+                if (val != null) setState(() => _selectedRole = val);
+              },
+            ),
+            const SizedBox(height: AppSizes.p20),
+            Text(
+              'Contact Information',
+              style: TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w700,
+                color: textSecondary,
+                letterSpacing: 0.5,
+              ),
+            ),
+            const SizedBox(height: AppSizes.p12),
+            _field(
+              'Email Address',
+              Icons.email_outlined,
+              _emailCtrl,
+              onChanged: (_) => setState(() {}),
+              validator: (v) {
+                final email = _emailCtrl.text.trim();
+                final phone = _phoneCtrl.text.trim();
+                if (email.isEmpty && phone.isEmpty) {
+                  return 'Either email or phone number is required';
+                }
+                if (v != null && v.trim().isNotEmpty) {
+                  return AppValidators.validateEmail(v.trim());
+                }
+                return null;
+              },
+              keyboardType: TextInputType.emailAddress,
+            ),
+            _buildEmailDomainSuggestions(
+              _emailCtrl,
+              () => setState(() {}),
+            ),
+            const SizedBox(height: AppSizes.p12),
+            _field(
+              'Phone Number (Starts with 09)',
+              Icons.phone_outlined,
+              _phoneCtrl,
+              onChanged: (_) => setState(() {}),
+              validator: (v) {
+                final email = _emailCtrl.text.trim();
+                final phone = _phoneCtrl.text.trim();
+                if (email.isEmpty && phone.isEmpty) {
+                  return 'Either email or phone number is required';
+                }
+                if (v != null && v.trim().isNotEmpty) {
+                  return AppValidators.validatePhone(v.trim());
+                }
+                return null;
+              },
+              maxLength: 11,
+              keyboardType: TextInputType.phone,
+              inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+            ),
+            const SizedBox(height: AppSizes.p16),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+              decoration: BoxDecoration(
+                color: AppColors.primaryGreen.withValues(alpha: 0.07),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(
+                  color: AppColors.primaryGreen.withValues(alpha: 0.3),
+                ),
+              ),
+              child: const Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Icon(
+                    Icons.info_outline,
+                    color: AppColors.primaryGreen,
+                    size: 16,
+                  ),
+                  SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'Temporary login credentials and account access instructions will be sent to the user\'s email.',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: AppColors.primaryGreen,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: AppSizes.p24),
+            Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton(
+                    onPressed: () => Navigator.of(context).pop(false),
+                    style: OutlinedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 20,
+                        vertical: 14,
+                      ),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                    ),
+                    child: const Text('Cancel'),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: PrimaryButton(
+                    label: 'CREATE USER',
+                    isLoading: _isLoading,
+                    onPressed: _handleCreate,
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
     );
   }
+}
 
-  Widget _field(
-    String hint,
-    IconData? icon,
-    TextEditingController ctrl, {
-    bool required = false,
-    bool readOnly = false,
-    String? Function(String?)? validator,
-    TextCapitalization textCapitalization = TextCapitalization.none,
-    int? maxLength,
-    TextInputType? keyboardType,
-    List<TextInputFormatter>? inputFormatters,
-  }) {
-    return CustomTextField(
-      hintText: hint,
-      prefixIcon: icon,
-      controller: ctrl,
-      readOnly: readOnly,
-      validator:
-          validator ??
-          (required ? (v) => AppValidators.validateRequired(v, hint) : null),
-      textCapitalization: textCapitalization,
-      maxLength: maxLength,
-      keyboardType: keyboardType,
-      inputFormatters: inputFormatters,
-    );
-  }
+// ------------------------------------------------------------
+// SHARED FORM FIELD HELPERS
+// ------------------------------------------------------------
+Widget _field(
+  String hint,
+  IconData? icon,
+  TextEditingController ctrl, {
+  bool required = false,
+  bool readOnly = false,
+  String? Function(String?)? validator,
+  TextCapitalization textCapitalization = TextCapitalization.none,
+  int? maxLength,
+  String? counterText,
+  TextInputType? keyboardType,
+  List<TextInputFormatter>? inputFormatters,
+  void Function(String)? onChanged,
+}) {
+  return CustomTextField(
+    hintText: hint,
+    prefixIcon: icon,
+    controller: ctrl,
+    readOnly: readOnly,
+    onChanged: onChanged,
+    validator: validator ??
+        (required ? (v) => AppValidators.validateRequired(v, hint) : null),
+    textCapitalization: textCapitalization,
+    maxLength: maxLength,
+    counterText: counterText ?? (maxLength != null ? '' : null),
+    keyboardType: keyboardType,
+    inputFormatters: inputFormatters,
+  );
+}
+
+Widget _buildEmailDomainSuggestions(
+  TextEditingController emailCtrl,
+  VoidCallback onChanged,
+) {
+  return ValueListenableBuilder<TextEditingValue>(
+    valueListenable: emailCtrl,
+    builder: (context, value, child) {
+      final text = value.text;
+      if (!text.contains('@')) return const SizedBox.shrink();
+
+      final parts = text.split('@');
+      final domainPart = parts.length > 1 ? parts[1].toLowerCase() : '';
+
+      const commonDomains = [
+        'gmail.com',
+        'yahoo.com',
+        'outlook.com',
+        'hotmail.com',
+        'deped.gov.ph',
+      ];
+      final suggestions = commonDomains
+          .where((d) => d.startsWith(domainPart) && d != domainPart)
+          .toList();
+
+      if (suggestions.isEmpty) return const SizedBox.shrink();
+
+      return Padding(
+        padding: const EdgeInsets.only(top: 6.0, bottom: 4.0),
+        child: Wrap(
+          spacing: 8.0,
+          runSpacing: 6.0,
+          children: suggestions.map((domain) {
+            return ActionChip(
+              visualDensity: VisualDensity.compact,
+              avatar: const Icon(
+                Icons.alternate_email,
+                size: 13,
+                color: AppColors.primaryGreen,
+              ),
+              label: Text('@$domain', style: const TextStyle(fontSize: 11.5)),
+              onPressed: () {
+                emailCtrl.text = '${parts[0]}@$domain';
+                emailCtrl.selection = TextSelection.fromPosition(
+                  TextPosition(offset: emailCtrl.text.length),
+                );
+                onChanged();
+              },
+            );
+          }).toList(),
+        ),
+      );
+    },
+  );
+}
+
+void _showUserCreatedSuccessDialog(
+  BuildContext ctx, {
+  required String username,
+  String? email,
+}) {
+  final isDark = Theme.of(ctx).brightness == Brightness.dark;
+  showDialog(
+    context: ctx,
+    barrierDismissible: false,
+    builder: (dialogCtx) => AlertDialog(
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(AppSizes.radiusLarge),
+      ),
+      icon: const Icon(
+        Icons.check_circle,
+        color: AppColors.success,
+        size: 48,
+      ),
+      title: const Text(
+        'User Created Successfully!',
+        textAlign: TextAlign.center,
+        style: TextStyle(fontWeight: FontWeight.bold),
+      ),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _credentialRow(dialogCtx, 'Username', username),
+          const SizedBox(height: 16),
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: AppColors.primaryGreen.withValues(alpha: 0.08),
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(
+                color: AppColors.primaryGreen.withValues(alpha: 0.25),
+              ),
+            ),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Icon(
+                  Icons.mark_email_read_outlined,
+                  color: AppColors.primaryGreen,
+                  size: 20,
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    email != null && email.isNotEmpty
+                        ? 'An email with login details and instructions has been sent to $email.'
+                        : 'User account created successfully for @$username.',
+                    style: TextStyle(
+                      fontSize: 12.5,
+                      fontWeight: FontWeight.w500,
+                      color: isDark
+                          ? AppColors.darkTextPrimary
+                          : AppColors.textPrimary,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+      actions: [
+        SizedBox(
+          width: double.infinity,
+          child: ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.primaryGreen,
+              foregroundColor: Colors.white,
+              padding: const EdgeInsets.symmetric(vertical: 12),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
+            ),
+            onPressed: () => Navigator.of(dialogCtx).pop(),
+            child: const Text('DONE'),
+          ),
+        ),
+      ],
+    ),
+  );
+}
+
+Widget _credentialRow(
+  BuildContext context,
+  String label,
+  String value, {
+  bool highlight = false,
+}) {
+  final isDark = Theme.of(context).brightness == Brightness.dark;
+  return Container(
+    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+    decoration: BoxDecoration(
+      color: highlight
+          ? AppColors.primaryGreen.withValues(alpha: 0.07)
+          : (isDark ? AppColors.darkSurface2 : Colors.grey.shade50),
+      borderRadius: BorderRadius.circular(8),
+      border: Border.all(
+        color: highlight
+            ? AppColors.primaryGreen.withValues(alpha: 0.3)
+            : (isDark ? AppColors.darkBorder : Colors.grey.shade200),
+      ),
+    ),
+    child: Row(
+      children: [
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                label,
+                style: TextStyle(
+                  fontSize: 11,
+                  color: isDark ? AppColors.darkTextSecondary : Colors.grey,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                value,
+                style: TextStyle(
+                  fontSize: 15,
+                  fontWeight: FontWeight.bold,
+                  color: highlight
+                      ? AppColors.primaryGreen
+                      : (isDark
+                          ? AppColors.darkTextPrimary
+                          : AppColors.textPrimary),
+                  letterSpacing: 0.5,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    ),
+  );
 }
 
 // ============================================================

@@ -19,5 +19,10 @@ router.post('/complete-password-reset', authController.completePasswordReset);
 
 router.post('/verify-password', authenticateToken, authController.verifyPassword);
 
+// Self-Service Account Deletion via Email Confirmation Link
+router.post('/request-delete-account', authenticateToken, authController.requestAccountDeletion);
+router.get('/confirm-delete-account-web', authController.confirmDeleteAccountWebPage);
+router.post('/confirm-delete-account', authController.confirmDeleteAccount);
+
 module.exports = router;
 

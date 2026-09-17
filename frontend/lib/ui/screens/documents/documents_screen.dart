@@ -335,7 +335,7 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
         final url =
             '${ApiConstants.baseUrl}/documents/${document.id}/view?token=$token&download=true';
 
-        await DownloadService.downloadFile(
+        final savedPath = await DownloadService.downloadFile(
           url: url,
           fileName: document.fileName,
         );
@@ -343,6 +343,8 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
         showSuccessDialog(
           context,
           message: 'Document downloaded successfully.',
+          filePath: savedPath,
+          notes: 'The document has been saved to your downloads folder.',
         );
       } catch (e) {
         if (!mounted) return;
@@ -1344,7 +1346,6 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
 
   int _getActiveFilterCount() {
     int count = 0;
-    if (_selectedStatus != 'All Statuses') count++;
     if (_selectedDocumentType != 'All Types') count++;
     if (_selectedGradeLevel != 'All Grades') count++;
     if (_selectedSchoolYear != 'All Years') count++;
@@ -1599,23 +1600,6 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
     VoidCallback onApply,
   ) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    const defaultStatuses = [
-      'All Statuses',
-      'Completed',
-    ];
-    final statusItems = statusesAsync.when(
-      data: (s) => (defaultStatuses.toSet()
-            ..addAll(s.where((item) {
-              final lower = item.toLowerCase();
-              return lower != 'verified' &&
-                  lower != 'draft' &&
-                  lower != 'pending' &&
-                  lower != 'archived';
-            })))
-          .toList(),
-      loading: () => defaultStatuses,
-      error: (_, st) => defaultStatuses,
-    );
     final jhsReqs = requirementsAsync.when(
       data: (reqs) => [
         'All JHS',
@@ -1744,24 +1728,6 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
                 crossAxisAlignment: CrossAxisAlignment.start,
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  // Status
-                  _buildFilterSection(
-                    label: 'Status',
-                    hasActiveFilter: _pendingStatus != 'All Statuses',
-                    onReset: () =>
-                        setDialogState(() => _pendingStatus = 'All Statuses'),
-                    child: _buildFilterChipGroup(
-                      items: statusItems,
-                      selectedValue: statusItems.contains(_pendingStatus)
-                          ? _pendingStatus
-                          : 'All Statuses',
-                      onSelected: (v) =>
-                          setDialogState(() => _pendingStatus = v),
-                    ),
-                  ),
-
-                  _buildDivider(isDark),
-
                   // Document Type
                   _buildFilterSection(
                     label: 'Document Type',
@@ -1915,54 +1881,6 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
       color: isDark
           ? AppColors.darkBorder.withValues(alpha: 0.5)
           : Colors.grey.shade100,
-    );
-  }
-
-  Widget _buildFilterChipGroup({
-    required List<String> items,
-    required String selectedValue,
-    required ValueChanged<String> onSelected,
-  }) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    return Wrap(
-      spacing: 8,
-      runSpacing: 8,
-      children: items.map((item) {
-        final isSelected = item == selectedValue;
-        return ChoiceChip(
-          label: Text(
-            item,
-            style: TextStyle(
-              fontSize: 12.5,
-              fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
-              color: isSelected
-                  ? AppColors.primaryGreen
-                  : (isDark
-                      ? AppColors.darkTextPrimary
-                      : AppColors.textPrimary),
-            ),
-          ),
-          selected: isSelected,
-          onSelected: (selected) {
-            if (selected) {
-              onSelected(item);
-            }
-          },
-          selectedColor: AppColors.primaryGreen.withValues(alpha: 0.12),
-          backgroundColor:
-              isDark ? AppColors.darkSurface2 : Colors.grey.shade100,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(20),
-            side: BorderSide(
-              color: isSelected
-                  ? AppColors.primaryGreen
-                  : (isDark ? AppColors.darkBorder : Colors.grey.shade300),
-              width: 1,
-            ),
-          ),
-          showCheckmark: false,
-        );
-      }).toList(),
     );
   }
 
@@ -2643,6 +2561,12 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
                   userRole: widget.userRole,
                   isMultiSelectMode: _isMultiSelectMode,
                   isSelected: _selectedDocumentIds.contains(documents[i].id),
+                  onIconTap: () {
+                    setState(() {
+                      _isMultiSelectMode = true;
+                      _selectedDocumentIds.add(documents[i].id);
+                    });
+                  },
                   onSelectedChanged: (val) {
                     setState(() {
                       if (val == true) {
@@ -2742,6 +2666,12 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
                       userRole: widget.userRole,
                       isMultiSelectMode: _isMultiSelectMode,
                       isSelected: _selectedDocumentIds.contains(doc.id),
+                      onIconTap: () {
+                        setState(() {
+                          _isMultiSelectMode = true;
+                          _selectedDocumentIds.add(doc.id);
+                        });
+                      },
                       onSelectedChanged: (val) {
                         setState(() {
                           if (val == true) {
@@ -2857,8 +2787,7 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
             'Upload a document or adjust your filters',
             style: TextStyle(color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary),
           ),
-          if (_selectedStatus != 'All Statuses' ||
-              _selectedDocumentType != 'All Types' ||
+          if (_selectedDocumentType != 'All Types' ||
               _selectedGradeLevel != 'All Grades' ||
               _selectedSchoolYear != 'All Years' ||
               _searchController.text.isNotEmpty) ...[

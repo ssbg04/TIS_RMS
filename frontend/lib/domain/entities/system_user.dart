@@ -60,4 +60,36 @@ class SystemUser {
       addedByName: json['added_by_name'] as String?,
     );
   }
+
+  SystemUser copyWith({
+    int? id,
+    String? username,
+    String? firstName,
+    String? middleName,
+    String? lastName,
+    String? extension,
+    String? role,
+    String? email,
+    String? phone,
+    bool? isActive,
+    String? createdAt,
+    String? addedByUsername,
+    String? addedByName,
+  }) {
+    return SystemUser(
+      id: id ?? this.id,
+      username: username ?? this.username,
+      firstName: firstName ?? this.firstName,
+      middleName: middleName ?? this.middleName,
+      lastName: lastName ?? this.lastName,
+      extension: extension ?? this.extension,
+      role: role ?? this.role,
+      email: email ?? this.email,
+      phone: phone ?? this.phone,
+      isActive: isActive ?? this.isActive,
+      createdAt: createdAt ?? this.createdAt,
+      addedByUsername: addedByUsername ?? this.addedByUsername,
+      addedByName: addedByName ?? this.addedByName,
+    );
+  }
 }

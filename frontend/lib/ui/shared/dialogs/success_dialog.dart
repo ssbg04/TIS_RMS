@@ -15,6 +15,7 @@ import '../../../core/services/sound_service.dart';
 /// - [buttonLabel] – Optional OK button label. Defaults to `'OK'`.
 /// - [onDismissed] – Optional callback invoked after the user taps the button.
 /// - [filePath] – Optional file path to show as a clickable link.
+/// - [notes] – Optional notes or instructions to display in an info callout.
 Future<void> showSuccessDialog(
   BuildContext context, {
   required String message,
@@ -22,6 +23,7 @@ Future<void> showSuccessDialog(
   String buttonLabel = 'OK',
   VoidCallback? onDismissed,
   String? filePath,
+  String? notes,
 }) {
   SoundService.playSuccess();
   HapticService.success();
@@ -51,6 +53,36 @@ Future<void> showSuccessDialog(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(message),
+            if (notes != null && notes.isNotEmpty) ...[
+              const SizedBox(height: 12),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                decoration: BoxDecoration(
+                  color: Colors.blue.withValues(alpha: 0.08),
+                  borderRadius: BorderRadius.circular(AppSizes.radiusSmall),
+                  border: Border.all(color: Colors.blue.withValues(alpha: 0.2)),
+                ),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Icon(Icons.info_outline, color: Colors.blue, size: 16),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        notes,
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Theme.of(context).brightness == Brightness.dark
+                              ? Colors.blue.shade200
+                              : Colors.blue.shade900,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
             if (filePath != null && filePath.isNotEmpty) ...[
               const SizedBox(height: 16),
               const Text(

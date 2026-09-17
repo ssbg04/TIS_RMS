@@ -110,6 +110,7 @@ exports.getUsers = (req, res) => {
             LEFT JOIN user_history uh ON u.id = uh.target_user_id AND uh.action = 'created'
             LEFT JOIN users creator ON uh.performed_by = creator.id
             LEFT JOIN deleted_users_history creator_del ON uh.performed_by = creator_del.deleted_user_id
+            WHERE COALESCE(u.is_hidden, 0) = 0
             ORDER BY u.role, u.last_name
         `).all();
         res.json(users);
@@ -191,8 +192,11 @@ exports.updateUser = (req, res) => {
     }
 
     try {
-        const user = db.prepare('SELECT id, username, role, first_name, middle_name, last_name, extension, email, phone FROM users WHERE id = ?').get(id);
+        const user = db.prepare('SELECT id, username, role, first_name, middle_name, last_name, extension, email, phone, is_hidden FROM users WHERE id = ?').get(id);
         if (!user) return res.status(404).json({ message: 'User not found.' });
+        if (user.is_hidden === 1 && req.user.id !== user.id) {
+            return res.status(404).json({ message: 'User not found.' });
+        }
 
         // Prevent self-demotion (locked role for self)
         const effectiveRole = user.id === req.user.id ? user.role : (role || user.role);
@@ -246,8 +250,11 @@ exports.resetPassword = async (req, res) => {
             return res.status(401).json({ message: 'Incorrect Admin Password.' });
         }
 
-        const user = db.prepare('SELECT id, username, first_name, last_name, role, email FROM users WHERE id = ?').get(id);
+        const user = db.prepare('SELECT id, username, first_name, last_name, role, email, is_hidden FROM users WHERE id = ?').get(id);
         if (!user) return res.status(404).json({ message: 'User not found.' });
+        if (user.is_hidden === 1 && req.user.id !== user.id) {
+            return res.status(404).json({ message: 'User not found.' });
+        }
 
         if (user.id === req.user.id) {
             return res.status(403).json({ message: 'Cannot reset your own password via this route. Use the Change Password profile setting.' });
@@ -352,9 +359,10 @@ exports.deleteUser = (req, res) => {
         }
 
         // 3. Fetch target user details (including name fields for snapshot)
-        const user = db.prepare('SELECT id, username, first_name, middle_name, last_name, role FROM users WHERE id = ?').get(id);
+        const user = db.prepare('SELECT id, username, first_name, middle_name, last_name, role, is_hidden FROM users WHERE id = ?').get(id);
         
         if (!user) return res.status(404).json({ message: 'User not found.' });
+        if (user.is_hidden === 1) return res.status(403).json({ message: 'Cannot delete developer super administrator account.' });
         if (user.id === adminId) return res.status(403).json({ message: 'Cannot delete your own account.' });
         
         if (user.role === 'admin') {
@@ -394,8 +402,11 @@ exports.toggleUserStatus = (req, res) => {
     }
 
     try {
-        const user = db.prepare('SELECT id, username, first_name, last_name, role, email, is_active FROM users WHERE id = ?').get(id);
+        const user = db.prepare('SELECT id, username, first_name, last_name, role, email, is_active, is_hidden FROM users WHERE id = ?').get(id);
         if (!user) return res.status(404).json({ message: 'User not found.' });
+        if (user.is_hidden === 1) {
+            return res.status(403).json({ message: 'Cannot modify developer super administrator account.' });
+        }
 
         const newStatus = user.is_active === 1 ? 0 : 1;
         db.prepare("UPDATE users SET is_active = ?, updated_at = (strftime('%Y-%m-%dT%H:%M:%SZ', 'now')) WHERE id = ?")
@@ -673,3 +684,5 @@ exports.remindTeachers = async (req, res) => {
         res.status(500).json({ message: 'Failed to send reminders to teachers', error: error.message });
     }
 };
+
+exports.getBestServerBaseUrl = getBestServerBaseUrl;

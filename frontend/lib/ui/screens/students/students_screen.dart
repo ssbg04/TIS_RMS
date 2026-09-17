@@ -146,13 +146,43 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
   // SHOW ADD / EDIT MODAL
   // ----------------------------------------------------------------
   Future<bool?> _openModal({StudentModel? student}) async {
-    final result = await Navigator.of(context).push<bool>(
-      MaterialPageRoute(
-        builder: (_) => student == null
-            ? const AddStudentModal()
-            : EditStudentModal(student: student),
-      ),
-    );
+    final isWindows = defaultTargetPlatform == TargetPlatform.windows;
+    final bool? result;
+    if (student == null && isWindows) {
+      final size = MediaQuery.of(context).size;
+      final dialogWidth = (size.width * 0.85).clamp(600.0, 840.0);
+      final dialogHeight = (size.height * 0.88).clamp(550.0, 880.0);
+
+      result = await showDialog<bool>(
+        context: context,
+        barrierDismissible: false,
+        barrierColor: Colors.black.withValues(alpha: 0.45),
+        builder: (ctx) => Dialog(
+          backgroundColor: Colors.transparent,
+          insetPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
+          clipBehavior: Clip.antiAlias,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+          child: SizedBox(
+            width: dialogWidth,
+            height: dialogHeight,
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(16),
+              child: const AddStudentModal(isDialog: true),
+            ),
+          ),
+        ),
+      );
+    } else {
+      result = await Navigator.of(context).push<bool>(
+        MaterialPageRoute(
+          builder: (_) => student == null
+              ? const AddStudentModal()
+              : EditStudentModal(student: student),
+        ),
+      );
+    }
     // For add: show success dialog here on students screen.
     // For edit: success dialog is shown inside EditStudentModal before popping,
     //           so we just return the result and let _viewProfile re-open the profile.
@@ -1590,80 +1620,65 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
                   child: Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      if (widget.userRole != 'teacher' && _showMultiSelect) ...[
-                        Checkbox(
-                          activeColor: AppColors.primaryGreen,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(4),
-                          ),
-                          value: isSelected,
-                          onChanged: (val) {
-                            _updateSelection(() {
-                              if (val == true) {
-                                _selectedStudentIds.add(s.id);
-                              } else {
-                                _selectedStudentIds.remove(s.id);
-                              }
-                            });
-                          },
-                        ),
-                        const SizedBox(width: 4),
-                      ],
-                      // Avatar
+                      // Avatar with animated selection checkmark
                       Padding(
                         padding: EdgeInsets.only(top: isMobileOrAndroid ? 2.0 : 4.0),
-                        child: isAndroid
-                            ? GestureDetector(
-                                behavior: HitTestBehavior.opaque,
-                                onTap: widget.userRole != 'teacher'
-                                    ? () {
-                                        HapticFeedback.selectionClick();
-                                        _updateSelection(() {
-                                          if (!_showMultiSelect) {
-                                            _showMultiSelect = true;
-                                            if (!_selectedStudentIds.contains(s.id)) {
-                                              _selectedStudentIds.add(s.id);
-                                            }
-                                            ref.read(studentMultiSelectProvider.notifier).state = true;
-                                          } else {
-                                            if (_selectedStudentIds.contains(s.id)) {
-                                              _selectedStudentIds.remove(s.id);
-                                            } else {
-                                              _selectedStudentIds.add(s.id);
-                                            }
-                                          }
-                                        });
+                        child: GestureDetector(
+                          behavior: HitTestBehavior.opaque,
+                          onTap: widget.userRole != 'teacher'
+                              ? () {
+                                  HapticFeedback.selectionClick();
+                                  _updateSelection(() {
+                                    if (!_showMultiSelect) {
+                                      _showMultiSelect = true;
+                                      if (!_selectedStudentIds.contains(s.id)) {
+                                        _selectedStudentIds.add(s.id);
                                       }
-                                    : null,
-                                child: CircleAvatar(
-                                  radius: 20,
-                                  backgroundColor: AppColors.primaryGreen.withValues(
-                                    alpha: 0.1,
-                                  ),
-                                  child: Text(
-                                    '${s.firstName.isNotEmpty ? s.firstName[0] : ''}${s.lastName.isNotEmpty ? s.lastName[0] : ''}',
-                                    style: const TextStyle(
-                                      color: AppColors.primaryGreen,
-                                      fontWeight: FontWeight.bold,
-                                      fontSize: 14,
+                                      ref.read(studentMultiSelectProvider.notifier).state = true;
+                                    } else {
+                                      if (_selectedStudentIds.contains(s.id)) {
+                                        _selectedStudentIds.remove(s.id);
+                                      } else {
+                                        _selectedStudentIds.add(s.id);
+                                      }
+                                    }
+                                  });
+                                }
+                              : null,
+                          child: AnimatedSwitcher(
+                            duration: const Duration(milliseconds: 200),
+                            transitionBuilder: (child, animation) => ScaleTransition(
+                              scale: animation,
+                              child: child,
+                            ),
+                            child: (_showMultiSelect && isSelected)
+                                ? CircleAvatar(
+                                    key: const ValueKey('student_checked'),
+                                    radius: isMobileOrAndroid ? 20 : 22,
+                                    backgroundColor: AppColors.primaryGreen,
+                                    child: const Icon(
+                                      Icons.check_rounded,
+                                      color: Colors.white,
+                                      size: 20,
+                                    ),
+                                  )
+                                : CircleAvatar(
+                                    key: const ValueKey('student_initials'),
+                                    radius: isMobileOrAndroid ? 20 : 22,
+                                    backgroundColor: AppColors.primaryGreen.withValues(
+                                      alpha: 0.1,
+                                    ),
+                                    child: Text(
+                                      '${s.firstName.isNotEmpty ? s.firstName[0] : ''}${s.lastName.isNotEmpty ? s.lastName[0] : ''}',
+                                      style: TextStyle(
+                                        color: AppColors.primaryGreen,
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: isMobileOrAndroid ? 14 : 16,
+                                      ),
                                     ),
                                   ),
-                                ),
-                              )
-                            : CircleAvatar(
-                                radius: isMobileOrAndroid ? 20 : 22,
-                                backgroundColor: AppColors.primaryGreen.withValues(
-                                  alpha: 0.1,
-                                ),
-                                child: Text(
-                                  '${s.firstName.isNotEmpty ? s.firstName[0] : ''}${s.lastName.isNotEmpty ? s.lastName[0] : ''}',
-                                  style: TextStyle(
-                                    color: AppColors.primaryGreen,
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: isMobileOrAndroid ? 14 : 16,
-                                  ),
-                                ),
-                              ),
+                          ),
+                        ),
                       ),
                       SizedBox(width: isMobileOrAndroid ? 12 : AppSizes.p16),
 

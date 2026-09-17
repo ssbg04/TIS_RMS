@@ -396,6 +396,108 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     }
   }
 
+  Future<void> _handleDeleteAccount(BuildContext context, WidgetRef ref) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) {
+        final isNarrow =
+            MediaQuery.of(ctx).size.width < 600 ||
+            Theme.of(ctx).platform == TargetPlatform.android;
+        return AlertDialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+          title: const Row(
+            children: [
+              Icon(Icons.warning_amber_rounded, color: AppColors.error, size: 28),
+              SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  'Delete Account',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.error,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          content: const Text(
+            'To permanently delete your account, a verification link will be sent to your registered email address.\n\n'
+            'The link will expire in 15 minutes. Once confirmed via email, your account cannot be recovered.\n\n'
+            'Do you want to proceed?',
+          ),
+          actions: [
+            if (isNarrow)
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.error,
+                      foregroundColor: Colors.white,
+                    ),
+                    onPressed: () => Navigator.pop(ctx, true),
+                    child: const Text('SEND VERIFICATION EMAIL'),
+                  ),
+                  const SizedBox(height: 8),
+                  OutlinedButton(
+                    onPressed: () => Navigator.pop(ctx, false),
+                    child: const Text('CANCEL'),
+                  ),
+                ],
+              )
+            else
+              Row(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  TextButton(
+                    onPressed: () => Navigator.pop(ctx, false),
+                    child: const Text(
+                      'CANCEL',
+                      style: TextStyle(color: Colors.grey),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.error,
+                      foregroundColor: Colors.white,
+                    ),
+                    onPressed: () => Navigator.pop(ctx, true),
+                    child: const Text('SEND VERIFICATION EMAIL'),
+                  ),
+                ],
+              ),
+          ],
+        );
+      },
+    );
+
+    if (confirmed != true || !context.mounted) return;
+
+    try {
+      final msg =
+          await ref.read(authProvider.notifier).requestAccountDeletion();
+      if (!context.mounted) return;
+      showSuccessDialog(
+        context,
+        title: 'Verification Email Sent',
+        message: msg,
+        notes:
+            'Please check your registered email inbox to permanently delete your account.',
+      );
+    } catch (e) {
+      if (!context.mounted) return;
+      showErrorDialog(
+        context,
+        'Request Failed',
+        e.toString().replaceAll('Exception: ', ''),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     ref.listen<String>(activeTabProvider, (previous, next) {
@@ -1576,6 +1678,85 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                         ),
                       ),
 
+                      if (user.username.toLowerCase() != 'developer') ...[
+                        const SizedBox(height: AppSizes.p24),
+                        // ── Danger Zone / Delete Account Card ──────────────────────
+                        _buildDangerCard(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Container(
+                                    padding: const EdgeInsets.all(8),
+                                    decoration: BoxDecoration(
+                                      color: AppColors.error.withValues(alpha: 0.1),
+                                      borderRadius: BorderRadius.circular(8),
+                                    ),
+                                    child: const Icon(
+                                      Icons.delete_forever_outlined,
+                                      color: AppColors.error,
+                                      size: 22,
+                                    ),
+                                  ),
+                                  const SizedBox(width: AppSizes.p12),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        const Text(
+                                          'Danger Zone: Delete Account',
+                                          style: TextStyle(
+                                            fontSize: 16,
+                                            fontWeight: FontWeight.bold,
+                                            color: AppColors.error,
+                                          ),
+                                        ),
+                                        const SizedBox(height: 4),
+                                        Text(
+                                          'Permanently delete your account. A verification link will be sent to your registered email to confirm this action.',
+                                          style: TextStyle(
+                                            fontSize: 13,
+                                            color: Theme.of(context)
+                                                .colorScheme
+                                                .onSurface
+                                                .withValues(alpha: 0.7),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 16),
+                              Align(
+                                alignment: Alignment.centerRight,
+                                child: OutlinedButton.icon(
+                                  style: OutlinedButton.styleFrom(
+                                    foregroundColor: AppColors.error,
+                                    side: const BorderSide(color: AppColors.error),
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 16,
+                                      vertical: 10,
+                                    ),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(8),
+                                    ),
+                                  ),
+                                  icon: const Icon(Icons.delete_outline, size: 18),
+                                  label: const Text(
+                                    'Delete Account',
+                                    style: TextStyle(fontWeight: FontWeight.w600),
+                                  ),
+                                  onPressed: () => _handleDeleteAccount(context, ref),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+
                       const SizedBox(height: AppSizes.p48),
                     ],
                   ),
@@ -1697,6 +1878,26 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         ],
         border: Border.all(
           color: isDark ? AppColors.darkBorder : Colors.grey.shade200,
+        ),
+      ),
+      child: child,
+    );
+  }
+
+  Widget _buildDangerCard({required Widget child}) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(AppSizes.p24),
+      decoration: BoxDecoration(
+        color: isDark
+            ? AppColors.error.withValues(alpha: 0.08)
+            : AppColors.error.withValues(alpha: 0.04),
+        borderRadius: BorderRadius.circular(AppSizes.radiusLarge),
+        border: Border.all(
+          color: AppColors.error.withValues(alpha: isDark ? 0.40 : 0.28),
         ),
       ),
       child: child,

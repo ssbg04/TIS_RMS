@@ -1,5 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import '../../../../core/network/api_constants.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/utils/date_utils.dart';
 import '../../../../core/utils/file_icon_helper.dart';
@@ -10,6 +12,8 @@ class FileFolderCard extends StatefulWidget {
   final bool isGrid;
   final String userRole;
   final VoidCallback onTap;
+  final VoidCallback? onIconTap;
+  final String? token;
   final void Function(String)? onActionSelected;
   final void Function(int studentId)? onViewProfile;
 
@@ -25,6 +29,8 @@ class FileFolderCard extends StatefulWidget {
     required this.isGrid,
     required this.userRole,
     required this.onTap,
+    this.onIconTap,
+    this.token,
     this.onActionSelected,
     this.onViewProfile,
     this.isMultiSelectMode = false,
@@ -41,6 +47,27 @@ class _FileFolderCardState extends State<FileFolderCard> {
   static final bool _isMobileOrAndroid =
       defaultTargetPlatform == TargetPlatform.android ||
       defaultTargetPlatform == TargetPlatform.iOS;
+
+  static String? _cachedToken;
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.token == null && _cachedToken == null) {
+      const FlutterSecureStorage().read(key: 'jwt_token').then((t) {
+        if (mounted && t != null) {
+          setState(() => _cachedToken = t);
+        }
+      });
+    }
+  }
+
+  String? get _effectiveToken => widget.token ?? _cachedToken;
+
+  bool get _hasPreview {
+    final ext = widget.document.fileName.toLowerCase().split('.').last;
+    return const {'jpg', 'jpeg', 'png', 'webp', 'gif', 'bmp', 'pdf'}.contains(ext);
+  }
 
   bool get _isExcel => FileIconHelper.isExcel(
         widget.document.fileName,
@@ -275,60 +302,118 @@ class _FileFolderCardState extends State<FileFolderCard> {
                 children: [
                   // Top section: File preview canvas with icon & quick actions
                   Expanded(
-                    child: Container(
-                      decoration: BoxDecoration(
-                        color: _fileColor.withValues(
-                          alpha: isDark ? 0.09 : 0.06,
+                    child: GestureDetector(
+                      behavior: HitTestBehavior.opaque,
+                      onTap: () {
+                        if (!widget.isMultiSelectMode && widget.onIconTap != null) {
+                          widget.onIconTap!();
+                        } else if (widget.isMultiSelectMode) {
+                          widget.onSelectedChanged?.call(!widget.isSelected);
+                        } else {
+                          widget.onTap();
+                        }
+                      },
+                      child: Container(
+                        decoration: BoxDecoration(
+                          color: _fileColor.withValues(
+                            alpha: isDark ? 0.09 : 0.06,
+                          ),
+                          borderRadius: const BorderRadius.vertical(
+                            top: Radius.circular(11),
+                          ),
                         ),
-                        borderRadius: const BorderRadius.vertical(
-                          top: Radius.circular(11),
-                        ),
-                      ),
-                      child: Stack(
-                        alignment: Alignment.center,
-                        children: [
-                          Icon(_fileIcon, size: 36, color: _fileColor),
-                          if (widget.isMultiSelectMode)
-                            Positioned(
-                              top: 4,
-                              left: 4,
-                              child: SizedBox(
-                                width: 22,
-                                height: 22,
-                                child: Checkbox(
-                                  value: widget.isSelected,
-                                  activeColor: AppColors.primaryGreen,
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(4),
+                        child: Stack(
+                          alignment: Alignment.center,
+                          children: [
+                            Icon(_fileIcon, size: 36, color: _fileColor),
+                            if (_hasPreview && _effectiveToken != null)
+                              Positioned.fill(
+                                child: ClipRRect(
+                                  borderRadius: const BorderRadius.vertical(
+                                    top: Radius.circular(11),
                                   ),
-                                  materialTapTargetSize:
-                                      MaterialTapTargetSize.shrinkWrap,
-                                  onChanged: widget.onSelectedChanged,
+                                  child: Image.network(
+                                    '${ApiConstants.baseUrl}/documents/${widget.document.id}/thumbnail?token=$_effectiveToken',
+                                    fit: BoxFit.cover,
+                                    errorBuilder: (context, error, stackTrace) =>
+                                        const SizedBox.shrink(),
+                                  ),
                                 ),
                               ),
-                            )
-                          else
-                            Positioned(
-                              top: 2,
-                              right: 2,
-                              child: SizedBox(
-                                width: 26,
-                                height: 26,
-                                child: PopupMenuButton<String>(
-                                  padding: EdgeInsets.zero,
-                                  icon: Icon(
-                                    Icons.more_vert,
-                                    size: 16,
-                                    color: isDark
-                                        ? AppColors.darkTextSecondary
-                                        : AppColors.textSecondary,
+                                if (widget.isSelected)
+                                  Positioned.fill(
+                                    child: Container(
+                                      decoration: BoxDecoration(
+                                        color: AppColors.primaryGreen.withValues(alpha: 0.20),
+                                        borderRadius: const BorderRadius.vertical(
+                                          top: Radius.circular(11),
+                                        ),
+                                      ),
+                                    ),
                                   ),
-                                  onSelected: widget.onActionSelected,
-                                  itemBuilder: (_) => _buildMenuItems(),
+                                Positioned(
+                                  top: 6,
+                                  left: 6,
+                                  child: AnimatedSwitcher(
+                                    duration: const Duration(milliseconds: 200),
+                                    transitionBuilder: (child, anim) => ScaleTransition(scale: anim, child: child),
+                                    child: widget.isSelected
+                                        ? Container(
+                                            key: const ValueKey('checked_grid'),
+                                            width: 24,
+                                            height: 24,
+                                            decoration: const BoxDecoration(
+                                              color: AppColors.primaryGreen,
+                                              shape: BoxShape.circle,
+                                              boxShadow: [
+                                                BoxShadow(
+                                                  color: Colors.black26,
+                                                  blurRadius: 4,
+                                                  offset: Offset(0, 1),
+                                                ),
+                                              ],
+                                            ),
+                                            child: const Center(
+                                              child: Icon(Icons.check, size: 16, color: Colors.white),
+                                            ),
+                                          )
+                                        : (widget.isMultiSelectMode
+                                            ? Container(
+                                                key: const ValueKey('unchecked_grid'),
+                                                width: 24,
+                                                height: 24,
+                                                decoration: BoxDecoration(
+                                                  color: Colors.black.withValues(alpha: 0.35),
+                                                  shape: BoxShape.circle,
+                                                  border: Border.all(color: Colors.white, width: 1.5),
+                                                ),
+                                              )
+                                            : const SizedBox.shrink(key: ValueKey('none_grid'))),
+                                  ),
+                                ),
+                                if (!widget.isMultiSelectMode)
+                                  Positioned(
+                                    top: 2,
+                                    right: 2,
+                                child: SizedBox(
+                                  width: 26,
+                                  height: 26,
+                                  child: PopupMenuButton<String>(
+                                    padding: EdgeInsets.zero,
+                                    icon: Icon(
+                                      Icons.more_vert,
+                                      size: 16,
+                                      color: isDark
+                                          ? AppColors.darkTextSecondary
+                                          : AppColors.textSecondary,
+                                    ),
+                                    onSelected: widget.onActionSelected,
+                                    itemBuilder: (_) => _buildMenuItems(),
+                                  ),
                                 ),
                               ),
-                            ),
-                        ],
+                          ],
+                        ),
                       ),
                     ),
                   ),
@@ -406,34 +491,70 @@ class _FileFolderCardState extends State<FileFolderCard> {
               padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
               child: Row(
                 children: [
-                  if (widget.isMultiSelectMode) ...[
-                    SizedBox(
-                      width: 24,
-                      height: 24,
-                      child: Checkbox(
-                        value: widget.isSelected,
-                        activeColor: AppColors.primaryGreen,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(4),
-                        ),
-                        materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                        onChanged: widget.onSelectedChanged,
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                  ],
-                  // Premium 40x40 tinted badge
-                  Container(
-                    width: 40,
-                    height: 40,
-                    decoration: BoxDecoration(
-                      color: _fileColor.withValues(
-                        alpha: isDark ? 0.16 : 0.10,
-                      ),
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    child: Center(
-                      child: Icon(_fileIcon, size: 22, color: _fileColor),
+                  // Premium 40x40 animated selection badge
+                  GestureDetector(
+                    behavior: HitTestBehavior.opaque,
+                    onTap: () {
+                      if (!widget.isMultiSelectMode && widget.onIconTap != null) {
+                        widget.onIconTap!();
+                      } else if (widget.isMultiSelectMode) {
+                        widget.onSelectedChanged?.call(!widget.isSelected);
+                      } else {
+                        widget.onTap();
+                      }
+                    },
+                    child: AnimatedSwitcher(
+                      duration: const Duration(milliseconds: 200),
+                      transitionBuilder: (child, anim) => ScaleTransition(scale: anim, child: child),
+                      child: widget.isSelected
+                          ? Container(
+                              key: const ValueKey('checked_list'),
+                              width: 40,
+                              height: 40,
+                              decoration: BoxDecoration(
+                                color: AppColors.primaryGreen,
+                                borderRadius: BorderRadius.circular(10),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: AppColors.primaryGreen.withValues(alpha: 0.35),
+                                    blurRadius: 6,
+                                    offset: const Offset(0, 2),
+                                  ),
+                                ],
+                              ),
+                              child: const Center(
+                                child: Icon(Icons.check, size: 22, color: Colors.white),
+                              ),
+                            )
+                          : Container(
+                              key: const ValueKey('normal_list'),
+                              width: 40,
+                              height: 40,
+                              decoration: BoxDecoration(
+                                color: _fileColor.withValues(
+                                  alpha: isDark ? 0.16 : 0.10,
+                                ),
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                              child: ClipRRect(
+                                borderRadius: BorderRadius.circular(10),
+                                child: Stack(
+                                  alignment: Alignment.center,
+                                  children: [
+                                    Icon(_fileIcon, size: 22, color: _fileColor),
+                                    if (_hasPreview && _effectiveToken != null)
+                                      Positioned.fill(
+                                        child: Image.network(
+                                          '${ApiConstants.baseUrl}/documents/${widget.document.id}/thumbnail?token=$_effectiveToken',
+                                          fit: BoxFit.cover,
+                                          errorBuilder: (context, error, stackTrace) =>
+                                              const SizedBox.shrink(),
+                                        ),
+                                      ),
+                                  ],
+                                ),
+                              ),
+                            ),
                     ),
                   ),
                   const SizedBox(width: 12),

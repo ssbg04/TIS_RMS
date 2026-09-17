@@ -5,46 +5,59 @@ class PrimaryButton extends StatelessWidget {
   final String label;
   final VoidCallback? onPressed;
   final bool isLoading;
+  final double? width;
+  final double height;
 
   const PrimaryButton({
     super.key,
     required this.label,
     required this.onPressed,
     this.isLoading = false,
+    this.width = double.infinity,
+    this.height = 50,
   });
 
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    return SizedBox(
-      width: double.infinity,
-      height: 50,
-      child: ElevatedButton(
-        onPressed: isLoading ? null : onPressed,
-        style: ElevatedButton.styleFrom(
-          backgroundColor: const Color(0xFF1C8248),
-          foregroundColor: isDark ? Colors.white : Colors.black,
-          padding: EdgeInsets.zero,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(8.0),
-          ),
-          elevation: 0,
+    final button = ElevatedButton(
+      onPressed: isLoading ? null : onPressed,
+      style: ElevatedButton.styleFrom(
+        backgroundColor: const Color(0xFF1C8248),
+        foregroundColor: isDark ? Colors.white : Colors.black,
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(8.0),
         ),
-        child: isLoading
-            ? const AppButtonLoader(
-                color: Colors.white,
-                size: 20,
-                strokeWidth: 2.5,
-              )
-            : Text(
-                label,
-                style: const TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                  letterSpacing: 0.5,
-                ),
-              ),
+        elevation: 0,
       ),
+      child: isLoading
+          ? const AppButtonLoader(
+              color: Colors.white,
+              size: 20,
+              strokeWidth: 2.5,
+            )
+          : Text(
+              label,
+              style: const TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+                letterSpacing: 0.5,
+              ),
+            ),
+    );
+
+    if (width != null) {
+      return SizedBox(
+        width: width,
+        height: height,
+        child: button,
+      );
+    }
+
+    return SizedBox(
+      height: height,
+      child: button,
     );
   }
 }

@@ -116,6 +116,11 @@ class AuthNotifier extends AsyncNotifier<UserModel?> {
     final repository = ref.read(authRepositoryProvider);
     return await repository.verifyPassword(password);
   }
+
+  Future<String> requestAccountDeletion() async {
+    final repository = ref.read(authRepositoryProvider);
+    return await repository.requestAccountDeletion();
+  }
 }
 
 // Full profile data provider

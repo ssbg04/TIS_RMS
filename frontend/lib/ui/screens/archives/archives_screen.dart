@@ -73,7 +73,6 @@ class _ArchivesScreenState extends ConsumerState<ArchivesScreen>
 
   int _getActiveFilterCount() {
     int count = 0;
-    if (_selectedStatus != 'All Statuses') count++;
     if (_selectedDocumentType != 'All Types') count++;
     if (_selectedGradeLevel != 'All Grades') count++;
     if (_selectedSchoolYear != 'All Years') count++;
@@ -353,7 +352,7 @@ class _ArchivesScreenState extends ConsumerState<ArchivesScreen>
         final url =
             '${ApiConstants.baseUrl}/documents/${doc.id}/view?token=$token&download=true';
 
-        await DownloadService.downloadFile(
+        final savedPath = await DownloadService.downloadFile(
           url: url,
           fileName: doc.fileName,
         );
@@ -361,6 +360,8 @@ class _ArchivesScreenState extends ConsumerState<ArchivesScreen>
         showSuccessDialog(
           context,
           message: 'Document downloaded successfully.',
+          filePath: savedPath,
+          notes: 'Saved to your device Downloads folder.',
         );
       } catch (e) {
         if (!mounted) return;
@@ -552,12 +553,14 @@ class _ArchivesScreenState extends ConsumerState<ArchivesScreen>
 
       final docs = ref.read(archiveDocumentPageProvider).value?.documents ?? [];
       int successCount = 0;
+      String? lastSavedPath;
+      final dirPath = await DownloadService.getDownloadDirectoryPath();
 
       for (final docId in _selectedDocumentIds) {
         final doc = docs.firstWhere((d) => d.id == docId);
         final url =
             '${ApiConstants.baseUrl}/documents/${doc.id}/view?token=$token&download=true';
-        await DownloadService.downloadFile(url: url, fileName: doc.fileName);
+        lastSavedPath = await DownloadService.downloadFile(url: url, fileName: doc.fileName);
         successCount++;
       }
 
@@ -568,7 +571,9 @@ class _ArchivesScreenState extends ConsumerState<ArchivesScreen>
       if (!mounted) return;
       showSuccessDialog(
         context,
-        message: 'Successfully downloaded $successCount documents.',
+        message: 'Successfully downloaded $successCount document${successCount == 1 ? '' : 's'}.',
+        filePath: successCount == 1 ? lastSavedPath : dirPath,
+        notes: 'Saved to your device Downloads folder.',
       );
     } catch (e) {
       if (!mounted) return;
@@ -1388,13 +1393,6 @@ class _ArchivesScreenState extends ConsumerState<ArchivesScreen>
       error: (_, _) => const ['All Years'],
     );
 
-    const statusItems = [
-      'All Statuses',
-      'Graduated',
-      'Transferred',
-      'Dropped',
-      'Inactive',
-    ];
 
     return Container(
       decoration: BoxDecoration(
@@ -1477,23 +1475,6 @@ class _ArchivesScreenState extends ConsumerState<ArchivesScreen>
                 crossAxisAlignment: CrossAxisAlignment.start,
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  // Student Status (Chip Group for 3-5 options)
-                  _buildFilterSection(
-                    label: 'Student Status',
-                    hasActiveFilter: _pendingStatus != 'All Statuses',
-                    onReset: () =>
-                        setDialogState(() => _pendingStatus = 'All Statuses'),
-                    child: _buildFilterChipGroup(
-                      items: statusItems,
-                      selectedValue: statusItems.contains(_pendingStatus)
-                          ? _pendingStatus
-                          : 'All Statuses',
-                      onSelected: (v) =>
-                          setDialogState(() => _pendingStatus = v),
-                    ),
-                  ),
-
-                  _buildDivider(isDark),
 
                   // Document Type
                   _buildFilterSection(
@@ -1667,53 +1648,6 @@ class _ArchivesScreenState extends ConsumerState<ArchivesScreen>
     );
   }
 
-  Widget _buildFilterChipGroup({
-    required List<String> items,
-    required String selectedValue,
-    required ValueChanged<String> onSelected,
-  }) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    return Wrap(
-      spacing: 8,
-      runSpacing: 8,
-      children: items.map((item) {
-        final isSelected = item == selectedValue;
-        return ChoiceChip(
-          label: Text(
-            item,
-            style: TextStyle(
-              fontSize: 12.5,
-              fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
-              color: isSelected
-                  ? AppColors.primaryGreen
-                  : (isDark
-                      ? AppColors.darkTextPrimary
-                      : AppColors.textPrimary),
-            ),
-          ),
-          selected: isSelected,
-          onSelected: (selected) {
-            if (selected) {
-              onSelected(item);
-            }
-          },
-          selectedColor: AppColors.primaryGreen.withValues(alpha: 0.12),
-          backgroundColor:
-              isDark ? AppColors.darkSurface2 : Colors.grey.shade100,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(20),
-            side: BorderSide(
-              color: isSelected
-                  ? AppColors.primaryGreen
-                  : (isDark ? AppColors.darkBorder : Colors.grey.shade300),
-              width: 1,
-            ),
-          ),
-          showCheckmark: false,
-        );
-      }).toList(),
-    );
-  }
 
   Widget _buildFilterSection({
     required String label,
@@ -2551,6 +2485,20 @@ class _ArchivesScreenState extends ConsumerState<ArchivesScreen>
                       isArchiveScreen: true,
                       isMultiSelectMode: _isMultiSelectMode,
                       isSelected: _selectedDocumentIds.contains(doc.id),
+                      onIconTap: () {
+                        setState(() {
+                          if (!_isMultiSelectMode) {
+                            _isMultiSelectMode = true;
+                            _selectedDocumentIds.add(doc.id);
+                          } else {
+                            if (_selectedDocumentIds.contains(doc.id)) {
+                              _selectedDocumentIds.remove(doc.id);
+                            } else {
+                              _selectedDocumentIds.add(doc.id);
+                            }
+                          }
+                        });
+                      },
                       onSelectedChanged: (val) {
                         setState(() {
                           if (val == true) {
@@ -2635,6 +2583,20 @@ class _ArchivesScreenState extends ConsumerState<ArchivesScreen>
                   isArchiveScreen: true,
                   isMultiSelectMode: _isMultiSelectMode,
                   isSelected: _selectedDocumentIds.contains(documents[i].id),
+                  onIconTap: () {
+                    setState(() {
+                      if (!_isMultiSelectMode) {
+                        _isMultiSelectMode = true;
+                        _selectedDocumentIds.add(documents[i].id);
+                      } else {
+                        if (_selectedDocumentIds.contains(documents[i].id)) {
+                          _selectedDocumentIds.remove(documents[i].id);
+                        } else {
+                          _selectedDocumentIds.add(documents[i].id);
+                        }
+                      }
+                    });
+                  },
                   onSelectedChanged: (val) {
                     setState(() {
                       if (val == true) {

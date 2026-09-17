@@ -540,10 +540,92 @@ const sendAccountStatusEmail = async ({ to, username, fullName, role, isActive }
     }
 };
 
+/**
+ * Sends an account deletion confirmation email with a verification link.
+ */
+const sendAccountDeletionEmail = async ({ to, username, deleteLink, expiresMinutes = 15 }) => {
+    const fromAddress = process.env.SMTP_FROM
+        || `"TIS Record Management System" <${process.env.SMTP_USER || 'no-reply@talisayis.edu.ph'}>`;
+
+    const body = `
+      <p style="margin:0 0 6px;font-size:16px;font-weight:700;color:#0f172a;">Account Deletion Request</p>
+      <p style="margin:0 0 20px;font-size:14px;color:#475569;line-height:1.7;">
+        Hello, <strong style="color:#0f172a;">@${username}</strong>. We received a request to permanently delete your account on the
+        <strong>Talisay Integrated School Record Management System</strong>.
+      </p>
+
+      <!-- Danger Warning Badge -->
+      <table width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 24px;">
+        <tr>
+          <td style="background:#fef2f2;border:1px solid #fecaca;border-radius:10px;padding:14px 18px;">
+            <div style="font-size:14px;font-weight:700;color:#b91c1c;margin-bottom:4px;">
+              &#9888; Warning: This action is permanent and irreversible
+            </div>
+            <p style="margin:0;font-size:13px;color:#7f1d1d;line-height:1.6;">
+              Once confirmed, your account credentials will be permanently removed. You will immediately lose access to the system.
+            </p>
+          </td>
+        </tr>
+      </table>
+
+      <!-- CTA Button -->
+      <table width="100%" cellpadding="0" cellspacing="0"><tr><td align="center" style="padding:4px 0 24px;">
+        <a href="${deleteLink}" target="_blank"
+           style="display:inline-block;background:#dc2626;color:#ffffff;font-size:15px;font-weight:700;text-decoration:none;padding:14px 36px;border-radius:10px;letter-spacing:0.3px;box-shadow:0 4px 14px rgba(220,38,38,0.35);">
+          &#128465;&nbsp; Confirm &amp; Delete My Account
+        </a>
+      </td></tr></table>
+
+      <!-- Expiry pill -->
+      <table width="100%" cellpadding="0" cellspacing="0"><tr><td align="center" style="padding-bottom:24px;">
+        <span style="display:inline-block;background:#fef9c3;border:1px solid #fde047;color:#713f12;font-size:12px;font-weight:600;padding:6px 16px;border-radius:999px;">
+          &#9201; Link expires in <strong>${expiresMinutes} minutes</strong>
+        </span>
+      </td></tr></table>
+
+      <hr style="border:none;border-top:1px solid #e2e8f0;margin:0 0 16px;">
+
+      <p style="margin:0 0 8px;font-size:12px;color:#64748b;line-height:1.6;">
+        If you did not request to delete your account, please ignore this email or change your password immediately. Your account will remain secure.
+      </p>
+      <p style="margin:0;font-size:11px;color:#94a3b8;word-break:break-all;">
+        Or copy and paste this link in your browser:<br>
+        <a href="${deleteLink}" style="color:#dc2626;text-decoration:underline;">${deleteLink}</a>
+      </p>
+    `;
+
+    const htmlContent = emailShell(body);
+
+    const mailOptions = {
+        from: fromAddress,
+        to,
+        subject: `[TIS RMS] Confirm Account Deletion - Action Required`,
+        html: htmlContent,
+        text: `Hello @${username},\n\nWe received a request to permanently delete your TIS RMS account.\n\nTo confirm, click the link below within ${expiresMinutes} minutes:\n${deleteLink}\n\nIf you did not request this, please ignore this email.`,
+    };
+
+    if (LOGO_PATH) {
+        mailOptions.attachments = [{
+            filename: 'logo.png',
+            path: LOGO_PATH,
+            cid: 'school-logo'
+        }];
+    }
+
+    try {
+        return await sendMailWithFallback(mailOptions);
+    } catch (err) {
+        console.error(`[EmailService] Failed to send account deletion email to ${to}:`, err.message);
+        throw new Error(`Failed to send account deletion email: ${err.message}`);
+    }
+};
+
 module.exports = {
     sendPasswordResetOtp,
     sendPasswordResetLink,
     sendTeacherAttentionReminder,
     sendAccountCreatedEmail,
     sendAccountStatusEmail,
+    sendAccountDeletionEmail,
 };
+

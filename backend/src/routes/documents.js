@@ -31,6 +31,7 @@ router.post('/bulk-print', authenticateToken, authorizeRoles('admin', 'teacher')
 router.post('/bulk-copy', authenticateToken, authorizeRoles('admin', 'teacher'), documentController.bulkCopy);
 
 router.get('/:id/view', authenticateToken, documentController.viewDocument);
+router.get('/:id/thumbnail', authenticateToken, documentController.getThumbnail);
 router.post('/:id/convert-to-pdf', authenticateToken, documentController.convertToPdf);
 router.post('/:id/copy', authenticateToken, authorizeRoles('admin', 'teacher'), documentController.copyDocument);
 router.patch('/:id/status', authenticateToken, authorizeRoles('admin', 'teacher'), documentController.updateStatus);

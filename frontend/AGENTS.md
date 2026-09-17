@@ -546,6 +546,35 @@ Files backup/restore - mirror mode or zip -->
 <!-- # SEARCH BAR HISTORY
 - fix the history make sure it works at all .net framework, the history not working when clear and closing the history, and sometimes it works but the history disappears you need to active the search bar again to appear (done) -->
 
+<!-- # DASHBOARD SCREEN
+- profile pic dropdown when it click many times it has delay and opens multiple dropdowns
+
+# DOCUMENTS SCREEN
+- file icon click enables multi select
+- if possible: icon of each file is mini preview of the document
+- filter modal: remove status filter
+- download success dialog, add notes and its download path location  -->
+
+<!-- # USER SCREEN
+- edit/add modal, make the the name text field in android app stack each other, add required email or phone number
+- dont show the password to success dialog, just show the username and action success and add sent an email to the user email
+- add after type '@' in email shows common domains, like @gmail.com, @yahoo.com, etc
+
+# STUDENT SCREEN
+- in windows app, make it modal the add student screen -->
+
+# SETTINGS SCREEN
+- add deletion of the account, add at the very bottom of the settings -> sends an email where user needs to click a link to delete the account, add a hidden super admin account and hidden from the frontend only developers can access this the role is admin but hidden to the system only developer can use this account to manage the users
+
+# ARCHIVE SCREEN 
+- file icon click enables multi select
+- if possible: icon of each file is mini preview of the document
+- filter modal: remove status filter
+- download success dialog, add notes and its download path location
+
+# STUDENT, DOCUMENT, AND ARCHIVE SCREEN
+- icon multi select animation, the icon clicked animated to checked icon, remove the checkbox icon next to icon
+
 --- 
 
 # DONT DO

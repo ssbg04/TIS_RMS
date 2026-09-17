@@ -105,11 +105,13 @@ class _StudentArchivesModalState extends ConsumerState<StudentArchivesModal> {
       if (token == null) return;
       final url =
           '${ApiConstants.baseUrl}/documents/${doc.id}/view?token=$token&download=true';
-      await DownloadService.downloadFile(url: url, fileName: doc.fileName);
+      final savedPath = await DownloadService.downloadFile(url: url, fileName: doc.fileName);
       if (!mounted) return;
       showSuccessDialog(
         context,
         message: 'Document downloaded successfully.',
+        filePath: savedPath,
+        notes: 'The document has been saved to your downloads folder.',
       );
     } catch (e) {
       if (!mounted) return;

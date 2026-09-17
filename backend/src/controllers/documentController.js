@@ -2,6 +2,9 @@ const db = require('../config/db');
 const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
+const { execFile } = require('child_process');
+const util = require('util');
+const execFileAsync = util.promisify(execFile);
 const { createNotification } = require('./notificationController');
 const LibreOfficeService = require('../services/libreOfficeService');
 
@@ -274,6 +277,88 @@ exports.viewDocument = (req, res) => {
     } catch (error) {
         console.error('viewDocument error:', error);
         res.status(500).json({ message: 'Failed to view document', error: error.message });
+    }
+};
+
+exports.getThumbnail = async (req, res) => {
+    try {
+        const doc = db.prepare('SELECT student_id, file_path, file_name FROM documents WHERE id = ?').get(req.params.id);
+        if (!doc) return res.status(404).json({ message: 'Document not found' });
+
+        const isTeacher = req.user?.role?.toLowerCase() === 'teacher';
+        if (isTeacher) {
+            const hasAccess = db.prepare(`
+                SELECT 1 FROM enrollments e
+                JOIN teacher_sections ts ON e.section_id = ts.section_id
+                WHERE e.student_id = ? AND ts.teacher_id = ?
+            `).get(doc.student_id, req.user.id);
+            if (!hasAccess) {
+                return res.status(403).json({ message: 'Access denied to this document.' });
+            }
+        }
+
+        if (!fs.existsSync(doc.file_path)) {
+            return res.status(404).json({ message: 'File not found on server' });
+        }
+
+        const ext = path.extname(doc.file_name || doc.file_path).toLowerCase();
+        const imageExtensions = ['.jpg', '.jpeg', '.png', '.webp', '.bmp', '.gif'];
+        
+        if (imageExtensions.includes(ext)) {
+            return res.sendFile(path.resolve(doc.file_path));
+        }
+
+        if (ext === '.pdf') {
+            const thumbnailDir = path.resolve('./uploads/thumbnails');
+            if (!fs.existsSync(thumbnailDir)) {
+                fs.mkdirSync(thumbnailDir, { recursive: true });
+            }
+            const thumbnailPath = path.join(thumbnailDir, `thumb_${doc.id}.png`);
+            if (fs.existsSync(thumbnailPath)) {
+                return res.sendFile(thumbnailPath);
+            }
+
+            // Generate page 1 thumbnail using Ghostscript at 72 dpi
+            const gsArgs = [
+                '-dQUIET', '-dPARANOIDSAFER', '-dBATCH', '-dNOPAUSE', '-dNOPROMPT',
+                '-sDEVICE=png16m',
+                '-dTextAlphaBits=4', '-dGraphicsAlphaBits=4',
+                '-r72',
+                '-dFirstPage=1', '-dLastPage=1',
+                `-sOutputFile=${thumbnailPath}`,
+                path.resolve(doc.file_path)
+            ];
+
+            const isWindows = process.platform === 'win32';
+            try {
+                if (isWindows) {
+                    try {
+                        await execFileAsync('gswin64c', gsArgs);
+                    } catch (err) {
+                        if (err.code === 'ENOENT') {
+                            try {
+                                await execFileAsync('gs', gsArgs);
+                            } catch (fallbackErr) {
+                                await execFileAsync('gswin32c', gsArgs);
+                            }
+                        } else throw err;
+                    }
+                } else {
+                    await execFileAsync('gs', gsArgs);
+                }
+
+                if (fs.existsSync(thumbnailPath)) {
+                    return res.sendFile(thumbnailPath);
+                }
+            } catch (err) {
+                console.error('[getThumbnail] Ghostscript thumbnail generation failed:', err.message);
+            }
+        }
+
+        return res.status(404).json({ message: 'No thumbnail available for this file type' });
+    } catch (error) {
+        console.error('getThumbnail error:', error);
+        res.status(500).json({ message: 'Failed to get thumbnail', error: error.message });
     }
 };
 

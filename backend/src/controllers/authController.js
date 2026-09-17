@@ -1,9 +1,11 @@
 const db = require('../config/db');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
+const crypto = require('crypto');
 require('dotenv').config();
 const { createNotification } = require('./notificationController');
-const { sendPasswordResetOtp } = require('../services/emailService');
+const { sendPasswordResetOtp, sendAccountDeletionEmail } = require('../services/emailService');
+const { getBestServerBaseUrl } = require('./userController');
 
 // Helper to mask email (e.g. j***e@gmail.com)
 const maskEmail = (email) => {
@@ -828,6 +830,350 @@ exports.completePasswordReset = (req, res) => {
         });
     } catch (error) {
         res.status(500).json({ message: 'Failed to complete password reset', error: error.message });
+    }
+};
+
+// POST /api/auth/request-delete-account
+exports.requestAccountDeletion = async (req, res) => {
+    const userId = req.user?.id;
+    if (!userId) return res.status(401).json({ message: 'Authentication required' });
+
+    try {
+        const user = db.prepare('SELECT id, username, first_name, last_name, email, role, is_hidden FROM users WHERE id = ?').get(userId);
+        if (!user) return res.status(404).json({ message: 'User account not found' });
+
+        if (user.is_hidden === 1) {
+            return res.status(403).json({ message: 'Developer super administrator account cannot be deleted.' });
+        }
+
+        if (user.role === 'admin') {
+            const otherAdmins = db.prepare("SELECT COUNT(*) as count FROM users WHERE role = 'admin' AND (is_hidden = 0 OR is_hidden IS NULL) AND id != ?").get(user.id);
+            if (!otherAdmins || otherAdmins.count < 1) {
+                return res.status(403).json({ message: 'Cannot delete the only remaining administrator account.' });
+            }
+        }
+
+        if (!user.email || !user.email.includes('@')) {
+            return res.status(400).json({ message: 'An email address is required to verify account deletion. Please add an email address to your profile first.' });
+        }
+
+        // Generate secure random token
+        const token = crypto.randomBytes(32).toString('hex');
+        const expiresAt = new Date(Date.now() + 15 * 60 * 1000).toISOString();
+
+        // Clean up any prior pending deletion requests for this user
+        db.prepare('DELETE FROM account_deletion_requests WHERE user_id = ?').run(user.id);
+        db.prepare('INSERT INTO account_deletion_requests (user_id, token, expires_at) VALUES (?, ?, ?)').run(user.id, token, expiresAt);
+
+        const baseUrl = getBestServerBaseUrl(req);
+        const deleteLink = `${baseUrl}/api/auth/confirm-delete-account-web?token=${token}`;
+
+        await sendAccountDeletionEmail({
+            to: user.email.trim(),
+            username: user.username,
+            deleteLink,
+            expiresMinutes: 15,
+        });
+
+        // Log activity
+        try {
+            db.prepare('INSERT INTO activity_log (user_id, action, entity_type, entity_id, description) VALUES (?, ?, ?, ?, ?)')
+                .run(user.id, 'DELETE_REQUEST', 'user', user.id, `Requested account deletion email confirmation for @${user.username}`);
+        } catch (_) {}
+
+        res.json({
+            success: true,
+            message: `A deletion confirmation link has been sent to ${maskEmail(user.email)}. Please check your email to confirm.`,
+        });
+    } catch (error) {
+        console.error('requestAccountDeletion error:', error);
+        res.status(500).json({ message: 'Failed to process account deletion request', error: error.message });
+    }
+};
+
+// GET /api/auth/confirm-delete-account-web
+exports.confirmDeleteAccountWebPage = (req, res) => {
+    const token = req.query.token;
+
+    const renderPage = ({ title, contentHtml, isError = false }) => {
+        return `
+        <!DOCTYPE html>
+        <html lang="en">
+        <head>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <title>${title} — Talisay Integrated School RMS</title>
+            <link rel="preconnect" href="https://fonts.googleapis.com">
+            <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+            <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+            <style>
+                * { box-sizing: border-box; margin: 0; padding: 0; }
+                body {
+                    font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+                    background: #f8fafc;
+                    color: #0f172a;
+                    min-height: 100vh;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    padding: 24px 16px;
+                }
+                .card {
+                    background: #ffffff;
+                    width: 100%;
+                    max-width: 480px;
+                    border-radius: 20px;
+                    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.03);
+                    border: 1px solid #e2e8f0;
+                    overflow: hidden;
+                }
+                .header {
+                    background: ${isError ? 'linear-gradient(135deg, #b91c1c 0%, #991b1b 100%)' : 'linear-gradient(135deg, #dc2626 0%, #b91c1c 100%)'};
+                    color: #ffffff;
+                    padding: 28px 24px;
+                    text-align: center;
+                }
+                .header-logo { font-size: 36px; margin-bottom: 8px; }
+                .header h1 { font-size: 20px; font-weight: 800; letter-spacing: 0.3px; }
+                .header p { font-size: 13px; opacity: 0.9; margin-top: 4px; }
+                .body { padding: 32px 28px; }
+                .danger-badge {
+                    background: #fef2f2;
+                    border: 1px solid #fecaca;
+                    border-radius: 12px;
+                    padding: 16px;
+                    margin-bottom: 24px;
+                    font-size: 13px;
+                    color: #991b1b;
+                    line-height: 1.6;
+                }
+                .btn-danger {
+                    width: 100%;
+                    background: #dc2626;
+                    color: #ffffff;
+                    border: none;
+                    border-radius: 10px;
+                    padding: 14px;
+                    font-size: 15px;
+                    font-weight: 700;
+                    cursor: pointer;
+                    transition: all 0.2s;
+                    box-shadow: 0 4px 12px rgba(220, 38, 38, 0.3);
+                }
+                .btn-danger:hover { background: #b91c1c; transform: translateY(-1px); }
+                .footer-text { margin-top: 20px; font-size: 12px; text-align: center; color: #94a3b8; }
+            </style>
+        </head>
+        <body>
+            <div class="card">
+                <div class="header">
+                    <div class="header-logo">&#128465;</div>
+                    <h1>${title}</h1>
+                    <p>Talisay Integrated School &bull; Record Management System</p>
+                </div>
+                <div class="body">
+                    ${contentHtml}
+                    <div class="footer-text">This link is single-use and time-limited.</div>
+                </div>
+            </div>
+        </body>
+        </html>
+        `;
+    };
+
+    if (!token) {
+        return res.status(400).send(renderPage({
+            title: 'Invalid Request',
+            isError: true,
+            contentHtml: `
+                <div class="danger-badge">
+                    <strong>Missing Link Token:</strong> No valid verification token was provided.
+                </div>
+            `,
+        }));
+    }
+
+    try {
+        const record = db.prepare(`
+            SELECT r.*, u.username, u.first_name, u.last_name, u.email
+            FROM account_deletion_requests r
+            JOIN users u ON r.user_id = u.id
+            WHERE r.token = ?
+        `).get(token);
+
+        if (!record) {
+            return res.status(404).send(renderPage({
+                title: 'Invalid Link',
+                isError: true,
+                contentHtml: `
+                    <div class="danger-badge">
+                        <strong>Link Not Found:</strong> This account deletion link has already been used or does not exist.
+                    </div>
+                `,
+            }));
+        }
+
+        if (new Date(record.expires_at) < new Date()) {
+            return res.status(410).send(renderPage({
+                title: 'Link Expired',
+                isError: true,
+                contentHtml: `
+                    <div class="danger-badge">
+                        <strong>Expired Link:</strong> This account deletion confirmation link has expired. Please initiate a new request from Settings in the application.
+                    </div>
+                `,
+            }));
+        }
+
+        const fullName = [record.first_name, record.last_name].filter(Boolean).join(' ');
+
+        return res.send(renderPage({
+            title: 'Confirm Account Deletion',
+            contentHtml: `
+                <div class="danger-badge">
+                    <strong>Permanently delete account @${record.username}?</strong><br>
+                    User: <strong>${fullName || record.username}</strong><br>
+                    Email: <strong>${record.email}</strong><br><br>
+                    All your credentials and active sessions will be permanently revoked. This action cannot be reversed.
+                </div>
+                <form method="POST" action="/api/auth/confirm-delete-account">
+                    <input type="hidden" name="token" value="${token}">
+                    <button type="submit" class="btn-danger">Yes, Permanently Delete My Account</button>
+                </form>
+            `,
+        }));
+    } catch (error) {
+        console.error('confirmDeleteAccountWebPage error:', error);
+        return res.status(500).send(renderPage({
+            title: 'System Error',
+            isError: true,
+            contentHtml: `<div class="danger-badge">An error occurred while processing the confirmation request.</div>`,
+        }));
+    }
+};
+
+// POST /api/auth/confirm-delete-account
+exports.confirmDeleteAccount = (req, res) => {
+    const token = req.body?.token || req.query?.token;
+    const isHtml = req.accepts('html') && !req.xhr && !req.headers['content-type']?.includes('application/json');
+
+    if (!token) {
+        if (isHtml) {
+            return res.status(400).send('<h3>Invalid Request: Token missing.</h3>');
+        }
+        return res.status(400).json({ message: 'Token is required' });
+    }
+
+    try {
+        const record = db.prepare(`
+            SELECT r.*, u.id as user_id, u.username, u.first_name, u.middle_name, u.last_name, u.role, u.is_hidden
+            FROM account_deletion_requests r
+            JOIN users u ON r.user_id = u.id
+            WHERE r.token = ?
+        `).get(token);
+
+        if (!record) {
+            const msg = 'Invalid or already used deletion token.';
+            if (isHtml) return res.status(404).send(`<h3>${msg}</h3>`);
+            return res.status(404).json({ message: msg });
+        }
+
+        if (new Date(record.expires_at) < new Date()) {
+            const msg = 'Deletion confirmation link has expired.';
+            if (isHtml) return res.status(410).send(`<h3>${msg}</h3>`);
+            return res.status(410).json({ message: msg });
+        }
+
+        if (record.is_hidden === 1) {
+            const msg = 'Developer super administrator account cannot be deleted.';
+            if (isHtml) return res.status(403).send(`<h3>${msg}</h3>`);
+            return res.status(403).json({ message: msg });
+        }
+
+        const fullName = [record.first_name, record.middle_name, record.last_name].filter(Boolean).join(' ');
+
+        // Insert into deleted_users_history
+        db.prepare(`
+            INSERT INTO deleted_users_history (deleted_user_id, username, full_name, role, reason, deleted_by)
+            VALUES (?, ?, ?, ?, ?, ?)
+        `).run(record.user_id, record.username, fullName, record.role, 'Self-deleted via email confirmation link', record.user_id);
+
+        // Delete from users (cascades to enrollments/tokens/requests)
+        db.prepare('DELETE FROM users WHERE id = ?').run(record.user_id);
+        db.prepare('DELETE FROM account_deletion_requests WHERE user_id = ?').run(record.user_id);
+
+        // Log activity
+        try {
+            db.prepare('INSERT INTO activity_log (user_id, action, entity_type, entity_id, description) VALUES (?, ?, ?, ?, ?)')
+                .run(null, 'DELETE', 'user', record.user_id, `User @${record.username} (${record.role}) permanently self-deleted via email confirmation link.`);
+        } catch (_) {}
+
+        if (isHtml) {
+            return res.send(`
+            <!DOCTYPE html>
+            <html lang="en">
+            <head>
+                <meta charset="UTF-8">
+                <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                <title>Account Deleted — Talisay Integrated School RMS</title>
+                <link rel="preconnect" href="https://fonts.googleapis.com">
+                <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+                <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+                <style>
+                    * { box-sizing: border-box; margin: 0; padding: 0; }
+                    body {
+                        font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+                        background: #f8fafc;
+                        color: #0f172a;
+                        min-height: 100vh;
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                        padding: 24px 16px;
+                    }
+                    .card {
+                        background: #ffffff;
+                        width: 100%;
+                        max-width: 460px;
+                        border-radius: 20px;
+                        box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.05);
+                        border: 1px solid #e2e8f0;
+                        padding: 40px 32px;
+                        text-align: center;
+                    }
+                    .icon { font-size: 56px; margin-bottom: 16px; }
+                    h1 { font-size: 22px; font-weight: 800; color: #0f172a; margin-bottom: 12px; }
+                    p { font-size: 14px; color: #475569; line-height: 1.7; margin-bottom: 24px; }
+                    .badge {
+                        background: #f1f5f9;
+                        border: 1px solid #e2e8f0;
+                        border-radius: 10px;
+                        padding: 10px 16px;
+                        font-size: 13px;
+                        color: #64748b;
+                        display: inline-block;
+                    }
+                </style>
+            </head>
+            <body>
+                <div class="card">
+                    <div class="icon">&#9989;</div>
+                    <h1>Account Permanently Deleted</h1>
+                    <p>Your account (<strong>@${record.username}</strong>) has been successfully deleted from the Talisay Integrated School Record Management System.</p>
+                    <div class="badge">You may now close this browser window.</div>
+                </div>
+            </body>
+            </html>
+            `);
+        }
+
+        return res.json({
+            success: true,
+            message: 'Your account has been permanently deleted.',
+        });
+    } catch (error) {
+        console.error('confirmDeleteAccount error:', error);
+        res.status(500).json({ message: 'Failed to confirm account deletion', error: error.message });
     }
 };
 

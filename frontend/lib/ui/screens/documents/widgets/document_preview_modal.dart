@@ -164,12 +164,17 @@ class _DocumentPreviewDialogState
 
   Future<void> _downloadFile() async {
     try {
-      await DownloadService.downloadFile(
+      final savedPath = await DownloadService.downloadFile(
         url: _downloadUrl,
         fileName: _fileName,
       );
       if (!mounted) return;
-      showSuccessDialog(context, message: 'Document downloaded successfully.');
+      showSuccessDialog(
+        context,
+        message: 'Document downloaded successfully.',
+        filePath: savedPath,
+        notes: 'The document has been saved to your downloads folder.',
+      );
     } catch (e) {
       if (!mounted) return;
       showErrorDialog(context, 'Download Failed', e.toString());

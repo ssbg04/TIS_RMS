@@ -254,5 +254,22 @@ class AuthRepository {
       throw Exception(errorMessage);
     }
   }
+
+  /// Request account self-deletion email link
+  Future<String> requestAccountDeletion() async {
+    try {
+      final options = await _getAuthOptions();
+      final response = await _dio.post(
+        '/auth/request-delete-account',
+        options: options,
+      );
+      return response.data['message'] as String? ??
+          'Verification email sent. Please check your inbox.';
+    } on DioException catch (e) {
+      final errorMessage =
+          e.response?.data['message'] ?? 'Failed to request account deletion.';
+      throw Exception(errorMessage);
+    }
+  }
 }
 
