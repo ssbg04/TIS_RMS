@@ -167,13 +167,12 @@ jobs:
             $keyPass = if ($env:KEY_PASSWORD) { $env:KEY_PASSWORD } else { "android" }
             $alias = if ($env:KEY_ALIAS) { $env:KEY_ALIAS } else { "androiddebugkey" }
 
-            $keyPropertiesContent = @"
-storePassword=$storePass
-keyPassword=$keyPass
-keyAlias=$alias
-storeFile=tis_rms_release.keystore
-"@
-            Set-Content -Path "key.properties" -Value $keyPropertiesContent -Encoding ascii
+            @(
+              "storePassword=$storePass",
+              "keyPassword=$keyPass",
+              "keyAlias=$alias",
+              "storeFile=tis_rms_release.keystore"
+            ) | Set-Content -Path "key.properties" -Encoding ascii
             Write-Host "Android key.properties successfully created."
           } else {
             Write-Warning "Keystore file not found at $keystoreFile. Build will use debug signing."
