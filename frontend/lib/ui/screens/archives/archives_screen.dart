@@ -2601,6 +2601,7 @@ class _ArchivesScreenState extends ConsumerState<ArchivesScreen>
                     setState(() {
                       if (val == true) {
                         _selectedDocumentIds.add(documents[i].id);
+                        _isMultiSelectMode = true;
                       } else {
                         _selectedDocumentIds.remove(documents[i].id);
                       }

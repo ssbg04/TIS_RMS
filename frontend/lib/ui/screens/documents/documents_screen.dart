@@ -2563,14 +2563,23 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
                   isSelected: _selectedDocumentIds.contains(documents[i].id),
                   onIconTap: () {
                     setState(() {
-                      _isMultiSelectMode = true;
-                      _selectedDocumentIds.add(documents[i].id);
+                      if (!_isMultiSelectMode) {
+                        _isMultiSelectMode = true;
+                        _selectedDocumentIds.add(documents[i].id);
+                      } else {
+                        if (_selectedDocumentIds.contains(documents[i].id)) {
+                          _selectedDocumentIds.remove(documents[i].id);
+                        } else {
+                          _selectedDocumentIds.add(documents[i].id);
+                        }
+                      }
                     });
                   },
                   onSelectedChanged: (val) {
                     setState(() {
                       if (val == true) {
                         _selectedDocumentIds.add(documents[i].id);
+                        _isMultiSelectMode = true;
                       } else {
                         _selectedDocumentIds.remove(documents[i].id);
                       }

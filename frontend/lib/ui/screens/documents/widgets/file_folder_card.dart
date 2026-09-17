@@ -305,9 +305,7 @@ class _FileFolderCardState extends State<FileFolderCard> {
                     child: GestureDetector(
                       behavior: HitTestBehavior.opaque,
                       onTap: () {
-                        if (!widget.isMultiSelectMode && widget.onIconTap != null) {
-                          widget.onIconTap!();
-                        } else if (widget.isMultiSelectMode) {
+                        if (widget.isMultiSelectMode) {
                           widget.onSelectedChanged?.call(!widget.isSelected);
                         } else {
                           widget.onTap();
@@ -340,57 +338,85 @@ class _FileFolderCardState extends State<FileFolderCard> {
                                   ),
                                 ),
                               ),
-                                if (widget.isSelected)
-                                  Positioned.fill(
-                                    child: Container(
-                                      decoration: BoxDecoration(
-                                        color: AppColors.primaryGreen.withValues(alpha: 0.20),
-                                        borderRadius: const BorderRadius.vertical(
-                                          top: Radius.circular(11),
-                                        ),
-                                      ),
+                            if (widget.isSelected)
+                              Positioned.fill(
+                                child: Container(
+                                  decoration: BoxDecoration(
+                                    color: AppColors.primaryGreen.withValues(alpha: 0.20),
+                                    borderRadius: const BorderRadius.vertical(
+                                      top: Radius.circular(11),
                                     ),
                                   ),
-                                Positioned(
-                                  top: 6,
-                                  left: 6,
+                                ),
+                              ),
+                            Positioned(
+                              top: 4,
+                              left: 4,
+                              child: GestureDetector(
+                                behavior: HitTestBehavior.opaque,
+                                onTap: () {
+                                  if (!widget.isMultiSelectMode && widget.onIconTap != null) {
+                                    widget.onIconTap!();
+                                  } else {
+                                    widget.onSelectedChanged?.call(!widget.isSelected);
+                                  }
+                                },
+                                child: Padding(
+                                  padding: const EdgeInsets.all(4.0),
                                   child: AnimatedSwitcher(
-                                    duration: const Duration(milliseconds: 200),
-                                    transitionBuilder: (child, anim) => ScaleTransition(scale: anim, child: child),
+                                    duration: const Duration(milliseconds: 180),
+                                    transitionBuilder: (child, anim) =>
+                                        ScaleTransition(scale: anim, child: child),
                                     child: widget.isSelected
                                         ? Container(
-                                            key: const ValueKey('checked_grid'),
-                                            width: 24,
-                                            height: 24,
-                                            decoration: const BoxDecoration(
+                                            key: const ValueKey('checked_grid_box'),
+                                            width: 20,
+                                            height: 20,
+                                            decoration: BoxDecoration(
                                               color: AppColors.primaryGreen,
-                                              shape: BoxShape.circle,
-                                              boxShadow: [
+                                              borderRadius: BorderRadius.circular(5),
+                                              boxShadow: const [
                                                 BoxShadow(
                                                   color: Colors.black26,
-                                                  blurRadius: 4,
+                                                  blurRadius: 3,
                                                   offset: Offset(0, 1),
                                                 ),
                                               ],
                                             ),
                                             child: const Center(
-                                              child: Icon(Icons.check, size: 16, color: Colors.white),
+                                              child: Icon(
+                                                Icons.check,
+                                                size: 14,
+                                                color: Colors.white,
+                                              ),
                                             ),
                                           )
-                                        : (widget.isMultiSelectMode
-                                            ? Container(
-                                                key: const ValueKey('unchecked_grid'),
-                                                width: 24,
-                                                height: 24,
-                                                decoration: BoxDecoration(
-                                                  color: Colors.black.withValues(alpha: 0.35),
-                                                  shape: BoxShape.circle,
-                                                  border: Border.all(color: Colors.white, width: 1.5),
+                                        : Container(
+                                            key: const ValueKey('unchecked_grid_box'),
+                                            width: 20,
+                                            height: 20,
+                                            decoration: BoxDecoration(
+                                              color: isDark
+                                                  ? Colors.black.withValues(alpha: 0.45)
+                                                  : Colors.black.withValues(alpha: 0.22),
+                                              borderRadius: BorderRadius.circular(5),
+                                              border: Border.all(
+                                                color: Colors.white.withValues(alpha: 0.90),
+                                                width: 1.5,
+                                              ),
+                                              boxShadow: const [
+                                                BoxShadow(
+                                                  color: Colors.black12,
+                                                  blurRadius: 2,
+                                                  offset: Offset(0, 1),
                                                 ),
-                                              )
-                                            : const SizedBox.shrink(key: ValueKey('none_grid'))),
+                                              ],
+                                            ),
+                                          ),
                                   ),
                                 ),
+                              ),
+                            ),
                                 if (!widget.isMultiSelectMode)
                                   Positioned(
                                     top: 2,
