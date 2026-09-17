@@ -604,7 +604,7 @@ Files backup/restore - mirror mode or zip -->
 - print list modal
   - print list history, print email to the student: email (optional), add available date to pickup, message to email can be manual message typed by registrar/staff or preset message (optional) -->
  
-# DASHBORD SCREEN
+<!-- # DASHBORD SCREEN
 - use the icon from windows app for notifications, and search icon in android app screen header icons
 
 # STUDENT SCREEN
@@ -617,8 +617,18 @@ Files backup/restore - mirror mode or zip -->
 - F:\SumbrerongBato\tis_rms_server\screenshots\screenshot1.png -> align tabs section to the list layout, decrease space bottom list between the pagination buttons, in android app
 - remove the multi select icon, in android app
 - in android app, screen header move the print list icon, upload icon
-- in file preview screen add icon button of all dropdown menu from the more menu
+- in file preview screen add icon button of all dropdown menu from the more menu -->
  
+# STUDENT SCREEN
+- in android app, screen header icon add icon button for "add student" make it more attractive
+
+# DOCUMENT SCREEN
+- file preview screen -> in android app make it more menu icon only delete and copy, make it responsive in android app base on screen size for default icons are 4 exclude the copy and delete, always inside are copy and delete in more icon if screen size small put all in more icon
+- in filter documents only add document type, make it dropdown not modal
+
+# ARCHIVE SCREEN 
+- do the same from document screen design from this chat today 
+
 
 ---
 

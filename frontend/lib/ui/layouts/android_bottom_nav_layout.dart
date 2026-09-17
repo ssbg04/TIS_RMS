@@ -33,6 +33,7 @@ import '../shared/widgets/notification_icon_button.dart';
 import '../screens/students/widgets/student_bulk_actions.dart';
 import '../screens/documents/widgets/print_queue_modal.dart';
 import '../screens/documents/widgets/upload_ocr_modal.dart';
+import '../screens/students/widgets/add_student_modal.dart';
 
 // Dummy screen for placeholders
 class PlaceholderScreen extends StatelessWidget {
@@ -174,6 +175,53 @@ class _AndroidBottomNavLayoutState extends ConsumerState<AndroidBottomNavLayout>
                   ref.invalidate(foldersProvider);
                   ref.invalidate(studentFoldersProvider);
                   ref.invalidate(documentPageProvider);
+                },
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  void _showArchiveSearchDialog(
+    BuildContext context,
+    WidgetRef ref,
+  ) {
+    final currentSearch = ref.read(archiveDocumentQueryProvider).search;
+    final searchController = TextEditingController(text: currentSearch);
+    final searchFocusNode = FocusNode();
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      searchFocusNode.requestFocus();
+    });
+
+    showDialog(
+      context: context,
+      barrierColor: Colors.black54,
+      builder: (ctx) {
+        final isDark = Theme.of(ctx).brightness == Brightness.dark;
+        return Align(
+          alignment: Alignment.topCenter,
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(16, kToolbarHeight + 24, 16, 0),
+            child: Material(
+              color: isDark ? AppColors.darkSurfaceCard : Colors.white,
+              elevation: 4,
+              borderRadius: BorderRadius.circular(12),
+              child: AppSearchBar(
+                controller: searchController,
+                focusNode: searchFocusNode,
+                collapsible: false,
+                hint: 'Search archives by name, LRN, file…',
+                maxWidth: 600,
+                onSubmitted: (value) {
+                  Navigator.of(ctx).pop();
+                  ref
+                      .read(archiveDocumentQueryProvider.notifier)
+                      .setSearch(value);
+                  ref.invalidate(archiveStudentFoldersProvider);
+                  ref.invalidate(archiveDocumentPageProvider);
                 },
               ),
             ),
@@ -680,6 +728,48 @@ class _AndroidBottomNavLayoutState extends ConsumerState<AndroidBottomNavLayout>
                                 );
                               },
                             ),
+                            // 3. Add Student Icon (High-Attraction Elevated Primary CTA)
+                            if (widget.userRole != 'teacher')
+                              Tooltip(
+                                message: 'Add Student',
+                                child: Container(
+                                  width: 36,
+                                  height: 36,
+                                  margin: const EdgeInsets.only(left: 4, right: 8),
+                                  decoration: BoxDecoration(
+                                    gradient: const LinearGradient(
+                                      colors: [
+                                        Color(0xFF00B074),
+                                        AppColors.primaryGreen,
+                                      ],
+                                      begin: Alignment.topLeft,
+                                      end: Alignment.bottomRight,
+                                    ),
+                                    borderRadius: BorderRadius.circular(10),
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: AppColors.primaryGreen.withValues(alpha: 0.4),
+                                        blurRadius: 6,
+                                        offset: const Offset(0, 2),
+                                      ),
+                                    ],
+                                  ),
+                                  child: Material(
+                                    color: Colors.transparent,
+                                    child: InkWell(
+                                      borderRadius: BorderRadius.circular(10),
+                                      onTap: () => AddStudentModal.show(context),
+                                      child: const Center(
+                                        child: Icon(
+                                          Icons.person_add_rounded,
+                                          size: 20,
+                                          color: Colors.white,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ),
                             const SizedBox(width: 4),
                           ],
                           if (activeTab == 'Documents') ...[
@@ -768,6 +858,44 @@ class _AndroidBottomNavLayoutState extends ConsumerState<AndroidBottomNavLayout>
                                 ),
                               ),
                             ),
+                            const SizedBox(width: 4),
+                          ],
+                          if (activeTab == 'Archives') ...[
+                            // 1. Search Icon
+                            Consumer(
+                              builder: (context, ref, _) {
+                                return Tooltip(
+                                  message: 'Search Archives',
+                                  child: IconButton(
+                                    icon: const Icon(Icons.search, size: 22),
+                                    onPressed: () =>
+                                        _showArchiveSearchDialog(context, ref),
+                                  ),
+                                );
+                              },
+                            ),
+                            // 2. Print List Icon (for non-teachers)
+                            if (widget.userRole != 'teacher')
+                              Consumer(
+                                builder: (context, ref, _) {
+                                  final queueAsync = ref.watch(printQueueProvider);
+                                  final count = queueAsync.maybeWhen(
+                                    data: (items) => items.length,
+                                    orElse: () => 0,
+                                  );
+                                  return Tooltip(
+                                    message: 'Print List',
+                                    child: IconButton(
+                                      icon: Badge(
+                                        isLabelVisible: count > 0,
+                                        label: Text(count.toString()),
+                                        child: const Icon(Icons.print_rounded, size: 22),
+                                      ),
+                                      onPressed: () => PrintQueueModal.show(context),
+                                    ),
+                                  );
+                                },
+                              ),
                             const SizedBox(width: 4),
                           ],
                           if (activeTab == 'Users') ...[

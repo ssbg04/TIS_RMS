@@ -21,6 +21,12 @@ class AddStudentModal extends ConsumerStatefulWidget {
   final bool isDialog;
   const AddStudentModal({super.key, this.isDialog = false});
 
+  static Future<bool?> show(BuildContext context) {
+    return Navigator.of(context).push<bool>(
+      MaterialPageRoute(builder: (_) => const AddStudentModal()),
+    );
+  }
+
   @override
   ConsumerState<AddStudentModal> createState() => _AddStudentModalState();
 }

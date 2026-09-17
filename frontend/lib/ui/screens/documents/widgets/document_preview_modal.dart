@@ -367,7 +367,88 @@ class _DocumentPreviewDialogState
   Widget build(BuildContext context) {
     final screenW = MediaQuery.of(context).size.width;
     final isMobile = screenW < 700;
+    final isSmallScreen = screenW < 400;
     final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    final List<_PreviewActionItem> directActions = [];
+    final List<_PreviewActionItem> menuActions = [];
+
+    if (_isExcel && widget.document != null) {
+      directActions.add(_PreviewActionItem(
+        id: 'convert_pdf',
+        label: 'Convert to PDF',
+        iconData: Icons.picture_as_pdf_outlined,
+        onTap: _isConverting ? null : _convertToPdf,
+        isLoading: _isConverting,
+      ));
+    }
+    if (_isExcel) {
+      directActions.add(_PreviewActionItem(
+        id: 'open_external',
+        label: 'Open in External Viewer',
+        iconData: Icons.open_in_new,
+        onTap: _isOpeningExternal ? null : _openExternalExcel,
+        isLoading: _isOpeningExternal,
+      ));
+    }
+    if (widget.document != null) {
+      directActions.add(_PreviewActionItem(
+        id: 'print_list',
+        label: 'Add to Print List',
+        iconData: Icons.print_outlined,
+        onTap: _addToPrintList,
+      ));
+      directActions.add(_PreviewActionItem(
+        id: 'download',
+        label: 'Download',
+        iconData: Icons.download_rounded,
+        onTap: _downloadFile,
+      ));
+      directActions.add(_PreviewActionItem(
+        id: 'properties',
+        label: 'Properties',
+        iconData: Icons.info_outline_rounded,
+        onTap: _showProperties,
+      ));
+      if (widget.document!.studentId != null) {
+        directActions.add(_PreviewActionItem(
+          id: 'view_student',
+          label: 'View Student Profile',
+          iconData: Icons.person_outline_rounded,
+          onTap: _viewStudentProfile,
+        ));
+      }
+
+      // Always inside More menu: Copy and Delete
+      menuActions.add(_PreviewActionItem(
+        id: 'copy',
+        label: 'Copy',
+        iconData: Icons.copy_rounded,
+        onTap: _copyDocument,
+      ));
+      if (ref.watch(authProvider).value?.role != 'teacher') {
+        menuActions.add(_PreviewActionItem(
+          id: 'delete',
+          label: 'Delete',
+          iconData: Icons.delete_outline_rounded,
+          onTap: _deleteDocument,
+          color: Colors.redAccent,
+        ));
+      }
+    }
+
+    final List<_PreviewActionItem> shownDirectActions = [];
+    final List<_PreviewActionItem> allMenuActions = [];
+
+    if (isSmallScreen) {
+      allMenuActions.addAll(directActions);
+      allMenuActions.addAll(menuActions);
+    } else {
+      const int maxDirect = 4;
+      shownDirectActions.addAll(directActions.take(maxDirect));
+      allMenuActions.addAll(directActions.skip(maxDirect));
+      allMenuActions.addAll(menuActions);
+    }
 
     if (widget.document != null && _token == null) {
       return const Dialog.fullscreen(
@@ -407,9 +488,9 @@ class _DocumentPreviewDialogState
             ],
           ),
           actions: [
-            if (_isExcel && widget.document != null)
-              IconButton(
-                icon: _isConverting
+            ...shownDirectActions.map(
+              (action) => IconButton(
+                icon: action.isLoading
                     ? const SizedBox(
                         width: 18,
                         height: 18,
@@ -418,59 +499,50 @@ class _DocumentPreviewDialogState
                           strokeWidth: 2,
                         ),
                       )
-                    : const Icon(Icons.picture_as_pdf_outlined, color: Colors.white),
-                tooltip: 'Convert to PDF',
-                onPressed: _isConverting ? null : _convertToPdf,
+                    : Icon(action.iconData, color: Colors.white),
+                tooltip: action.label,
+                onPressed: action.onTap,
               ),
-            if (_isExcel)
-              IconButton(
-                icon: _isOpeningExternal
-                    ? const SizedBox(
-                        width: 18,
-                        height: 18,
-                        child: CircularProgressIndicator(
-                          color: Colors.white,
-                          strokeWidth: 2,
+            ),
+            if (allMenuActions.isNotEmpty)
+              PopupMenuButton<String>(
+                icon: const Icon(Icons.more_vert_rounded, color: Colors.white),
+                tooltip: 'More Actions',
+                onSelected: (id) {
+                  final action = allMenuActions.firstWhere((a) => a.id == id);
+                  action.onTap?.call();
+                },
+                itemBuilder: (context) => allMenuActions.map((action) {
+                  return PopupMenuItem<String>(
+                    value: action.id,
+                    child: Row(
+                      children: [
+                        if (action.isLoading)
+                          const SizedBox(
+                            width: 18,
+                            height: 18,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        else
+                          Icon(
+                            action.iconData,
+                            size: 20,
+                            color: action.color ??
+                                (isDark ? Colors.white70 : Colors.black87),
+                          ),
+                        const SizedBox(width: 12),
+                        Text(
+                          action.label,
+                          style: TextStyle(
+                            color: action.color,
+                            fontSize: 14,
+                          ),
                         ),
-                      )
-                    : const Icon(Icons.open_in_new, color: Colors.white),
-                tooltip: 'Open in External Viewer',
-                onPressed: _isOpeningExternal ? null : _openExternalExcel,
+                      ],
+                    ),
+                  );
+                }).toList(),
               ),
-            if (widget.document != null) ...[
-              IconButton(
-                icon: const Icon(Icons.copy_rounded, color: Colors.white),
-                tooltip: 'Copy',
-                onPressed: _copyDocument,
-              ),
-              IconButton(
-                icon: const Icon(Icons.print_outlined, color: Colors.white),
-                tooltip: 'Add to Print List',
-                onPressed: _addToPrintList,
-              ),
-              IconButton(
-                icon: const Icon(Icons.download_rounded, color: Colors.white),
-                tooltip: 'Download',
-                onPressed: _downloadFile,
-              ),
-              IconButton(
-                icon: const Icon(Icons.info_outline_rounded, color: Colors.white),
-                tooltip: 'Properties',
-                onPressed: _showProperties,
-              ),
-              if (widget.document!.studentId != null)
-                IconButton(
-                  icon: const Icon(Icons.person_outline_rounded, color: Colors.white),
-                  tooltip: 'View Student Profile',
-                  onPressed: _viewStudentProfile,
-                ),
-              if (ref.watch(authProvider).value?.role != 'teacher')
-                IconButton(
-                  icon: const Icon(Icons.delete_outline_rounded, color: Colors.white),
-                  tooltip: 'Delete',
-                  onPressed: _deleteDocument,
-                ),
-            ],
             const SizedBox(width: 8),
           ],
         ),
@@ -883,3 +955,22 @@ class _DocumentPreviewDialogState
     );
   }
 }
+
+class _PreviewActionItem {
+  final String id;
+  final String label;
+  final IconData iconData;
+  final VoidCallback? onTap;
+  final Color? color;
+  final bool isLoading;
+
+  const _PreviewActionItem({
+    required this.id,
+    required this.label,
+    required this.iconData,
+    required this.onTap,
+    this.color,
+    this.isLoading = false,
+  });
+}
+

@@ -68,11 +68,6 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
   String _selectedGradeLevel = 'All Grades';
   String _selectedSchoolYear = 'All Years';
 
-  String _pendingStatus = 'All Statuses';
-  String _pendingDocumentType = 'All Types';
-  String _pendingGradeLevel = 'All Grades';
-  String _pendingSchoolYear = 'All Years';
-
   // Cached doc type lists for filter expansion
   List<String> _jhsItems = [];
   List<String> _shsItems = [];
@@ -1220,30 +1215,132 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
               const SizedBox(width: 2),
             ],
 
-            // Filter button (Icon only, between Search and Upload/Bulk Add)
+            // Filter button (Dropdown only for Document Type, between Search and Upload/Bulk Add)
             if (_tabController.index == 1 || isFolderOpened) ...[
-              Tooltip(
-                message: 'Filter Documents',
-                child: IconButton(
-                  padding: const EdgeInsets.all(8),
-                  constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
-                  onPressed: () => _openFilterDialog(
-                    requirementsAsync,
-                    academicYearsAsync,
-                    statusesAsync,
-                  ),
-                  icon: Badge(
-                    isLabelVisible: _getActiveFilterCount() > 0,
-                    label: Text(_getActiveFilterCount().toString()),
-                    child: Icon(
-                      Icons.tune_rounded,
-                      size: 20,
-                      color: _getActiveFilterCount() > 0
-                          ? AppColors.primaryGreen
-                          : (isDark ? AppColors.darkTextPrimary : Colors.black87),
-                    ),
+              PopupMenuButton<String>(
+                tooltip: 'Filter by Document Type',
+                padding: const EdgeInsets.all(8),
+                constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
+                icon: Badge(
+                  isLabelVisible: _getActiveFilterCount() > 0,
+                  label: Text(_getActiveFilterCount().toString()),
+                  child: Icon(
+                    Icons.tune_rounded,
+                    size: 20,
+                    color: _getActiveFilterCount() > 0
+                        ? AppColors.primaryGreen
+                        : (isDark ? AppColors.darkTextPrimary : Colors.black87),
                   ),
                 ),
+                onSelected: (type) {
+                  setState(() {
+                    _selectedDocumentType = type;
+                  });
+                  _applyFilters();
+                },
+                itemBuilder: (context) {
+                  final jhsReqs = requirementsAsync.maybeWhen(
+                    data: (reqs) => reqs
+                        .where((r) => r.category == 'JHS')
+                        .map((r) => r.name as String)
+                        .toSet()
+                        .toList()
+                      ..sort(),
+                    orElse: () => <String>[],
+                  );
+                  final shsReqs = requirementsAsync.maybeWhen(
+                    data: (reqs) => reqs
+                        .where((r) => r.category == 'SHS')
+                        .map((r) => r.name as String)
+                        .toSet()
+                        .toList()
+                      ..sort(),
+                    orElse: () => <String>[],
+                  );
+
+                  // Update cached lists for _applyFilters
+                  if (jhsReqs.isNotEmpty) _jhsItems = jhsReqs;
+                  if (shsReqs.isNotEmpty) _shsItems = shsReqs;
+
+                  final List<PopupMenuEntry<String>> items = [];
+
+                  Widget buildHeader(String title) {
+                    return Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                      child: Text(
+                        title,
+                        style: TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.bold,
+                          color: isDark ? Colors.white54 : Colors.black54,
+                          letterSpacing: 0.5,
+                        ),
+                      ),
+                    );
+                  }
+
+                  PopupMenuItem<String> buildItem(String value, String label, {bool isSubItem = false}) {
+                    final isSelected = _selectedDocumentType == value;
+                    return PopupMenuItem<String>(
+                      value: value,
+                      height: 38,
+                      child: Row(
+                        children: [
+                          if (isSubItem) const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              label,
+                              style: TextStyle(
+                                fontSize: 13,
+                                fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+                                color: isSelected
+                                    ? AppColors.primaryGreen
+                                    : (isDark ? Colors.white : Colors.black87),
+                              ),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                          if (isSelected)
+                            const Icon(
+                              Icons.check_rounded,
+                              size: 16,
+                              color: AppColors.primaryGreen,
+                            ),
+                        ],
+                      ),
+                    );
+                  }
+
+                  items.add(buildItem('All Types', 'All Types'));
+                  items.add(const PopupMenuDivider(height: 8));
+
+                  if (jhsReqs.isNotEmpty) {
+                    items.add(PopupMenuItem<String>(
+                      enabled: false,
+                      height: 28,
+                      child: buildHeader('JUNIOR HIGH SCHOOL'),
+                    ));
+                    items.add(buildItem('All JHS', 'All JHS', isSubItem: true));
+                    for (final doc in jhsReqs) {
+                      items.add(buildItem(doc, doc, isSubItem: true));
+                    }
+                  }
+
+                  if (shsReqs.isNotEmpty) {
+                    items.add(const PopupMenuDivider(height: 8));
+                    items.add(PopupMenuItem<String>(
+                      enabled: false,
+                      height: 28,
+                      child: buildHeader('SENIOR HIGH SCHOOL'),
+                    ));
+                    items.add(buildItem('All SHS', 'All SHS', isSubItem: true));
+                    for (final doc in shsReqs) {
+                      items.add(buildItem(doc, doc, isSubItem: true));
+                    }
+                  }
+
+                  return items;
+                },
               ),
               const SizedBox(width: 2),
             ],
@@ -1530,494 +1627,6 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
               ? const EdgeInsets.all(10)
               : const EdgeInsets.symmetric(horizontal: 14),
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-        ),
-      ),
-    );
-  }
-
-  // ══════════════════════════════════════════════════════════════
-  // FILTER MODAL
-  // ══════════════════════════════════════════════════════════════
-  void _openFilterDialog(
-    AsyncValue<List<dynamic>> requirementsAsync,
-    AsyncValue<List<dynamic>> academicYearsAsync,
-    AsyncValue<List<String>> statusesAsync,
-  ) {
-    setState(() {
-      _pendingStatus = _selectedStatus;
-      _pendingDocumentType = _selectedDocumentType;
-      _pendingGradeLevel = _selectedGradeLevel;
-      _pendingSchoolYear = _selectedSchoolYear;
-    });
-
-    showDialog(
-      context: context,
-      barrierColor: Colors.black.withValues(alpha: 0.35),
-      builder: (ctx) => StatefulBuilder(
-        builder: (ctx, setDialogState) {
-          final isSmallScreen = MediaQuery.of(context).size.height < 600;
-          return Dialog(
-            backgroundColor: Colors.transparent,
-            insetPadding: EdgeInsets.symmetric(
-              horizontal: 20,
-              vertical: isSmallScreen ? 16 : 36,
-            ),
-            child: ConstrainedBox(
-              constraints: BoxConstraints(
-                maxWidth: 440,
-                maxHeight: MediaQuery.of(context).size.height * 0.85,
-              ),
-              child: _buildFilterPanelContent(
-                requirementsAsync,
-                academicYearsAsync,
-                statusesAsync,
-                setDialogState,
-                () {
-                  setState(() {
-                    _selectedStatus = _pendingStatus;
-                    _selectedDocumentType = _pendingDocumentType;
-                    _selectedGradeLevel = _pendingGradeLevel;
-                    _selectedSchoolYear = _pendingSchoolYear;
-                  });
-                  _applyFilters();
-                  Navigator.of(ctx).pop();
-                },
-              ),
-            ),
-          );
-        },
-      ),
-    );
-  }
-
-  Widget _buildFilterPanelContent(
-    AsyncValue<List<dynamic>> requirementsAsync,
-    AsyncValue<List<dynamic>> academicYearsAsync,
-    AsyncValue<List<String>> statusesAsync,
-    StateSetter setDialogState,
-    VoidCallback onApply,
-  ) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final jhsReqs = requirementsAsync.when(
-      data: (reqs) => [
-        'All JHS',
-        ...reqs
-            .where((r) => r.category == 'JHS')
-            .map((r) => r.name as String)
-            .toSet()
-            .toList()
-          ..sort(),
-      ],
-      loading: () => ['All JHS'],
-      error: (err, stack) => ['All JHS'],
-    );
-    final shsReqs = requirementsAsync.when(
-      data: (reqs) => [
-        'All SHS',
-        ...reqs
-            .where((r) => r.category == 'SHS')
-            .map((r) => r.name as String)
-            .toSet()
-            .toList()
-          ..sort(),
-      ],
-      loading: () => ['All SHS'],
-      error: (err, stack) => ['All SHS'],
-    );
-    final years = academicYearsAsync.when(
-      data: (y) => ['All Years', ...y.map((ay) => ay.yearRange as String)],
-      loading: () => ['All Years'],
-      error: (err, stack) => ['All Years'],
-    );
-
-    final jhsItems = jhsReqs.where((e) => e != 'All JHS').toList();
-    final shsItems = shsReqs.where((e) => e != 'All SHS').toList();
-
-    // Cache for use in _applyFilters
-    if (jhsItems.isNotEmpty) _jhsItems = jhsItems;
-    if (shsItems.isNotEmpty) _shsItems = shsItems;
-
-    final docTypeOptions = [
-      'All Types',
-      'All JHS',
-      'All SHS',
-      ...jhsItems,
-      ...shsItems,
-    ];
-
-    return Container(
-      decoration: BoxDecoration(
-        color: isDark ? AppColors.darkSurfaceCard : AppColors.surfaceWhite,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: isDark ? AppColors.darkBorder : Colors.grey.shade200,
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.12),
-            blurRadius: 24,
-            offset: const Offset(0, 8),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          // Header (Fixed)
-          Padding(
-            padding: const EdgeInsets.fromLTRB(20, 18, 16, 0),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Row(
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.all(6),
-                      decoration: BoxDecoration(
-                        color: AppColors.primaryGreen.withValues(alpha: 0.12),
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: const Icon(
-                        Icons.tune_rounded,
-                        size: 20,
-                        color: AppColors.primaryGreen,
-                      ),
-                    ),
-                    const SizedBox(width: 10),
-                    Text(
-                      'Filter Documents',
-                      style: TextStyle(
-                        fontSize: 17,
-                        fontWeight: FontWeight.w700,
-                        color: isDark
-                            ? AppColors.darkTextPrimary
-                            : AppColors.textPrimary,
-                      ),
-                    ),
-                  ],
-                ),
-                IconButton(
-                  icon: Icon(
-                    Icons.close_rounded,
-                    size: 20,
-                    color: isDark
-                        ? AppColors.darkTextSecondary
-                        : AppColors.textSecondary,
-                  ),
-                  tooltip: 'Close',
-                  onPressed: () => Navigator.of(context).pop(),
-                ),
-              ],
-            ),
-          ),
-
-          Divider(
-            height: 20,
-            thickness: 1,
-            color: isDark ? AppColors.darkBorder : Colors.grey.shade200,
-          ),
-
-          // Scrollable middle section for filter items
-          Flexible(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.symmetric(vertical: 4),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  // Document Type
-                  _buildFilterSection(
-                    label: 'Document Type',
-                    hasActiveFilter: _pendingDocumentType != 'All Types',
-                    onReset: () =>
-                        setDialogState(() => _pendingDocumentType = 'All Types'),
-                    child: _buildFilterDropdown(
-                      value: docTypeOptions.contains(_pendingDocumentType)
-                          ? _pendingDocumentType
-                          : 'All Types',
-                      items: docTypeOptions,
-                      onChanged: (v) =>
-                          setDialogState(() => _pendingDocumentType = v!),
-                    ),
-                  ),
-
-                  _buildDivider(isDark),
-
-                  // Grade Level
-                  _buildFilterSection(
-                    label: 'Grade Level',
-                    hasActiveFilter: _pendingGradeLevel != 'All Grades',
-                    onReset: () =>
-                        setDialogState(() => _pendingGradeLevel = 'All Grades'),
-                    child: _buildFilterDropdown(
-                      value: const [
-                        'All Grades',
-                        '7',
-                        '8',
-                        '9',
-                        '10',
-                        '11',
-                        '12',
-                      ].contains(_pendingGradeLevel)
-                          ? _pendingGradeLevel
-                          : 'All Grades',
-                      items: const ['All Grades', '7', '8', '9', '10', '11', '12'],
-                      labelBuilder: (g) =>
-                          (g == 'All Grades' || g.toLowerCase().startsWith('grade'))
-                              ? g
-                              : 'Grade $g',
-                      onChanged: (v) =>
-                          setDialogState(() => _pendingGradeLevel = v!),
-                    ),
-                  ),
-
-                  _buildDivider(isDark),
-
-                  // School Year
-                  _buildFilterSection(
-                    label: 'School Year',
-                    hasActiveFilter: _pendingSchoolYear != 'All Years',
-                    onReset: () =>
-                        setDialogState(() => _pendingSchoolYear = 'All Years'),
-                    child: _buildFilterDropdown(
-                      value: years.contains(_pendingSchoolYear)
-                          ? _pendingSchoolYear
-                          : 'All Years',
-                      items: years,
-                      onChanged: (v) =>
-                          setDialogState(() => _pendingSchoolYear = v!),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-
-          Divider(
-            height: 1,
-            thickness: 1,
-            color: isDark ? AppColors.darkBorder : Colors.grey.shade200,
-          ),
-
-          // Footer buttons (Fixed at bottom)
-          Padding(
-            padding: const EdgeInsets.fromLTRB(20, 14, 20, 16),
-            child: Row(
-              children: [
-                // Reset all
-                Expanded(
-                  child: OutlinedButton(
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: isDark
-                          ? AppColors.darkTextSecondary
-                          : AppColors.textSecondary,
-                      side: BorderSide(
-                        color: isDark
-                            ? AppColors.darkBorder
-                            : Colors.grey.shade300,
-                      ),
-                      padding: const EdgeInsets.symmetric(vertical: 12),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                    ),
-                    onPressed: () {
-                      setDialogState(() {
-                        _pendingStatus = 'All Statuses';
-                        _pendingDocumentType = 'All Types';
-                        _pendingGradeLevel = 'All Grades';
-                        _pendingSchoolYear = 'All Years';
-                      });
-                    },
-                    child: const Text(
-                      'Reset all',
-                      style: TextStyle(
-                        fontWeight: FontWeight.w600,
-                        fontSize: 13.5,
-                      ),
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 12),
-                // Apply
-                Expanded(
-                  flex: 2,
-                  child: ElevatedButton(
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.primaryGreen,
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(vertical: 12),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      elevation: 0,
-                    ),
-                    onPressed: onApply,
-                    child: const Text(
-                      'Apply Filters',
-                      style: TextStyle(
-                        fontWeight: FontWeight.w700,
-                        fontSize: 14,
-                      ),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildDivider(bool isDark) {
-    return Divider(
-      height: 1,
-      indent: 20,
-      endIndent: 20,
-      color: isDark
-          ? AppColors.darkBorder.withValues(alpha: 0.5)
-          : Colors.grey.shade100,
-    );
-  }
-
-  Widget _buildFilterSection({
-    required String label,
-    required VoidCallback onReset,
-    required Widget child,
-    bool hasActiveFilter = false,
-  }) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                label,
-                style: TextStyle(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w600,
-                  color: isDark
-                      ? AppColors.darkTextPrimary
-                      : AppColors.textPrimary,
-                ),
-              ),
-              if (hasActiveFilter)
-                GestureDetector(
-                  onTap: onReset,
-                  behavior: HitTestBehavior.opaque,
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 4,
-                      vertical: 2,
-                    ),
-                    child: const Text(
-                      'Reset',
-                      style: TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w600,
-                        color: AppColors.primaryGreen,
-                      ),
-                    ),
-                  ),
-                ),
-            ],
-          ),
-          const SizedBox(height: 8),
-          child,
-        ],
-      ),
-    );
-  }
-
-  Widget _buildFilterDropdown({
-    required String value,
-    required List<String> items,
-    String Function(String)? labelBuilder,
-    ValueChanged<String?>? onChanged,
-    String? hint,
-    bool enabled = true,
-  }) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final selectedValue = items.contains(value) ? value : items.firstOrNull;
-
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 2),
-      decoration: BoxDecoration(
-        color: enabled
-            ? (isDark ? AppColors.darkSurface2 : AppColors.surfaceWhite)
-            : (isDark ? AppColors.darkSurfaceCard : Colors.grey.shade100),
-        border: Border.all(
-          color: enabled
-              ? (isDark ? AppColors.darkBorder : Colors.grey.shade300)
-              : (isDark
-                  ? AppColors.darkBorder.withValues(alpha: 0.5)
-                  : Colors.grey.shade200),
-        ),
-        borderRadius: BorderRadius.circular(10),
-      ),
-      child: DropdownButtonHideUnderline(
-        child: DropdownButton<String>(
-          value: selectedValue,
-          isExpanded: true,
-          menuMaxHeight: 260,
-          borderRadius: BorderRadius.circular(12),
-          dropdownColor: isDark ? AppColors.darkSurfaceCard : Colors.white,
-          elevation: 4,
-          icon: Icon(
-            Icons.keyboard_arrow_down_rounded,
-            color: enabled
-                ? (isDark
-                    ? AppColors.darkTextSecondary
-                    : AppColors.textSecondary)
-                : (isDark ? AppColors.darkTextMuted : AppColors.textMuted),
-            size: 22,
-          ),
-          hint: hint != null
-              ? Text(
-                  hint,
-                  style: TextStyle(
-                    fontSize: 13.5,
-                    color: isDark ? AppColors.darkTextMuted : AppColors.textMuted,
-                  ),
-                )
-              : null,
-          style: TextStyle(
-            fontSize: 13.5,
-            fontWeight: FontWeight.w500,
-            color: enabled
-                ? (isDark ? AppColors.darkTextPrimary : AppColors.textPrimary)
-                : (isDark ? AppColors.darkTextMuted : AppColors.textMuted),
-          ),
-          items: items.map((item) {
-            final displayLabel =
-                labelBuilder != null ? labelBuilder(item) : item;
-            final isItemActive = item == selectedValue;
-            return DropdownMenuItem<String>(
-              value: item,
-              child: Text(
-                displayLabel,
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(
-                  fontSize: 13.5,
-                  fontWeight:
-                      isItemActive ? FontWeight.w600 : FontWeight.w400,
-                  color: isItemActive
-                      ? AppColors.primaryGreen
-                      : (isDark
-                          ? AppColors.darkTextPrimary
-                          : AppColors.textPrimary),
-                ),
-              ),
-            );
-          }).toList(),
-          onChanged: enabled ? onChanged : null,
         ),
       ),
     );
