@@ -9,6 +9,7 @@ class DocumentRequirementModel {
   final String acceptedFileTypes;
   final String schoolLevels;
   final int maxFiles;
+  final String? documentStatus;
   final DateTime? createdAt;
   final DateTime? updatedAt;
 
@@ -23,6 +24,7 @@ class DocumentRequirementModel {
     this.acceptedFileTypes = 'pdf,jpg,jpeg,png',
     this.schoolLevels = 'JHS,SHS',
     this.maxFiles = 1,
+    this.documentStatus,
     this.createdAt,
     this.updatedAt,
   });
@@ -45,6 +47,9 @@ class DocumentRequirementModel {
       acceptedFileTypes: json['accepted_file_types'] ?? 'pdf,jpg,jpeg,png',
       schoolLevels: json['school_levels'] ?? 'JHS,SHS',
       maxFiles: parsedMax >= 1 ? parsedMax : 1,
+      documentStatus:
+          json['document_status'] as String? ??
+          json['documentStatus'] as String?,
       createdAt:
           (json['created_at'] != null &&
               json['created_at'].toString().isNotEmpty)

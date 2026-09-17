@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../domain/repositories/document_repository.dart'
     show MissingRequirements;
+import '../../../../domain/entities/document_requirement_model.dart';
 import '../../../providers/student_provider.dart';
 import '../../../providers/document_provider.dart';
 // ─────────────────────────────────────────────────────────────
@@ -735,16 +736,11 @@ class StudentProfileModalBody extends ConsumerWidget {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final jhsMissing = data.missing.where((r) => r.category == 'JHS').toList();
     final shsMissing = data.missing.where((r) => r.category == 'SHS').toList();
-    final jhsVerified = data.verified
-        .where((r) => r.category == 'JHS')
-        .toList();
-    final shsVerified = data.verified
-        .where((r) => r.category == 'SHS')
-        .toList();
-    final jhsTotal = jhsMissing.length + jhsVerified.length;
-    final shsTotal = shsMissing.length + shsVerified.length;
-    final hasJhs = jhsTotal > 0;
-    final hasShs = shsTotal > 0;
+    final jhsVerified = data.verified.where((r) => r.category == 'JHS').toList();
+    final shsVerified = data.verified.where((r) => r.category == 'SHS').toList();
+
+    final hasJhs = (jhsMissing.length + jhsVerified.length) > 0;
+    final hasShs = (shsMissing.length + shsVerified.length) > 0;
 
     if (!hasJhs && !hasShs) {
       return Container(
@@ -767,41 +763,54 @@ class StudentProfileModalBody extends ConsumerWidget {
       required String label,
       required Color color,
       required bool isCurrent,
-      required List<dynamic> missing,
-      required List<dynamic> verified,
-      required int total,
+      required List<DocumentRequirementModel> missing,
+      required List<DocumentRequirementModel> verified,
     }) {
-      final completed = verified.length;
-      final missingCount = missing.length;
-      final isDone = missingCount == 0 && total > 0;
+      final mandatoryMissing = missing.where((r) => r.isMandatory).toList();
+      final optionalMissing = missing.where((r) => !r.isMandatory).toList();
+      final mandatoryVerified = verified.where((r) => r.isMandatory).toList();
+      final optionalVerified = verified.where((r) => !r.isMandatory).toList();
+
+      final mandatoryTotal = mandatoryMissing.length + mandatoryVerified.length;
+      final mandatoryDone = mandatoryVerified.length;
+      final archivedCount = verified.where((r) => r.documentStatus == 'Archived').length;
+      final activeCompletedCount = verified.where((r) => r.documentStatus != 'Archived').length;
+
+      final isAllMandatoryDone = mandatoryMissing.isEmpty && mandatoryTotal > 0;
+
       return Container(
-        margin: const EdgeInsets.only(bottom: 12),
+        margin: const EdgeInsets.only(bottom: 14),
         decoration: BoxDecoration(
           color: isDark ? AppColors.darkSurfaceCard : AppColors.surfaceWhite,
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(14),
           border: Border.all(
-            color: isDark ? AppColors.darkBorder : Colors.grey.shade200,
+            color: isCurrent
+                ? AppColors.primaryGreen.withValues(alpha: isDark ? 0.6 : 0.8)
+                : (isDark ? AppColors.darkBorder : Colors.grey.shade200),
             width: isCurrent ? 1.5 : 1,
           ),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: isDark ? 0.15 : 0.03),
+              blurRadius: 6,
+              offset: const Offset(0, 2),
+            ),
+          ],
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            // Level header strip
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
               decoration: BoxDecoration(
-                color: color.withValues(alpha: 0.06),
-                borderRadius: const BorderRadius.vertical(
-                  top: Radius.circular(12),
-                ),
+                color: color.withValues(alpha: isDark ? 0.12 : 0.06),
+                borderRadius: const BorderRadius.vertical(top: Radius.circular(13)),
               ),
               child: Row(
                 children: [
                   Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 8,
-                      vertical: 3,
-                    ),
+                    padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 3),
                     decoration: BoxDecoration(
                       color: isDark ? AppColors.darkSurface2 : Colors.grey.shade100,
                       borderRadius: BorderRadius.circular(20),
@@ -816,18 +825,16 @@ class StudentProfileModalBody extends ConsumerWidget {
                     ),
                   ),
                   if (isCurrent) ...[
-                    const SizedBox(width: 6),
+                    const SizedBox(width: 8),
                     Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 7,
-                        vertical: 2,
-                      ),
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                       decoration: BoxDecoration(
-                        color: AppColors.primaryGreen.withValues(alpha: 0.12),
+                        color: AppColors.primaryGreen.withValues(alpha: 0.15),
                         borderRadius: BorderRadius.circular(20),
+                        border: Border.all(color: AppColors.primaryGreen.withValues(alpha: 0.4)),
                       ),
                       child: const Text(
-                        'Current',
+                        'Current Level',
                         style: TextStyle(
                           fontSize: 10,
                           color: AppColors.primaryGreen,
@@ -837,168 +844,311 @@ class StudentProfileModalBody extends ConsumerWidget {
                     ),
                   ],
                   const Spacer(),
-                  isDone
-                      ? Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            const Icon(
-                              Icons.check_circle,
-                              size: 13,
-                              color: AppColors.success,
-                            ),
-                            const SizedBox(width: 3),
-                            const Text(
-                              'Complete',
-                              style: TextStyle(
-                                  fontSize: 11,
-                                  color: AppColors.success,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                            ],
-                          )
-                        : Text(
-                            '$completed/$total done',
-                            style: TextStyle(
-                              fontSize: 11,
-                              color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                  ],
-                ),
-              ),
-              Padding(
-                padding: const EdgeInsets.all(12),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Wrap(
-                      spacing: 12,
-                      runSpacing: 6,
-                      crossAxisAlignment: WrapCrossAlignment.center,
+                  if (isAllMandatoryDone)
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
                       children: [
-                        Text(
-                          'Total: $total',
-                          style: TextStyle(
-                            fontSize: 13,
-                            color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
-                          ),
+                        Icon(
+                          archivedCount == mandatoryTotal ? Icons.archive_outlined : Icons.check_circle_rounded,
+                          size: 14,
+                          color: archivedCount == mandatoryTotal
+                              ? (isDark ? Colors.blueGrey.shade200 : Colors.blueGrey.shade700)
+                              : AppColors.success,
                         ),
+                        const SizedBox(width: 4),
                         Text(
-                          'Done: $completed',
-                          style: const TextStyle(
-                            fontSize: 13,
-                            color: AppColors.success,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                        Text(
-                          'Missing: $missingCount',
+                          archivedCount == mandatoryTotal
+                              ? 'All Archived ($mandatoryTotal/$mandatoryTotal)'
+                              : 'All Submitted ($mandatoryDone/$mandatoryTotal)',
                           style: TextStyle(
-                            fontSize: 13,
-                            color: missingCount > 0
-                                ? AppColors.error
-                                : (isDark ? AppColors.darkTextSecondary : AppColors.textSecondary),
-                            fontWeight: FontWeight.w600,
+                            fontSize: 11,
+                            color: archivedCount == mandatoryTotal
+                                ? (isDark ? Colors.blueGrey.shade200 : Colors.blueGrey.shade700)
+                                : AppColors.success,
+                            fontWeight: FontWeight.bold,
                           ),
                         ),
                       ],
+                    )
+                  else
+                    Text(
+                      '$mandatoryDone / $mandatoryTotal Required Done',
+                      style: TextStyle(
+                        fontSize: 11,
+                        color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
+                        fontWeight: FontWeight.w600,
+                      ),
                     ),
-                    if (missing.isNotEmpty) ...[
-                      const SizedBox(height: 10),
-                      Text(
-                        'Not Yet Submitted',
-                        style: TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w600,
-                          color: Colors.orange.shade700,
-                        ),
-                      ),
-                      const SizedBox(height: 6),
-                      ...missing.map(
-                        (r) => _reqItem(
-                          context,
-                          r.name,
-                          AppColors.error,
-                          Icons.pending_actions,
-                        ),
-                      ),
-                    ],
-                    if (verified.isNotEmpty) ...[
-                      const SizedBox(height: 10),
-                      const Text(
-                        'Completed',
-                        style: TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w600,
-                          color: AppColors.success,
-                        ),
-                      ),
-                      const SizedBox(height: 6),
-                      ...verified.map(
-                        (r) => _reqItem(
-                          context,
-                          r.name,
-                          AppColors.success,
-                          Icons.check_circle,
-                        ),
-                      ),
-                    ],
-                  ],
-                ),
+                ],
               ),
-            ],
-          ),
-        );
-      }
-
-      return Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          if (hasJhs)
-            levelSection(
-              label: 'JHS',
-              color: Colors.teal,
-              isCurrent: data.category == 'JHS',
-              missing: jhsMissing,
-              verified: jhsVerified,
-              total: jhsTotal,
             ),
-          if (hasShs)
-            levelSection(
-              label: 'SHS',
-              color: Colors.purple,
-              isCurrent: data.category == 'SHS',
-              missing: shsMissing,
-              verified: shsVerified,
-              total: shsTotal,
-            ),
-        ],
-      );
-    }
+            // Body with stats & items
+            Padding(
+              padding: const EdgeInsets.all(14),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Summary badge row
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 6,
+                    children: [
+                      _buildCountBadge(
+                        label: 'Required: $mandatoryDone / $mandatoryTotal',
+                        color: isAllMandatoryDone ? AppColors.success : Colors.orange,
+                        isDark: isDark,
+                      ),
+                      if (activeCompletedCount > 0)
+                        _buildCountBadge(
+                          label: '$activeCompletedCount Active',
+                          color: AppColors.success,
+                          isDark: isDark,
+                        ),
+                      if (archivedCount > 0)
+                        _buildCountBadge(
+                          label: '$archivedCount Archived',
+                          color: Colors.blueGrey,
+                          isDark: isDark,
+                        ),
+                      if (mandatoryMissing.isNotEmpty)
+                        _buildCountBadge(
+                          label: '${mandatoryMissing.length} Missing',
+                          color: AppColors.error,
+                          isDark: isDark,
+                        ),
+                    ],
+                  ),
+                  const SizedBox(height: 14),
 
-    Widget _reqItem(BuildContext context, String name, Color color, IconData icon) {
-      final isDark = Theme.of(context).brightness == Brightness.dark;
-      return Padding(
-        padding: const EdgeInsets.only(bottom: 5),
-        child: Row(
-          children: [
-            Icon(icon, size: 14, color: color),
-            const SizedBox(width: 7),
-            Expanded(
-              child: Text(
-                name,
-                style: TextStyle(
-                  fontSize: 12,
-                  color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
-                ),
+                  // ── Mandatory Requirements Group ──
+                  if (mandatoryTotal > 0) ...[
+                    Text(
+                      'MANDATORY REQUIREMENTS',
+                      style: TextStyle(
+                        fontSize: 11,
+                        letterSpacing: 0.5,
+                        fontWeight: FontWeight.bold,
+                        color: isDark ? AppColors.darkTextSecondary : Colors.grey.shade700,
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    ...mandatoryVerified.map((r) => _buildRequirementCard(context, r, r.documentStatus == 'Archived' ? 'archived' : 'completed', isDark)),
+                    ...mandatoryMissing.map((r) => _buildRequirementCard(context, r, 'missing_mandatory', isDark)),
+                  ],
+
+                  // ── Optional Requirements Group ──
+                  if ((optionalMissing.length + optionalVerified.length) > 0) ...[
+                    const SizedBox(height: 14),
+                    Text(
+                      'OPTIONAL REQUIREMENTS',
+                      style: TextStyle(
+                        fontSize: 11,
+                        letterSpacing: 0.5,
+                        fontWeight: FontWeight.bold,
+                        color: isDark ? AppColors.darkTextSecondary : Colors.grey.shade600,
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    ...optionalVerified.map((r) => _buildRequirementCard(context, r, r.documentStatus == 'Archived' ? 'archived' : 'completed', isDark)),
+                    ...optionalMissing.map((r) => _buildRequirementCard(context, r, 'missing_optional', isDark)),
+                  ],
+                ],
               ),
             ),
           ],
         ),
       );
     }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        if (hasJhs)
+          levelSection(
+            label: 'JHS',
+            color: Colors.teal,
+            isCurrent: data.category == 'JHS',
+            missing: jhsMissing,
+            verified: jhsVerified,
+          ),
+        if (hasShs)
+          levelSection(
+            label: 'SHS',
+            color: Colors.purple,
+            isCurrent: data.category == 'SHS',
+            missing: shsMissing,
+            verified: shsVerified,
+          ),
+      ],
+    );
+  }
+
+  Widget _buildCountBadge({required String label, required Color color, required bool isDark}) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: isDark ? 0.18 : 0.08),
+        borderRadius: BorderRadius.circular(6),
+        border: Border.all(color: color.withValues(alpha: isDark ? 0.35 : 0.2)),
+      ),
+      child: Text(
+        label,
+        style: TextStyle(
+          fontSize: 11,
+          fontWeight: FontWeight.w600,
+          color: isDark ? color.withValues(alpha: 0.9) : color,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildRequirementCard(
+    BuildContext context,
+    DocumentRequirementModel r,
+    String state, // 'completed', 'archived', 'missing_mandatory', 'missing_optional'
+    bool isDark,
+  ) {
+    Color bg;
+    Color border;
+    Color iconColor;
+    IconData icon;
+    String statusLabel;
+    Color statusColor;
+
+    switch (state) {
+      case 'completed':
+        bg = AppColors.success.withValues(alpha: isDark ? 0.08 : 0.04);
+        border = AppColors.success.withValues(alpha: isDark ? 0.25 : 0.2);
+        iconColor = AppColors.success;
+        icon = Icons.check_circle_rounded;
+        statusLabel = 'Completed';
+        statusColor = AppColors.success;
+        break;
+      case 'archived':
+        bg = Colors.blueGrey.withValues(alpha: isDark ? 0.15 : 0.06);
+        border = Colors.blueGrey.withValues(alpha: isDark ? 0.35 : 0.25);
+        iconColor = isDark ? Colors.blueGrey.shade200 : Colors.blueGrey.shade700;
+        icon = Icons.archive_outlined;
+        statusLabel = 'Archived';
+        statusColor = isDark ? Colors.blueGrey.shade200 : Colors.blueGrey.shade700;
+        break;
+      case 'missing_mandatory':
+        bg = Colors.orange.withValues(alpha: isDark ? 0.1 : 0.05);
+        border = Colors.orange.withValues(alpha: isDark ? 0.3 : 0.25);
+        iconColor = Colors.orange.shade700;
+        icon = Icons.error_outline_rounded;
+        statusLabel = 'Missing';
+        statusColor = Colors.orange.shade800;
+        break;
+      case 'missing_optional':
+      default:
+        bg = isDark ? AppColors.darkSurface2 : Colors.grey.shade50;
+        border = isDark ? AppColors.darkBorder : Colors.grey.shade200;
+        iconColor = isDark ? AppColors.darkTextSecondary : Colors.grey.shade400;
+        icon = Icons.radio_button_unchecked_rounded;
+        statusLabel = 'Not Submitted';
+        statusColor = isDark ? AppColors.darkTextSecondary : Colors.grey.shade600;
+        break;
+    }
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 6),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+      decoration: BoxDecoration(
+        color: bg,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: border),
+      ),
+      child: Row(
+        children: [
+          Icon(icon, size: 16, color: iconColor),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  r.name,
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
+                  ),
+                ),
+                if (r.description != null && r.description!.trim().isNotEmpty)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 2),
+                    child: Text(
+                      r.description!.trim(),
+                      style: TextStyle(
+                        fontSize: 10,
+                        color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 8),
+          // Type badge: Mandatory vs Optional
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+            decoration: BoxDecoration(
+              color: r.isMandatory
+                  ? (isDark ? Colors.indigo.withValues(alpha: 0.25) : Colors.indigo.shade50)
+                  : (isDark ? Colors.grey.shade800 : Colors.grey.shade100),
+              borderRadius: BorderRadius.circular(4),
+              border: Border.all(
+                color: r.isMandatory
+                    ? (isDark ? Colors.indigo.shade300 : Colors.indigo.shade200)
+                    : (isDark ? Colors.grey.shade700 : Colors.grey.shade300),
+                width: 0.8,
+              ),
+            ),
+            child: Text(
+              r.isMandatory ? 'Mandatory' : 'Optional',
+              style: TextStyle(
+                fontSize: 9,
+                fontWeight: FontWeight.w600,
+                color: r.isMandatory
+                    ? (isDark ? Colors.indigo.shade200 : Colors.indigo.shade800)
+                    : (isDark ? Colors.grey.shade300 : Colors.grey.shade700),
+              ),
+            ),
+          ),
+          const SizedBox(width: 6),
+          // Status badge
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+            decoration: BoxDecoration(
+              color: statusColor.withValues(alpha: isDark ? 0.2 : 0.1),
+              borderRadius: BorderRadius.circular(6),
+              border: Border.all(color: statusColor.withValues(alpha: 0.3)),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (state == 'archived') ...[
+                  Icon(Icons.archive_outlined, size: 10, color: statusColor),
+                  const SizedBox(width: 3),
+                ],
+                Text(
+                  statusLabel,
+                  style: TextStyle(
+                    fontSize: 10,
+                    fontWeight: FontWeight.bold,
+                    color: statusColor,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 
   String _formatDate(dynamic date) {
     if (date == null) return 'N/A';

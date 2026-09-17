@@ -2,6 +2,9 @@ import 'dart:io';
 import 'package:dio/dio.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:permission_handler/permission_handler.dart';
+import 'package:open_filex/open_filex.dart';
+import 'package:android_intent_plus/android_intent.dart';
+import 'package:android_intent_plus/flag.dart';
 
 class DownloadService {
   static final Dio _dio = Dio();
@@ -67,5 +70,47 @@ class DownloadService {
 
     await _dio.download(url, savePath);
     return savePath;
+  }
+
+  /// Opens the downloaded document file directly in the default system viewer.
+  static Future<void> openDownloadedFile(String filePath) async {
+    final file = File(filePath);
+    if (!await file.exists()) {
+      throw Exception('File does not exist at $filePath');
+    }
+    await OpenFilex.open(filePath);
+  }
+
+  /// Opens the storage directory (Download/TIS_RMS) or highlights the file in File Explorer.
+  static Future<void> openStorageFolder([String? filePath]) async {
+    if (Platform.isAndroid) {
+      const folderUri =
+          'content://com.android.externalstorage.documents/document/primary:Download%2FTIS_RMS';
+      final intent = AndroidIntent(
+        action: 'android.intent.action.VIEW',
+        data: folderUri,
+        type: 'vnd.android.document/directory',
+        flags: [
+          Flag.FLAG_ACTIVITY_NEW_TASK,
+          Flag.FLAG_GRANT_READ_URI_PERMISSION,
+        ],
+      );
+      try {
+        await intent.launch();
+      } catch (_) {
+        const fallback = AndroidIntent(
+          action: 'android.intent.action.VIEW_DOWNLOADS',
+          flags: [Flag.FLAG_ACTIVITY_NEW_TASK],
+        );
+        await fallback.launch();
+      }
+    } else if (Platform.isWindows) {
+      if (filePath != null && await File(filePath).exists()) {
+        await Process.run('explorer.exe', ['/select,', filePath]);
+      } else {
+        final dirPath = await getDownloadDirectoryPath();
+        await Process.run('explorer.exe', [dirPath]);
+      }
+    }
   }
 }

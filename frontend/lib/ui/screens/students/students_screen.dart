@@ -1558,6 +1558,7 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
                       missingCount: s.missingDocumentsCount,
                       totalCount: s.totalDocumentsCount,
                       missingDocuments: s.missingDocuments,
+                      studentStatus: s.status,
                     ),
                   ),
                   const SizedBox(width: 12),
@@ -1805,6 +1806,7 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
                                         missingCount: s.missingDocumentsCount,
                                         totalCount: s.totalDocumentsCount,
                                         missingDocuments: s.missingDocuments,
+                                        studentStatus: s.status,
                                       ),
                                     ),
                                     const SizedBox(width: 2),
@@ -1927,6 +1929,39 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
                     ),
                   ],
                 ),
+                if (s.status != 'Enrolled') ...[
+                  const SizedBox(height: 12),
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    decoration: BoxDecoration(
+                      color: (isDark ? Colors.blueGrey : Colors.blueGrey.shade50).withValues(alpha: 0.35),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(
+                        color: (isDark ? Colors.blueGrey : Colors.blueGrey.shade300).withValues(alpha: 0.45),
+                      ),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(
+                          Icons.archive_outlined,
+                          size: 16,
+                          color: isDark ? Colors.blueGrey.shade200 : Colors.blueGrey.shade700,
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            'Student is currently marked as ${s.status}. Documents are retained under the Archives repository.',
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: isDark ? Colors.blueGrey.shade100 : Colors.blueGrey.shade800,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
                 const SizedBox(height: 16),
                 Container(
                   padding: const EdgeInsets.all(12),
@@ -2261,6 +2296,7 @@ class _DocumentProgressBar extends StatelessWidget {
   final int missingCount;
   final int totalCount;
   final List<String> missingDocuments;
+  final String studentStatus;
 
   static final RegExp _jhsRegex = RegExp(r'^\[JHS\]\s*', caseSensitive: false);
   static final RegExp _shsRegex = RegExp(r'^\[SHS\]\s*', caseSensitive: false);
@@ -2269,6 +2305,7 @@ class _DocumentProgressBar extends StatelessWidget {
     required this.missingCount,
     required this.totalCount,
     required this.missingDocuments,
+    this.studentStatus = 'Enrolled',
   });
 
   @override
@@ -2282,53 +2319,163 @@ class _DocumentProgressBar extends StatelessWidget {
     // Prevent division by zero if totalCount is 0 (e.g. no requirements)
     final double progress = totalCount == 0 ? 1.0 : completedCount / totalCount;
     final bool isComplete = missingCount == 0 && totalCount > 0;
+    final bool isEnrolled = studentStatus == 'Enrolled';
 
-    final content = Column(
-      mainAxisAlignment: MainAxisAlignment.center,
-      crossAxisAlignment: CrossAxisAlignment.start,
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              '$completedCount / $totalCount Docs',
-              style: TextStyle(
-                fontSize: isMobileOrAndroid ? 11.5 : 12,
-                fontWeight: FontWeight.bold,
-                color: isComplete
-                    ? AppColors.primaryGreen
-                    : (isDark ? AppColors.darkTextPrimary : AppColors.textPrimary),
-              ),
+    // Content presentation
+    final Widget content;
+    if (!isEnrolled && totalCount == 0) {
+      // Student has no grade level / no enrollment requirements assigned
+      content = Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            Icons.pending_actions_outlined,
+            size: 13,
+            color: isDark ? AppColors.darkTextMuted : Colors.grey.shade500,
+          ),
+          const SizedBox(width: 4),
+          Text(
+            'Pending Enrollment',
+            style: TextStyle(
+              fontSize: isMobileOrAndroid ? 11 : 11.5,
+              color: isDark ? AppColors.darkTextMuted : Colors.grey.shade600,
+              fontWeight: FontWeight.w500,
             ),
-            if (isComplete) ...[
+          ),
+        ],
+      );
+    } else if (!isEnrolled) {
+      // Non-enrolled student with historical/archived document requirements
+      content = Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                Icons.archive_outlined,
+                size: 13,
+                color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
+              ),
               const SizedBox(width: 4),
-              const Icon(
-                Icons.check_circle,
-                color: AppColors.primaryGreen,
-                size: 14,
+              Text(
+                '$completedCount / $totalCount Docs',
+                style: TextStyle(
+                  fontSize: isMobileOrAndroid ? 11.5 : 12,
+                  fontWeight: FontWeight.bold,
+                  color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
+                ),
+              ),
+              const SizedBox(width: 4),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+                decoration: BoxDecoration(
+                  color: (isDark ? Colors.blueGrey : Colors.grey.shade300).withValues(alpha: 0.35),
+                  borderRadius: BorderRadius.circular(3),
+                ),
+                child: Text(
+                  'Archived',
+                  style: TextStyle(
+                    fontSize: 8.5,
+                    fontWeight: FontWeight.w700,
+                    color: isDark ? Colors.blueGrey.shade200 : Colors.blueGrey.shade800,
+                  ),
+                ),
               ),
             ],
-          ],
-        ),
-        SizedBox(height: isMobileOrAndroid ? 4 : 6),
-        SizedBox(
-          width: isMobileOrAndroid ? 80 : 100, // Compact on mobile to avoid overflow
-          child: LinearProgressIndicator(
-            value: progress,
-            backgroundColor: isDark ? AppColors.darkBorder : Colors.grey.shade200,
-            color: isComplete
-                ? AppColors.primaryGreen
-                : Colors.orange, // Orange indicates pending docs
-            minHeight: isMobileOrAndroid ? 5 : 6,
-            borderRadius: BorderRadius.circular(AppSizes.radiusCircular),
           ),
-        ),
-      ],
-    );
+          SizedBox(height: isMobileOrAndroid ? 4 : 6),
+          SizedBox(
+            width: isMobileOrAndroid ? 80 : 100,
+            child: LinearProgressIndicator(
+              value: progress,
+              backgroundColor: isDark ? AppColors.darkBorder : Colors.grey.shade200,
+              color: isComplete
+                  ? (isDark ? Colors.blueGrey.shade300 : Colors.blueGrey)
+                  : Colors.blueGrey.shade400,
+              minHeight: isMobileOrAndroid ? 5 : 6,
+              borderRadius: BorderRadius.circular(AppSizes.radiusCircular),
+            ),
+          ),
+        ],
+      );
+    } else {
+      // Standard active enrolled student progress bar
+      content = Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                '$completedCount / $totalCount Docs',
+                style: TextStyle(
+                  fontSize: isMobileOrAndroid ? 11.5 : 12,
+                  fontWeight: FontWeight.bold,
+                  color: isComplete
+                      ? AppColors.primaryGreen
+                      : (isDark ? AppColors.darkTextPrimary : AppColors.textPrimary),
+                ),
+              ),
+              if (isComplete) ...[
+                const SizedBox(width: 4),
+                const Icon(
+                  Icons.check_circle,
+                  color: AppColors.primaryGreen,
+                  size: 14,
+                ),
+              ],
+            ],
+          ),
+          SizedBox(height: isMobileOrAndroid ? 4 : 6),
+          SizedBox(
+            width: isMobileOrAndroid ? 80 : 100, // Compact on mobile to avoid overflow
+            child: LinearProgressIndicator(
+              value: progress,
+              backgroundColor: isDark ? AppColors.darkBorder : Colors.grey.shade200,
+              color: isComplete
+                  ? AppColors.primaryGreen
+                  : Colors.orange, // Orange indicates pending docs
+              minHeight: isMobileOrAndroid ? 5 : 6,
+              borderRadius: BorderRadius.circular(AppSizes.radiusCircular),
+            ),
+          ),
+        ],
+      );
+    }
 
     InlineSpan richMessage;
-    if (!isComplete && missingDocuments.isNotEmpty) {
+    if (!isEnrolled) {
+      richMessage = TextSpan(
+        children: [
+          WidgetSpan(
+            alignment: PlaceholderAlignment.middle,
+            child: Padding(
+              padding: const EdgeInsets.only(right: 6),
+              child: Icon(
+                Icons.archive_outlined,
+                size: 15,
+                color: isDark ? Colors.blueGrey.shade200 : Colors.blueGrey.shade700,
+              ),
+            ),
+          ),
+          TextSpan(
+            text: totalCount == 0
+                ? 'Student is $studentStatus. No active requirements assigned.'
+                : 'Student is $studentStatus. $completedCount of $totalCount required documents archived on file.',
+            style: TextStyle(
+              color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
+              fontSize: 12,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+        ],
+      );
+    } else if (!isComplete && missingDocuments.isNotEmpty) {
       final jhsDocs = missingDocuments
           .where((d) => d.toUpperCase().startsWith('[JHS]'))
           .map((d) => d.replaceFirst(_jhsRegex, '').trim())

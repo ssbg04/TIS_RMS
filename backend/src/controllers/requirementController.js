@@ -331,41 +331,48 @@ exports.getMissingRequirements = (req, res) => {
         const currentCategory = enrollment.grade_level <= 10 ? 'JHS' : 'SHS';
 
         // ── Fetch ALL categories so frontend can split into JHS and SHS panels ──
-        // Missing = mandatory requirements that have no Completed document yet
+        // Missing = requirements (mandatory and optional) that have no Completed or Archived document yet
         const missing = db.prepare(`
             SELECT dr.id, dr.name, dr.description, dr.category,
                    dr.is_mandatory, dr.is_enabled, dr.due_date,
                    dr.accepted_file_types, dr.school_levels, dr.created_at, dr.updated_at
             FROM document_requirements dr
-            WHERE dr.is_mandatory = 1
-              AND dr.is_enabled = 1
+            WHERE dr.is_enabled = 1
               AND dr.category IN (
                   SELECT DISTINCT CASE WHEN grade_level <= 10 THEN 'JHS' ELSE 'SHS' END
                   FROM enrollments WHERE student_id = ?
               )
               AND dr.id NOT IN (
                   SELECT requirement_id FROM documents
-                  WHERE student_id = ? AND status = 'Completed' AND requirement_id IS NOT NULL AND deleted_at IS NULL
+                  WHERE student_id = ? AND status IN ('Completed', 'Archived') AND requirement_id IS NOT NULL AND deleted_at IS NULL
               )
-            ORDER BY dr.category ASC, dr.name ASC
+            ORDER BY dr.category ASC, dr.is_mandatory DESC, dr.name ASC
         `).all(studentId, studentId);
 
-        // Verified = requirement has at least one Completed document
+        // Verified = requirement has at least one Completed or Archived document
+        // Prioritizes 'Completed' if a requirement has both active and archived copies
         const verified = db.prepare(`
-            SELECT DISTINCT dr.id, dr.name, dr.description, dr.category,
+            SELECT dr.id, dr.name, dr.description, dr.category,
                    dr.is_mandatory, dr.is_enabled, dr.due_date,
-                   dr.accepted_file_types, dr.school_levels, dr.created_at, dr.updated_at
+                   dr.accepted_file_types, dr.school_levels, dr.created_at, dr.updated_at,
+                   CASE WHEN SUM(CASE WHEN d.status = 'Completed' THEN 1 ELSE 0 END) > 0 THEN 'Completed' ELSE 'Archived' END AS document_status
             FROM document_requirements dr
             JOIN documents d ON d.requirement_id = dr.id
             WHERE d.student_id = ?
-              AND d.status = 'Completed'
+              AND d.status IN ('Completed', 'Archived')
               AND d.deleted_at IS NULL
               AND dr.category IN (
                   SELECT DISTINCT CASE WHEN grade_level <= 10 THEN 'JHS' ELSE 'SHS' END
                   FROM enrollments WHERE student_id = ?
               )
-            ORDER BY dr.category ASC, dr.name ASC
+            GROUP BY dr.id
+            ORDER BY dr.category ASC, dr.is_mandatory DESC, dr.name ASC
         `).all(studentId, studentId);
+
+        const mandatoryMissing = missing.filter(r => r.is_mandatory === 1);
+        const mandatoryVerified = verified.filter(r => r.is_mandatory === 1);
+        const optionalMissing = missing.filter(r => r.is_mandatory === 0);
+        const optionalVerified = verified.filter(r => r.is_mandatory === 0);
 
         res.json({
             category: currentCategory,
@@ -373,8 +380,10 @@ exports.getMissingRequirements = (req, res) => {
             missing,
             pending: [],
             verified,
-            totalRequired: missing.length + verified.length,
-            totalVerified: verified.length
+            totalRequired: mandatoryMissing.length + mandatoryVerified.length,
+            totalVerified: mandatoryVerified.length,
+            totalOptional: optionalMissing.length + optionalVerified.length,
+            totalOptionalVerified: optionalVerified.length
         });
     } catch (error) {
         console.error('getMissingRequirements error:', error);

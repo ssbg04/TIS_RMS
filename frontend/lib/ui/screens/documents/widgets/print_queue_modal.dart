@@ -30,13 +30,13 @@ class PrintQueueModal extends ConsumerStatefulWidget {
           backgroundColor: isDark ? AppColors.darkSurfaceCard : AppColors.surfaceWhite,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
           insetPadding: EdgeInsets.symmetric(
-            horizontal: isSmall ? 12 : 32,
-            vertical: isSmall ? 16 : 24,
+            horizontal: isSmall ? 8 : 32,
+            vertical: isSmall ? 8 : 24,
           ),
           child: ConstrainedBox(
             constraints: BoxConstraints(
               maxWidth: 620,
-              maxHeight: size.height * 0.9,
+              maxHeight: isSmall ? size.height * 0.96 : size.height * 0.9,
             ),
             child: Column(
               mainAxisSize: MainAxisSize.min,
@@ -118,12 +118,16 @@ class _PrintQueueModalState extends ConsumerState<PrintQueueModal> {
   bool _showPickupNotify = false;
   final TextEditingController _studentEmailController = TextEditingController();
   final TextEditingController _pickupNoteController = TextEditingController();
+  final Map<String, TextEditingController> _multiEmailControllers = {};
   DateTime _pickupDate = DateTime.now().add(const Duration(days: 1));
 
   @override
   void dispose() {
     _studentEmailController.dispose();
     _pickupNoteController.dispose();
+    for (final c in _multiEmailControllers.values) {
+      c.dispose();
+    }
     super.dispose();
   }
 
@@ -269,27 +273,57 @@ class _PrintQueueModalState extends ConsumerState<PrintQueueModal> {
       await ref.read(printQueueMutationProvider.notifier).executePrint();
 
       bool emailSent = false;
-      if (_showPickupNotify && _studentEmailController.text.trim().isNotEmpty) {
-        try {
-          final firstStudentName = currentItems.firstWhere(
-            (it) => it.studentName != null && it.studentName!.isNotEmpty,
-            orElse: () => currentItems.first,
-          ).studentName ?? 'Student';
+      int emailsSentCount = 0;
+      if (_showPickupNotify) {
+        final formattedPickup =
+            '${_pickupDate.year}-${_pickupDate.month.toString().padLeft(2, '0')}-${_pickupDate.day.toString().padLeft(2, '0')}';
+        final message = _pickupNoteController.text.trim().isNotEmpty
+            ? _pickupNoteController.text.trim()
+            : null;
 
-          final formattedPickup =
-              '${_pickupDate.year}-${_pickupDate.month.toString().padLeft(2, '0')}-${_pickupDate.day.toString().padLeft(2, '0')}';
-          await docRepo.sendPickupNotification(
-            email: _studentEmailController.text.trim(),
-            studentName: firstStudentName,
-            documentNames: currentItems.map((i) => i.fileName).toList(),
-            pickupDate: formattedPickup,
-            message: _pickupNoteController.text.trim().isNotEmpty
-                ? _pickupNoteController.text.trim()
-                : null,
-          );
-          emailSent = true;
-        } catch (mailErr) {
-          debugPrint('Failed to send pickup email: $mailErr');
+        // Group items by student
+        final Map<String, List<PrintQueueItem>> studentGroups = {};
+        for (final it in currentItems) {
+          final sName = (it.studentName != null && it.studentName!.trim().isNotEmpty)
+              ? it.studentName!.trim()
+              : 'Student';
+          studentGroups.putIfAbsent(sName, () => []).add(it);
+        }
+
+        if (studentGroups.length <= 1 && _studentEmailController.text.trim().isNotEmpty) {
+          try {
+            final sName = studentGroups.keys.firstOrNull ?? 'Student';
+            await docRepo.sendPickupNotification(
+              email: _studentEmailController.text.trim(),
+              studentName: sName,
+              documentNames: currentItems.map((i) => i.fileName).toList(),
+              pickupDate: formattedPickup,
+              message: message,
+            );
+            emailSent = true;
+            emailsSentCount = 1;
+          } catch (mailErr) {
+            debugPrint('Failed to send pickup email: $mailErr');
+          }
+        } else if (studentGroups.length > 1) {
+          for (final entry in studentGroups.entries) {
+            final targetEmail = _multiEmailControllers[entry.key]?.text.trim() ?? '';
+            if (targetEmail.isNotEmpty) {
+              try {
+                await docRepo.sendPickupNotification(
+                  email: targetEmail,
+                  studentName: entry.key,
+                  documentNames: entry.value.map((i) => i.fileName).toList(),
+                  pickupDate: formattedPickup,
+                  message: message,
+                );
+                emailSent = true;
+                emailsSentCount++;
+              } catch (mailErr) {
+                debugPrint('Failed to send pickup email to ${entry.key}: $mailErr');
+              }
+            }
+          }
         }
       }
 
@@ -300,7 +334,7 @@ class _PrintQueueModalState extends ConsumerState<PrintQueueModal> {
         context,
         title: 'Sent to Printer',
         message: emailSent
-            ? 'Batch of ${currentItems.length} document${currentItems.length > 1 ? "s" : ""} sent to printer, and pickup email sent to ${_studentEmailController.text.trim()}!'
+            ? 'Batch of ${currentItems.length} document${currentItems.length > 1 ? "s" : ""} sent to printer, and pickup email notification sent to $emailsSentCount recipient${emailsSentCount > 1 ? "s" : ""}!'
             : 'Batch of ${currentItems.length} document${currentItems.length > 1 ? "s" : ""} logged and sent to printer successfully!',
       );
     } catch (e) {
@@ -738,20 +772,89 @@ class _PrintQueueModalState extends ConsumerState<PrintQueueModal> {
                     color: isDark ? AppColors.darkBorder : Colors.grey.shade200,
                   ),
                   const SizedBox(height: 10),
-                  TextFormField(
-                    controller: _studentEmailController,
-                    keyboardType: TextInputType.emailAddress,
-                    decoration: InputDecoration(
-                      labelText: 'Student / Guardian Email',
-                      hintText: 'e.g. student@gmail.com',
-                      prefixIcon: const Icon(Icons.email_outlined, size: 18),
-                      isDense: true,
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(8),
+                  Builder(builder: (context) {
+                    // Group items by student
+                    final Map<String, List<PrintQueueItem>> studentGroups = {};
+                    for (final it in items) {
+                      final sName = (it.studentName != null && it.studentName!.trim().isNotEmpty)
+                          ? it.studentName!.trim()
+                          : 'Student';
+                      studentGroups.putIfAbsent(sName, () => []).add(it);
+                    }
+
+                    if (studentGroups.length > 1) {
+                      return Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(8),
+                            margin: const EdgeInsets.only(bottom: 10),
+                            decoration: BoxDecoration(
+                              color: Colors.blue.withValues(alpha: 0.08),
+                              borderRadius: BorderRadius.circular(8),
+                              border: Border.all(color: Colors.blue.withValues(alpha: 0.2)),
+                            ),
+                            child: Row(
+                              children: [
+                                const Icon(Icons.group_outlined, size: 16, color: Colors.blue),
+                                const SizedBox(width: 8),
+                                Expanded(
+                                  child: Text(
+                                    '${studentGroups.length} different students in print list. Enter individual emails below so each receives only their own documents:',
+                                    style: TextStyle(
+                                      fontSize: 11.5,
+                                      color: isDark ? Colors.blue.shade200 : Colors.blue.shade900,
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          ...studentGroups.entries.map((grp) {
+                            final sName = grp.key;
+                            final docCount = grp.value.length;
+                            final ctrl = _multiEmailControllers.putIfAbsent(
+                              sName,
+                              () => TextEditingController(),
+                            );
+                            return Padding(
+                              padding: const EdgeInsets.only(bottom: 8),
+                              child: TextFormField(
+                                controller: ctrl,
+                                keyboardType: TextInputType.emailAddress,
+                                decoration: InputDecoration(
+                                  labelText: '$sName ($docCount document${docCount > 1 ? "s" : ""}) Email',
+                                  hintText: 'e.g. guardian@gmail.com',
+                                  prefixIcon: const Icon(Icons.person_outline, size: 18),
+                                  isDense: true,
+                                  border: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                ),
+                                style: const TextStyle(fontSize: 12.5),
+                              ),
+                            );
+                          }),
+                        ],
+                      );
+                    }
+
+                    return TextFormField(
+                      controller: _studentEmailController,
+                      keyboardType: TextInputType.emailAddress,
+                      decoration: InputDecoration(
+                        labelText: 'Student / Guardian Email',
+                        hintText: 'e.g. student@gmail.com',
+                        prefixIcon: const Icon(Icons.email_outlined, size: 18),
+                        isDense: true,
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
                       ),
-                    ),
-                    style: const TextStyle(fontSize: 13),
-                  ),
+                      style: const TextStyle(fontSize: 13),
+                    );
+                  }),
                   const SizedBox(height: 10),
                   Row(
                     children: [
@@ -908,7 +1011,34 @@ class _PrintQueueModalState extends ConsumerState<PrintQueueModal> {
         alignment: Alignment.centerRight,
         child: TextButton.icon(
           onPressed: () async {
-            await ref.read(printQueueMutationProvider.notifier).clearHistory();
+            final confirm = await showDialog<bool>(
+              context: context,
+              builder: (ctx) => AlertDialog(
+                title: const Text('Clear Print History'),
+                content: const Text(
+                  'Are you sure you want to clear your print history? This will remove all past print records from your view and cannot be undone.',
+                ),
+                actions: [
+                  TextButton(
+                    onPressed: () => Navigator.of(ctx).pop(false),
+                    child: const Text('CANCEL'),
+                  ),
+                  TextButton(
+                    onPressed: () => Navigator.of(ctx).pop(true),
+                    child: const Text(
+                      'CLEAR',
+                      style: TextStyle(
+                        color: Colors.red,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            );
+            if (confirm == true) {
+              await ref.read(printQueueMutationProvider.notifier).clearHistory();
+            }
           },
           icon: const Icon(Icons.delete_sweep_outlined, size: 18),
           label: const Text('Clear History'),

@@ -1,10 +1,9 @@
-import 'dart:io';
 import 'package:flutter/material.dart';
-import 'package:url_launcher/url_launcher.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_sizes.dart';
 import '../../../core/services/haptic_service.dart';
 import '../../../core/services/sound_service.dart';
+import '../../../core/utils/download_service.dart';
 
 /// Shows a reusable success dialog.
 ///
@@ -99,21 +98,7 @@ Future<void> showSuccessDialog(
                 child: InkWell(
                   onTap: () async {
                     try {
-                      if (Platform.isWindows) {
-                        final file = File(filePath);
-                        if (await file.exists()) {
-                          await Process.run('explorer', ['/select,', filePath]);
-                        } else {
-                          await Process.run('explorer', [file.parent.path]);
-                        }
-                      } else {
-                        var uri = Uri.file(filePath);
-                        if (!await launchUrl(uri)) {
-                          final parentDir = File(filePath).parent.path;
-                          uri = Uri.file(parentDir);
-                          await launchUrl(uri);
-                        }
-                      }
+                      await DownloadService.openStorageFolder(filePath);
                     } catch (e) {
                       debugPrint('Error opening path: $e');
                     }
@@ -169,24 +154,105 @@ Future<void> showSuccessDialog(
           ],
         ),
         actions: [
-          SizedBox(
-            width: double.infinity,
-            child: ElevatedButton(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.success,
-                foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(vertical: 14),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(AppSizes.radiusMedium),
+          if (filePath != null && filePath.isNotEmpty) ...[
+            Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton.icon(
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: Theme.of(context).brightness == Brightness.dark
+                          ? AppColors.darkTextPrimary
+                          : AppColors.textPrimary,
+                      side: BorderSide(
+                        color: Theme.of(context).brightness == Brightness.dark
+                            ? AppColors.darkBorder
+                            : Colors.grey.shade400,
+                      ),
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(AppSizes.radiusMedium),
+                      ),
+                    ),
+                    onPressed: () async {
+                      try {
+                        await DownloadService.openStorageFolder(filePath);
+                      } catch (e) {
+                        debugPrint('Error opening folder: $e');
+                      }
+                    },
+                    icon: const Icon(Icons.folder_open_outlined, size: 17),
+                    label: const Text(
+                      'VIEW IN FOLDER',
+                      style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.bold),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: ElevatedButton.icon(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.primaryGreen,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(AppSizes.radiusMedium),
+                      ),
+                    ),
+                    onPressed: () async {
+                      try {
+                        await DownloadService.openDownloadedFile(filePath);
+                      } catch (e) {
+                        debugPrint('Error opening file: $e');
+                      }
+                    },
+                    icon: const Icon(Icons.visibility_outlined, size: 17),
+                    label: const Text(
+                      'OPEN FILE',
+                      style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.bold),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 6),
+            SizedBox(
+              width: double.infinity,
+              child: TextButton(
+                onPressed: () {
+                  Navigator.of(dialogContext).pop();
+                  onDismissed?.call();
+                },
+                child: Text(
+                  'CLOSE',
+                  style: TextStyle(
+                    color: Theme.of(context).brightness == Brightness.dark
+                        ? AppColors.darkTextSecondary
+                        : AppColors.textSecondary,
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
               ),
-              onPressed: () {
-                Navigator.of(dialogContext).pop();
-                onDismissed?.call();
-              },
-              child: Text(buttonLabel),
             ),
-          ),
+          ] else ...[
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.success,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(AppSizes.radiusMedium),
+                  ),
+                ),
+                onPressed: () {
+                  Navigator.of(dialogContext).pop();
+                  onDismissed?.call();
+                },
+                child: Text(buttonLabel),
+              ),
+            ),
+          ],
         ],
       );
     },

@@ -629,6 +629,45 @@ Files backup/restore - mirror mode or zip -->
 # ARCHIVE SCREEN 
 - do the same from document screen design from this chat today  -->
 
+<!-- # STUDENT SCREEN
+- for non-enrolled/archived students (Graduated, Transferred, Dropped, Inactive):
+  - backend: in `studentController.js`, include 'Archived' status alongside 'Completed' (`status IN ('Completed', 'Archived')`) when calculating missing/completed document requirements so submitted documents don't reset to 0/3.
+  - student card: if student status is not 'Enrolled', style the doc status as an archived badge (e.g., "📁 X / Y Docs (Archived)" with muted slate/grey indicator) instead of the active orange warning bar; if 0 requirements/no enrollment records, display "Pending Enrollment" or "No Active Requirements".
+
+# DOCUMENT SCREEN
+- in upload document modal (`upload_ocr_modal.dart`), when a student is matched/selected, display a compact requirements summary strip showing all applicable requirements (filtered by JHS/SHS grade level):
+  - separate into **Needed / Missing** (highlighted in orange/warning for immediate action) and **Completed** (subtle green/grey checkmarks confirming existing files on record).
+  - allow tapping a needed requirement chip to auto-assign that document type to the selected/pending file in the upload list.
+  - in the "Select Document Type" dropdown, add subtle badges tagging each item as `(Needed)` or `(Completed)`.
+- post-download action for downloaded documents:
+  - in download success dialog/notifications, add two action buttons: "Open File" and "View in Folder".
+  - "Open File": immediately opens the downloaded document in the device's default viewer via `open_filex`.
+  - "View in Folder":
+    - in Android app: opens the device file manager directly inside `Download/TIS_RMS` via `android_intent_plus` (targeting `content://com.android.externalstorage.documents/document/primary:Download%2FTIS_RMS`, falling back to `ACTION_VIEW_DOWNLOADS`).
+    - in Windows app: opens File Explorer highlighting the saved file (`explorer.exe /select, <path>`).
+- print list & history (documents and archives screen):
+  - history tab: add "Clear History" action with confirmation dialog.
+  - student pickup email notification: if documents in queue belong to multiple students, group by student so notifications and documents are sent separately to each student/guardian (with optional custom message from registrar).
+  - responsive UI: keep as modal dialog on Windows desktop, but use dedicated screen (or full-height bottom sheet) on Android app to prevent mobile keyboard overflow. -->
+
+<!-- # STUDENT SCREEN
+- in student profile detail modal (`student_profile_modal.dart` & `requirementController.js`):
+  - backend (`requirementController.js` -> `getMissingRequirements`):
+    - include both mandatory (`is_mandatory = 1`) and optional (`is_mandatory = 0`) document requirements so the frontend receives the full requirement checklist for the student's level (JHS/SHS).
+    - include `'Archived'` document status alongside `'Completed'` (`status IN ('Completed', 'Archived')`) and return `d.status AS document_status` so the frontend knows whether a file is active or archived.
+  - frontend (`student_profile_modal.dart`):
+    - display both mandatory and optional document requirements with clear visual differentiation (`Mandatory` vs `Optional` tags/badges).
+    - if a requirement's document on file is `'Archived'`, do NOT label it as "Done" or "Completed" — explicitly display it as **`Archived`** (with a slate/blue-grey archive badge and folder/archive icon).
+    - ensure the UI is distinct from the student card's simple doc status progress bar (provide a dedicated checklist breakdown showing 4 explicit states: `Completed` [green], `Archived` [slate/blue archive], `Missing Mandatory` [warning], and `Optional Not Submitted` [muted info]).
+- archived document counting rule across doc status & upload chips:
+  - for **Enrolled** students: only active `Completed` documents count towards requirement completion; any archived document does NOT count as fulfilled (displays as `NEEDED` in the Document upload modal chips, and does not count towards active doc status progress).
+  - for **Non-Enrolled** students (Graduated / Transferred / Dropped / Inactive): archived documents count towards their historical record (`📁 X / Y Docs [Archived]`). -->
+
+<!-- # DOCUMENT SCREEN
+- upload document on browse/scan document modal (`upload_ocr_modal.dart`):
+  - **Completed fix**: a requirement marked as `Completed` must visually reflect its actual completed state (checked icon, green color); do not show it as still pending/unchecked.
+  - **Collapsible requirement list**: make the document requirement list in the modal collapsible/expandable so it does not take up excessive vertical space on smaller screens.
+  - **Responsive layout**: ensure the requirement list and its items resize/adapt properly across different screen widths (no overflow, no truncated text). -->
 
 ---
 

@@ -336,7 +336,9 @@ exports.getAllStudents = (req, res) => {
                       )
                       AND dr.id NOT IN (
                           SELECT requirement_id FROM documents
-                          WHERE student_id = s.id AND status = 'Completed' AND requirement_id IS NOT NULL AND deleted_at IS NULL
+                          WHERE student_id = s.id 
+                            AND (status = 'Completed' OR (status = 'Archived' AND s.status != 'Enrolled'))
+                            AND requirement_id IS NOT NULL AND deleted_at IS NULL
                       )
                 ) as missing_count
             FROM students s
@@ -375,9 +377,11 @@ exports.getAllStudents = (req, res) => {
                   )
                   AND dr.id NOT IN (
                       SELECT requirement_id FROM documents
-                      WHERE student_id = ? AND status = 'Completed' AND requirement_id IS NOT NULL AND deleted_at IS NULL
+                      WHERE student_id = ? 
+                        AND (status = 'Completed' OR (status = 'Archived' AND ? != 'Enrolled'))
+                        AND requirement_id IS NOT NULL AND deleted_at IS NULL
                   )
-            `).all(student.id, student.id);
+            `).all(student.id, student.id, student.status);
             
             const missingDocsCount = missingDocsQuery.length;
             const missingDocsNames = missingDocsQuery.map(d => `[${d.category}] ${d.name}`);

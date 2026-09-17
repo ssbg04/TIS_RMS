@@ -148,6 +148,9 @@ class _UploadOcrModalState extends ConsumerState<UploadOcrModal> {
   bool _isDragOver = false;
   Timer? _dragResetTimer;
 
+  // Requirements strip expand/collapse state
+  bool _requirementsExpanded = true;
+
   @override
   void initState() {
     super.initState();
@@ -941,14 +944,83 @@ class _UploadOcrModalState extends ConsumerState<UploadOcrModal> {
   }
 
   // ── Step 0: Pick files ────────────────────────────────────────
+  // ── Student Selector & Requirements Strip ────────────────────────
+  Widget _buildStudentSelectorSection(List<dynamic> requirements, bool isDark) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Expanded(
+              child: CustomTextField(
+                hintText: 'Student LRN (12 Digits)',
+                prefixIcon: Icons.pin_outlined,
+                controller: _lrnController,
+                keyboardType: TextInputType.number,
+                maxLength: 12,
+                counterText: '',
+                inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+              ),
+            ),
+            if (_isSearchingStudent)
+              const Padding(
+                padding: EdgeInsets.only(left: 12),
+                child: SizedBox(
+                  width: 22,
+                  height: 22,
+                  child: CircularProgressIndicator(
+                      strokeWidth: 2, color: AppColors.primaryGreen),
+                ),
+              ),
+            if (_matchedStudent != null && !_isSearchingStudent)
+              const Padding(
+                padding: EdgeInsets.only(left: 12),
+                child: Icon(Icons.check_circle,
+                    color: AppColors.primaryGreen, size: 22),
+              ),
+          ],
+        ),
+        if (_matchedStudent != null) ...[
+          const SizedBox(height: 6),
+          Row(
+            children: [
+              Text(
+                '✓ ${_matchedStudent!.fullName}',
+                style: const TextStyle(
+                    fontSize: 12,
+                    color: AppColors.primaryGreen,
+                    fontWeight: FontWeight.w600),
+              ),
+              if (_matchedStudent!.gradeSection.isNotEmpty) ...[
+                Text(
+                  ' • ${_matchedStudent!.gradeSection}',
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
+                  ),
+                ),
+              ],
+            ],
+          ),
+          const SizedBox(height: 10),
+          _buildStudentRequirementsStrip(requirements, isDark),
+        ] else ...[
+          const SizedBox(height: 14),
+        ],
+      ],
+    );
+  }
+
+  // ── Step 0: Pick files ────────────────────────────────────────
   Widget _buildStep0() {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final isMobile = Platform.isAndroid || Platform.isIOS;
     final isWindows = defaultTargetPlatform == TargetPlatform.windows;
-    Widget content = Container(
-      key: const ValueKey('step0'),
+    final requirementsAsync = ref.watch(documentRequirementsProvider);
+
+    Widget dropArea = Container(
       width: double.infinity,
-      padding: const EdgeInsets.symmetric(vertical: 48, horizontal: 24),
+      padding: const EdgeInsets.symmetric(vertical: 36, horizontal: 24),
       decoration: BoxDecoration(
         color: _isDragOver
             ? AppColors.primaryGreen.withValues(alpha: isDark ? 0.25 : 0.15)
@@ -966,14 +1038,14 @@ class _UploadOcrModalState extends ConsumerState<UploadOcrModal> {
         children: [
           Icon(
             Icons.upload_file_rounded,
-            size: 56,
+            size: 50,
             color: AppColors.primaryGreen.withValues(alpha: 0.6),
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 14),
           const Text(
             'Select Document Source',
             style: TextStyle(
-              fontSize: 18,
+              fontSize: 17,
               fontWeight: FontWeight.bold,
               color: AppColors.primaryGreen,
             ),
@@ -985,11 +1057,11 @@ class _UploadOcrModalState extends ConsumerState<UploadOcrModal> {
                 : 'Supports PDF, JPG, JPEG, PNG\nYou can select multiple files at once',
             textAlign: TextAlign.center,
             style: TextStyle(
-              fontSize: 13,
+              fontSize: 12.5,
               color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary.withValues(alpha: 0.8),
             ),
           ),
-          const SizedBox(height: 24),
+          const SizedBox(height: 20),
           Wrap(
             alignment: WrapAlignment.center,
             spacing: AppSizes.p12,
@@ -1047,7 +1119,7 @@ class _UploadOcrModalState extends ConsumerState<UploadOcrModal> {
     );
 
     if (isWindows) {
-      content = DropTarget(
+      dropArea = DropTarget(
         onDragEntered: (_) {
           _dragResetTimer?.cancel();
           if (mounted) setState(() => _isDragOver = true);
@@ -1066,15 +1138,29 @@ class _UploadOcrModalState extends ConsumerState<UploadOcrModal> {
           if (mounted) setState(() => _isDragOver = false);
           _handleDroppedFiles(details.files);
         },
-        child: content,
+        child: dropArea,
       );
     }
 
-    return content;
+    return SingleChildScrollView(
+      key: const ValueKey('step0'),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          requirementsAsync.when(
+            loading: () => _buildStudentSelectorSection([], isDark),
+            error: (_, _) => _buildStudentSelectorSection([], isDark),
+            data: (reqs) => _buildStudentSelectorSection(reqs, isDark),
+          ),
+          dropArea,
+        ],
+      ),
+    );
   }
 
   // ── Step 1: Review & Upload ───────────────────────────────────
   Widget _buildStep1() {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final requirementsAsync = ref.watch(documentRequirementsProvider);
 
     return SingleChildScrollView(
@@ -1082,50 +1168,6 @@ class _UploadOcrModalState extends ConsumerState<UploadOcrModal> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // LRN field
-          Row(
-            children: [
-              Expanded(
-                child: CustomTextField(
-                  hintText: 'Student LRN (12 Digits)',
-                  prefixIcon: Icons.pin_outlined,
-                  controller: _lrnController,
-                  keyboardType: TextInputType.number,
-                  maxLength: 12,
-                  counterText: '',
-                  inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                ),
-              ),
-              if (_isSearchingStudent)
-                const Padding(
-                  padding: EdgeInsets.only(left: 12),
-                  child: SizedBox(
-                    width: 22,
-                    height: 22,
-                    child: CircularProgressIndicator(
-                        strokeWidth: 2, color: AppColors.primaryGreen),
-                  ),
-                ),
-              if (_matchedStudent != null && !_isSearchingStudent)
-                const Padding(
-                  padding: EdgeInsets.only(left: 12),
-                  child: Icon(Icons.check_circle,
-                      color: AppColors.primaryGreen, size: 22),
-                ),
-            ],
-          ),
-          if (_matchedStudent != null) ...[
-            const SizedBox(height: 6),
-            Text(
-              '✓ ${_matchedStudent!.fullName}',
-              style: const TextStyle(
-                  fontSize: 12,
-                  color: AppColors.primaryGreen,
-                  fontWeight: FontWeight.w600),
-            ),
-          ],
-          const SizedBox(height: 16),
-
           // File list
           requirementsAsync.when(
             loading: () => const Center(
@@ -1134,7 +1176,9 @@ class _UploadOcrModalState extends ConsumerState<UploadOcrModal> {
                 style: const TextStyle(color: AppColors.error)),
             data: (requirements) {
               return Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  _buildStudentSelectorSection(requirements, isDark),
                   ..._entries.asMap().entries.map((entry) {
                     final idx = entry.key;
                     final item = entry.value;
@@ -1367,6 +1411,35 @@ class _UploadOcrModalState extends ConsumerState<UploadOcrModal> {
   Widget _buildRequirementDropdown(
       int idx, _UploadEntry item, List<dynamic> requirements) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    // Build ID-based status sets from the per-student provider (accurate source)
+    // Falls back to empty sets when no student is matched yet.
+    Set<int> missingIds = {};
+    Set<int> archivedIds = {};
+    Set<int> completedIds = {};
+    if (_matchedStudentId != null) {
+      final mrAsync = ref.read(missingRequirementsProvider(_matchedStudentId!));
+      mrAsync.whenData((mr) {
+        missingIds = mr.missing.map((r) => r.id).toSet();
+        archivedIds = {...mr.verified, ...mr.pending}
+            .where((r) => r.documentStatus?.toLowerCase() == 'archived')
+            .map((r) => r.id)
+            .toSet();
+        completedIds = {...mr.verified, ...mr.pending}
+            .where((r) => r.documentStatus?.toLowerCase() != 'archived')
+            .map((r) => r.id)
+            .toSet();
+      });
+    }
+
+    String tagFor(int id) {
+      if (_matchedStudentId == null) return '';
+      if (archivedIds.contains(id)) return ' \u2022 [Archived]';
+      if (missingIds.contains(id)) return ' \u2022 [Needed]';
+      if (completedIds.contains(id)) return ' \u2022 [Completed]';
+      return ''; // not in student scope — no tag
+    }
+
     // Filter requirements based on student grade
     List<dynamic> applicable = requirements;
     if (_matchedStudent != null) {
@@ -1407,9 +1480,10 @@ class _UploadOcrModalState extends ConsumerState<UploadOcrModal> {
       for (final r in jhs) {
         final maxF = (r is DocumentRequirementModel) ? r.maxFiles : 1;
         final limitHint = maxF > 1 ? ' (Max $maxF files)' : '';
+        final statusTag = tagFor(r.id as int);
         entries.add(DropdownMenuEntry<int>(
           value: r.id as int,
-          label: '${r.name}${r.isMandatory ? " *" : ""}$limitHint',
+          label: '${r.name}${r.isMandatory ? " *" : ""}$statusTag$limitHint',
         ));
       }
     }
@@ -1427,9 +1501,10 @@ class _UploadOcrModalState extends ConsumerState<UploadOcrModal> {
       for (final r in shs) {
         final maxF = (r is DocumentRequirementModel) ? r.maxFiles : 1;
         final limitHint = maxF > 1 ? ' (Max $maxF files)' : '';
+        final statusTag = tagFor(r.id as int);
         entries.add(DropdownMenuEntry<int>(
           value: r.id as int,
-          label: '${r.name}${r.isMandatory ? " *" : ""}$limitHint',
+          label: '${r.name}${r.isMandatory ? " *" : ""}$statusTag$limitHint',
         ));
       }
     }
@@ -1471,6 +1546,276 @@ class _UploadOcrModalState extends ConsumerState<UploadOcrModal> {
       },
     );
   }
+
+
+  Widget _buildStudentRequirementsStrip(List<dynamic> requirements, bool isDark) {
+    if (_matchedStudent == null) return const SizedBox.shrink();
+
+    final studentId = _matchedStudentId;
+    if (studentId == null) return const SizedBox.shrink();
+
+    // Use per-student missingRequirementsProvider for accurate status
+    final missingAsync = ref.watch(missingRequirementsProvider(studentId));
+
+    return missingAsync.when(
+      loading: () => Container(
+        width: double.infinity,
+        margin: const EdgeInsets.only(bottom: 16),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+        decoration: BoxDecoration(
+          color: isDark ? AppColors.darkSurface2 : AppColors.pageBackground,
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(color: isDark ? AppColors.darkBorder : Colors.grey.shade300),
+        ),
+        child: Row(
+          children: [
+            const SizedBox(
+              width: 14, height: 14,
+              child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.primaryGreen),
+            ),
+            const SizedBox(width: 8),
+            Text(
+              'Loading requirements…',
+              style: TextStyle(
+                fontSize: 12,
+                color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
+              ),
+            ),
+          ],
+        ),
+      ),
+      error: (e, _) => const SizedBox.shrink(),
+      data: (mr) {
+        // Categorize using the rich per-student MissingRequirements data
+        final needList = mr.missing; // truly missing
+        final archivedList = [...mr.verified, ...mr.pending]
+            .where((r) => r.documentStatus?.toLowerCase() == 'archived')
+            .toList();
+        final completedList = [...mr.verified, ...mr.pending]
+            .where((r) => r.documentStatus?.toLowerCase() != 'archived')
+            .toList();
+
+        final totalAll = needList.length + archivedList.length + completedList.length;
+        final completedCount = completedList.length;
+
+        if (totalAll == 0) return const SizedBox.shrink();
+
+        return Container(
+          width: double.infinity,
+          margin: const EdgeInsets.only(bottom: 16),
+          decoration: BoxDecoration(
+            color: isDark ? AppColors.darkSurface2 : AppColors.pageBackground,
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(
+              color: isDark ? AppColors.darkBorder : Colors.grey.shade300,
+            ),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // ── Collapsible header ──
+              InkWell(
+                onTap: () => setState(() => _requirementsExpanded = !_requirementsExpanded),
+                borderRadius: const BorderRadius.vertical(top: Radius.circular(10)),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                  child: Row(
+                    children: [
+                      Icon(
+                        Icons.assignment_outlined,
+                        size: 15,
+                        color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
+                      ),
+                      const SizedBox(width: 6),
+                      Expanded(
+                        child: Text(
+                          'Requirements — $completedCount / $totalAll Completed',
+                          style: TextStyle(
+                            fontSize: 12.5,
+                            fontWeight: FontWeight.bold,
+                            color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
+                          ),
+                        ),
+                      ),
+                      // Mandatory missing badge
+                      if (needList.any((r) => r.isMandatory)) ...[
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: Colors.orange.withValues(alpha: 0.15),
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                          child: Text(
+                            '${needList.where((r) => r.isMandatory).length} needed',
+                            style: TextStyle(
+                              fontSize: 10,
+                              fontWeight: FontWeight.w700,
+                              color: isDark ? Colors.orange.shade300 : Colors.orange.shade800,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 6),
+                      ],
+                      Icon(
+                        _requirementsExpanded
+                            ? Icons.keyboard_arrow_up_rounded
+                            : Icons.keyboard_arrow_down_rounded,
+                        size: 18,
+                        color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+
+              // ── Expandable body ──
+              AnimatedCrossFade(
+                firstChild: const SizedBox.shrink(),
+                secondChild: Padding(
+                  padding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      if (needList.isNotEmpty) ...[
+                        const Divider(height: 1),
+                        const SizedBox(height: 8),
+                        // Separate mandatory vs optional needed
+                        _buildChipGroup(
+                          label: 'NEEDED — MANDATORY:',
+                          labelColor: isDark ? Colors.red.shade300 : Colors.red.shade700,
+                          chips: needList.where((r) => r.isMandatory).toList(),
+                          chipColor: Colors.red,
+                          icon: Icons.error_outline_rounded,
+                          isDark: isDark,
+                        ),
+                        _buildChipGroup(
+                          label: 'NEEDED — OPTIONAL:',
+                          labelColor: isDark ? Colors.orange.shade300 : Colors.orange.shade700,
+                          chips: needList.where((r) => !r.isMandatory).toList(),
+                          chipColor: Colors.orange,
+                          icon: Icons.warning_amber_rounded,
+                          isDark: isDark,
+                        ),
+                      ],
+                      if (archivedList.isNotEmpty)
+                        _buildChipGroup(
+                          label: 'ARCHIVED (Submit new copy):',
+                          labelColor: isDark ? Colors.blueGrey.shade300 : Colors.blueGrey.shade600,
+                          chips: archivedList,
+                          chipColor: Colors.blueGrey,
+                          icon: Icons.archive_outlined,
+                          isDark: isDark,
+                        ),
+                      if (completedList.isNotEmpty)
+                        _buildChipGroup(
+                          label: 'COMPLETED ON FILE:',
+                          labelColor: isDark ? Colors.teal.shade300 : AppColors.primaryGreen,
+                          chips: completedList,
+                          chipColor: AppColors.primaryGreen,
+                          icon: Icons.check_circle_outline,
+                          isDark: isDark,
+                        ),
+                    ],
+                  ),
+                ),
+                crossFadeState: _requirementsExpanded
+                    ? CrossFadeState.showSecond
+                    : CrossFadeState.showFirst,
+                duration: const Duration(milliseconds: 200),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  /// Generic chip group builder used inside the requirements strip.
+  Widget _buildChipGroup({
+    required String label,
+    required Color labelColor,
+    required List<DocumentRequirementModel> chips,
+    required Color chipColor,
+    required IconData icon,
+    required bool isDark,
+  }) {
+    if (chips.isEmpty) return const SizedBox.shrink();
+    final borderColor = isDark ? AppColors.darkBorder : Colors.grey.shade300;
+    final bgColor = isDark ? AppColors.darkSurface2 : Colors.white;
+    final textColor = isDark ? AppColors.darkTextPrimary : AppColors.textPrimary;
+    final muteColor = isDark ? AppColors.darkTextMuted : AppColors.textMuted;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const SizedBox(height: 8),
+        Text(
+          label,
+          style: TextStyle(
+            fontSize: 10.5,
+            fontWeight: FontWeight.w700,
+            color: labelColor,
+            letterSpacing: 0.3,
+          ),
+        ),
+        const SizedBox(height: 6),
+        Wrap(
+          spacing: 6,
+          runSpacing: 6,
+          children: chips.map((r) {
+            final levelTag = r.category == 'JHS' ? 'JHS' : 'SHS';
+            return Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              decoration: BoxDecoration(
+                color: bgColor,
+                borderRadius: BorderRadius.circular(6),
+                border: Border.all(color: borderColor),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  // Status icon — only colored element
+                  Icon(icon, size: 12, color: chipColor),
+                  const SizedBox(width: 5),
+                  // JHS/SHS badge — muted grey
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 3, vertical: 1),
+                    decoration: BoxDecoration(
+                      color: isDark ? Colors.white10 : Colors.grey.shade100,
+                      borderRadius: BorderRadius.circular(3),
+                      border: Border.all(color: borderColor),
+                    ),
+                    child: Text(
+                      levelTag,
+                      style: TextStyle(
+                        fontSize: 9,
+                        fontWeight: FontWeight.w700,
+                        color: muteColor,
+                        letterSpacing: 0.2,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 5),
+                  Flexible(
+                    child: Text(
+                      r.name,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w500,
+                        color: textColor,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            );
+          }).toList(),
+        ),
+      ],
+    );
+  }
+
 
   Widget _buildActionRow() {
     final isDark = Theme.of(context).brightness == Brightness.dark;
