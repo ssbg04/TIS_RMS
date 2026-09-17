@@ -19,7 +19,7 @@ import '../../../shared/buttons/primary_button.dart';
 import '../../../shared/dialogs/error_dialog.dart';
 import '../../../../domain/entities/student_model.dart';
 import '../../../../domain/entities/document_requirement_model.dart';
-import 'package:wolt_modal_sheet/wolt_modal_sheet.dart';
+// Native dialog implementation replacing wolt_modal_sheet
 import 'upload_modal_header.dart';
 
 // ────────────────────────────────────────────────────────────
@@ -69,31 +69,57 @@ class UploadOcrModal extends ConsumerStatefulWidget {
     List<File>? preloadedFiles,
   }) {
     final stepNotifier = ValueNotifier<int>(0);
-    WoltModalSheet.show<void>(
+    showDialog<void>(
       context: context,
-      useSafeArea: false,
-      pageListBuilder: (modalSheetContext) {
-        final isDark = Theme.of(modalSheetContext).brightness == Brightness.dark;
-        return [
-          WoltModalSheetPage(
-            backgroundColor: isDark ? AppColors.darkSurfaceCard : AppColors.surfaceWhite,
-            hasSabGradient: false,
-            hasTopBarLayer: true,
-            isTopBarLayerAlwaysVisible: true,
-            topBarTitle: ValueListenableBuilder<int>(
-              valueListenable: stepNotifier,
-              builder: (ctx, step, _) => UploadModalHeaderWidget(step: step),
+      barrierDismissible: true,
+      builder: (modalContext) {
+        final isDark = Theme.of(modalContext).brightness == Brightness.dark;
+        final size = MediaQuery.of(modalContext).size;
+        final isSmall = size.width < 600;
+
+        return Dialog(
+          backgroundColor: isDark ? AppColors.darkSurfaceCard : AppColors.surfaceWhite,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          insetPadding: EdgeInsets.symmetric(
+            horizontal: isSmall ? 12 : 32,
+            vertical: isSmall ? 16 : 24,
+          ),
+          child: ConstrainedBox(
+            constraints: BoxConstraints(
+              maxWidth: 720,
+              maxHeight: size.height * 0.9,
             ),
-            child: UploadOcrModal(
-              prefilledStudentId: prefilledStudentId,
-              preloadedFiles: preloadedFiles,
-              stepNotifier: stepNotifier,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 14, 16, 10),
+                  child: ValueListenableBuilder<int>(
+                    valueListenable: stepNotifier,
+                    builder: (ctx, step, _) => UploadModalHeaderWidget(step: step),
+                  ),
+                ),
+                Divider(
+                  height: 1,
+                  color: isDark ? AppColors.darkBorder : Colors.grey.shade200,
+                ),
+                Flexible(
+                  child: SingleChildScrollView(
+                    child: UploadOcrModal(
+                      prefilledStudentId: prefilledStudentId,
+                      preloadedFiles: preloadedFiles,
+                      stepNotifier: stepNotifier,
+                    ),
+                  ),
+                ),
+              ],
             ),
           ),
-        ];
+        );
       },
     );
   }
+
 
   @override
   ConsumerState<UploadOcrModal> createState() => _UploadOcrModalState();

@@ -13,7 +13,6 @@ import '../../providers/auth_provider.dart';
 import '../../shared/dialogs/document_properties_dialog.dart';
 import '../../shared/widgets/app_pagination.dart';
 import '../../shared/widgets/app_error_state.dart';
-import '../../shared/widgets/horizontal_expandable_fab.dart';
 import '../../providers/navigation_provider.dart';
 import '../../providers/conversion_provider.dart';
 
@@ -737,52 +736,7 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
         child: Scaffold(
           resizeToAvoidBottomInset: false,
           backgroundColor: Colors.transparent,
-        floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
-        floatingActionButton: (isMobile &&
-                !_isMultiSelectMode &&
-                !_searchFocusNode.hasFocus)
-            ? HorizontalExpandableFab(
-                heroTag: 'fab_documents_menu',
-                items: [
-                  // Print List Action (available for admin only)
-                  if (widget.userRole != 'teacher')
-                    FabActionItem(
-                      icon: Icons.print_rounded,
-                      tooltip: 'Print List',
-                      badgeCount: ref.watch(printQueueProvider).value?.length ?? 0,
-                      heroTag: 'fab_docs_print_list',
-                      onPressed: () => PrintQueueModal.show(context),
-                    ),
-                  // Multi-Select Action (available for admin on All Documents or in opened folder)
-                  if (widget.userRole != 'teacher' && (_tabController.index == 1 || isFolderOpened))
-                    FabActionItem(
-                      icon: Icons.checklist_rounded,
-                      tooltip: 'Select Multiple',
-                      heroTag: 'fab_docs_multi_select',
-                      onPressed: () {
-                        setState(() {
-                          _isMultiSelectMode = true;
-                        });
-                      },
-                    ),
-                  // Upload Document Action (available on All Documents or in opened folder for both admin and teacher)
-                  if (_tabController.index == 1 || isFolderOpened)
-                    FabActionItem(
-                      icon: Icons.cloud_upload_rounded,
-                      tooltip: 'Upload Document',
-                      heroTag: 'fab_docs_upload',
-                      onPressed: () {
-                        UploadOcrModal.show(
-                          context,
-                          prefilledStudentId:
-                              _openedFolderStudentId ??
-                              widget.initialStudentId,
-                        );
-                      },
-                    ),
-                ],
-              )
-            : null,
+          floatingActionButton: null,
         bottomNavigationBar: null,
         body: SafeArea(
           child: Column(
@@ -1272,6 +1226,64 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
               const SizedBox(width: 2),
             ],
 
+            // Mobile action buttons (moved from FAB to header)
+            if (isMobile) ...[
+              // 1. Multi-Select (for non-teachers on Tab 1 or opened folder)
+              if (widget.userRole != 'teacher' && (_tabController.index == 1 || isFolderOpened)) ...[
+                Tooltip(
+                  message: _isMultiSelectMode ? 'Exit Multi-Select' : 'Multi-Select',
+                  child: IconButton(
+                    padding: const EdgeInsets.all(8),
+                    constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
+                    onPressed: () {
+                      setState(() {
+                        _isMultiSelectMode = !_isMultiSelectMode;
+                        if (!_isMultiSelectMode) _selectedDocumentIds.clear();
+                      });
+                    },
+                    icon: Icon(
+                      Icons.checklist_rounded,
+                      size: 20,
+                      color: _isMultiSelectMode
+                          ? AppColors.primaryGreen
+                          : (isDark ? AppColors.darkTextPrimary : AppColors.textSecondary),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 2),
+              ],
+
+              // 2. Print List (for non-teachers)
+              if (widget.userRole != 'teacher') ...[
+                _buildPrintQueueButton(compact: true),
+                const SizedBox(width: 2),
+              ],
+
+              // 3. Upload Document (Tab 1 or opened folder)
+              if (_tabController.index == 1 || isFolderOpened) ...[
+                Tooltip(
+                  message: 'Upload Document',
+                  child: IconButton(
+                    padding: const EdgeInsets.all(8),
+                    constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
+                    icon: const Icon(
+                      Icons.cloud_upload_rounded,
+                      size: 22,
+                      color: AppColors.primaryGreen,
+                    ),
+                    onPressed: () {
+                      UploadOcrModal.show(
+                        context,
+                        prefilledStudentId:
+                            _openedFolderStudentId ?? widget.initialStudentId,
+                      );
+                    },
+                  ),
+                ),
+                const SizedBox(width: 2),
+              ],
+            ],
+
             // Desktop action buttons (Upload available to admins and teachers)
             if (!isMobile && _tabController.index != 2) ...[
               SizedBox(
@@ -1506,6 +1518,26 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
       data: (items) => items.length,
       orElse: () => 0,
     );
+
+    if (compact) {
+      return Tooltip(
+        message: 'Print List',
+        child: IconButton(
+          padding: const EdgeInsets.all(8),
+          constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
+          onPressed: () => PrintQueueModal.show(context),
+          icon: Badge(
+            isLabelVisible: count > 0,
+            label: Text(count.toString()),
+            child: Icon(
+              Icons.print_rounded,
+              size: 20,
+              color: isDark ? AppColors.darkTextPrimary : Colors.black87,
+            ),
+          ),
+        ),
+      );
+    }
 
     return Tooltip(
       message: 'Print List',

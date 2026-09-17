@@ -601,12 +601,16 @@ Files backup/restore - mirror mode or zip -->
   - frontend: add cacheWidth/cacheHeight image memory decode optimization to eliminate scroll lag
 - do not use wolt modal for "upload & OCR modal" and print queue modal after this remove the package of wolt modal sheet
 - in print queue, when printing Excel file(s), show dialog asking to automatically convert them to PDF and proceed with printing instead of showing a blocking error dialog
-
+- print list modal
+  - print list history, print email to the student: email (optional), add available date to pickup, message to email can be manual message typed by registrar/staff or preset message (optional)
+ 
 
 ---
 
 # DONT DO
 <!-- - documents screen -> add how many files can be uploaded into a document requirement, the current limitation is only 1, so we can dynamically choose number files that can be uploaded into that document, update both frontend and backend, but first give me suggestion where will put the setting of this, ask me first   -->
+
+- print list history, print email to the student make it optional, add date of print, add status (done, not done, in progress, picked up), add message to email can be manual message typed by registrar/staff, 
 
 - teacher no assigned section theme color
 - bug in bulk add student enrollment

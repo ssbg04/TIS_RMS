@@ -856,4 +856,32 @@ class DocumentRepository {
       throw Exception(msg);
     }
   }
+
+  Future<void> sendPickupNotification({
+    required String email,
+    required String studentName,
+    required List<String> documentNames,
+    required String pickupDate,
+    String? message,
+  }) async {
+    try {
+      final options = await _getAuthOptions();
+      await _dio.post(
+        '/documents/print-notify-email',
+        data: {
+          'email': email,
+          'studentName': studentName,
+          'documentNames': documentNames,
+          'pickupDate': pickupDate,
+          'message': message,
+        },
+        options: options,
+      );
+    } on DioException catch (e) {
+      final msg =
+          e.response?.data?['message'] ?? 'Failed to send pickup notification.';
+      throw Exception(msg);
+    }
+  }
 }
+

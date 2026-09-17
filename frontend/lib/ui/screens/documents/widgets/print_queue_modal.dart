@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:printing/printing.dart';
 import 'package:syncfusion_flutter_pdf/pdf.dart';
-import 'package:wolt_modal_sheet/wolt_modal_sheet.dart';
 
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_sizes.dart';
@@ -19,61 +18,92 @@ class PrintQueueModal extends ConsumerStatefulWidget {
   const PrintQueueModal({super.key});
 
   static void show(BuildContext context) {
-    WoltModalSheet.show<void>(
+    showDialog<void>(
       context: context,
-      pageListBuilder: (modalSheetContext) {
-        final isDark = Theme.of(modalSheetContext).brightness == Brightness.dark;
-        return [
-          WoltModalSheetPage(
-            backgroundColor: isDark ? AppColors.darkSurfaceCard : AppColors.surfaceWhite,
-            hasSabGradient: false,
-            hasTopBarLayer: true,
-            isTopBarLayerAlwaysVisible: true,
-            topBarTitle: Padding(
-              padding: const EdgeInsets.only(left: 16),
-              child: Row(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(6),
-                    decoration: BoxDecoration(
-                      color: AppColors.primaryGreen.withValues(alpha: 0.1),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: const Icon(Icons.print,
-                        color: AppColors.primaryGreen, size: 20),
-                  ),
-                  const SizedBox(width: AppSizes.p12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Text('Print List',
-                            style: TextStyle(
-                                fontSize: 18,
-                                fontWeight: FontWeight.bold,
-                                color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary)),
-                        Text('Staged documents for print or request.',
-                            style: TextStyle(
-                                fontSize: 11,
-                                color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
-                                fontStyle: FontStyle.italic)),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            trailingNavBarWidget: Padding(
-              padding: const EdgeInsets.only(right: 8, top: 4),
-              child: IconButton(
-                icon: Icon(Icons.close, color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary),
-                onPressed: () => Navigator.of(modalSheetContext).pop(),
-              ),
-            ),
-            child: const PrintQueueModal(),
+      barrierDismissible: true,
+      builder: (modalContext) {
+        final isDark = Theme.of(modalContext).brightness == Brightness.dark;
+        final size = MediaQuery.of(modalContext).size;
+        final isSmall = size.width < 600;
+
+        return Dialog(
+          backgroundColor: isDark ? AppColors.darkSurfaceCard : AppColors.surfaceWhite,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          insetPadding: EdgeInsets.symmetric(
+            horizontal: isSmall ? 12 : 32,
+            vertical: isSmall ? 16 : 24,
           ),
-        ];
+          child: ConstrainedBox(
+            constraints: BoxConstraints(
+              maxWidth: 620,
+              maxHeight: size.height * 0.9,
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 16, 12, 12),
+                  child: Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: AppColors.primaryGreen.withValues(alpha: 0.12),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: const Icon(
+                          Icons.print_rounded,
+                          color: AppColors.primaryGreen,
+                          size: 20,
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              'Print List',
+                              style: TextStyle(
+                                fontSize: 17,
+                                fontWeight: FontWeight.bold,
+                                color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
+                              ),
+                            ),
+                            Text(
+                              'Staged documents for batch printing and pickup.',
+                              style: TextStyle(
+                                fontSize: 11.5,
+                                color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      IconButton(
+                        icon: Icon(
+                          Icons.close,
+                          color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
+                        ),
+                        onPressed: () => Navigator.of(modalContext).pop(),
+                      ),
+                    ],
+                  ),
+                ),
+                Divider(
+                  height: 1,
+                  color: isDark ? AppColors.darkBorder : Colors.grey.shade200,
+                ),
+                const Flexible(
+                  child: SingleChildScrollView(
+                    child: PrintQueueModal(),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
       },
     );
   }
@@ -85,23 +115,83 @@ class PrintQueueModal extends ConsumerStatefulWidget {
 class _PrintQueueModalState extends ConsumerState<PrintQueueModal> {
   bool _isPrinting = false;
   int _selectedTab = 0; // 0 = Print List, 1 = History
+  bool _showPickupNotify = false;
+  final TextEditingController _studentEmailController = TextEditingController();
+  final TextEditingController _pickupNoteController = TextEditingController();
+  DateTime _pickupDate = DateTime.now().add(const Duration(days: 1));
+
+  @override
+  void dispose() {
+    _studentEmailController.dispose();
+    _pickupNoteController.dispose();
+    super.dispose();
+  }
 
   Future<void> _handlePrintAll(List<PrintQueueItem> items) async {
     if (items.isEmpty) return;
+    var currentItems = List<PrintQueueItem>.from(items);
 
-    final hasExcel = items.any((item) {
+    final excelItems = currentItems.where((item) {
       final fname = item.fileName.toLowerCase();
       return fname.endsWith('.xlsx') ||
           fname.endsWith('.xls') ||
           fname.endsWith('.csv');
-    });
-    if (hasExcel) {
-      showErrorDialog(
-        context,
-        'Convert to PDF First',
-        'Cannot print Excel/spreadsheet files directly. Please convert Excel files (.xlsx, .xls, .csv) to PDF first before printing.',
+    }).toList();
+
+    if (excelItems.isNotEmpty) {
+      final shouldConvert = await showDialog<bool>(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+          title: const Row(
+            children: [
+              Icon(Icons.picture_as_pdf_rounded, color: Colors.deepOrangeAccent),
+              SizedBox(width: 10),
+              Text('Convert Excel to PDF?'),
+            ],
+          ),
+          content: Text(
+            'The print list contains ${excelItems.length} spreadsheet file(s) (.xlsx/.xls/.csv) which cannot be printed directly.\n\nWould you like to automatically convert them to PDF and proceed to print?',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(ctx).pop(false),
+              child: const Text('Cancel'),
+            ),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.primaryGreen,
+                foregroundColor: Colors.white,
+              ),
+              onPressed: () => Navigator.of(ctx).pop(true),
+              child: const Text('Convert & Print'),
+            ),
+          ],
+        ),
       );
-      return;
+
+      if (shouldConvert != true) return;
+
+      setState(() => _isPrinting = true);
+      try {
+        final docRepo = ref.read(documentRepositoryProvider);
+        for (final exItem in excelItems) {
+          final convertedDoc = await docRepo.convertExcelToPdf(exItem.documentId);
+          await docRepo.removeFromPrintQueue(exItem.queueId);
+          await docRepo.addToPrintQueue(convertedDoc.id);
+        }
+        ref.invalidate(printQueueProvider);
+        currentItems = await ref.read(printQueueProvider.future);
+      } catch (e) {
+        if (!mounted) return;
+        setState(() => _isPrinting = false);
+        showErrorDialog(
+          context,
+          'Conversion Failed',
+          e.toString().replaceFirst('Exception: ', ''),
+        );
+        return;
+      }
     }
 
     setState(() => _isPrinting = true);
@@ -112,7 +202,8 @@ class _PrintQueueModalState extends ConsumerState<PrintQueueModal> {
       // Merge all documents into a single PDF
       final combinedPdf = PdfDocument();
       
-      for (var item in items) {
+      for (var item in currentItems) {
+
         final bytes = await docRepo.downloadDocumentBytes(item.documentId);
         final isPdf = item.fileName.toLowerCase().endsWith('.pdf');
         
@@ -177,13 +268,40 @@ class _PrintQueueModalState extends ConsumerState<PrintQueueModal> {
       // Log history and clear queue in backend
       await ref.read(printQueueMutationProvider.notifier).executePrint();
 
+      bool emailSent = false;
+      if (_showPickupNotify && _studentEmailController.text.trim().isNotEmpty) {
+        try {
+          final firstStudentName = currentItems.firstWhere(
+            (it) => it.studentName != null && it.studentName!.isNotEmpty,
+            orElse: () => currentItems.first,
+          ).studentName ?? 'Student';
+
+          final formattedPickup =
+              '${_pickupDate.year}-${_pickupDate.month.toString().padLeft(2, '0')}-${_pickupDate.day.toString().padLeft(2, '0')}';
+          await docRepo.sendPickupNotification(
+            email: _studentEmailController.text.trim(),
+            studentName: firstStudentName,
+            documentNames: currentItems.map((i) => i.fileName).toList(),
+            pickupDate: formattedPickup,
+            message: _pickupNoteController.text.trim().isNotEmpty
+                ? _pickupNoteController.text.trim()
+                : null,
+          );
+          emailSent = true;
+        } catch (mailErr) {
+          debugPrint('Failed to send pickup email: $mailErr');
+        }
+      }
+
       if (!mounted) return;
       setState(() => _isPrinting = false);
       Navigator.of(context).pop();
       showSuccessDialog(
         context,
         title: 'Sent to Printer',
-        message: 'Batch of ${items.length} document${items.length > 1 ? "s" : ""} logged and sent to printer successfully!',
+        message: emailSent
+            ? 'Batch of ${currentItems.length} document${currentItems.length > 1 ? "s" : ""} sent to printer, and pickup email sent to ${_studentEmailController.text.trim()}!'
+            : 'Batch of ${currentItems.length} document${currentItems.length > 1 ? "s" : ""} logged and sent to printer successfully!',
       );
     } catch (e) {
       if (!mounted) return;
@@ -470,7 +588,8 @@ class _PrintQueueModalState extends ConsumerState<PrintQueueModal> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Divider(height: AppSizes.p32, color: isDark ? AppColors.darkBorder : null),
+        _buildPickupNotificationSection(items, isDark),
+        Divider(height: AppSizes.p24, color: isDark ? AppColors.darkBorder : null),
         if (isMobile) ...[
           // Mobile layout: Stacked info and buttons
           Text('${items.length} document${items.length > 1 ? 's' : ''}',
@@ -544,6 +663,150 @@ class _PrintQueueModalState extends ConsumerState<PrintQueueModal> {
           ),
         ],
       ],
+    );
+  }
+
+  Widget _buildPickupNotificationSection(
+      List<PrintQueueItem> items, bool isDark) {
+    return Container(
+      margin: const EdgeInsets.only(top: 14, bottom: 4),
+      decoration: BoxDecoration(
+        color: isDark ? AppColors.darkSurface2 : const Color(0xFFF8FAFC),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(
+          color: isDark ? AppColors.darkBorder : const Color(0xFFE2E8F0),
+        ),
+      ),
+      child: Column(
+        children: [
+          InkWell(
+            borderRadius: BorderRadius.circular(10),
+            onTap: () {
+              setState(() {
+                _showPickupNotify = !_showPickupNotify;
+              });
+            },
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+              child: Row(
+                children: [
+                  Icon(
+                    _showPickupNotify
+                        ? Icons.mark_email_read_rounded
+                        : Icons.mail_outline_rounded,
+                    size: 18,
+                    color: _showPickupNotify
+                        ? AppColors.primaryGreen
+                        : (isDark ? AppColors.darkTextSecondary : AppColors.textSecondary),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'Notify Student for Pickup (Email)',
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                        color: _showPickupNotify
+                            ? AppColors.primaryGreen
+                            : (isDark
+                                ? AppColors.darkTextPrimary
+                                : AppColors.textPrimary),
+                      ),
+                    ),
+                  ),
+                  Icon(
+                    _showPickupNotify
+                        ? Icons.keyboard_arrow_up
+                        : Icons.keyboard_arrow_down,
+                    size: 20,
+                    color: isDark
+                        ? AppColors.darkTextSecondary
+                        : AppColors.textSecondary,
+                  ),
+                ],
+              ),
+            ),
+          ),
+          if (_showPickupNotify) ...[
+            Padding(
+              padding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Divider(
+                    height: 1,
+                    color: isDark ? AppColors.darkBorder : Colors.grey.shade200,
+                  ),
+                  const SizedBox(height: 10),
+                  TextFormField(
+                    controller: _studentEmailController,
+                    keyboardType: TextInputType.emailAddress,
+                    decoration: InputDecoration(
+                      labelText: 'Student / Guardian Email',
+                      hintText: 'e.g. student@gmail.com',
+                      prefixIcon: const Icon(Icons.email_outlined, size: 18),
+                      isDense: true,
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                    ),
+                    style: const TextStyle(fontSize: 13),
+                  ),
+                  const SizedBox(height: 10),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: OutlinedButton.icon(
+                          onPressed: () async {
+                            final picked = await showDatePicker(
+                              context: context,
+                              initialDate: _pickupDate,
+                              firstDate: DateTime.now(),
+                              lastDate:
+                                  DateTime.now().add(const Duration(days: 60)),
+                            );
+                            if (picked != null) {
+                              setState(() => _pickupDate = picked);
+                            }
+                          },
+                          icon:
+                              const Icon(Icons.calendar_today_rounded, size: 16),
+                          label: Text(
+                            'Pickup Date: ${_pickupDate.year}-${_pickupDate.month.toString().padLeft(2, '0')}-${_pickupDate.day.toString().padLeft(2, '0')}',
+                            style: const TextStyle(fontSize: 12),
+                          ),
+                          style: OutlinedButton.styleFrom(
+                            alignment: Alignment.centerLeft,
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 10, vertical: 12),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 10),
+                  TextFormField(
+                    controller: _pickupNoteController,
+                    maxLines: 2,
+                    decoration: InputDecoration(
+                      labelText: 'Office Note / Instructions (Optional)',
+                      hintText: 'e.g. Please claim at Room 102 between 1-3 PM.',
+                      isDense: true,
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                    ),
+                    style: const TextStyle(fontSize: 12),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ],
+      ),
     );
   }
 

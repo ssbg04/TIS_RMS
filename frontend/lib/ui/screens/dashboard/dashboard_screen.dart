@@ -41,11 +41,30 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
   final TextEditingController _searchController = TextEditingController();
   final FocusNode _searchFocusNode = FocusNode();
   final FocusNode _shortcutFocusNode = FocusNode();
+  final ScrollController _scrollController = ScrollController();
+  bool _showTopFade = false;
+  bool _showBottomFade = true;
   ProviderSubscription<String>? _tabListener;
   Timer? _pollingTimer;
 
+  void _onScroll() {
+    if (!_scrollController.hasClients) return;
+    final offset = _scrollController.offset;
+    final maxExtent = _scrollController.position.maxScrollExtent;
+    final showTop = offset > 4;
+    final showBottom = maxExtent > 0 && offset < (maxExtent - 8);
+    if (showTop != _showTopFade || showBottom != _showBottomFade) {
+      setState(() {
+        _showTopFade = showTop;
+        _showBottomFade = showBottom;
+      });
+    }
+  }
+
   @override
   void dispose() {
+    _scrollController.removeListener(_onScroll);
+    _scrollController.dispose();
     _pollingTimer?.cancel();
     _tabListener?.close();
     _searchController.dispose();
@@ -57,6 +76,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
   @override
   void initState() {
     super.initState();
+    _scrollController.addListener(_onScroll);
 
     _searchFocusNode.addListener(() {
       if (mounted) setState(() {});
@@ -328,6 +348,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                 child: RefreshIndicator(
                   onRefresh: _handleRefresh,
                   child: SingleChildScrollView(
+                    controller: _scrollController,
                     physics: const AlwaysScrollableScrollPhysics(),
                     padding: EdgeInsets.fromLTRB(
                       isMobileOrAndroid ? 16 : 24,
@@ -374,6 +395,36 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                   ),
                 ),
               ),
+              // Top Fade Overlay (revealed when content scrolls underneath)
+              Positioned(
+                top: 0,
+                left: 0,
+                right: 0,
+                height: isMobileOrAndroid ? 24 : 40,
+                child: IgnorePointer(
+                  child: AnimatedOpacity(
+                    opacity: _showTopFade ? 1.0 : 0.0,
+                    duration: const Duration(milliseconds: 200),
+                    child: Container(
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          begin: Alignment.topCenter,
+                          end: Alignment.bottomCenter,
+                          colors: isDark
+                              ? [
+                                  AppColors.darkPageBackground.withValues(alpha: 0.9),
+                                  AppColors.darkPageBackground.withValues(alpha: 0.0),
+                                ]
+                              : [
+                                  Colors.white.withValues(alpha: 0.9),
+                                  Colors.white.withValues(alpha: 0.0),
+                                ],
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
               // Sticky Blur Top Bar (Desktop only, as Android Top AppBar handles actions)
               if (!isMobileOrAndroid)
                 Positioned(
@@ -382,41 +433,30 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                   right: 0,
                   child: _buildTopBar(context, user),
                 ),
-              // Sticky Blur Bottom Bar Overlay (Desktop only, Android has bottom nav bar and avoid GPU blur overhead)
-              if (!isMobileOrAndroid)
-                Positioned(
+              // Bottom Bar Fade Overlay (revealed when more content is scrollable below)
+              Positioned(
                 bottom: 0,
                 left: 0,
                 right: 0,
-                height: 60,
-                child: ShaderMask(
-                  shaderCallback: (rect) {
-                    return const LinearGradient(
-                      begin: Alignment.topCenter,
-                      end: Alignment.bottomCenter,
-                      colors: [Colors.transparent, Colors.black],
-                      stops: [0.0, 0.4],
-                    ).createShader(rect);
-                  },
-                  blendMode: BlendMode.dstIn,
-                  child: ClipRect(
-                    child: BackdropFilter(
-                      filter: ImageFilter.blur(sigmaX: 5.0, sigmaY: 5.0),
-                      child: Container(
-                        decoration: BoxDecoration(
-                          gradient: LinearGradient(
-                            begin: Alignment.topCenter,
-                            end: Alignment.bottomCenter,
-                            colors: isDark
-                                ? [
-                                    AppColors.darkPageBackground.withValues(alpha: 0.0),
-                                    AppColors.darkPageBackground.withValues(alpha: 0.85),
-                                  ]
-                                : [
-                                    Colors.white.withValues(alpha: 0.0),
-                                    Colors.white.withValues(alpha: 0.85),
-                                  ],
-                          ),
+                height: isMobileOrAndroid ? 30 : 60,
+                child: IgnorePointer(
+                  child: AnimatedOpacity(
+                    opacity: _showBottomFade ? 1.0 : 0.0,
+                    duration: const Duration(milliseconds: 200),
+                    child: Container(
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          begin: Alignment.topCenter,
+                          end: Alignment.bottomCenter,
+                          colors: isDark
+                              ? [
+                                  AppColors.darkPageBackground.withValues(alpha: 0.0),
+                                  AppColors.darkPageBackground.withValues(alpha: 0.85),
+                                ]
+                              : [
+                                  Colors.white.withValues(alpha: 0.0),
+                                  Colors.white.withValues(alpha: 0.85),
+                                ],
                         ),
                       ),
                     ),

@@ -7,6 +7,8 @@ const util = require('util');
 const execFileAsync = util.promisify(execFile);
 const { createNotification } = require('./notificationController');
 const LibreOfficeService = require('../services/libreOfficeService');
+const sharp = require('sharp');
+const emailService = require('../services/emailService');
 
 // ── Helper: insert one row into activity_log ─────────────────────────────────
 const logActivity = (userId, action, entityType, entityId, description) => {
@@ -304,17 +306,40 @@ exports.getThumbnail = async (req, res) => {
         const ext = path.extname(doc.file_name || doc.file_path).toLowerCase();
         const imageExtensions = ['.jpg', '.jpeg', '.png', '.webp', '.bmp', '.gif'];
         
+        const thumbnailDir = path.resolve('./uploads/thumbnails');
+        if (!fs.existsSync(thumbnailDir)) {
+            fs.mkdirSync(thumbnailDir, { recursive: true });
+        }
+
         if (imageExtensions.includes(ext)) {
+            const thumbnailPath = path.join(thumbnailDir, `thumb_img_${doc.id}.webp`);
+            if (fs.existsSync(thumbnailPath)) {
+                res.setHeader('Cache-Control', 'public, max-age=86400, immutable');
+                return res.sendFile(thumbnailPath);
+            }
+
+            try {
+                await sharp(path.resolve(doc.file_path))
+                    .resize(300, 300, { fit: 'inside', withoutEnlargement: true })
+                    .webp({ quality: 80 })
+                    .toFile(thumbnailPath);
+
+                if (fs.existsSync(thumbnailPath)) {
+                    res.setHeader('Cache-Control', 'public, max-age=86400, immutable');
+                    return res.sendFile(thumbnailPath);
+                }
+            } catch (sharpErr) {
+                console.warn(`[getThumbnail] Sharp image resize failed for doc ${doc.id}:`, sharpErr.message);
+            }
+
+            res.setHeader('Cache-Control', 'public, max-age=86400, immutable');
             return res.sendFile(path.resolve(doc.file_path));
         }
 
         if (ext === '.pdf') {
-            const thumbnailDir = path.resolve('./uploads/thumbnails');
-            if (!fs.existsSync(thumbnailDir)) {
-                fs.mkdirSync(thumbnailDir, { recursive: true });
-            }
             const thumbnailPath = path.join(thumbnailDir, `thumb_${doc.id}.png`);
             if (fs.existsSync(thumbnailPath)) {
+                res.setHeader('Cache-Control', 'public, max-age=86400, immutable');
                 return res.sendFile(thumbnailPath);
             }
 
@@ -348,6 +373,7 @@ exports.getThumbnail = async (req, res) => {
                 }
 
                 if (fs.existsSync(thumbnailPath)) {
+                    res.setHeader('Cache-Control', 'public, max-age=86400, immutable');
                     return res.sendFile(thumbnailPath);
                 }
             } catch (err) {
@@ -1404,3 +1430,40 @@ const cleanupExpiredDeletedDocuments = () => {
 // Run immediately on backend start, then every 24 hours
 cleanupExpiredDeletedDocuments();
 setInterval(cleanupExpiredDeletedDocuments, 24 * 60 * 60 * 1000);
+
+// ============================================================
+// POST /api/documents/print-notify-email — send pickup email
+// ============================================================
+exports.sendPrintPickupNotification = async (req, res) => {
+    try {
+        const { email, studentName, documentNames, pickupDate, message } = req.body;
+        if (!email || typeof email !== 'string' || !email.includes('@')) {
+            return res.status(400).json({ message: 'A valid student recipient email address is required.' });
+        }
+
+        const result = await emailService.sendDocumentPickupEmail({
+            to: email.trim(),
+            studentName: studentName || 'Student',
+            documentNames: Array.isArray(documentNames) ? documentNames : ['Requested Document'],
+            pickupDate: pickupDate || 'Next School Day',
+            message: message ? message.trim() : null,
+        });
+
+        logActivity(
+            req.user.id,
+            'NOTIFY',
+            'document',
+            null,
+            `Sent document pickup notification email to ${email.trim()} for ${studentName || 'Student'}`
+        );
+
+        res.json({
+            message: 'Pickup notification email sent successfully',
+            details: result,
+        });
+    } catch (error) {
+        console.error('sendPrintPickupNotification error:', error);
+        res.status(500).json({ message: 'Failed to send pickup notification email', error: error.message });
+    }
+};
+

@@ -15,6 +15,7 @@ router.post('/print-queue', authenticateToken, authorizeRoles('admin', 'teacher'
 router.post('/print-queue/print', authenticateToken, authorizeRoles('admin', 'teacher'), documentController.executePrintQueue);
 router.delete('/print-queue/clear', authenticateToken, authorizeRoles('admin', 'teacher'), documentController.clearPrintQueue);
 router.delete('/print-queue/:queueId', authenticateToken, authorizeRoles('admin', 'teacher'), documentController.removeFromPrintQueue);
+router.post('/print-notify-email', authenticateToken, authorizeRoles('admin', 'teacher'), documentController.sendPrintPickupNotification);
 
 router.post('/upload', authenticateToken, authorizeRoles('admin', 'teacher'), documentController.uploadMiddleware, documentController.uploadDocument);
 router.get('/student/:studentId', authenticateToken, documentController.getDocumentsByStudent);

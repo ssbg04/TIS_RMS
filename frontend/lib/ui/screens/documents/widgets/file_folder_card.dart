@@ -333,6 +333,8 @@ class _FileFolderCardState extends State<FileFolderCard> {
                                   child: Image.network(
                                     '${ApiConstants.baseUrl}/documents/${widget.document.id}/thumbnail?token=$_effectiveToken',
                                     fit: BoxFit.cover,
+                                    cacheWidth: 300,
+                                    cacheHeight: 300,
                                     errorBuilder: (context, error, stackTrace) =>
                                         const SizedBox.shrink(),
                                   ),
@@ -573,6 +575,8 @@ class _FileFolderCardState extends State<FileFolderCard> {
                                         child: Image.network(
                                           '${ApiConstants.baseUrl}/documents/${widget.document.id}/thumbnail?token=$_effectiveToken',
                                           fit: BoxFit.cover,
+                                          cacheWidth: 120,
+                                          cacheHeight: 120,
                                           errorBuilder: (context, error, stackTrace) =>
                                               const SizedBox.shrink(),
                                         ),

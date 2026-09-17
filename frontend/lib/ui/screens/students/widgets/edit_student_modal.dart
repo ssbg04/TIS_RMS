@@ -18,10 +18,14 @@ import '../../../shared/widgets/app_button_loader.dart';
 
 class EditStudentModal extends ConsumerStatefulWidget {
   final StudentModel student;
+  final bool isDialog;
+  final int initialTabIndex;
 
   const EditStudentModal({
     super.key,
     required this.student,
+    this.isDialog = false,
+    this.initialTabIndex = 0,
   });
 
   @override
@@ -1092,6 +1096,7 @@ class _EditStudentModalState extends ConsumerState<EditStudentModal> {
       },
       child: DefaultTabController(
         length: 2,
+        initialIndex: widget.initialTabIndex,
         child: Scaffold(
           backgroundColor: isDark ? AppColors.darkPageBackground : const Color(0xFFF8F9FA),
           appBar: AppBar(

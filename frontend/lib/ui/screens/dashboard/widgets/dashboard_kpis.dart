@@ -2293,9 +2293,16 @@ class _TabButton extends StatelessWidget {
 // ──────────────────────────────────────────────────────────────
 // 7. STORAGE ANALYTICS
 // ──────────────────────────────────────────────────────────────
-class _StorageCard extends StatelessWidget {
+class _StorageCard extends StatefulWidget {
   final StorageAnalytics analytics;
   const _StorageCard({required this.analytics});
+
+  @override
+  State<_StorageCard> createState() => _StorageCardState();
+}
+
+class _StorageCardState extends State<_StorageCard> {
+  bool _isExpanded = false;
 
   String _fmt(int bytes) {
     if (bytes >= 1073741824) return '${(bytes / 1073741824).toStringAsFixed(2)} GB';
@@ -2306,6 +2313,7 @@ class _StorageCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final analytics = widget.analytics;
     final maxBytes = analytics.byType.isEmpty
         ? 1
         : analytics.byType.map((t) => t.bytes).reduce(max);
@@ -2314,10 +2322,17 @@ class _StorageCard extends StatelessWidget {
         ? AppColors.primaryGreen
         : Colors.red.shade500;
 
+    final allTypes = analytics.byType;
+    const initialLimit = 4;
+    final hasMore = allTypes.length > initialLimit;
+    final displayedTypes = (_isExpanded || !hasMore)
+        ? allTypes
+        : allTypes.take(initialLimit).toList();
+
     return _ChartCard(
       title: 'Storage Analytics',
       icon: Icons.storage_rounded,
-      iconColor: Colors.indigo.shade600,
+      iconColor: AppColors.primaryGreen,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -2328,7 +2343,7 @@ class _StorageCard extends StatelessWidget {
                   label: 'Total Used',
                   value: _fmt(analytics.totalBytes),
                   icon: Icons.folder_rounded,
-                  color: Colors.indigo.shade600,
+                  color: AppColors.primaryGreen,
                 ),
               ),
               const SizedBox(width: 8),
@@ -2356,16 +2371,52 @@ class _StorageCard extends StatelessWidget {
           ),
           if (analytics.byType.isNotEmpty) ...[
             const SizedBox(height: 16),
-            Text(
-              'Storage by Document Type',
-              style: TextStyle(
-                fontSize: 12,
-                fontWeight: FontWeight.w600,
-                color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
-              ),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  'Storage by Document Type',
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
+                  ),
+                ),
+                if (hasMore)
+                  InkWell(
+                    onTap: () => setState(() => _isExpanded = !_isExpanded),
+                    borderRadius: BorderRadius.circular(4),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            _isExpanded
+                                ? 'Show less'
+                                : 'Show all (${allTypes.length})',
+                            style: const TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w600,
+                              color: AppColors.primaryGreen,
+                            ),
+                          ),
+                          const SizedBox(width: 2),
+                          Icon(
+                            _isExpanded
+                                ? Icons.keyboard_arrow_up_rounded
+                                : Icons.keyboard_arrow_down_rounded,
+                            size: 16,
+                            color: AppColors.primaryGreen,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+              ],
             ),
             const SizedBox(height: 8),
-            ...analytics.byType.map((t) {
+            ...displayedTypes.map((t) {
               final pct = t.bytes / maxBytes;
               final isDark = Theme.of(context).brightness == Brightness.dark;
               return Padding(
@@ -2402,8 +2453,8 @@ class _StorageCard extends StatelessWidget {
                       child: LinearProgressIndicator(
                         value: pct,
                         backgroundColor: isDark ? AppColors.darkSurface2 : Colors.grey.shade100,
-                        valueColor: AlwaysStoppedAnimation<Color>(
-                            Colors.indigo.shade400),
+                        valueColor: const AlwaysStoppedAnimation<Color>(
+                            AppColors.primaryGreen),
                         minHeight: 6,
                       ),
                     ),

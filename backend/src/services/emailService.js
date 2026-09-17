@@ -620,6 +620,77 @@ const sendAccountDeletionEmail = async ({ to, username, deleteLink, expiresMinut
     }
 };
 
+const sendDocumentPickupEmail = async ({ to, studentName, documentNames, pickupDate, message }) => {
+    const fromAddress = process.env.SMTP_FROM
+        || `"TIS Record Management System" <${process.env.SMTP_USER || 'no-reply@talisayis.edu.ph'}>`;
+
+    const docList = Array.isArray(documentNames) ? documentNames : [documentNames];
+    const docItems = docList
+        .map(d => `<li style="margin-bottom:6px;color:#1e293b;font-weight:600;">${d}</li>`)
+        .join('');
+
+    const formattedDate = pickupDate || 'Next School Day';
+
+    const customMsgBlock = message && message.trim() ? `
+      <div style="margin:20px 0;padding:14px 18px;background:#f8fafc;border-left:4px solid #16a34a;border-radius:6px;font-size:13px;color:#334155;line-height:1.6;">
+        <strong>Note from Office:</strong><br>
+        ${message.trim().replace(/\n/g, '<br>')}
+      </div>
+    ` : '';
+
+    const body = `
+      <p style="margin:0 0 6px;font-size:16px;font-weight:700;color:#0f172a;">Hello, <span style="color:#15803d;">${studentName || 'Student'}</span></p>
+      <p style="margin:0 0 20px;font-size:14px;color:#475569;line-height:1.7;">
+        Good news! Your requested school document(s) have been prepared and are ready for pickup at the <strong>Talisay Integrated School Registrar's Office</strong>.
+      </p>
+
+      <div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:12px;padding:20px 24px;margin-bottom:24px;">
+        <p style="margin:0 0 10px;font-size:12px;font-weight:700;color:#166534;text-transform:uppercase;letter-spacing:0.5px;">Ready for Pickup</p>
+        <div style="font-size:18px;font-weight:800;color:#14532d;margin-bottom:12px;">&#128197; ${formattedDate}</div>
+        <p style="margin:0 0 8px;font-size:13px;font-weight:600;color:#15803d;">Documents:</p>
+        <ul style="margin:0;padding-left:20px;font-size:13px;">
+          ${docItems}
+        </ul>
+      </div>
+
+      ${customMsgBlock}
+
+      <div style="margin:24px 0 16px;padding:14px;background:#fffbeb;border:1px solid #fde68a;border-radius:8px;font-size:12px;color:#92400e;line-height:1.6;">
+        &#9888; <strong>Reminder:</strong> Please bring a valid Student ID or government-issued ID upon claiming your documents. If an authorized representative is claiming on your behalf, an authorization letter and representative ID are required.
+      </div>
+
+      <p style="margin:20px 0 0;font-size:12px;color:#64748b;line-height:1.6;">
+        Office Hours: Monday to Friday, 8:00 AM – 5:00 PM.<br>
+        Thank you!
+      </p>
+    `;
+
+    const htmlContent = emailShell(body);
+
+    const mailOptions = {
+        from: fromAddress,
+        to,
+        subject: `[TIS RMS] Documents Ready for Pickup - ${studentName || 'Student'}`,
+        html: htmlContent,
+        text: `Hello ${studentName || 'Student'},\n\nYour requested document(s) are ready for pickup on ${formattedDate}.\n\nDocuments:\n${docList.map(d => `- ${d}`).join('\n')}\n\nLocation: Talisay Integrated School Registrar's Office.\nPlease bring a valid ID.\n\nThank you!`,
+    };
+
+    if (LOGO_PATH) {
+        mailOptions.attachments = [{
+            filename: 'logo.png',
+            path: LOGO_PATH,
+            cid: 'school-logo'
+        }];
+    }
+
+    try {
+        return await sendMailWithFallback(mailOptions);
+    } catch (err) {
+        console.error(`[EmailService] Failed to send pickup email to ${to}:`, err.message);
+        throw new Error(`Failed to send pickup email: ${err.message}`);
+    }
+};
+
 module.exports = {
     sendPasswordResetOtp,
     sendPasswordResetLink,
@@ -627,5 +698,7 @@ module.exports = {
     sendAccountCreatedEmail,
     sendAccountStatusEmail,
     sendAccountDeletionEmail,
+    sendDocumentPickupEmail,
 };
+
 
