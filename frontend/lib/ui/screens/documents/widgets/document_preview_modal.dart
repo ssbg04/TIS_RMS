@@ -13,8 +13,11 @@ import '../../../../core/utils/download_service.dart';
 import '../../../../domain/entities/document_model.dart';
 import '../../../providers/document_provider.dart';
 import '../../../providers/conversion_provider.dart';
+import '../../../providers/auth_provider.dart';
 import '../../../shared/dialogs/error_dialog.dart';
 import '../../../shared/dialogs/success_dialog.dart';
+import '../../../shared/dialogs/document_properties_dialog.dart';
+import 'student_profile_modal.dart';
 import 'excel_viewer_widget.dart';
 
 /// Shows a fullscreen rich preview dialog for any document type:
@@ -196,6 +199,82 @@ class _DocumentPreviewDialogState
     }
   }
 
+  Future<void> _copyDocument() async {
+    if (widget.document == null) return;
+    try {
+      await ref
+          .read(documentMutationProvider.notifier)
+          .copyDocument(widget.document!.id);
+      if (!mounted) return;
+      showSuccessDialog(context, message: 'Document copied.');
+    } catch (e) {
+      if (!mounted) return;
+      showErrorDialog(context, 'Copy Failed', e.toString());
+    }
+  }
+
+  void _showProperties() {
+    if (widget.document == null) return;
+    DocumentPropertiesDialog.show(context, document: widget.document!);
+  }
+
+  void _viewStudentProfile() {
+    final sId = widget.document?.studentId;
+    if (sId == null) return;
+    final userRole = ref.read(authProvider).value?.role ?? 'teacher';
+    showStudentProfileModal(
+      context,
+      studentId: sId,
+      userRole: userRole,
+      hideEnrollmentActions: true,
+    );
+  }
+
+  Future<void> _deleteDocument() async {
+    if (widget.document == null) return;
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Row(
+          children: [
+            Icon(Icons.warning_amber_rounded, color: AppColors.error),
+            SizedBox(width: 8),
+            Text(
+              'Delete Document',
+              style: TextStyle(color: AppColors.error, fontSize: 17),
+            ),
+          ],
+        ),
+        content: Text('Are you sure you want to move "$_fileName" to the Recycle Bin?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('CANCEL'),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.error,
+              foregroundColor: Colors.white,
+            ),
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('DELETE'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true) return;
+    try {
+      await ref.read(documentMutationProvider.notifier).deleteDocument(widget.document!.id);
+      if (!mounted) return;
+      Navigator.of(context).pop();
+      showSuccessDialog(context, message: 'Document moved to Recycle Bin.');
+    } catch (e) {
+      if (!mounted) return;
+      showErrorDialog(context, 'Delete Failed', e.toString());
+    }
+  }
+
   Future<void> _openExternalExcel() async {
     if (_isOpeningExternal) return;
     setState(() => _isOpeningExternal = true);
@@ -358,18 +437,40 @@ class _DocumentPreviewDialogState
                 tooltip: 'Open in External Viewer',
                 onPressed: _isOpeningExternal ? null : _openExternalExcel,
               ),
-            if (widget.document != null)
+            if (widget.document != null) ...[
+              IconButton(
+                icon: const Icon(Icons.copy_rounded, color: Colors.white),
+                tooltip: 'Copy',
+                onPressed: _copyDocument,
+              ),
               IconButton(
                 icon: const Icon(Icons.print_outlined, color: Colors.white),
                 tooltip: 'Add to Print List',
                 onPressed: _addToPrintList,
               ),
-            if (widget.document != null)
               IconButton(
                 icon: const Icon(Icons.download_rounded, color: Colors.white),
-                tooltip: 'Download File',
+                tooltip: 'Download',
                 onPressed: _downloadFile,
               ),
+              IconButton(
+                icon: const Icon(Icons.info_outline_rounded, color: Colors.white),
+                tooltip: 'Properties',
+                onPressed: _showProperties,
+              ),
+              if (widget.document!.studentId != null)
+                IconButton(
+                  icon: const Icon(Icons.person_outline_rounded, color: Colors.white),
+                  tooltip: 'View Student Profile',
+                  onPressed: _viewStudentProfile,
+                ),
+              if (ref.watch(authProvider).value?.role != 'teacher')
+                IconButton(
+                  icon: const Icon(Icons.delete_outline_rounded, color: Colors.white),
+                  tooltip: 'Delete',
+                  onPressed: _deleteDocument,
+                ),
+            ],
             const SizedBox(width: 8),
           ],
         ),

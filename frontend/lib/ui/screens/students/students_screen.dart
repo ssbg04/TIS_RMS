@@ -823,7 +823,11 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
           ref
               .read(openedFolderProvider.notifier)
               .setFolder(
-                OpenedFolderData(id: student.id, name: student.listDisplayName),
+                OpenedFolderData(
+                  id: student.id,
+                  name: student.listDisplayName,
+                  lrn: student.lrn,
+                ),
               );
         }
       });
@@ -1680,7 +1684,17 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
                           }
                         : null,
                     child: AnimatedSwitcher(
-                      duration: const Duration(milliseconds: 200),
+                      duration: const Duration(milliseconds: 240),
+                      transitionBuilder: (child, animation) => ScaleTransition(
+                        scale: CurvedAnimation(
+                          parent: animation,
+                          curve: Curves.easeOutBack,
+                        ),
+                        child: FadeTransition(
+                          opacity: animation,
+                          child: child,
+                        ),
+                      ),
                       child: (_showMultiSelect && isSelected)
                           ? const CircleAvatar(
                               key: ValueKey('student_checked_m'),

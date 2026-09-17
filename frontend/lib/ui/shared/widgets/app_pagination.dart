@@ -56,7 +56,7 @@ class AppPagination extends StatelessWidget {
 
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+      padding: EdgeInsets.symmetric(vertical: isDesktop ? 12 : 6, horizontal: 16),
       alignment: Alignment.center,
       child: isDesktop
           ? _buildDesktopOption02(context, isDark)

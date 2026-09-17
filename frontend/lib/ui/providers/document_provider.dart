@@ -64,7 +64,8 @@ class DocumentQueryParams {
 class OpenedFolderData {
   final int id;
   final String name;
-  OpenedFolderData({required this.id, required this.name});
+  final String? lrn;
+  OpenedFolderData({required this.id, required this.name, this.lrn});
 }
 
 final openedFolderProvider =

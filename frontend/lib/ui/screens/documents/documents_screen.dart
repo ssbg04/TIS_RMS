@@ -686,6 +686,12 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
     final isStudentFiltered = query.studentId != null;
     final isFolderOpened = _openedFolderStudentId != null;
 
+    ref.listen<DocumentQueryParams>(documentQueryProvider, (previous, next) {
+      if (_searchController.text != next.search) {
+        _searchController.text = next.search;
+      }
+    });
+
     return CallbackShortcuts(
       bindings: <ShortcutActivator, VoidCallback>{
         const SingleActivator(LogicalKeyboardKey.keyF, control: true): () {
@@ -864,9 +870,25 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
     }
   }
 
-  // ══════════════════════════════════════════════════════════════
-  // TOP HEADER (Unified with Segmented Tabs, styled like Multi-Select)
-  // ══════════════════════════════════════════════════════════════
+  void _openFolder(dynamic folder) {
+    final sId = folder.studentId as int?;
+    if (sId == null) return;
+    final name = folder.name as String? ?? 'Student';
+    final String? lrn = (folder is FolderModel ? folder.studentLrn : null);
+
+    setState(() {
+      _openedFolderStudentId = sId;
+      _openedFolderName = name;
+    });
+    ref.read(documentQueryProvider.notifier).setStudentId(sId);
+    ref.read(openedFolderProvider.notifier).setFolder(
+      OpenedFolderData(id: sId, name: name, lrn: lrn),
+    );
+    _searchFocusNode.unfocus();
+    _searchController.clear();
+    ref.read(documentQueryProvider.notifier).setSearch('');
+  }
+
   void _closeFolder() {
     setState(() {
       _openedFolderStudentId = null;
@@ -1013,7 +1035,7 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
       child: Container(
         height: 52,
         margin: EdgeInsets.symmetric(
-          horizontal: isMobile ? 12 : 20,
+          horizontal: isMobile ? 12 : 16,
           vertical: 8,
         ),
         padding: EdgeInsets.symmetric(horizontal: isMobile ? 8 : 12),
@@ -1126,7 +1148,7 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
             ],
 
             // Action buttons
-            if (!isFolderOpened) ...[
+            if (!isMobile && !isFolderOpened) ...[
               Tooltip(
                 richMessage: (_searchController.text.isNotEmpty || query.search.isNotEmpty)
                     ? const TextSpan(text: 'Clear Search')
@@ -1226,63 +1248,6 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
               const SizedBox(width: 2),
             ],
 
-            // Mobile action buttons (moved from FAB to header)
-            if (isMobile) ...[
-              // 1. Multi-Select (for non-teachers on Tab 1 or opened folder)
-              if (widget.userRole != 'teacher' && (_tabController.index == 1 || isFolderOpened)) ...[
-                Tooltip(
-                  message: _isMultiSelectMode ? 'Exit Multi-Select' : 'Multi-Select',
-                  child: IconButton(
-                    padding: const EdgeInsets.all(8),
-                    constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
-                    onPressed: () {
-                      setState(() {
-                        _isMultiSelectMode = !_isMultiSelectMode;
-                        if (!_isMultiSelectMode) _selectedDocumentIds.clear();
-                      });
-                    },
-                    icon: Icon(
-                      Icons.checklist_rounded,
-                      size: 20,
-                      color: _isMultiSelectMode
-                          ? AppColors.primaryGreen
-                          : (isDark ? AppColors.darkTextPrimary : AppColors.textSecondary),
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 2),
-              ],
-
-              // 2. Print List (for non-teachers)
-              if (widget.userRole != 'teacher') ...[
-                _buildPrintQueueButton(compact: true),
-                const SizedBox(width: 2),
-              ],
-
-              // 3. Upload Document (Tab 1 or opened folder)
-              if (_tabController.index == 1 || isFolderOpened) ...[
-                Tooltip(
-                  message: 'Upload Document',
-                  child: IconButton(
-                    padding: const EdgeInsets.all(8),
-                    constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
-                    icon: const Icon(
-                      Icons.cloud_upload_rounded,
-                      size: 22,
-                      color: AppColors.primaryGreen,
-                    ),
-                    onPressed: () {
-                      UploadOcrModal.show(
-                        context,
-                        prefilledStudentId:
-                            _openedFolderStudentId ?? widget.initialStudentId,
-                      );
-                    },
-                  ),
-                ),
-                const SizedBox(width: 2),
-              ],
-            ],
 
             // Desktop action buttons (Upload available to admins and teachers)
             if (!isMobile && _tabController.index != 2) ...[
@@ -1293,6 +1258,7 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
                     context,
                     prefilledStudentId:
                         _openedFolderStudentId ?? widget.initialStudentId,
+                    prefilledLrn: ref.read(openedFolderProvider)?.lrn,
                   ),
                   icon: const Icon(Icons.cloud_upload_outlined, size: 16),
                   label: const Text(
@@ -2221,10 +2187,10 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
               Expanded(
                 child: Container(
                   margin: EdgeInsets.only(
-                    left: isMobile ? 8 : 16,
-                    right: isMobile ? 8 : 16,
-                    top: isMobile ? 12 : 16,
-                    bottom: isMobile ? 16 : 16,
+                    left: isMobile ? 12 : 16,
+                    right: isMobile ? 12 : 16,
+                    top: isMobile ? 8 : 16,
+                    bottom: isMobile ? 6 : 16,
                   ),
                   decoration: BoxDecoration(
                     color: isDark ? AppColors.darkSurfaceCard : AppColors.surfaceWhite,
@@ -2268,23 +2234,7 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
                                           folder,
                                         ),
                                   child: InkWell(
-                                    onTap: () {
-                                      if (folder.studentId != null) {
-                                        setState(() {
-                                          _openedFolderStudentId =
-                                              folder.studentId;
-                                          _openedFolderName = folder.name;
-                                        });
-                                        ref
-                                            .read(documentQueryProvider.notifier)
-                                            .setStudentId(folder.studentId);
-                                        _searchFocusNode.unfocus();
-                                        _searchController.clear();
-                                        ref
-                                            .read(documentQueryProvider.notifier)
-                                            .setSearch('');
-                                      }
-                                    },
+                                    onTap: () => _openFolder(folder),
                                     child: Padding(
                                       padding: EdgeInsets.symmetric(
                                         horizontal: isMobile ? 12 : 16,
@@ -2408,20 +2358,7 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
                             folder,
                           ),
                     child: InkWell(
-                      onTap: () {
-                        if (folder.studentId != null) {
-                          setState(() {
-                            _openedFolderStudentId = folder.studentId;
-                            _openedFolderName = folder.name;
-                          });
-                          ref
-                              .read(documentQueryProvider.notifier)
-                              .setStudentId(folder.studentId);
-                          _searchFocusNode.unfocus();
-                          _searchController.clear();
-                          ref.read(documentQueryProvider.notifier).setSearch('');
-                        }
-                      },
+                      onTap: () => _openFolder(folder),
                       borderRadius: BorderRadius.circular(12),
                       child: Container(
                         decoration: BoxDecoration(
@@ -2665,10 +2602,10 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
         Expanded(
           child: Container(
             margin: EdgeInsets.only(
-              left: isMobileList ? 8 : 16,
-              right: isMobileList ? 8 : 16,
-              top: isMobileList ? 12 : 16,
-              bottom: isMobileList ? 16 : 16,
+              left: isMobileList ? 12 : 16,
+              right: isMobileList ? 12 : 16,
+              top: isMobileList ? 8 : 16,
+              bottom: isMobileList ? 6 : 16,
             ),
             decoration: BoxDecoration(
               color: isDark ? AppColors.darkSurfaceCard : AppColors.surfaceWhite,
@@ -2917,11 +2854,7 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
 
     if (!mounted || value == null) return;
     if (value == 'open') {
-      setState(() {
-        _openedFolderStudentId = folder.studentId;
-        _openedFolderName = folder.name;
-      });
-      ref.read(documentQueryProvider.notifier).setStudentId(folder.studentId);
+      _openFolder(folder);
     } else if (value == 'view_profile') {
       showStudentProfileModal(
         context,

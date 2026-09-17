@@ -182,7 +182,7 @@ class NotificationIconButton extends ConsumerWidget {
         clipBehavior: Clip.none,
         children: [
           IconButton(
-            icon: Icon(Icons.notifications_outlined, size: iconSize),
+            icon: Icon(Icons.notifications, size: iconSize),
             tooltip: 'Notifications',
             onPressed: () => showNotificationDropdownMenu(ctx, ref),
           ),

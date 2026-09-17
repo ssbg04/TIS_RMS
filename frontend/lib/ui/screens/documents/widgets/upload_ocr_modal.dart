@@ -55,17 +55,25 @@ class _UploadEntry {
 class UploadOcrModal extends ConsumerStatefulWidget {
   /// If provided, the modal will automatically fetch and fill this student's LRN
   final int? prefilledStudentId;
+  final String? prefilledLrn;
 
   /// Files pre-populated from drag-and-drop (Windows)
   final List<File>? preloadedFiles;
 
   final ValueNotifier<int>? stepNotifier;
 
-  const UploadOcrModal({super.key, this.prefilledStudentId, this.preloadedFiles, this.stepNotifier});
+  const UploadOcrModal({
+    super.key,
+    this.prefilledStudentId,
+    this.prefilledLrn,
+    this.preloadedFiles,
+    this.stepNotifier,
+  });
 
   static void show(
     BuildContext context, {
     int? prefilledStudentId,
+    String? prefilledLrn,
     List<File>? preloadedFiles,
   }) {
     final stepNotifier = ValueNotifier<int>(0);
@@ -107,6 +115,7 @@ class UploadOcrModal extends ConsumerStatefulWidget {
                   child: SingleChildScrollView(
                     child: UploadOcrModal(
                       prefilledStudentId: prefilledStudentId,
+                      prefilledLrn: prefilledLrn,
                       preloadedFiles: preloadedFiles,
                       stepNotifier: stepNotifier,
                     ),
@@ -148,7 +157,13 @@ class _UploadOcrModalState extends ConsumerState<UploadOcrModal> {
     });
     if (widget.prefilledStudentId != null) {
       _matchedStudentId = widget.prefilledStudentId;
+      if (widget.prefilledLrn != null && widget.prefilledLrn!.isNotEmpty) {
+        _lrnController.text = widget.prefilledLrn!;
+      }
       _fetchPrefilledStudentLrn();
+    } else if (widget.prefilledLrn != null && widget.prefilledLrn!.isNotEmpty) {
+      _lrnController.text = widget.prefilledLrn!;
+      _searchStudentByLrn(widget.prefilledLrn!);
     }
     // Pre-populate entries from drag-and-drop files
     if (widget.preloadedFiles != null && widget.preloadedFiles!.isNotEmpty) {
@@ -205,6 +220,7 @@ class _UploadOcrModalState extends ConsumerState<UploadOcrModal> {
         setState(() {
           _lrnController.text = student.lrn;
           _matchedStudent = student;
+          _matchedStudentId = student.id;
           _isSearchingStudent = false;
         });
       }
@@ -888,7 +904,7 @@ class _UploadOcrModalState extends ConsumerState<UploadOcrModal> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // No-student notice
-          if (widget.prefilledStudentId == null) ...[
+          if (widget.prefilledStudentId == null && widget.prefilledLrn == null) ...[
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(

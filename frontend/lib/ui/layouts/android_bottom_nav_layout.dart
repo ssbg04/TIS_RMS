@@ -31,6 +31,8 @@ import '../shared/inputs/app_search_bar.dart';
 import '../shared/menus/profile_dropdown_menu.dart';
 import '../shared/widgets/notification_icon_button.dart';
 import '../screens/students/widgets/student_bulk_actions.dart';
+import '../screens/documents/widgets/print_queue_modal.dart';
+import '../screens/documents/widgets/upload_ocr_modal.dart';
 
 // Dummy screen for placeholders
 class PlaceholderScreen extends StatelessWidget {
@@ -126,6 +128,52 @@ class _AndroidBottomNavLayoutState extends ConsumerState<AndroidBottomNavLayout>
                     ref.invalidate(studentPageProvider);
                     ref.read(activeTabProvider.notifier).setTab('Students');
                   }
+                },
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  void _showDocumentSearchDialog(
+    BuildContext context,
+    WidgetRef ref,
+  ) {
+    final currentSearch = ref.read(documentQueryProvider).search;
+    final searchController = TextEditingController(text: currentSearch);
+    final searchFocusNode = FocusNode();
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      searchFocusNode.requestFocus();
+    });
+
+    showDialog(
+      context: context,
+      barrierColor: Colors.black54,
+      builder: (ctx) {
+        final isDark = Theme.of(ctx).brightness == Brightness.dark;
+        return Align(
+          alignment: Alignment.topCenter,
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(16, kToolbarHeight + 24, 16, 0),
+            child: Material(
+              color: isDark ? AppColors.darkSurfaceCard : Colors.white,
+              elevation: 4,
+              borderRadius: BorderRadius.circular(12),
+              child: AppSearchBar(
+                controller: searchController,
+                focusNode: searchFocusNode,
+                collapsible: false,
+                hint: 'Search by name, LRN, file…',
+                maxWidth: 600,
+                onSubmitted: (value) {
+                  Navigator.of(ctx).pop();
+                  ref.read(documentQueryProvider.notifier).setSearch(value);
+                  ref.invalidate(foldersProvider);
+                  ref.invalidate(studentFoldersProvider);
+                  ref.invalidate(documentPageProvider);
                 },
               ),
             ),
@@ -598,47 +646,19 @@ class _AndroidBottomNavLayoutState extends ConsumerState<AndroidBottomNavLayout>
                             ),
                           ],
                           if (activeTab == 'Students') ...[
-                            // 1. Search Icon
+                            // 1. Search Icon (consistent with Dashboard)
                             Consumer(
                               builder: (context, ref, _) {
-                                final query = ref.watch(studentQueryProvider);
                                 return Tooltip(
-                                  message: query.search.isNotEmpty
-                                      ? 'Clear Search'
-                                      : 'Search Students',
+                                  message: 'Search Students',
                                   child: IconButton(
-                                    icon: Icon(
-                                      query.search.isNotEmpty
-                                          ? Icons.close
-                                          : Icons.search,
-                                      size: 22,
-                                    ),
-                                    onPressed: () {
-                                      if (query.search.isNotEmpty) {
-                                        ref.read(studentQueryProvider.notifier).setSearch('');
-                                      } else {
-                                        _showStudentSearchDialog(context, ref);
-                                      }
-                                    },
+                                    icon: const Icon(Icons.search, size: 22),
+                                    onPressed: () => _showStudentSearchDialog(context, ref),
                                   ),
                                 );
                               },
                             ),
-                            // 2. Multi-Select Toggle (for non-teachers)
-                            if (widget.userRole != 'teacher')
-                              Tooltip(
-                                message: 'Select Multiple',
-                                child: IconButton(
-                                  icon: const Icon(
-                                    Icons.checklist_rounded,
-                                    size: 22,
-                                  ),
-                                  onPressed: () {
-                                    ref.read(studentMultiSelectProvider.notifier).state = true;
-                                  },
-                                ),
-                              ),
-                            // 3. Filter Icon with Badge
+                            // 2. Filter Icon with Badge
                             Consumer(
                               builder: (context, ref, _) {
                                 final activeCount = ref.watch(studentActiveFilterCountProvider);
@@ -659,6 +679,94 @@ class _AndroidBottomNavLayoutState extends ConsumerState<AndroidBottomNavLayout>
                                   ),
                                 );
                               },
+                            ),
+                            const SizedBox(width: 4),
+                          ],
+                          if (activeTab == 'Documents') ...[
+                            // 1. Search Icon (left side of Print List icon)
+                            Consumer(
+                              builder: (context, ref, _) {
+                                return Tooltip(
+                                  message: 'Search Documents',
+                                  child: IconButton(
+                                    icon: const Icon(Icons.search, size: 22),
+                                    onPressed: () =>
+                                        _showDocumentSearchDialog(context, ref),
+                                  ),
+                                );
+                              },
+                            ),
+                            // 2. Print List Icon (for non-teachers)
+                            if (widget.userRole != 'teacher')
+                              Consumer(
+                                builder: (context, ref, _) {
+                                  final queueAsync = ref.watch(printQueueProvider);
+                                  final count = queueAsync.maybeWhen(
+                                    data: (items) => items.length,
+                                    orElse: () => 0,
+                                  );
+                                  return Tooltip(
+                                    message: 'Print List',
+                                    child: IconButton(
+                                      icon: Badge(
+                                        isLabelVisible: count > 0,
+                                        label: Text(count.toString()),
+                                        child: const Icon(Icons.print_rounded, size: 22),
+                                      ),
+                                      onPressed: () => PrintQueueModal.show(context),
+                                    ),
+                                  );
+                                },
+                              ),
+                            // 3. Upload Document Icon (High-Attraction Elevated Primary CTA)
+                            Tooltip(
+                              message: 'Upload Document',
+                              child: Container(
+                                width: 36,
+                                height: 36,
+                                margin: const EdgeInsets.only(left: 4, right: 8),
+                                decoration: BoxDecoration(
+                                  gradient: const LinearGradient(
+                                    colors: [
+                                      Color(0xFF00B074),
+                                      AppColors.primaryGreen,
+                                    ],
+                                    begin: Alignment.topLeft,
+                                    end: Alignment.bottomRight,
+                                  ),
+                                  borderRadius: BorderRadius.circular(10),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: AppColors.primaryGreen.withValues(alpha: 0.4),
+                                      blurRadius: 6,
+                                      offset: const Offset(0, 2),
+                                    ),
+                                  ],
+                                ),
+                                child: Material(
+                                  color: Colors.transparent,
+                                  child: InkWell(
+                                    borderRadius: BorderRadius.circular(10),
+                                    onTap: () {
+                                      final openedFolder = ref.read(openedFolderProvider);
+                                      final studentId = openedFolder?.id ??
+                                          ref.read(documentQueryProvider).studentId;
+                                      UploadOcrModal.show(
+                                        context,
+                                        prefilledStudentId: studentId,
+                                        prefilledLrn: openedFolder?.lrn,
+                                      );
+                                    },
+                                    child: const Center(
+                                      child: Icon(
+                                        Icons.cloud_upload_rounded,
+                                        size: 20,
+                                        color: Colors.white,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ),
                             ),
                             const SizedBox(width: 4),
                           ],
@@ -731,7 +839,7 @@ class _AndroidBottomNavLayoutState extends ConsumerState<AndroidBottomNavLayout>
                               borderRadius: BorderRadius.circular(8),
                               boxShadow: [
                                 BoxShadow(
-                                  color: Colors.black.withOpacity(0.05),
+                                  color: Colors.black.withValues(alpha: 0.05),
                                   blurRadius: 4,
                                   offset: const Offset(0, 2),
                                 ),
@@ -784,7 +892,7 @@ class _AndroidBottomNavLayoutState extends ConsumerState<AndroidBottomNavLayout>
                                     style: TextStyle(
                                       fontSize: 12,
                                       fontWeight: FontWeight.bold,
-                                      color: Theme.of(context).colorScheme.onSurface.withOpacity(0.38),
+                                      color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.38),
                                     ),
                                   ),
                                 ),
@@ -823,7 +931,7 @@ class _AndroidBottomNavLayoutState extends ConsumerState<AndroidBottomNavLayout>
                                   style: TextStyle(
                                     fontSize: 12,
                                     fontWeight: FontWeight.bold,
-                                    color: Theme.of(context).colorScheme.onSurface.withOpacity(0.38),
+                                    color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.38),
                                   ),
                                 ),
                               ),
@@ -897,7 +1005,7 @@ class _AndroidBottomNavLayoutState extends ConsumerState<AndroidBottomNavLayout>
                                 widget.userRole.toUpperCase(),
                                 style: TextStyle(
                                   fontSize: 12,
-                                  color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+                                  color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
                                 ),
                               ),
                             ],
@@ -906,7 +1014,7 @@ class _AndroidBottomNavLayoutState extends ConsumerState<AndroidBottomNavLayout>
                         IconButton(
                           icon: Icon(
                             Icons.logout,
-                            color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+                            color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
                           ),
                           onPressed: () {
                             Navigator.pop(context); // Close drawer first
@@ -965,7 +1073,7 @@ class _AndroidBottomNavLayoutState extends ConsumerState<AndroidBottomNavLayout>
       padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 4.0),
       child: Material(
         color: isSelected
-            ? AppColors.primaryGreen.withOpacity(0.12)
+            ? AppColors.primaryGreen.withValues(alpha: 0.12)
             : Colors.transparent,
         borderRadius: BorderRadius.circular(12),
         clipBehavior: Clip.antiAlias,
@@ -985,7 +1093,7 @@ class _AndroidBottomNavLayoutState extends ConsumerState<AndroidBottomNavLayout>
                   isSelected ? activeIcon : icon,
                   color: isSelected
                       ? AppColors.primaryGreen
-                      : (isDark ? Theme.of(context).colorScheme.onSurface.withOpacity(0.6) : Colors.grey.shade600),
+                      : (isDark ? Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6) : Colors.grey.shade600),
                   size: 22,
                 ),
                 const SizedBox(width: 16),
@@ -996,7 +1104,7 @@ class _AndroidBottomNavLayoutState extends ConsumerState<AndroidBottomNavLayout>
                     fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
                     color: isSelected
                         ? AppColors.primaryGreen
-                        : (isDark ? Theme.of(context).colorScheme.onSurface.withOpacity(0.7) : Colors.grey.shade700),
+                        : (isDark ? Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7) : Colors.grey.shade700),
                   ),
                 ),
               ],
@@ -1137,7 +1245,7 @@ class _DrawerCloseButtonState extends State<_DrawerCloseButton> {
         child: Icon(
           _useArrow ? Icons.arrow_back : Icons.menu,
           key: ValueKey(_useArrow),
-          color: Theme.of(context).colorScheme.onSurface.withOpacity(0.54),
+          color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.54),
         ),
       ),
       onPressed: () => Navigator.pop(context),

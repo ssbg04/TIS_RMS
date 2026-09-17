@@ -575,7 +575,7 @@ Files backup/restore - mirror mode or zip -->
 # STUDENT, DOCUMENT, AND ARCHIVE SCREEN
 - icon multi select animation, the icon clicked animated to checked icon, remove the checkbox icon next to icon -->
 
-# DASHBOARD SCREEN
+<!-- # DASHBOARD SCREEN
 - in storage analytics, use fewer color, make it simple, and list 3-5 files make it dropdown if more than this list limit
 - top bottom fade, show the top fade if it has a component on top, same logic in bottom fade
 
@@ -602,13 +602,30 @@ Files backup/restore - mirror mode or zip -->
 - do not use wolt modal for "upload & OCR modal" and print queue modal after this remove the package of wolt modal sheet
 - in print queue, when printing Excel file(s), show dialog asking to automatically convert them to PDF and proceed with printing instead of showing a blocking error dialog
 - print list modal
-  - print list history, print email to the student: email (optional), add available date to pickup, message to email can be manual message typed by registrar/staff or preset message (optional)
+  - print list history, print email to the student: email (optional), add available date to pickup, message to email can be manual message typed by registrar/staff or preset message (optional) -->
+ 
+# DASHBORD SCREEN
+- use the icon from windows app for notifications, and search icon in android app screen header icons
+
+# STUDENT SCREEN
+- in android app, screen header icon for search icon like in dashboard screen
+- click icon add animation that enables multi select in android app
+- in android app, remove the multi select icon button in screen header
+
+
+# DOCUMENTS SCREEN
+- F:\SumbrerongBato\tis_rms_server\screenshots\screenshot1.png -> align tabs section to the list layout, decrease space bottom list between the pagination buttons, in android app
+- remove the multi select icon, in android app
+- in android app, screen header move the print list icon, upload icon
+- in file preview screen add icon button of all dropdown menu from the more menu
  
 
 ---
 
 # DONT DO
 <!-- - documents screen -> add how many files can be uploaded into a document requirement, the current limitation is only 1, so we can dynamically choose number files that can be uploaded into that document, update both frontend and backend, but first give me suggestion where will put the setting of this, ask me first   -->
+
+- CSV bulk add student, academic and section [acad year, grade level, sections]
 
 - print list history, print email to the student make it optional, add date of print, add status (done, not done, in progress, picked up), add message to email can be manual message typed by registrar/staff, 
 
