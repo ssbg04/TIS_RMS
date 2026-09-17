@@ -134,6 +134,53 @@ jobs:
           Write-Host "google-services.json restored."
 
       # ------------------------------------------------------------
+      # Android Release Keystore & Signing Configuration
+      # ------------------------------------------------------------
+      - name: Restore Android Release Keystore from Secret
+        env:
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+        if: ${{ env.ANDROID_KEYSTORE_BASE64 != '' }}
+        working-directory: frontend/android/app
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+
+          $base64 = $env:ANDROID_KEYSTORE_BASE64.Trim()
+          $bytes = [Convert]::FromBase64String($base64)
+          [IO.File]::WriteAllBytes("$PWD/tis_rms_release.keystore", $bytes)
+
+          Write-Host "tis_rms_release.keystore successfully restored from secret."
+
+      - name: Configure Android key.properties
+        env:
+          KEY_STORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_STORE_PASSWORD }}
+          KEY_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_KEY_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.ANDROID_KEYSTORE_KEY_ALIAS }}
+        working-directory: frontend/android
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+
+          $keystoreFile = "app/tis_rms_release.keystore"
+          if (Test-Path $keystoreFile) {
+            $storePass = if ($env:KEY_STORE_PASSWORD) { $env:KEY_STORE_PASSWORD } else { "android" }
+            $keyPass = if ($env:KEY_PASSWORD) { $env:KEY_PASSWORD } else { "android" }
+            $alias = if ($env:KEY_ALIAS) { $env:KEY_ALIAS } else { "androiddebugkey" }
+
+            $keyPropertiesContent = @"
+storePassword=$storePass
+keyPassword=$keyPass
+keyAlias=$alias
+storeFile=tis_rms_release.keystore
+"@
+            Set-Content -Path "key.properties" -Value $keyPropertiesContent -Encoding ascii
+            Write-Host "Android key.properties successfully created."
+          } else {
+            Write-Warning "Keystore file not found at $keystoreFile. Build will use debug signing."
+          }
+
+
+      # ------------------------------------------------------------
       # Determine Release Tag & Version
       # ------------------------------------------------------------
       - name: Determine Release Tag & Version

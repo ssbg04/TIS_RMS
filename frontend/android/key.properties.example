@@ -1,4 +1,4 @@
-storePassword=tis_rms_2026
-keyPassword=tis_rms_2026
-keyAlias=upload
-storeFile=upload-keystore.jks
+storePassword=android
+keyPassword=android
+keyAlias=androiddebugkey
+storeFile=tis_rms_release.keystore
