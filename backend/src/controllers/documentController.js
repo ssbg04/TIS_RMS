@@ -284,7 +284,7 @@ exports.viewDocument = (req, res) => {
 
 exports.getThumbnail = async (req, res) => {
     try {
-        const doc = db.prepare('SELECT student_id, file_path, file_name FROM documents WHERE id = ?').get(req.params.id);
+        const doc = db.prepare('SELECT id, student_id, file_path, file_name FROM documents WHERE id = ?').get(req.params.id);
         if (!doc) return res.status(404).json({ message: 'Document not found' });
 
         const isTeacher = req.user?.role?.toLowerCase() === 'teacher';
@@ -1295,6 +1295,16 @@ exports.permanentDeleteDocument = (req, res) => {
             fs.unlinkSync(doc.file_path);
         }
 
+        const thumbnailDir = path.resolve('./uploads/thumbnails');
+        const imgThumb = path.join(thumbnailDir, `thumb_img_${req.params.id}.webp`);
+        const pdfThumb = path.join(thumbnailDir, `thumb_${req.params.id}.png`);
+        if (fs.existsSync(imgThumb)) {
+            try { fs.unlinkSync(imgThumb); } catch (_) {}
+        }
+        if (fs.existsSync(pdfThumb)) {
+            try { fs.unlinkSync(pdfThumb); } catch (_) {}
+        }
+
         db.transaction(() => {
             db.prepare('DELETE FROM documents WHERE id = ?').run(req.params.id);
             db.prepare('DELETE FROM recent_deleted WHERE document_id = ?').run(req.params.id);
@@ -1323,6 +1333,7 @@ exports.bulkPermanentDelete = (req, res) => {
         const getStmt = db.prepare('SELECT file_path, file_name FROM documents WHERE id = ?');
         const deleteStmt = db.prepare('DELETE FROM documents WHERE id = ?');
         const deleteTrashStmt = db.prepare('DELETE FROM recent_deleted WHERE document_id = ?');
+        const thumbnailDir = path.resolve('./uploads/thumbnails');
 
         db.transaction(() => {
             for (const id of ids) {
@@ -1330,6 +1341,14 @@ exports.bulkPermanentDelete = (req, res) => {
                 if (doc) {
                     if (fs.existsSync(doc.file_path)) {
                         fs.unlinkSync(doc.file_path);
+                    }
+                    const imgThumb = path.join(thumbnailDir, `thumb_img_${id}.webp`);
+                    const pdfThumb = path.join(thumbnailDir, `thumb_${id}.png`);
+                    if (fs.existsSync(imgThumb)) {
+                        try { fs.unlinkSync(imgThumb); } catch (_) {}
+                    }
+                    if (fs.existsSync(pdfThumb)) {
+                        try { fs.unlinkSync(pdfThumb); } catch (_) {}
                     }
                     deleteStmt.run(id);
                     deleteTrashStmt.run(id);

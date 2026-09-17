@@ -619,7 +619,7 @@ Files backup/restore - mirror mode or zip -->
 - in android app, screen header move the print list icon, upload icon
 - in file preview screen add icon button of all dropdown menu from the more menu -->
  
-# STUDENT SCREEN
+<!-- # STUDENT SCREEN
 - in android app, screen header icon add icon button for "add student" make it more attractive
 
 # DOCUMENT SCREEN
@@ -627,7 +627,7 @@ Files backup/restore - mirror mode or zip -->
 - in filter documents only add document type, make it dropdown not modal
 
 # ARCHIVE SCREEN 
-- do the same from document screen design from this chat today 
+- do the same from document screen design from this chat today  -->
 
 
 ---
