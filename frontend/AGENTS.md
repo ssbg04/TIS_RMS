@@ -563,7 +563,7 @@ Files backup/restore - mirror mode or zip -->
 # STUDENT SCREEN
 - in windows app, make it modal the add student screen -->
 
-# SETTINGS SCREEN
+<!-- # SETTINGS SCREEN
 - add deletion of the account, add at the very bottom of the settings -> sends an email where user needs to click a link to delete the account, add a hidden super admin account and hidden from the frontend only developers can access this the role is admin but hidden to the system only developer can use this account to manage the users
 
 # ARCHIVE SCREEN 
@@ -573,9 +573,37 @@ Files backup/restore - mirror mode or zip -->
 - download success dialog, add notes and its download path location
 
 # STUDENT, DOCUMENT, AND ARCHIVE SCREEN
-- icon multi select animation, the icon clicked animated to checked icon, remove the checkbox icon next to icon
+- icon multi select animation, the icon clicked animated to checked icon, remove the checkbox icon next to icon -->
 
---- 
+# DASHBOARD SCREEN
+- in storage analytics, use fewer color, make it simple, and list 3-5 files make it dropdown if more than this list limit
+- top bottom fade, show the top fade if it has a component on top, same logic in bottom fade
+
+# STUDENT SCREEN
+- in windows app, make it modal the edit student screen
+- use card for student table in windows app, make sure hover of doc status working and action button
+- add right click (windows app) and hold feature (android app) -> dropdown with action label (view details, edit (active student details tab), add enrollment (active enrollment tab), view documents/archive folder (if not enrolled, shows archive, same functionality of the action button of open document button), change status [graduate, transfer, drop, set inactive] )
+- in android app add dropdown to show the doc status
+- remove the multi select button on screen header
+- make the add studen FAB into icon button right side of filter button, make the color attract attention dont add background and border color
+- add fade at top and bottom same from "dashboard screen"
+- top bottom fade, show the top fade if it has a component on top, same logic in bottom fade
+
+# ALL SCREENS PAGINATION
+- redesign the pagination UI based on this picture F:\SumbrerongBato\tis_rms_server\Pictures\Screenshot 2026-09-17 181328.png
+  - Desktop: Option 02 (Full width, clear text, page dropdown).
+  - Mobile: Option 01 (or compact: ‹ 1 2 3 › + Page [ 1 ▾ ]).
+
+# DOCUMENT SCREEN
+- all FAB in android move to the screen header title like in dashboard screen
+- optimize mini preview/thumbnails (backend & frontend) for fast loading:
+  - backend: generate & cache resized lightweight thumbnails (~250px WebP/JPEG) + HTTP Cache-Control headers instead of serving raw original files
+  - frontend: add cacheWidth/cacheHeight image memory decode optimization to eliminate scroll lag
+- do not use wolt modal for "upload & OCR modal" and print queue modal after this remove the package of wolt modal sheet
+- in print queue, when printing Excel file(s), show dialog asking to automatically convert them to PDF and proceed with printing instead of showing a blocking error dialog
+
+
+---
 
 # DONT DO
 <!-- - documents screen -> add how many files can be uploaded into a document requirement, the current limitation is only 1, so we can dynamically choose number files that can be uploaded into that document, update both frontend and backend, but first give me suggestion where will put the setting of this, ask me first   -->

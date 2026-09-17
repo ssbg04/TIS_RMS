@@ -891,98 +891,98 @@ exports.requestAccountDeletion = async (req, res) => {
     }
 };
 
+const renderDeletionPage = ({ title, contentHtml, isError = false }) => {
+    return `
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>${title} — Talisay Integrated School RMS</title>
+        <link rel="preconnect" href="https://fonts.googleapis.com">
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+        <style>
+            * { box-sizing: border-box; margin: 0; padding: 0; }
+            body {
+                font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+                background: #f8fafc;
+                color: #0f172a;
+                min-height: 100vh;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                padding: 24px 16px;
+            }
+            .card {
+                background: #ffffff;
+                width: 100%;
+                max-width: 480px;
+                border-radius: 20px;
+                box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.03);
+                border: 1px solid #e2e8f0;
+                overflow: hidden;
+            }
+            .header {
+                background: ${isError ? 'linear-gradient(135deg, #b91c1c 0%, #991b1b 100%)' : 'linear-gradient(135deg, #dc2626 0%, #b91c1c 100%)'};
+                color: #ffffff;
+                padding: 28px 24px;
+                text-align: center;
+            }
+            .header-logo { font-size: 36px; margin-bottom: 8px; }
+            .header h1 { font-size: 20px; font-weight: 800; letter-spacing: 0.3px; }
+            .header p { font-size: 13px; opacity: 0.9; margin-top: 4px; }
+            .body { padding: 32px 28px; }
+            .danger-badge {
+                background: #fef2f2;
+                border: 1px solid #fecaca;
+                border-radius: 12px;
+                padding: 16px;
+                margin-bottom: 24px;
+                font-size: 13px;
+                color: #991b1b;
+                line-height: 1.6;
+            }
+            .btn-danger {
+                width: 100%;
+                background: #dc2626;
+                color: #ffffff;
+                border: none;
+                border-radius: 10px;
+                padding: 14px;
+                font-size: 15px;
+                font-weight: 700;
+                cursor: pointer;
+                transition: all 0.2s;
+                box-shadow: 0 4px 12px rgba(220, 38, 38, 0.3);
+            }
+            .btn-danger:hover { background: #b91c1c; transform: translateY(-1px); }
+            .footer-text { margin-top: 20px; font-size: 12px; text-align: center; color: #94a3b8; }
+        </style>
+    </head>
+    <body>
+        <div class="card">
+            <div class="header">
+                <div class="header-logo">&#128465;</div>
+                <h1>${title}</h1>
+                <p>Talisay Integrated School &bull; Record Management System</p>
+            </div>
+            <div class="body">
+                ${contentHtml}
+                <div class="footer-text">This link is single-use and time-limited.</div>
+            </div>
+        </div>
+    </body>
+    </html>
+    `;
+};
+
 // GET /api/auth/confirm-delete-account-web
 exports.confirmDeleteAccountWebPage = (req, res) => {
     const token = req.query.token;
 
-    const renderPage = ({ title, contentHtml, isError = false }) => {
-        return `
-        <!DOCTYPE html>
-        <html lang="en">
-        <head>
-            <meta charset="UTF-8">
-            <meta name="viewport" content="width=device-width, initial-scale=1.0">
-            <title>${title} — Talisay Integrated School RMS</title>
-            <link rel="preconnect" href="https://fonts.googleapis.com">
-            <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-            <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-            <style>
-                * { box-sizing: border-box; margin: 0; padding: 0; }
-                body {
-                    font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
-                    background: #f8fafc;
-                    color: #0f172a;
-                    min-height: 100vh;
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
-                    padding: 24px 16px;
-                }
-                .card {
-                    background: #ffffff;
-                    width: 100%;
-                    max-width: 480px;
-                    border-radius: 20px;
-                    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.03);
-                    border: 1px solid #e2e8f0;
-                    overflow: hidden;
-                }
-                .header {
-                    background: ${isError ? 'linear-gradient(135deg, #b91c1c 0%, #991b1b 100%)' : 'linear-gradient(135deg, #dc2626 0%, #b91c1c 100%)'};
-                    color: #ffffff;
-                    padding: 28px 24px;
-                    text-align: center;
-                }
-                .header-logo { font-size: 36px; margin-bottom: 8px; }
-                .header h1 { font-size: 20px; font-weight: 800; letter-spacing: 0.3px; }
-                .header p { font-size: 13px; opacity: 0.9; margin-top: 4px; }
-                .body { padding: 32px 28px; }
-                .danger-badge {
-                    background: #fef2f2;
-                    border: 1px solid #fecaca;
-                    border-radius: 12px;
-                    padding: 16px;
-                    margin-bottom: 24px;
-                    font-size: 13px;
-                    color: #991b1b;
-                    line-height: 1.6;
-                }
-                .btn-danger {
-                    width: 100%;
-                    background: #dc2626;
-                    color: #ffffff;
-                    border: none;
-                    border-radius: 10px;
-                    padding: 14px;
-                    font-size: 15px;
-                    font-weight: 700;
-                    cursor: pointer;
-                    transition: all 0.2s;
-                    box-shadow: 0 4px 12px rgba(220, 38, 38, 0.3);
-                }
-                .btn-danger:hover { background: #b91c1c; transform: translateY(-1px); }
-                .footer-text { margin-top: 20px; font-size: 12px; text-align: center; color: #94a3b8; }
-            </style>
-        </head>
-        <body>
-            <div class="card">
-                <div class="header">
-                    <div class="header-logo">&#128465;</div>
-                    <h1>${title}</h1>
-                    <p>Talisay Integrated School &bull; Record Management System</p>
-                </div>
-                <div class="body">
-                    ${contentHtml}
-                    <div class="footer-text">This link is single-use and time-limited.</div>
-                </div>
-            </div>
-        </body>
-        </html>
-        `;
-    };
-
     if (!token) {
-        return res.status(400).send(renderPage({
+        return res.status(400).send(renderDeletionPage({
             title: 'Invalid Request',
             isError: true,
             contentHtml: `
@@ -1002,7 +1002,7 @@ exports.confirmDeleteAccountWebPage = (req, res) => {
         `).get(token);
 
         if (!record) {
-            return res.status(404).send(renderPage({
+            return res.status(404).send(renderDeletionPage({
                 title: 'Invalid Link',
                 isError: true,
                 contentHtml: `
@@ -1014,7 +1014,7 @@ exports.confirmDeleteAccountWebPage = (req, res) => {
         }
 
         if (new Date(record.expires_at) < new Date()) {
-            return res.status(410).send(renderPage({
+            return res.status(410).send(renderDeletionPage({
                 title: 'Link Expired',
                 isError: true,
                 contentHtml: `
@@ -1027,7 +1027,7 @@ exports.confirmDeleteAccountWebPage = (req, res) => {
 
         const fullName = [record.first_name, record.last_name].filter(Boolean).join(' ');
 
-        return res.send(renderPage({
+        return res.send(renderDeletionPage({
             title: 'Confirm Account Deletion',
             contentHtml: `
                 <div class="danger-badge">
@@ -1036,7 +1036,7 @@ exports.confirmDeleteAccountWebPage = (req, res) => {
                     Email: <strong>${record.email}</strong><br><br>
                     All your credentials and active sessions will be permanently revoked. This action cannot be reversed.
                 </div>
-                <form method="POST" action="/api/auth/confirm-delete-account">
+                <form method="POST" action="/api/auth/confirm-delete-account?token=${encodeURIComponent(token)}">
                     <input type="hidden" name="token" value="${token}">
                     <button type="submit" class="btn-danger">Yes, Permanently Delete My Account</button>
                 </form>
@@ -1044,7 +1044,7 @@ exports.confirmDeleteAccountWebPage = (req, res) => {
         }));
     } catch (error) {
         console.error('confirmDeleteAccountWebPage error:', error);
-        return res.status(500).send(renderPage({
+        return res.status(500).send(renderDeletionPage({
             title: 'System Error',
             isError: true,
             contentHtml: `<div class="danger-badge">An error occurred while processing the confirmation request.</div>`,
@@ -1059,7 +1059,11 @@ exports.confirmDeleteAccount = (req, res) => {
 
     if (!token) {
         if (isHtml) {
-            return res.status(400).send('<h3>Invalid Request: Token missing.</h3>');
+            return res.status(400).send(renderDeletionPage({
+                title: 'Invalid Request',
+                isError: true,
+                contentHtml: `<div class="danger-badge"><strong>Invalid Request:</strong> Verification token is missing.</div>`,
+            }));
         }
         return res.status(400).json({ message: 'Token is required' });
     }
@@ -1074,19 +1078,31 @@ exports.confirmDeleteAccount = (req, res) => {
 
         if (!record) {
             const msg = 'Invalid or already used deletion token.';
-            if (isHtml) return res.status(404).send(`<h3>${msg}</h3>`);
+            if (isHtml) return res.status(404).send(renderDeletionPage({
+                title: 'Link Invalid or Used',
+                isError: true,
+                contentHtml: `<div class="danger-badge"><strong>Link Invalid:</strong> ${msg}</div>`,
+            }));
             return res.status(404).json({ message: msg });
         }
 
         if (new Date(record.expires_at) < new Date()) {
             const msg = 'Deletion confirmation link has expired.';
-            if (isHtml) return res.status(410).send(`<h3>${msg}</h3>`);
+            if (isHtml) return res.status(410).send(renderDeletionPage({
+                title: 'Link Expired',
+                isError: true,
+                contentHtml: `<div class="danger-badge"><strong>Expired:</strong> ${msg}</div>`,
+            }));
             return res.status(410).json({ message: msg });
         }
 
         if (record.is_hidden === 1) {
             const msg = 'Developer super administrator account cannot be deleted.';
-            if (isHtml) return res.status(403).send(`<h3>${msg}</h3>`);
+            if (isHtml) return res.status(403).send(renderDeletionPage({
+                title: 'Action Prohibited',
+                isError: true,
+                contentHtml: `<div class="danger-badge"><strong>Action Prohibited:</strong> ${msg}</div>`,
+            }));
             return res.status(403).json({ message: msg });
         }
 
