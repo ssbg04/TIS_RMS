@@ -1325,9 +1325,10 @@ class _UserDetailAndEditModalContentState
                             onTap: onTap,
                             borderRadius: BorderRadius.circular(8),
                             child: Container(
+                              height: 38,
+                              alignment: Alignment.center,
                               padding: EdgeInsets.symmetric(
                                 horizontal: isCompact ? 6 : 12,
-                                vertical: 10,
                               ),
                               decoration: BoxDecoration(
                                 borderRadius: BorderRadius.circular(8),
@@ -1368,7 +1369,7 @@ class _UserDetailAndEditModalContentState
 
                       final resetBtn = buildActionButton(
                         icon: Icons.lock_reset_rounded,
-                        label: isCompact ? 'Reset Pass' : 'Reset Password',
+                        label: 'Reset',
                         onTap: () {
                           Navigator.of(context, rootNavigator: true).pop();
                           widget.onResetPassword?.call(_currentUser);
@@ -1652,6 +1653,7 @@ class _UserDetailAndEditModalContentState
                           child: OutlinedButton(
                             onPressed: _cancelEditing,
                             style: OutlinedButton.styleFrom(
+                              minimumSize: const Size.fromHeight(50),
                               padding: const EdgeInsets.symmetric(
                                 horizontal: 20,
                                 vertical: 14,
@@ -1666,7 +1668,7 @@ class _UserDetailAndEditModalContentState
                         const SizedBox(width: 12),
                         Expanded(
                           child: PrimaryButton(
-                            label: 'Save Changes',
+                            label: 'Save',
                             isLoading: _isLoading,
                             onPressed: _handleSave,
                           ),

@@ -243,7 +243,7 @@ class _ChangePasswordModalState extends ConsumerState<ChangePasswordModal> {
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   PrimaryButton(
-                    label: 'UPDATE PASSWORD',
+                    label: 'UPDATE',
                     isLoading: _isLoading,
                     onPressed: _handleSubmit,
                   ),
@@ -276,9 +276,9 @@ class _ChangePasswordModalState extends ConsumerState<ChangePasswordModal> {
                   ),
                   const SizedBox(width: 12),
                   SizedBox(
-                    width: 180,
+                    width: 130,
                     child: PrimaryButton(
-                      label: 'UPDATE PASSWORD',
+                      label: 'UPDATE',
                       isLoading: _isLoading,
                       onPressed: _handleSubmit,
                     ),

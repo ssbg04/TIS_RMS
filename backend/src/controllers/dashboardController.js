@@ -12,7 +12,7 @@ exports.getStats = (req, res) => {
         let totalStudents;
         let completedDocuments;
         let missingDocuments;
-        const activeUsers = db.prepare('SELECT COUNT(*) as count FROM users WHERE is_active = 1').get().count;
+        const activeUsers = db.prepare('SELECT COUNT(*) as count FROM users WHERE is_active = 1 AND COALESCE(is_hidden, 0) = 0').get().count;
 
         // Resolve Active Academic Year
         const activeAy = db.prepare("SELECT * FROM academic_years WHERE status = 'active' LIMIT 1").get()
