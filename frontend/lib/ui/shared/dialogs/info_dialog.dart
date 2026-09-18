@@ -27,17 +27,21 @@ void showInfoDialog(
 }) {
   final btnColor = buttonColor ?? iconColor;
 
-  if (iconColor == AppColors.error ||
-      iconColor == Colors.red ||
-      iconColor == Colors.orange ||
-      title.toLowerCase().contains('warning') ||
-      title.toLowerCase().contains('alert')) {
-    SoundService.playWarning();
-    HapticService.warning();
-  } else {
-    SoundService.playInfo();
-    HapticService.info();
-  }
+  if (!context.mounted) return;
+
+  try {
+    if (iconColor == AppColors.error ||
+        iconColor == Colors.red ||
+        iconColor == Colors.orange ||
+        title.toLowerCase().contains('warning') ||
+        title.toLowerCase().contains('alert')) {
+      SoundService.playWarning();
+      HapticService.warning();
+    } else {
+      SoundService.playInfo();
+      HapticService.info();
+    }
+  } catch (_) {}
 
   showDialog(
     context: context,

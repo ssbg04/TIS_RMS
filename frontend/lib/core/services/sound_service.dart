@@ -1,3 +1,4 @@
+import 'dart:io' show Platform;
 import 'package:audioplayers/audioplayers.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
@@ -12,11 +13,14 @@ class SoundService {
   static bool get isMuted => _muted;
   static set isMuted(bool value) => _muted = value;
 
+  static bool get _isDesktop =>
+      !kIsWeb && (Platform.isWindows || Platform.isLinux || Platform.isMacOS);
+
   static void _ensureInitialized() {
+    if (_isDesktop) return;
     if (_initialized && _player != null) return;
     try {
       _player = AudioPlayer();
-      _player!.setPlayerMode(PlayerMode.lowLatency);
       _player!.setVolume(1.0);
       _initialized = true;
     } catch (e) {
@@ -27,13 +31,20 @@ class SoundService {
   static Future<void> _playSound(String assetFileName, {bool isErrorOrAlert = false}) async {
     if (_muted) return;
     try {
+      if (_isDesktop) {
+        if (isErrorOrAlert) {
+          await SystemSound.play(SystemSoundType.alert);
+        } else {
+          await SystemSound.play(SystemSoundType.click);
+        }
+        return;
+      }
+
       _ensureInitialized();
       if (_player != null) {
-        // Stop current sound if playing, then play new sound
         await _player!.stop();
         await _player!.play(AssetSource('sounds/$assetFileName'));
       } else {
-        // Fallback to system sound
         if (isErrorOrAlert) {
           await SystemSound.play(SystemSoundType.alert);
         } else {

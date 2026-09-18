@@ -111,6 +111,7 @@ Future<bool?> showFileSavePreviewDialog(
   File? imageFile,
   required Future<void> Function(String resolvedFileName) onSave,
 }) {
+  if (!context.mounted) return Future.value(null);
   return showDialog<bool>(
     context: context,
     barrierDismissible: false,

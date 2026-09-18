@@ -7,6 +7,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_sizes.dart';
+import '../../../core/services/haptic_service.dart';
 import '../../../domain/entities/student_model.dart';
 import '../../../domain/entities/setup_models.dart';
 import '../../shared/buttons/primary_button.dart';
@@ -353,8 +354,9 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
     Offset globalPosition,
     StudentModel student,
   ) async {
-    final RenderBox overlay =
-        Overlay.of(ctx).context.findRenderObject()! as RenderBox;
+    final RenderBox? overlay =
+        Overlay.maybeOf(ctx)?.context.findRenderObject() as RenderBox?;
+    if (overlay == null) return;
     final RelativeRect position = RelativeRect.fromRect(
       Rect.fromLTWH(globalPosition.dx, globalPosition.dy, 0, 0),
       Offset.zero & overlay.size,
@@ -1403,7 +1405,7 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
                     behavior: HitTestBehavior.opaque,
                     onTap: widget.userRole != 'teacher'
                         ? () {
-                            HapticFeedback.selectionClick();
+                            HapticService.selection();
                             _updateSelection(() {
                               if (!_showMultiSelect) {
                                 _showMultiSelect = true;
@@ -1668,7 +1670,7 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
                     behavior: HitTestBehavior.opaque,
                     onTap: widget.userRole != 'teacher'
                         ? () {
-                            HapticFeedback.selectionClick();
+                            HapticService.selection();
                             _updateSelection(() {
                               if (!_showMultiSelect) {
                                 _showMultiSelect = true;

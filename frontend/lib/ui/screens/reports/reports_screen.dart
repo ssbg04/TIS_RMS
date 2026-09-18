@@ -3568,9 +3568,11 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
     List<String> allYears,
     Set<String> selected,
   ) {
-    final RenderBox button = context.findRenderObject() as RenderBox;
-    final RenderBox overlay =
-        Overlay.of(context).context.findRenderObject() as RenderBox;
+    final RenderBox? button = context.findRenderObject() as RenderBox?;
+    final RenderBox? overlay =
+        Overlay.maybeOf(context)?.context.findRenderObject() as RenderBox?;
+    if (button == null || overlay == null) return;
+
     final RelativeRect position = RelativeRect.fromRect(
       Rect.fromPoints(
         button.localToGlobal(Offset.zero, ancestor: overlay),
@@ -3742,9 +3744,11 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
     List<_StatusOption> options,
     Set<String> selected,
   ) {
-    final RenderBox button = context.findRenderObject() as RenderBox;
-    final RenderBox overlay =
-        Overlay.of(context).context.findRenderObject() as RenderBox;
+    final RenderBox? button = context.findRenderObject() as RenderBox?;
+    final RenderBox? overlay =
+        Overlay.maybeOf(context)?.context.findRenderObject() as RenderBox?;
+    if (button == null || overlay == null) return;
+
     final RelativeRect position = RelativeRect.fromRect(
       Rect.fromPoints(
         button.localToGlobal(Offset.zero, ancestor: overlay),

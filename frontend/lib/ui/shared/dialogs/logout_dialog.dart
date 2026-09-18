@@ -8,8 +8,11 @@ import '../../screens/login/login_screen.dart';
 
 /// A reusable function to show the logout confirmation and handle the logout process.
 Future<void> showLogoutConfirmationDialog(BuildContext context) async {
-  SoundService.playWarning();
-  HapticService.warning();
+  if (!context.mounted) return;
+  try {
+    SoundService.playWarning();
+    HapticService.warning();
+  } catch (_) {}
   return showDialog(
     context: context,
     builder: (ctx) => Consumer(

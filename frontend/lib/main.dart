@@ -48,25 +48,27 @@ void main() async {
   );
   SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
 
-  final view = WidgetsBinding.instance.platformDispatcher.views.first;
-  final physicalSize = view.physicalSize;
-  final devicePixelRatio = view.devicePixelRatio;
-  final width = physicalSize.width / devicePixelRatio;
-  final height = physicalSize.height / devicePixelRatio;
-  final shortestSide = width < height ? width : height;
+  final view = WidgetsBinding.instance.platformDispatcher.views.firstOrNull;
+  if (view != null) {
+    final physicalSize = view.physicalSize;
+    final devicePixelRatio = view.devicePixelRatio;
+    final width = physicalSize.width / devicePixelRatio;
+    final height = physicalSize.height / devicePixelRatio;
+    final shortestSide = width < height ? width : height;
 
-  if (shortestSide < 600) {
-    await SystemChrome.setPreferredOrientations([
-      DeviceOrientation.portraitUp,
-      DeviceOrientation.portraitDown,
-    ]);
-  } else {
-    await SystemChrome.setPreferredOrientations([
-      DeviceOrientation.portraitUp,
-      DeviceOrientation.portraitDown,
-      DeviceOrientation.landscapeLeft,
-      DeviceOrientation.landscapeRight,
-    ]);
+    if (shortestSide < 600) {
+      await SystemChrome.setPreferredOrientations([
+        DeviceOrientation.portraitUp,
+        DeviceOrientation.portraitDown,
+      ]);
+    } else {
+      await SystemChrome.setPreferredOrientations([
+        DeviceOrientation.portraitUp,
+        DeviceOrientation.portraitDown,
+        DeviceOrientation.landscapeLeft,
+        DeviceOrientation.landscapeRight,
+      ]);
+    }
   }
 
   await NotificationService().initialize();

@@ -524,7 +524,8 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
       int successCount = 0;
 
       for (final docId in _selectedDocumentIds) {
-        final doc = docs.firstWhere((d) => d.id == docId);
+        final doc = docs.where((d) => d.id == docId).firstOrNull;
+        if (doc == null) continue;
         final url =
             '${ApiConstants.baseUrl}/documents/${doc.id}/view?token=$token&download=true';
         await DownloadService.downloadFile(url: url, fileName: doc.fileName);
@@ -2428,8 +2429,9 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
   ) async {
     if (folder.studentId == null) return;
 
-    final RenderBox overlay =
-        Overlay.of(context).context.findRenderObject() as RenderBox;
+    final RenderBox? overlay =
+        Overlay.maybeOf(context)?.context.findRenderObject() as RenderBox?;
+    if (overlay == null) return;
     final value = await showMenu<String>(
       context: context,
       position: RelativeRect.fromRect(

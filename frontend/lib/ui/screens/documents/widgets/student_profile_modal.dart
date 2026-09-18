@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/constants/app_colors.dart';
+import '../../../../core/services/haptic_service.dart';
 import '../../../../domain/repositories/document_repository.dart'
     show MissingRequirements;
 import '../../../../domain/entities/document_requirement_model.dart';
@@ -1182,7 +1183,7 @@ class _CopyableLrnButtonState extends State<_CopyableLrnButton> {
     if (lrn.isEmpty) return;
 
     Clipboard.setData(ClipboardData(text: lrn));
-    HapticFeedback.lightImpact();
+    HapticService.light();
 
     setState(() {
       _copied = true;

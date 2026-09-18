@@ -24,8 +24,15 @@ Future<void> showSuccessDialog(
   String? filePath,
   String? notes,
 }) {
-  SoundService.playSuccess();
-  HapticService.success();
+  try {
+    SoundService.playSuccess();
+  } catch (_) {}
+  try {
+    HapticService.success();
+  } catch (_) {}
+
+  if (!context.mounted) return Future.value();
+
   return showDialog<void>(
     context: context,
     barrierDismissible: false,

@@ -17,6 +17,14 @@ class DownloadService {
       final dir = await getDownloadsDirectory();
       if (dir != null) {
         path = '${dir.path}\\TIS_RMS';
+      } else {
+        final userProfile = Platform.environment['USERPROFILE'];
+        if (userProfile != null && userProfile.isNotEmpty) {
+          path = '$userProfile\\Downloads\\TIS_RMS';
+        } else {
+          final docsDir = await getApplicationDocumentsDirectory();
+          path = '${docsDir.path}\\TIS_RMS';
+        }
       }
     }
 
@@ -78,7 +86,16 @@ class DownloadService {
     if (!await file.exists()) {
       throw Exception('File does not exist at $filePath');
     }
-    await OpenFilex.open(filePath);
+    try {
+      final res = await OpenFilex.open(filePath);
+      if (res.type != ResultType.done && Platform.isWindows) {
+        await Process.run('explorer.exe', [filePath]);
+      }
+    } catch (_) {
+      if (Platform.isWindows) {
+        await Process.run('explorer.exe', [filePath]);
+      }
+    }
   }
 
   /// Opens the storage directory (Download/TIS_RMS) or highlights the file in File Explorer.
@@ -105,12 +122,14 @@ class DownloadService {
         await fallback.launch();
       }
     } else if (Platform.isWindows) {
-      if (filePath != null && await File(filePath).exists()) {
-        await Process.run('explorer.exe', ['/select,', filePath]);
-      } else {
-        final dirPath = await getDownloadDirectoryPath();
-        await Process.run('explorer.exe', [dirPath]);
-      }
+      try {
+        if (filePath != null && await File(filePath).exists()) {
+          await Process.run('explorer.exe', ['/select,$filePath']);
+        } else {
+          final dirPath = await getDownloadDirectoryPath();
+          await Process.run('explorer.exe', [dirPath]);
+        }
+      } catch (_) {}
     }
   }
 }

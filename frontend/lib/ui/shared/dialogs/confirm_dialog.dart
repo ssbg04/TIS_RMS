@@ -34,13 +34,17 @@ Future<bool?> showConfirmDialog(
   final effectiveConfirmColor = confirmColor ?? (isDanger ? AppColors.error : AppColors.primaryGreen);
   final effectiveIcon = icon ?? (isDanger ? Icons.warning_amber_rounded : Icons.help_outline_rounded);
 
-  if (isDanger) {
-    SoundService.playWarning();
-    HapticService.warning();
-  } else {
-    SoundService.playConfirm();
-    HapticService.medium();
-  }
+  if (!context.mounted) return Future.value(false);
+
+  try {
+    if (isDanger) {
+      SoundService.playWarning();
+      HapticService.warning();
+    } else {
+      SoundService.playConfirm();
+      HapticService.medium();
+    }
+  } catch (_) {}
 
   return showDialog<bool>(
     context: context,

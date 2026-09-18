@@ -226,8 +226,9 @@ class _FileFolderCardState extends State<FileFolderCard> {
 
   void _showContextMenu(BuildContext context, Offset position) {
     if (widget.isMultiSelectMode) return;
-    final RenderBox overlay =
-        Overlay.of(context).context.findRenderObject() as RenderBox;
+    final RenderBox? overlay =
+        Overlay.maybeOf(context)?.context.findRenderObject() as RenderBox?;
+    if (overlay == null) return;
     showMenu<String>(
       context: context,
       position: RelativeRect.fromRect(

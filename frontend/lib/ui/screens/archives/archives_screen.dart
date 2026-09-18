@@ -560,7 +560,8 @@ class _ArchivesScreenState extends ConsumerState<ArchivesScreen>
       final dirPath = await DownloadService.getDownloadDirectoryPath();
 
       for (final docId in _selectedDocumentIds) {
-        final doc = docs.firstWhere((d) => d.id == docId);
+        final doc = docs.where((d) => d.id == docId).firstOrNull;
+        if (doc == null) continue;
         final url =
             '${ApiConstants.baseUrl}/documents/${doc.id}/view?token=$token&download=true';
         lastSavedPath = await DownloadService.downloadFile(url: url, fileName: doc.fileName);
@@ -1867,8 +1868,9 @@ class _ArchivesScreenState extends ConsumerState<ArchivesScreen>
     final studentName =
         '${folder.studentLastName ?? ''}, ${folder.studentFirstName ?? ''}';
 
-    final RenderBox overlay =
-        Overlay.of(context).context.findRenderObject() as RenderBox;
+    final RenderBox? overlay =
+        Overlay.maybeOf(context)?.context.findRenderObject() as RenderBox?;
+    if (overlay == null) return;
     final value = await showMenu<String>(
       context: context,
       position: RelativeRect.fromRect(

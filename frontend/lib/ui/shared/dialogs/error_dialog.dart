@@ -19,8 +19,15 @@ void showErrorDialog(
   String buttonLabel = 'OK',
   VoidCallback? onDismissed,
 }) {
-  SoundService.playError();
-  HapticService.error();
+  try {
+    SoundService.playError();
+  } catch (_) {}
+  try {
+    HapticService.error();
+  } catch (_) {}
+
+  if (!context.mounted) return;
+
   showDialog(
     context: context,
     barrierDismissible: false,

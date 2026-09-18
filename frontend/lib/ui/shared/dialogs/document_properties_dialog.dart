@@ -18,6 +18,7 @@ class DocumentPropertiesDialog extends StatelessWidget {
     BuildContext context, {
     required DocumentModel document,
   }) {
+    if (!context.mounted) return Future.value();
     return showDialog(
       context: context,
       builder: (ctx) => DocumentPropertiesDialog(document: document),

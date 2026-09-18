@@ -22,10 +22,13 @@ class DisconnectedDialog extends StatefulWidget {
     BuildContext context, {
     VoidCallback? onReconnected,
   }) async {
+    if (!context.mounted) return;
     if (_isShowing) return;
     _isShowing = true;
-    SoundService.playError();
-    HapticService.error();
+    try {
+      SoundService.playError();
+      HapticService.error();
+    } catch (_) {}
 
     await showDialog<void>(
       context: context,

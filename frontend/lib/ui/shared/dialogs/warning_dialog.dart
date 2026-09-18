@@ -19,8 +19,14 @@ void showWarningDialog(
   String buttonLabel = 'Got It',
   VoidCallback? onDismissed,
 }) {
-  SoundService.playWarning();
-  HapticService.warning();
+  try {
+    SoundService.playWarning();
+  } catch (_) {}
+  try {
+    HapticService.warning();
+  } catch (_) {}
+
+  if (!context.mounted) return;
 
   final isDark = Theme.of(context).brightness == Brightness.dark;
   final textPrimary = isDark ? AppColors.darkTextPrimary : AppColors.textPrimary;

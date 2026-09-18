@@ -36,6 +36,15 @@ class _DocumentSourcePickerState extends State<DocumentSourcePicker> {
     super.dispose();
   }
 
+  int _safeFileSize(File file) {
+    try {
+      if (file.existsSync()) {
+        return file.lengthSync();
+      }
+    } catch (_) {}
+    return 0;
+  }
+
   Future<void> _pickFile() async {
     try {
       final allowed =
@@ -46,9 +55,10 @@ class _DocumentSourcePickerState extends State<DocumentSourcePicker> {
         allowedExtensions: allowed,
       );
 
-      if (result != null) {
+      if (result != null && result.files.single.path != null) {
         final file = File(result.files.single.path!);
-        final size = (file.lengthSync() / (1024 * 1024)).toStringAsFixed(2);
+        final bytes = _safeFileSize(file);
+        final size = (bytes / (1024 * 1024)).toStringAsFixed(2);
         // Send the data back to the parent screen
         widget.onFileSelected(file, result.files.single.name, '$size MB');
       }
@@ -58,6 +68,7 @@ class _DocumentSourcePickerState extends State<DocumentSourcePicker> {
   }
 
   Future<void> _takePhoto() async {
+    if (!Platform.isAndroid && !Platform.isIOS) return;
     try {
       final scanner = DocumentScanner(
         options: DocumentScannerOptions(
@@ -75,7 +86,8 @@ class _DocumentSourcePickerState extends State<DocumentSourcePicker> {
       final images = result.images;
       if (images != null && images.isNotEmpty) {
         final file = File(images.first);
-        final size = (file.lengthSync() / (1024 * 1024)).toStringAsFixed(2);
+        final bytes = _safeFileSize(file);
+        final size = (bytes / (1024 * 1024)).toStringAsFixed(2);
         final name =
             'Scanned_Doc_${DateTime.now().millisecondsSinceEpoch}.jpg';
 
@@ -255,18 +267,23 @@ class _DocumentSourcePickerState extends State<DocumentSourcePicker> {
             onDragDone: (details) {
               _dragResetTimer?.cancel();
               if (mounted) setState(() => _isDragOver = false);
-              if (details.files.isNotEmpty) {
-                final xfile = details.files.first;
-                final ext = xfile.path.split('.').last.toLowerCase();
-                if (allowed.contains(ext)) {
-                  final file = File(xfile.path);
-                  final size =
-                      (file.lengthSync() / (1024 * 1024)).toStringAsFixed(2);
-                  widget.onFileSelected(file, xfile.name, '$size MB');
-                } else {
-                  widget.onError?.call(
-                      'Unsupported file format: .$ext. Allowed: ${allowed.join(', ')}');
+              try {
+                if (details.files.isNotEmpty) {
+                  final xfile = details.files.first;
+                  final ext = xfile.path.split('.').last.toLowerCase();
+                  if (allowed.contains(ext)) {
+                    final file = File(xfile.path);
+                    final bytes = _safeFileSize(file);
+                    final size =
+                        (bytes / (1024 * 1024)).toStringAsFixed(2);
+                    widget.onFileSelected(file, xfile.name, '$size MB');
+                  } else {
+                    widget.onError?.call(
+                        'Unsupported file format: .$ext. Allowed: ${allowed.join(', ')}');
+                  }
                 }
+              } catch (e) {
+                widget.onError?.call('Failed to read dropped file: $e');
               }
             },
             child: content,

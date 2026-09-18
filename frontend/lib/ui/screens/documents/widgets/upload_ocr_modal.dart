@@ -151,6 +151,15 @@ class _UploadOcrModalState extends ConsumerState<UploadOcrModal> {
   // Requirements strip expand/collapse state
   bool _requirementsExpanded = true;
 
+  int _safeFileSize(File file) {
+    try {
+      if (file.existsSync()) {
+        return file.lengthSync();
+      }
+    } catch (_) {}
+    return 0;
+  }
+
   @override
   void initState() {
     super.initState();
@@ -171,7 +180,7 @@ class _UploadOcrModalState extends ConsumerState<UploadOcrModal> {
     // Pre-populate entries from drag-and-drop files
     if (widget.preloadedFiles != null && widget.preloadedFiles!.isNotEmpty) {
       _entries = widget.preloadedFiles!.map((f) {
-        final bytes = f.lengthSync();
+        final bytes = _safeFileSize(f);
         final kb = bytes / 1024;
         final size = kb >= 1024
             ? '${(kb / 1024).toStringAsFixed(1)} MB'
@@ -326,7 +335,7 @@ class _UploadOcrModalState extends ConsumerState<UploadOcrModal> {
       final ext = path.split('.').last.toLowerCase();
       if (!allowed.contains(ext)) continue;
       final file = File(path);
-      final len = file.lengthSync();
+      final len = _safeFileSize(file);
       final sizeKb = (len / 1024).toStringAsFixed(1);
       final sizeLabel = len > 1048576
           ? '${(len / 1048576).toStringAsFixed(1)} MB'
@@ -569,6 +578,7 @@ class _UploadOcrModalState extends ConsumerState<UploadOcrModal> {
   }
 
   Future<void> _scanDocument() async {
+    if (!Platform.isAndroid && !Platform.isIOS) return;
     try {
       final scanner = DocumentScanner(
         options: DocumentScannerOptions(
@@ -604,9 +614,10 @@ class _UploadOcrModalState extends ConsumerState<UploadOcrModal> {
 
       if (format == ScannedSaveFormat.pdf && hasPdf) {
         final file = File(result.pdf!.uri);
-        final sizeKb = (file.lengthSync() / 1024).toStringAsFixed(1);
-        final sizeLabel = file.lengthSync() > 1048576
-            ? '${(file.lengthSync() / 1048576).toStringAsFixed(1)} MB'
+        final len = _safeFileSize(file);
+        final sizeKb = (len / 1024).toStringAsFixed(1);
+        final sizeLabel = len > 1048576
+            ? '${(len / 1048576).toStringAsFixed(1)} MB'
             : '$sizeKb KB';
         final name = 'Scanned_Doc_$timestamp.pdf';
 
@@ -630,9 +641,10 @@ class _UploadOcrModalState extends ConsumerState<UploadOcrModal> {
           final imagePath = result.images![i];
           final file = File(imagePath);
           if (!file.existsSync()) continue;
-          final sizeKb = (file.lengthSync() / 1024).toStringAsFixed(1);
-          final sizeLabel = file.lengthSync() > 1048576
-              ? '${(file.lengthSync() / 1048576).toStringAsFixed(1)} MB'
+          final len = _safeFileSize(file);
+          final sizeKb = (len / 1024).toStringAsFixed(1);
+          final sizeLabel = len > 1048576
+              ? '${(len / 1048576).toStringAsFixed(1)} MB'
               : '$sizeKb KB';
           final pageSuffix =
               result.images!.length > 1 ? '_page${i + 1}' : '';

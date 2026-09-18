@@ -61,16 +61,16 @@ class PrintQueueItem {
 
   factory PrintQueueItem.fromJson(Map<String, dynamic> json) {
     return PrintQueueItem(
-      queueId: json['queue_id'] as int,
-      documentId: json['document_id'] as int,
-      fileName: json['file_name'] as String? ?? '',
-      filePath: json['file_path'] as String? ?? '',
-      documentType: json['document_type'] as String?,
-      status: json['status'] as String? ?? 'Pending',
-      studentName: json['student_name'] as String?,
-      studentLrn: json['student_lrn'] as String?,
+      queueId: (json['queue_id'] as num?)?.toInt() ?? 0,
+      documentId: (json['document_id'] as num?)?.toInt() ?? 0,
+      fileName: json['file_name']?.toString() ?? '',
+      filePath: json['file_path']?.toString() ?? '',
+      documentType: json['document_type']?.toString(),
+      status: json['status']?.toString() ?? 'Pending',
+      studentName: json['student_name']?.toString(),
+      studentLrn: json['student_lrn']?.toString(),
       addedAt: json['added_at'] != null
-          ? DateTime.parse(json['added_at'] as String)
+          ? (DateTime.tryParse(json['added_at'].toString()) ?? DateTime.now())
           : DateTime.now(),
     );
   }
@@ -99,15 +99,15 @@ class PrintHistoryItem {
 
   factory PrintHistoryItem.fromJson(Map<String, dynamic> json) {
     return PrintHistoryItem(
-      id: json['id'] as int,
-      documentId: json['document_id'] as int,
-      documentName: json['document_name'] as String? ?? 'Document',
-      studentName: json['student_name'] as String? ?? 'Unknown',
-      studentLrn: json['student_lrn'] as String?,
-      fileName: json['file_name'] as String?,
-      documentType: json['document_type'] as String?,
+      id: (json['id'] as num?)?.toInt() ?? 0,
+      documentId: (json['document_id'] as num?)?.toInt() ?? 0,
+      documentName: json['document_name']?.toString() ?? 'Document',
+      studentName: json['student_name']?.toString() ?? 'Unknown',
+      studentLrn: json['student_lrn']?.toString(),
+      fileName: json['file_name']?.toString(),
+      documentType: json['document_type']?.toString(),
       printedAt: json['printed_at'] != null
-          ? DateTime.parse(json['printed_at'] as String)
+          ? (DateTime.tryParse(json['printed_at'].toString()) ?? DateTime.now())
           : DateTime.now(),
     );
   }
