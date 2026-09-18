@@ -101,6 +101,12 @@ var
 begin
   if CurStep = ssPostInstall then
   begin
+    // If Microsoft Visual C++ 2015-2022 Redistributable (x64) is not installed, automatically install it silently
+    if not IsVCRedistInstalled then
+    begin
+      Exec('powershell.exe', '-NoProfile -ExecutionPolicy Bypass -Command "$ProgressPreference = ''SilentlyContinue''; try { if (Get-Command winget -ErrorAction SilentlyContinue) { winget install --id Microsoft.VCRedist.2015+.x64 --silent --accept-package-agreements --accept-source-agreements } else { $url = ''https://aka.ms/vs/17/release/vc_redist.x64.exe''; $out = ''$env:TEMP\vc_redist.x64.exe''; Invoke-WebRequest -Uri $url -OutFile $out; Start-Process -FilePath $out -ArgumentList ''/install /quiet /norestart'' -Wait } } catch {}"', '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
+    end;
+
     // If .NET Desktop Runtime is not installed, automatically install it silently
     if not IsDotNetRuntimeInstalled then
     begin

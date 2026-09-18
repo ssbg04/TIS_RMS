@@ -58,6 +58,20 @@ jobs:
           & "$env:JAVA_HOME\bin\java.exe" -version
 
       # ------------------------------------------------------------
+      # .NET
+      # ------------------------------------------------------------
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Verify .NET
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          dotnet --info
+
+      # ------------------------------------------------------------
       # Flutter
       # ------------------------------------------------------------
       - name: Setup Flutter
@@ -321,6 +335,67 @@ jobs:
           if ($LASTEXITCODE -ne 0) {
             throw "Flutter Windows build failed."
           }
+
+          # ------------------------------------------------------------
+          # Bundle Microsoft Visual C++ CRT Runtime DLLs
+          # Fixes: vcruntime140.dll, vcruntime140_1.dll, msvcp140.dll missing errors
+          # ------------------------------------------------------------
+          Write-Host ""
+          Write-Host "Locating Microsoft Visual C++ CRT x64 redistributable libraries..."
+          $releaseDir = "build\windows\x64\runner\Release"
+          $vswhere = "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe"
+          $copied = $false
+
+          if (Test-Path $vswhere) {
+            $vsPath = & $vswhere -latest -products * -property installationPath
+            if ($vsPath -and (Test-Path "$vsPath\VC\Redist\MSVC")) {
+              $crtDirs = Get-ChildItem -Path "$vsPath\VC\Redist\MSVC" -Recurse -Filter "Microsoft.VC*.CRT" |
+                Where-Object { $_.FullName -like "*\x64\*" -and $_.FullName -notlike "*debug*" -and $_.FullName -notlike "*onecore*" }
+              $targetCrtDir = $crtDirs | Select-Object -First 1
+              if ($targetCrtDir) {
+                Write-Host "Found CRT DLL directory at: $($targetCrtDir.FullName)"
+                Copy-Item -Path "$($targetCrtDir.FullName)\*.dll" -Destination $releaseDir -Force
+                $copied = $true
+              }
+            }
+          }
+
+          if (-not $copied) {
+            Write-Warning "CRT directory not found via vswhere. Searching System32 for required VC runtime DLLs..."
+            $requiredDlls = @(
+              "vcruntime140.dll",
+              "vcruntime140_1.dll",
+              "msvcp140.dll",
+              "msvcp140_1.dll",
+              "msvcp140_2.dll",
+              "msvcp140_atomic_wait.dll",
+              "msvcp140_codecvt_ids.dll",
+              "vcruntime140_threads.dll",
+              "concrt140.dll",
+              "vccorlib140.dll"
+            )
+            foreach ($dll in $requiredDlls) {
+              $sysPath = "$env:SystemRoot\System32\$dll"
+              if (Test-Path $sysPath) {
+                Copy-Item -Path $sysPath -Destination $releaseDir -Force
+                Write-Host "Copied $dll from System32"
+              }
+            }
+          }
+
+          $criticalDlls = @("vcruntime140.dll", "vcruntime140_1.dll", "msvcp140.dll")
+          foreach ($dll in $criticalDlls) {
+            $targetPath = Join-Path $releaseDir $dll
+            if (-not (Test-Path $targetPath)) {
+              Write-Warning "Missing critical CRT DLL: $dll in $releaseDir"
+            } else {
+              Write-Host "Verified bundled: $dll"
+            }
+          }
+
+          Write-Host ""
+          Write-Host "All DLLs bundled into Windows release:"
+          Get-ChildItem -Path "$releaseDir\*.dll" | Select-Object Name
 
       # ------------------------------------------------------------
       # Windows Installer
