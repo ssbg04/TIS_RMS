@@ -6,6 +6,9 @@
 #ifndef MyAppVersion
 #define MyAppVersion "1.0.0"
 #endif
+#ifndef OutputBaseFilename
+#define OutputBaseFilename "TIS_RMS_Client_Setup_v" + MyAppVersion
+#endif
 #define MyAppPublisher "Talisay Integrated School"
 #define MyAppURL "https://tis-rms.cc.cd"
 #define MyAppExeName "frontend.exe"
@@ -30,7 +33,7 @@ DisableProgramGroupPage=no
 
 ; Output installer file configuration
 OutputDir=..\installers
-OutputBaseFilename=TIS_RMS_Client_Setup
+OutputBaseFilename={#OutputBaseFilename}
 SetupIconFile={#MyAppIcon}
 UninstallDisplayIcon={app}\{#MyAppExeName}
 UninstallDisplayName={#MyAppName}

@@ -339,6 +339,7 @@ jobs:
 
           & "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" `
             "/DMyAppVersion=${{ steps.release_info.outputs.version_name }}" `
+            "/DOutputBaseFilename=TIS_RMS_Client_Setup_${{ steps.release_info.outputs.tag }}" `
             TIS_RMS_Client.iss
 
           if ($LASTEXITCODE -ne 0) {
@@ -374,7 +375,7 @@ jobs:
           }
 
           $apkPath = "build\app\outputs\flutter-apk\app-release.apk"
-          $outputPath = "..\installers\TIS_RMS_Android_Universal.apk"
+          $outputPath = "..\installers\TIS_RMS_Android_Universal_${{ steps.release_info.outputs.tag }}.apk"
 
           if (-not (Test-Path $apkPath)) {
             throw "Android build completed without producing $apkPath"
@@ -395,9 +396,10 @@ jobs:
         run: |
           $ErrorActionPreference = 'Stop'
 
+          $tag = "${{ steps.release_info.outputs.tag }}"
           $files = @(
-            "installers\TIS_RMS_Client_Setup.exe",
-            "installers\TIS_RMS_Android_Universal.apk"
+            "installers\TIS_RMS_Client_Setup_$tag.exe",
+            "installers\TIS_RMS_Android_Universal_$tag.apk"
           )
 
           foreach ($file in $files) {
@@ -425,8 +427,8 @@ jobs:
           target_commitish: ${{ github.sha }}
           name: Release ${{ steps.release_info.outputs.tag }}
           files: |
-            installers/TIS_RMS_Client_Setup.exe
-            installers/TIS_RMS_Android_Universal.apk
+            installers/TIS_RMS_Client_Setup_${{ steps.release_info.outputs.tag }}.exe
+            installers/TIS_RMS_Android_Universal_${{ steps.release_info.outputs.tag }}.apk
           generate_release_notes: true
           draft: false
           prerelease: false

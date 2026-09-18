@@ -12,7 +12,7 @@ The Android application is distributed as a single universal APK supporting both
 
 | APK File | Architecture | Description |
 | :--- | :--- | :--- |
-| **`TIS_RMS_Android_Universal.apk`** | **Universal (32-bit & 64-bit)** | Single standalone installer compatible with all modern and legacy Android devices (Android 7.0+). |
+| **`TIS_RMS_Android_Universal_v<version>.apk`** | **Universal (32-bit & 64-bit)** | Single standalone installer compatible with all modern and legacy Android devices (Android 7.0+). |
 
 ### Build Command (Flutter):
 ```bash
@@ -22,7 +22,7 @@ flutter build apk --release --obfuscate --split-debug-info=build/app/outputs/sym
 *Output APK located in `frontend/build/app/outputs/flutter-apk/app-release.apk`.*
 
 ### Installation Steps:
-1. Transfer `TIS_RMS_Android_Universal.apk` to your Android device (via USB, local network share, or download).
+1. Transfer `TIS_RMS_Android_Universal_v<version>.apk` (e.g. `TIS_RMS_Android_Universal_v1.0.0.apk`) to your Android device (via USB, local network share, or download).
 2. Tap the `.apk` file in your file manager.
 3. If prompted, enable **"Install unknown apps"** or **"Allow from this source"** in Android Settings.
 4. Tap **Install** and open the app.
@@ -59,7 +59,7 @@ flutter build windows --release --obfuscate --split-debug-info=build/windows/sym
 
 ### B. Compiling the Windows Inno Setup Installer (`TIS_RMS_Client.iss`)
 
-The installer script [`frontend/TIS_RMS_Client.iss`](file:///f:/SumbrerongBato/tis_rms_server/frontend/TIS_RMS_Client.iss) packages the app into an ultra-compact standalone setup file (`TIS_RMS_Client_Setup.exe` ~**16.7 MB**).
+The installer script [`frontend/TIS_RMS_Client.iss`](file:///f:/SumbrerongBato/tis_rms_server/frontend/TIS_RMS_Client.iss) packages the app into an ultra-compact standalone setup file (`TIS_RMS_Client_Setup_v<version>.exe` ~**16.7 MB**).
 
 #### Features:
 - **Small File Size (16.7 MB)**: Uses `lzma2/ultra64` solid 64MB dictionary compression.
@@ -74,7 +74,7 @@ The installer script [`frontend/TIS_RMS_Client.iss`](file:///f:/SumbrerongBato/t
 # Using Inno Setup Command Line Compiler (ISCC)
 & "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" frontend\TIS_RMS_Client.iss
 ```
-*The compiled installer will be saved to `installers/TIS_RMS_Client_Setup.exe`.*
+*The compiled installer will be saved to `installers/TIS_RMS_Client_Setup_v<version>.exe` (e.g., `installers/TIS_RMS_Client_Setup_v1.0.0.exe`).*
 
 ---
 
