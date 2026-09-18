@@ -52,14 +52,11 @@ class _TransparencyBoardContent extends ConsumerStatefulWidget {
   ConsumerState<_TransparencyBoardContent> createState() => _TransparencyBoardContentState();
 }
 
-enum TransparencyViewMode { tables, graphs, combined }
-
 class _TransparencyBoardContentState extends ConsumerState<_TransparencyBoardContent> {
   final ScrollController _enrollmentChartScrollController = ScrollController();
   final ScrollController _dropoutChartScrollController = ScrollController();
   final ScrollController _equity4PsChartScrollController = ScrollController();
   bool _isExportingPdf = false;
-  TransparencyViewMode _viewMode = TransparencyViewMode.tables;
 
   @override
   void dispose() {
@@ -185,6 +182,146 @@ class _TransparencyBoardContentState extends ConsumerState<_TransparencyBoardCon
     final academicYears = ref.watch(academicYearsProvider).asData?.value ?? [];
     final selectedYearId = ref.watch(transparencyBoardYearProvider);
 
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        // ── Clean Header Widget (Minimal, No Clutter) ─────────────────────
+        _buildCleanHeader(
+          context,
+          data: data,
+          academicYears: academicYears,
+          selectedYearId: selectedYearId,
+          isDark: isDark,
+        ),
+        const SizedBox(height: AppSizes.p20),
+
+        // ── Section 1: Data on Enrollment (Separate Section Widget) ───────
+        _buildEnrollmentCard(context, data.years, isDark),
+        const SizedBox(height: AppSizes.p20),
+
+        // ── Section 2: Dropouts & Transferees (Separate Section Widget) ───
+        _buildDropoutTransfereeCard(context, data.years, isDark),
+        const SizedBox(height: AppSizes.p20),
+
+        // ── Section 3: 4Ps Beneficiaries (Separate Section Widget) ────────
+        _buildEquity4PsCard(context, data.years, isDark),
+      ],
+    );
+  }
+
+  // ── Clean Header Banner ───────────────────────────────────────────────────
+
+  Widget _buildCleanHeader(
+    BuildContext context, {
+    required TransparencyBoardData data,
+    required List<AcademicYear> academicYears,
+    required int? selectedYearId,
+    required bool isDark,
+  }) {
+    return Container(
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppSizes.p20,
+        vertical: 14,
+      ),
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          colors: [
+            AppColors.primaryGreen,
+            AppColors.darkGreen,
+          ],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(AppSizes.radiusLarge),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.darkGreen.withValues(alpha: 0.25),
+            blurRadius: 10,
+            offset: const Offset(0, 3),
+          ),
+        ],
+      ),
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final isNarrow = constraints.maxWidth < 650;
+
+          final titleRow = Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(7),
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.2),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: const Icon(
+                  Icons.dashboard_outlined,
+                  color: Colors.white,
+                  size: 20,
+                ),
+              ),
+              const SizedBox(width: AppSizes.p12),
+              const Text(
+                'DEPED TRANSPARENCY BOARD',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                  letterSpacing: 0.5,
+                ),
+              ),
+            ],
+          );
+
+          final actions = Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            children: [
+              if (academicYears.isNotEmpty)
+                _buildYearSelector(
+                  context,
+                  academicYears: academicYears,
+                  selectedYearId: selectedYearId,
+                ),
+              _buildExportPdfButton(data),
+            ],
+          );
+
+          if (isNarrow) {
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                titleRow,
+                const SizedBox(height: 10),
+                actions,
+              ],
+            );
+          }
+
+          return Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              titleRow,
+              actions,
+            ],
+          );
+        },
+      ),
+    );
+  }
+
+  // ── Standalone Section Card Container ─────────────────────────────────────
+
+  Widget _buildSectionCardContainer({
+    required BuildContext context,
+    required bool isDark,
+    required IconData icon,
+    required Color iconColor,
+    required String title,
+    Widget? trailing,
+    required Widget content,
+  }) {
     return Container(
       decoration: BoxDecoration(
         color: isDark ? AppColors.darkSurfaceCard : AppColors.surfaceWhite,
@@ -195,226 +332,139 @@ class _TransparencyBoardContentState extends ConsumerState<_TransparencyBoardCon
         boxShadow: [
           BoxShadow(
             color: isDark
-                ? Colors.black.withValues(alpha: 0.3)
+                ? Colors.black.withValues(alpha: 0.25)
                 : Colors.black.withValues(alpha: 0.04),
-            blurRadius: 12,
-            offset: const Offset(0, 4),
+            blurRadius: 10,
+            offset: const Offset(0, 3),
           ),
         ],
       ),
+      padding: const EdgeInsets.all(AppSizes.p20),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // ── Header Banner ──────────────────────────────────────────
-          Container(
-            padding: const EdgeInsets.all(AppSizes.p20),
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: [
-                  AppColors.primaryGreen,
-                  AppColors.darkGreen,
-                ],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(7),
+                decoration: BoxDecoration(
+                  color: iconColor.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Icon(icon, size: 20, color: iconColor),
               ),
-              borderRadius: const BorderRadius.only(
-                topLeft: Radius.circular(AppSizes.radiusLarge),
-                topRight: Radius.circular(AppSizes.radiusLarge),
+              const SizedBox(width: AppSizes.p12),
+              Expanded(
+                child: Text(
+                  title,
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    letterSpacing: 0.3,
+                    color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
+                  ),
+                ),
               ),
-            ),
-            child: LayoutBuilder(
-              builder: (context, headerConstraints) {
-                final isMobileHeader = headerConstraints.maxWidth < 750;
-                return Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    if (isMobileHeader) ...[
-                      Row(
-                        children: [
-                          const Icon(
-                            Icons.dashboard_outlined,
-                            color: Colors.white,
-                            size: 24,
-                          ),
-                          const SizedBox(width: AppSizes.p12),
-                          const Expanded(
-                            child: Text(
-                              'DEPED TRANSPARENCY BOARD',
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontSize: 16,
-                                fontWeight: FontWeight.bold,
-                                letterSpacing: 0.5,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 8),
-                      Wrap(
-                        spacing: 8,
-                        runSpacing: 8,
-                        crossAxisAlignment: WrapCrossAlignment.center,
-                        children: [
-                          _buildViewModeSwitcher(context, isDark),
-                          if (academicYears.isNotEmpty)
-                            _buildYearSelector(
-                              context,
-                              academicYears: academicYears,
-                              selectedYearId: selectedYearId,
-                            ),
-                          _buildExportPdfButton(data),
-                        ],
-                      ),
-                    ] else ...[
-                      Row(
-                        children: [
-                          const Icon(
-                            Icons.dashboard_outlined,
-                            color: Colors.white,
-                            size: 26,
-                          ),
-                          const SizedBox(width: AppSizes.p12),
-                          const Expanded(
-                            child: Text(
-                              'DEPED TRANSPARENCY & SCHOOL PERFORMANCE BOARD',
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontSize: 18,
-                                fontWeight: FontWeight.bold,
-                                letterSpacing: 0.5,
-                              ),
-                            ),
-                          ),
-                          _buildViewModeSwitcher(context, isDark),
-                          if (academicYears.isNotEmpty) ...[
-                            const SizedBox(width: 10),
-                            _buildYearSelector(
-                              context,
-                              academicYears: academicYears,
-                              selectedYearId: selectedYearId,
-                            ),
-                          ],
-                          const SizedBox(width: 8),
-                          _buildExportPdfButton(data),
-                        ],
-                      ),
-                    ],
-                    const SizedBox(height: 6),
-                    Text(
-                      'Track student enrollment, dropouts, transferees, and 4Ps learners across school years.',
-                      style: TextStyle(
-                        color: Colors.white.withValues(alpha: 0.85),
-                        fontSize: isMobileHeader ? 12 : 13,
-                        height: 1.35,
-                      ),
-                    ),
-                    if (data.years.isNotEmpty) ...[
-                      const SizedBox(height: 8),
-                      Wrap(
-                        spacing: 6,
-                        runSpacing: 4,
-                        crossAxisAlignment: WrapCrossAlignment.center,
-                        children: [
-                          Text(
-                            'Showing ${data.years.length} Consecutive Year${data.years.length > 1 ? 's' : ''}:',
-                            style: const TextStyle(
-                              color: Colors.white70,
-                              fontSize: 12,
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
-                          ...data.years.map((y) {
-                            return Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                              decoration: BoxDecoration(
-                                color: Colors.white.withValues(alpha: 0.2),
-                                borderRadius: BorderRadius.circular(6),
-                                border: Border.all(color: Colors.white.withValues(alpha: 0.3)),
-                              ),
-                              child: Text(
-                                'SY ${y.yearRange}',
-                                style: const TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 11,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                            );
-                          }),
-                        ],
-                      ),
-                    ],
-                  ],
-                );
-              },
-            ),
+              ?trailing,
+            ],
           ),
+          const SizedBox(height: AppSizes.p20),
+          content,
+        ],
+      ),
+    );
+  }
 
-          // â”€â”€ Sections stacked vertically â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-          Padding(
-            padding: const EdgeInsets.all(AppSizes.p20),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // ── Section 1: Data on Enrollment ───────────────────────────
-                _buildSectionHeader(
-                  context,
-                  icon: Icons.bar_chart,
-                  label: _viewMode == TransparencyViewMode.graphs
-                      ? '1. Enrollment Trends & Analytics'
-                      : '1. Data on Enrollment',
+  // ── Section 1 Card: Data on Enrollment ───────────────────────────────────
+
+  Widget _buildEnrollmentCard(
+    BuildContext context,
+    List<YearlyTransparencyItem> years,
+    bool isDark,
+  ) {
+    final latestYear = years.isNotEmpty ? years.last : null;
+    return _buildSectionCardContainer(
+      context: context,
+      isDark: isDark,
+      icon: Icons.bar_chart_rounded,
+      iconColor: AppColors.primaryGreen,
+      title: 'Data on Enrollment',
+      trailing: latestYear != null
+          ? Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+              decoration: BoxDecoration(
+                color: AppColors.primaryGreen.withValues(alpha: 0.12),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(
+                  color: AppColors.primaryGreen.withValues(alpha: 0.3),
+                ),
+              ),
+              child: Text(
+                'Active SY Total: ${latestYear.enrollment.overallTotal.total}',
+                style: const TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.bold,
                   color: AppColors.primaryGreen,
                 ),
-                const SizedBox(height: AppSizes.p16),
-                _buildEnrollmentSection(context, data.years),
+              ),
+            )
+          : null,
+      content: _buildEnrollmentSection(context, years),
+    );
+  }
 
-                const SizedBox(height: AppSizes.p32),
-                Divider(
-                  color: (Theme.of(context).brightness == Brightness.dark
-                          ? AppColors.darkBorder
-                          : Colors.grey)
-                      .withValues(alpha: 0.25),
+  // ── Section 2 Card: Dropouts & Transferees ────────────────────────────────
+
+  Widget _buildDropoutTransfereeCard(
+    BuildContext context,
+    List<YearlyTransparencyItem> years,
+    bool isDark,
+  ) {
+    return _buildSectionCardContainer(
+      context: context,
+      isDark: isDark,
+      icon: Icons.trending_down_rounded,
+      iconColor: Colors.redAccent,
+      title: 'Dropouts & Transferees',
+      content: _buildDropoutTransfereeSection(context, years),
+    );
+  }
+
+  // ── Section 3 Card: 4Ps Beneficiaries ────────────────────────────────────
+
+  Widget _buildEquity4PsCard(
+    BuildContext context,
+    List<YearlyTransparencyItem> years,
+    bool isDark,
+  ) {
+    final latestYear = years.isNotEmpty ? years.last : null;
+    return _buildSectionCardContainer(
+      context: context,
+      isDark: isDark,
+      icon: Icons.family_restroom_rounded,
+      iconColor: Colors.deepPurple,
+      title: '4Ps Beneficiaries',
+      trailing: latestYear != null
+          ? Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+              decoration: BoxDecoration(
+                color: Colors.deepPurple.withValues(alpha: 0.12),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(
+                  color: Colors.deepPurple.withValues(alpha: 0.3),
                 ),
-                const SizedBox(height: AppSizes.p24),
-
-                // ── Section 2: Dropouts & Transferees ────────────────────────
-                _buildSectionHeader(
-                  context,
-                  icon: Icons.trending_down,
-                  label: _viewMode == TransparencyViewMode.graphs
-                      ? '2. Dropouts & Transferees Trends'
-                      : '2. Dropouts & Transferees',
-                  color: Colors.redAccent,
-                ),
-                const SizedBox(height: AppSizes.p16),
-                _buildDropoutTransfereeSection(context, data.years),
-
-                const SizedBox(height: AppSizes.p32),
-                Divider(
-                  color: (Theme.of(context).brightness == Brightness.dark
-                          ? AppColors.darkBorder
-                          : Colors.grey)
-                      .withValues(alpha: 0.25),
-                ),
-                const SizedBox(height: AppSizes.p24),
-
-                // ── Section 3: 4Ps Beneficiaries ─────────────────────────────
-                _buildSectionHeader(
-                  context,
-                  icon: Icons.family_restroom,
-                  label: _viewMode == TransparencyViewMode.graphs
-                      ? '3. 4Ps Beneficiaries Distribution'
-                      : '3. 4Ps Beneficiaries',
+              ),
+              child: Text(
+                '${latestYear.fourPs.overallTotal.fourPsCount} of ${latestYear.fourPs.overallTotal.totalStudents} (${latestYear.fourPs.overallTotal.percentage}%)',
+                style: const TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.bold,
                   color: Colors.deepPurple,
                 ),
-                const SizedBox(height: AppSizes.p16),
-                _buildEquity4PsSection(context, data.years),
-              ],
-            ),
-          ),
-        ],
-      ),
+              ),
+            )
+          : null,
+      content: _buildEquity4PsSection(context, years),
     );
   }
 
@@ -492,76 +542,6 @@ class _TransparencyBoardContentState extends ConsumerState<_TransparencyBoardCon
             ),
           ),
         ],
-      ),
-    );
-  }
-
-  Widget _buildViewModeSwitcher(BuildContext context, bool isDark) {
-    final modes = [
-      (mode: TransparencyViewMode.tables, icon: Icons.table_chart_outlined, label: 'Data Tables'),
-      (mode: TransparencyViewMode.graphs, icon: Icons.bar_chart_rounded, label: 'Visual Graphs'),
-      (mode: TransparencyViewMode.combined, icon: Icons.dashboard_customize_outlined, label: 'Combined'),
-    ];
-
-    return Container(
-      padding: const EdgeInsets.all(3),
-      decoration: BoxDecoration(
-        color: Colors.black.withValues(alpha: 0.25),
-        borderRadius: BorderRadius.circular(9),
-        border: Border.all(
-          color: Colors.white.withValues(alpha: 0.35),
-        ),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: modes.map((m) {
-          final isSelected = _viewMode == m.mode;
-          return InkWell(
-            onTap: () {
-              if (_viewMode != m.mode) {
-                setState(() => _viewMode = m.mode);
-              }
-            },
-            borderRadius: BorderRadius.circular(7),
-            child: AnimatedContainer(
-              duration: const Duration(milliseconds: 180),
-              curve: Curves.easeInOut,
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-              decoration: BoxDecoration(
-                color: isSelected ? Colors.white : Colors.transparent,
-                borderRadius: BorderRadius.circular(7),
-                boxShadow: isSelected
-                    ? [
-                        BoxShadow(
-                          color: Colors.black.withValues(alpha: 0.18),
-                          blurRadius: 4,
-                          offset: const Offset(0, 1),
-                        ),
-                      ]
-                    : null,
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(
-                    m.icon,
-                    size: 14,
-                    color: isSelected ? AppColors.darkGreen : Colors.white,
-                  ),
-                  const SizedBox(width: 5),
-                  Text(
-                    m.label,
-                    style: TextStyle(
-                      fontSize: 11.5,
-                      fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
-                      color: isSelected ? AppColors.darkGreen : Colors.white,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          );
-        }).toList(),
       ),
     );
   }
@@ -677,38 +657,6 @@ class _TransparencyBoardContentState extends ConsumerState<_TransparencyBoardCon
     }
   }
 
-  static Widget _buildSectionHeader(
-    BuildContext context, {
-    required IconData icon,
-    required String label,
-    required Color color,
-  }) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    return Row(
-      children: [
-        Container(
-          padding: const EdgeInsets.all(6),
-          decoration: BoxDecoration(
-            color: color.withValues(alpha: 0.12),
-            borderRadius: BorderRadius.circular(8),
-          ),
-          child: Icon(icon, size: 18, color: color),
-        ),
-        const SizedBox(width: 10),
-        Expanded(
-          child: Text(
-            label,
-            style: TextStyle(
-              fontSize: 15,
-              fontWeight: FontWeight.bold,
-              color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-
   static Widget _buildTableScrollHint(
     BuildContext context, {
     String text = 'Scroll horizontally to view full table',
@@ -785,71 +733,49 @@ class _TransparencyBoardContentState extends ConsumerState<_TransparencyBoardCon
     final latestYear = years.last;
     final previousYear = years.length > 1 ? years[years.length - 2] : null;
 
-    final showGraph = _viewMode == TransparencyViewMode.graphs || _viewMode == TransparencyViewMode.combined;
-    final showTable = _viewMode == TransparencyViewMode.tables || _viewMode == TransparencyViewMode.combined;
-
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        if (showGraph) ...[
-          Text(
-            'Enrollment Trends across School Years',
-            style: TextStyle(
-              fontSize: 14,
-              fontWeight: FontWeight.w600,
-              color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
-            ),
+        Text(
+          'Enrollment Trends across School Years',
+          style: TextStyle(
+            fontSize: 14,
+            fontWeight: FontWeight.w600,
+            color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
           ),
-          const SizedBox(height: AppSizes.p12),
-          LayoutBuilder(
-            builder: (context, constraints) {
-              final isNarrow = constraints.maxWidth < 720;
-              return SizedBox(
-                height: isNarrow ? 400 : 360,
-                child: _buildEnrollmentGroupedBarChart(context, years, isDark: isDark),
-              );
-            },
+        ),
+        const SizedBox(height: AppSizes.p12),
+        LayoutBuilder(
+          builder: (context, constraints) {
+            final isNarrow = constraints.maxWidth < 720;
+            return SizedBox(
+              height: isNarrow ? 400 : 360,
+              child: _buildEnrollmentGroupedBarChart(context, years, isDark: isDark),
+            );
+          },
+        ),
+        const SizedBox(height: AppSizes.p24),
+        Divider(
+          color: (isDark ? AppColors.darkBorder : Colors.grey).withValues(alpha: 0.25),
+        ),
+        const SizedBox(height: AppSizes.p16),
+        Text(
+          previousYear != null
+              ? 'Data on Enrollment (SY ${previousYear.yearRange} vs. SY ${latestYear.yearRange})'
+              : 'Data on Enrollment (SY ${latestYear.yearRange})',
+          style: TextStyle(
+            fontSize: 14,
+            fontWeight: FontWeight.w600,
+            color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
           ),
-          if (showTable) ...[
-            const SizedBox(height: AppSizes.p24),
-            const Divider(height: 1),
-            const SizedBox(height: AppSizes.p16),
-          ],
-        ],
-        if (showTable) ...[
-          Wrap(
-            alignment: WrapAlignment.spaceBetween,
-            crossAxisAlignment: WrapCrossAlignment.center,
-            spacing: 12,
-            runSpacing: 8,
-            children: [
-              Text(
-                previousYear != null
-                    ? 'Data on Enrollment (SY ${previousYear.yearRange} vs. SY ${latestYear.yearRange})'
-                    : 'Data on Enrollment (SY ${latestYear.yearRange})',
-                style: TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w600,
-                  color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
-                ),
-              ),
-              Text(
-                'Active SY Total: ${latestYear.enrollment.overallTotal.total}',
-                style: const TextStyle(
-                  fontWeight: FontWeight.bold,
-                  color: AppColors.primaryGreen,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: AppSizes.p12),
-          _buildEnrollmentComparisonTable(
-            context,
-            latestYear: latestYear,
-            previousYear: previousYear,
-            isDark: isDark,
-          ),
-        ],
+        ),
+        const SizedBox(height: AppSizes.p12),
+        _buildEnrollmentComparisonTable(
+          context,
+          latestYear: latestYear,
+          previousYear: previousYear,
+          isDark: isDark,
+        ),
       ],
     );
   }
@@ -1552,31 +1478,25 @@ class _TransparencyBoardContentState extends ConsumerState<_TransparencyBoardCon
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final grades = [7, 8, 9, 10, 11, 12];
 
-    final showGraph = _viewMode == TransparencyViewMode.graphs || _viewMode == TransparencyViewMode.combined;
-    final showTable = _viewMode == TransparencyViewMode.tables || _viewMode == TransparencyViewMode.combined;
-
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        if (showGraph) ...[
-          Text(
-            'Dropouts vs. Transferees Trends across Grades',
-            style: TextStyle(
-              fontSize: 14,
-              fontWeight: FontWeight.w600,
-              color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
-            ),
+        Text(
+          'Dropouts vs. Transferees Trends across Grades',
+          style: TextStyle(
+            fontSize: 14,
+            fontWeight: FontWeight.w600,
+            color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
           ),
-          const SizedBox(height: AppSizes.p12),
-          _buildDropoutTransfereeBarChart(context, years, isDark: isDark),
-          if (showTable) ...[
-            const SizedBox(height: AppSizes.p24),
-            const Divider(height: 1),
-            const SizedBox(height: AppSizes.p16),
-          ],
-        ],
-        if (showTable) ...[
-          // Dropouts sub-section
+        ),
+        const SizedBox(height: AppSizes.p12),
+        _buildDropoutTransfereeBarChart(context, years, isDark: isDark),
+        const SizedBox(height: AppSizes.p24),
+        Divider(
+          color: (isDark ? AppColors.darkBorder : Colors.grey).withValues(alpha: 0.25),
+        ),
+        const SizedBox(height: AppSizes.p16),
+        // Dropouts sub-section
           Row(
             children: [
               const Icon(Icons.error_outline, color: Colors.redAccent, size: 18),
@@ -1645,9 +1565,8 @@ class _TransparencyBoardContentState extends ConsumerState<_TransparencyBoardCon
             totalColor: Colors.orange.shade800,
           ),
         ],
-      ],
-    );
-  }
+      );
+    }
 
   Widget _buildMultiYearGradeTable(
     BuildContext context, {
@@ -1777,31 +1696,26 @@ class _TransparencyBoardContentState extends ConsumerState<_TransparencyBoardCon
     final currentLabel = 'SY ${latestYear.yearRange}';
 
     final active4Ps = latestYear.fourPs;
-    final showGraph = _viewMode == TransparencyViewMode.graphs || _viewMode == TransparencyViewMode.combined;
-    final showTable = _viewMode == TransparencyViewMode.tables || _viewMode == TransparencyViewMode.combined;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        if (showGraph) ...[
-          Text(
-            '4Ps Beneficiaries Distribution across Grades (SY ${latestYear.yearRange})',
-            style: TextStyle(
-              fontSize: 14,
-              fontWeight: FontWeight.w600,
-              color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
-            ),
+        Text(
+          '4Ps Beneficiaries Distribution across Grades (SY ${latestYear.yearRange})',
+          style: TextStyle(
+            fontSize: 14,
+            fontWeight: FontWeight.w600,
+            color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
           ),
-          const SizedBox(height: AppSizes.p12),
-          _buildEquity4PsBarChart(context, years, isDark: isDark),
-          if (showTable) ...[
-            const SizedBox(height: AppSizes.p24),
-            const Divider(height: 1),
-            const SizedBox(height: AppSizes.p16),
-          ],
-        ],
-        if (showTable) ...[
-          Wrap(
+        ),
+        const SizedBox(height: AppSizes.p12),
+        _buildEquity4PsBarChart(context, years, isDark: isDark),
+        const SizedBox(height: AppSizes.p24),
+        Divider(
+          color: (isDark ? AppColors.darkBorder : Colors.grey).withValues(alpha: 0.25),
+        ),
+        const SizedBox(height: AppSizes.p16),
+        Wrap(
           alignment: WrapAlignment.spaceBetween,
           crossAxisAlignment: WrapCrossAlignment.center,
           spacing: 12,
@@ -2343,7 +2257,6 @@ class _TransparencyBoardContentState extends ConsumerState<_TransparencyBoardCon
             ),
           ),
         ),
-        ],
       ],
     );
   }

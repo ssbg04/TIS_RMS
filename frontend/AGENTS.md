@@ -670,10 +670,10 @@ Files backup/restore - mirror mode or zip -->
   - **Responsive layout**: ensure the requirement list and its items resize/adapt properly across different screen widths (no overflow, no truncated text). -->
 
 <!-- # REPORTS SCREEN
-- separate the data & graph for deped transparency board tab:
-  - segmented view mode switcher (`Data Tables`, `Visual Graphs`, `Combined View`) in header banner.
-  - dedicated charts for Dropouts vs. Transferees and 4Ps Beneficiaries vs. Total Learners.
-  - section guards ensuring tabular data mode displays only tables, and visual graphs mode displays only charts.
+- DepEd Transparency Board separate section widgets:
+  - clean minimal header banner with title, academic year filter, and PDF export (no clutter/info overload).
+  - separate standalone section widgets/cards: 1. Data on Enrollment, 2. Dropouts & Transferees, and 3. 4Ps Beneficiaries.
+  - each section card integrates its visual chart and detailed comparative table seamlessly without sub-tabs.
 
 # ADD "UPDATE POP UP" AFTER SPLASH SCREEN
 - detect version based on installed app vs latest tag version from GitHub repo https://github.com/ssbg04/TIS_RMS.
