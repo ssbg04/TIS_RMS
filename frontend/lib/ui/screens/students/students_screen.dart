@@ -444,16 +444,6 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
               ],
             ),
           ),
-          const PopupMenuItem<String>(
-            value: 'status_inactive',
-            child: Row(
-              children: [
-                Icon(Icons.pause_circle_outline_rounded, size: 18, color: Colors.blueGrey),
-                SizedBox(width: 10),
-                Text('Status: Set Inactive'),
-              ],
-            ),
-          ),
         ],
       ],
     );
@@ -479,9 +469,6 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
         break;
       case 'status_drop':
         _confirmChangeStatus(student, 'Dropped');
-        break;
-      case 'status_inactive':
-        _confirmChangeStatus(student, 'Inactive');
         break;
     }
   }
@@ -630,11 +617,6 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
               tooltip: 'Drop',
               onPressed: () => StudentBulkActions.bulkChangeStatus(context, ref, 'Dropped'),
             ),
-            IconButton(
-              icon: const Icon(Icons.do_not_disturb_on_total_silence_rounded, color: Colors.white),
-              tooltip: 'Set Inactive',
-              onPressed: () => StudentBulkActions.bulkChangeStatus(context, ref, 'Inactive'),
-            ),
           ],
           const SizedBox(width: 4),
         ],
@@ -738,7 +720,7 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
       context,
       studentId: student.id,
       userRole: widget.userRole,
-      onEditById: (currentId) async {
+      onEditDetailsById: (currentId) async {
         Navigator.pop(context);
         final pageState = ref.read(studentPageProvider);
         final students = pageState.value?.students ?? [];
@@ -746,7 +728,20 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
           (s) => s.id == currentId,
           orElse: () => student,
         );
-        await _openModal(student: targetStudent);
+        await _openModal(student: targetStudent, initialTabIndex: 0);
+        if (mounted) {
+          _viewProfile(targetStudent);
+        }
+      },
+      onEditEnrollmentById: (currentId) async {
+        Navigator.pop(context);
+        final pageState = ref.read(studentPageProvider);
+        final students = pageState.value?.students ?? [];
+        final targetStudent = students.firstWhere(
+          (s) => s.id == currentId,
+          orElse: () => student,
+        );
+        await _openModal(student: targetStudent, initialTabIndex: 1);
         if (mounted) {
           _viewProfile(targetStudent);
         }
@@ -1668,7 +1663,23 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
                   // Avatar
                   GestureDetector(
                     behavior: HitTestBehavior.opaque,
-                    onTap: widget.userRole != 'teacher'
+                    onTap: () {
+                      if (_showMultiSelect) {
+                        if (widget.userRole != 'teacher') {
+                          HapticService.selection();
+                          _updateSelection(() {
+                            if (_selectedStudentIds.contains(s.id)) {
+                              _selectedStudentIds.remove(s.id);
+                            } else {
+                              _selectedStudentIds.add(s.id);
+                            }
+                          });
+                        }
+                      } else {
+                        _viewProfile(s);
+                      }
+                    },
+                    onLongPress: widget.userRole != 'teacher'
                         ? () {
                             HapticService.selection();
                             _updateSelection(() {
@@ -1676,12 +1687,6 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
                                 _showMultiSelect = true;
                                 _selectedStudentIds.add(s.id);
                                 ref.read(studentMultiSelectProvider.notifier).state = true;
-                              } else {
-                                if (_selectedStudentIds.contains(s.id)) {
-                                  _selectedStudentIds.remove(s.id);
-                                } else {
-                                  _selectedStudentIds.add(s.id);
-                                }
                               }
                             });
                           }

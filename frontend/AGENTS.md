@@ -681,6 +681,17 @@ Files backup/restore - mirror mode or zip -->
 - `UpdateAvailableDialog` with installed vs latest version pill, platform asset tag, release notes, and download link.
 - `SplashScreen` check with 4-second timeout and non-blocking background error handling. -->
 
+# STUDENT SCREEN
+- student profile detail modal, remove the edit button beside the delete -> add separate edit button for student details and enrollment tab 
+- delete button change into inactive
+- edit student modal, status remove the inactive
+- multi modal action, remove inactive
+- in android app, the click icon on student icon add short delay not a instant enables multi select
+
+# REPORT SCREEN
+- DEPED TRANSPARENCY BOARD, add collapse information for each widgets add short description for what each widget is for 
+- use tab design simple 
+
 ---
 
 # DONT DO

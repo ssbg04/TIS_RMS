@@ -44,6 +44,13 @@ class TransparencyBoardSection extends ConsumerWidget {
   }
 }
 
+enum _TransparencyTab {
+  all,
+  enrollment,
+  dropoutsTransferees,
+  equity4Ps,
+}
+
 class _TransparencyBoardContent extends ConsumerStatefulWidget {
   final TransparencyBoardData data;
   const _TransparencyBoardContent({required this.data});
@@ -57,6 +64,10 @@ class _TransparencyBoardContentState extends ConsumerState<_TransparencyBoardCon
   final ScrollController _dropoutChartScrollController = ScrollController();
   final ScrollController _equity4PsChartScrollController = ScrollController();
   bool _isExportingPdf = false;
+  _TransparencyTab _activeTab = _TransparencyTab.all;
+  bool _isEnrollmentInfoExpanded = false;
+  bool _isDropoutInfoExpanded = false;
+  bool _isEquity4PsInfoExpanded = false;
 
   @override
   void dispose() {
@@ -193,19 +204,197 @@ class _TransparencyBoardContentState extends ConsumerState<_TransparencyBoardCon
           selectedYearId: selectedYearId,
           isDark: isDark,
         ),
-        const SizedBox(height: AppSizes.p20),
+        const SizedBox(height: AppSizes.p16),
 
-        // ── Section 1: Data on Enrollment (Separate Section Widget) ───────
-        _buildEnrollmentCard(context, data.years, isDark),
-        const SizedBox(height: AppSizes.p20),
+        // ── Simple, Clean Tab Switcher ────────────────────────────────────
+        _buildTabSwitcher(context, isDark),
+        const SizedBox(height: AppSizes.p16),
 
-        // ── Section 2: Dropouts & Transferees (Separate Section Widget) ───
-        _buildDropoutTransfereeCard(context, data.years, isDark),
-        const SizedBox(height: AppSizes.p20),
+        // ── Section 1: Data on Enrollment ─────────────────────────────────
+        if (_activeTab == _TransparencyTab.all ||
+            _activeTab == _TransparencyTab.enrollment) ...[
+          _buildEnrollmentCard(context, data.years, isDark),
+          if (_activeTab == _TransparencyTab.all)
+            const SizedBox(height: AppSizes.p20),
+        ],
 
-        // ── Section 3: 4Ps Beneficiaries (Separate Section Widget) ────────
-        _buildEquity4PsCard(context, data.years, isDark),
+        // ── Section 2: Dropouts & Transferees ─────────────────────────────
+        if (_activeTab == _TransparencyTab.all ||
+            _activeTab == _TransparencyTab.dropoutsTransferees) ...[
+          _buildDropoutTransfereeCard(context, data.years, isDark),
+          if (_activeTab == _TransparencyTab.all)
+            const SizedBox(height: AppSizes.p20),
+        ],
+
+        // ── Section 3: 4Ps Beneficiaries ──────────────────────────────────
+        if (_activeTab == _TransparencyTab.all ||
+            _activeTab == _TransparencyTab.equity4Ps) ...[
+          _buildEquity4PsCard(context, data.years, isDark),
+        ],
       ],
+    );
+  }
+
+  Widget _buildTabSwitcher(BuildContext context, bool isDark) {
+    final tabs = [
+      (_TransparencyTab.all, 'All Sections', Icons.dashboard_outlined),
+      (_TransparencyTab.enrollment, 'Data on Enrollment', Icons.bar_chart_rounded),
+      (_TransparencyTab.dropoutsTransferees, 'Dropouts & Transferees', Icons.trending_down_rounded),
+      (_TransparencyTab.equity4Ps, '4Ps Beneficiaries', Icons.family_restroom_rounded),
+    ];
+
+    return Container(
+      padding: const EdgeInsets.all(4),
+      decoration: BoxDecoration(
+        color: isDark ? AppColors.darkSurfaceCard : Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: isDark ? AppColors.darkBorder : Colors.grey.shade200,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.03),
+            blurRadius: 6,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: tabs.map((t) {
+            final isSelected = _activeTab == t.$1;
+            return Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 2),
+              child: InkWell(
+                onTap: () => setState(() => _activeTab = t.$1),
+                borderRadius: BorderRadius.circular(8),
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 180),
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: isSelected
+                        ? AppColors.primaryGreen
+                        : Colors.transparent,
+                    borderRadius: BorderRadius.circular(8),
+                    boxShadow: isSelected
+                        ? [
+                            BoxShadow(
+                              color: AppColors.primaryGreen.withValues(alpha: 0.25),
+                              blurRadius: 4,
+                              offset: const Offset(0, 1),
+                            ),
+                          ]
+                        : null,
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        t.$3,
+                        size: 16,
+                        color: isSelected
+                            ? Colors.white
+                            : (isDark ? AppColors.darkTextSecondary : AppColors.textSecondary),
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        t.$2,
+                        style: TextStyle(
+                          fontSize: 13,
+                          fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+                          color: isSelected
+                              ? Colors.white
+                              : (isDark ? AppColors.darkTextPrimary : AppColors.textPrimary),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            );
+          }).toList(),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildCollapsibleInfoCard({
+    required BuildContext context,
+    required bool isDark,
+    required String title,
+    required String description,
+    required bool isExpanded,
+    required VoidCallback onToggle,
+    Color accentColor = AppColors.primaryGreen,
+  }) {
+    return Container(
+      decoration: BoxDecoration(
+        color: accentColor.withValues(alpha: isDark ? 0.08 : 0.04),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(
+          color: accentColor.withValues(alpha: isDark ? 0.25 : 0.2),
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          InkWell(
+            onTap: onToggle,
+            borderRadius: BorderRadius.circular(10),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
+              child: Row(
+                children: [
+                  Icon(
+                    Icons.info_outline_rounded,
+                    size: 16,
+                    color: accentColor,
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      title,
+                      style: TextStyle(
+                        fontSize: 12.5,
+                        fontWeight: FontWeight.w600,
+                        color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
+                      ),
+                    ),
+                  ),
+                  Icon(
+                    isExpanded
+                        ? Icons.keyboard_arrow_up_rounded
+                        : Icons.keyboard_arrow_down_rounded,
+                    size: 18,
+                    color: accentColor,
+                  ),
+                ],
+              ),
+            ),
+          ),
+          if (isExpanded) ...[
+            Divider(
+              height: 1,
+              color: accentColor.withValues(alpha: 0.15),
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(12, 8, 12, 10),
+              child: Text(
+                description,
+                style: TextStyle(
+                  fontSize: 12,
+                  height: 1.4,
+                  color: isDark
+                      ? AppColors.darkTextSecondary
+                      : AppColors.textSecondary,
+                ),
+              ),
+            ),
+          ],
+        ],
+      ),
     );
   }
 
@@ -320,6 +509,7 @@ class _TransparencyBoardContentState extends ConsumerState<_TransparencyBoardCon
     required Color iconColor,
     required String title,
     Widget? trailing,
+    Widget? infoWidget,
     required Widget content,
   }) {
     return Container(
@@ -368,7 +558,11 @@ class _TransparencyBoardContentState extends ConsumerState<_TransparencyBoardCon
               ?trailing,
             ],
           ),
-          const SizedBox(height: AppSizes.p20),
+          if (infoWidget != null) ...[
+            const SizedBox(height: AppSizes.p12),
+            infoWidget,
+          ],
+          const SizedBox(height: AppSizes.p16),
           content,
         ],
       ),
@@ -409,6 +603,17 @@ class _TransparencyBoardContentState extends ConsumerState<_TransparencyBoardCon
               ),
             )
           : null,
+      infoWidget: _buildCollapsibleInfoCard(
+        context: context,
+        isDark: isDark,
+        accentColor: AppColors.primaryGreen,
+        title: 'About Enrollment Data',
+        description:
+            'Displays official student enrollment counts categorized by grade level and gender (Male/Female) for the active academic year(s), allowing school administrators to analyze grade-by-grade capacity and gender distribution.',
+        isExpanded: _isEnrollmentInfoExpanded,
+        onToggle: () => setState(
+            () => _isEnrollmentInfoExpanded = !_isEnrollmentInfoExpanded),
+      ),
       content: _buildEnrollmentSection(context, years),
     );
   }
@@ -426,6 +631,17 @@ class _TransparencyBoardContentState extends ConsumerState<_TransparencyBoardCon
       icon: Icons.trending_down_rounded,
       iconColor: Colors.redAccent,
       title: 'Dropouts & Transferees',
+      infoWidget: _buildCollapsibleInfoCard(
+        context: context,
+        isDark: isDark,
+        accentColor: Colors.redAccent,
+        title: 'About Dropout & Transfer Statistics',
+        description:
+            'Tracks student retention and mobility indicators across grade levels, including confirmed dropouts, incoming transferred-in students, and outgoing transferred-out learners to support student retention programs.',
+        isExpanded: _isDropoutInfoExpanded,
+        onToggle: () => setState(
+            () => _isDropoutInfoExpanded = !_isDropoutInfoExpanded),
+      ),
       content: _buildDropoutTransfereeSection(context, years),
     );
   }
@@ -464,6 +680,17 @@ class _TransparencyBoardContentState extends ConsumerState<_TransparencyBoardCon
               ),
             )
           : null,
+      infoWidget: _buildCollapsibleInfoCard(
+        context: context,
+        isDark: isDark,
+        accentColor: Colors.deepPurple,
+        title: 'About 4Ps Program Beneficiaries',
+        description:
+            'Monitors the count and percentage of Pantawid Pamilyang Pilipino Program (4Ps) household beneficiaries enrolled across each grade level to evaluate equity and targeted student welfare assistance.',
+        isExpanded: _isEquity4PsInfoExpanded,
+        onToggle: () => setState(
+            () => _isEquity4PsInfoExpanded = !_isEquity4PsInfoExpanded),
+      ),
       content: _buildEquity4PsSection(context, years),
     );
   }

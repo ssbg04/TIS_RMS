@@ -20,6 +20,8 @@ void showStudentProfileModal(
   VoidCallback? onDelete,
   void Function(int studentId)? onEditById,
   void Function(int studentId)? onDeleteById,
+  void Function(int studentId)? onEditDetailsById,
+  void Function(int studentId)? onEditEnrollmentById,
   bool hideEnrollmentActions = false,
 }) {
   final screenW = MediaQuery.of(context).size.width;
@@ -34,6 +36,8 @@ void showStudentProfileModal(
       onDelete: onDelete,
       onEditById: onEditById,
       onDeleteById: onDeleteById,
+      onEditDetailsById: onEditDetailsById,
+      onEditEnrollmentById: onEditEnrollmentById,
       hideEnrollmentActions: hideEnrollmentActions,
       isMobile: isMobile,
     ),
@@ -47,6 +51,8 @@ class _StudentProfileDialogShell extends ConsumerStatefulWidget {
   final VoidCallback? onDelete;
   final void Function(int studentId)? onEditById;
   final void Function(int studentId)? onDeleteById;
+  final void Function(int studentId)? onEditDetailsById;
+  final void Function(int studentId)? onEditEnrollmentById;
   final bool hideEnrollmentActions;
   final bool isMobile;
 
@@ -57,6 +63,8 @@ class _StudentProfileDialogShell extends ConsumerStatefulWidget {
     this.onDelete,
     this.onEditById,
     this.onDeleteById,
+    this.onEditDetailsById,
+    this.onEditEnrollmentById,
     required this.hideEnrollmentActions,
     required this.isMobile,
   });
@@ -93,8 +101,6 @@ class _StudentProfileDialogShellState
         : EdgeInsets.zero;
 
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final hasEdit = (widget.onEdit != null || widget.onEditById != null) &&
-        widget.userRole != 'teacher';
     final hasDelete =
         (widget.onDelete != null || widget.onDeleteById != null) &&
             widget.userRole != 'teacher';
@@ -171,6 +177,12 @@ class _StudentProfileDialogShellState
                       studentId: _currentStudentId,
                       userRole: widget.userRole,
                       hideEnrollmentActions: widget.hideEnrollmentActions,
+                      onEditDetails: widget.onEditDetailsById != null
+                          ? () => widget.onEditDetailsById!(_currentStudentId)
+                          : null,
+                      onEditEnrollment: widget.onEditEnrollmentById != null
+                          ? () => widget.onEditEnrollmentById!(_currentStudentId)
+                          : null,
                     ),
                   ),
                   // ── Fixed footer with navigation + action buttons ──
@@ -268,13 +280,13 @@ class _StudentProfileDialogShellState
                         else
                           const SizedBox.shrink(),
 
-                        // Right: Actions (Delete / Edit) - Clean text buttons with no background or border
+                        // Right: Actions (Inactive) - Clean text button with no background or border
                         Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
                             if (hasDelete) ...[
                               Tooltip(
-                                message: 'Delete Student',
+                                message: 'Mark as Inactive',
                                 child: TextButton.icon(
                                   onPressed: () {
                                     if (widget.onDeleteById != null) {
@@ -283,50 +295,17 @@ class _StudentProfileDialogShellState
                                       widget.onDelete!();
                                     }
                                   },
-                                  icon: const Icon(Icons.delete_outline_rounded, size: 18, color: AppColors.error),
+                                  icon: const Icon(Icons.pause_circle_outline_rounded, size: 18, color: Colors.blueGrey),
                                   label: const Text(
-                                    'Delete',
+                                    'Inactive',
                                     style: TextStyle(
-                                      color: AppColors.error,
+                                      color: Colors.blueGrey,
                                       fontSize: 13,
                                       fontWeight: FontWeight.w600,
                                     ),
                                   ),
                                   style: TextButton.styleFrom(
-                                    foregroundColor: AppColors.error,
-                                    backgroundColor: Colors.transparent,
-                                    side: BorderSide.none,
-                                    shadowColor: Colors.transparent,
-                                    elevation: 0,
-                                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                                  ),
-                                ),
-                              ),
-                              const SizedBox(width: 4),
-                            ],
-                            if (hasEdit) ...[
-                              Tooltip(
-                                message: 'Edit Student',
-                                child: TextButton.icon(
-                                  onPressed: () {
-                                    if (widget.onEditById != null) {
-                                      widget.onEditById!(_currentStudentId);
-                                    } else if (widget.onEdit != null) {
-                                      widget.onEdit!();
-                                    }
-                                  },
-                                  icon: const Icon(Icons.edit_rounded, size: 18, color: AppColors.primaryGreen),
-                                  label: const Text(
-                                    'Edit',
-                                    style: TextStyle(
-                                      color: AppColors.primaryGreen,
-                                      fontSize: 13,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
-                                  style: TextButton.styleFrom(
-                                    foregroundColor: AppColors.primaryGreen,
+                                    foregroundColor: Colors.blueGrey,
                                     backgroundColor: Colors.transparent,
                                     side: BorderSide.none,
                                     shadowColor: Colors.transparent,
@@ -359,12 +338,16 @@ class StudentProfileModalBody extends ConsumerWidget {
   final int studentId;
   final String userRole;
   final bool hideEnrollmentActions;
+  final VoidCallback? onEditDetails;
+  final VoidCallback? onEditEnrollment;
 
   const StudentProfileModalBody({
     super.key,
     required this.studentId,
     required this.userRole,
     this.hideEnrollmentActions = false,
+    this.onEditDetails,
+    this.onEditEnrollment,
   });
 
   @override
@@ -399,13 +382,41 @@ class StudentProfileModalBody extends ConsumerWidget {
               _buildInfoCard(context, student),
               const SizedBox(height: 20),
 
-            const SizedBox(height: 20),
-            const Text(
-              'Enrollments',
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
-              ),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text(
+                  'Enrollments',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                if (onEditEnrollment != null && userRole != 'teacher')
+                  Tooltip(
+                    message: 'Manage or Add Enrollments',
+                    child: TextButton.icon(
+                      onPressed: onEditEnrollment,
+                      icon: const Icon(Icons.edit_calendar_outlined, size: 15, color: AppColors.primaryGreen),
+                      label: const Text(
+                        'Edit Enrollment',
+                        style: TextStyle(
+                          color: AppColors.primaryGreen,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      style: TextButton.styleFrom(
+                        foregroundColor: AppColors.primaryGreen,
+                        backgroundColor: AppColors.primaryGreen.withValues(alpha: 0.08),
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        minimumSize: Size.zero,
+                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
+                      ),
+                    ),
+                  ),
+              ],
             ),
             const SizedBox(height: 10),
 
@@ -547,7 +558,39 @@ class StudentProfileModalBody extends ConsumerWidget {
                   ],
                 ),
               ),
-              _buildStatusBadge(student.status),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  _buildStatusBadge(student.status),
+                  if (onEditDetails != null && userRole != 'teacher') ...[
+                    const SizedBox(height: 6),
+                    Tooltip(
+                      message: 'Edit Student Details',
+                      child: TextButton.icon(
+                        onPressed: onEditDetails,
+                        icon: const Icon(Icons.edit_outlined, size: 14, color: AppColors.primaryGreen),
+                        label: const Text(
+                          'Edit Details',
+                          style: TextStyle(
+                            color: AppColors.primaryGreen,
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        style: TextButton.styleFrom(
+                          foregroundColor: AppColors.primaryGreen,
+                          backgroundColor: AppColors.primaryGreen.withValues(alpha: 0.08),
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                          minimumSize: Size.zero,
+                          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
+                        ),
+                      ),
+                    ),
+                  ],
+                ],
+              ),
             ],
           ),
           Divider(height: 24, color: isDark ? AppColors.darkBorder : Colors.grey.shade200),

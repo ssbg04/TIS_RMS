@@ -57,7 +57,7 @@ class _EditStudentModalState extends ConsumerState<EditStudentModal> {
   List<EnrollmentModel>? _loadedEnrollments;
   int _statusDropdownKey = 0;
 
-  static const _statuses = ['Enrolled', 'Graduated', 'Transferred', 'Dropped', 'Inactive'];
+  static const _statuses = ['Enrolled', 'Graduated', 'Transferred', 'Dropped'];
   static const _extSuggestions = [
     'JR.',
     'SR.',
@@ -242,12 +242,16 @@ class _EditStudentModalState extends ConsumerState<EditStudentModal> {
   }
 
   List<String> get _availableStatuses {
+    var list = _statuses;
+    if (_initialStudent.status == 'Inactive' || _selectedStatus == 'Inactive') {
+      list = [...list, 'Inactive'];
+    }
     if (_hasGraduationEligibleGrade() ||
         _selectedStatus == 'Graduated' ||
         _initialStudent.status == 'Graduated') {
-      return _statuses;
+      return list;
     }
-    return _statuses.where((s) => s != 'Graduated').toList();
+    return list.where((s) => s != 'Graduated').toList();
   }
 
   int? _getLatestGradeLevel() {
