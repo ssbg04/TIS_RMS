@@ -39,6 +39,23 @@ add_definitions(-DUNICODE -D_UNICODE)
 # Suppress coroutine deprecation warning for permission_handler_windows plugin
 add_definitions(-D_SILENCE_EXPERIMENTAL_COROUTINE_DEPRECATION_WARNINGS)
 
+# Locate ATL/MFC if not in current compiler include path (e.g., when BuildTools is selected over Community)
+if(MSVC)
+  file(GLOB ATL_CANDIDATES
+    "C:/Program Files/Microsoft Visual Studio/*/*/VC/Tools/MSVC/*/atlmfc/include"
+    "C:/Program Files (x86)/Microsoft Visual Studio/*/*/VC/Tools/MSVC/*/atlmfc/include"
+  )
+  if(ATL_CANDIDATES)
+    list(GET ATL_CANDIDATES -1 ATL_INC_DIR)
+    if(EXISTS "${ATL_INC_DIR}/atlstr.h")
+      message(STATUS "Located ATL include directory: ${ATL_INC_DIR}")
+      include_directories(SYSTEM "${ATL_INC_DIR}")
+      get_filename_component(ATL_MSVC_DIR "${ATL_INC_DIR}" DIRECTORY)
+      link_directories("${ATL_MSVC_DIR}/lib/x64")
+    endif()
+  endif()
+endif()
+
 # Compilation settings that should be applied to most targets.
 #
 # Be cautious about adding new options here, as plugins use this function by
