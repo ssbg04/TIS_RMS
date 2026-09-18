@@ -669,6 +669,18 @@ Files backup/restore - mirror mode or zip -->
   - **Collapsible requirement list**: make the document requirement list in the modal collapsible/expandable so it does not take up excessive vertical space on smaller screens.
   - **Responsive layout**: ensure the requirement list and its items resize/adapt properly across different screen widths (no overflow, no truncated text). -->
 
+<!-- # REPORTS SCREEN
+- separate the data & graph for deped transparency board tab:
+  - segmented view mode switcher (`Data Tables`, `Visual Graphs`, `Combined View`) in header banner.
+  - dedicated charts for Dropouts vs. Transferees and 4Ps Beneficiaries vs. Total Learners.
+  - section guards ensuring tabular data mode displays only tables, and visual graphs mode displays only charts.
+
+# ADD "UPDATE POP UP" AFTER SPLASH SCREEN
+- detect version based on installed app vs latest tag version from GitHub repo https://github.com/ssbg04/TIS_RMS.
+- `AppUpdateService` queries latest release via GitHub API, compares semver (`PackageInfo`), and resolves platform asset (.exe / .apk).
+- `UpdateAvailableDialog` with installed vs latest version pill, platform asset tag, release notes, and download link.
+- `SplashScreen` check with 4-second timeout and non-blocking background error handling. -->
+
 ---
 
 # DONT DO

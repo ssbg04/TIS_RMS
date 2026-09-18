@@ -14,6 +14,8 @@ import '../../providers/auth_provider.dart';
 import '../../../core/services/foreground_sync_service.dart';
 import '../../shared/widgets/abstract_background.dart';
 import '../../shared/widgets/app_button_loader.dart';
+import '../../../core/services/app_update_service.dart';
+import '../../shared/dialogs/update_available_dialog.dart';
 
 class SplashScreen extends ConsumerStatefulWidget {
   const SplashScreen({super.key});
@@ -83,6 +85,24 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
 
     // ── Step 2: Try auto-login ─────────────────────────────────────────────
     final user = await ref.read(authProvider.notifier).tryAutoLogin();
+    if (!mounted) return;
+
+    // ── Step 3: Check for updates from GitHub repository ────────────────────
+    try {
+      final updateInfo = await AppUpdateService.checkForUpdate().timeout(
+        const Duration(seconds: 4),
+        onTimeout: () => null,
+      );
+      if (updateInfo != null && updateInfo.hasUpdate && mounted) {
+        await showUpdateAvailableDialog(
+          context,
+          updateInfo: updateInfo,
+        );
+      }
+    } catch (e) {
+      // Non-fatal, allow regular app navigation
+    }
+
     if (!mounted) return;
 
     if (user != null) {

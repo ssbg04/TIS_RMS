@@ -52,13 +52,20 @@ class _TransparencyBoardContent extends ConsumerStatefulWidget {
   ConsumerState<_TransparencyBoardContent> createState() => _TransparencyBoardContentState();
 }
 
+enum TransparencyViewMode { tables, graphs, combined }
+
 class _TransparencyBoardContentState extends ConsumerState<_TransparencyBoardContent> {
   final ScrollController _enrollmentChartScrollController = ScrollController();
+  final ScrollController _dropoutChartScrollController = ScrollController();
+  final ScrollController _equity4PsChartScrollController = ScrollController();
   bool _isExportingPdf = false;
+  TransparencyViewMode _viewMode = TransparencyViewMode.tables;
 
   @override
   void dispose() {
     _enrollmentChartScrollController.dispose();
+    _dropoutChartScrollController.dispose();
+    _equity4PsChartScrollController.dispose();
     super.dispose();
   }
 
@@ -249,6 +256,7 @@ class _TransparencyBoardContentState extends ConsumerState<_TransparencyBoardCon
                         runSpacing: 8,
                         crossAxisAlignment: WrapCrossAlignment.center,
                         children: [
+                          _buildViewModeSwitcher(context, isDark),
                           if (academicYears.isNotEmpty)
                             _buildYearSelector(
                               context,
@@ -278,8 +286,9 @@ class _TransparencyBoardContentState extends ConsumerState<_TransparencyBoardCon
                               ),
                             ),
                           ),
+                          _buildViewModeSwitcher(context, isDark),
                           if (academicYears.isNotEmpty) ...[
-                            const SizedBox(width: 12),
+                            const SizedBox(width: 10),
                             _buildYearSelector(
                               context,
                               academicYears: academicYears,
@@ -352,7 +361,9 @@ class _TransparencyBoardContentState extends ConsumerState<_TransparencyBoardCon
                 _buildSectionHeader(
                   context,
                   icon: Icons.bar_chart,
-                  label: '1. Data on Enrollment',
+                  label: _viewMode == TransparencyViewMode.graphs
+                      ? '1. Enrollment Trends & Analytics'
+                      : '1. Data on Enrollment',
                   color: AppColors.primaryGreen,
                 ),
                 const SizedBox(height: AppSizes.p16),
@@ -371,7 +382,9 @@ class _TransparencyBoardContentState extends ConsumerState<_TransparencyBoardCon
                 _buildSectionHeader(
                   context,
                   icon: Icons.trending_down,
-                  label: '2. Dropouts & Transferees',
+                  label: _viewMode == TransparencyViewMode.graphs
+                      ? '2. Dropouts & Transferees Trends'
+                      : '2. Dropouts & Transferees',
                   color: Colors.redAccent,
                 ),
                 const SizedBox(height: AppSizes.p16),
@@ -390,7 +403,9 @@ class _TransparencyBoardContentState extends ConsumerState<_TransparencyBoardCon
                 _buildSectionHeader(
                   context,
                   icon: Icons.family_restroom,
-                  label: '3. 4Ps Beneficiaries',
+                  label: _viewMode == TransparencyViewMode.graphs
+                      ? '3. 4Ps Beneficiaries Distribution'
+                      : '3. 4Ps Beneficiaries',
                   color: Colors.deepPurple,
                 ),
                 const SizedBox(height: AppSizes.p16),
@@ -477,6 +492,76 @@ class _TransparencyBoardContentState extends ConsumerState<_TransparencyBoardCon
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildViewModeSwitcher(BuildContext context, bool isDark) {
+    final modes = [
+      (mode: TransparencyViewMode.tables, icon: Icons.table_chart_outlined, label: 'Data Tables'),
+      (mode: TransparencyViewMode.graphs, icon: Icons.bar_chart_rounded, label: 'Visual Graphs'),
+      (mode: TransparencyViewMode.combined, icon: Icons.dashboard_customize_outlined, label: 'Combined'),
+    ];
+
+    return Container(
+      padding: const EdgeInsets.all(3),
+      decoration: BoxDecoration(
+        color: Colors.black.withValues(alpha: 0.25),
+        borderRadius: BorderRadius.circular(9),
+        border: Border.all(
+          color: Colors.white.withValues(alpha: 0.35),
+        ),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: modes.map((m) {
+          final isSelected = _viewMode == m.mode;
+          return InkWell(
+            onTap: () {
+              if (_viewMode != m.mode) {
+                setState(() => _viewMode = m.mode);
+              }
+            },
+            borderRadius: BorderRadius.circular(7),
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 180),
+              curve: Curves.easeInOut,
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+              decoration: BoxDecoration(
+                color: isSelected ? Colors.white : Colors.transparent,
+                borderRadius: BorderRadius.circular(7),
+                boxShadow: isSelected
+                    ? [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.18),
+                          blurRadius: 4,
+                          offset: const Offset(0, 1),
+                        ),
+                      ]
+                    : null,
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    m.icon,
+                    size: 14,
+                    color: isSelected ? AppColors.darkGreen : Colors.white,
+                  ),
+                  const SizedBox(width: 5),
+                  Text(
+                    m.label,
+                    style: TextStyle(
+                      fontSize: 11.5,
+                      fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+                      color: isSelected ? AppColors.darkGreen : Colors.white,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          );
+        }).toList(),
       ),
     );
   }
@@ -700,62 +785,71 @@ class _TransparencyBoardContentState extends ConsumerState<_TransparencyBoardCon
     final latestYear = years.last;
     final previousYear = years.length > 1 ? years[years.length - 2] : null;
 
+    final showGraph = _viewMode == TransparencyViewMode.graphs || _viewMode == TransparencyViewMode.combined;
+    final showTable = _viewMode == TransparencyViewMode.tables || _viewMode == TransparencyViewMode.combined;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          'Enrollment Trends across School Years',
-          style: TextStyle(
-            fontSize: 14,
-            fontWeight: FontWeight.w600,
-            color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
+        if (showGraph) ...[
+          Text(
+            'Enrollment Trends across School Years',
+            style: TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.w600,
+              color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
+            ),
           ),
-        ),
-        const SizedBox(height: AppSizes.p12),
-        LayoutBuilder(
-          builder: (context, constraints) {
-            final isNarrow = constraints.maxWidth < 720;
-            return SizedBox(
-              height: isNarrow ? 400 : 360,
-              child: _buildEnrollmentGroupedBarChart(context, years, isDark: isDark),
-            );
-          },
-        ),
-        const SizedBox(height: AppSizes.p24),
-        const Divider(height: 1),
-        const SizedBox(height: AppSizes.p16),
-        Wrap(
-          alignment: WrapAlignment.spaceBetween,
-          crossAxisAlignment: WrapCrossAlignment.center,
-          spacing: 12,
-          runSpacing: 8,
-          children: [
-            Text(
-              previousYear != null
-                  ? 'Data on Enrollment (SY ${previousYear.yearRange} vs. SY ${latestYear.yearRange})'
-                  : 'Data on Enrollment (SY ${latestYear.yearRange})',
-              style: TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.w600,
-                color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
-              ),
-            ),
-            Text(
-              'Active SY Total: ${latestYear.enrollment.overallTotal.total}',
-              style: const TextStyle(
-                fontWeight: FontWeight.bold,
-                color: AppColors.primaryGreen,
-              ),
-            ),
+          const SizedBox(height: AppSizes.p12),
+          LayoutBuilder(
+            builder: (context, constraints) {
+              final isNarrow = constraints.maxWidth < 720;
+              return SizedBox(
+                height: isNarrow ? 400 : 360,
+                child: _buildEnrollmentGroupedBarChart(context, years, isDark: isDark),
+              );
+            },
+          ),
+          if (showTable) ...[
+            const SizedBox(height: AppSizes.p24),
+            const Divider(height: 1),
+            const SizedBox(height: AppSizes.p16),
           ],
-        ),
-        const SizedBox(height: AppSizes.p12),
-        _buildEnrollmentComparisonTable(
-          context,
-          latestYear: latestYear,
-          previousYear: previousYear,
-          isDark: isDark,
-        ),
+        ],
+        if (showTable) ...[
+          Wrap(
+            alignment: WrapAlignment.spaceBetween,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            spacing: 12,
+            runSpacing: 8,
+            children: [
+              Text(
+                previousYear != null
+                    ? 'Data on Enrollment (SY ${previousYear.yearRange} vs. SY ${latestYear.yearRange})'
+                    : 'Data on Enrollment (SY ${latestYear.yearRange})',
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                  color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
+                ),
+              ),
+              Text(
+                'Active SY Total: ${latestYear.enrollment.overallTotal.total}',
+                style: const TextStyle(
+                  fontWeight: FontWeight.bold,
+                  color: AppColors.primaryGreen,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: AppSizes.p12),
+          _buildEnrollmentComparisonTable(
+            context,
+            latestYear: latestYear,
+            previousYear: previousYear,
+            isDark: isDark,
+          ),
+        ],
       ],
     );
   }
@@ -1458,77 +1552,99 @@ class _TransparencyBoardContentState extends ConsumerState<_TransparencyBoardCon
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final grades = [7, 8, 9, 10, 11, 12];
 
+    final showGraph = _viewMode == TransparencyViewMode.graphs || _viewMode == TransparencyViewMode.combined;
+    final showTable = _viewMode == TransparencyViewMode.tables || _viewMode == TransparencyViewMode.combined;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // Dropouts sub-section
-        Row(
-          children: [
-            const Icon(Icons.error_outline, color: Colors.redAccent, size: 18),
-            const SizedBox(width: 8),
-            Text(
-              'Dropouts by Grade',
-              style: TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.w600,
-                color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
-              ),
+        if (showGraph) ...[
+          Text(
+            'Dropouts vs. Transferees Trends across Grades',
+            style: TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.w600,
+              color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
             ),
+          ),
+          const SizedBox(height: AppSizes.p12),
+          _buildDropoutTransfereeBarChart(context, years, isDark: isDark),
+          if (showTable) ...[
+            const SizedBox(height: AppSizes.p24),
+            const Divider(height: 1),
+            const SizedBox(height: AppSizes.p16),
           ],
-        ),
-        const SizedBox(height: 12),
-        _buildMultiYearGradeTable(
-          context,
-          years: years,
-          grades: grades,
-          isDark: isDark,
-          getValue: (y, g) {
-            final row = y.dropouts.grades.firstWhere(
-              (item) => item.gradeLevel == g,
-              orElse: () => GradeDropoutCount(gradeLevel: g, droppedCount: 0),
-            );
-            return row.droppedCount;
-          },
-          getTotal: (y) => y.dropouts.totalDropped,
-          headerColor: Colors.red.withValues(alpha: 0.08),
-          totalColor: Colors.redAccent,
-        ),
-        const SizedBox(height: 28),
-        // Transferees sub-section
-        Row(
-          children: [
-            const Icon(Icons.swap_horiz_outlined, color: Colors.orange, size: 18),
-            const SizedBox(width: 8),
-            Text(
-              'Transferees by Grade',
-              style: TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.w600,
-                color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
+        ],
+        if (showTable) ...[
+          // Dropouts sub-section
+          Row(
+            children: [
+              const Icon(Icons.error_outline, color: Colors.redAccent, size: 18),
+              const SizedBox(width: 8),
+              Text(
+                'Dropouts by Grade',
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                  color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
+                ),
               ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 12),
-        _buildMultiYearGradeTable(
-          context,
-          years: years,
-          grades: grades,
-          isDark: isDark,
-          getValue: (y, g) {
-            final row = y.transferees.grades.firstWhere(
-              (item) => item.gradeLevel == g,
-              orElse: () => GradeTransfereeCount(
-                gradeLevel: g,
-                transferredCount: 0,
+            ],
+          ),
+          const SizedBox(height: 12),
+          _buildMultiYearGradeTable(
+            context,
+            years: years,
+            grades: grades,
+            isDark: isDark,
+            getValue: (y, g) {
+              final row = y.dropouts.grades.firstWhere(
+                (item) => item.gradeLevel == g,
+                orElse: () => GradeDropoutCount(gradeLevel: g, droppedCount: 0),
+              );
+              return row.droppedCount;
+            },
+            getTotal: (y) => y.dropouts.totalDropped,
+            headerColor: Colors.red.withValues(alpha: 0.08),
+            totalColor: Colors.redAccent,
+          ),
+          const SizedBox(height: 28),
+          // Transferees sub-section
+          Row(
+            children: [
+              const Icon(Icons.swap_horiz_outlined, color: Colors.orange, size: 18),
+              const SizedBox(width: 8),
+              Text(
+                'Transferees by Grade',
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                  color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
+                ),
               ),
-            );
-            return row.transferredCount;
-          },
-          getTotal: (y) => y.transferees.totalTransferred,
-          headerColor: Colors.orange.withValues(alpha: 0.1),
-          totalColor: Colors.orange.shade800,
-        ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          _buildMultiYearGradeTable(
+            context,
+            years: years,
+            grades: grades,
+            isDark: isDark,
+            getValue: (y, g) {
+              final row = y.transferees.grades.firstWhere(
+                (item) => item.gradeLevel == g,
+                orElse: () => GradeTransfereeCount(
+                  gradeLevel: g,
+                  transferredCount: 0,
+                ),
+              );
+              return row.transferredCount;
+            },
+            getTotal: (y) => y.transferees.totalTransferred,
+            headerColor: Colors.orange.withValues(alpha: 0.1),
+            totalColor: Colors.orange.shade800,
+          ),
+        ],
       ],
     );
   }
@@ -1661,11 +1777,31 @@ class _TransparencyBoardContentState extends ConsumerState<_TransparencyBoardCon
     final currentLabel = 'SY ${latestYear.yearRange}';
 
     final active4Ps = latestYear.fourPs;
+    final showGraph = _viewMode == TransparencyViewMode.graphs || _viewMode == TransparencyViewMode.combined;
+    final showTable = _viewMode == TransparencyViewMode.tables || _viewMode == TransparencyViewMode.combined;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Wrap(
+        if (showGraph) ...[
+          Text(
+            '4Ps Beneficiaries Distribution across Grades (SY ${latestYear.yearRange})',
+            style: TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.w600,
+              color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
+            ),
+          ),
+          const SizedBox(height: AppSizes.p12),
+          _buildEquity4PsBarChart(context, years, isDark: isDark),
+          if (showTable) ...[
+            const SizedBox(height: AppSizes.p24),
+            const Divider(height: 1),
+            const SizedBox(height: AppSizes.p16),
+          ],
+        ],
+        if (showTable) ...[
+          Wrap(
           alignment: WrapAlignment.spaceBetween,
           crossAxisAlignment: WrapCrossAlignment.center,
           spacing: 12,
@@ -2205,6 +2341,380 @@ class _TransparencyBoardContentState extends ConsumerState<_TransparencyBoardCon
                 ),
               ],
             ),
+          ),
+        ),
+        ],
+      ],
+    );
+  }
+
+  // ── Charts for Sections 2 & 3 ──────────────────────────────────────────────
+
+  Widget _buildDropoutTransfereeBarChart(
+    BuildContext context,
+    List<YearlyTransparencyItem> years, {
+    required bool isDark,
+  }) {
+    final grades = [7, 8, 9, 10, 11, 12];
+    final latestYear = years.last;
+
+    double maxVal = 10;
+    for (final g in grades) {
+      final dropRow = latestYear.dropouts.grades.firstWhere(
+        (item) => item.gradeLevel == g,
+        orElse: () => GradeDropoutCount(gradeLevel: g, droppedCount: 0),
+      );
+      final transRow = latestYear.transferees.grades.firstWhere(
+        (item) => item.gradeLevel == g,
+        orElse: () => GradeTransfereeCount(gradeLevel: g, transferredCount: 0),
+      );
+      if (dropRow.droppedCount > maxVal) maxVal = dropRow.droppedCount.toDouble();
+      if (transRow.transferredCount > maxVal) maxVal = transRow.transferredCount.toDouble();
+    }
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        const double minChartWidth = 680.0;
+        final bool isNarrow = constraints.maxWidth < minChartWidth;
+        final double chartWidth = isNarrow ? minChartWidth : constraints.maxWidth;
+
+        final chartWidget = Padding(
+          padding: const EdgeInsets.only(top: 16, right: 14, left: 4),
+          child: SizedBox(
+            width: chartWidth,
+            child: BarChart(
+              BarChartData(
+                alignment: BarChartAlignment.spaceAround,
+                groupsSpace: 20,
+                maxY: (maxVal * 1.35).ceilToDouble(),
+                barTouchData: BarTouchData(
+                  enabled: true,
+                  handleBuiltInTouches: true,
+                  touchTooltipData: BarTouchTooltipData(
+                    fitInsideHorizontally: true,
+                    fitInsideVertically: true,
+                    getTooltipItem: (group, groupIndex, rod, rodIndex) {
+                      final grade = grades[group.x.toInt()];
+                      final isDrop = rodIndex == 0;
+                      final type = isDrop ? 'Dropouts' : 'Transferees';
+                      final count = rod.toY.toInt();
+                      return BarTooltipItem(
+                        'Grade $grade\n$type: $count',
+                        const TextStyle(
+                          color: Colors.white,
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      );
+                    },
+                  ),
+                ),
+                titlesData: FlTitlesData(
+                  topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                  rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                  bottomTitles: AxisTitles(
+                    sideTitles: SideTitles(
+                      showTitles: true,
+                      reservedSize: 34,
+                      getTitlesWidget: (val, meta) {
+                        final idx = val.toInt();
+                        if (idx < 0 || idx >= grades.length) return const SizedBox.shrink();
+                        return Padding(
+                          padding: const EdgeInsets.only(top: 8.0),
+                          child: Text(
+                            'Grade ${grades[idx]}',
+                            style: TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w600,
+                              color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                  leftTitles: AxisTitles(
+                    sideTitles: SideTitles(
+                      showTitles: true,
+                      reservedSize: 38,
+                      getTitlesWidget: (val, meta) {
+                        if (val == 0) return const SizedBox.shrink();
+                        return Padding(
+                          padding: const EdgeInsets.only(right: 6),
+                          child: Text(
+                            val.toInt().toString(),
+                            textAlign: TextAlign.right,
+                            style: TextStyle(
+                              fontSize: 11,
+                              color: isDark ? AppColors.darkTextMuted : Colors.grey,
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                ),
+                gridData: FlGridData(
+                  show: true,
+                  drawVerticalLine: false,
+                  getDrawingHorizontalLine: (val) => FlLine(
+                    color: isDark ? AppColors.darkBorder : Colors.grey.withValues(alpha: 0.15),
+                    strokeWidth: 1,
+                  ),
+                ),
+                borderData: FlBorderData(show: false),
+                barGroups: List.generate(grades.length, (idx) {
+                  final g = grades[idx];
+                  final dropCount = latestYear.dropouts.grades.firstWhere(
+                    (item) => item.gradeLevel == g,
+                    orElse: () => GradeDropoutCount(gradeLevel: g, droppedCount: 0),
+                  ).droppedCount.toDouble();
+
+                  final transCount = latestYear.transferees.grades.firstWhere(
+                    (item) => item.gradeLevel == g,
+                    orElse: () => GradeTransfereeCount(gradeLevel: g, transferredCount: 0),
+                  ).transferredCount.toDouble();
+
+                  return BarChartGroupData(
+                    x: idx,
+                    barsSpace: 4,
+                    barRods: [
+                      BarChartRodData(
+                        toY: dropCount,
+                        color: Colors.redAccent.shade200,
+                        width: isNarrow ? 12 : 15,
+                        borderRadius: const BorderRadius.only(
+                          topLeft: Radius.circular(3),
+                          topRight: Radius.circular(3),
+                        ),
+                      ),
+                      BarChartRodData(
+                        toY: transCount,
+                        color: Colors.orangeAccent,
+                        width: isNarrow ? 12 : 15,
+                        borderRadius: const BorderRadius.only(
+                          topLeft: Radius.circular(3),
+                          topRight: Radius.circular(3),
+                        ),
+                      ),
+                    ],
+                  );
+                }),
+              ),
+            ),
+          ),
+        );
+
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Wrap(
+              alignment: WrapAlignment.end,
+              spacing: 16,
+              runSpacing: 6,
+              children: [
+                _buildLegendItem('Dropouts (SY ${latestYear.yearRange})', Colors.redAccent.shade200, isDark),
+                _buildLegendItem('Transferees (SY ${latestYear.yearRange})', Colors.orangeAccent, isDark),
+              ],
+            ),
+            const SizedBox(height: 10),
+            SizedBox(
+              height: isNarrow ? 360 : 320,
+              child: isNarrow
+                  ? Scrollbar(
+                      controller: _dropoutChartScrollController,
+                      thumbVisibility: true,
+                      child: SingleChildScrollView(
+                        controller: _dropoutChartScrollController,
+                        scrollDirection: Axis.horizontal,
+                        child: chartWidget,
+                      ),
+                    )
+                  : chartWidget,
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Widget _buildEquity4PsBarChart(
+    BuildContext context,
+    List<YearlyTransparencyItem> years, {
+    required bool isDark,
+  }) {
+    final grades = [7, 8, 9, 10, 11, 12];
+    final latestYear = years.last;
+
+    double maxVal = 10;
+    for (final g in grades) {
+      final item = latestYear.fourPs.grades.firstWhere(
+        (e) => e.gradeLevel == g,
+        orElse: () => Grade4PsCount(gradeLevel: g, fourPsCount: 0, totalStudents: 0, percentage: 0.0),
+      );
+      if (item.totalStudents > maxVal) maxVal = item.totalStudents.toDouble();
+    }
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        const double minChartWidth = 680.0;
+        final bool isNarrow = constraints.maxWidth < minChartWidth;
+        final double chartWidth = isNarrow ? minChartWidth : constraints.maxWidth;
+
+        final chartWidget = Padding(
+          padding: const EdgeInsets.only(top: 16, right: 14, left: 4),
+          child: SizedBox(
+            width: chartWidth,
+            child: BarChart(
+              BarChartData(
+                alignment: BarChartAlignment.spaceAround,
+                groupsSpace: 20,
+                maxY: (maxVal * 1.3).ceilToDouble(),
+                barTouchData: BarTouchData(
+                  enabled: true,
+                  handleBuiltInTouches: true,
+                  touchTooltipData: BarTouchTooltipData(
+                    fitInsideHorizontally: true,
+                    fitInsideVertically: true,
+                    getTooltipItem: (group, groupIndex, rod, rodIndex) {
+                      final grade = grades[group.x.toInt()];
+                      final is4Ps = rodIndex == 0;
+                      final type = is4Ps ? '4Ps Beneficiaries' : 'Total Students';
+                      final count = rod.toY.toInt();
+                      return BarTooltipItem(
+                        'Grade $grade\n$type: $count',
+                        const TextStyle(
+                          color: Colors.white,
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      );
+                    },
+                  ),
+                ),
+                titlesData: FlTitlesData(
+                  topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                  rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                  bottomTitles: AxisTitles(
+                    sideTitles: SideTitles(
+                      showTitles: true,
+                      reservedSize: 34,
+                      getTitlesWidget: (val, meta) {
+                        final idx = val.toInt();
+                        if (idx < 0 || idx >= grades.length) return const SizedBox.shrink();
+                        return Padding(
+                          padding: const EdgeInsets.only(top: 8.0),
+                          child: Text(
+                            'Grade ${grades[idx]}',
+                            style: TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w600,
+                              color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                ),
+                gridData: FlGridData(
+                  show: true,
+                  drawVerticalLine: false,
+                  getDrawingHorizontalLine: (val) => FlLine(
+                    color: isDark ? AppColors.darkBorder : Colors.grey.withValues(alpha: 0.15),
+                    strokeWidth: 1,
+                  ),
+                ),
+                borderData: FlBorderData(show: false),
+                barGroups: List.generate(grades.length, (idx) {
+                  final g = grades[idx];
+                  final item = latestYear.fourPs.grades.firstWhere(
+                    (e) => e.gradeLevel == g,
+                    orElse: () => Grade4PsCount(gradeLevel: g, fourPsCount: 0, totalStudents: 0, percentage: 0.0),
+                  );
+
+                  return BarChartGroupData(
+                    x: idx,
+                    barsSpace: 4,
+                    barRods: [
+                      BarChartRodData(
+                        toY: item.fourPsCount.toDouble(),
+                        color: Colors.deepPurpleAccent,
+                        width: isNarrow ? 12 : 15,
+                        borderRadius: const BorderRadius.only(
+                          topLeft: Radius.circular(3),
+                          topRight: Radius.circular(3),
+                        ),
+                      ),
+                      BarChartRodData(
+                        toY: item.totalStudents.toDouble(),
+                        color: Colors.teal.shade300,
+                        width: isNarrow ? 12 : 15,
+                        borderRadius: const BorderRadius.only(
+                          topLeft: Radius.circular(3),
+                          topRight: Radius.circular(3),
+                        ),
+                      ),
+                    ],
+                  );
+                }),
+              ),
+            ),
+          ),
+        );
+
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Wrap(
+              alignment: WrapAlignment.end,
+              spacing: 16,
+              runSpacing: 6,
+              children: [
+                _buildLegendItem('4Ps Beneficiaries (SY ${latestYear.yearRange})', Colors.deepPurpleAccent, isDark),
+                _buildLegendItem('Total Learners (SY ${latestYear.yearRange})', Colors.teal.shade300, isDark),
+              ],
+            ),
+            const SizedBox(height: 10),
+            SizedBox(
+              height: isNarrow ? 360 : 320,
+              child: isNarrow
+                  ? Scrollbar(
+                      controller: _equity4PsChartScrollController,
+                      thumbVisibility: true,
+                      child: SingleChildScrollView(
+                        controller: _equity4PsChartScrollController,
+                        scrollDirection: Axis.horizontal,
+                        child: chartWidget,
+                      ),
+                    )
+                  : chartWidget,
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  static Widget _buildLegendItem(String label, Color color, bool isDark) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Container(
+          width: 12,
+          height: 12,
+          decoration: BoxDecoration(
+            color: color,
+            borderRadius: BorderRadius.circular(3),
+          ),
+        ),
+        const SizedBox(width: 6),
+        Text(
+          label,
+          style: TextStyle(
+            fontSize: 12,
+            fontWeight: FontWeight.w500,
+            color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
           ),
         ),
       ],
