@@ -681,7 +681,7 @@ Files backup/restore - mirror mode or zip -->
 - `UpdateAvailableDialog` with installed vs latest version pill, platform asset tag, release notes, and download link.
 - `SplashScreen` check with 4-second timeout and non-blocking background error handling. -->
 
-# STUDENT SCREEN
+<!-- # STUDENT SCREEN
 - student profile detail modal, remove the edit button beside the delete -> add separate edit button for student details and enrollment tab 
 - delete button change into inactive
 - edit student modal, status remove the inactive
@@ -690,7 +690,52 @@ Files backup/restore - mirror mode or zip -->
 
 # REPORT SCREEN
 - DEPED TRANSPARENCY BOARD, add collapse information for each widgets add short description for what each widget is for 
-- use tab design simple 
+- use tab design simple  -->
+<!-- 
+# DASHBOARD SCREEN
+- dont count the super admin in count 
+
+# SETTINGS SCREEN
+- change password modal, rename the label UPDATE PASSWORD into UPDATE
+
+# USER SCREEN
+- user profile details, edit action buttons label use one word, make the button size the same -->
+
+<!-- # REPORTS SCREEN
+- add horizontal scroll bar for tab of sections in deped transparency board
+- add in compliance and analytics in student document compliance missing status add bottom sheet modal and dropdown icon for missing status 
+- compliance & analytics tab:
+  - student document compliance, make the filter into modal, add it into screen header in android 
+  - students per year, make the filter into modal, list all academic years and its checklist
+
+# Automatic archiving
+- not detect enrolled based on time limit on start date, complete the requirements to still enrolled (ex. 30 days), can dynamically change, no enrollment after the due date (auto archive), status (not enrolled, inactive)
+
+# Audit Trail/History Screen and Tab
+- new screen and tab, move user history and recent activities from dashboard to here
+
+# Theme
+- default the theme to light mode, not based on device theme -->
+
+# DASHBOARD SCREEN
+- document breakdown fix the overflowed
+- remove from the frontend user history and recent activities
+
+# STUDENT SCREEN
+- fix overflow on edit details button on android app
+
+# DOCUMENTS AND ARCHIVES SCREEN
+- fix that on grid view, only large folder icon and under it the name and the status chip and count of docs ex. (3)
+
+# REPORTS SCREEN
+- academic year filter on deped transparency board not readable 
+- compliance & analytics export label color is not theme responsive and reduce size
+
+# SETTINGS SCREEN
+- default the auto update enrollment turned off
+- add input for automatic archiving grace period
+- change password update label color not theme responsive
+- the danger zone is transparent fix it
 
 ---
 

@@ -146,7 +146,8 @@ exports.getRecentActivities = (req, res) => {
         const offset = (page - 1) * limit;
         const dateFrom = req.query.date_from || '';
         const dateTo = req.query.date_to || '';
-        const action = req.query.action || '';
+        const action = (req.query.action || '').trim();
+        const search = (req.query.search || '').trim();
         // Comma-separated entity type filter, e.g. "student,document" (teacher view)
         const entityTypesRaw = req.query.entity_types || '';
 
@@ -155,7 +156,29 @@ exports.getRecentActivities = (req, res) => {
 
         if (dateFrom) { conditions.push("DATE(a.created_at) >= DATE(?)"); params.push(dateFrom); }
         if (dateTo) { conditions.push("DATE(a.created_at) <= DATE(?)"); params.push(dateTo); }
-        if (action) { conditions.push("a.action = ?"); params.push(action); }
+        
+        if (action) {
+            const actUpper = action.toUpperCase();
+            if (actUpper === 'ALL' || actUpper === 'ALL ACTIONS') {
+                // no action filter
+            } else if (actUpper === 'ADD' || actUpper === 'CREATE') {
+                conditions.push("(UPPER(a.action) IN ('CREATE', 'ADD'))");
+            } else if (actUpper === 'UPDATE') {
+                conditions.push("UPPER(a.action) = 'UPDATE'");
+            } else if (actUpper === 'DELETE') {
+                conditions.push("UPPER(a.action) = 'DELETE'");
+            } else if (actUpper === 'ARCHIVE') {
+                conditions.push("(UPPER(a.action) = 'ARCHIVE' OR a.description LIKE '%archive%' OR a.description LIKE '%Inactive%' OR a.description LIKE '%Graduated%')");
+            } else {
+                conditions.push("UPPER(a.action) = ?");
+                params.push(actUpper);
+            }
+        }
+
+        if (search) {
+            conditions.push("(a.description LIKE ? OR COALESCE(u.username, dh.username, 'System') LIKE ? OR COALESCE(u.first_name || ' ' || u.last_name, dh.full_name, 'System') LIKE ?)");
+            params.push(`%${search}%`, `%${search}%`, `%${search}%`);
+        }
 
         if (entityTypesRaw) {
             const types = entityTypesRaw.split(',').map(t => t.trim()).filter(Boolean);

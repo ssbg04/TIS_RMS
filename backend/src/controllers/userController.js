@@ -497,16 +497,43 @@ exports.getUserHistory = (req, res) => {
         const offset   = (page - 1) * limit;
         const dateFrom = req.query.date_from || '';
         const dateTo   = req.query.date_to   || '';
-        const action   = req.query.action    || '';
+        const action   = (req.query.action   || '').trim();
         const role     = req.query.role      || '';
+        const search   = (req.query.search   || '').trim();
 
         const conditions = [];
         const params     = [];
 
         if (dateFrom) { conditions.push("DATE(h.created_at) >= DATE(?)"); params.push(dateFrom); }
         if (dateTo)   { conditions.push("DATE(h.created_at) <= DATE(?)"); params.push(dateTo);   }
-        if (action)   { conditions.push("h.action = ?"); params.push(action); }
-        if (role)     { conditions.push("h.role = ?"); params.push(role); }
+        
+        if (action) {
+            const actLower = action.toLowerCase();
+            if (actLower === 'all' || actLower === 'all actions') {
+                // no action filter
+            } else if (actLower === 'add' || actLower === 'create' || actLower === 'created') {
+                conditions.push("LOWER(h.action) IN ('created', 'create', 'add')");
+            } else if (actLower === 'update' || actLower === 'updated') {
+                conditions.push("LOWER(h.action) IN ('updated', 'update')");
+            } else if (actLower === 'delete' || actLower === 'deleted') {
+                conditions.push("LOWER(h.action) IN ('deleted', 'delete')");
+            } else if (actLower === 'archive' || actLower === 'archived') {
+                conditions.push("(LOWER(h.action) IN ('archived', 'archive') OR h.action LIKE '%archive%')");
+            } else {
+                conditions.push("LOWER(h.action) = ?");
+                params.push(actLower);
+            }
+        }
+
+        if (role) {
+            conditions.push("LOWER(h.role) = LOWER(?)");
+            params.push(role);
+        }
+
+        if (search) {
+            conditions.push("(h.username LIKE ? OR h.full_name LIKE ? OR COALESCE(u.username, dh.username, 'System') LIKE ? OR COALESCE(u.first_name || ' ' || u.last_name, dh.full_name, 'System') LIKE ?)");
+            params.push(`%${search}%`, `%${search}%`, `%${search}%`, `%${search}%`);
+        }
 
         const where = conditions.length ? `WHERE ${conditions.join(' AND ')}` : '';
 

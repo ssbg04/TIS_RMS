@@ -68,7 +68,10 @@ class ActivityQueryParams {
     this.dateTo = '',
     this.action = '',
     this.entityTypes = '',
+    this.search = '',
   });
+
+  final String search;
 
   ActivityQueryParams copyWith({
     int? page,
@@ -77,6 +80,7 @@ class ActivityQueryParams {
     String? dateTo,
     String? action,
     String? entityTypes,
+    String? search,
   }) {
     return ActivityQueryParams(
       page: page ?? this.page,
@@ -85,6 +89,7 @@ class ActivityQueryParams {
       dateTo: dateTo ?? this.dateTo,
       action: action ?? this.action,
       entityTypes: entityTypes ?? this.entityTypes,
+      search: search ?? this.search,
     );
   }
 }
@@ -103,6 +108,7 @@ class ActivityQueryNotifier extends AutoDisposeNotifier<ActivityQueryParams> {
   void setDateFrom(String v) => state = state.copyWith(dateFrom: v, page: 1);
   void setDateTo(String v) => state = state.copyWith(dateTo: v, page: 1);
   void setAction(String v) => state = state.copyWith(action: v, page: 1);
+  void setSearch(String v) => state = state.copyWith(search: v, page: 1);
   void setEntityTypes(String v) =>
       state = state.copyWith(entityTypes: v, page: 1);
   void reset() => state = const ActivityQueryParams();
@@ -121,6 +127,7 @@ final recentActivitiesPageProvider =
         dateFrom: query.dateFrom.isEmpty ? null : query.dateFrom,
         dateTo: query.dateTo.isEmpty ? null : query.dateTo,
         action: query.action.isEmpty ? null : query.action,
+        search: query.search.isEmpty ? null : query.search,
         // Teachers only see student and document activities
         entityTypes: isTeacher
             ? 'student,document'

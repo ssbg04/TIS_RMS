@@ -521,89 +521,168 @@ class StudentProfileModalBody extends ConsumerWidget {
           ),
         ],
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final isNarrow = constraints.maxWidth < 460 ||
+              Theme.of(context).platform == TargetPlatform.android;
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              CircleAvatar(
-                radius: 30,
-                backgroundColor: AppColors.primaryGreen,
-                child: Text(
-                  '${student.firstName?[0] ?? ''}${student.lastName?[0] ?? ''}',
-                  style: const TextStyle(
-                    fontSize: 20,
-                    color: Colors.white,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ),
-              const SizedBox(width: 14),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+              if (isNarrow) ...[
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
-                    Text(
-                      student.profileDisplayName,
-                      style: TextStyle(
-                        fontSize: 17,
-                        fontWeight: FontWeight.bold,
-                        color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
+                    CircleAvatar(
+                      radius: 26,
+                      backgroundColor: AppColors.primaryGreen,
+                      child: Text(
+                        '${student.firstName?[0] ?? ''}${student.lastName?[0] ?? ''}',
+                        style: const TextStyle(
+                          fontSize: 18,
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
                     ),
-                    _CopyableLrnButton(
-                      lrn: student.lrn?.toString(),
-                      isDark: isDark,
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            student.profileDisplayName,
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                              color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
+                            ),
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          _CopyableLrnButton(
+                            lrn: student.lrn?.toString(),
+                            isDark: isDark,
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    _buildStatusBadge(student.status),
+                  ],
+                ),
+                if (onEditDetails != null && userRole != 'teacher') ...[
+                  const SizedBox(height: 10),
+                  SizedBox(
+                    width: double.infinity,
+                    child: TextButton.icon(
+                      onPressed: onEditDetails,
+                      icon: const Icon(Icons.edit_outlined, size: 14, color: AppColors.primaryGreen),
+                      label: const Text(
+                        'Edit Details',
+                        style: TextStyle(
+                          color: AppColors.primaryGreen,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      style: TextButton.styleFrom(
+                        foregroundColor: AppColors.primaryGreen,
+                        backgroundColor: AppColors.primaryGreen.withValues(alpha: 0.08),
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                        minimumSize: Size.zero,
+                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
+                      ),
+                    ),
+                  ),
+                ],
+              ] else ...[
+                Row(
+                  children: [
+                    CircleAvatar(
+                      radius: 30,
+                      backgroundColor: AppColors.primaryGreen,
+                      child: Text(
+                        '${student.firstName?[0] ?? ''}${student.lastName?[0] ?? ''}',
+                        style: const TextStyle(
+                          fontSize: 20,
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 14),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            student.profileDisplayName,
+                            style: TextStyle(
+                              fontSize: 17,
+                              fontWeight: FontWeight.bold,
+                              color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
+                            ),
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          _CopyableLrnButton(
+                            lrn: student.lrn?.toString(),
+                            isDark: isDark,
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        _buildStatusBadge(student.status),
+                        if (onEditDetails != null && userRole != 'teacher') ...[
+                          const SizedBox(height: 6),
+                          Tooltip(
+                            message: 'Edit Student Details',
+                            child: TextButton.icon(
+                              onPressed: onEditDetails,
+                              icon: const Icon(Icons.edit_outlined, size: 14, color: AppColors.primaryGreen),
+                              label: const Text(
+                                'Edit Details',
+                                style: TextStyle(
+                                  color: AppColors.primaryGreen,
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                              style: TextButton.styleFrom(
+                                foregroundColor: AppColors.primaryGreen,
+                                backgroundColor: AppColors.primaryGreen.withValues(alpha: 0.08),
+                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                minimumSize: Size.zero,
+                                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ],
                     ),
                   ],
                 ),
-              ),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.end,
-                mainAxisSize: MainAxisSize.min,
+              ],
+              Divider(height: 24, color: isDark ? AppColors.darkBorder : Colors.grey.shade200),
+              Wrap(
+                spacing: 20,
+                runSpacing: 8,
                 children: [
-                  _buildStatusBadge(student.status),
-                  if (onEditDetails != null && userRole != 'teacher') ...[
-                    const SizedBox(height: 6),
-                    Tooltip(
-                      message: 'Edit Student Details',
-                      child: TextButton.icon(
-                        onPressed: onEditDetails,
-                        icon: const Icon(Icons.edit_outlined, size: 14, color: AppColors.primaryGreen),
-                        label: const Text(
-                          'Edit Details',
-                          style: TextStyle(
-                            color: AppColors.primaryGreen,
-                            fontSize: 12,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                        style: TextButton.styleFrom(
-                          foregroundColor: AppColors.primaryGreen,
-                          backgroundColor: AppColors.primaryGreen.withValues(alpha: 0.08),
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                          minimumSize: Size.zero,
-                          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
-                        ),
-                      ),
-                    ),
-                  ],
+                  _buildInfoItem(context, 'Sex', (student.sex != null && student.sex!.isNotEmpty) ? student.sex! : '-'),
+                  _buildInfoItem(context, 'Birth Date', student.birthDate != null ? _formatDate(student.birthDate!) : '-'),
+                  _build4psItem(context, student.is4ps),
                 ],
               ),
             ],
-          ),
-          Divider(height: 24, color: isDark ? AppColors.darkBorder : Colors.grey.shade200),
-          Wrap(
-            spacing: 20,
-            runSpacing: 8,
-            children: [
-              _buildInfoItem(context, 'Sex', (student.sex != null && student.sex!.isNotEmpty) ? student.sex! : '-'),
-              _buildInfoItem(context, 'Birth Date', student.birthDate != null ? _formatDate(student.birthDate!) : '-'),
-              _build4psItem(context, student.is4ps),
-            ],
-          ),
-        ],
+          );
+        },
       ),
     );
   }

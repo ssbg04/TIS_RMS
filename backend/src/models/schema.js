@@ -768,7 +768,7 @@ const initSchema = () => {
         `).run();
         db.prepare(`
             INSERT OR IGNORE INTO system_settings (key, value)
-            VALUES ('auto_update_enrollment_from_sf', 'true')
+            VALUES ('auto_update_enrollment_from_sf', 'false')
         `).run();
 
         // Seed Admin if not exists

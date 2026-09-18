@@ -83,6 +83,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   final _extCtrl = TextEditingController();
   final _phoneCtrl = TextEditingController();
   final _emailCtrl = TextEditingController();
+  final _gracePeriodCtrl = TextEditingController();
 
   final _profileFormKey = GlobalKey<FormState>();
 
@@ -156,6 +157,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     _extCtrl.dispose();
     _phoneCtrl.dispose();
     _emailCtrl.dispose();
+    _gracePeriodCtrl.dispose();
     super.dispose();
   }
 
@@ -1288,7 +1290,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                             final sysSettingsAsync = ref.watch(systemSettingsProvider);
                             final settingsMap = sysSettingsAsync.asData?.value ?? {};
                             final isAutoEnrollEnabled =
-                                (settingsMap['auto_update_enrollment_from_sf'] ?? 'true') == 'true';
+                                (settingsMap['auto_update_enrollment_from_sf'] ?? 'false') == 'true';
                             final frequency = settingsMap['auto_update_enrollment_from_sf_frequency'] ?? 'immediate';
                             final timeVal = settingsMap['auto_update_enrollment_from_sf_time'] ?? '00:00';
                             final isDark = Theme.of(context).brightness == Brightness.dark;
@@ -1425,6 +1427,142 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                                       ),
                                     ],
                                   ],
+                                  const Divider(height: 32),
+                                  // Auto-Archiving Grace Period
+                                  Row(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      const Icon(
+                                        Icons.archive_outlined,
+                                        color: AppColors.primaryGreen,
+                                        size: 24,
+                                      ),
+                                      const SizedBox(width: AppSizes.p12),
+                                      Expanded(
+                                        child: Column(
+                                          crossAxisAlignment: CrossAxisAlignment.start,
+                                          children: [
+                                            Text(
+                                              'Automatic Archiving Grace Period',
+                                              style: TextStyle(
+                                                fontSize: 14,
+                                                fontWeight: FontWeight.w600,
+                                                color: Theme.of(context).colorScheme.onSurface,
+                                              ),
+                                            ),
+                                            const SizedBox(height: 2),
+                                            Text(
+                                              'Enrolled students with no active enrollment past this number of days from the active school year start date are automatically marked Inactive and archived.',
+                                              style: TextStyle(
+                                                fontSize: 12,
+                                                color: isDark ? AppColors.darkTextSecondary : Colors.grey.shade600,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  const SizedBox(height: AppSizes.p12),
+                                  Wrap(
+                                    spacing: 8,
+                                    runSpacing: 8,
+                                    children: ['15', '30', '45', '60', '90'].map((days) {
+                                      final currentGrace = settingsMap['enrollment_grace_period_days'] ?? '30';
+                                      final isSelected = currentGrace == days;
+                                      return ChoiceChip(
+                                        label: Text('$days Days'),
+                                        selected: isSelected,
+                                        selectedColor: AppColors.primaryGreen.withValues(alpha: 0.18),
+                                        backgroundColor: isDark ? AppColors.darkSurfaceCard : Colors.grey.shade100,
+                                        side: BorderSide(
+                                          color: isSelected
+                                              ? AppColors.primaryGreen
+                                              : Theme.of(context).dividerColor.withValues(alpha: 0.3),
+                                          width: isSelected ? 1.5 : 1,
+                                        ),
+                                        labelStyle: TextStyle(
+                                          fontSize: 13,
+                                          fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+                                          color: isSelected ? AppColors.primaryGreen : Theme.of(context).colorScheme.onSurface,
+                                        ),
+                                        onSelected: (_) {
+                                          _gracePeriodCtrl.text = days;
+                                          ref.read(systemSettingsProvider.notifier).updateSetting('enrollment_grace_period_days', days);
+                                        },
+                                      );
+                                    }).toList(),
+                                  ),
+                                  const SizedBox(height: AppSizes.p12),
+                                  Builder(
+                                    builder: (context) {
+                                      final currentGrace = settingsMap['enrollment_grace_period_days'] ?? '30';
+                                      if (_gracePeriodCtrl.text.isEmpty) {
+                                        _gracePeriodCtrl.text = currentGrace;
+                                      }
+                                      return Row(
+                                        children: [
+                                          SizedBox(
+                                            width: 140,
+                                            height: 40,
+                                            child: TextFormField(
+                                              controller: _gracePeriodCtrl,
+                                              keyboardType: TextInputType.number,
+                                              inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                                              style: const TextStyle(fontSize: 13),
+                                              decoration: InputDecoration(
+                                                labelText: 'Custom Days',
+                                                labelStyle: const TextStyle(fontSize: 12),
+                                                suffixText: 'days',
+                                                suffixStyle: const TextStyle(fontSize: 12),
+                                                isDense: true,
+                                                contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                                                border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                                              ),
+                                              onFieldSubmitted: (val) {
+                                                final trimmed = val.trim();
+                                                if (trimmed.isNotEmpty && int.tryParse(trimmed) != null && int.parse(trimmed) > 0) {
+                                                  ref.read(systemSettingsProvider.notifier).updateSetting('enrollment_grace_period_days', trimmed);
+                                                  ScaffoldMessenger.of(context).showSnackBar(
+                                                    SnackBar(
+                                                      content: Text('Grace period updated to $trimmed days'),
+                                                      duration: const Duration(seconds: 2),
+                                                    ),
+                                                  );
+                                                }
+                                              },
+                                            ),
+                                          ),
+                                          const SizedBox(width: 8),
+                                          SizedBox(
+                                            height: 40,
+                                            child: ElevatedButton(
+                                              onPressed: () {
+                                                final trimmed = _gracePeriodCtrl.text.trim();
+                                                if (trimmed.isNotEmpty && int.tryParse(trimmed) != null && int.parse(trimmed) > 0) {
+                                                  ref.read(systemSettingsProvider.notifier).updateSetting('enrollment_grace_period_days', trimmed);
+                                                  ScaffoldMessenger.of(context).showSnackBar(
+                                                    SnackBar(
+                                                      content: Text('Grace period updated to $trimmed days'),
+                                                      duration: const Duration(seconds: 2),
+                                                    ),
+                                                  );
+                                                }
+                                              },
+                                              style: ElevatedButton.styleFrom(
+                                                backgroundColor: AppColors.primaryGreen,
+                                                foregroundColor: Colors.white,
+                                                padding: const EdgeInsets.symmetric(horizontal: 16),
+                                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                                                elevation: 0,
+                                              ),
+                                              child: const Text('Save', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
+                                            ),
+                                          ),
+                                        ],
+                                      );
+                                    },
+                                  ),
                                 ],
                               ),
                             );
@@ -1892,12 +2030,20 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       width: double.infinity,
       padding: const EdgeInsets.all(AppSizes.p24),
       decoration: BoxDecoration(
-        color: isDark
-            ? AppColors.error.withValues(alpha: 0.08)
-            : AppColors.error.withValues(alpha: 0.04),
+        color: isDark ? AppColors.darkSurfaceCard : AppColors.surfaceWhite,
         borderRadius: BorderRadius.circular(AppSizes.radiusLarge),
+        boxShadow: [
+          BoxShadow(
+            color: isDark
+                ? Colors.black.withValues(alpha: 0.25)
+                : Colors.black.withValues(alpha: 0.03),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
         border: Border.all(
-          color: AppColors.error.withValues(alpha: isDark ? 0.40 : 0.28),
+          color: AppColors.error.withValues(alpha: isDark ? 0.45 : 0.35),
+          width: 1.5,
         ),
       ),
       child: child,

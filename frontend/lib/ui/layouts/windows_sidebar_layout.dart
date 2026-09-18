@@ -9,6 +9,7 @@ import '../screens/documents/documents_screen.dart';
 import '../screens/archives/archives_screen.dart';
 import '../screens/reports/reports_screen.dart';
 import '../screens/users/users_screen.dart';
+import '../screens/audit_trail/audit_trail_screen.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart'; // Import Riverpod
 import '../providers/dashboard_provider.dart';
 import '../providers/student_provider.dart' hide academicYearsProvider;
@@ -16,6 +17,7 @@ import '../providers/document_provider.dart';
 import '../providers/archives_provider.dart';
 import '../providers/reports_provider.dart';
 import '../providers/users_provider.dart';
+import '../providers/activity_provider.dart';
 import '../providers/auth_provider.dart';
 import '../providers/setup_provider.dart';
 import '../providers/system_settings_provider.dart';
@@ -105,6 +107,12 @@ class _WindowsSidebarLayoutState extends ConsumerState<WindowsSidebarLayout> {
       case 'Users':
         ref.read(userSearchQueryProvider.notifier).state = '';
         ref.invalidate(usersProvider);
+        break;
+      case 'History':
+        ref.invalidate(activityQueryProvider);
+        ref.invalidate(recentActivitiesPageProvider);
+        ref.invalidate(userHistoryQueryProvider);
+        ref.invalidate(userHistoryPageProvider);
         break;
       case 'Settings':
         ref.invalidate(academicYearsListProvider);
@@ -316,6 +324,14 @@ class _WindowsSidebarLayoutState extends ConsumerState<WindowsSidebarLayout> {
         'icon': Icons.manage_accounts_outlined,
         'activeIcon': Icons.manage_accounts,
         'screen': const UsersScreen(),
+        'roles': ['admin'],
+      },
+      {
+        'category': 'ACCOUNT',
+        'label': 'History',
+        'icon': Icons.manage_history_outlined,
+        'activeIcon': Icons.manage_history_rounded,
+        'screen': AuditTrailScreen(userRole: widget.userRole),
         'roles': ['admin'],
       },
       {

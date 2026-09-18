@@ -788,9 +788,12 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
             ),
           ),
           SizedBox(
-            width: 175,
+            width: 130,
             child: PrimaryButton(
               label: 'EXPORT',
+              icon: Icons.file_download_outlined,
+              fontSize: 13,
+              height: 40,
               isLoading: _isExporting,
               onPressed: () => _handleExportExcel(data),
             ),
@@ -798,6 +801,19 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
         ],
       );
     }
+
+    final selectedYearId = ref.watch(selectedAcademicYearIdProvider);
+    final selectedGrade = ref.watch(selectedGradeLevelProvider);
+    final selectedSection = ref.watch(selectedSectionIdProvider);
+    final selectedStatus = ref.watch(selectedStatusFilterProvider);
+    final showOnlyMissingDocs = ref.watch(showOnlyMissingDocsProvider);
+
+    int activeFilterCount = 0;
+    if (selectedYearId != null) activeFilterCount++;
+    if (selectedGrade != null) activeFilterCount++;
+    if (selectedSection != null) activeFilterCount++;
+    if (selectedStatus != null) activeFilterCount++;
+    if (showOnlyMissingDocs) activeFilterCount++;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -819,13 +835,47 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
           ),
         ),
         const SizedBox(height: AppSizes.p12),
-        SizedBox(
-          width: double.infinity,
-          child: PrimaryButton(
-            label: 'EXPORT',
-            isLoading: _isExporting,
-            onPressed: () => _handleExportExcel(data),
-          ),
+        Row(
+          children: [
+            Expanded(
+              child: SizedBox(
+                height: 40,
+                child: OutlinedButton.icon(
+                  onPressed: () => _showComplianceFilterModal(context),
+                  icon: const Icon(Icons.filter_list_rounded, size: 16),
+                  label: Text(
+                    activeFilterCount > 0 ? 'Filter ($activeFilterCount)' : 'Filter',
+                    style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
+                  ),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: activeFilterCount > 0
+                        ? AppColors.primaryGreen
+                        : (isDark ? AppColors.darkTextPrimary : AppColors.textPrimary),
+                    side: BorderSide(
+                      color: activeFilterCount > 0
+                          ? AppColors.primaryGreen
+                          : (isDark ? AppColors.darkBorder : Colors.grey.shade300),
+                      width: activeFilterCount > 0 ? 1.5 : 1,
+                    ),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: PrimaryButton(
+                label: 'EXPORT',
+                icon: Icons.file_download_outlined,
+                fontSize: 13,
+                height: 40,
+                isLoading: _isExporting,
+                onPressed: () => _handleExportExcel(data),
+              ),
+            ),
+          ],
         ),
       ],
     );
@@ -888,8 +938,13 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                     top: Radius.circular(AppSizes.radiusLarge),
                   )
                 : BorderRadius.circular(AppSizes.radiusLarge),
-            onTap: () => ref.read(filterPanelExpandedProvider.notifier).state =
-                !isExpanded,
+            onTap: () {
+              if (MediaQuery.of(context).size.width <= 900) {
+                _showComplianceFilterModal(context);
+              } else {
+                ref.read(filterPanelExpandedProvider.notifier).state = !isExpanded;
+              }
+            },
             child: Padding(
               padding: const EdgeInsets.symmetric(
                 horizontal: AppSizes.p16,
@@ -1918,6 +1973,516 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
     );
   }
 
+  Widget _buildRequirementGroupHeader(String title, bool isDark) {
+    return Padding(
+      padding: const EdgeInsets.only(top: 10, bottom: 6),
+      child: Text(
+        title,
+        style: TextStyle(
+          fontSize: 12,
+          fontWeight: FontWeight.w700,
+          color: isDark ? AppColors.darkTextSecondary : Colors.grey.shade700,
+          letterSpacing: 0.3,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildMissingRequirementItem(String doc, bool isDark) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 6),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      decoration: BoxDecoration(
+        color: isDark ? AppColors.darkSurface2 : Colors.grey.shade50,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(
+          color: isDark ? AppColors.darkBorder : Colors.grey.shade200,
+        ),
+      ),
+      child: Row(
+        children: [
+          Icon(
+            Icons.cancel_outlined,
+            size: 16,
+            color: isDark ? const Color(0xFFD67878) : Colors.red.shade600,
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              doc,
+              style: TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w500,
+                color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
+              ),
+            ),
+          ),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+            decoration: BoxDecoration(
+              color: Colors.red.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(4),
+            ),
+            child: const Text(
+              'MISSING',
+              style: TextStyle(
+                color: Colors.red,
+                fontSize: 10,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showMissingDocsBottomSheet(BuildContext context, ReportStudent student) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final missingCount = student.missingCount;
+    final rawStr = student.missingRequirements ?? '';
+    final rawList = rawStr
+        .split(',')
+        .map((s) => s.trim())
+        .where((s) => s.isNotEmpty)
+        .toList();
+
+    final jhsDocs = rawList
+        .where((d) => d.toUpperCase().startsWith('[JHS]'))
+        .map((d) => d.replaceFirst(RegExp(r'^\[JHS\]\s*', caseSensitive: false), '').trim())
+        .toList();
+    final shsDocs = rawList
+        .where((d) => d.toUpperCase().startsWith('[SHS]'))
+        .map((d) => d.replaceFirst(RegExp(r'^\[SHS\]\s*', caseSensitive: false), '').trim())
+        .toList();
+    final otherDocs = rawList
+        .where((d) =>
+            !d.toUpperCase().startsWith('[JHS]') &&
+            !d.toUpperCase().startsWith('[SHS]'))
+        .toList();
+
+    showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) {
+        return Container(
+          constraints: BoxConstraints(
+            maxHeight: MediaQuery.of(context).size.height * 0.8,
+          ),
+          decoration: BoxDecoration(
+            color: isDark ? AppColors.darkSurfaceCard : Colors.white,
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Center(
+                child: Container(
+                  margin: const EdgeInsets.only(top: 12, bottom: 8),
+                  width: 40,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: isDark ? Colors.white24 : Colors.grey.shade300,
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            student.fullName,
+                            style: TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                              color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            'LRN: ${student.lrn}  •  Grade ${student.gradeLevel ?? "N/A"} - ${student.sectionName ?? "N/A"}',
+                            style: TextStyle(
+                              fontSize: 13,
+                              color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.close_rounded),
+                      onPressed: () => Navigator.pop(ctx),
+                    ),
+                  ],
+                ),
+              ),
+              const Divider(height: 1),
+              Flexible(
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.all(20),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(14),
+                        decoration: BoxDecoration(
+                          color: missingCount == 0
+                              ? (isDark ? const Color(0xFF76BA8A).withValues(alpha: 0.15) : Colors.green.shade50)
+                              : (isDark ? const Color(0xFFD67878).withValues(alpha: 0.15) : Colors.red.shade50),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(
+                            color: missingCount == 0
+                                ? (isDark ? const Color(0xFF76BA8A).withValues(alpha: 0.4) : Colors.green.shade200)
+                                : (isDark ? const Color(0xFFD67878).withValues(alpha: 0.4) : Colors.red.shade200),
+                          ),
+                        ),
+                        child: Row(
+                          children: [
+                            Icon(
+                              missingCount == 0 ? Icons.check_circle_rounded : Icons.warning_amber_rounded,
+                              color: missingCount == 0 ? Colors.green.shade700 : Colors.red.shade700,
+                              size: 24,
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    missingCount == 0
+                                        ? 'All Documents Completed'
+                                        : '$missingCount Missing Mandatory Document${missingCount > 1 ? "s" : ""}',
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 14,
+                                      color: missingCount == 0 ? Colors.green.shade700 : Colors.red.shade700,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 2),
+                                  Text(
+                                    missingCount == 0
+                                        ? 'All mandatory requirements for this student are complete.'
+                                        : 'Required documents pending submission or verification.',
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      if (missingCount > 0) ...[
+                        Text(
+                          'MISSING REQUIREMENTS',
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w700,
+                            letterSpacing: 0.5,
+                            color: isDark ? AppColors.darkTextSecondary : Colors.grey.shade600,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        if (jhsDocs.isNotEmpty) ...[
+                          _buildRequirementGroupHeader('Junior High School (JHS)', isDark),
+                          ...jhsDocs.map((doc) => _buildMissingRequirementItem(doc, isDark)),
+                        ],
+                        if (shsDocs.isNotEmpty) ...[
+                          _buildRequirementGroupHeader('Senior High School (SHS)', isDark),
+                          ...shsDocs.map((doc) => _buildMissingRequirementItem(doc, isDark)),
+                        ],
+                        if (otherDocs.isNotEmpty) ...[
+                          _buildRequirementGroupHeader('General Requirements', isDark),
+                          ...otherDocs.map((doc) => _buildMissingRequirementItem(doc, isDark)),
+                        ],
+                      ],
+                    ],
+                  ),
+                ),
+              ),
+              SafeArea(
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 8, 20, 16),
+                  child: SizedBox(
+                    width: double.infinity,
+                    child: PrimaryButton(
+                      label: 'VIEW STUDENT PROFILE',
+                      onPressed: () {
+                        Navigator.pop(ctx);
+                        showStudentProfileModal(
+                          context,
+                          studentId: student.id,
+                          userRole: widget.userRole,
+                          hideEnrollmentActions: true,
+                        );
+                      },
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  void _showComplianceFilterModal(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) {
+        return Consumer(
+          builder: (modalCtx, ref, _) {
+            final yearsAsync = ref.watch(academicYearsProvider);
+            final selectedYearId = ref.watch(selectedAcademicYearIdProvider);
+            final selectedGrade = ref.watch(selectedGradeLevelProvider);
+            final selectedSection = ref.watch(selectedSectionIdProvider);
+            final selectedStatus = ref.watch(selectedStatusFilterProvider);
+            final sections = ref.watch(filteredSectionsProvider);
+            final showOnlyMissingDocs = ref.watch(showOnlyMissingDocsProvider);
+
+            return Container(
+              constraints: BoxConstraints(
+                maxHeight: MediaQuery.of(context).size.height * 0.85,
+              ),
+              decoration: BoxDecoration(
+                color: isDark ? AppColors.darkSurfaceCard : Colors.white,
+                borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Center(
+                    child: Container(
+                      margin: const EdgeInsets.only(top: 12, bottom: 8),
+                      width: 40,
+                      height: 4,
+                      decoration: BoxDecoration(
+                        color: isDark ? Colors.white24 : Colors.grey.shade300,
+                        borderRadius: BorderRadius.circular(2),
+                      ),
+                    ),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(20, 8, 12, 12),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Filter Compliance & Analytics',
+                                style: TextStyle(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.bold,
+                                  color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
+                                ),
+                              ),
+                              const SizedBox(height: 2),
+                              Text(
+                                'Filter students by school year, grade, section, or status',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        IconButton(
+                          icon: const Icon(Icons.close_rounded),
+                          onPressed: () => Navigator.pop(ctx),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const Divider(height: 1),
+                  Flexible(
+                    child: SingleChildScrollView(
+                      padding: const EdgeInsets.all(20),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          yearsAsync.when(
+                            skipLoadingOnReload: true,
+                            loading: () => const LinearProgressIndicator(),
+                            error: (_, _) => const SizedBox.shrink(),
+                            data: (yearsList) {
+                              final sortedYears = List<AcademicYear>.from(yearsList)
+                                ..sort((a, b) => b.yearRange.compareTo(a.yearRange));
+                              return DropdownButtonFormField<int?>(
+                                isExpanded: true,
+                                initialValue: selectedYearId,
+                                decoration: _filterDecoration('School Year'),
+                                items: [
+                                  const DropdownMenuItem<int?>(
+                                    value: null,
+                                    child: Text('All Years'),
+                                  ),
+                                  ...sortedYears.map(
+                                    (y) => DropdownMenuItem<int?>(
+                                      value: y.id,
+                                      child: Text(y.yearRange),
+                                    ),
+                                  ),
+                                ],
+                                onChanged: (val) {
+                                  ref.read(selectedAcademicYearIdProvider.notifier).select(val);
+                                  setState(() => _currentPage = 0);
+                                },
+                              );
+                            },
+                          ),
+                          const SizedBox(height: 16),
+                          DropdownButtonFormField<int?>(
+                            isExpanded: true,
+                            initialValue: selectedGrade,
+                            decoration: _filterDecoration('Grade Level'),
+                            items: [
+                              const DropdownMenuItem<int?>(
+                                value: null,
+                                child: Text('All Grades'),
+                              ),
+                              ...[7, 8, 9, 10, 11, 12].map(
+                                (g) => DropdownMenuItem<int?>(
+                                  value: g,
+                                  child: Text('Grade $g'),
+                                ),
+                              ),
+                            ],
+                            onChanged: (val) {
+                              ref.read(selectedGradeLevelProvider.notifier).state = val;
+                              setState(() => _currentPage = 0);
+                            },
+                          ),
+                          const SizedBox(height: 16),
+                          DropdownButtonFormField<int?>(
+                            isExpanded: true,
+                            initialValue: selectedSection,
+                            decoration: _filterDecoration('Section'),
+                            items: [
+                              const DropdownMenuItem<int?>(
+                                value: null,
+                                child: Text('All Sections'),
+                              ),
+                              ...sections.map(
+                                (sec) => DropdownMenuItem<int?>(
+                                  value: (sec['id'] as num).toInt(),
+                                  child: Text(sec['name'] as String),
+                                ),
+                              ),
+                            ],
+                            onChanged: (val) {
+                              ref.read(selectedSectionIdProvider.notifier).state = val;
+                              setState(() => _currentPage = 0);
+                            },
+                          ),
+                          const SizedBox(height: 16),
+                          DropdownButtonFormField<String?>(
+                            isExpanded: true,
+                            initialValue: selectedStatus,
+                            decoration: _filterDecoration('Student Status'),
+                            items: const [
+                              DropdownMenuItem<String?>(
+                                value: null,
+                                child: Text('All Statuses'),
+                              ),
+                              DropdownMenuItem(value: 'Enrolled', child: Text('Enrolled')),
+                              DropdownMenuItem(value: 'Graduated', child: Text('Graduated')),
+                              DropdownMenuItem(value: 'Transferred', child: Text('Transferred')),
+                              DropdownMenuItem(value: 'Dropped', child: Text('Dropped')),
+                              DropdownMenuItem(value: 'Inactive', child: Text('Inactive')),
+                            ],
+                            onChanged: (val) {
+                              ref.read(selectedStatusFilterProvider.notifier).state = val;
+                              setState(() => _currentPage = 0);
+                            },
+                          ),
+                          const SizedBox(height: 16),
+                          Container(
+                            decoration: BoxDecoration(
+                              color: isDark ? AppColors.darkSurface2 : Colors.grey.shade50,
+                              borderRadius: BorderRadius.circular(10),
+                              border: Border.all(
+                                color: isDark ? AppColors.darkBorder : Colors.grey.shade200,
+                              ),
+                            ),
+                            child: SwitchListTile(
+                              title: const Text(
+                                'Missing Documents Only',
+                                style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
+                              ),
+                              subtitle: const Text(
+                                'Filter to only show students who have unsubmitted mandatory documents',
+                                style: TextStyle(fontSize: 12),
+                              ),
+                              value: showOnlyMissingDocs,
+                              activeTrackColor: AppColors.primaryGreen,
+                              onChanged: (val) {
+                                ref.read(showOnlyMissingDocsProvider.notifier).state = val;
+                                setState(() => _currentPage = 0);
+                              },
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  SafeArea(
+                    child: Padding(
+                      padding: const EdgeInsets.fromLTRB(20, 8, 20, 16),
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: OutlinedButton(
+                              onPressed: () {
+                                ref.read(selectedAcademicYearIdProvider.notifier).select(null);
+                                ref.read(selectedGradeLevelProvider.notifier).state = null;
+                                ref.read(selectedSectionIdProvider.notifier).state = null;
+                                ref.read(selectedStatusFilterProvider.notifier).state = null;
+                                ref.read(showOnlyMissingDocsProvider.notifier).state = false;
+                                setState(() => _currentPage = 0);
+                              },
+                              style: OutlinedButton.styleFrom(
+                                padding: const EdgeInsets.symmetric(vertical: 14),
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                              ),
+                              child: const Text('Reset All'),
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: PrimaryButton(
+                              label: 'Apply Filters',
+                              onPressed: () => Navigator.pop(ctx),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
   Widget _buildHorizontalScrollHint(BuildContext context, {String text = 'Scroll horizontally to view more'}) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final hintColor = isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B);
@@ -2376,51 +2941,42 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                                 context: context,
                                 missingCount: student.missingCount,
                                 missingRequirementsStr: student.missingRequirements,
-                                child: Container(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 8,
-                                    vertical: 3,
-                                  ),
-                                  decoration: BoxDecoration(
-                                    color: student.missingCount > 0
-                                        ? (isDark
-                                            ? const Color(0xFFD67878).withValues(alpha: 0.14)
-                                            : Colors.red.shade50)
-                                        : (isDark
-                                            ? const Color(0xFF76BA8A).withValues(alpha: 0.14)
-                                            : Colors.green.shade50),
-                                    borderRadius: BorderRadius.circular(12),
-                                    border: Border.all(
+                                child: InkWell(
+                                  onTap: () => _showMissingDocsBottomSheet(context, student),
+                                  borderRadius: BorderRadius.circular(12),
+                                  child: Container(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 8,
+                                      vertical: 3,
+                                    ),
+                                    decoration: BoxDecoration(
                                       color: student.missingCount > 0
                                           ? (isDark
-                                              ? const Color(0xFFD67878).withValues(alpha: 0.3)
-                                              : Colors.red.shade200)
+                                              ? const Color(0xFFD67878).withValues(alpha: 0.14)
+                                              : Colors.red.shade50)
                                           : (isDark
-                                              ? const Color(0xFF76BA8A).withValues(alpha: 0.3)
-                                              : Colors.green.shade200),
-                                      width: 0.8,
-                                    ),
-                                  ),
-                                  child: Row(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      Icon(
-                                        student.missingCount > 0
-                                            ? Icons.info_outline_rounded
-                                            : Icons.check_circle_outline_rounded,
-                                        size: 13,
+                                              ? const Color(0xFF76BA8A).withValues(alpha: 0.14)
+                                              : Colors.green.shade50),
+                                      borderRadius: BorderRadius.circular(12),
+                                      border: Border.all(
                                         color: student.missingCount > 0
                                             ? (isDark
-                                                ? const Color(0xFFD67878)
-                                                : Colors.red.shade700)
+                                                ? const Color(0xFFD67878).withValues(alpha: 0.3)
+                                                : Colors.red.shade200)
                                             : (isDark
-                                                ? const Color(0xFF76BA8A)
-                                                : Colors.green.shade700),
+                                                ? const Color(0xFF76BA8A).withValues(alpha: 0.3)
+                                                : Colors.green.shade200),
+                                        width: 0.8,
                                       ),
-                                      const SizedBox(width: 4),
-                                      Text(
-                                        student.missingCount.toString(),
-                                        style: TextStyle(
+                                    ),
+                                    child: Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        Icon(
+                                          student.missingCount > 0
+                                              ? Icons.info_outline_rounded
+                                              : Icons.check_circle_outline_rounded,
+                                          size: 13,
                                           color: student.missingCount > 0
                                               ? (isDark
                                                   ? const Color(0xFFD67878)
@@ -2428,11 +2984,36 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                                               : (isDark
                                                   ? const Color(0xFF76BA8A)
                                                   : Colors.green.shade700),
-                                          fontWeight: FontWeight.bold,
-                                          fontSize: 12,
                                         ),
-                                      ),
-                                    ],
+                                        const SizedBox(width: 4),
+                                        Text(
+                                          student.missingCount.toString(),
+                                          style: TextStyle(
+                                            color: student.missingCount > 0
+                                                ? (isDark
+                                                    ? const Color(0xFFD67878)
+                                                    : Colors.red.shade700)
+                                                : (isDark
+                                                    ? const Color(0xFF76BA8A)
+                                                    : Colors.green.shade700),
+                                            fontWeight: FontWeight.bold,
+                                            fontSize: 12,
+                                          ),
+                                        ),
+                                        const SizedBox(width: 2),
+                                        Icon(
+                                          Icons.arrow_drop_down_rounded,
+                                          size: 18,
+                                          color: student.missingCount > 0
+                                              ? (isDark
+                                                  ? const Color(0xFFD67878)
+                                                  : Colors.red.shade700)
+                                              : (isDark
+                                                  ? const Color(0xFF76BA8A)
+                                                  : Colors.green.shade700),
+                                        ),
+                                      ],
+                                    ),
                                   ),
                                 ),
                               ),
@@ -3204,8 +3785,8 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                         ? 'All Years'
                         : '${selectedYears.length} Years',
                     icon: Icons.calendar_today_outlined,
-                    onTap: (btnCtx) => _showYearMultiSelectMenu(
-                      btnCtx,
+                    onTap: (btnCtx) => _showYearMultiSelectModal(
+                      context,
                       allYearStrings,
                       selectedYears,
                     ),
@@ -3229,8 +3810,8 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                               .label
                         : '${selectedStatuses.length} Statuses',
                     icon: Icons.people_alt_outlined,
-                    onTap: (btnCtx) => _showStatusMultiSelectMenu(
-                      btnCtx,
+                    onTap: (btnCtx) => _showStatusMultiSelectModal(
+                      context,
                       allStatusOptions,
                       selectedStatuses,
                     ),
@@ -3562,287 +4143,358 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
     );
   }
 
-  /// Shows a popup multi-select menu for years
-  void _showYearMultiSelectMenu(
+  /// Shows a modal bottom sheet checklist for academic years
+  void _showYearMultiSelectModal(
     BuildContext context,
     List<String> allYears,
     Set<String> selected,
   ) {
-    final RenderBox? button = context.findRenderObject() as RenderBox?;
-    final RenderBox? overlay =
-        Overlay.maybeOf(context)?.context.findRenderObject() as RenderBox?;
-    if (button == null || overlay == null) return;
-
-    final RelativeRect position = RelativeRect.fromRect(
-      Rect.fromPoints(
-        button.localToGlobal(Offset.zero, ancestor: overlay),
-        button.localToGlobal(
-          button.size.bottomRight(Offset.zero),
-          ancestor: overlay,
-        ),
-      ),
-      Offset.zero & overlay.size,
-    );
-
-    showMenu<void>(
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    showModalBottomSheet<void>(
       context: context,
-      position: position,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      items: [
-        PopupMenuItem<void>(
-          enabled: false,
-          padding: EdgeInsets.zero,
-          child: Consumer(
-            builder: (ctx, ref, _) {
-              final currentSelected = ref.watch(
-                yearlyComparisonSelectedYearsProvider,
-              );
-              final default4 = allYears.length <= 4
-                  ? allYears.toSet()
-                  : allYears.sublist(allYears.length - 4).toSet();
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) {
+        return Consumer(
+          builder: (bottomSheetCtx, ref, _) {
+            final currentSelected = ref.watch(yearlyComparisonSelectedYearsProvider);
+            final default4 = allYears.length <= 4
+                ? allYears.toSet()
+                : allYears.sublist(allYears.length - 4).toSet();
+            final activeYearsList = ref.watch(academicYearsProvider).asData?.value ?? [];
+            final activeYearObj = activeYearsList.firstWhere(
+              (y) => y.status == 'active',
+              orElse: () => AcademicYear(id: 0, yearRange: '', status: ''),
+            );
 
-              return SizedBox(
-                width: 290,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Padding(
-                      padding: const EdgeInsets.fromLTRB(16, 12, 16, 6),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Text(
-                            'Select School Years',
-                            style: TextStyle(
-                              fontWeight: FontWeight.bold,
-                              fontSize: 13,
-                            ),
-                          ),
-                          const SizedBox(height: 6),
-                          Row(
+            return Container(
+              constraints: BoxConstraints(
+                maxHeight: MediaQuery.of(context).size.height * 0.75,
+              ),
+              decoration: BoxDecoration(
+                color: isDark ? AppColors.darkSurfaceCard : Colors.white,
+                borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Center(
+                    child: Container(
+                      margin: const EdgeInsets.only(top: 12, bottom: 8),
+                      width: 40,
+                      height: 4,
+                      decoration: BoxDecoration(
+                        color: isDark ? Colors.white24 : Colors.grey.shade300,
+                        borderRadius: BorderRadius.circular(2),
+                      ),
+                    ),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(20, 8, 12, 12),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              TextButton(
-                                style: TextButton.styleFrom(
-                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                                  minimumSize: Size.zero,
-                                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                                ),
-                                onPressed: () {
-                                  ref
-                                      .read(
-                                        yearlyComparisonSelectedYearsProvider
-                                            .notifier,
-                                      )
-                                      .setYears(default4);
-                                },
-                                child: const Text(
-                                  'Latest 4',
-                                  style: TextStyle(fontSize: 12),
+                              Text(
+                                'Filter Academic Years',
+                                style: TextStyle(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.bold,
+                                  color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
                                 ),
                               ),
-                              const SizedBox(width: 4),
-                              TextButton(
-                                style: TextButton.styleFrom(
-                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                                  minimumSize: Size.zero,
-                                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                                ),
-                                onPressed: () {
-                                  ref
-                                      .read(
-                                        yearlyComparisonSelectedYearsProvider
-                                            .notifier,
-                                      )
-                                      .setYears(allYears.toSet());
-                                },
-                                child: const Text(
-                                  'All Years',
-                                  style: TextStyle(fontSize: 12),
-                                ),
-                              ),
-                              const Spacer(),
-                              TextButton(
-                                style: TextButton.styleFrom(
-                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                                  minimumSize: Size.zero,
-                                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                                ),
-                                onPressed: () {
-                                  ref
-                                      .read(
-                                        yearlyComparisonSelectedYearsProvider
-                                            .notifier,
-                                      )
-                                      .clear();
-                                },
-                                child: const Text(
-                                  'Clear',
-                                  style: TextStyle(fontSize: 12),
+                              const SizedBox(height: 2),
+                              Text(
+                                'Choose school years to include in comparison',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
                                 ),
                               ),
                             ],
                           ),
-                        ],
-                      ),
+                        ),
+                        IconButton(
+                          icon: const Icon(Icons.close_rounded),
+                          onPressed: () => Navigator.pop(ctx),
+                        ),
+                      ],
                     ),
-                    const Divider(height: 1),
-                    ConstrainedBox(
-                      constraints: const BoxConstraints(maxHeight: 280),
-                      child: ListView(
-                        shrinkWrap: true,
-                        children: allYears.map((year) {
-                          final isChecked = currentSelected.isEmpty
-                              ? default4.contains(year)
-                              : currentSelected.contains(year);
-                          return CheckboxListTile(
-                            dense: true,
-                            value: isChecked,
-                            title: Text(year, style: const TextStyle(fontSize: 13)),
-                            activeColor: AppColors.primaryGreen,
-                            controlAffinity: ListTileControlAffinity.leading,
-                            onChanged: (val) {
-                              if (currentSelected.isEmpty) {
-                                final updated = Set<String>.from(default4);
-                                if (updated.contains(year)) {
-                                  updated.remove(year);
-                                } else {
-                                  updated.add(year);
-                                }
-                                ref
-                                    .read(
-                                      yearlyComparisonSelectedYearsProvider
-                                          .notifier,
-                                    )
-                                    .setYears(updated);
-                              } else {
-                                ref
-                                    .read(
-                                      yearlyComparisonSelectedYearsProvider
-                                          .notifier,
-                                    )
-                                    .toggle(year);
-                              }
-                            },
-                          );
-                        }).toList(),
-                      ),
-                    ),
-                  ],
-                ),
-              );
-            },
-          ),
-        ),
-      ],
-    );
-  }
-
-  /// Shows a popup multi-select menu for statuses
-  void _showStatusMultiSelectMenu(
-    BuildContext context,
-    List<_StatusOption> options,
-    Set<String> selected,
-  ) {
-    final RenderBox? button = context.findRenderObject() as RenderBox?;
-    final RenderBox? overlay =
-        Overlay.maybeOf(context)?.context.findRenderObject() as RenderBox?;
-    if (button == null || overlay == null) return;
-
-    final RelativeRect position = RelativeRect.fromRect(
-      Rect.fromPoints(
-        button.localToGlobal(Offset.zero, ancestor: overlay),
-        button.localToGlobal(
-          button.size.bottomRight(Offset.zero),
-          ancestor: overlay,
-        ),
-      ),
-      Offset.zero & overlay.size,
-    );
-
-    showMenu<void>(
-      context: context,
-      position: position,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      items: [
-        PopupMenuItem<void>(
-          enabled: false,
-          padding: EdgeInsets.zero,
-          child: Consumer(
-            builder: (ctx, ref, _) {
-              final currentSelected = ref.watch(
-                yearlyComparisonSelectedStatusesProvider,
-              );
-              return Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
-                children: [
+                  ),
                   Padding(
-                    padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
+                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
                     child: Row(
                       children: [
-                        const Text(
-                          'Select Statuses',
-                          style: TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 13,
-                          ),
+                        ActionChip(
+                          label: const Text('Latest 4 Years', style: TextStyle(fontSize: 12)),
+                          backgroundColor: AppColors.primaryGreen.withValues(alpha: 0.1),
+                          labelStyle: const TextStyle(color: AppColors.primaryGreen, fontWeight: FontWeight.w600),
+                          side: BorderSide(color: AppColors.primaryGreen.withValues(alpha: 0.3)),
+                          onPressed: () {
+                            ref.read(yearlyComparisonSelectedYearsProvider.notifier).setYears(default4);
+                          },
+                        ),
+                        const SizedBox(width: 8),
+                        ActionChip(
+                          label: const Text('All Years', style: TextStyle(fontSize: 12)),
+                          onPressed: () {
+                            ref.read(yearlyComparisonSelectedYearsProvider.notifier).setYears(allYears.toSet());
+                          },
                         ),
                         const Spacer(),
                         TextButton(
                           onPressed: () {
-                            ref
-                                .read(
-                                  yearlyComparisonSelectedStatusesProvider
-                                      .notifier,
-                                )
-                                .selectAll();
+                            ref.read(yearlyComparisonSelectedYearsProvider.notifier).clear();
                           },
-                          child: const Text(
-                            'All',
-                            style: TextStyle(fontSize: 12),
-                          ),
+                          child: const Text('Clear', style: TextStyle(fontSize: 12)),
                         ),
                       ],
                     ),
                   ),
                   const Divider(height: 1),
-                  ...options.map((opt) {
-                    final isChecked = currentSelected.contains(opt.key);
-                    return CheckboxListTile(
-                      dense: true,
-                      value: isChecked,
-                      title: Row(
-                        children: [
-                          Container(
-                            width: 10,
-                            height: 10,
-                            decoration: BoxDecoration(
-                              color: opt.color,
-                              borderRadius: BorderRadius.circular(2),
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          Text(opt.label, style: const TextStyle(fontSize: 13)),
-                        ],
+                  Flexible(
+                    child: ListView.separated(
+                      padding: const EdgeInsets.symmetric(vertical: 8),
+                      itemCount: allYears.length,
+                      separatorBuilder: (_, _) => Divider(
+                        height: 1,
+                        color: isDark ? AppColors.darkBorder.withValues(alpha: 0.5) : Colors.grey.shade100,
                       ),
-                      activeColor: AppColors.primaryGreen,
-                      controlAffinity: ListTileControlAffinity.leading,
-                      onChanged: (val) {
-                        ref
-                            .read(
-                              yearlyComparisonSelectedStatusesProvider.notifier,
-                            )
-                            .toggle(opt.key);
+                      itemBuilder: (context, idx) {
+                        final year = allYears[idx];
+                        final isChecked = currentSelected.isEmpty
+                            ? default4.contains(year)
+                            : currentSelected.contains(year);
+                        final isActiveSY = year == activeYearObj.yearRange;
+
+                        return CheckboxListTile(
+                          value: isChecked,
+                          activeColor: AppColors.primaryGreen,
+                          title: Row(
+                            children: [
+                              Text(
+                                year,
+                                style: TextStyle(
+                                  fontWeight: isChecked ? FontWeight.bold : FontWeight.w500,
+                                  fontSize: 14,
+                                ),
+                              ),
+                              if (isActiveSY) ...[
+                                const SizedBox(width: 8),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                  decoration: BoxDecoration(
+                                    color: AppColors.primaryGreen.withValues(alpha: 0.15),
+                                    borderRadius: BorderRadius.circular(4),
+                                  ),
+                                  child: const Text(
+                                    'ACTIVE',
+                                    style: TextStyle(
+                                      color: AppColors.primaryGreen,
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ],
+                          ),
+                          onChanged: (val) {
+                            if (currentSelected.isEmpty) {
+                              final updated = Set<String>.from(default4);
+                              if (updated.contains(year)) {
+                                updated.remove(year);
+                              } else {
+                                updated.add(year);
+                              }
+                              ref.read(yearlyComparisonSelectedYearsProvider.notifier).setYears(updated);
+                            } else {
+                              ref.read(yearlyComparisonSelectedYearsProvider.notifier).toggle(year);
+                            }
+                          },
+                        );
                       },
-                    );
-                  }),
+                    ),
+                  ),
+                  SafeArea(
+                    child: Padding(
+                      padding: const EdgeInsets.fromLTRB(20, 8, 20, 16),
+                      child: SizedBox(
+                        width: double.infinity,
+                        child: PrimaryButton(
+                          label: 'APPLY FILTER',
+                          onPressed: () => Navigator.pop(ctx),
+                        ),
+                      ),
+                    ),
+                  ),
                 ],
-              );
-            },
-          ),
-        ),
-      ],
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  /// Shows a modal bottom sheet checklist for statuses
+  void _showStatusMultiSelectModal(
+    BuildContext context,
+    List<_StatusOption> options,
+    Set<String> selected,
+  ) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) {
+        return Consumer(
+          builder: (bottomSheetCtx, ref, _) {
+            final currentSelected = ref.watch(yearlyComparisonSelectedStatusesProvider);
+
+            return Container(
+              constraints: BoxConstraints(
+                maxHeight: MediaQuery.of(context).size.height * 0.7,
+              ),
+              decoration: BoxDecoration(
+                color: isDark ? AppColors.darkSurfaceCard : Colors.white,
+                borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Center(
+                    child: Container(
+                      margin: const EdgeInsets.only(top: 12, bottom: 8),
+                      width: 40,
+                      height: 4,
+                      decoration: BoxDecoration(
+                        color: isDark ? Colors.white24 : Colors.grey.shade300,
+                        borderRadius: BorderRadius.circular(2),
+                      ),
+                    ),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(20, 8, 12, 12),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Filter Student Statuses',
+                                style: TextStyle(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.bold,
+                                  color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
+                                ),
+                              ),
+                              const SizedBox(height: 2),
+                              Text(
+                                'Choose which student enrollment statuses to display in comparison chart',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        IconButton(
+                          icon: const Icon(Icons.close_rounded),
+                          onPressed: () => Navigator.pop(ctx),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
+                    child: Row(
+                      children: [
+                        ActionChip(
+                          label: const Text('All Statuses', style: TextStyle(fontSize: 12)),
+                          backgroundColor: AppColors.primaryGreen.withValues(alpha: 0.1),
+                          labelStyle: const TextStyle(color: AppColors.primaryGreen, fontWeight: FontWeight.w600),
+                          side: BorderSide(color: AppColors.primaryGreen.withValues(alpha: 0.3)),
+                          onPressed: () {
+                            ref.read(yearlyComparisonSelectedStatusesProvider.notifier).setStatuses(options.map((o) => o.key).toSet());
+                          },
+                        ),
+                        const Spacer(),
+                        TextButton(
+                          onPressed: () {
+                            ref.read(yearlyComparisonSelectedStatusesProvider.notifier).clear();
+                          },
+                          child: const Text('Clear', style: TextStyle(fontSize: 12)),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const Divider(height: 1),
+                  Flexible(
+                    child: ListView.separated(
+                      padding: const EdgeInsets.symmetric(vertical: 8),
+                      itemCount: options.length,
+                      separatorBuilder: (_, _) => Divider(
+                        height: 1,
+                        color: isDark ? AppColors.darkBorder.withValues(alpha: 0.5) : Colors.grey.shade100,
+                      ),
+                      itemBuilder: (context, idx) {
+                        final opt = options[idx];
+                        final isChecked = currentSelected.contains(opt.key);
+
+                        return CheckboxListTile(
+                          value: isChecked,
+                          activeColor: AppColors.primaryGreen,
+                          title: Row(
+                            children: [
+                              Container(
+                                width: 12,
+                                height: 12,
+                                decoration: BoxDecoration(
+                                  color: opt.color,
+                                  borderRadius: BorderRadius.circular(3),
+                                ),
+                              ),
+                              const SizedBox(width: 10),
+                              Text(
+                                opt.label,
+                                style: TextStyle(
+                                  fontWeight: isChecked ? FontWeight.bold : FontWeight.w500,
+                                  fontSize: 14,
+                                ),
+                              ),
+                            ],
+                          ),
+                          onChanged: (val) {
+                            ref.read(yearlyComparisonSelectedStatusesProvider.notifier).toggle(opt.key);
+                          },
+                        );
+                      },
+                    ),
+                  ),
+                  SafeArea(
+                    child: Padding(
+                      padding: const EdgeInsets.fromLTRB(20, 8, 20, 16),
+                      child: SizedBox(
+                        width: double.infinity,
+                        child: PrimaryButton(
+                          label: 'APPLY FILTER',
+                          onPressed: () => Navigator.pop(ctx),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            );
+          },
+        );
+      },
     );
   }
 

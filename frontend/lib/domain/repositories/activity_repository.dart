@@ -20,6 +20,7 @@ class ActivityRepository {
     String? dateTo,
     String? action,
     String? role,
+    String? search,
   }) async {
     try {
       final options = await _getAuthOptions();
@@ -32,6 +33,7 @@ class ActivityRepository {
           if (dateTo != null && dateTo.isNotEmpty) 'date_to': dateTo,
           if (action != null && action.isNotEmpty) 'action': action,
           if (role != null && role.isNotEmpty) 'role': role,
+          if (search != null && search.isNotEmpty) 'search': search,
         },
         options: options,
       );

@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -11,14 +11,14 @@ const _kThemeModeKey = 'theme_mode';
 class ThemeModeNotifier extends Notifier<ThemeMode> {
   @override
   ThemeMode build() {
-    // Initial load is synchronous — default to system until async read completes.
+    // Initial load is synchronous — default to light mode until async read completes.
     _loadFromPrefs();
-    return ThemeMode.system;
+    return ThemeMode.light;
   }
 
   Future<void> _loadFromPrefs() async {
     final prefs = await SharedPreferences.getInstance();
-    final stored = prefs.getString(_kThemeModeKey) ?? 'system';
+    final stored = prefs.getString(_kThemeModeKey) ?? 'light';
     state = _fromString(stored);
   }
 

@@ -1,10 +1,12 @@
 const db = require('../config/db');
+const autoArchiveService = require('../services/autoArchiveService');
 
 exports.getSettings = (req, res) => {
     try {
         const rows = db.prepare('SELECT key, value FROM system_settings').all();
         const settings = {
-            auto_update_enrollment_from_sf: 'true'
+            auto_update_enrollment_from_sf: 'false',
+            enrollment_grace_period_days: '30'
         };
         for (const row of rows) {
             settings[row.key] = row.value;
@@ -48,6 +50,10 @@ exports.updateSettings = (req, res) => {
         });
 
         insertOrUpdate(updates);
+
+        if (updates.enrollment_grace_period_days !== undefined) {
+            autoArchiveService.checkAndRunAutoArchive(req.user?.id);
+        }
 
         const rows = db.prepare('SELECT key, value FROM system_settings').all();
         const updatedSettings = {};

@@ -7,6 +7,8 @@ class PrimaryButton extends StatelessWidget {
   final bool isLoading;
   final double? width;
   final double height;
+  final double fontSize;
+  final IconData? icon;
 
   const PrimaryButton({
     super.key,
@@ -15,17 +17,18 @@ class PrimaryButton extends StatelessWidget {
     this.isLoading = false,
     this.width = double.infinity,
     this.height = 50,
+    this.fontSize = 16,
+    this.icon,
   });
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
     final button = ElevatedButton(
       onPressed: isLoading ? null : onPressed,
       style: ElevatedButton.styleFrom(
         backgroundColor: const Color(0xFF1C8248),
-        foregroundColor: isDark ? Colors.white : Colors.black,
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+        foregroundColor: Colors.white,
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(8.0),
         ),
@@ -37,14 +40,33 @@ class PrimaryButton extends StatelessWidget {
               size: 20,
               strokeWidth: 2.5,
             )
-          : Text(
-              label,
-              style: const TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
-                letterSpacing: 0.5,
-              ),
-            ),
+          : (icon != null
+              ? Row(
+                  mainAxisSize: MainAxisSize.min,
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(icon, size: fontSize + 1, color: Colors.white),
+                    const SizedBox(width: 6),
+                    Text(
+                      label,
+                      style: TextStyle(
+                        fontSize: fontSize,
+                        fontWeight: FontWeight.bold,
+                        letterSpacing: 0.5,
+                        color: Colors.white,
+                      ),
+                    ),
+                  ],
+                )
+              : Text(
+                  label,
+                  style: TextStyle(
+                    fontSize: fontSize,
+                    fontWeight: FontWeight.bold,
+                    letterSpacing: 0.5,
+                    color: Colors.white,
+                  ),
+                )),
     );
 
     if (width != null) {

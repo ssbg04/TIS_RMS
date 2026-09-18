@@ -128,7 +128,7 @@ class _KpisContent extends StatelessWidget {
         ),
         const SizedBox(height: 16),
 
-        // Bento Block 1: Digitalization Progress (Hero flex: 3) + Activity Bar (flex: 2)
+        // Bento Block 1: Digitalization Progress (flex: 3) + Status Distribution (flex: 2)
         if (isWide)
           IntrinsicHeight(
             child: Row(
@@ -141,7 +141,7 @@ class _KpisContent extends StatelessWidget {
                 const SizedBox(width: 16),
                 Expanded(
                   flex: 2,
-                  child: _ActivityBarCard(entries: kpis.activityByDay),
+                  child: _StatusDistributionCard(entries: kpis.statusDistribution),
                 ),
               ],
             ),
@@ -151,44 +151,17 @@ class _KpisContent extends StatelessWidget {
             children: [
               _DigitalizationCard(data: kpis.digitalization),
               const SizedBox(height: 16),
-              _ActivityBarCard(entries: kpis.activityByDay),
+              _StatusDistributionCard(entries: kpis.statusDistribution),
             ],
           ),
 
         const SizedBox(height: 16),
 
-        // Bento Block 2: Document Breakdown (Detailed flex: 3) + Status Distribution (Compact flex: 2)
-        if (isWide)
-          IntrinsicHeight(
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Expanded(
-                  flex: 3,
-                  child: _DocTypePieCard(
-                    entries: kpis.docTypeBreakdown,
-                    docTypeByGrade: kpis.docTypeByGrade,
-                  ),
-                ),
-                const SizedBox(width: 16),
-                Expanded(
-                  flex: 2,
-                  child: _StatusDistributionCard(entries: kpis.statusDistribution),
-                ),
-              ],
-            ),
-          )
-        else
-          Column(
-            children: [
-              _DocTypePieCard(
-                entries: kpis.docTypeBreakdown,
-                docTypeByGrade: kpis.docTypeByGrade,
-              ),
-              const SizedBox(height: 16),
-              _StatusDistributionCard(entries: kpis.statusDistribution),
-            ],
-          ),
+        // Bento Block 2: Document Breakdown (Detailed Full Width)
+        _DocTypePieCard(
+          entries: kpis.docTypeBreakdown,
+          docTypeByGrade: kpis.docTypeByGrade,
+        ),
 
         const SizedBox(height: 16),
 
@@ -465,132 +438,6 @@ class _DonutTile extends StatelessWidget {
   }
 }
 
-// ──────────────────────────────────────────────────────────────
-// 2. ACTIVITY BAR CHART (last 7 days)
-// ──────────────────────────────────────────────────────────────
-class _ActivityBarCard extends StatelessWidget {
-  final List<ActivityByDayEntry> entries;
-  const _ActivityBarCard({required this.entries});
-
-  @override
-  Widget build(BuildContext context) {
-    final Map<String, Map<String, int>> byDay = {};
-    final now = DateTime.now();
-    for (int i = 6; i >= 0; i--) {
-      final d = now.subtract(Duration(days: i));
-      final key =
-          '${d.year}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
-      byDay[key] = {'uploads': 0, 'deletes': 0, 'updates': 0};
-    }
-    for (final e in entries) {
-      if (!byDay.containsKey(e.day)) continue;
-      if (e.action == 'CREATE') {
-        byDay[e.day]!['uploads'] = (byDay[e.day]!['uploads'] ?? 0) + e.count;
-      } else if (e.action == 'DELETE') {
-        byDay[e.day]!['deletes'] = (byDay[e.day]!['deletes'] ?? 0) + e.count;
-      } else {
-        byDay[e.day]!['updates'] = (byDay[e.day]!['updates'] ?? 0) + e.count;
-      }
-    }
-
-    final days = byDay.keys.toList();
-    double maxY = 1;
-    for (final v in byDay.values) {
-      final total = (v['uploads']! + v['deletes']! + v['updates']!).toDouble();
-      if (total > maxY) maxY = total;
-    }
-
-    final barGroups = <BarChartGroupData>[];
-    for (int i = 0; i < days.length; i++) {
-      final v = byDay[days[i]]!;
-      barGroups.add(BarChartGroupData(
-        x: i,
-        barRods: [
-          BarChartRodData(
-            toY: v['uploads']!.toDouble(),
-            color: AppColors.primaryGreen,
-            width: 8,
-            borderRadius: BorderRadius.circular(4),
-          ),
-          BarChartRodData(
-            toY: v['deletes']!.toDouble(),
-            color: Colors.red.shade400,
-            width: 8,
-            borderRadius: BorderRadius.circular(4),
-          ),
-          BarChartRodData(
-            toY: v['updates']!.toDouble(),
-            color: Colors.blue.shade400,
-            width: 8,
-            borderRadius: BorderRadius.circular(4),
-          ),
-        ],
-      ));
-    }
-
-    return _ChartCard(
-      title: 'Recent Activities',
-      icon: Icons.bar_chart_rounded,
-      iconColor: Colors.blue.shade600,
-      subtitle: 'Last 7 days by action type',
-      child: Column(
-        children: [
-          SizedBox(
-            height: 160,
-            child: BarChart(
-              BarChartData(
-                maxY: maxY * 1.2,
-                barGroups: barGroups,
-                gridData: FlGridData(
-                  show: true,
-                  drawVerticalLine: false,
-                  getDrawingHorizontalLine: (_) =>
-                      FlLine(color: Theme.of(context).dividerColor, strokeWidth: 1),
-                ),
-                borderData: FlBorderData(show: false),
-                titlesData: FlTitlesData(
-                  leftTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                  rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                  topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                  bottomTitles: AxisTitles(
-                    sideTitles: SideTitles(
-                      showTitles: true,
-                      getTitlesWidget: (v, meta) {
-                        final idx = v.toInt();
-                        if (idx < 0 || idx >= days.length) {
-                          return const SizedBox.shrink();
-                        }
-                        final parts = days[idx].split('-');
-                        return Text(
-                          '${parts[1]}/${parts[2]}',
-                          style: TextStyle(
-                              fontSize: 9, color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6)),
-                        );
-                      },
-                      reservedSize: 20,
-                    ),
-                  ),
-                ),
-                barTouchData: BarTouchData(enabled: false),
-              ),
-            ),
-          ),
-          const SizedBox(height: 8),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              _Legend(color: AppColors.primaryGreen, label: 'Uploads'),
-              const SizedBox(width: 12),
-              _Legend(color: Colors.red.shade400, label: 'Deletes'),
-              const SizedBox(width: 12),
-              _Legend(color: Colors.blue.shade400, label: 'Updates'),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-}
 
 // ──────────────────────────────────────────────────────────────
 // 3. STATUS DISTRIBUTION
@@ -1032,9 +879,8 @@ class _DocTypePieCardState extends State<_DocTypePieCard>
       }
     }
 
-    Widget buildSelectorBar() {
-      return Row(
-        mainAxisSize: MainAxisSize.min,
+    Widget buildSelectorBar({double? maxWidth}) {
+      final bar = Row(
         children: [
           if (allDocTypeNames.length > 1) ...[
             IconButton(
@@ -1142,7 +988,6 @@ class _DocTypePieCardState extends State<_DocTypePieCard>
                       return Align(
                         alignment: Alignment.centerLeft,
                         child: Row(
-                          mainAxisSize: MainAxisSize.min,
                           children: [
                             if (isJhs || isShs)
                               Container(
@@ -1164,7 +1009,7 @@ class _DocTypePieCardState extends State<_DocTypePieCard>
                                   ),
                                 ),
                               ),
-                            Flexible(
+                            Expanded(
                               child: Text(
                                 cleanName,
                                 style: TextStyle(
@@ -1199,11 +1044,19 @@ class _DocTypePieCardState extends State<_DocTypePieCard>
           ],
         ],
       );
+
+      if (maxWidth != null) {
+        return SizedBox(width: maxWidth, child: bar);
+      }
+      return bar;
     }
 
-    final screenWidth = MediaQuery.of(context).size.width;
-    final isMobile = screenWidth < 700;
-    final isCompactChart = screenWidth < 450;
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final cardWidth = constraints.maxWidth;
+        final isNarrowCard = cardWidth < 540;
+        final isCompactChart = cardWidth < 460;
+        final isMobile = cardWidth < 520;
 
         final chartWidget = SizedBox(
           height: 130,
@@ -1275,18 +1128,16 @@ class _DocTypePieCardState extends State<_DocTypePieCard>
                         decoration: BoxDecoration(color: color, shape: BoxShape.circle),
                       ),
                       const SizedBox(width: 6),
-                      Expanded(
-                        child: Text(
-                          g.gradeLevel,
-                          style: TextStyle(
-                            fontSize: 11,
-                            fontWeight: FontWeight.w600,
-                            color: Theme.of(context).colorScheme.onSurface,
-                          ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
+                      Text(
+                        g.gradeLevel,
+                        style: TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w600,
+                          color: Theme.of(context).colorScheme.onSurface,
                         ),
                       ),
+                      const SizedBox(width: 8),
+                      const Spacer(),
                       Text(
                         '${g.count} / ${g.totalStudents} (${(pct * 100).toStringAsFixed(1)}%)',
                         style: TextStyle(
@@ -1299,6 +1150,9 @@ class _DocTypePieCardState extends State<_DocTypePieCard>
                                   .onSurface
                                   .withValues(alpha: 0.5),
                         ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        textAlign: TextAlign.end,
                       ),
                     ],
                   ),
@@ -1341,102 +1195,107 @@ class _DocTypePieCardState extends State<_DocTypePieCard>
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-              // Header
-              if (isMobile) ...[
-                Row(
-                  children: [
-                    Icon(Icons.donut_small_rounded, size: 18, color: Colors.purple.shade600),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Text(
-                        'Document Breakdown',
-                        style: TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w700,
-                          color: Theme.of(context).colorScheme.onSurface,
+                // Header
+                if (isNarrowCard) ...[
+                  Row(
+                    children: [
+                      Icon(Icons.donut_small_rounded, size: 18, color: Colors.purple.shade600),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          'Document Breakdown',
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w700,
+                            color: Theme.of(context).colorScheme.onSurface,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
                         ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
                       ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  subtitle,
-                  style: TextStyle(
-                    fontSize: 11,
-                    color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5),
+                    ],
                   ),
-                ),
-                const SizedBox(height: 10),
-                buildSelectorBar(),
-              ] else ...[
-                Row(
-                  children: [
-                    Icon(Icons.donut_small_rounded, size: 18, color: Colors.purple.shade600),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'Document Breakdown',
-                            style: TextStyle(
-                              fontSize: 14,
-                              fontWeight: FontWeight.w700,
-                              color: Theme.of(context).colorScheme.onSurface,
+                  const SizedBox(height: 4),
+                  Text(
+                    subtitle,
+                    style: TextStyle(
+                      fontSize: 11,
+                      color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5),
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  const SizedBox(height: 10),
+                  buildSelectorBar(),
+                ] else ...[
+                  Row(
+                    children: [
+                      Icon(Icons.donut_small_rounded, size: 18, color: Colors.purple.shade600),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Document Breakdown',
+                              style: TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w700,
+                                color: Theme.of(context).colorScheme.onSurface,
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
                             ),
-                          ),
-                          Text(
-                            subtitle,
-                            style: TextStyle(
-                              fontSize: 11,
-                              color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5),
+                            Text(
+                              subtitle,
+                              style: TextStyle(
+                                fontSize: 11,
+                                color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5),
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
                             ),
-                          ),
-                        ],
+                          ],
+                        ),
                       ),
-                    ),
-                    const SizedBox(width: 12),
-                    ConstrainedBox(
-                      constraints: const BoxConstraints(maxWidth: 280),
-                      child: buildSelectorBar(),
-                    ),
-                  ],
-                ),
-              ],
-              const SizedBox(height: 16),
+                      const SizedBox(width: 12),
+                      buildSelectorBar(maxWidth: (cardWidth * 0.48).clamp(200.0, 270.0)),
+                    ],
+                  ),
+                ],
+                const SizedBox(height: 16),
 
-              // Content Body
-              if (selectedGradeList.isEmpty)
-                const Padding(
-                  padding: EdgeInsets.symmetric(vertical: 20),
-                  child: Center(
-                    child: Text('No grade level data available for this document type.',
-                        style: TextStyle(fontSize: 12, color: AppColors.textSecondary)),
+                // Content Body
+                if (selectedGradeList.isEmpty)
+                  const Padding(
+                    padding: EdgeInsets.symmetric(vertical: 20),
+                    child: Center(
+                      child: Text('No grade level data available for this document type.',
+                          style: TextStyle(fontSize: 12, color: AppColors.textSecondary)),
+                    ),
+                  )
+                else if (isCompactChart)
+                  Column(
+                    children: [
+                      Center(child: chartWidget),
+                      const SizedBox(height: 12),
+                      listWidget,
+                    ],
+                  )
+                else
+                  Row(
+                    children: [
+                      chartWidget,
+                      const SizedBox(width: 16),
+                      Expanded(child: listWidget),
+                    ],
                   ),
-                )
-              else if (isCompactChart)
-                Column(
-                  children: [
-                    Center(child: chartWidget),
-                    const SizedBox(height: 12),
-                    listWidget,
-                  ],
-                )
-              else
-                Row(
-                  children: [
-                    chartWidget,
-                    const SizedBox(width: 16),
-                    Expanded(child: listWidget),
-                  ],
-                ),
-            ],
+              ],
+            ),
           ),
-        ),
         );
+      },
+    );
   }
 }
 
@@ -2584,28 +2443,6 @@ class _SectionHeader extends StatelessWidget {
   }
 }
 
-class _Legend extends StatelessWidget {
-  final Color color;
-  final String label;
-  const _Legend({required this.color, required this.label});
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Container(
-            width: 10,
-            height: 10,
-            decoration: BoxDecoration(color: color, shape: BoxShape.circle)),
-        const SizedBox(width: 4),
-        Text(label,
-            style:
-                TextStyle(fontSize: 10, color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6)),),
-      ],
-    );
-  }
-}
 
 class _KpiSkeleton extends StatelessWidget {
   const _KpiSkeleton();

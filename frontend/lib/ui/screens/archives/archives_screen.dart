@@ -1796,12 +1796,12 @@ class _ArchivesScreenState extends ConsumerState<ArchivesScreen>
                               children: [
                                 Icon(
                                   Icons.folder_special_rounded,
-                                  size: isMobile ? 38 : 46,
+                                  size: isMobile ? 48 : 56,
                                   color: Colors.deepOrange,
                                 ),
                                 SizedBox(height: isMobile ? 6 : 8),
                                 Padding(
-                                  padding: const EdgeInsets.symmetric(horizontal: 6),
+                                  padding: const EdgeInsets.symmetric(horizontal: 8),
                                   child: Text(
                                     studentName,
                                     textAlign: TextAlign.center,
@@ -1815,17 +1815,24 @@ class _ArchivesScreenState extends ConsumerState<ArchivesScreen>
                                     ),
                                   ),
                                 ),
-                                const SizedBox(height: 4),
-                                _buildStudentStatusChip(
-                                  folder.studentStatus ?? 'Archived',
-                                ),
-                                const SizedBox(height: 2),
-                                Text(
-                                  '${folder.documentCount ?? 0} docs',
-                                  style: TextStyle(
-                                    fontSize: 11,
-                                    color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
-                                  ),
+                                const SizedBox(height: 6),
+                                Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    _buildStudentStatusChip(
+                                      folder.studentStatus ?? 'Archived',
+                                    ),
+                                    const SizedBox(width: 4),
+                                    Text(
+                                      '(${folder.documentCount ?? 0})',
+                                      style: TextStyle(
+                                        fontSize: 11,
+                                        fontWeight: FontWeight.w600,
+                                        color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
+                                      ),
+                                    ),
+                                  ],
                                 ),
                               ],
                             ),

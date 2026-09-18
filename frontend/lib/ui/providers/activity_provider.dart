@@ -14,6 +14,7 @@ class UserHistoryQueryParams {
   final String dateTo;
   final String action;
   final String role;
+  final String search;
 
   const UserHistoryQueryParams({
     this.page = 1,
@@ -22,6 +23,7 @@ class UserHistoryQueryParams {
     this.dateTo = '',
     this.action = '',
     this.role = '',
+    this.search = '',
   });
 
   UserHistoryQueryParams copyWith({
@@ -31,6 +33,7 @@ class UserHistoryQueryParams {
     String? dateTo,
     String? action,
     String? role,
+    String? search,
   }) {
     return UserHistoryQueryParams(
       page: page ?? this.page,
@@ -39,6 +42,7 @@ class UserHistoryQueryParams {
       dateTo: dateTo ?? this.dateTo,
       action: action ?? this.action,
       role: role ?? this.role,
+      search: search ?? this.search,
     );
   }
 }
@@ -60,6 +64,7 @@ class UserHistoryQueryNotifier
   void setDateTo(String v) => state = state.copyWith(dateTo: v, page: 1);
   void setAction(String v) => state = state.copyWith(action: v, page: 1);
   void setRole(String v) => state = state.copyWith(role: v, page: 1);
+  void setSearch(String v) => state = state.copyWith(search: v, page: 1);
   void reset() => state = const UserHistoryQueryParams();
 }
 
@@ -74,5 +79,6 @@ final userHistoryPageProvider =
         dateTo: query.dateTo.isEmpty ? null : query.dateTo,
         action: query.action.isEmpty ? null : query.action,
         role: query.role.isEmpty ? null : query.role,
+        search: query.search.isEmpty ? null : query.search,
       );
     });

@@ -1,5 +1,6 @@
 const db = require('../config/db');
 const autoGraduationService = require('../services/autoGraduationService');
+const autoArchiveService = require('../services/autoArchiveService');
 
 // ============================================================
 // ACADEMIC YEAR AUTOMATION
@@ -85,10 +86,11 @@ exports.createAcademicYear = (req, res) => {
         const finalStatus = status || 'inactive';
         const result = db.prepare('INSERT INTO academic_years (year_range, status, start_date, end_date) VALUES (?, ?, ?, ?)')
             .run(normalizedRange, finalStatus, sDate, eDate);
-        // If the new year is active, deactivate all others and check graduation
+        // If the new year is active, deactivate all others and check graduation & archiving
         if (finalStatus === 'active') {
             deactivateOtherYears(result.lastInsertRowid);
             autoGraduationService.checkAndRunAutoGraduation(req.user?.id);
+            autoArchiveService.checkAndRunAutoArchive(req.user?.id);
         }
         res.status(201).json({ id: result.lastInsertRowid, message: 'Academic year created successfully' });
     } catch (error) {
@@ -142,6 +144,7 @@ exports.updateAcademicYear = (req, res) => {
         if (finalStatus === 'active') {
             deactivateOtherYears(parseInt(id));
             autoGraduationService.checkAndRunAutoGraduation(req.user?.id);
+            autoArchiveService.checkAndRunAutoArchive(req.user?.id);
         }
         res.json({ message: 'Academic year updated successfully' });
     } catch (error) {
@@ -158,6 +161,15 @@ exports.checkAutoGraduation = (req, res) => {
         res.json(result);
     } catch (error) {
         res.status(500).json({ message: 'Failed to check auto graduation', error: error.message });
+    }
+};
+
+exports.checkAutoArchive = (req, res) => {
+    try {
+        const result = autoArchiveService.checkAndRunAutoArchive(req.user?.id);
+        res.json(result);
+    } catch (error) {
+        res.status(500).json({ message: 'Failed to check auto archive', error: error.message });
     }
 };
 

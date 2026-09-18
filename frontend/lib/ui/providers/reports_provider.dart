@@ -157,6 +157,10 @@ class SelectedStatusesNotifier extends Notifier<Set<String>> {
 
   void selectAll() =>
       state = {'enrolled', 'inactive', 'dropped', 'graduated', 'transferred'};
+
+  void setStatuses(Set<String> statuses) => state = statuses;
+
+  void clear() => state = {};
 }
 
 // KPI stats & compliance data — re-fetches when any filter changes

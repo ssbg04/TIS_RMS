@@ -63,6 +63,7 @@ class _TransparencyBoardContentState extends ConsumerState<_TransparencyBoardCon
   final ScrollController _enrollmentChartScrollController = ScrollController();
   final ScrollController _dropoutChartScrollController = ScrollController();
   final ScrollController _equity4PsChartScrollController = ScrollController();
+  final ScrollController _tabBarScrollController = ScrollController();
   bool _isExportingPdf = false;
   _TransparencyTab _activeTab = _TransparencyTab.all;
   bool _isEnrollmentInfoExpanded = false;
@@ -74,6 +75,7 @@ class _TransparencyBoardContentState extends ConsumerState<_TransparencyBoardCon
     _enrollmentChartScrollController.dispose();
     _dropoutChartScrollController.dispose();
     _equity4PsChartScrollController.dispose();
+    _tabBarScrollController.dispose();
     super.dispose();
   }
 
@@ -259,10 +261,15 @@ class _TransparencyBoardContentState extends ConsumerState<_TransparencyBoardCon
           ),
         ],
       ),
-      child: SingleChildScrollView(
-        scrollDirection: Axis.horizontal,
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
+      child: Scrollbar(
+        controller: _tabBarScrollController,
+        thumbVisibility: true,
+        child: SingleChildScrollView(
+          controller: _tabBarScrollController,
+          scrollDirection: Axis.horizontal,
+          padding: const EdgeInsets.only(bottom: 6),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
           children: tabs.map((t) {
             final isSelected = _activeTab == t.$1;
             return Padding(
@@ -315,6 +322,7 @@ class _TransparencyBoardContentState extends ConsumerState<_TransparencyBoardCon
               ),
             );
           }).toList(),
+          ),
         ),
       ),
     );
@@ -715,10 +723,10 @@ class _TransparencyBoardContentState extends ConsumerState<_TransparencyBoardCon
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
       decoration: BoxDecoration(
-        color: Colors.black.withValues(alpha: 0.25),
+        color: Colors.white.withValues(alpha: 0.18),
         borderRadius: BorderRadius.circular(8),
         border: Border.all(
-          color: Colors.white.withValues(alpha: 0.35),
+          color: Colors.white.withValues(alpha: 0.45),
         ),
       ),
       child: Row(
@@ -729,9 +737,9 @@ class _TransparencyBoardContentState extends ConsumerState<_TransparencyBoardCon
           const Text(
             'Academic Year:',
             style: TextStyle(
-              color: Colors.white70,
+              color: Colors.white,
               fontSize: 12,
-              fontWeight: FontWeight.w500,
+              fontWeight: FontWeight.w600,
             ),
           ),
           const SizedBox(width: 6),
@@ -741,11 +749,22 @@ class _TransparencyBoardContentState extends ConsumerState<_TransparencyBoardCon
               isDense: true,
               dropdownColor:
                   isDark ? AppColors.darkSurfaceCard : AppColors.surfaceWhite,
-              style: const TextStyle(
-                color: Colors.white,
-                fontSize: 12,
-                fontWeight: FontWeight.bold,
-              ),
+              selectedItemBuilder: (BuildContext context) {
+                return sortedYears.map((ay) {
+                  final isActive = ay.status.toLowerCase() == 'active';
+                  return Align(
+                    alignment: Alignment.centerLeft,
+                    child: Text(
+                      'SY ${ay.yearRange}${isActive ? ' (Active)' : ''}',
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  );
+                }).toList();
+              },
               icon: const Icon(Icons.arrow_drop_down, color: Colors.white, size: 20),
               items: sortedYears.map((ay) {
                 final isActive = ay.status.toLowerCase() == 'active';
@@ -754,7 +773,7 @@ class _TransparencyBoardContentState extends ConsumerState<_TransparencyBoardCon
                   child: Text(
                     'SY ${ay.yearRange}${isActive ? ' (Active)' : ''}',
                     style: TextStyle(
-                      color: isDark ? Colors.white : Colors.black87,
+                      color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
                       fontSize: 12,
                       fontWeight: isActive ? FontWeight.bold : FontWeight.w500,
                     ),

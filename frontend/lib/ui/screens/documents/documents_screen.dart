@@ -1995,12 +1995,12 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
                               children: [
                                 Icon(
                                   Icons.folder_rounded,
-                                  size: isMobile ? 38 : 46,
+                                  size: isMobile ? 48 : 56,
                                   color: Colors.orange,
                                 ),
                                 SizedBox(height: isMobile ? 6 : 8),
                                 Padding(
-                                  padding: const EdgeInsets.symmetric(horizontal: 6),
+                                  padding: const EdgeInsets.symmetric(horizontal: 8),
                                   child: Text(
                                     folder.name,
                                     textAlign: TextAlign.center,
@@ -2014,10 +2014,22 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
                                     ),
                                   ),
                                 ),
-                                const SizedBox(height: 4),
-                                Padding(
-                                  padding: const EdgeInsets.symmetric(horizontal: 4),
-                                  child: _buildFolderCompletionBadge(folder),
+                                const SizedBox(height: 6),
+                                Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    _buildStudentStatusChip(folder.studentStatus ?? 'Enrolled'),
+                                    const SizedBox(width: 4),
+                                    Text(
+                                      '(${folder.documentCount ?? 0})',
+                                      style: TextStyle(
+                                        fontSize: 11,
+                                        fontWeight: FontWeight.w600,
+                                        color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
+                                      ),
+                                    ),
+                                  ],
                                 ),
                               ],
                             ),
@@ -2039,6 +2051,43 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
           },
         );
       },
+    );
+  }
+
+  Widget _buildStudentStatusChip(String status) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    final bg = switch (status) {
+      'Enrolled' => AppColors.primaryGreen.withValues(alpha: isDark ? 0.25 : 0.10),
+      'Graduated' => Colors.blue.withValues(alpha: isDark ? 0.25 : 0.10),
+      'Transferred' => Colors.orange.withValues(alpha: isDark ? 0.25 : 0.10),
+      'Dropped' => Colors.red.withValues(alpha: isDark ? 0.25 : 0.10),
+      _ => isDark ? AppColors.darkSurface2 : Colors.grey.shade200,
+    };
+
+    final fg = switch (status) {
+      'Enrolled' => isDark ? Colors.green.shade300 : AppColors.primaryGreen,
+      'Graduated' => isDark ? Colors.blue.shade300 : Colors.blue.shade700,
+      'Transferred' => isDark ? Colors.orange.shade300 : Colors.orange.shade800,
+      'Dropped' => isDark ? Colors.red.shade300 : Colors.red.shade700,
+      _ => isDark ? AppColors.darkTextPrimary : Colors.grey.shade700,
+    };
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+      decoration: BoxDecoration(
+        color: bg,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: fg.withValues(alpha: 0.3)),
+      ),
+      child: Text(
+        status,
+        style: TextStyle(
+          fontSize: 10,
+          fontWeight: FontWeight.w600,
+          color: fg,
+        ),
+      ),
     );
   }
 

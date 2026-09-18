@@ -28,8 +28,8 @@ class DashboardRepository {
     String? dateFrom,
     String? dateTo,
     String? action,
-    String?
-    entityTypes, // Comma-separated, e.g. "student,document" for teacher view
+    String? entityTypes, // Comma-separated, e.g. "student,document" for teacher view
+    String? search,
   }) async {
     try {
       final options = await _getAuthOptions();
@@ -43,6 +43,7 @@ class DashboardRepository {
           if (action != null && action.isNotEmpty) 'action': action,
           if (entityTypes != null && entityTypes.isNotEmpty)
             'entity_types': entityTypes,
+          if (search != null && search.isNotEmpty) 'search': search,
         },
         options: options,
       );
