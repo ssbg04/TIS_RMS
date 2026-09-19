@@ -717,7 +717,7 @@ Files backup/restore - mirror mode or zip -->
 # Theme
 - default the theme to light mode, not based on device theme -->
 
-# DASHBOARD SCREEN
+<!-- # DASHBOARD SCREEN
 - document breakdown fix the overflowed
 - remove from the frontend user history and recent activities
 
@@ -735,7 +735,20 @@ Files backup/restore - mirror mode or zip -->
 - default the auto update enrollment turned off
 - add input for automatic archiving grace period
 - change password update label color not theme responsive
-- the danger zone is transparent fix it
+- the danger zone is transparent fix it -->
+
+# STUDENT SCREEN
+- add student button make the icon button more attractive
+- edit student modal 'x' button from left move to the right
+- student profile add little bit attrativeness on edit details and edit enrollment
+
+# DOCUMENTS AND ARCHIVES SCREEN
+- in grid view for folders, F:\SumbrerongBato\tis_rms_server\screenshots\folders.png check this screenshot check only folder icons copy that design the icon the label below it, then the two chip of JSH and SHS requirement are inside of the icon of folder
+- fix the multi select menu that didnt match width same as the list widget check this image F:\SumbrerongBato\tis_rms_server\screenshots\Screenshot 2026-09-19 163043.png
+
+# HISTORY SCREEN
+- "F:\SumbrerongBato\tis_rms_server\screenshots\Screenshot 2026-09-19 164307.png" fix this windows app cant list the widgets because and fix too overflow and cant list the widgets in android app F:\SumbrerongBato\tis_rms_server\screenshots\history.png
+
 
 ---
 

@@ -22,6 +22,7 @@ import '../../providers/conversion_provider.dart';
 import '../documents/widgets/bulk_operations_bar.dart';
 import '../documents/widgets/document_preview_modal.dart';
 import '../documents/widgets/file_folder_card.dart';
+import '../documents/widgets/styled_folder_icon.dart';
 import '../documents/widgets/print_queue_modal.dart';
 import '../documents/widgets/student_profile_modal.dart';
 import '../documents/widgets/download_guide_dialog.dart';
@@ -1794,12 +1795,15 @@ class _ArchivesScreenState extends ConsumerState<ArchivesScreen>
                               mainAxisAlignment: MainAxisAlignment.center,
                               mainAxisSize: MainAxisSize.min,
                               children: [
-                                Icon(
-                                  Icons.folder_special_rounded,
-                                  size: isMobile ? 48 : 56,
-                                  color: Colors.deepOrange,
+                                StyledFolderIcon(
+                                  jhsCompleted: folder.jhsCompleted,
+                                  jhsTotal: folder.jhsTotal,
+                                  shsCompleted: folder.shsCompleted,
+                                  shsTotal: folder.shsTotal,
+                                  isMobile: isMobile,
+                                  isArchived: true,
                                 ),
-                                SizedBox(height: isMobile ? 6 : 8),
+                                SizedBox(height: isMobile ? 8 : 10),
                                 Padding(
                                   padding: const EdgeInsets.symmetric(horizontal: 8),
                                   child: Text(

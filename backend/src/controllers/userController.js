@@ -537,7 +537,13 @@ exports.getUserHistory = (req, res) => {
 
         const where = conditions.length ? `WHERE ${conditions.join(' AND ')}` : '';
 
-        const total = db.prepare(`SELECT COUNT(*) as count FROM user_history h ${where}`).get(params).count;
+        const total = db.prepare(`
+            SELECT COUNT(*) as count 
+            FROM user_history h
+            LEFT JOIN users u ON h.performed_by = u.id
+            LEFT JOIN deleted_users_history dh ON h.performed_by = dh.deleted_user_id
+            ${where}
+        `).get(params).count;
 
         const rows = db.prepare(`
             SELECT

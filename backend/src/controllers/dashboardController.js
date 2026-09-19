@@ -223,7 +223,13 @@ exports.getRecentActivities = (req, res) => {
 
         const where = conditions.length ? `WHERE ${conditions.join(' AND ')}` : '';
 
-        const total = db.prepare(`SELECT COUNT(*) as count FROM activity_log a ${where}`).get(params).count;
+        const total = db.prepare(`
+            SELECT COUNT(*) as count 
+            FROM activity_log a
+            LEFT JOIN users u ON a.user_id = u.id
+            LEFT JOIN deleted_users_history dh ON a.user_id = dh.deleted_user_id
+            ${where}
+        `).get(params).count;
 
         const rows = db.prepare(`
             SELECT

@@ -1106,11 +1106,6 @@ class _EditStudentModalState extends ConsumerState<EditStudentModal> {
           appBar: AppBar(
             backgroundColor: AppColors.primaryGreen,
             iconTheme: const IconThemeData(color: Colors.white),
-            leading: IconButton(
-              onPressed: _confirmClose,
-              icon: const Icon(Icons.close),
-              tooltip: 'Close',
-            ),
             automaticallyImplyLeading: false,
             title: Text(
               'Edit Student: ${widget.student.fullName}',
@@ -1120,6 +1115,13 @@ class _EditStudentModalState extends ConsumerState<EditStudentModal> {
                 fontWeight: FontWeight.bold,
               ),
             ),
+            actions: [
+              IconButton(
+                onPressed: _confirmClose,
+                icon: const Icon(Icons.close),
+                tooltip: 'Close',
+              ),
+            ],
             bottom: TabBar(
               labelColor: Colors.white,
               unselectedLabelColor: Colors.white70,

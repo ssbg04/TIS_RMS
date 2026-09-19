@@ -189,56 +189,54 @@ class _AuditTrailScreenState extends ConsumerState<AuditTrailScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   // Row: Title and Refresh / Date Range Buttons
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            children: [
-                              Container(
-                                padding: const EdgeInsets.all(8),
-                                decoration: BoxDecoration(
-                                  color: AppColors.primaryGreen.withValues(alpha: 0.12),
-                                  borderRadius: BorderRadius.circular(10),
-                                ),
-                                child: const Icon(
-                                  Icons.manage_history_rounded,
-                                  color: AppColors.primaryGreen,
-                                  size: 24,
-                                ),
+                  if (isMobile)
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.all(8),
+                              decoration: BoxDecoration(
+                                color: AppColors.primaryGreen.withValues(alpha: 0.12),
+                                borderRadius: BorderRadius.circular(10),
                               ),
-                              const SizedBox(width: 12),
-                              Text(
+                              child: const Icon(
+                                Icons.manage_history_rounded,
+                                color: AppColors.primaryGreen,
+                                size: 22,
+                              ),
+                            ),
+                            const SizedBox(width: 10),
+                            Expanded(
+                              child: Text(
                                 'Audit Trail & History',
                                 style: TextStyle(
-                                  fontSize: isMobile ? 20 : 24,
+                                  fontSize: 18,
                                   fontWeight: FontWeight.bold,
                                   color: Theme.of(context).colorScheme.onSurface,
                                 ),
-                              ),
-                            ],
-                          ),
-                          if (!isMobile) ...[
-                            const SizedBox(height: 4),
-                            Text(
-                              'Track detailed operation history, student/document activities, and user events.',
-                              style: TextStyle(
-                                fontSize: 13,
-                                color: Theme.of(context)
-                                    .colorScheme
-                                    .onSurface
-                                    .withValues(alpha: 0.6),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
                               ),
                             ),
+                            IconButton(
+                              tooltip: 'Refresh',
+                              icon: const Icon(Icons.refresh_rounded),
+                              onPressed: () {
+                                if (_selectedTab == AuditTab.recentActivities) {
+                                  ref.invalidate(recentActivitiesPageProvider);
+                                } else {
+                                  ref.invalidate(userHistoryPageProvider);
+                                }
+                              },
+                            ),
                           ],
-                        ],
-                      ),
-                      Row(
-                        children: [
-                          // Date Range Filter Button
-                          OutlinedButton.icon(
+                        ),
+                        const SizedBox(height: 8),
+                        SizedBox(
+                          width: double.infinity,
+                          child: OutlinedButton.icon(
                             onPressed: () => _pickDateRange(context),
                             icon: Icon(
                               Icons.calendar_today_rounded,
@@ -278,23 +276,114 @@ class _AuditTrailScreenState extends ConsumerState<AuditTrailScreen> {
                               ),
                             ),
                           ),
-                          const SizedBox(width: 8),
-                          // Refresh Button
-                          IconButton(
-                            tooltip: 'Refresh',
-                            icon: const Icon(Icons.refresh_rounded),
-                            onPressed: () {
-                              if (_selectedTab == AuditTab.recentActivities) {
-                                ref.invalidate(recentActivitiesPageProvider);
-                              } else {
-                                ref.invalidate(userHistoryPageProvider);
-                              }
-                            },
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
+                        ),
+                      ],
+                    )
+                  else
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                Container(
+                                  padding: const EdgeInsets.all(8),
+                                  decoration: BoxDecoration(
+                                    color: AppColors.primaryGreen.withValues(alpha: 0.12),
+                                    borderRadius: BorderRadius.circular(10),
+                                  ),
+                                  child: const Icon(
+                                    Icons.manage_history_rounded,
+                                    color: AppColors.primaryGreen,
+                                    size: 24,
+                                  ),
+                                ),
+                                const SizedBox(width: 12),
+                                Text(
+                                  'Audit Trail & History',
+                                  style: TextStyle(
+                                    fontSize: 24,
+                                    fontWeight: FontWeight.bold,
+                                    color: Theme.of(context).colorScheme.onSurface,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              'Track detailed operation history, student/document activities, and user events.',
+                              style: TextStyle(
+                                fontSize: 13,
+                                color: Theme.of(context)
+                                    .colorScheme
+                                    .onSurface
+                                    .withValues(alpha: 0.6),
+                              ),
+                            ),
+                          ],
+                        ),
+                        Row(
+                          children: [
+                            // Date Range Filter Button
+                            OutlinedButton.icon(
+                              onPressed: () => _pickDateRange(context),
+                              icon: Icon(
+                                Icons.calendar_today_rounded,
+                                size: 16,
+                                color: (_fromDate != null || _toDate != null)
+                                    ? AppColors.primaryGreen
+                                    : null,
+                              ),
+                              label: Text(
+                                _fromDate != null && _toDate != null
+                                    ? '${_fromDate!.month}/${_fromDate!.day} - ${_toDate!.month}/${_toDate!.day}'
+                                    : (_fromDate != null
+                                        ? 'From ${_fromDate!.month}/${_fromDate!.day}'
+                                        : 'Date Range'),
+                                style: TextStyle(
+                                  fontSize: 13,
+                                  fontWeight: (_fromDate != null || _toDate != null)
+                                      ? FontWeight.bold
+                                      : FontWeight.normal,
+                                  color: (_fromDate != null || _toDate != null)
+                                      ? AppColors.primaryGreen
+                                      : null,
+                                ),
+                              ),
+                              style: OutlinedButton.styleFrom(
+                                side: BorderSide(
+                                  color: (_fromDate != null || _toDate != null)
+                                      ? AppColors.primaryGreen
+                                      : Theme.of(context).dividerColor,
+                                ),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(10),
+                                ),
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 14,
+                                  vertical: 10,
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            // Refresh Button
+                            IconButton(
+                              tooltip: 'Refresh',
+                              icon: const Icon(Icons.refresh_rounded),
+                              onPressed: () {
+                                if (_selectedTab == AuditTab.recentActivities) {
+                                  ref.invalidate(recentActivitiesPageProvider);
+                                } else {
+                                  ref.invalidate(userHistoryPageProvider);
+                                }
+                              },
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
                   const SizedBox(height: 16),
 
                   // Tab switcher (Recent Activities vs User History)
@@ -409,8 +498,10 @@ class _AuditTrailScreenState extends ConsumerState<AuditTrailScreen> {
                       ),
 
                       // Action filter chips: All, Add, Update, Archive, Delete
-                      Row(
-                        mainAxisSize: MainAxisSize.min,
+                      SingleChildScrollView(
+                        scrollDirection: Axis.horizontal,
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
                         children: _actionFilters.map((actionName) {
                           final isSelected = currentActionFilter.toLowerCase() ==
                                   actionName.toLowerCase() ||
@@ -472,6 +563,7 @@ class _AuditTrailScreenState extends ConsumerState<AuditTrailScreen> {
                           );
                         }).toList(),
                       ),
+                    ),
 
                       // Clear filters button
                       if (hasActiveFilters)
@@ -804,7 +896,10 @@ class _AuditTrailScreenState extends ConsumerState<AuditTrailScreen> {
             ),
             // Pagination Footer
             Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              padding: EdgeInsets.symmetric(
+                horizontal: isMobile ? 12 : 20,
+                vertical: isMobile ? 8 : 12,
+              ),
               decoration: BoxDecoration(
                 color: Theme.of(context).colorScheme.surface,
                 border: Border(
@@ -813,28 +908,63 @@ class _AuditTrailScreenState extends ConsumerState<AuditTrailScreen> {
                   ),
                 ),
               ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    'Total: ${data.total} activities',
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: Theme.of(context)
-                          .colorScheme
-                          .onSurface
-                          .withValues(alpha: 0.6),
+              child: isMobile
+                  ? Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        if (data.totalPages > 1)
+                          AppPagination(
+                            currentPage: data.page,
+                            totalPages: data.totalPages,
+                            onPageChanged: (newPage) {
+                              ref
+                                  .read(activityQueryProvider.notifier)
+                                  .setPage(newPage);
+                            },
+                          ),
+                        const SizedBox(height: 4),
+                        Text(
+                          'Total: ${data.total} activities',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: Theme.of(context)
+                                .colorScheme
+                                .onSurface
+                                .withValues(alpha: 0.6),
+                          ),
+                        ),
+                      ],
+                    )
+                  : Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          'Total: ${data.total} activities',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: Theme.of(context)
+                                .colorScheme
+                                .onSurface
+                                .withValues(alpha: 0.6),
+                          ),
+                        ),
+                        if (data.totalPages > 1)
+                          Expanded(
+                            child: Align(
+                              alignment: Alignment.centerRight,
+                              child: AppPagination(
+                                currentPage: data.page,
+                                totalPages: data.totalPages,
+                                onPageChanged: (newPage) {
+                                  ref
+                                      .read(activityQueryProvider.notifier)
+                                      .setPage(newPage);
+                                },
+                              ),
+                            ),
+                          ),
+                      ],
                     ),
-                  ),
-                  AppPagination(
-                    currentPage: data.page,
-                    totalPages: data.totalPages,
-                    onPageChanged: (newPage) {
-                      ref.read(activityQueryProvider.notifier).setPage(newPage);
-                    },
-                  ),
-                ],
-              ),
             ),
           ],
         );
@@ -1093,7 +1223,10 @@ class _AuditTrailScreenState extends ConsumerState<AuditTrailScreen> {
             ),
             // Pagination Footer
             Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              padding: EdgeInsets.symmetric(
+                horizontal: isMobile ? 12 : 20,
+                vertical: isMobile ? 8 : 12,
+              ),
               decoration: BoxDecoration(
                 color: Theme.of(context).colorScheme.surface,
                 border: Border(
@@ -1102,28 +1235,63 @@ class _AuditTrailScreenState extends ConsumerState<AuditTrailScreen> {
                   ),
                 ),
               ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    'Total: ${data.total} entries',
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: Theme.of(context)
-                          .colorScheme
-                          .onSurface
-                          .withValues(alpha: 0.6),
+              child: isMobile
+                  ? Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        if (data.totalPages > 1)
+                          AppPagination(
+                            currentPage: data.page,
+                            totalPages: data.totalPages,
+                            onPageChanged: (newPage) {
+                              ref
+                                  .read(userHistoryQueryProvider.notifier)
+                                  .setPage(newPage);
+                            },
+                          ),
+                        const SizedBox(height: 4),
+                        Text(
+                          'Total: ${data.total} entries',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: Theme.of(context)
+                                .colorScheme
+                                .onSurface
+                                .withValues(alpha: 0.6),
+                          ),
+                        ),
+                      ],
+                    )
+                  : Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          'Total: ${data.total} entries',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: Theme.of(context)
+                                .colorScheme
+                                .onSurface
+                                .withValues(alpha: 0.6),
+                          ),
+                        ),
+                        if (data.totalPages > 1)
+                          Expanded(
+                            child: Align(
+                              alignment: Alignment.centerRight,
+                              child: AppPagination(
+                                currentPage: data.page,
+                                totalPages: data.totalPages,
+                                onPageChanged: (newPage) {
+                                  ref
+                                      .read(userHistoryQueryProvider.notifier)
+                                      .setPage(newPage);
+                                },
+                              ),
+                            ),
+                          ),
+                      ],
                     ),
-                  ),
-                  AppPagination(
-                    currentPage: data.page,
-                    totalPages: data.totalPages,
-                    onPageChanged: (newPage) {
-                      ref.read(userHistoryQueryProvider.notifier).setPage(newPage);
-                    },
-                  ),
-                ],
-              ),
             ),
           ],
         );

@@ -44,7 +44,7 @@ class BulkOperationsBar extends StatelessWidget {
     return Container(
       height: 52,
       margin: EdgeInsets.symmetric(
-        horizontal: isMobile ? 12 : 20,
+        horizontal: isMobile ? 12 : 16,
         vertical: 8,
       ),
       padding: const EdgeInsets.symmetric(horizontal: 6),

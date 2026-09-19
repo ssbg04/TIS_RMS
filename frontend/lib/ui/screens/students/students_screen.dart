@@ -1186,20 +1186,58 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
                 ),
               ),
               if (widget.userRole != 'teacher') ...[
-                const SizedBox(width: 4),
+                const SizedBox(width: 6),
                 Tooltip(
                   message: 'Add Student',
-                  child: IconButton(
-                    style: IconButton.styleFrom(
-                      backgroundColor: Colors.transparent,
-                      side: BorderSide.none,
-                      shadowColor: Colors.transparent,
+                  child: Container(
+                    decoration: BoxDecoration(
+                      gradient: const LinearGradient(
+                        colors: [AppColors.primaryGreen, AppColors.darkGreen],
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                      ),
+                      borderRadius: BorderRadius.circular(10),
+                      boxShadow: [
+                        BoxShadow(
+                          color: AppColors.primaryGreen.withValues(alpha: 0.35),
+                          blurRadius: 6,
+                          offset: const Offset(0, 2),
+                        ),
+                      ],
                     ),
-                    onPressed: () => _openModal(),
-                    icon: const Icon(
-                      Icons.person_add_rounded,
-                      size: 24,
-                      color: AppColors.primaryGreen,
+                    child: Material(
+                      color: Colors.transparent,
+                      child: InkWell(
+                        onTap: () => _openModal(),
+                        borderRadius: BorderRadius.circular(10),
+                        child: Padding(
+                          padding: EdgeInsets.symmetric(
+                            horizontal: isDesktop ? 12 : 8,
+                            vertical: 7,
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              const Icon(
+                                Icons.person_add_rounded,
+                                size: 19,
+                                color: Colors.white,
+                              ),
+                              if (isDesktop) ...[
+                                const SizedBox(width: 6),
+                                const Text(
+                                  'Add Student',
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ],
+                            ],
+                          ),
+                        ),
+                      ),
                     ),
                   ),
                 ),

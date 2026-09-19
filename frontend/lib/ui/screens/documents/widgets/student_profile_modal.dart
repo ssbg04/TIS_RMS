@@ -395,24 +395,49 @@ class StudentProfileModalBody extends ConsumerWidget {
                 if (onEditEnrollment != null && userRole != 'teacher')
                   Tooltip(
                     message: 'Manage or Add Enrollments',
-                    child: TextButton.icon(
-                      onPressed: onEditEnrollment,
-                      icon: const Icon(Icons.edit_calendar_outlined, size: 15, color: AppColors.primaryGreen),
-                      label: const Text(
-                        'Edit Enrollment',
-                        style: TextStyle(
-                          color: AppColors.primaryGreen,
-                          fontSize: 12,
-                          fontWeight: FontWeight.w600,
+                    child: InkWell(
+                      onTap: onEditEnrollment,
+                      borderRadius: BorderRadius.circular(20),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                        decoration: BoxDecoration(
+                          color: AppColors.primaryGreen.withValues(alpha: isDark ? 0.20 : 0.10),
+                          borderRadius: BorderRadius.circular(20),
+                          border: Border.all(
+                            color: AppColors.primaryGreen.withValues(alpha: isDark ? 0.45 : 0.35),
+                            width: 1,
+                          ),
+                          boxShadow: [
+                            BoxShadow(
+                              color: AppColors.primaryGreen.withValues(alpha: 0.08),
+                              blurRadius: 4,
+                              offset: const Offset(0, 1),
+                            ),
+                          ],
                         ),
-                      ),
-                      style: TextButton.styleFrom(
-                        foregroundColor: AppColors.primaryGreen,
-                        backgroundColor: AppColors.primaryGreen.withValues(alpha: 0.08),
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                        minimumSize: Size.zero,
-                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.all(3),
+                              decoration: BoxDecoration(
+                                color: AppColors.primaryGreen.withValues(alpha: 0.15),
+                                shape: BoxShape.circle,
+                              ),
+                              child: const Icon(Icons.edit_calendar_rounded, size: 12, color: AppColors.primaryGreen),
+                            ),
+                            const SizedBox(width: 5),
+                            const Text(
+                              'Edit Enrollment',
+                              style: TextStyle(
+                                color: AppColors.primaryGreen,
+                                fontSize: 12,
+                                fontWeight: FontWeight.w700,
+                                letterSpacing: 0.2,
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
                     ),
                   ),
@@ -574,24 +599,49 @@ class StudentProfileModalBody extends ConsumerWidget {
                   const SizedBox(height: 10),
                   SizedBox(
                     width: double.infinity,
-                    child: TextButton.icon(
-                      onPressed: onEditDetails,
-                      icon: const Icon(Icons.edit_outlined, size: 14, color: AppColors.primaryGreen),
-                      label: const Text(
-                        'Edit Details',
-                        style: TextStyle(
-                          color: AppColors.primaryGreen,
-                          fontSize: 12,
-                          fontWeight: FontWeight.w600,
+                    child: InkWell(
+                      onTap: onEditDetails,
+                      borderRadius: BorderRadius.circular(10),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(vertical: 8),
+                        decoration: BoxDecoration(
+                          color: AppColors.primaryGreen.withValues(alpha: isDark ? 0.20 : 0.10),
+                          borderRadius: BorderRadius.circular(10),
+                          border: Border.all(
+                            color: AppColors.primaryGreen.withValues(alpha: isDark ? 0.45 : 0.35),
+                            width: 1,
+                          ),
+                          boxShadow: [
+                            BoxShadow(
+                              color: AppColors.primaryGreen.withValues(alpha: 0.08),
+                              blurRadius: 4,
+                              offset: const Offset(0, 1),
+                            ),
+                          ],
                         ),
-                      ),
-                      style: TextButton.styleFrom(
-                        foregroundColor: AppColors.primaryGreen,
-                        backgroundColor: AppColors.primaryGreen.withValues(alpha: 0.08),
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                        minimumSize: Size.zero,
-                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.all(3.5),
+                              decoration: BoxDecoration(
+                                color: AppColors.primaryGreen.withValues(alpha: 0.15),
+                                shape: BoxShape.circle,
+                              ),
+                              child: const Icon(Icons.edit_rounded, size: 13, color: AppColors.primaryGreen),
+                            ),
+                            const SizedBox(width: 6),
+                            const Text(
+                              'Edit Details',
+                              style: TextStyle(
+                                color: AppColors.primaryGreen,
+                                fontSize: 12.5,
+                                fontWeight: FontWeight.w700,
+                                letterSpacing: 0.2,
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
                     ),
                   ),
@@ -643,24 +693,49 @@ class StudentProfileModalBody extends ConsumerWidget {
                           const SizedBox(height: 6),
                           Tooltip(
                             message: 'Edit Student Details',
-                            child: TextButton.icon(
-                              onPressed: onEditDetails,
-                              icon: const Icon(Icons.edit_outlined, size: 14, color: AppColors.primaryGreen),
-                              label: const Text(
-                                'Edit Details',
-                                style: TextStyle(
-                                  color: AppColors.primaryGreen,
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.w600,
+                            child: InkWell(
+                              onTap: onEditDetails,
+                              borderRadius: BorderRadius.circular(20),
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                                decoration: BoxDecoration(
+                                  color: AppColors.primaryGreen.withValues(alpha: isDark ? 0.20 : 0.10),
+                                  borderRadius: BorderRadius.circular(20),
+                                  border: Border.all(
+                                    color: AppColors.primaryGreen.withValues(alpha: isDark ? 0.45 : 0.35),
+                                    width: 1,
+                                  ),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: AppColors.primaryGreen.withValues(alpha: 0.08),
+                                      blurRadius: 4,
+                                      offset: const Offset(0, 1),
+                                    ),
+                                  ],
                                 ),
-                              ),
-                              style: TextButton.styleFrom(
-                                foregroundColor: AppColors.primaryGreen,
-                                backgroundColor: AppColors.primaryGreen.withValues(alpha: 0.08),
-                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                                minimumSize: Size.zero,
-                                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Container(
+                                      padding: const EdgeInsets.all(3),
+                                      decoration: BoxDecoration(
+                                        color: AppColors.primaryGreen.withValues(alpha: 0.15),
+                                        shape: BoxShape.circle,
+                                      ),
+                                      child: const Icon(Icons.edit_rounded, size: 12, color: AppColors.primaryGreen),
+                                    ),
+                                    const SizedBox(width: 5),
+                                    const Text(
+                                      'Edit Details',
+                                      style: TextStyle(
+                                        color: AppColors.primaryGreen,
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.w700,
+                                        letterSpacing: 0.2,
+                                      ),
+                                    ),
+                                  ],
+                                ),
                               ),
                             ),
                           ),
@@ -806,39 +881,82 @@ class StudentProfileModalBody extends ConsumerWidget {
       decoration: BoxDecoration(
         color: isDark ? AppColors.darkSurfaceCard : AppColors.surfaceWhite,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: isDark ? AppColors.darkBorder : Colors.grey.shade200),
+        border: Border.all(
+          color: isDark ? AppColors.darkBorder : Colors.grey.shade200,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.02),
+            blurRadius: 4,
+            offset: const Offset(0, 1),
+          ),
+        ],
       ),
       child: Row(
         children: [
           Container(
-            width: 40,
-            height: 40,
+            width: 42,
+            height: 42,
             decoration: BoxDecoration(
-              color: Colors.blue.withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(8),
+              gradient: LinearGradient(
+                colors: [
+                  Colors.blue.shade400.withValues(alpha: 0.2),
+                  Colors.blue.shade700.withValues(alpha: 0.1),
+                ],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(color: Colors.blue.withValues(alpha: 0.25)),
             ),
-            child: const Icon(Icons.school, color: Colors.blue, size: 20),
+            child: const Icon(Icons.school_rounded, color: Colors.blue, size: 22),
           ),
           const SizedBox(width: 12),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  'Grade ${enrollment.gradeLevel}',
-                  style: TextStyle(
-                    fontWeight: FontWeight.w600,
-                    color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
-                  ),
+                Row(
+                  children: [
+                    Text(
+                      'Grade ${enrollment.gradeLevel}',
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 14,
+                        color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
+                      ),
+                    ),
+                    if (enrollment.status != null) ...[
+                      const SizedBox(width: 6),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1.5),
+                        decoration: BoxDecoration(
+                          color: AppColors.primaryGreen.withValues(alpha: 0.12),
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                        child: Text(
+                          enrollment.status.toString(),
+                          style: const TextStyle(
+                            fontSize: 10,
+                            fontWeight: FontWeight.w600,
+                            color: AppColors.primaryGreen,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ],
                 ),
+                const SizedBox(height: 2),
                 Text(
                   '${enrollment.sectionName ?? '-'} · ${enrollment.yearRange ?? '-'}',
                   style: TextStyle(
                     color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
                     fontSize: 12,
+                    fontWeight: FontWeight.w500,
                   ),
                 ),
-                if (enrollment.trackStrand != null)
+                if (enrollment.trackStrand != null && enrollment.trackStrand.toString().isNotEmpty) ...[
+                  const SizedBox(height: 2),
                   Text(
                     'Track: ${enrollment.trackStrand}',
                     style: TextStyle(
@@ -846,9 +964,17 @@ class StudentProfileModalBody extends ConsumerWidget {
                       fontSize: 11,
                     ),
                   ),
+                ],
               ],
             ),
           ),
+          if (onEditEnrollment != null && userRole != 'teacher')
+            IconButton(
+              icon: const Icon(Icons.edit_outlined, size: 18),
+              color: AppColors.primaryGreen,
+              tooltip: 'Edit Enrollment',
+              onPressed: onEditEnrollment,
+            ),
         ],
       ),
     );

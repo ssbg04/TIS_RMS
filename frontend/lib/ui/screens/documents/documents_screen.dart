@@ -30,6 +30,7 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'widgets/recycle_bin_modal.dart';
 import 'widgets/student_archives_modal.dart';
 import 'widgets/bulk_operations_bar.dart';
+import 'widgets/styled_folder_icon.dart';
 import '../../../domain/entities/document_model.dart';
 
 class DocumentsScreen extends ConsumerStatefulWidget {
@@ -1993,12 +1994,14 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
                               mainAxisAlignment: MainAxisAlignment.center,
                               mainAxisSize: MainAxisSize.min,
                               children: [
-                                Icon(
-                                  Icons.folder_rounded,
-                                  size: isMobile ? 48 : 56,
-                                  color: Colors.orange,
+                                StyledFolderIcon(
+                                  jhsCompleted: folder.jhsCompleted,
+                                  jhsTotal: folder.jhsTotal,
+                                  shsCompleted: folder.shsCompleted,
+                                  shsTotal: folder.shsTotal,
+                                  isMobile: isMobile,
                                 ),
-                                SizedBox(height: isMobile ? 6 : 8),
+                                SizedBox(height: isMobile ? 8 : 10),
                                 Padding(
                                   padding: const EdgeInsets.symmetric(horizontal: 8),
                                   child: Text(
