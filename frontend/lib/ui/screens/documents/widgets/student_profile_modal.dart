@@ -926,24 +926,6 @@ class StudentProfileModalBody extends ConsumerWidget {
                         color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
                       ),
                     ),
-                    if (enrollment.status != null) ...[
-                      const SizedBox(width: 6),
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1.5),
-                        decoration: BoxDecoration(
-                          color: AppColors.primaryGreen.withValues(alpha: 0.12),
-                          borderRadius: BorderRadius.circular(4),
-                        ),
-                        child: Text(
-                          enrollment.status.toString(),
-                          style: const TextStyle(
-                            fontSize: 10,
-                            fontWeight: FontWeight.w600,
-                            color: AppColors.primaryGreen,
-                          ),
-                        ),
-                      ),
-                    ],
                   ],
                 ),
                 const SizedBox(height: 2),

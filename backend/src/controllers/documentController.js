@@ -216,17 +216,40 @@ exports.uploadDocument = (req, res) => {
         const fileSize = file.size || (file.path && fs.existsSync(file.path) ? fs.statSync(file.path).size : null);
 
         const result = db.prepare(`
-            INSERT INTO documents (student_id, requirement_id, file_name, file_path, document_type, status, uploaded_by, file_size)
-            VALUES (?, ?, ?, ?, ?, 'Completed', ?, ?)
-        `).run(studentId, reqId, file.originalname, file.path, documentType, req.user.id, fileSize);
+            INSERT INTO documents (student_id, requirement_id, file_name, file_path, document_type, status, uploaded_by, file_size, template_id, template_version_id)
+            VALUES (?, ?, ?, ?, ?, 'Completed', ?, ?, ?, ?)
+        `).run(
+            studentId, reqId, file.originalname, file.path, documentType,
+            req.user.id, fileSize,
+            req.body.templateId ?? null,
+            req.body.templateVersionId ?? null
+        );
+
+        const docId = result.lastInsertRowid;
+
+        // Auto-seed Version 1
+        try {
+            db.prepare(`
+                INSERT INTO document_versions
+                    (document_id, version_number, file_name, file_path, file_size, template_id, template_version_id, uploaded_by)
+                VALUES (?, 1, ?, ?, ?, ?, ?, ?)
+            `).run(
+                docId, file.originalname, file.path, fileSize,
+                req.body.templateId ?? null,
+                req.body.templateVersionId ?? null,
+                req.user.id
+            );
+        } catch (verErr) {
+            console.error('[uploadDocument] Failed to seed document_versions:', verErr.message);
+        }
 
         // Log activity
         const student = db.prepare('SELECT first_name, last_name FROM students WHERE id = ?').get(studentId);
         const studentName = student ? `${student.first_name} ${student.last_name}` : `Student #${studentId}`;
-        logActivity(req.user.id, 'CREATE', 'document', result.lastInsertRowid,
+        logActivity(req.user.id, 'CREATE', 'document', docId,
             `Uploaded "${file.originalname}" (${documentType}) for ${studentName}`);
 
-        createNotification(null, 'Document Uploaded', `Document "${file.originalname}" (${documentType}) has been uploaded for ${studentName}.`, 'document', 'document', result.lastInsertRowid);
+        createNotification(null, 'Document Uploaded', `Document "${file.originalname}" (${documentType}) has been uploaded for ${studentName}.`, 'document', 'document', docId);
 
         // Check auto-enrollment update if document is SF10 or SF9
         try {
@@ -242,7 +265,7 @@ exports.uploadDocument = (req, res) => {
             console.error('[uploadDocument] autoEnrollFromSF trigger error:', sfErr.message);
         }
 
-        res.status(201).json({ id: result.lastInsertRowid, message: 'Document uploaded successfully' });
+        res.status(201).json({ id: docId, message: 'Document uploaded successfully' });
     } catch (error) {
         console.error('Upload Error:', error);
         res.status(500).json({ message: 'Failed to upload document', error: error.message });
@@ -1486,3 +1509,145 @@ exports.sendPrintPickupNotification = async (req, res) => {
     }
 };
 
+// ============================================================
+// GET /api/documents/:id/versions — list all versions
+// ============================================================
+exports.getDocumentVersions = (req, res) => {
+    try {
+        const doc = db.prepare('SELECT id, student_id FROM documents WHERE id = ? AND deleted_at IS NULL').get(req.params.id);
+        if (!doc) return res.status(404).json({ message: 'Document not found' });
+
+        const isTeacher = req.user?.role?.toLowerCase() === 'teacher';
+        if (isTeacher) {
+            const hasAccess = db.prepare(`
+                SELECT 1 FROM enrollments e
+                JOIN teacher_sections ts ON e.section_id = ts.section_id
+                WHERE e.student_id = ? AND ts.teacher_id = ?
+            `).get(doc.student_id, req.user.id);
+            if (!hasAccess) return res.status(403).json({ message: 'Access denied.' });
+        }
+
+        const versions = db.prepare(`
+            SELECT dv.id, dv.version_number, dv.file_name, dv.file_size, dv.notes,
+                   dv.uploaded_by, dv.created_at,
+                   u.first_name || ' ' || u.last_name AS uploaded_by_name,
+                   dv.template_id, dv.template_version_id,
+                   tv.version_number AS template_version_number,
+                   dt.name AS template_name
+            FROM document_versions dv
+            LEFT JOIN users u ON dv.uploaded_by = u.id
+            LEFT JOIN template_versions tv ON dv.template_version_id = tv.id
+            LEFT JOIN document_templates dt ON dv.template_id = dt.id
+            WHERE dv.document_id = ?
+            ORDER BY dv.version_number DESC
+        `).all(req.params.id);
+
+        res.json(versions);
+    } catch (error) {
+        console.error('getDocumentVersions error:', error);
+        res.status(500).json({ message: 'Failed to fetch document versions', error: error.message });
+    }
+};
+
+// ============================================================
+// POST /api/documents/:id/upload-version — upload a new version
+// ============================================================
+exports.uploadDocumentVersion = (req, res) => {
+    const file = req.file;
+    if (!file) return res.status(400).json({ message: 'No file uploaded' });
+
+    try {
+        const doc = db.prepare('SELECT id, student_id, document_type, requirement_id FROM documents WHERE id = ? AND deleted_at IS NULL').get(req.params.id);
+        if (!doc) {
+            if (fs.existsSync(file.path)) fs.unlinkSync(file.path);
+            return res.status(404).json({ message: 'Document not found' });
+        }
+
+        const isTeacher = req.user?.role?.toLowerCase() === 'teacher';
+        if (isTeacher) {
+            const hasAccess = db.prepare(`
+                SELECT 1 FROM enrollments e
+                JOIN teacher_sections ts ON e.section_id = ts.section_id
+                WHERE e.student_id = ? AND ts.teacher_id = ?
+            `).get(doc.student_id, req.user.id);
+            if (!hasAccess) {
+                if (fs.existsSync(file.path)) fs.unlinkSync(file.path);
+                return res.status(403).json({ message: 'Access denied.' });
+            }
+        }
+
+        const lastVersion = db.prepare(
+            'SELECT MAX(version_number) AS max_v FROM document_versions WHERE document_id = ?'
+        ).get(req.params.id);
+        const nextVersion = (lastVersion?.max_v ?? 0) + 1;
+
+        const fileSize = file.size || (fs.existsSync(file.path) ? fs.statSync(file.path).size : null);
+        const notes = req.body.notes ?? null;
+
+        db.prepare(`
+            INSERT INTO document_versions
+                (document_id, version_number, file_name, file_path, file_size, uploaded_by, notes, template_id, template_version_id)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        `).run(
+            req.params.id, nextVersion, file.originalname, file.path, fileSize,
+            req.user.id, notes,
+            req.body.templateId ?? null,
+            req.body.templateVersionId ?? null
+        );
+
+        // Update document header: file_name + file_path always reflect latest version
+        db.prepare(`
+            UPDATE documents SET file_name = ?, file_path = ?, file_size = ?,
+                template_id = COALESCE(?, template_id),
+                template_version_id = COALESCE(?, template_version_id)
+            WHERE id = ?
+        `).run(
+            file.originalname, file.path, fileSize,
+            req.body.templateId ?? null,
+            req.body.templateVersionId ?? null,
+            req.params.id
+        );
+
+        logActivity(req.user.id, 'UPDATE', 'document', req.params.id,
+            `Uploaded version ${nextVersion} for document id ${req.params.id}`);
+
+        res.status(201).json({ message: `Version ${nextVersion} uploaded successfully`, version_number: nextVersion });
+    } catch (error) {
+        console.error('uploadDocumentVersion error:', error);
+        if (file && fs.existsSync(file.path)) fs.unlinkSync(file.path);
+        res.status(500).json({ message: 'Failed to upload document version', error: error.message });
+    }
+};
+
+// ============================================================
+// GET /api/documents/:id/download — download latest version file
+// ============================================================
+exports.downloadDocumentVersion = (req, res) => {
+    try {
+        const { versionId } = req.query;
+        let filePath, fileName;
+
+        if (versionId) {
+            const ver = db.prepare(`
+                SELECT dv.file_path, dv.file_name, d.student_id
+                FROM document_versions dv
+                JOIN documents d ON dv.document_id = d.id
+                WHERE dv.id = ? AND dv.document_id = ?
+            `).get(versionId, req.params.id);
+            if (!ver) return res.status(404).json({ message: 'Version not found' });
+            filePath = ver.file_path;
+            fileName = ver.file_name;
+        } else {
+            const doc = db.prepare('SELECT file_path, file_name FROM documents WHERE id = ? AND deleted_at IS NULL').get(req.params.id);
+            if (!doc) return res.status(404).json({ message: 'Document not found' });
+            filePath = doc.file_path;
+            fileName = doc.file_name;
+        }
+
+        if (!fs.existsSync(filePath)) return res.status(404).json({ message: 'File not found on disk' });
+        res.download(path.resolve(filePath), fileName);
+    } catch (error) {
+        console.error('downloadDocumentVersion error:', error);
+        res.status(500).json({ message: 'Failed to download document version', error: error.message });
+    }
+};

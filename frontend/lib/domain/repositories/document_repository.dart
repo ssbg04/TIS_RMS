@@ -5,6 +5,7 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import '../../core/network/api_constants.dart';
 import '../entities/document_model.dart';
 import '../entities/document_requirement_model.dart';
+import '../entities/document_version_model.dart';
 import '../entities/folder_model.dart';
 
 class DocumentPage {
@@ -883,5 +884,74 @@ class DocumentRepository {
       throw Exception(msg);
     }
   }
-}
 
+  // ── Document Version methods ────────────────────────────────────────────
+
+  /// Returns all versions for a document, newest first.
+  Future<List<DocumentVersionModel>> getDocumentVersions(int documentId) async {
+    try {
+      final options = await _getAuthOptions();
+      final response = await _dio.get(
+        '/documents/$documentId/versions',
+        options: options,
+      );
+      return (response.data as List)
+          .map((j) => DocumentVersionModel.fromJson(j as Map<String, dynamic>))
+          .toList();
+    } on DioException catch (e) {
+      final msg = e.response?.data?['message'] ?? 'Failed to fetch versions.';
+      throw Exception(msg);
+    }
+  }
+
+  /// Uploads a new version file for an existing document.
+  Future<int> uploadDocumentVersion(
+    int documentId,
+    String filePath, {
+    String? notes,
+    void Function(int, int)? onSendProgress,
+  }) async {
+    try {
+      final options = await _getAuthOptions();
+      final fileName = filePath.split(RegExp(r'[\\/]')).last;
+      final formData = FormData.fromMap({
+        'document': await MultipartFile.fromFile(filePath, filename: fileName),
+        if (notes != null) 'notes': notes,
+      });
+      final response = await _dio.post(
+        '/documents/$documentId/upload-version',
+        data: formData,
+        options: options,
+        onSendProgress: onSendProgress,
+      );
+      return (response.data['version_number'] as num).toInt();
+    } on DioException catch (e) {
+      final msg = e.response?.data?['message'] ?? 'Failed to upload new version.';
+      throw Exception(msg);
+    }
+  }
+
+  /// Downloads a specific version (or latest if [versionId] is null) to [savePath].
+  Future<void> downloadDocumentVersion(
+    int documentId,
+    String savePath, {
+    int? versionId,
+    void Function(int, int)? onReceiveProgress,
+  }) async {
+    try {
+      final options = await _getAuthOptions();
+      final queryParams = <String, dynamic>{};
+      if (versionId != null) queryParams['versionId'] = versionId;
+      await _dio.download(
+        '/documents/$documentId/download',
+        savePath,
+        queryParameters: queryParams,
+        options: options,
+        onReceiveProgress: onReceiveProgress,
+      );
+    } on DioException catch (e) {
+      final msg = e.response?.data?['message'] ?? 'Failed to download version.';
+      throw Exception(msg);
+    }
+  }
+}

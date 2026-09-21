@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'package:dio/dio.dart';
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
@@ -11,6 +12,7 @@ import '../../../../core/constants/app_colors.dart';
 import '../../../../core/network/api_constants.dart';
 import '../../../../core/utils/download_service.dart';
 import '../../../../domain/entities/document_model.dart';
+import '../../../../domain/repositories/document_repository.dart';
 import '../../../providers/document_provider.dart';
 import '../../../providers/conversion_provider.dart';
 import '../../../providers/auth_provider.dart';
@@ -19,6 +21,7 @@ import '../../../shared/dialogs/success_dialog.dart';
 import '../../../shared/dialogs/document_properties_dialog.dart';
 import 'student_profile_modal.dart';
 import 'excel_viewer_widget.dart';
+import 'document_version_history_sheet.dart';
 
 /// Shows a fullscreen rich preview dialog for any document type:
 /// • Images (jpg/jpeg/png/gif/webp/bmp) → inline image with in-viewer zoom
@@ -67,6 +70,10 @@ class _DocumentPreviewDialogState
   bool _imageError = false;
   String? _token;
   bool _isOpeningExternal = false;
+  bool _isUploadingVersion = false;
+  File? _editTempFile; // Tracked for cleanup after edit-upload cycle
+
+  final _docRepo = DocumentRepository();
 
   final PdfViewerController _pdfViewerController = PdfViewerController();
   final TransformationController _imageTransformationController =
@@ -276,39 +283,49 @@ class _DocumentPreviewDialogState
   }
 
   Future<void> _openExternalExcel() async {
+    await _openInDefaultApp(openWith: false);
+  }
+
+  /// Open the file in the OS default app, or show the Windows "Open With" dialog.
+  Future<void> _openInDefaultApp({bool openWith = false}) async {
     if (_isOpeningExternal) return;
     setState(() => _isOpeningExternal = true);
     try {
+      String? filePath;
+
       if (widget.localFile != null) {
-        final path = widget.localFile!.path;
-        if (Platform.isWindows) {
-          await Process.run('cmd', ['/c', 'start', '""', path], runInShell: true);
-        } else {
-          final uri = Uri.file(path);
-          if (!await launchUrl(uri)) {
-            await launchUrl(uri, mode: LaunchMode.externalApplication);
-          }
+        filePath = widget.localFile!.path;
+      } else {
+        if (_token == null || widget.document == null) return;
+        final tempDir = await getTemporaryDirectory();
+        filePath = '${tempDir.path}${Platform.pathSeparator}$_fileName';
+        final file = File(filePath);
+        if (!await file.exists()) {
+          final dio = Dio();
+          await dio.download(_downloadUrl, filePath);
         }
-        return;
-      }
-
-      if (_token == null || widget.document == null) return;
-
-      final tempDir = await getTemporaryDirectory();
-      final tempFilePath = '${tempDir.path}${Platform.pathSeparator}$_fileName';
-      final file = File(tempFilePath);
-      
-      if (!await file.exists()) {
-        final dio = Dio();
-        await dio.download(_downloadUrl, tempFilePath);
       }
 
       if (Platform.isWindows) {
-        await Process.run('cmd', ['/c', 'start', '""', tempFilePath], runInShell: true);
+        if (openWith) {
+          // Show Windows "Open With" dialog
+          await Process.run(
+            'cmd',
+            ['/c', 'rundll32.exe', 'shell32.dll,OpenAs_RunDLL', filePath],
+            runInShell: true,
+          );
+        } else {
+          await Process.run(
+            'cmd',
+            ['/c', 'start', '""', filePath],
+            runInShell: true,
+          );
+        }
       } else {
-        final uri = Uri.file(tempFilePath);
-        if (!await launchUrl(uri)) {
-          await launchUrl(uri, mode: LaunchMode.externalApplication);
+        // Android / iOS — launchUrl with externalApplication shows OS app chooser
+        final uri = Uri.file(filePath);
+        if (!await launchUrl(uri, mode: LaunchMode.externalApplication)) {
+          throw Exception('Could not launch external application for this file.');
         }
       }
     } catch (e) {
@@ -318,6 +335,115 @@ class _DocumentPreviewDialogState
     } finally {
       if (mounted) setState(() => _isOpeningExternal = false);
     }
+  }
+
+  /// Download temp copy, open in default app, then prompt to upload as a new version.
+  Future<void> _editInExternalApp() async {
+    if (widget.document == null || _isOpeningExternal) return;
+    setState(() => _isOpeningExternal = true);
+    try {
+      final tempDir = await getTemporaryDirectory();
+      final tempPath = '${tempDir.path}${Platform.pathSeparator}$_fileName';
+      _editTempFile = File(tempPath);
+      if (!await _editTempFile!.exists()) {
+        final dio = Dio();
+        await dio.download(_downloadUrl, tempPath);
+      }
+
+      if (Platform.isWindows) {
+        await Process.run('cmd', ['/c', 'start', '""', tempPath], runInShell: true);
+      } else {
+        final uri = Uri.file(tempPath);
+        await launchUrl(uri, mode: LaunchMode.externalApplication);
+      }
+
+      // Prompt user to upload the edited file as a new version
+      if (!mounted) return;
+      final shouldUpload = await showDialog<bool>(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          title: const Row(
+            children: [
+              Icon(Icons.upload_file_rounded, color: AppColors.primaryGreen),
+              SizedBox(width: 8),
+              Text('Upload Edited Version?', style: TextStyle(fontSize: 16)),
+            ],
+          ),
+          content: const Text(
+            'Once you\'re done editing, you can upload the file as a new version. '
+            'Do you want to upload your changes now?',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: const Text('Later'),
+            ),
+            ElevatedButton.icon(
+              icon: const Icon(Icons.upload_rounded, size: 16),
+              label: const Text('Upload Now'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.primaryGreen,
+                foregroundColor: Colors.white,
+              ),
+              onPressed: () => Navigator.pop(ctx, true),
+            ),
+          ],
+        ),
+      );
+
+      if (shouldUpload == true && mounted) {
+        await _uploadNewVersion(prePickedPath: tempPath);
+      }
+    } catch (e) {
+      if (mounted) {
+        showErrorDialog(context, 'Edit Failed', e.toString());
+      }
+    } finally {
+      if (mounted) setState(() => _isOpeningExternal = false);
+    }
+  }
+
+  /// Pick a file (or use [prePickedPath]) and upload it as a new version.
+  Future<void> _uploadNewVersion({String? prePickedPath}) async {
+    if (widget.document == null) return;
+    String? filePath = prePickedPath;
+
+    if (filePath == null) {
+      final result = await FilePicker.pickFiles(
+        type: FileType.custom,
+        allowedExtensions: ['pdf', 'jpg', 'jpeg', 'png', 'xls', 'xlsx', 'doc', 'docx', 'csv'],
+        allowMultiple: false,
+      );
+      if (result == null || result.files.single.path == null) return;
+      filePath = result.files.single.path!;
+    }
+
+    if (!mounted) return;
+    setState(() => _isUploadingVersion = true);
+    try {
+      final nextVersion = await _docRepo.uploadDocumentVersion(
+        widget.document!.id,
+        filePath!,
+      );
+      // Invalidate provider so the documents list refreshes
+      ref.invalidate(documentPageProvider);
+      if (!mounted) return;
+      showSuccessDialog(
+        context,
+        message: 'Version $nextVersion uploaded successfully.',
+      );
+    } catch (e) {
+      if (!mounted) return;
+      showErrorDialog(context, 'Upload Failed', e.toString().replaceFirst('Exception: ', ''));
+    } finally {
+      if (mounted) setState(() => _isUploadingVersion = false);
+    }
+  }
+
+  void _showVersionHistory() {
+    if (widget.document == null) return;
+    showDocumentVersionHistory(context, document: widget.document!);
   }
 
   Future<void> _openInGoogleDocs() async {
@@ -382,16 +508,47 @@ class _DocumentPreviewDialogState
         isLoading: _isConverting,
       ));
     }
-    if (_isExcel) {
+    if (_isExcel || _isPdf || _isOffice || _isImage) {
+      // Open in default app
       directActions.add(_PreviewActionItem(
         id: 'open_external',
-        label: 'Open in External Viewer',
-        iconData: Icons.open_in_new,
+        label: 'Open',
+        iconData: Icons.open_in_new_rounded,
         onTap: _isOpeningExternal ? null : _openExternalExcel,
         isLoading: _isOpeningExternal,
       ));
+      // Open With (Windows chooser / Android chooser)
+      if (widget.document != null) {
+        directActions.add(_PreviewActionItem(
+          id: 'open_with',
+          label: 'Open With',
+          iconData: Icons.apps_rounded,
+          onTap: _isOpeningExternal ? null : () => _openInDefaultApp(openWith: true),
+          isLoading: _isOpeningExternal,
+        ));
+      }
     }
     if (widget.document != null) {
+      // Edit action for editable file types
+      if (_isExcel || _isOffice) {
+        directActions.add(_PreviewActionItem(
+          id: 'edit',
+          label: 'Edit',
+          iconData: Icons.edit_document,
+          onTap: (_isOpeningExternal || _isUploadingVersion) ? null : _editInExternalApp,
+          isLoading: _isOpeningExternal || _isUploadingVersion,
+          color: Colors.orange.shade700,
+        ));
+      }
+      // Upload New Version
+      directActions.add(_PreviewActionItem(
+        id: 'upload_version',
+        label: 'Upload New Version',
+        iconData: Icons.upload_file_rounded,
+        onTap: _isUploadingVersion ? null : _uploadNewVersion,
+        isLoading: _isUploadingVersion,
+        color: AppColors.primaryGreen,
+      ));
       directActions.add(_PreviewActionItem(
         id: 'print_list',
         label: 'Add to Print List',
@@ -403,6 +560,12 @@ class _DocumentPreviewDialogState
         label: 'Download',
         iconData: Icons.download_rounded,
         onTap: _downloadFile,
+      ));
+      directActions.add(_PreviewActionItem(
+        id: 'history',
+        label: 'Version History',
+        iconData: Icons.history_rounded,
+        onTap: _showVersionHistory,
       ));
       directActions.add(_PreviewActionItem(
         id: 'properties',

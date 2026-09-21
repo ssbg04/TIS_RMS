@@ -141,6 +141,48 @@ class _FileFolderCardState extends State<FileFolderCard> {
           ],
         ),
       ),
+      if (!_isMobileOrAndroid)
+        const PopupMenuItem(
+          value: 'open_with',
+          child: Row(
+            children: [
+              Icon(Icons.apps_rounded, size: 18),
+              SizedBox(width: 12),
+              Text('Open With', style: TextStyle(fontSize: 14)),
+            ],
+          ),
+        ),
+      if (_isExcel)
+        const PopupMenuItem(
+          value: 'edit',
+          child: Row(
+            children: [
+              Icon(Icons.edit_document, size: 18, color: Colors.orange),
+              SizedBox(width: 12),
+              Text('Edit', style: TextStyle(fontSize: 14, color: Colors.orange)),
+            ],
+          ),
+        ),
+      const PopupMenuItem(
+        value: 'upload_version',
+        child: Row(
+          children: [
+            Icon(Icons.upload_file_rounded, size: 18, color: AppColors.primaryGreen),
+            SizedBox(width: 12),
+            Text('Upload New Version', style: TextStyle(fontSize: 14)),
+          ],
+        ),
+      ),
+      const PopupMenuItem(
+        value: 'version_history',
+        child: Row(
+          children: [
+            Icon(Icons.history_rounded, size: 18),
+            SizedBox(width: 12),
+            Text('Version History', style: TextStyle(fontSize: 14)),
+          ],
+        ),
+      ),
       const PopupMenuDivider(),
       const PopupMenuItem(
         value: 'properties',

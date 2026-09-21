@@ -23,6 +23,7 @@ import 'widgets/upload_ocr_modal.dart';
 import 'widgets/print_queue_modal.dart';
 import 'widgets/student_profile_modal.dart';
 import 'widgets/document_preview_modal.dart';
+import 'widgets/document_version_history_sheet.dart';
 import 'widgets/download_guide_dialog.dart';
 import '../../../core/utils/download_service.dart';
 import '../../../core/network/api_constants.dart';
@@ -364,6 +365,29 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
           'Conversion Failed',
           e.toString().replaceFirst('Exception: ', ''),
         );
+      }
+    } else if (action == 'open_with') {
+      // Open the document preview modal which has the Open With action
+      showDocumentPreview(context: context, document: document);
+    } else if (action == 'edit') {
+      // Open preview modal; user can use the Edit button inside
+      showDocumentPreview(context: context, document: document);
+    } else if (action == 'upload_version') {
+      // Delegate to the preview modal to handle file picking & upload
+      showDocumentPreview(context: context, document: document);
+    } else if (action == 'version_history') {
+      showDocumentVersionHistory(context, document: document);
+    } else if (action == 'restore') {
+      try {
+        await ref
+            .read(documentMutationProvider.notifier)
+            .updateStatus(documentId, 'Completed');
+        if (!mounted) return;
+        showSuccessDialog(context, message: 'Document restored to active documents.');
+        ref.invalidate(documentPageProvider);
+      } catch (e) {
+        if (!mounted) return;
+        showErrorDialog(context, 'Restore Failed', e.toString());
       }
     }
   }

@@ -737,7 +737,7 @@ Files backup/restore - mirror mode or zip -->
 - change password update label color not theme responsive
 - the danger zone is transparent fix it -->
 
-# STUDENT SCREEN
+<!-- # STUDENT SCREEN
 - add student button make the icon button more attractive
 - edit student modal 'x' button from left move to the right
 - student profile add little bit attrativeness on edit details and edit enrollment
@@ -747,7 +747,7 @@ Files backup/restore - mirror mode or zip -->
 - fix the multi select menu that didnt match width same as the list widget check this image F:\SumbrerongBato\tis_rms_server\screenshots\Screenshot 2026-09-19 163043.png
 
 # HISTORY SCREEN
-- "F:\SumbrerongBato\tis_rms_server\screenshots\Screenshot 2026-09-19 164307.png" fix this windows app cant list the widgets because and fix too overflow and cant list the widgets in android app F:\SumbrerongBato\tis_rms_server\screenshots\history.png
+- "F:\SumbrerongBato\tis_rms_server\screenshots\Screenshot 2026-09-19 164307.png" fix this windows app cant list the widgets because and fix too overflow and cant list the widgets in android app F:\SumbrerongBato\tis_rms_server\screenshots\history.png -->
 
 
 ---

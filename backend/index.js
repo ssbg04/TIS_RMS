@@ -29,6 +29,7 @@ const notificationRoutes = require('./src/routes/notifications');
 const backupRoutes = require('./src/routes/backup');
 const serverRoutes = require('./src/routes/server.routes');
 const settingsRoutes = require('./src/routes/settings');
+const templateRoutes = require('./src/routes/templates');
 
 const app = express();
 const PORT = process.env.PORT || 18484;
@@ -59,6 +60,7 @@ app.use('/api/notifications', notificationRoutes);
 app.use('/api/backup', backupRoutes);
 app.use('/api/server', serverRoutes);
 app.use('/api/settings', settingsRoutes);
+app.use('/api/templates', templateRoutes);
 
 app.get(['/', '/api'], (req, res) => {
     res.set('X-TIS-RMS', 'true');

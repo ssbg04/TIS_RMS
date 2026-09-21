@@ -513,6 +513,102 @@ const initSchema = () => {
             )
         `).run();
 
+        // ── New columns on documents for template origin tracking ─────────────
+        const docColsV2 = db.prepare("PRAGMA table_info(documents)").all();
+        if (!docColsV2.some(c => c.name === 'template_id')) {
+            db.prepare("ALTER TABLE documents ADD COLUMN template_id INTEGER DEFAULT NULL").run();
+            console.log('Migration: added template_id column to documents table');
+        }
+        if (!docColsV2.some(c => c.name === 'template_version_id')) {
+            db.prepare("ALTER TABLE documents ADD COLUMN template_version_id INTEGER DEFAULT NULL").run();
+            console.log('Migration: added template_version_id column to documents table');
+        }
+
+        // 7b. DocumentTemplates Table
+        db.prepare(`
+            CREATE TABLE IF NOT EXISTS document_templates (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                requirement_id INTEGER,
+                name TEXT NOT NULL,
+                description TEXT,
+                is_active INTEGER DEFAULT 1,
+                created_by INTEGER,
+                created_at DATETIME DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ', 'now')),
+                updated_at DATETIME DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ', 'now')),
+                FOREIGN KEY (requirement_id) REFERENCES document_requirements(id) ON DELETE SET NULL,
+                FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE SET NULL
+            )
+        `).run();
+
+        // 7c. TemplateVersions Table
+        db.prepare(`
+            CREATE TABLE IF NOT EXISTS template_versions (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                template_id INTEGER NOT NULL,
+                version_number INTEGER NOT NULL DEFAULT 1,
+                file_name TEXT NOT NULL,
+                file_path TEXT NOT NULL,
+                file_size INTEGER DEFAULT NULL,
+                uploaded_by INTEGER,
+                is_current INTEGER DEFAULT 0,
+                created_at DATETIME DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ', 'now')),
+                FOREIGN KEY (template_id) REFERENCES document_templates(id) ON DELETE CASCADE,
+                FOREIGN KEY (uploaded_by) REFERENCES users(id) ON DELETE SET NULL
+            )
+        `).run();
+
+        // 7d. DocumentVersions Table
+        db.prepare(`
+            CREATE TABLE IF NOT EXISTS document_versions (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                document_id INTEGER NOT NULL,
+                version_number INTEGER NOT NULL DEFAULT 1,
+                file_name TEXT NOT NULL,
+                file_path TEXT NOT NULL,
+                file_size INTEGER DEFAULT NULL,
+                template_id INTEGER DEFAULT NULL,
+                template_version_id INTEGER DEFAULT NULL,
+                uploaded_by INTEGER,
+                notes TEXT,
+                created_at DATETIME DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ', 'now')),
+                FOREIGN KEY (document_id) REFERENCES documents(id) ON DELETE CASCADE,
+                FOREIGN KEY (template_id) REFERENCES document_templates(id) ON DELETE SET NULL,
+                FOREIGN KEY (template_version_id) REFERENCES template_versions(id) ON DELETE SET NULL,
+                FOREIGN KEY (uploaded_by) REFERENCES users(id) ON DELETE SET NULL
+            )
+        `).run();
+
+        // Migration: auto-seed Version 1 for every existing document that has no versions yet
+        try {
+            const docsWithoutVersions = db.prepare(`
+                SELECT d.id, d.file_name, d.file_path, d.file_size, d.uploaded_by, d.created_at,
+                       d.template_id, d.template_version_id
+                FROM documents d
+                WHERE d.id NOT IN (SELECT DISTINCT document_id FROM document_versions)
+                AND d.deleted_at IS NULL
+            `).all();
+
+            if (docsWithoutVersions.length > 0) {
+                const seedVersionStmt = db.prepare(`
+                    INSERT INTO document_versions
+                        (document_id, version_number, file_name, file_path, file_size, template_id, template_version_id, uploaded_by, created_at)
+                    VALUES (?, 1, ?, ?, ?, ?, ?, ?, ?)
+                `);
+                db.transaction(() => {
+                    for (const doc of docsWithoutVersions) {
+                        seedVersionStmt.run(
+                            doc.id, doc.file_name, doc.file_path, doc.file_size ?? null,
+                            doc.template_id ?? null, doc.template_version_id ?? null,
+                            doc.uploaded_by ?? null, doc.created_at
+                        );
+                    }
+                })();
+                console.log(`[Migration] Seeded document Version 1 for ${docsWithoutVersions.length} existing documents.`);
+            }
+        } catch (verErr) {
+            console.error('[Migration Error] Failed to seed document_versions:', verErr.message);
+        }
+
         // 9. PrintQueue & Notifications
         db.prepare(`
             CREATE TABLE IF NOT EXISTS print_queue (
