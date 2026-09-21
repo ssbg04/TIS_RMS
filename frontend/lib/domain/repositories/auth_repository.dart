@@ -271,5 +271,22 @@ class AuthRepository {
       throw Exception(errorMessage);
     }
   }
+
+  /// Immediately deactivate own account (no email required — 2-step client confirmation)
+  Future<String> requestSelfDeactivation() async {
+    try {
+      final options = await _getAuthOptions();
+      final response = await _dio.post(
+        '/auth/self-deactivate',
+        options: options,
+      );
+      return response.data['message'] as String? ??
+          'Your account has been deactivated.';
+    } on DioException catch (e) {
+      final errorMessage =
+          e.response?.data['message'] ?? 'Failed to deactivate account.';
+      throw Exception(errorMessage);
+    }
+  }
 }
 

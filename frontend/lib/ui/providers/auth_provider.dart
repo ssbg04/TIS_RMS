@@ -121,6 +121,14 @@ class AuthNotifier extends AsyncNotifier<UserModel?> {
     final repository = ref.read(authRepositoryProvider);
     return await repository.requestAccountDeletion();
   }
+
+  Future<String> requestSelfDeactivation() async {
+    final repository = ref.read(authRepositoryProvider);
+    final msg = await repository.requestSelfDeactivation();
+    // Sign out locally after deactivation
+    await logout();
+    return msg;
+  }
 }
 
 // Full profile data provider

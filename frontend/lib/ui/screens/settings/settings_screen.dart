@@ -398,24 +398,23 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     }
   }
 
-  Future<void> _handleDeleteAccount(BuildContext context, WidgetRef ref) async {
-    final confirmed = await showDialog<bool>(
+  Future<void> _handleDeactivateAccount(BuildContext context, WidgetRef ref) async {
+    // Step 1: First confirmation
+    final step1 = await showDialog<bool>(
       context: context,
       builder: (ctx) {
         final isNarrow =
             MediaQuery.of(ctx).size.width < 600 ||
             Theme.of(ctx).platform == TargetPlatform.android;
         return AlertDialog(
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
-          ),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
           title: const Row(
             children: [
               Icon(Icons.warning_amber_rounded, color: AppColors.error, size: 28),
               SizedBox(width: 8),
               Expanded(
                 child: Text(
-                  'Delete Account',
+                  'Deactivate Account',
                   style: TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.bold,
@@ -426,9 +425,9 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             ],
           ),
           content: const Text(
-            'To permanently delete your account, a verification link will be sent to your registered email address.\n\n'
-            'The link will expire in 15 minutes. Once confirmed via email, your account cannot be recovered.\n\n'
-            'Do you want to proceed?',
+            'Deactivating your account will immediately revoke your access to the system.\n\n'
+            'Your data and records will be preserved. An administrator can reactivate your account later.\n\n'
+            'Are you sure you want to continue?',
           ),
           actions: [
             if (isNarrow)
@@ -441,7 +440,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                       foregroundColor: Colors.white,
                     ),
                     onPressed: () => Navigator.pop(ctx, true),
-                    child: const Text('SEND VERIFICATION EMAIL'),
+                    child: const Text('YES, CONTINUE'),
                   ),
                   const SizedBox(height: 8),
                   OutlinedButton(
@@ -456,10 +455,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 children: [
                   TextButton(
                     onPressed: () => Navigator.pop(ctx, false),
-                    child: const Text(
-                      'CANCEL',
-                      style: TextStyle(color: Colors.grey),
-                    ),
+                    child: const Text('CANCEL', style: TextStyle(color: Colors.grey)),
                   ),
                   const SizedBox(width: 8),
                   ElevatedButton(
@@ -468,7 +464,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                       foregroundColor: Colors.white,
                     ),
                     onPressed: () => Navigator.pop(ctx, true),
-                    child: const Text('SEND VERIFICATION EMAIL'),
+                    child: const Text('YES, CONTINUE'),
                   ),
                 ],
               ),
@@ -477,24 +473,119 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       },
     );
 
-    if (confirmed != true || !context.mounted) return;
+    if (step1 != true || !context.mounted) return;
+
+    // Step 2: Type-to-confirm
+    final confirmController = TextEditingController();
+    final step2 = await showDialog<bool>(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) {
+        return StatefulBuilder(
+          builder: (ctx, setState) {
+            final isNarrow =
+                MediaQuery.of(ctx).size.width < 600 ||
+                Theme.of(ctx).platform == TargetPlatform.android;
+            return AlertDialog(
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+              title: const Row(
+                children: [
+                  Icon(Icons.lock_outline, color: AppColors.error, size: 26),
+                  SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'Final Confirmation',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: AppColors.error,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'To confirm, type DEACTIVATE in the field below:',
+                    style: TextStyle(fontWeight: FontWeight.w500),
+                  ),
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: confirmController,
+                    autofocus: true,
+                    decoration: const InputDecoration(
+                      hintText: 'Type DEACTIVATE',
+                      border: OutlineInputBorder(),
+                      isDense: true,
+                    ),
+                    onChanged: (_) => setState(() {}),
+                  ),
+                ],
+              ),
+              actions: [
+                if (isNarrow)
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppColors.error,
+                          foregroundColor: Colors.white,
+                        ),
+                        onPressed: confirmController.text.trim() == 'DEACTIVATE'
+                            ? () => Navigator.pop(ctx, true)
+                            : null,
+                        child: const Text('DEACTIVATE MY ACCOUNT'),
+                      ),
+                      const SizedBox(height: 8),
+                      OutlinedButton(
+                        onPressed: () => Navigator.pop(ctx, false),
+                        child: const Text('CANCEL'),
+                      ),
+                    ],
+                  )
+                else
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.end,
+                    children: [
+                      TextButton(
+                        onPressed: () => Navigator.pop(ctx, false),
+                        child: const Text('CANCEL', style: TextStyle(color: Colors.grey)),
+                      ),
+                      const SizedBox(width: 8),
+                      ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppColors.error,
+                          foregroundColor: Colors.white,
+                        ),
+                        onPressed: confirmController.text.trim() == 'DEACTIVATE'
+                            ? () => Navigator.pop(ctx, true)
+                            : null,
+                        child: const Text('DEACTIVATE'),
+                      ),
+                    ],
+                  ),
+              ],
+            );
+          },
+        );
+      },
+    );
+    confirmController.dispose();
+
+    if (step2 != true || !context.mounted) return;
 
     try {
-      final msg =
-          await ref.read(authProvider.notifier).requestAccountDeletion();
-      if (!context.mounted) return;
-      showSuccessDialog(
-        context,
-        title: 'Verification Email Sent',
-        message: msg,
-        notes:
-            'Please check your registered email inbox to permanently delete your account.',
-      );
+      await ref.read(authProvider.notifier).requestSelfDeactivation();
+      // requestSelfDeactivation calls logout() internally — app will navigate to login
     } catch (e) {
       if (!context.mounted) return;
       showErrorDialog(
         context,
-        'Request Failed',
+        'Deactivation Failed',
         e.toString().replaceAll('Exception: ', ''),
       );
     }
@@ -1833,7 +1924,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                                       borderRadius: BorderRadius.circular(8),
                                     ),
                                     child: const Icon(
-                                      Icons.delete_forever_outlined,
+                                      Icons.person_off_outlined,
                                       color: AppColors.error,
                                       size: 22,
                                     ),
@@ -1844,7 +1935,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                                       crossAxisAlignment: CrossAxisAlignment.start,
                                       children: [
                                         const Text(
-                                          'Danger Zone: Delete Account',
+                                          'Danger Zone: Deactivate Account',
                                           style: TextStyle(
                                             fontSize: 16,
                                             fontWeight: FontWeight.bold,
@@ -1853,7 +1944,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                                         ),
                                         const SizedBox(height: 4),
                                         Text(
-                                          'Permanently delete your account. A verification link will be sent to your registered email to confirm this action.',
+                                          'Temporarily deactivate your account. Your data is preserved and an administrator can reactivate it later.',
                                           style: TextStyle(
                                             fontSize: 13,
                                             color: Theme.of(context)
@@ -1882,12 +1973,12 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                                       borderRadius: BorderRadius.circular(8),
                                     ),
                                   ),
-                                  icon: const Icon(Icons.delete_outline, size: 18),
+                                  icon: const Icon(Icons.person_off_outlined, size: 18),
                                   label: const Text(
-                                    'Delete Account',
+                                    'Deactivate Account',
                                     style: TextStyle(fontWeight: FontWeight.w600),
                                   ),
-                                  onPressed: () => _handleDeleteAccount(context, ref),
+                                  onPressed: () => _handleDeactivateAccount(context, ref),
                                 ),
                               ),
                             ],
@@ -2627,20 +2718,11 @@ class _EditScheduleDatesDialogState
               ),
             ),
             const SizedBox(height: 24),
-            Row(
-              children: [
-                Expanded(
-                  child: SizedBox(
-                    height: 44,
-                    child: OutlinedButton(
-                      onPressed: () => Navigator.pop(context),
-                      child: const Text('Cancel'),
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: SizedBox(
+            if (isNarrow)
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  SizedBox(
                     height: 44,
                     child: ElevatedButton(
                       onPressed: _isLoading ? null : _handleSave,
@@ -2660,9 +2742,53 @@ class _EditScheduleDatesDialogState
                           : const Text('Save Dates'),
                     ),
                   ),
-                ),
-              ],
-            ),
+                  const SizedBox(height: 10),
+                  SizedBox(
+                    height: 44,
+                    child: OutlinedButton(
+                      onPressed: () => Navigator.pop(context),
+                      child: const Text('Cancel'),
+                    ),
+                  ),
+                ],
+              )
+            else
+              Row(
+                children: [
+                  Expanded(
+                    child: SizedBox(
+                      height: 44,
+                      child: OutlinedButton(
+                        onPressed: () => Navigator.pop(context),
+                        child: const Text('Cancel'),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: SizedBox(
+                      height: 44,
+                      child: ElevatedButton(
+                        onPressed: _isLoading ? null : _handleSave,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppColors.primaryGreen,
+                          foregroundColor: Colors.white,
+                        ),
+                        child: _isLoading
+                            ? const SizedBox(
+                                width: 20,
+                                height: 20,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  color: Colors.white,
+                                ),
+                              )
+                            : const Text('Save Dates'),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
           ],
         ),
       ),

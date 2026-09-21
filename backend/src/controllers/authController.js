@@ -833,6 +833,63 @@ exports.completePasswordReset = (req, res) => {
     }
 };
 
+// POST /api/auth/self-deactivate
+// Lets the authenticated user deactivate their own account immediately.
+// No email link is required — just 2-step client-side confirmation.
+exports.selfDeactivateAccount = async (req, res) => {
+    const userId = req.user?.id;
+    if (!userId) return res.status(401).json({ message: 'Authentication required' });
+
+    try {
+        const user = db.prepare('SELECT id, username, first_name, last_name, email, role, is_active, is_hidden FROM users WHERE id = ?').get(userId);
+        if (!user) return res.status(404).json({ message: 'User account not found' });
+
+        if (user.is_hidden === 1) {
+            return res.status(403).json({ message: 'Developer super administrator account cannot be deactivated.' });
+        }
+
+        if (user.role === 'admin') {
+            const otherActiveAdmins = db.prepare(
+                "SELECT COUNT(*) as count FROM users WHERE role = 'admin' AND is_active = 1 AND (is_hidden = 0 OR is_hidden IS NULL) AND id != ?"
+            ).get(user.id);
+            if (!otherActiveAdmins || otherActiveAdmins.count < 1) {
+                return res.status(403).json({ message: 'Cannot deactivate the only active administrator account. Please promote another admin first.' });
+            }
+        }
+
+        // Deactivate the account
+        db.prepare("UPDATE users SET is_active = 0, updated_at = (strftime('%Y-%m-%dT%H:%M:%SZ', 'now')) WHERE id = ?").run(userId);
+
+        // Revoke all FCM push tokens
+        db.prepare('DELETE FROM fcm_tokens WHERE user_id = ?').run(userId);
+
+        // Log activity
+        try {
+            db.prepare('INSERT INTO activity_log (user_id, action, entity_type, entity_id, description) VALUES (?, ?, ?, ?, ?)')
+                .run(userId, 'UPDATE', 'user', userId, `Self-deactivated account @${user.username}`);
+        } catch (_) {}
+
+        // Send email notification if available (async, fire-and-forget)
+        const { sendAccountStatusEmail } = require('../services/emailService');
+        if (user.email && user.email.trim()) {
+            sendAccountStatusEmail({
+                to: user.email.trim(),
+                username: user.username,
+                fullName: [user.first_name, user.last_name].filter(Boolean).join(' '),
+                isActivated: false,
+            }).catch(() => {});
+        }
+
+        res.json({
+            success: true,
+            message: 'Your account has been deactivated. You will be signed out.',
+        });
+    } catch (error) {
+        console.error('selfDeactivateAccount error:', error);
+        res.status(500).json({ message: 'Failed to deactivate account', error: error.message });
+    }
+};
+
 // POST /api/auth/request-delete-account
 exports.requestAccountDeletion = async (req, res) => {
     const userId = req.user?.id;

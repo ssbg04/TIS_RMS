@@ -308,12 +308,20 @@ class _DocumentPreviewDialogState
 
       if (Platform.isWindows) {
         if (openWith) {
-          // Show Windows "Open With" dialog
-          await Process.run(
-            'cmd',
-            ['/c', 'rundll32.exe', 'shell32.dll,OpenAs_RunDLL', filePath],
-            runInShell: true,
+          // Use openwith.exe (built-in since Windows 8) for the native "Open With" dialog
+          final result = await Process.run(
+            'openwith.exe',
+            [filePath],
+            runInShell: false,
           );
+          if (result.exitCode != 0) {
+            // Fallback: use rundll32 shell verb
+            await Process.run(
+              'cmd',
+              ['/c', 'rundll32.exe', 'shell32.dll,OpenAs_RunDLL', filePath],
+              runInShell: true,
+            );
+          }
         } else {
           await Process.run(
             'cmd',

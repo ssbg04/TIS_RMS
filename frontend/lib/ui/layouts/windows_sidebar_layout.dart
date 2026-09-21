@@ -303,7 +303,7 @@ class _WindowsSidebarLayoutState extends ConsumerState<WindowsSidebarLayout> {
         'roles': ['admin', 'teacher'],
       },
       {
-        'category': 'ACCOUNT',
+        'category': 'OVERVIEW',
         'label': 'Archives',
         'icon': Icons.archive_outlined,
         'activeIcon': Icons.archive,

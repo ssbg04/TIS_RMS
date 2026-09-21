@@ -843,9 +843,13 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                 child: OutlinedButton.icon(
                   onPressed: () => _showComplianceFilterModal(context),
                   icon: const Icon(Icons.filter_list_rounded, size: 16),
-                  label: Text(
-                    activeFilterCount > 0 ? 'Filter ($activeFilterCount)' : 'Filter',
-                    style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
+                  label: Flexible(
+                    child: Text(
+                      activeFilterCount > 0 ? 'Filter ($activeFilterCount)' : 'Filter',
+                      style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
+                      overflow: TextOverflow.ellipsis,
+                      maxLines: 1,
+                    ),
                   ),
                   style: OutlinedButton.styleFrom(
                     foregroundColor: activeFilterCount > 0

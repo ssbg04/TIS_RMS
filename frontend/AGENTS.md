@@ -749,6 +749,17 @@ Files backup/restore - mirror mode or zip -->
 # HISTORY SCREEN
 - "F:\SumbrerongBato\tis_rms_server\screenshots\Screenshot 2026-09-19 164307.png" fix this windows app cant list the widgets because and fix too overflow and cant list the widgets in android app F:\SumbrerongBato\tis_rms_server\screenshots\history.png -->
 
+# SETTINGS SCREEN
+- Delete account -> update to self deactivates, remove email function for deletion, use email for deactivation add client side 2 times confirmation dialog
+
+- report screen -> compliance -> fix fliter button label is in half
+- settings screen -> acadmeic year and auto graduation -> edit schedule date modal -> fix button labels is in half
+
+# DOCUMENT SCREEN
+- file preview screen -> open with is not working
+
+# WINDOWS SIDE NAV BAR
+- windows app -> side bar nav move the archive tab to overview group
 
 ---
 

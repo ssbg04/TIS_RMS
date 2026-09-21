@@ -24,5 +24,8 @@ router.post('/request-delete-account', authenticateToken, authController.request
 router.get('/confirm-delete-account-web', authController.confirmDeleteAccountWebPage);
 router.post('/confirm-delete-account', authController.confirmDeleteAccount);
 
+// Self-Service Account Deactivation (immediate, 2-step client confirmation)
+router.post('/self-deactivate', authenticateToken, authController.selfDeactivateAccount);
+
 module.exports = router;
 
