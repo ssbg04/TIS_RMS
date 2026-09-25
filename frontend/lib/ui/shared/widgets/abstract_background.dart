@@ -5,10 +5,10 @@ import 'package:flutter/material.dart';
 /// cropped backdrop based on the current theme (Light / Dark) and orientation (Landscape / Portrait).
 ///
 /// Source: `assets/images/backdrop.png` cropped into:
-/// - Light Landscape: `assets/images/backdrop_light_landscape.png`
-/// - Light Portrait:  `assets/images/backdrop_light_portrait.png`
-/// - Dark Landscape:  `assets/images/backdrop_dark_landscape.png`
-/// - Dark Portrait:   `assets/images/backdrop_dark_portrait.png`
+/// - Light Landscape: `assets/images/backdrop_light_landscape.webp`
+/// - Light Portrait:  `assets/images/backdrop_light_portrait.webp`
+/// - Dark Landscape:  `assets/images/backdrop_dark_landscape.webp`
+/// - Dark Portrait:   `assets/images/backdrop_dark_portrait.webp`
 class AbstractBackground extends StatelessWidget {
   final Widget child;
   final bool withOverlay;
@@ -30,12 +30,12 @@ class AbstractBackground extends StatelessWidget {
   }) {
     if (isDark) {
       return isLandscape
-          ? 'assets/images/backdrop_dark_landscape.png'
-          : 'assets/images/backdrop_dark_portrait.png';
+          ? 'assets/images/backdrop_dark_landscape.webp'
+          : 'assets/images/backdrop_dark_portrait.webp';
     } else {
       return isLandscape
-          ? 'assets/images/backdrop_light_landscape.png'
-          : 'assets/images/backdrop_light_portrait.png';
+          ? 'assets/images/backdrop_light_landscape.webp'
+          : 'assets/images/backdrop_light_portrait.webp';
     }
   }
 

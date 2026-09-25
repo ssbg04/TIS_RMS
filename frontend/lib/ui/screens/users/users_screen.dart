@@ -172,6 +172,17 @@ class _UsersScreenState extends ConsumerState<UsersScreen> {
   }
 
   Future<void> _confirmResetPassword(SystemUser user) async {
+    final email = user.email?.trim() ?? '';
+    final emailFormatError = AppValidators.validateEmail(email);
+    if (email.isEmpty || emailFormatError != null) {
+      showErrorDialog(
+        context,
+        'Cannot Send Reset Link',
+        'User @${user.username} does not have a valid registered email address (${email.isEmpty ? "no email registered" : email}).\n\nPlease edit this user and provide a valid, active email address before sending a reset link.',
+      );
+      return;
+    }
+
     final result = await showDialog<Map<String, dynamic>>(
       context: context,
       builder: (ctx) => _ResetPasswordConfirmationDialog(user: user),
@@ -179,6 +190,22 @@ class _UsersScreenState extends ConsumerState<UsersScreen> {
     if (result == null || !mounted) return;
 
     try {
+      // 1. Verify recipient email deliverability before dispatching reset link
+      final validation =
+          await ref.read(usersProvider.notifier).validateEmail(email);
+      if (validation['valid'] == false) {
+        final reason = validation['reason']?.toString() ??
+            'Invalid or undeliverable email address';
+        if (!mounted) return;
+        showErrorDialog(
+          context,
+          'Email Verification Failed',
+          'Cannot send password reset link: the recipient email address "$email" failed verification ($reason).\n\nPlease update the user profile with a valid email address first.',
+        );
+        return;
+      }
+
+      // 2. Dispatch reset link
       final message = await ref
           .read(usersProvider.notifier)
           .resetPassword(
@@ -2400,6 +2427,17 @@ class _ResetPasswordConfirmationDialogState
   }
 
   void _submit() {
+    final email = widget.user.email?.trim() ?? '';
+    final emailError = AppValidators.validateEmail(email);
+    if (email.isEmpty || emailError != null) {
+      showErrorDialog(
+        context,
+        'Invalid Email Address',
+        'User @${widget.user.username} does not have a valid registered email address. Please update the user profile before sending a reset link.',
+      );
+      return;
+    }
+
     final password = _passwordCtrl.text.trim();
 
     if (password.isEmpty) {
@@ -2420,7 +2458,9 @@ class _ResetPasswordConfirmationDialogState
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final hasEmail = widget.user.email != null && widget.user.email!.trim().isNotEmpty;
+    final email = widget.user.email?.trim() ?? '';
+    final hasValidEmail =
+        email.isNotEmpty && AppValidators.validateEmail(email) == null;
 
     return Dialog(
       shape: RoundedRectangleBorder(
@@ -2538,7 +2578,7 @@ class _ResetPasswordConfirmationDialogState
                 const SizedBox(height: 12),
 
                 // Recipient Email Card / Warning
-                if (hasEmail)
+                if (hasValidEmail)
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                     decoration: BoxDecoration(
@@ -2583,7 +2623,9 @@ class _ResetPasswordConfirmationDialogState
                         const SizedBox(width: 8),
                         Expanded(
                           child: Text(
-                            'No email registered. Please edit this user and provide a valid email before sending a reset link.',
+                            email.isNotEmpty
+                                ? 'The registered email "$email" has an invalid email format. Please edit this user and provide a valid email before sending a reset link.'
+                                : 'No email registered. Please edit this user and provide a valid email before sending a reset link.',
                             style: TextStyle(
                               fontSize: 12,
                               color: isDark ? const Color(0xFFFCA5A5) : Colors.red.shade900,
@@ -2594,7 +2636,7 @@ class _ResetPasswordConfirmationDialogState
                     ),
                   ),
 
-                if (hasEmail) ...[
+                if (hasValidEmail) ...[
                   const SizedBox(height: 16),
                   // Expiration selector
                   DropdownButtonFormField<int>(
@@ -2641,7 +2683,7 @@ class _ResetPasswordConfirmationDialogState
                     Flexible(
                       child: ElevatedButton.icon(
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: hasEmail ? AppColors.primaryGreen : Colors.grey,
+                          backgroundColor: hasValidEmail ? AppColors.primaryGreen : Colors.grey,
                           foregroundColor: Colors.white,
                           padding: const EdgeInsets.symmetric(
                             horizontal: 20,
@@ -2653,7 +2695,7 @@ class _ResetPasswordConfirmationDialogState
                             ),
                           ),
                         ),
-                        onPressed: hasEmail ? _submit : null,
+                        onPressed: hasValidEmail ? _submit : null,
                         icon: const Icon(Icons.send_rounded, size: 16),
                         label: const Text(
                           'SEND LINK',

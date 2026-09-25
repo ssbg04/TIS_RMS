@@ -254,7 +254,7 @@ exports.changePassword = (req, res) => {
 // ============================================================================
 
 // POST /api/auth/lookup-reset-options — Checks username & returns masked email
-exports.lookupResetOptions = (req, res) => {
+exports.lookupResetOptions = async (req, res) => {
     const { username } = req.body;
     if (!username || !username.trim()) {
         return res.status(400).json({ message: 'Username is required.' });
@@ -274,6 +274,15 @@ exports.lookupResetOptions = (req, res) => {
             return res.status(400).json({
                 message: 'No registered email address found for this account. Please contact an administrator to reset your password.',
                 noEmail: true
+            });
+        }
+
+        // Validate registered email with MEV before allowing reset flow
+        const mevCheck = await validateEmailMEV(user.email.trim());
+        if (!mevCheck.valid) {
+            return res.status(422).json({
+                message: `Cannot reset password: the registered email address for this account appears to be invalid or undeliverable (${mevCheck.reason}). Please contact an administrator to update your email address.`,
+                invalidEmail: true
             });
         }
 
@@ -305,6 +314,14 @@ exports.sendEmailOtp = async (req, res) => {
         }
         if (!user.email || !user.email.trim()) {
             return res.status(400).json({ message: 'No email address registered for this account.' });
+        }
+
+        // Validate email with MEV before generating OTP and sending email
+        const mevCheck = await validateEmailMEV(user.email.trim());
+        if (!mevCheck.valid) {
+            return res.status(422).json({
+                message: `Cannot send verification code: the registered email address appears to be invalid or undeliverable (${mevCheck.reason}). Please contact an administrator to update your email address.`
+            });
         }
 
         // Invalidate previous unexpired OTPs for this user's email

@@ -812,6 +812,24 @@ Files backup/restore - mirror mode or zip -->
 # PDF GENERATION & MANIPULATION
 - remove PDF manipulation and generation from frontend, keep PDF viewing
 - move PDF manipulation and generation to backend
+- move the image assets from this frontend to backend needed for generation
+- for PDF manipulation settings for merging pdf and image 0 padding 0 margins, and use short bond paper size
+
+<!-- # CAPSTONE MEMBERS SCREEN
+- optimize the assets image before using convert into webp, remove the old
+  - backdrops
+  - group pictures
+  - solo pictures
+- add these emails for corresponding member
+  - elliojames01@gmail.com
+  - antonioclaramaris.21@gmail.com
+  - ermhardevera11@gmail.com
+  - chineepasigan@gmail.com
+  - crischarlesgarcia345@gmail.com
+  - keep empty for rhina (alibutod)
+- add horizontal scrollable list of pictures, slide preview, only one then add cooldown to next pic in 2 seconds, add previous and next buttons, when the last pic next goes back to the first image
+- use the group pictures for horizontal scrollable list
+- use the solo for individual member profile picture -->
 
 ---
 
