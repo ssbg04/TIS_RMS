@@ -4,25 +4,39 @@ This guide provides instructions for installing, building, and running the **TIS
 
 ---
 
-## 1. Android Installation (Universal APK)
+## 1. Android Installation (Split & Universal APKs)
 
-The Android application is distributed as a single universal APK supporting both **32-bit (armeabi-v7a)** and **64-bit (arm64-v8a, x86_64)** devices.
+The Android application is distributed in architecture-specific split APKs (for smaller download size and faster performance) as well as a universal APK:
 
-### Universal APK:
+### Available APKs:
 
 | APK File | Architecture | Description |
 | :--- | :--- | :--- |
-| **`TIS_RMS_Android_Universal_v<version>.apk`** | **Universal (32-bit & 64-bit)** | Single standalone installer compatible with all modern and legacy Android devices (Android 7.0+). |
+| **`TIS_RMS_64_v<version>.apk`** | **64-bit ARM (`arm64-v8a`)** | **Recommended.** Best performance and smallest size (~40% smaller) for modern Android phones and tablets. |
+| **`TIS_RMS_32bit_v<version>.apk`** | **32-bit ARM (`armeabi-v7a`)** | Optimized for older or entry-level 32-bit Android devices. |
+| **`TIS_RMS_Universal_v<version>.apk`** | **Universal (32-bit & 64-bit)** | Single standalone installer containing all native architectures (runs on all Android 7.0+ devices). |
 
-### Build Command (Flutter):
+### Build Commands (Flutter):
+
+#### A. Build Split APKs (Generates 32-bit & 64-bit standalone APKs):
+```bash
+cd frontend
+flutter build apk --release --split-per-abi --obfuscate --split-debug-info=build/app/outputs/symbols
+```
+*Outputs located in `frontend/build/app/outputs/flutter-apk/`:*
+- `app-arm64-v8a-release.apk` &rarr; **`TIS_RMS_64_v<version>.apk`**
+- `app-armeabi-v7a-release.apk` &rarr; **`TIS_RMS_32bit_v<version>.apk`**
+
+#### B. Build Universal APK (Contains all architectures):
 ```bash
 cd frontend
 flutter build apk --release --obfuscate --split-debug-info=build/app/outputs/symbols
 ```
-*Output APK located in `frontend/build/app/outputs/flutter-apk/app-release.apk`.*
+*Output located in `frontend/build/app/outputs/flutter-apk/`:*
+- `app-release.apk` &rarr; **`TIS_RMS_Universal_v<version>.apk`**
 
 ### Installation Steps:
-1. Transfer `TIS_RMS_Android_Universal_v<version>.apk` (e.g. `TIS_RMS_Android_Universal_v1.0.0.apk`) to your Android device (via USB, local network share, or download).
+1. Transfer the matching APK (`TIS_RMS_64_v<version>.apk` for modern devices, `TIS_RMS_32bit_v<version>.apk` for older devices, or `TIS_RMS_Universal_v<version>.apk`) to your Android device (via USB, local network share, or download).
 2. Tap the `.apk` file in your file manager.
 3. If prompted, enable **"Install unknown apps"** or **"Allow from this source"** in Android Settings.
 4. Tap **Install** and open the app.

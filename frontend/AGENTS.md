@@ -798,8 +798,20 @@ Files backup/restore - mirror mode or zip -->
 # DASHBOARD
 - make the layout bento grids for windows app for mobile use normal responsive grid ( columns) -->
 
-# REPORT SCREEN
-- make the layout bento grids for windows app for mobile use normal responsive grid
+<!-- # REPORT SCREEN
+- make the layout bento grids for windows app for mobile use normal responsive grid -->
+
+<!-- # STUDENT SCREEN
+- edit/add student after success -> still has a loading at background under the tabs
+
+# SETTINGS SCREEN
+- move the automatic archiving grace period under the academic & auto graduation collapse -> rename the collapse use basic word -> remove picking academic year, make it automatic choose the active year, dont make it dropdown just choose or pick the active year  -->
+# ANDROID / DOCUMENT SCANNER
+- reduce android app size: configure google mlkit document scanner to unbundled mode (Google Play Services) while keeping automatic edge detection and enhance
+
+# PDF GENERATION & MANIPULATION
+- remove PDF manipulation and generation from frontend, keep PDF viewing
+- move PDF manipulation and generation to backend
 
 ---
 

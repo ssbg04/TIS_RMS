@@ -103,9 +103,14 @@ class AppUpdateService {
             assetName = asset['name'] as String?;
             break;
           } else if (isAndroid && name.endsWith('.apk')) {
-            downloadUrl = browserUrl;
-            assetName = asset['name'] as String?;
-            break;
+            if (name.contains('universal')) {
+              downloadUrl = browserUrl;
+              assetName = asset['name'] as String?;
+              break;
+            } else if (downloadUrl == null) {
+              downloadUrl = browserUrl;
+              assetName = asset['name'] as String?;
+            }
           }
         }
       }

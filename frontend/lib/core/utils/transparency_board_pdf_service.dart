@@ -212,41 +212,47 @@ class TransparencyBoardPdfService {
         pw.SizedBox(height: 5),
 
         // Report Subheader
-        pw.Row(
-          mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+        pw.Column(
+          crossAxisAlignment: pw.CrossAxisAlignment.start,
           children: [
             pw.Container(
-              padding: const pw.EdgeInsets.symmetric(horizontal: 7, vertical: 2.5),
-              decoration: pw.BoxDecoration(
+              padding: const pw.EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+              decoration: const pw.BoxDecoration(
                 color: PdfColors.green800,
-                borderRadius: const pw.BorderRadius.all(pw.Radius.circular(3)),
+                borderRadius: pw.BorderRadius.all(pw.Radius.circular(3)),
               ),
               child: pw.Text(
                 'DEPED TRANSPARENCY & SCHOOL PERFORMANCE BOARD REPORT',
                 style: pw.TextStyle(
-                  fontSize: 8,
+                  fontSize: 8.5,
                   fontWeight: pw.FontWeight.bold,
                   color: PdfColors.white,
                   letterSpacing: 0.3,
                 ),
               ),
             ),
-            pw.Text(
-              hasPrev
-                  ? 'Reference Period: $prevSyLabel vs. $activeSyLabel'
-                  : 'Reference Period: $activeSyLabel (Baseline)',
-              style: pw.TextStyle(
-                fontSize: 8,
-                fontWeight: pw.FontWeight.bold,
-                color: PdfColors.grey800,
-              ),
-            ),
-            pw.Text(
-              'Date: $generatedDate',
-              style: const pw.TextStyle(
-                fontSize: 7.5,
-                color: PdfColors.grey700,
-              ),
+            pw.SizedBox(height: 4),
+            pw.Row(
+              mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+              children: [
+                pw.Text(
+                  hasPrev
+                      ? 'Reference Period: $prevSyLabel vs. $activeSyLabel'
+                      : 'Reference Period: $activeSyLabel (Baseline)',
+                  style: pw.TextStyle(
+                    fontSize: 8,
+                    fontWeight: pw.FontWeight.bold,
+                    color: PdfColors.grey800,
+                  ),
+                ),
+                pw.Text(
+                  'Date: $generatedDate',
+                  style: const pw.TextStyle(
+                    fontSize: 7.5,
+                    color: PdfColors.grey700,
+                  ),
+                ),
+              ],
             ),
           ],
         ),

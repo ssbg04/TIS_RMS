@@ -948,6 +948,7 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
                                   horizontal: AppSizes.p24,
                                 ),
                                 child: pageAsync.when(
+                                  skipLoadingOnReload: true,
                                   loading: () => const Center(
                                     child: CircularProgressIndicator(
                                       color: AppColors.primaryGreen,

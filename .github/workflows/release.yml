@@ -422,9 +422,9 @@ jobs:
           }
 
       # ------------------------------------------------------------
-      # Android Build
+      # Android Build (Split 32-bit, 64-bit & Universal APKs)
       # ------------------------------------------------------------
-      - name: Build Android Universal APK
+      - name: Build Android APKs (Split 32-bit, 64-bit & Universal)
         working-directory: frontend
         shell: pwsh
         run: |
@@ -435,33 +435,73 @@ jobs:
 
           & "$env:JAVA_HOME\bin\java.exe" -version
 
+          $tag = "${{ steps.release_info.outputs.tag }}"
+          $verName = "${{ steps.release_info.outputs.version_name }}"
+          $buildNum = "${{ steps.release_info.outputs.build_number }}"
+
+          # 1. Build Split-per-ABI APKs (32-bit armeabi-v7a & 64-bit arm64-v8a)
           Write-Host ""
-          Write-Host "Building Android APK..."
+          Write-Host "Building Android Split-per-ABI APKs (32-bit & 64-bit)..."
+
+          flutter build apk `
+            --release `
+            --split-per-abi `
+            --obfuscate `
+            --split-debug-info=build/app/outputs/symbols `
+            --build-name="$verName" `
+            --build-number="$buildNum"
+
+          if ($LASTEXITCODE -ne 0) {
+            throw "Flutter Android split-per-abi build failed."
+          }
+
+          $apk32 = "build\app\outputs\flutter-apk\app-armeabi-v7a-release.apk"
+          $apk64 = "build\app\outputs\flutter-apk\app-arm64-v8a-release.apk"
+
+          $output32 = "..\installers\TIS_RMS_32bit_$tag.apk"
+          $output64 = "..\installers\TIS_RMS_64_$tag.apk"
+
+          if (-not (Test-Path $apk32)) {
+            throw "Split build completed without producing $apk32"
+          }
+          if (-not (Test-Path $apk64)) {
+            throw "Split build completed without producing $apk64"
+          }
+
+          Copy-Item $apk32 $output32 -Force
+          Copy-Item $apk64 $output64 -Force
+          Copy-Item $apk32 "..\installers\TIS_RMS_32bit.apk" -Force
+          Copy-Item $apk64 "..\installers\TIS_RMS_64.apk" -Force
+
+          Write-Host "32-bit APK copied to $output32 and ..\installers\TIS_RMS_32bit.apk"
+          Write-Host "64-bit APK copied to $output64 and ..\installers\TIS_RMS_64.apk"
+
+          # 2. Build Universal APK (All ABIs bundled)
+          Write-Host ""
+          Write-Host "Building Android Universal APK..."
 
           flutter build apk `
             --release `
             --obfuscate `
             --split-debug-info=build/app/outputs/symbols `
-            --build-name="${{ steps.release_info.outputs.version_name }}" `
-            --build-number="${{ steps.release_info.outputs.build_number }}"
+            --build-name="$verName" `
+            --build-number="$buildNum"
 
           if ($LASTEXITCODE -ne 0) {
-            throw "Flutter Android APK build failed."
+            throw "Flutter Android universal APK build failed."
           }
 
-          $apkPath = "build\app\outputs\flutter-apk\app-release.apk"
-          $outputPath = "..\installers\TIS_RMS_Android_Universal_${{ steps.release_info.outputs.tag }}.apk"
+          $apkUniversal = "build\app\outputs\flutter-apk\app-release.apk"
+          $outputUniversal = "..\installers\TIS_RMS_Universal_$tag.apk"
 
-          if (-not (Test-Path $apkPath)) {
-            throw "Android build completed without producing $apkPath"
+          if (-not (Test-Path $apkUniversal)) {
+            throw "Universal build completed without producing $apkUniversal"
           }
 
-          Copy-Item `
-            $apkPath `
-            $outputPath `
-            -Force
+          Copy-Item $apkUniversal $outputUniversal -Force
+          Copy-Item $apkUniversal "..\installers\TIS_RMS_Universal.apk" -Force
 
-          Write-Host "Android APK copied to $outputPath"
+          Write-Host "Universal APK copied to $outputUniversal and ..\installers\TIS_RMS_Universal.apk"
 
       # ------------------------------------------------------------
       # Verify Artifacts
@@ -474,7 +514,9 @@ jobs:
           $tag = "${{ steps.release_info.outputs.tag }}"
           $files = @(
             "installers\TIS_RMS_Client_Setup_$tag.exe",
-            "installers\TIS_RMS_Android_Universal_$tag.apk"
+            "installers\TIS_RMS_32bit_$tag.apk",
+            "installers\TIS_RMS_64_$tag.apk",
+            "installers\TIS_RMS_Universal_$tag.apk"
           )
 
           foreach ($file in $files) {
@@ -503,7 +545,9 @@ jobs:
           name: Release ${{ steps.release_info.outputs.tag }}
           files: |
             installers/TIS_RMS_Client_Setup_${{ steps.release_info.outputs.tag }}.exe
-            installers/TIS_RMS_Android_Universal_${{ steps.release_info.outputs.tag }}.apk
+            installers/TIS_RMS_32bit_${{ steps.release_info.outputs.tag }}.apk
+            installers/TIS_RMS_64_${{ steps.release_info.outputs.tag }}.apk
+            installers/TIS_RMS_Universal_${{ steps.release_info.outputs.tag }}.apk
           generate_release_notes: true
           draft: false
           prerelease: false

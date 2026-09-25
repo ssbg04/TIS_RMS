@@ -31,7 +31,7 @@ Future<void> showUpdateAvailableDialog(
           : (isAndroid ? 'Android Universal App' : 'TIS RMS Client');
 
       final assetLabel = updateInfo.assetName ??
-          (isWindows ? 'TIS_RMS_Client_Setup.exe' : 'TIS_RMS_Android_Universal.apk');
+          (isWindows ? 'TIS_RMS_Client_Setup.exe' : 'TIS_RMS_Universal.apk');
 
       return Dialog(
         backgroundColor: isDark ? AppColors.darkSurfaceCard : Colors.white,

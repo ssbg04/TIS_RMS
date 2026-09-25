@@ -465,6 +465,7 @@ class _AddStudentModalState extends ConsumerState<AddStudentModal> {
 
       if (!mounted) return;
       ref.invalidate(studentPageProvider);
+      if (mounted) setState(() => _isLoading = false);
       if (uploadError != null) {
         await showDialog(
           context: context,

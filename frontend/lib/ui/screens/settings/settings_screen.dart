@@ -284,31 +284,6 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
 
 
 
-  Future<void> _handleActivateAcademicYear(AcademicYearModel selectedYear) async {
-    try {
-      await ref.read(setupMutationProvider.notifier).updateAcademicYear(
-            id: selectedYear.id,
-            yearRange: selectedYear.yearRange,
-            status: 'active',
-            startDate: selectedYear.startDate,
-            endDate: selectedYear.endDate,
-          );
-      ref.invalidate(academicYearsListProvider);
-      if (!mounted) return;
-      showSuccessDialog(
-        context,
-        message: 'Academic Year ${selectedYear.yearRange} is now Active!',
-      );
-    } catch (e) {
-      if (!mounted) return;
-      showErrorDialog(
-        context,
-        'Activation Failed',
-        e.toString().replaceAll('Exception: ', ''),
-      );
-      ref.invalidate(academicYearsListProvider);
-    }
-  }
 
   Future<void> _handleRunAutoGraduation(
     BuildContext context,
@@ -977,9 +952,11 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                         Consumer(
                           builder: (context, ref, _) {
                             final academicYearsAsync = ref.watch(academicYearsListProvider);
+                            final sysSettingsAsync = ref.watch(systemSettingsProvider);
+                            final settingsMap = sysSettingsAsync.asData?.value ?? {};
                             final isDark = Theme.of(context).brightness == Brightness.dark;
                             return _buildCollapsibleCard(
-                              title: 'Academic Year & Auto-Graduation',
+                              title: 'Academic & Graduation',
                               isExpanded: _isAcademicYearExpanded,
                               onToggle: () => setState(() => _isAcademicYearExpanded = !_isAcademicYearExpanded),
                               child: Column(
@@ -996,7 +973,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                                       const SizedBox(width: AppSizes.p12),
                                       Expanded(
                                         child: Text(
-                                          'Manage active academic year and auto-graduation schedule',
+                                          'Manage active academic year, auto-graduation, and archiving grace period',
                                           style: TextStyle(
                                             fontSize: 13,
                                             color: isDark ? AppColors.darkTextSecondary : Colors.grey.shade600,
@@ -1027,59 +1004,78 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                                       return Column(
                                         crossAxisAlignment: CrossAxisAlignment.start,
                                         children: [
-                                          DropdownButtonFormField<int>(
-                                            key: ValueKey('ay_dropdown_${activeYear?.id}'),
-                                            initialValue: activeYear?.id,
-                                            decoration: InputDecoration(
-                                              labelText: 'Academic Year',
-                                              prefixIcon: const Icon(Icons.calendar_month, color: AppColors.primaryGreen),
-                                              helperText: 'Select an academic year to activate it system-wide.',
-                                              border: OutlineInputBorder(
+                                          if (activeYear == null) ...[
+                                            Container(
+                                              width: double.infinity,
+                                              padding: const EdgeInsets.all(12),
+                                              decoration: BoxDecoration(
+                                                color: AppColors.warning.withValues(alpha: 0.1),
                                                 borderRadius: BorderRadius.circular(8),
+                                                border: Border.all(color: AppColors.warning.withValues(alpha: 0.3)),
                                               ),
-                                              contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                                              child: const Text(
+                                                'No active academic year found. An administrator must activate a school year in Teachers & Academic Setup.',
+                                                style: TextStyle(color: AppColors.warning, fontSize: 13),
+                                              ),
                                             ),
-                                            items: years.map((y) {
-                                              final isActive = y.status == 'active';
-                                              return DropdownMenuItem<int>(
-                                                value: y.id,
-                                                child: Row(
-                                                  mainAxisSize: MainAxisSize.min,
-                                                  children: [
-                                                    Text(
-                                                      y.yearRange,
-                                                      style: TextStyle(
-                                                        fontWeight: isActive ? FontWeight.bold : FontWeight.normal,
-                                                      ),
-                                                    ),
-                                                    const SizedBox(width: 8),
-                                                    Container(
-                                                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                                                      decoration: BoxDecoration(
-                                                        color: isActive
-                                                            ? AppColors.primaryGreen.withValues(alpha: 0.15)
-                                                            : Colors.grey.withValues(alpha: 0.15),
-                                                        borderRadius: BorderRadius.circular(8),
-                                                      ),
-                                                      child: Text(
-                                                        isActive ? 'Active' : 'Inactive',
-                                                        style: TextStyle(
-                                                          fontSize: 11,
-                                                          color: isActive ? AppColors.primaryGreen : Colors.grey,
-                                                          fontWeight: FontWeight.w600,
-                                                        ),
-                                                      ),
-                                                    ),
-                                                  ],
+                                          ] else ...[
+                                            Container(
+                                              width: double.infinity,
+                                              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                                              decoration: BoxDecoration(
+                                                color: isDark ? AppColors.darkSurface2 : Colors.grey.shade50,
+                                                borderRadius: BorderRadius.circular(10),
+                                                border: Border.all(
+                                                  color: isDark ? AppColors.darkBorder : Colors.grey.shade200,
                                                 ),
-                                              );
-                                            }).toList(),
-                                            onChanged: (selectedId) async {
-                                              if (selectedId == null || selectedId == activeYear?.id) return;
-                                              final selectedYear = years.firstWhere((y) => y.id == selectedId);
-                                              await _handleActivateAcademicYear(selectedYear);
-                                            },
-                                          ),
+                                              ),
+                                              child: Row(
+                                                children: [
+                                                  const Icon(Icons.calendar_month, color: AppColors.primaryGreen, size: 22),
+                                                  const SizedBox(width: 12),
+                                                  Expanded(
+                                                    child: Column(
+                                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                                      children: [
+                                                        Text(
+                                                          'Active Academic Year',
+                                                          style: TextStyle(
+                                                            fontSize: 11,
+                                                            color: isDark ? AppColors.darkTextSecondary : Colors.grey.shade600,
+                                                            fontWeight: FontWeight.w500,
+                                                          ),
+                                                        ),
+                                                        const SizedBox(height: 2),
+                                                        Text(
+                                                          activeYear.yearRange,
+                                                          style: TextStyle(
+                                                            fontSize: 15,
+                                                            fontWeight: FontWeight.bold,
+                                                            color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
+                                                          ),
+                                                        ),
+                                                      ],
+                                                    ),
+                                                  ),
+                                                  Container(
+                                                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                                                    decoration: BoxDecoration(
+                                                      color: AppColors.primaryGreen.withValues(alpha: 0.15),
+                                                      borderRadius: BorderRadius.circular(6),
+                                                    ),
+                                                    child: const Text(
+                                                      'Active',
+                                                      style: TextStyle(
+                                                        fontSize: 11,
+                                                        color: AppColors.primaryGreen,
+                                                        fontWeight: FontWeight.w600,
+                                                      ),
+                                                    ),
+                                                  ),
+                                                ],
+                                              ),
+                                            ),
+                                          ],
                                           const SizedBox(height: 16),
                                           if (activeYear == null) ...[
                                             const Text(
@@ -1284,6 +1280,142 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                                     loading: () => const Center(child: CircularProgressIndicator()),
                                     error: (err, _) => Text('Error loading academic years: $err', style: const TextStyle(color: Colors.red)),
                                   ),
+                                  const Divider(height: 32),
+                                  // Auto-Archiving Grace Period
+                                  Row(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      const Icon(
+                                        Icons.archive_outlined,
+                                        color: AppColors.primaryGreen,
+                                        size: 24,
+                                      ),
+                                      const SizedBox(width: AppSizes.p12),
+                                      Expanded(
+                                        child: Column(
+                                          crossAxisAlignment: CrossAxisAlignment.start,
+                                          children: [
+                                            Text(
+                                              'Automatic Archiving Grace Period',
+                                              style: TextStyle(
+                                                fontSize: 14,
+                                                fontWeight: FontWeight.w600,
+                                                color: Theme.of(context).colorScheme.onSurface,
+                                              ),
+                                            ),
+                                            const SizedBox(height: 2),
+                                            Text(
+                                              'Enrolled students with no active enrollment past this number of days from the active school year start date are automatically marked Inactive and archived.',
+                                              style: TextStyle(
+                                                fontSize: 12,
+                                                color: isDark ? AppColors.darkTextSecondary : Colors.grey.shade600,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  const SizedBox(height: AppSizes.p12),
+                                  Wrap(
+                                    spacing: 8,
+                                    runSpacing: 8,
+                                    children: ['15', '30', '45', '60', '90'].map((days) {
+                                      final currentGrace = settingsMap['enrollment_grace_period_days'] ?? '30';
+                                      final isSelected = currentGrace == days;
+                                      return ChoiceChip(
+                                        label: Text('$days Days'),
+                                        selected: isSelected,
+                                        selectedColor: AppColors.primaryGreen.withValues(alpha: 0.18),
+                                        backgroundColor: isDark ? AppColors.darkSurfaceCard : Colors.grey.shade100,
+                                        side: BorderSide(
+                                          color: isSelected
+                                              ? AppColors.primaryGreen
+                                              : Theme.of(context).dividerColor.withValues(alpha: 0.3),
+                                          width: isSelected ? 1.5 : 1,
+                                        ),
+                                        labelStyle: TextStyle(
+                                          fontSize: 13,
+                                          fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+                                          color: isSelected ? AppColors.primaryGreen : Theme.of(context).colorScheme.onSurface,
+                                        ),
+                                        onSelected: (_) {
+                                          _gracePeriodCtrl.text = days;
+                                          ref.read(systemSettingsProvider.notifier).updateSetting('enrollment_grace_period_days', days);
+                                        },
+                                      );
+                                    }).toList(),
+                                  ),
+                                  const SizedBox(height: AppSizes.p12),
+                                  Builder(
+                                    builder: (context) {
+                                      final currentGrace = settingsMap['enrollment_grace_period_days'] ?? '30';
+                                      if (_gracePeriodCtrl.text.isEmpty) {
+                                        _gracePeriodCtrl.text = currentGrace;
+                                      }
+                                      return Row(
+                                        children: [
+                                          SizedBox(
+                                            width: 140,
+                                            height: 40,
+                                            child: TextFormField(
+                                              controller: _gracePeriodCtrl,
+                                              keyboardType: TextInputType.number,
+                                              inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                                              style: const TextStyle(fontSize: 13),
+                                              decoration: InputDecoration(
+                                                labelText: 'Custom Days',
+                                                labelStyle: const TextStyle(fontSize: 12),
+                                                suffixText: 'days',
+                                                suffixStyle: const TextStyle(fontSize: 12),
+                                                isDense: true,
+                                                contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                                                border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                                              ),
+                                              onFieldSubmitted: (val) {
+                                                final trimmed = val.trim();
+                                                if (trimmed.isNotEmpty && int.tryParse(trimmed) != null && int.parse(trimmed) > 0) {
+                                                  ref.read(systemSettingsProvider.notifier).updateSetting('enrollment_grace_period_days', trimmed);
+                                                  ScaffoldMessenger.of(context).showSnackBar(
+                                                    SnackBar(
+                                                      content: Text('Grace period updated to $trimmed days'),
+                                                      duration: const Duration(seconds: 2),
+                                                    ),
+                                                  );
+                                                }
+                                              },
+                                            ),
+                                          ),
+                                          const SizedBox(width: 8),
+                                          SizedBox(
+                                            height: 40,
+                                            child: ElevatedButton(
+                                              onPressed: () {
+                                                final trimmed = _gracePeriodCtrl.text.trim();
+                                                if (trimmed.isNotEmpty && int.tryParse(trimmed) != null && int.parse(trimmed) > 0) {
+                                                  ref.read(systemSettingsProvider.notifier).updateSetting('enrollment_grace_period_days', trimmed);
+                                                  ScaffoldMessenger.of(context).showSnackBar(
+                                                    SnackBar(
+                                                      content: Text('Grace period updated to $trimmed days'),
+                                                      duration: const Duration(seconds: 2),
+                                                    ),
+                                                  );
+                                                }
+                                              },
+                                              style: ElevatedButton.styleFrom(
+                                                backgroundColor: AppColors.primaryGreen,
+                                                foregroundColor: Colors.white,
+                                                padding: const EdgeInsets.symmetric(horizontal: 16),
+                                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                                                elevation: 0,
+                                              ),
+                                              child: const Text('Save', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
+                                            ),
+                                          ),
+                                        ],
+                                      );
+                                    },
+                                  ),
                                  ],
                                ),
                              );
@@ -1434,142 +1566,6 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                                       ),
                                     ],
                                   ],
-                                  const Divider(height: 32),
-                                  // Auto-Archiving Grace Period
-                                  Row(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      const Icon(
-                                        Icons.archive_outlined,
-                                        color: AppColors.primaryGreen,
-                                        size: 24,
-                                      ),
-                                      const SizedBox(width: AppSizes.p12),
-                                      Expanded(
-                                        child: Column(
-                                          crossAxisAlignment: CrossAxisAlignment.start,
-                                          children: [
-                                            Text(
-                                              'Automatic Archiving Grace Period',
-                                              style: TextStyle(
-                                                fontSize: 14,
-                                                fontWeight: FontWeight.w600,
-                                                color: Theme.of(context).colorScheme.onSurface,
-                                              ),
-                                            ),
-                                            const SizedBox(height: 2),
-                                            Text(
-                                              'Enrolled students with no active enrollment past this number of days from the active school year start date are automatically marked Inactive and archived.',
-                                              style: TextStyle(
-                                                fontSize: 12,
-                                                color: isDark ? AppColors.darkTextSecondary : Colors.grey.shade600,
-                                              ),
-                                            ),
-                                          ],
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                  const SizedBox(height: AppSizes.p12),
-                                  Wrap(
-                                    spacing: 8,
-                                    runSpacing: 8,
-                                    children: ['15', '30', '45', '60', '90'].map((days) {
-                                      final currentGrace = settingsMap['enrollment_grace_period_days'] ?? '30';
-                                      final isSelected = currentGrace == days;
-                                      return ChoiceChip(
-                                        label: Text('$days Days'),
-                                        selected: isSelected,
-                                        selectedColor: AppColors.primaryGreen.withValues(alpha: 0.18),
-                                        backgroundColor: isDark ? AppColors.darkSurfaceCard : Colors.grey.shade100,
-                                        side: BorderSide(
-                                          color: isSelected
-                                              ? AppColors.primaryGreen
-                                              : Theme.of(context).dividerColor.withValues(alpha: 0.3),
-                                          width: isSelected ? 1.5 : 1,
-                                        ),
-                                        labelStyle: TextStyle(
-                                          fontSize: 13,
-                                          fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
-                                          color: isSelected ? AppColors.primaryGreen : Theme.of(context).colorScheme.onSurface,
-                                        ),
-                                        onSelected: (_) {
-                                          _gracePeriodCtrl.text = days;
-                                          ref.read(systemSettingsProvider.notifier).updateSetting('enrollment_grace_period_days', days);
-                                        },
-                                      );
-                                    }).toList(),
-                                  ),
-                                  const SizedBox(height: AppSizes.p12),
-                                  Builder(
-                                    builder: (context) {
-                                      final currentGrace = settingsMap['enrollment_grace_period_days'] ?? '30';
-                                      if (_gracePeriodCtrl.text.isEmpty) {
-                                        _gracePeriodCtrl.text = currentGrace;
-                                      }
-                                      return Row(
-                                        children: [
-                                          SizedBox(
-                                            width: 140,
-                                            height: 40,
-                                            child: TextFormField(
-                                              controller: _gracePeriodCtrl,
-                                              keyboardType: TextInputType.number,
-                                              inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                                              style: const TextStyle(fontSize: 13),
-                                              decoration: InputDecoration(
-                                                labelText: 'Custom Days',
-                                                labelStyle: const TextStyle(fontSize: 12),
-                                                suffixText: 'days',
-                                                suffixStyle: const TextStyle(fontSize: 12),
-                                                isDense: true,
-                                                contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-                                                border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-                                              ),
-                                              onFieldSubmitted: (val) {
-                                                final trimmed = val.trim();
-                                                if (trimmed.isNotEmpty && int.tryParse(trimmed) != null && int.parse(trimmed) > 0) {
-                                                  ref.read(systemSettingsProvider.notifier).updateSetting('enrollment_grace_period_days', trimmed);
-                                                  ScaffoldMessenger.of(context).showSnackBar(
-                                                    SnackBar(
-                                                      content: Text('Grace period updated to $trimmed days'),
-                                                      duration: const Duration(seconds: 2),
-                                                    ),
-                                                  );
-                                                }
-                                              },
-                                            ),
-                                          ),
-                                          const SizedBox(width: 8),
-                                          SizedBox(
-                                            height: 40,
-                                            child: ElevatedButton(
-                                              onPressed: () {
-                                                final trimmed = _gracePeriodCtrl.text.trim();
-                                                if (trimmed.isNotEmpty && int.tryParse(trimmed) != null && int.parse(trimmed) > 0) {
-                                                  ref.read(systemSettingsProvider.notifier).updateSetting('enrollment_grace_period_days', trimmed);
-                                                  ScaffoldMessenger.of(context).showSnackBar(
-                                                    SnackBar(
-                                                      content: Text('Grace period updated to $trimmed days'),
-                                                      duration: const Duration(seconds: 2),
-                                                    ),
-                                                  );
-                                                }
-                                              },
-                                              style: ElevatedButton.styleFrom(
-                                                backgroundColor: AppColors.primaryGreen,
-                                                foregroundColor: Colors.white,
-                                                padding: const EdgeInsets.symmetric(horizontal: 16),
-                                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                                                elevation: 0,
-                                              ),
-                                              child: const Text('Save', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
-                                            ),
-                                          ),
-                                        ],
-                                      );
-                                    },
-                                  ),
                                 ],
                               ),
                             );

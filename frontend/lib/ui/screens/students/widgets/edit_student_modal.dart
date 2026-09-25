@@ -335,6 +335,7 @@ class _EditStudentModalState extends ConsumerState<EditStudentModal> {
       if (!mounted) return;
       ref.invalidate(studentPageProvider);
       ref.invalidate(studentDetailProvider(widget.student.id));
+      setState(() => _isLoading = false);
       await showSuccessDialog(
         context,
         message: 'Student updated successfully!',
@@ -752,6 +753,7 @@ class _EditStudentModalState extends ConsumerState<EditStudentModal> {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return detailAsync.when(
+      skipLoadingOnReload: true,
       loading: () => const Center(child: CircularProgressIndicator()),
       error: (e, _) => Center(child: Text('Error loading enrollments: $e')),
       data: (detailStudent) {
