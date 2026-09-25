@@ -322,20 +322,6 @@ class DocumentRepository {
     }
   }
 
-  Future<DocumentModel> convertExcelToPdf(int id) async {
-    try {
-      final options = await _getAuthOptions();
-      final response = await _dio.post('/documents/$id/convert-to-pdf', options: options);
-      final docData = response.data['document'] as Map<String, dynamic>?;
-      if (docData != null) {
-        return DocumentModel.fromJson(docData);
-      }
-      throw Exception(response.data['message'] ?? 'Failed to convert document.');
-    } on DioException catch (e) {
-      final msg = e.response?.data?['message'] ?? 'Failed to convert Excel to PDF.';
-      throw Exception(msg);
-    }
-  }
 
   /// Uploads in-memory bytes (e.g. a converted PDF) as a new document in the
   /// student's folder.

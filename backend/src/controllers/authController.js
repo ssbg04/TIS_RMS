@@ -7,31 +7,58 @@ const { createNotification } = require('./notificationController');
 const { sendPasswordResetOtp, sendAccountDeletionEmail } = require('../services/emailService');
 const { getBestServerBaseUrl } = require('./userController');
 
-// ── QEV Email Validator ───────────────────────────────────────────────────────
-// Returns { valid: bool, reason: string } — never throws.
-const validateEmailQEV = async (email) => {
+// ── MyEmailVerifier (MEV) Email Validator ─────────────────────────────────────
+// Returns { valid: bool, reason: string, details?: object } — never throws.
+const validateEmailMEV = async (email) => {
     if (!email || !email.trim()) return { valid: false, reason: 'Email is empty' };
-    const apiKey = process.env.QEV_API_KEY;
-    if (!apiKey) return { valid: true, reason: 'QEV key not configured – skipping' };
+    const apiKey = process.env.MEV_API_KEY;
+    if (!apiKey) {
+        console.warn('[MEV] MEV_API_KEY not configured in .env – skipping verification');
+        return { valid: true, reason: 'MEV key not configured – skipping' };
+    }
+
     try {
-        const qev = require('quickemailverification').client(apiKey).quickemailverification();
-        const result = await new Promise((resolve, reject) => {
-            qev.verify(email.trim(), (err, response) => {
-                if (err) return reject(err);
-                resolve(response.body);
-            });
-        });
-        // result.result: 'valid' | 'invalid' | 'unknown'
-        const isValid = result.result === 'valid';
-        const reason = isValid ? 'valid' : (result.reason || result.result || 'invalid');
-        return { valid: isValid, reason };
+        const url = `https://api.myemailverifier.com/api/validate_single.php?apikey=${encodeURIComponent(apiKey)}&email=${encodeURIComponent(email.trim())}`;
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 10000);
+
+        const response = await fetch(url, { signal: controller.signal });
+        clearTimeout(timeoutId);
+
+        if (!response.ok) {
+            console.warn(`[MEV] HTTP ${response.status} from MyEmailVerifier`);
+            return { valid: true, reason: 'Validation service temporarily unavailable' };
+        }
+
+        const data = await response.json();
+        const status = (data.Status || '').trim().toLowerCase();
+        const diagnosis = data.Diagnosis || '';
+        const isDisposable = data.Disposable_Domain === 1 ||
+            data.Disposable_Domain === '1' ||
+            data.Disposable_Domain === 'true' ||
+            data.Disposable_Domain === true;
+
+        if (isDisposable) {
+            return { valid: false, reason: 'Disposable email addresses are not allowed', details: data };
+        }
+
+        if (status === 'invalid') {
+            return { valid: false, reason: diagnosis || 'Email address does not exist or is invalid', details: data };
+        }
+
+        const isValid = status === 'valid';
+        return {
+            valid: isValid,
+            reason: isValid ? 'valid' : (diagnosis || 'Email verification failed'),
+            details: data,
+        };
     } catch (err) {
-        console.warn('[QEV] Email validation error (skipping):', err.message);
-        // Fail-open: if QEV is unreachable, allow the email
-        return { valid: true, reason: 'QEV unreachable – skipping' };
+        console.warn('[MEV] Email validation error (skipping):', err.message);
+        return { valid: true, reason: 'MEV unreachable – skipping' };
     }
 };
-exports.validateEmailQEV = validateEmailQEV;
+exports.validateEmailMEV = validateEmailMEV;
+exports.validateEmailQEV = validateEmailMEV; // Backward compatibility
 
 // ── Session Helpers ───────────────────────────────────────────────────────────
 const hashToken = (token) => crypto.createHash('sha256').update(token).digest('hex');

@@ -14,7 +14,6 @@ import '../../shared/dialogs/document_properties_dialog.dart';
 import '../../shared/widgets/app_pagination.dart';
 import '../../shared/widgets/app_error_state.dart';
 import '../../providers/navigation_provider.dart';
-import '../../providers/conversion_provider.dart';
 
 import '../../shared/dialogs/success_dialog.dart';
 import '../../shared/dialogs/error_dialog.dart';
@@ -348,24 +347,7 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen>
       }
     } else if (action == 'archive') {
       _confirmArchive(document);
-    } else if (action == 'convert_pdf') {
-      try {
-        final converted = await ref
-            .read(conversionProvider.notifier)
-            .convertToPdf(documentId);
-        if (!mounted) return;
-        showSuccessDialog(
-          context,
-          message: 'Excel converted to PDF successfully as "${converted.fileName}".',
-        );
-      } catch (e) {
-        if (!mounted) return;
-        showErrorDialog(
-          context,
-          'Conversion Failed',
-          e.toString().replaceFirst('Exception: ', ''),
-        );
-      }
+
     } else if (action == 'open_with') {
       // Open the document preview modal which has the Open With action
       showDocumentPreview(context: context, document: document);

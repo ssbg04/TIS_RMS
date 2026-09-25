@@ -10,8 +10,9 @@ const {
     sendAccountStatusEmail,
 } = require('../services/emailService');
 const { getDetectedTunnelUrl } = require('../services/tunnelService');
-// validateEmailQEV is lazy-required to avoid circular dependency (authController → userController → authController)
-const getQEV = () => require('./authController').validateEmailQEV;
+// validateEmailMEV is lazy-required to avoid circular dependency (authController → userController → authController)
+const getMEV = () => require('./authController').validateEmailMEV;
+const getQEV = getMEV;
 
 
 // ── Base URL Helper (Auto-detects Tunnel vs LAN IP vs Domain) ────────────────
@@ -123,7 +124,7 @@ exports.getUsers = (req, res) => {
 };
 
 // POST /api/users - Create a new user
-exports.createUser = (req, res) => {
+exports.createUser = async (req, res) => {
     const { username, firstName, middleName, lastName, extension, role, email, phone } = req.body;
     // Password is optional — auto-generated if not provided
     let providedPassword = req.body.password;
@@ -135,6 +136,21 @@ exports.createUser = (req, res) => {
     const validRoles = ['admin', 'teacher']; // Super admin can only be created by seeding
     if (!validRoles.includes(role)) {
         return res.status(400).json({ message: 'Invalid role. Must be admin or teacher.' });
+    }
+
+    // Validate email with MyEmailVerifier before creating user
+    if (email && email.trim()) {
+        try {
+            const mevResult = await getMEV()(email.trim());
+            if (!mevResult.valid) {
+                return res.status(400).json({
+                    message: 'Invalid or undeliverable email address.',
+                    reason: mevResult.reason,
+                });
+            }
+        } catch (mevErr) {
+            console.warn('[UserController] MEV pre-check skipped due to error:', mevErr.message);
+        }
     }
 
     // Temporary password = username + 123 (e.g. ccharles123)
@@ -195,7 +211,7 @@ exports.createUser = (req, res) => {
 
 
 // PUT /api/users/:id - Update a user
-exports.updateUser = (req, res) => {
+exports.updateUser = async (req, res) => {
     const { id } = req.params;
     const { firstName, middleName, lastName, extension, role, email, phone } = req.body;
 
@@ -209,6 +225,21 @@ exports.updateUser = (req, res) => {
         if (!user) return res.status(404).json({ message: 'User not found.' });
         if (user.is_hidden === 1 && req.user.id !== user.id) {
             return res.status(404).json({ message: 'User not found.' });
+        }
+
+        // Validate email with MyEmailVerifier if changed and not empty
+        if (email !== undefined && email !== null && email.trim() !== '' && email.trim().toLowerCase() !== (user.email || '').trim().toLowerCase()) {
+            try {
+                const mevResult = await getMEV()(email.trim());
+                if (!mevResult.valid) {
+                    return res.status(400).json({
+                        message: 'Invalid or undeliverable email address.',
+                        reason: mevResult.reason,
+                    });
+                }
+            } catch (mevErr) {
+                console.warn('[UserController] MEV pre-check skipped due to error:', mevErr.message);
+            }
         }
 
         // Prevent self-demotion (locked role for self)

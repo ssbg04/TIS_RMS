@@ -82,7 +82,15 @@ class AlarmReceiver : BroadcastReceiver() {
         }
 
         var newHighestId = highestOldId
-        ensureChannel(context)
+        val soundEnabled = prefs.getBoolean("flutter.pref_sound_enabled", false)
+        val vibrationEnabled = prefs.getBoolean("flutter.pref_vibration_enabled", false)
+        val channelId = when {
+            soundEnabled && vibrationEnabled -> "tis_rms_activities_sound_vibrate"
+            soundEnabled -> "tis_rms_activities_sound_only"
+            vibrationEnabled -> "tis_rms_activities_vibrate_only"
+            else -> "tis_rms_activities_silent"
+        }
+        ensureChannel(context, channelId, soundEnabled, vibrationEnabled)
         val notifManager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
 
         for (i in 0 until list.length()) {
@@ -107,7 +115,7 @@ class AlarmReceiver : BroadcastReceiver() {
                 PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
             )
 
-            val notification = Notification.Builder(context, CHANNEL_ID)
+            val notification = Notification.Builder(context, channelId)
                 .setSmallIcon(R.drawable.ic_launcher_foreground)
                 .setContentTitle(title)
                 .setContentText(message)
@@ -126,16 +134,26 @@ class AlarmReceiver : BroadcastReceiver() {
         }
     }
 
-    private fun ensureChannel(context: Context) {
+    private fun ensureChannel(context: Context, channelId: String, soundEnabled: Boolean, vibrationEnabled: Boolean) {
         val manager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-        if (manager.getNotificationChannel(CHANNEL_ID) != null) return
+        if (manager.getNotificationChannel(channelId) != null) return
+        val channelName = when (channelId) {
+            "tis_rms_activities_sound_vibrate" -> "Recent Activities (Sound & Vibrate)"
+            "tis_rms_activities_sound_only" -> "Recent Activities (Sound Only)"
+            "tis_rms_activities_vibrate_only" -> "Recent Activities (Vibrate Only)"
+            else -> "Recent Activities (Silent)"
+        }
+        val importance = if (soundEnabled || vibrationEnabled) NotificationManager.IMPORTANCE_HIGH else NotificationManager.IMPORTANCE_DEFAULT
         val channel = NotificationChannel(
-            CHANNEL_ID,
-            "Recent Activities",
-            NotificationManager.IMPORTANCE_HIGH
+            channelId,
+            channelName,
+            importance
         ).apply {
             description = "Notifications for recent activities and system events"
-            enableVibration(true)
+            enableVibration(vibrationEnabled)
+            if (!soundEnabled) {
+                setSound(null, null)
+            }
         }
         manager.createNotificationChannel(channel)
     }

@@ -62,33 +62,35 @@ class _KpisContent extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           if (isWide)
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Expanded(
-                  child: _StudentDocCard(
-                    title: 'Top Students by Documents',
-                    icon: Icons.emoji_events_rounded,
-                    iconColor: Colors.amber.shade700,
-                    students: kpis.topStudents,
-                    allTopStudents: kpis.topStudents,
-                    allBottomStudents: kpis.bottomStudents,
-                    isTop: true,
+            IntrinsicHeight(
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Expanded(
+                    child: _StudentDocCard(
+                      title: 'Top Students by Documents',
+                      icon: Icons.emoji_events_rounded,
+                      iconColor: Colors.amber.shade700,
+                      students: kpis.topStudents,
+                      allTopStudents: kpis.topStudents,
+                      allBottomStudents: kpis.bottomStudents,
+                      isTop: true,
+                    ),
                   ),
-                ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: _StudentDocCard(
-                    title: 'Needs Attention',
-                    icon: Icons.warning_amber_rounded,
-                    iconColor: Colors.orange,
-                    students: kpis.bottomStudents,
-                    allTopStudents: kpis.topStudents,
-                    allBottomStudents: kpis.bottomStudents,
-                    isTop: false,
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: _StudentDocCard(
+                      title: 'Needs Attention',
+                      icon: Icons.warning_amber_rounded,
+                      iconColor: Colors.orange,
+                      students: kpis.bottomStudents,
+                      allTopStudents: kpis.topStudents,
+                      allBottomStudents: kpis.bottomStudents,
+                      isTop: false,
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             )
           else
             Column(
@@ -165,8 +167,29 @@ class _KpisContent extends StatelessWidget {
 
         const SizedBox(height: 16),
 
-        // Bento Block 3: Full-width Upload Trend Line
-        _UploadTrendCard(entries: kpis.uploadTrend),
+        // Bento Block 3: Upload Trend (flex: 3) + Storage Analytics (flex: 2)
+        if (isWide)
+          IntrinsicHeight(
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Expanded(
+                  flex: 3,
+                  child: _UploadTrendCard(entries: kpis.uploadTrend),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  flex: 2,
+                  child: _StorageCard(analytics: kpis.storageAnalytics),
+                ),
+              ],
+            ),
+          )
+        else ...[
+          _UploadTrendCard(entries: kpis.uploadTrend),
+          const SizedBox(height: 16),
+          _StorageCard(analytics: kpis.storageAnalytics),
+        ],
 
         const SizedBox(height: 16),
 
@@ -226,11 +249,6 @@ class _KpisContent extends StatelessWidget {
               ),
             ],
           ),
-
-        const SizedBox(height: 16),
-
-        // Storage analytics (full width)
-        _StorageCard(analytics: kpis.storageAnalytics),
 
         const SizedBox(height: 32),
       ],
@@ -1332,7 +1350,7 @@ class _UploadTrendCard extends StatelessWidget {
       icon: Icons.show_chart_rounded,
       subtitle: 'Documents uploaded over the last 30 days',
       child: SizedBox(
-        height: 160,
+        height: 180,
         child: LineChart(
           LineChartData(
             minY: 0,

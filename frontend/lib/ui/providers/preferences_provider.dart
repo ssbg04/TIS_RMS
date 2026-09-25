@@ -16,7 +16,7 @@ class SoundEnabledNotifier extends Notifier<bool> {
 
   Future<void> _loadFromPrefs() async {
     final prefs = await SharedPreferences.getInstance();
-    final enabled = prefs.getBool(_kSoundEnabledKey) ?? true;
+    final enabled = prefs.getBool(_kSoundEnabledKey) ?? false;
     SoundService.isMuted = !enabled;
     state = enabled;
   }

@@ -6,7 +6,6 @@ const { execFile } = require('child_process');
 const util = require('util');
 const execFileAsync = util.promisify(execFile);
 const { createNotification } = require('./notificationController');
-const LibreOfficeService = require('../services/libreOfficeService');
 const sharp = require('sharp');
 const emailService = require('../services/emailService');
 
@@ -898,87 +897,6 @@ exports.copyDocument = (req, res) => {
     } catch (error) {
         console.error('Copy Error:', error);
         res.status(500).json({ message: 'Failed to copy document', error: error.message });
-    }
-};
-
-// ============================================================
-// POST /api/documents/:id/convert-to-pdf — convert Excel to PDF
-// ============================================================
-exports.convertToPdf = async (req, res) => {
-    const { id } = req.params;
-    try {
-        const doc = db.prepare('SELECT * FROM documents WHERE id = ?').get(id);
-        if (!doc) return res.status(404).json({ message: 'Document not found' });
-
-        const isTeacher = req.user?.role?.toLowerCase() === 'teacher';
-        if (isTeacher) {
-            const hasAccess = db.prepare(`
-                SELECT 1 FROM enrollments e
-                JOIN teacher_sections ts ON e.section_id = ts.section_id
-                WHERE e.student_id = ? AND ts.teacher_id = ?
-            `).get(doc.student_id, req.user.id);
-            if (!hasAccess) {
-                return res.status(403).json({ message: 'Access denied to convert this document.' });
-            }
-        }
-
-        const originalPath = doc.file_path;
-        if (!fs.existsSync(originalPath)) {
-            return res.status(404).json({ message: 'Physical file not found on disk' });
-        }
-
-        const ext = path.extname(doc.file_name).toLowerCase();
-        const validExcelExts = ['.xlsx', '.xls', '.csv'];
-        if (!validExcelExts.includes(ext)) {
-            return res.status(400).json({ message: 'Only Excel files (.xlsx, .xls, .csv) can be converted to PDF.' });
-        }
-
-        const dir = path.dirname(originalPath);
-        const baseName = path.basename(doc.file_name, ext);
-
-        // Perform conversion with headless LibreOffice
-        const { pdfPath: tempPdfPath } = await LibreOfficeService.convertToPdf(originalPath, dir);
-
-        // Determine non-colliding new filename with .pdf extension
-        const existingNames = db.prepare(
-            'SELECT file_name FROM documents WHERE student_id = ? AND deleted_at IS NULL'
-        ).all(doc.student_id).map((r) => r.file_name);
-
-        let newFileName = `${baseName}.pdf`;
-        let counter = 1;
-        while (existingNames.includes(newFileName)) {
-            newFileName = `${baseName} (${counter}).pdf`;
-            counter++;
-        }
-
-        const finalPdfPath = path.join(dir, `${Date.now()}-${newFileName.replace(/[^a-zA-Z0-9.-]/g, '_')}`);
-        fs.renameSync(tempPdfPath, finalPdfPath);
-
-        // Insert new PDF document row into database
-        const convertedFileSize = fs.existsSync(finalPdfPath) ? fs.statSync(finalPdfPath).size : null;
-        const result = db.prepare(`
-            INSERT INTO documents (student_id, requirement_id, file_name, file_path, document_type, status, uploaded_by, file_size)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-        `).run(doc.student_id, doc.requirement_id, newFileName, finalPdfPath, doc.document_type, doc.status, req.user.id, convertedFileSize);
-
-        const newDoc = db.prepare('SELECT * FROM documents WHERE id = ?').get(result.lastInsertRowid);
-
-        // Log activity
-        const student = db.prepare('SELECT first_name, last_name FROM students WHERE id = ?').get(doc.student_id);
-        const studentName = student ? `${student.first_name} ${student.last_name}` : `Student #${doc.student_id}`;
-        logActivity(req.user.id, 'CREATE', 'document', result.lastInsertRowid,
-            `Converted Excel document "${doc.file_name}" to PDF "${newFileName}" for ${studentName}`);
-        createNotification(null, 'Document Converted', `Document "${doc.file_name}" converted to PDF for ${studentName}.`, 'document', 'document', result.lastInsertRowid);
-
-        res.status(201).json({
-            id: result.lastInsertRowid,
-            fileName: newFileName,
-            document: newDoc,
-            message: 'Document converted to PDF successfully',
-        });
-    } catch (error) {
-        console.error('ConvertToPdf Error:', error);
-        res.status(500).json({ message: error.message || 'Failed to convert document to PDF' });
     }
 };
 

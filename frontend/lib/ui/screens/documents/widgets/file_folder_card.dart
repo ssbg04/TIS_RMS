@@ -96,21 +96,6 @@ class _FileFolderCardState extends State<FileFolderCard> {
           ],
         ),
       ),
-      if (_isExcel)
-        const PopupMenuItem(
-          value: 'convert_pdf',
-          child: Row(
-            children: [
-              Icon(
-                Icons.picture_as_pdf_outlined,
-                size: 18,
-                color: Colors.deepOrangeAccent,
-              ),
-              SizedBox(width: 12),
-              Text('Convert to PDF', style: TextStyle(fontSize: 14)),
-            ],
-          ),
-        ),
       const PopupMenuItem(
         value: 'queue',
         child: Row(

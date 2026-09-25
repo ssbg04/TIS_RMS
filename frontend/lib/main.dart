@@ -18,7 +18,10 @@ import 'core/services/foreground_sync_service.dart';
 import 'core/services/fcm_service.dart';
 import 'ui/providers/theme_provider.dart';
 import 'ui/shared/widgets/inactivity_wrapper.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:workmanager/workmanager.dart';
+import 'core/services/sound_service.dart';
+import 'core/services/haptic_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -73,6 +76,15 @@ void main() async {
 
   await NotificationService().initialize();
   await ForegroundSyncService.stop();
+
+  // Initialize user preferences for sound and vibration (both default to disabled)
+  try {
+    final prefs = await SharedPreferences.getInstance();
+    final soundEnabled = prefs.getBool('pref_sound_enabled') ?? false;
+    final vibrationEnabled = prefs.getBool('pref_vibration_enabled') ?? false;
+    SoundService.isMuted = !soundEnabled;
+    HapticService.isEnabled = vibrationEnabled;
+  } catch (_) {}
 
   // Firebase / FCM — only on Android/iOS mobile devices
   if (!kIsWeb && (Platform.isAndroid || Platform.isIOS)) {

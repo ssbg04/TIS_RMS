@@ -757,38 +757,49 @@ Files backup/restore - mirror mode or zip -->
 # WINDOWS SIDE NAV BAR
 - windows app -> side bar nav move the archive tab to overview group -->
 
-# SETTINGS SCREEN
-- Delete account -> update to self deactivates, remove email function for deletion, use email for deactivation add client side 2 times confirmation dialog -> add 3rd modal for final confirmation -> logout after 
+<!-- # SETTINGS SCREEN
+- self deactivation -> fix the _dependents.isEmpty is not true after submit DEACTIVATE type confirmation modal 
 
 # REPORTS SCREEN
 - android app, hide the collapsable filter, keep the filter button and fix the filter button label is at half
 
-# SETTINGS SCREEN -> SECURITY TAB
-- settings screen -> "academic & auto graduation" label of save dates and cancel buttons label at half, label of
-check button make theme responsive 
-- logged in devices collapsible accordion with count badge & chevron, platform tracking fixed for history screen & settings screen
-
-
 # USER SCREEN
-- email validation api quickemailverification.com for adding users before sending the all email transactions
-  - example code 
-```
-// Replace API_KEY with your API Key
-var quickemailverification = require('quickemailverification').client('QEV_API_KEY').quickemailverification(); 
-
-// Email address which need to be verified
- quickemailverification.verify("asdasdas@email.com", function (err, response) { 
-// Print response object
-console.log(response.body);
-});
-```
+- email validation api myemailverifier for add/edit users before sending the all email transactions
+  - use the MEV_API_KEY in .env
+  - example curl: 
+  curl "https://api.myemailverifier.com/api/validate_single.php?apikey=114d4e64cdc3c060568b7f466f4161b1&email=example@example.com"
+  - Example Response:
+  {
+    "Address":"support@myemailverifier.com",
+    "catch_all": "false",
+    "Status":"Valid",
+    "Disposable_Domain":"false",
+    "Role_Based":"true",
+    "Free_Domain":"false",
+    "Greylisted":"false",
+    "Diagnosis":"Mailbox Exists and Active"
+  }
 
 # DOCUMENTS SCREEN
-- android app: open with not working
+- android app: document preview modal -> edit not working, open and open with works
+- remove the excel to pdf using backend -> remove in the backend the api and libre office 
 
 # HISTORY SCREEN
-- make the header of body compact
-- add a new tab for login/logout time date of the users
+- make the header of body compact, use the same search icon and filter from other screen for this screen
+- in sessions tab the time use 12H format 
+- users tab fix the time format to 12H format, card title the user that perform to add/edit/deactivate/activate move to the sub-sub-description use basic words, change the "performed by" into -> action by  -->
+
+<!-- # SETTINGS SCREEN -> SECURITY collapse widget
+- make the security collapse into screen  
+
+# HISTORY SCREEN
+- remove the header icon and title replace/move the tabs (activites, users, sessions)
+
+# DASHBOARD
+- make the layout bento grids for windows app for mobile use normal responsive grid ( columns) -->
+
+# REPORT SCREEN
+- make the layout bento grids for windows app for mobile use normal responsive grid
 
 ---
 

@@ -57,15 +57,52 @@ class NotificationService {
                   AndroidFlutterLocalNotificationsPlugin
                 >();
 
-        const AndroidNotificationChannel channel = AndroidNotificationChannel(
-          'tis_rms_activities_channel',
-          'Recent Activities',
-          description: 'Notifications for recent activities and system events',
-          importance: Importance.max,
-          playSound: true,
-          enableVibration: true,
-        );
-        await androidImplementation?.createNotificationChannel(channel);
+        const channels = [
+          AndroidNotificationChannel(
+            'tis_rms_activities_sound_vibrate',
+            'Recent Activities (Sound & Vibrate)',
+            description: 'Notifications with sound and vibration',
+            importance: Importance.max,
+            playSound: true,
+            enableVibration: true,
+          ),
+          AndroidNotificationChannel(
+            'tis_rms_activities_sound_only',
+            'Recent Activities (Sound Only)',
+            description: 'Notifications with sound only',
+            importance: Importance.max,
+            playSound: true,
+            enableVibration: false,
+          ),
+          AndroidNotificationChannel(
+            'tis_rms_activities_vibrate_only',
+            'Recent Activities (Vibrate Only)',
+            description: 'Notifications with vibration only',
+            importance: Importance.max,
+            playSound: false,
+            enableVibration: true,
+          ),
+          AndroidNotificationChannel(
+            'tis_rms_activities_silent',
+            'Recent Activities (Silent)',
+            description: 'Silent notifications without sound or vibration',
+            importance: Importance.high,
+            playSound: false,
+            enableVibration: false,
+          ),
+          AndroidNotificationChannel(
+            'tis_rms_activities_channel',
+            'Recent Activities',
+            description: 'Notifications for recent activities and system events',
+            importance: Importance.max,
+            playSound: false,
+            enableVibration: false,
+          ),
+        ];
+
+        for (final ch in channels) {
+          await androidImplementation?.createNotificationChannel(ch);
+        }
 
         try {
           await androidImplementation?.requestNotificationsPermission();
@@ -114,22 +151,50 @@ class NotificationService {
       } catch (_) {}
     }
 
-    const AndroidNotificationDetails androidPlatformChannelSpecifics =
+    bool soundEnabled = false;
+    bool vibrationEnabled = false;
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      soundEnabled = prefs.getBool('pref_sound_enabled') ?? false;
+      vibrationEnabled = prefs.getBool('pref_vibration_enabled') ?? false;
+    } catch (_) {}
+
+    String channelId;
+    if (soundEnabled && vibrationEnabled) {
+      channelId = 'tis_rms_activities_sound_vibrate';
+    } else if (soundEnabled) {
+      channelId = 'tis_rms_activities_sound_only';
+    } else if (vibrationEnabled) {
+      channelId = 'tis_rms_activities_vibrate_only';
+    } else {
+      channelId = 'tis_rms_activities_silent';
+    }
+
+    final AndroidNotificationDetails androidPlatformChannelSpecifics =
         AndroidNotificationDetails(
-          'tis_rms_activities_channel', // id
-          'Recent Activities', // name
+          channelId,
+          'Recent Activities',
           channelDescription:
               'Notifications for recent activities and system events',
-          importance: Importance.max,
+          importance: (soundEnabled || vibrationEnabled)
+              ? Importance.max
+              : Importance.high,
           priority: Priority.max,
-          playSound: true,
-          enableVibration: true,
+          playSound: soundEnabled,
+          enableVibration: vibrationEnabled,
           visibility: NotificationVisibility.public,
           showWhen: true,
         );
 
-    const NotificationDetails platformChannelSpecifics = NotificationDetails(
+    final DarwinNotificationDetails darwinPlatformChannelSpecifics =
+        DarwinNotificationDetails(
+          presentSound: soundEnabled,
+        );
+
+    final NotificationDetails platformChannelSpecifics = NotificationDetails(
       android: androidPlatformChannelSpecifics,
+      iOS: darwinPlatformChannelSpecifics,
+      macOS: darwinPlatformChannelSpecifics,
     );
 
     final notificationId =

@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'package:excel/excel.dart' hide Border, TextSpan;
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
@@ -502,6 +503,8 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
       }
     }
 
+    final isAndroid = Theme.of(context).platform == TargetPlatform.android || (!kIsWeb && Platform.isAndroid);
+
     return Scaffold(
       resizeToAvoidBottomInset: false,
       backgroundColor: Colors.transparent,
@@ -517,7 +520,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
           child: SingleChildScrollView(
             controller: _scrollController,
             physics: const AlwaysScrollableScrollPhysics(),
-            padding: const EdgeInsets.all(AppSizes.p24),
+            padding: EdgeInsets.all(isAndroid ? 14 : AppSizes.p24),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -540,27 +543,32 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                     ),
                     error: (err, st) =>
                         _errorWidget('Error fetching analytics: $err'),
-                    data: (data) => Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        _buildComplianceHeader(context, data),
-                        const SizedBox(height: AppSizes.p20),
+                    data: (data) => LayoutBuilder(
+                      builder: (context, constraints) {
+                        final isWindowsApp =
+                            Theme.of(context).platform == TargetPlatform.windows
+                                ? constraints.maxWidth >= 720
+                                : (!isAndroid && constraints.maxWidth >= 850);
 
-                        // 1. Filter Panel (collapsible)
-                        if (!Platform.isAndroid) ...[
-                          _buildFilterPanel(context),
-                          const SizedBox(height: AppSizes.p20),
-                        ],
+                        return Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            _buildComplianceHeader(context, data),
+                            const SizedBox(height: AppSizes.p20),
 
-                        // 2. Focused Compliance KPI Cards (4 cards)
-                        _buildMetricsGrid(data),
-                        const SizedBox(height: AppSizes.p24),
+                            // 1. Filter Panel (collapsible) - hidden on Android
+                            if (!isAndroid) ...[
+                              _buildFilterPanel(context),
+                              const SizedBox(height: AppSizes.p20),
+                            ],
 
-                        // 3. Analytics Grid Row 1: Grade Compliance & Missing Requirements Breakdown
-                        LayoutBuilder(
-                          builder: (context, constraints) {
-                            if (constraints.maxWidth >= 1000) {
-                              return Row(
+                            // 2. Focused Compliance KPI Cards (Bento on Windows, normal responsive grid on mobile)
+                            _buildMetricsGrid(data, isWindowsApp: isWindowsApp),
+                            const SizedBox(height: AppSizes.p24),
+
+                            // 3. Analytics Bento Block 1: Grade Compliance & Missing Requirements Breakdown
+                            if (isWindowsApp)
+                              Row(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Expanded(
@@ -570,7 +578,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                                       isDesktop: true,
                                     ),
                                   ),
-                                  const SizedBox(width: AppSizes.p24),
+                                  const SizedBox(width: AppSizes.p20),
                                   Expanded(
                                     flex: 5,
                                     child: _buildMissingDocsChart(
@@ -579,31 +587,26 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                                     ),
                                   ),
                                 ],
-                              );
-                            } else {
-                              return Column(
+                              )
+                            else
+                              Column(
                                 children: [
                                   _buildGradeComplianceChart(
                                     data.students,
                                     isDesktop: false,
                                   ),
-                                  const SizedBox(height: AppSizes.p24),
+                                  const SizedBox(height: AppSizes.p16),
                                   _buildMissingDocsChart(
                                     data.missingDocsBreakdown,
                                     isDesktop: false,
                                   ),
                                 ],
-                              );
-                            }
-                          },
-                        ),
-                        const SizedBox(height: AppSizes.p24),
+                              ),
+                            const SizedBox(height: AppSizes.p24),
 
-                        // 4. Analytics Grid Row 2: Status Breakdown & Historical Trends
-                        LayoutBuilder(
-                          builder: (context, constraints) {
-                            if (constraints.maxWidth >= 1000) {
-                              return Row(
+                            // 4. Analytics Bento Block 2: Status Breakdown & Historical Trends
+                            if (isWindowsApp)
+                              Row(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Expanded(
@@ -613,7 +616,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                                       isDesktop: true,
                                     ),
                                   ),
-                                  const SizedBox(width: AppSizes.p24),
+                                  const SizedBox(width: AppSizes.p20),
                                   Expanded(
                                     flex: 6,
                                     child: _buildYearlyComparisonChart(
@@ -621,26 +624,25 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                                     ),
                                   ),
                                 ],
-                              );
-                            } else {
-                              return Column(
+                              )
+                            else
+                              Column(
                                 children: [
                                   _buildStatusDonutChart(
                                     data.studentCounts,
                                     isDesktop: false,
                                   ),
-                                  const SizedBox(height: AppSizes.p24),
+                                  const SizedBox(height: AppSizes.p16),
                                   _buildYearlyComparisonChart(isDesktop: false),
                                 ],
-                              );
-                            }
-                          },
-                        ),
-                        const SizedBox(height: AppSizes.p24),
+                              ),
+                            const SizedBox(height: AppSizes.p24),
 
-                        // 5. Interactive Student Compliance Table
-                        _buildComplianceTable(data),
-                      ],
+                            // 5. Interactive Student Compliance Table (Full Width)
+                            _buildComplianceTable(data),
+                          ],
+                        );
+                      },
                     ),
                   ),
                 ],
@@ -760,7 +762,8 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
 
   Widget _buildComplianceHeader(BuildContext context, ReportStats data) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final isDesktop = MediaQuery.of(context).size.width > 900;
+    final isAndroid = Theme.of(context).platform == TargetPlatform.android || (!kIsWeb && Platform.isAndroid);
+    final isDesktop = !isAndroid && MediaQuery.of(context).size.width > 900;
 
     if (isDesktop) {
       return Row(
@@ -845,14 +848,16 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                 child: OutlinedButton.icon(
                   onPressed: () => _showComplianceFilterModal(context),
                   icon: const Icon(Icons.filter_list_rounded, size: 16),
-                  label: FittedBox(
-                    fit: BoxFit.scaleDown,
-                    child: Text(
-                      activeFilterCount > 0 ? 'Filter ($activeFilterCount)' : 'Filter',
-                      style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
-                    ),
+                  label: Text(
+                    activeFilterCount > 0 ? 'Filter ($activeFilterCount)' : 'Filter',
+                    style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                   ),
                   style: OutlinedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 0),
+                    visualDensity: VisualDensity.compact,
+                    alignment: Alignment.center,
                     foregroundColor: activeFilterCount > 0
                         ? AppColors.primaryGreen
                         : (isDark ? AppColors.darkTextPrimary : AppColors.textPrimary),
@@ -1333,7 +1338,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
   }
 
   // ── KPI Cards: 4 Focused Compliance Metrics ─────────────────────────────
-  Widget _buildMetricsGrid(ReportStats reportData) {
+  Widget _buildMetricsGrid(ReportStats reportData, {required bool isWindowsApp}) {
     final students = reportData.students;
     final breakdown = reportData.missingDocsBreakdown;
 
@@ -1343,65 +1348,264 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
     final complianceRate =
         students.isNotEmpty ? (compliantCount / students.length * 100) : 0.0;
 
-    return LayoutBuilder(
-      builder: (ctx, constraints) {
-        final cols = constraints.maxWidth >= 1000
-            ? 4
-            : (constraints.maxWidth >= 550 ? 2 : 1);
-        return GridView(
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: cols,
-            crossAxisSpacing: 16,
-            mainAxisSpacing: 16,
-            mainAxisExtent: constraints.maxWidth < 550 ? 150 : 160,
-          ),
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    if (isWindowsApp) {
+      // Bento Grid row for Windows Desktop App (Hero card + 3 supporting metric cards)
+      return SizedBox(
+        height: 156,
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            _buildPrimaryKpiCard(
-              title: 'Overall Compliance',
-              value: '${complianceRate.toStringAsFixed(1)}%',
-              subtitle: '$compliantCount of ${students.length} students complete',
-              icon: Icons.verified_outlined,
-              color: complianceRate >= 80
-                  ? AppColors.primaryGreen
-                  : complianceRate >= 50
-                      ? Colors.orange
-                      : Colors.red,
-              progress: complianceRate / 100,
+            Expanded(
+              flex: 3,
+              child: _buildHeroComplianceCard(
+                complianceRate: complianceRate,
+                compliantCount: compliantCount,
+                totalStudents: students.length,
+                isDark: isDark,
+              ),
             ),
-            _buildPrimaryKpiCard(
-              title: 'Complete Records',
-              value: '$compliantCount',
-              subtitle: 'All documents submitted',
-              icon: Icons.check_circle_outline_rounded,
-              color: AppColors.primaryGreen,
+            const SizedBox(width: 14),
+            Expanded(
+              flex: 2,
+              child: _buildPrimaryKpiCard(
+                title: 'Complete Records',
+                value: '$compliantCount',
+                subtitle: 'All documents submitted',
+                icon: Icons.check_circle_outline_rounded,
+                color: AppColors.primaryGreen,
+              ),
             ),
-            _buildPrimaryKpiCard(
-              title: 'Needs Follow-up',
-              value: '$withIssuesCount',
-              subtitle: 'Missing 1 or more documents',
-              icon: Icons.warning_amber_rounded,
-              color: withIssuesCount == 0
-                  ? AppColors.primaryGreen
-                  : Colors.orange.shade700,
+            const SizedBox(width: 14),
+            Expanded(
+              flex: 2,
+              child: _buildPrimaryKpiCard(
+                title: 'Needs Follow-up',
+                value: '$withIssuesCount',
+                subtitle: 'Missing 1+ documents',
+                icon: Icons.warning_amber_rounded,
+                color: withIssuesCount == 0
+                    ? AppColors.primaryGreen
+                    : Colors.orange.shade700,
+              ),
             ),
-            _buildPrimaryKpiCard(
-              title: 'Pending Documents',
-              value: '$totalMissing',
-              subtitle: 'Across ${breakdown.length} requirement types',
-              icon: Icons.description_outlined,
-              color: totalMissing == 0
-                  ? AppColors.primaryGreen
-                  : Colors.redAccent,
+            const SizedBox(width: 14),
+            Expanded(
+              flex: 2,
+              child: _buildPrimaryKpiCard(
+                title: 'Pending Docs',
+                value: '$totalMissing',
+                subtitle: 'Across ${breakdown.length} types',
+                icon: Icons.description_outlined,
+                color: totalMissing == 0
+                    ? AppColors.primaryGreen
+                    : Colors.redAccent,
+              ),
             ),
           ],
-        );
-      },
+        ),
+      );
+    } else {
+      // Normal responsive grid for mobile (2 columns)
+      return LayoutBuilder(
+        builder: (ctx, constraints) {
+          final isVeryNarrow = constraints.maxWidth < 340;
+          return GridView.count(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            crossAxisCount: 2,
+            crossAxisSpacing: 10,
+            mainAxisSpacing: 10,
+            childAspectRatio: isVeryNarrow ? 1.25 : 1.45,
+            children: [
+              _buildPrimaryKpiCard(
+                title: 'Compliance Rate',
+                value: '${complianceRate.toStringAsFixed(1)}%',
+                subtitle: '$compliantCount / ${students.length} complete',
+                icon: Icons.verified_outlined,
+                color: complianceRate >= 80
+                    ? AppColors.primaryGreen
+                    : complianceRate >= 50
+                        ? Colors.orange
+                        : Colors.red,
+                progress: complianceRate / 100,
+                isMobile: true,
+              ),
+              _buildPrimaryKpiCard(
+                title: 'Complete',
+                value: '$compliantCount',
+                subtitle: 'All documents in',
+                icon: Icons.check_circle_outline_rounded,
+                color: AppColors.primaryGreen,
+                isMobile: true,
+              ),
+              _buildPrimaryKpiCard(
+                title: 'Needs Follow-up',
+                value: '$withIssuesCount',
+                subtitle: 'Missing documents',
+                icon: Icons.warning_amber_rounded,
+                color: withIssuesCount == 0
+                    ? AppColors.primaryGreen
+                    : Colors.orange.shade700,
+                isMobile: true,
+              ),
+              _buildPrimaryKpiCard(
+                title: 'Pending Docs',
+                value: '$totalMissing',
+                subtitle: '${breakdown.length} requirement types',
+                icon: Icons.description_outlined,
+                color: totalMissing == 0
+                    ? AppColors.primaryGreen
+                    : Colors.redAccent,
+                isMobile: true,
+              ),
+            ],
+          );
+        },
+      );
+    }
+  }
+
+  /// Hero Bento KPI Card for Windows App
+  Widget _buildHeroComplianceCard({
+    required double complianceRate,
+    required int compliantCount,
+    required int totalStudents,
+    required bool isDark,
+  }) {
+    final Color effectiveColor = complianceRate >= 80
+        ? (isDark ? const Color(0xFF76BA8A) : AppColors.primaryGreen)
+        : complianceRate >= 50
+            ? (isDark ? const Color(0xFFE5A663) : Colors.orange.shade700)
+            : (isDark ? const Color(0xFFD67878) : Colors.redAccent);
+
+    final String statusLabel = complianceRate >= 80
+        ? 'High'
+        : complianceRate >= 50
+            ? 'Moderate'
+            : 'Action Needed';
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      decoration: BoxDecoration(
+        color: isDark ? AppColors.darkSurfaceCard : Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: effectiveColor.withValues(alpha: 0.3)),
+        boxShadow: [
+          BoxShadow(
+            color: effectiveColor.withValues(alpha: 0.08),
+            blurRadius: 10,
+            offset: const Offset(0, 3),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(6),
+                decoration: BoxDecoration(
+                  color: effectiveColor.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Icon(
+                  Icons.verified_rounded,
+                  size: 18,
+                  color: effectiveColor,
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  'Overall Compliance',
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                    color: isDark
+                        ? AppColors.darkTextPrimary
+                        : AppColors.textPrimary,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+              const SizedBox(width: 6),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+                decoration: BoxDecoration(
+                  color: effectiveColor.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(6),
+                  border: Border.all(
+                    color: effectiveColor.withValues(alpha: 0.3),
+                    width: 0.8,
+                  ),
+                ),
+                child: Text(
+                  statusLabel,
+                  style: TextStyle(
+                    fontSize: 10.5,
+                    fontWeight: FontWeight.bold,
+                    color: effectiveColor,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              FittedBox(
+                fit: BoxFit.scaleDown,
+                alignment: Alignment.centerLeft,
+                child: Text(
+                  '${complianceRate.toStringAsFixed(1)}%',
+                  style: TextStyle(
+                    fontSize: 30,
+                    fontWeight: FontWeight.w800,
+                    color: effectiveColor,
+                    letterSpacing: -0.5,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 6),
+              ClipRRect(
+                borderRadius: BorderRadius.circular(4),
+                child: LinearProgressIndicator(
+                  value: (complianceRate / 100).clamp(0.0, 1.0),
+                  minHeight: 6,
+                  backgroundColor: isDark
+                      ? AppColors.darkSurface2
+                      : Colors.grey.shade100,
+                  valueColor: AlwaysStoppedAnimation<Color>(effectiveColor),
+                ),
+              ),
+              const SizedBox(height: 6),
+              Text(
+                '$compliantCount of $totalStudents students complete',
+                style: TextStyle(
+                  fontSize: 11.5,
+                  fontWeight: FontWeight.w500,
+                  color: isDark
+                      ? AppColors.darkTextSecondary
+                      : AppColors.textSecondary,
+                ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ],
+          ),
+        ],
+      ),
     );
   }
 
-  /// Highlighted primary KPI card with colored accent border and optional progress.
+  /// Primary KPI card with colored accent border and optional progress.
   Widget _buildPrimaryKpiCard({
     required String title,
     required String value,
@@ -1409,6 +1613,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
     required IconData icon,
     required Color color,
     double? progress,
+    bool isMobile = false,
   }) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     // In dark mode, slightly desaturate bright accents for a softer, eye-friendly look
@@ -1425,7 +1630,10 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
         : color;
 
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: EdgeInsets.symmetric(
+        horizontal: isMobile ? 10 : 14,
+        vertical: isMobile ? 10 : 12,
+      ),
       decoration: BoxDecoration(
         color: isDark ? AppColors.darkSurfaceCard : Colors.white,
         borderRadius: BorderRadius.circular(12),
@@ -1445,19 +1653,19 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
           Row(
             children: [
               Container(
-                padding: const EdgeInsets.all(6),
+                padding: EdgeInsets.all(isMobile ? 5 : 6),
                 decoration: BoxDecoration(
                   color: effectiveColor.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(8),
                 ),
-                child: Icon(icon, size: 18, color: effectiveColor),
+                child: Icon(icon, size: isMobile ? 16 : 18, color: effectiveColor),
               ),
               const SizedBox(width: 8),
               Expanded(
                 child: Text(
                   title,
                   style: TextStyle(
-                    fontSize: 13,
+                    fontSize: isMobile ? 12 : 13,
                     fontWeight: FontWeight.w600,
                     color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
                   ),
@@ -1477,7 +1685,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                 child: Text(
                   value,
                   style: TextStyle(
-                    fontSize: 28,
+                    fontSize: isMobile ? 22 : 28,
                     fontWeight: FontWeight.w800,
                     color: effectiveColor,
                     letterSpacing: -0.5,
@@ -1485,26 +1693,26 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                 ),
               ),
               if (progress != null) ...[
-                const SizedBox(height: 6),
+                const SizedBox(height: 4),
                 ClipRRect(
                   borderRadius: BorderRadius.circular(4),
                   child: LinearProgressIndicator(
                     value: progress.clamp(0.0, 1.0),
-                    minHeight: 5,
+                    minHeight: isMobile ? 4 : 5,
                     backgroundColor: isDark
                         ? AppColors.darkSurface2
                         : Colors.grey.shade100,
                     valueColor: AlwaysStoppedAnimation<Color>(effectiveColor),
                   ),
                 ),
-                const SizedBox(height: 4),
+                const SizedBox(height: 3),
               ] else ...[
                 const SizedBox(height: 2),
               ],
               Text(
                 subtitle,
                 style: TextStyle(
-                  fontSize: 11.5,
+                  fontSize: isMobile ? 10.5 : 11.5,
                   fontWeight: FontWeight.w500,
                   color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
                 ),
@@ -3245,7 +3453,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
 
     return Container(
       width: double.infinity,
-      height: isDesktop ? 460 : null,
+      height: isDesktop ? 485 : null,
       padding: const EdgeInsets.all(AppSizes.p24),
       decoration: _cardDecoration(),
       child: Column(
@@ -3718,7 +3926,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
 
     return Container(
       width: double.infinity,
-      height: isDesktop ? 460 : null,
+      height: isDesktop ? 485 : null,
       padding: const EdgeInsets.all(AppSizes.p24),
       decoration: _cardDecoration(),
       child: Column(
@@ -3826,7 +4034,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
             },
           ),
 
-          const SizedBox(height: AppSizes.p24),
+          const SizedBox(height: 14),
 
           // ── Chart ──────────────────────────────────────────────────────────
           yearlyAsync.when(
@@ -3883,7 +4091,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                       : (data.length * 150.0);
                   final Widget chartWidget = SizedBox(
                     width: chartWidth,
-                    height: 230,
+                    height: 200,
                     child: BarChart(
                       BarChartData(
                         alignment: BarChartAlignment.spaceAround,
@@ -4037,7 +4245,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
               );
             },
           ),
-          const SizedBox(height: 24),
+          const SizedBox(height: 14),
           // ── Legend (dynamic based on selected statuses) ─────────────────────
           Consumer(
             builder: (context, ref, _) {

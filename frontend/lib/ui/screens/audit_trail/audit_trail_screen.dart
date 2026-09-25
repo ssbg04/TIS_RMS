@@ -8,6 +8,7 @@ import '../../providers/activity_provider.dart';
 import '../../providers/login_sessions_provider.dart';
 import '../../shared/modals/view_activity_modal.dart';
 import '../../shared/widgets/app_pagination.dart';
+import '../../shared/inputs/app_search_bar.dart';
 
 enum AuditTab { activities, users, sessions }
 
@@ -32,14 +33,6 @@ class _AuditTrailScreenState extends ConsumerState<AuditTrailScreen> {
   DateTime? _fromDate;
   DateTime? _toDate;
 
-  // Action chips: All, Add, Update, Archive, Delete
-  static const List<String> _actionFilters = [
-    'All',
-    'Add',
-    'Update',
-    'Archive',
-    'Delete',
-  ];
 
   @override
   void initState() {
@@ -70,45 +63,6 @@ class _AuditTrailScreenState extends ConsumerState<AuditTrailScreen> {
     }
   }
 
-  Future<void> _pickDateRange(BuildContext context) async {
-    final values = await showCalendarDatePicker2Dialog(
-      context: context,
-      config: CalendarDatePicker2WithActionButtonsConfig(
-        calendarType: CalendarDatePicker2Type.range,
-        firstDate: DateTime(2020),
-        lastDate: DateTime.now().add(const Duration(days: 1)),
-        selectedDayHighlightColor: AppColors.primaryGreen,
-      ),
-      dialogSize: const Size(325, 400),
-      value: [?_fromDate, ?_toDate],
-      borderRadius: BorderRadius.circular(16),
-    );
-
-    if (values != null && values.isNotEmpty) {
-      setState(() {
-        _fromDate = values[0];
-        _toDate = values.length > 1 ? values[1] : values[0];
-      });
-
-      final fromStr = _fromDate != null
-          ? "${_fromDate!.year}-${_fromDate!.month.toString().padLeft(2, '0')}-${_fromDate!.day.toString().padLeft(2, '0')}"
-          : '';
-      final toStr = _toDate != null
-          ? "${_toDate!.year}-${_toDate!.month.toString().padLeft(2, '0')}-${_toDate!.day.toString().padLeft(2, '0')}"
-          : '';
-
-      if (_selectedTab == AuditTab.activities) {
-        ref.read(activityQueryProvider.notifier).setDateFrom(fromStr);
-        ref.read(activityQueryProvider.notifier).setDateTo(toStr);
-      } else if (_selectedTab == AuditTab.users) {
-        ref.read(userHistoryQueryProvider.notifier).setDateFrom(fromStr);
-        ref.read(userHistoryQueryProvider.notifier).setDateTo(toStr);
-      } else {
-        ref.read(loginSessionsQueryProvider.notifier).setDateFrom(fromStr);
-        ref.read(loginSessionsQueryProvider.notifier).setDateTo(toStr);
-      }
-    }
-  }
 
   Color _getActionColor(String action) {
     final act = action.toUpperCase();
@@ -144,6 +98,622 @@ class _AuditTrailScreenState extends ConsumerState<AuditTrailScreen> {
     return Icons.history_rounded;
   }
 
+  String _getBasicActionTitle(String action) {
+    final act = action.toLowerCase();
+    if (act.contains('create') || act.contains('add')) {
+      return 'Added user';
+    }
+    if (act.contains('update') || act.contains('edit')) {
+      return 'Updated user';
+    }
+    if (act.contains('deactivate')) {
+      return 'Deactivated user';
+    }
+    if (act.contains('activate')) {
+      return 'Activated user';
+    }
+    if (act.contains('delete')) {
+      return 'Deleted user';
+    }
+    if (act.contains('reset')) {
+      return 'Reset user password';
+    }
+    return '$action user';
+  }
+
+  void _applySearch(String val) {
+    if (_selectedTab == AuditTab.activities) {
+      ref.read(activityQueryProvider.notifier).setSearch(val);
+    } else if (_selectedTab == AuditTab.users) {
+      ref.read(userHistoryQueryProvider.notifier).setSearch(val);
+    } else {
+      ref.read(loginSessionsQueryProvider.notifier).setSearch(val);
+    }
+  }
+
+  void _refreshCurrentTab() {
+    if (_selectedTab == AuditTab.activities) {
+      ref.invalidate(recentActivitiesPageProvider);
+    } else if (_selectedTab == AuditTab.users) {
+      ref.invalidate(userHistoryPageProvider);
+    } else {
+      ref.invalidate(loginSessionsPageProvider);
+    }
+  }
+
+  Future<void> _showSearchDialog(BuildContext context) async {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final hint = _selectedTab == AuditTab.activities
+        ? 'Search description or user...'
+        : _selectedTab == AuditTab.users
+            ? 'Search user or admin...'
+            : 'Search username or name...';
+
+    await showDialog(
+      context: context,
+      barrierColor: Colors.black54,
+      builder: (ctx) {
+        return Align(
+          alignment: Alignment.topCenter,
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(16, kToolbarHeight + 24, 16, 0),
+            child: Material(
+              color: isDark ? AppColors.darkSurfaceCard : Colors.white,
+              elevation: 4,
+              borderRadius: BorderRadius.circular(12),
+              child: AppSearchBar(
+                hint: hint,
+                controller: _searchController,
+                collapsible: false,
+                maxWidth: 600,
+                onSubmitted: (val) {
+                  Navigator.of(ctx).pop();
+                  _applySearch(val);
+                },
+                onChanged: (val) {
+                  _applySearch(val);
+                },
+              ),
+            ),
+          ),
+        );
+      },
+    );
+    if (mounted) setState(() {});
+  }
+
+  Future<void> _showFilterDialog(BuildContext context) async {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final actQuery = ref.read(activityQueryProvider);
+    final usrQuery = ref.read(userHistoryQueryProvider);
+
+    DateTime? tempFrom = _fromDate;
+    DateTime? tempTo = _toDate;
+    String tempAction = _selectedTab == AuditTab.activities
+        ? actQuery.action
+        : _selectedTab == AuditTab.users
+            ? usrQuery.action
+            : '';
+    String tempRole = _selectedTab == AuditTab.users ? usrQuery.role : '';
+
+    await showDialog(
+      context: context,
+      barrierColor: Colors.black.withValues(alpha: 0.35),
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setDialogState) {
+          final isActivities = _selectedTab == AuditTab.activities;
+          final isUsers = _selectedTab == AuditTab.users;
+
+          return Dialog(
+            backgroundColor: Colors.transparent,
+            insetPadding: EdgeInsets.symmetric(
+              horizontal: 20,
+              vertical: MediaQuery.of(context).size.height < 600 ? 16 : 40,
+            ),
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 440),
+              child: Container(
+                decoration: BoxDecoration(
+                  color: isDark ? AppColors.darkSurfaceCard : Colors.white,
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(
+                    color: isDark ? AppColors.darkBorder : Colors.grey.shade200,
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.15),
+                      blurRadius: 20,
+                      offset: const Offset(0, 8),
+                    ),
+                  ],
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    // Header
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(20, 16, 16, 12),
+                      child: Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(8),
+                            decoration: BoxDecoration(
+                              color: AppColors.primaryGreen.withValues(alpha: 0.12),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: const Icon(
+                              Icons.tune_rounded,
+                              size: 18,
+                              color: AppColors.primaryGreen,
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Text(
+                              isActivities
+                                  ? 'Filter Activities'
+                                  : isUsers
+                                      ? 'Filter User Events'
+                                      : 'Filter Login Sessions',
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                                color: Theme.of(context).colorScheme.onSurface,
+                              ),
+                            ),
+                          ),
+                          IconButton(
+                            icon: const Icon(Icons.close_rounded, size: 20),
+                            onPressed: () => Navigator.of(ctx).pop(),
+                          ),
+                        ],
+                      ),
+                    ),
+                    Divider(
+                      height: 1,
+                      thickness: 1,
+                      color: isDark ? AppColors.darkBorder : Colors.grey.shade200,
+                    ),
+
+                    // Body
+                    Flexible(
+                      child: SingleChildScrollView(
+                        padding: const EdgeInsets.all(20),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            // Date Range Picker
+                            Text(
+                              'Date Range',
+                              style: TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.bold,
+                                color: Theme.of(context).colorScheme.onSurface,
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            InkWell(
+                              onTap: () async {
+                                final values = await showCalendarDatePicker2Dialog(
+                                  context: ctx,
+                                  config: CalendarDatePicker2WithActionButtonsConfig(
+                                    calendarType: CalendarDatePicker2Type.range,
+                                    firstDate: DateTime(2020),
+                                    lastDate: DateTime.now().add(const Duration(days: 1)),
+                                    selectedDayHighlightColor: AppColors.primaryGreen,
+                                  ),
+                                  dialogSize: const Size(325, 400),
+                                  value: [?tempFrom, ?tempTo],
+                                  borderRadius: BorderRadius.circular(16),
+                                );
+                                if (values != null && values.isNotEmpty) {
+                                  setDialogState(() {
+                                    tempFrom = values[0];
+                                    tempTo = values.length > 1 ? values[1] : values[0];
+                                  });
+                                }
+                              },
+                              borderRadius: BorderRadius.circular(10),
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
+                                decoration: BoxDecoration(
+                                  border: Border.all(
+                                    color: (tempFrom != null || tempTo != null)
+                                        ? AppColors.primaryGreen
+                                        : Theme.of(context).dividerColor.withValues(alpha: 0.3),
+                                  ),
+                                  borderRadius: BorderRadius.circular(10),
+                                  color: (tempFrom != null || tempTo != null)
+                                      ? AppColors.primaryGreen.withValues(alpha: 0.06)
+                                      : (isDark ? AppColors.darkSurface2 : Colors.grey.shade50),
+                                ),
+                                child: Row(
+                                  children: [
+                                    Icon(
+                                      Icons.calendar_today_rounded,
+                                      size: 16,
+                                      color: (tempFrom != null || tempTo != null)
+                                          ? AppColors.primaryGreen
+                                          : Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
+                                    ),
+                                    const SizedBox(width: 10),
+                                    Expanded(
+                                      child: Text(
+                                        tempFrom != null && tempTo != null
+                                            ? '${tempFrom!.month}/${tempFrom!.day}/${tempFrom!.year} - ${tempTo!.month}/${tempTo!.day}/${tempTo!.year}'
+                                            : tempFrom != null
+                                                ? 'From ${tempFrom!.month}/${tempFrom!.day}/${tempFrom!.year}'
+                                                : 'Select date range...',
+                                        style: TextStyle(
+                                          fontSize: 13,
+                                          fontWeight: (tempFrom != null || tempTo != null)
+                                              ? FontWeight.bold
+                                              : FontWeight.normal,
+                                          color: (tempFrom != null || tempTo != null)
+                                              ? AppColors.primaryGreen
+                                              : Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7),
+                                        ),
+                                      ),
+                                    ),
+                                    if (tempFrom != null || tempTo != null)
+                                      GestureDetector(
+                                        onTap: () {
+                                          setDialogState(() {
+                                            tempFrom = null;
+                                            tempTo = null;
+                                          });
+                                        },
+                                        child: const Icon(Icons.close_rounded, size: 16),
+                                      ),
+                                  ],
+                                ),
+                              ),
+                            ),
+
+                            // Action Filter Section (Activities and Users)
+                            if (isActivities || isUsers) ...[
+                              const SizedBox(height: 18),
+                              Text(
+                                'Action',
+                                style: TextStyle(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.bold,
+                                  color: Theme.of(context).colorScheme.onSurface,
+                                ),
+                              ),
+                              const SizedBox(height: 8),
+                              Wrap(
+                                spacing: 8,
+                                runSpacing: 8,
+                                children: (isActivities
+                                        ? ['All', 'Add', 'Update', 'Archive', 'Delete']
+                                        : ['All', 'Add', 'Update', 'Deactivate', 'Activate', 'Delete'])
+                                    .map((act) {
+                                  final isSel = (act == 'All' && (tempAction.isEmpty || tempAction == 'All')) ||
+                                      tempAction.toLowerCase() == act.toLowerCase();
+                                  return ChoiceChip(
+                                    label: Text(act),
+                                    selected: isSel,
+                                    showCheckmark: false,
+                                    selectedColor: AppColors.primaryGreen.withValues(alpha: 0.18),
+                                    backgroundColor: isDark
+                                        ? AppColors.darkSurface2
+                                        : Colors.grey.shade100,
+                                    side: BorderSide(
+                                      color: isSel
+                                          ? AppColors.primaryGreen
+                                          : Theme.of(context).dividerColor.withValues(alpha: 0.2),
+                                    ),
+                                    labelStyle: TextStyle(
+                                      fontSize: 12,
+                                      fontWeight: isSel ? FontWeight.bold : FontWeight.normal,
+                                      color: isSel
+                                          ? AppColors.primaryGreen
+                                          : Theme.of(context).colorScheme.onSurface,
+                                    ),
+                                    onSelected: (selected) {
+                                      setDialogState(() {
+                                        tempAction = (act == 'All' || !selected) ? '' : act;
+                                      });
+                                    },
+                                  );
+                                }).toList(),
+                              ),
+                            ],
+
+                            // Role Filter Section (Users tab only)
+                            if (isUsers) ...[
+                              const SizedBox(height: 18),
+                              Text(
+                                'User Role',
+                                style: TextStyle(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.bold,
+                                  color: Theme.of(context).colorScheme.onSurface,
+                                ),
+                              ),
+                              const SizedBox(height: 8),
+                              Wrap(
+                                spacing: 8,
+                                runSpacing: 8,
+                                children: ['All', 'Admin', 'Teacher', 'Staff'].map((role) {
+                                  final isSel = (role == 'All' && (tempRole.isEmpty || tempRole == 'All')) ||
+                                      tempRole.toLowerCase() == role.toLowerCase();
+                                  return ChoiceChip(
+                                    label: Text(role),
+                                    selected: isSel,
+                                    showCheckmark: false,
+                                    selectedColor: AppColors.primaryGreen.withValues(alpha: 0.18),
+                                    backgroundColor: isDark
+                                        ? AppColors.darkSurface2
+                                        : Colors.grey.shade100,
+                                    side: BorderSide(
+                                      color: isSel
+                                          ? AppColors.primaryGreen
+                                          : Theme.of(context).dividerColor.withValues(alpha: 0.2),
+                                    ),
+                                    labelStyle: TextStyle(
+                                      fontSize: 12,
+                                      fontWeight: isSel ? FontWeight.bold : FontWeight.normal,
+                                      color: isSel
+                                          ? AppColors.primaryGreen
+                                          : Theme.of(context).colorScheme.onSurface,
+                                    ),
+                                    onSelected: (selected) {
+                                      setDialogState(() {
+                                        tempRole = (role == 'All' || !selected) ? '' : role;
+                                      });
+                                    },
+                                  );
+                                }).toList(),
+                              ),
+                            ],
+                          ],
+                        ),
+                      ),
+                    ),
+
+                    // Footer Buttons
+                    Divider(
+                      height: 1,
+                      thickness: 1,
+                      color: isDark ? AppColors.darkBorder : Colors.grey.shade200,
+                    ),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.end,
+                        children: [
+                          TextButton(
+                            onPressed: () {
+                              setDialogState(() {
+                                tempFrom = null;
+                                tempTo = null;
+                                tempAction = '';
+                                tempRole = '';
+                              });
+                            },
+                            child: const Text('Reset', style: TextStyle(color: Colors.redAccent)),
+                          ),
+                          const SizedBox(width: 10),
+                          ElevatedButton(
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: AppColors.primaryGreen,
+                              foregroundColor: Colors.white,
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 11),
+                            ),
+                            onPressed: () {
+                              setState(() {
+                                _fromDate = tempFrom;
+                                _toDate = tempTo;
+                              });
+
+                              final fromStr = tempFrom != null
+                                  ? "${tempFrom!.year}-${tempFrom!.month.toString().padLeft(2, '0')}-${tempFrom!.day.toString().padLeft(2, '0')}"
+                                  : '';
+                              final toStr = tempTo != null
+                                  ? "${tempTo!.year}-${tempTo!.month.toString().padLeft(2, '0')}-${tempTo!.day.toString().padLeft(2, '0')}"
+                                  : '';
+
+                              if (isActivities) {
+                                ref.read(activityQueryProvider.notifier).setDateFrom(fromStr);
+                                ref.read(activityQueryProvider.notifier).setDateTo(toStr);
+                                ref.read(activityQueryProvider.notifier).setAction(tempAction);
+                              } else if (isUsers) {
+                                ref.read(userHistoryQueryProvider.notifier).setDateFrom(fromStr);
+                                ref.read(userHistoryQueryProvider.notifier).setDateTo(toStr);
+                                ref.read(userHistoryQueryProvider.notifier).setAction(tempAction);
+                                ref.read(userHistoryQueryProvider.notifier).setRole(tempRole);
+                              } else {
+                                ref.read(loginSessionsQueryProvider.notifier).setDateFrom(fromStr);
+                                ref.read(loginSessionsQueryProvider.notifier).setDateTo(toStr);
+                              }
+
+                              Navigator.of(ctx).pop();
+                            },
+                            child: const Text('Apply Filters'),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _buildTabSwitcher(bool isDark, {bool isMobile = false}) {
+    return Container(
+      height: isMobile ? 34 : 36,
+      decoration: BoxDecoration(
+        color: isDark
+            ? Colors.black.withValues(alpha: 0.25)
+            : Colors.grey.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(10),
+      ),
+      padding: const EdgeInsets.all(3),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          _buildTabItem(
+            label: 'Activities',
+            icon: Icons.list_alt_rounded,
+            tab: AuditTab.activities,
+            isMobile: isMobile,
+          ),
+          _buildTabItem(
+            label: 'Users',
+            icon: Icons.account_circle_outlined,
+            tab: AuditTab.users,
+            isMobile: isMobile,
+          ),
+          _buildTabItem(
+            label: 'Sessions',
+            icon: Icons.devices_rounded,
+            tab: AuditTab.sessions,
+            isMobile: isMobile,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildActiveFiltersStrip(BuildContext context, bool isDark) {
+    final actQuery = ref.watch(activityQueryProvider);
+    final usrQuery = ref.watch(userHistoryQueryProvider);
+    final sesQuery = ref.watch(loginSessionsQueryProvider);
+
+    final currentSearch = _selectedTab == AuditTab.activities
+        ? actQuery.search
+        : _selectedTab == AuditTab.users
+            ? usrQuery.search
+            : sesQuery.search;
+
+    final currentAction = _selectedTab == AuditTab.activities
+        ? actQuery.action
+        : _selectedTab == AuditTab.users
+            ? usrQuery.action
+            : '';
+
+    final currentRole = _selectedTab == AuditTab.users ? usrQuery.role : '';
+
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      child: Row(
+        children: [
+          if (_fromDate != null || _toDate != null)
+            Padding(
+              padding: const EdgeInsets.only(right: 6),
+              child: Chip(
+                avatar: const Icon(Icons.calendar_today_rounded, size: 13),
+                label: Text(
+                  _fromDate != null && _toDate != null
+                      ? '${_fromDate!.month}/${_fromDate!.day} - ${_toDate!.month}/${_toDate!.day}'
+                      : 'From ${_fromDate!.month}/${_fromDate!.day}',
+                  style: const TextStyle(fontSize: 11),
+                ),
+                deleteIcon: const Icon(Icons.close, size: 14),
+                onDeleted: () {
+                  setState(() {
+                    _fromDate = null;
+                    _toDate = null;
+                  });
+                  if (_selectedTab == AuditTab.activities) {
+                    ref.read(activityQueryProvider.notifier).setDateFrom('');
+                    ref.read(activityQueryProvider.notifier).setDateTo('');
+                  } else if (_selectedTab == AuditTab.users) {
+                    ref.read(userHistoryQueryProvider.notifier).setDateFrom('');
+                    ref.read(userHistoryQueryProvider.notifier).setDateTo('');
+                  } else {
+                    ref.read(loginSessionsQueryProvider.notifier).setDateFrom('');
+                    ref.read(loginSessionsQueryProvider.notifier).setDateTo('');
+                  }
+                },
+                visualDensity: VisualDensity.compact,
+                padding: EdgeInsets.zero,
+                labelPadding: const EdgeInsets.symmetric(horizontal: 4),
+              ),
+            ),
+          if (currentAction.isNotEmpty && currentAction != 'All')
+            Padding(
+              padding: const EdgeInsets.only(right: 6),
+              child: Chip(
+                avatar: const Icon(Icons.bolt_rounded, size: 13),
+                label: Text(
+                  'Action: $currentAction',
+                  style: const TextStyle(fontSize: 11),
+                ),
+                deleteIcon: const Icon(Icons.close, size: 14),
+                onDeleted: () {
+                  if (_selectedTab == AuditTab.activities) {
+                    ref.read(activityQueryProvider.notifier).setAction('');
+                  } else if (_selectedTab == AuditTab.users) {
+                    ref.read(userHistoryQueryProvider.notifier).setAction('');
+                  }
+                },
+                visualDensity: VisualDensity.compact,
+                padding: EdgeInsets.zero,
+                labelPadding: const EdgeInsets.symmetric(horizontal: 4),
+              ),
+            ),
+          if (currentRole.isNotEmpty && currentRole != 'All')
+            Padding(
+              padding: const EdgeInsets.only(right: 6),
+              child: Chip(
+                avatar: const Icon(Icons.badge_rounded, size: 13),
+                label: Text(
+                  'Role: $currentRole',
+                  style: const TextStyle(fontSize: 11),
+                ),
+                deleteIcon: const Icon(Icons.close, size: 14),
+                onDeleted: () {
+                  ref.read(userHistoryQueryProvider.notifier).setRole('');
+                },
+                visualDensity: VisualDensity.compact,
+                padding: EdgeInsets.zero,
+                labelPadding: const EdgeInsets.symmetric(horizontal: 4),
+              ),
+            ),
+          if (currentSearch.isNotEmpty)
+            Padding(
+              padding: const EdgeInsets.only(right: 6),
+              child: Chip(
+                avatar: const Icon(Icons.search, size: 13),
+                label: Text(
+                  '"$currentSearch"',
+                  style: const TextStyle(fontSize: 11),
+                ),
+                deleteIcon: const Icon(Icons.close, size: 14),
+                onDeleted: () {
+                  _searchController.clear();
+                  _applySearch('');
+                },
+                visualDensity: VisualDensity.compact,
+                padding: EdgeInsets.zero,
+                labelPadding: const EdgeInsets.symmetric(horizontal: 4),
+              ),
+            ),
+          TextButton(
+            onPressed: _clearFilters,
+            style: TextButton.styleFrom(
+              visualDensity: VisualDensity.compact,
+              padding: const EdgeInsets.symmetric(horizontal: 6),
+              foregroundColor: Colors.redAccent,
+            ),
+            child: const Text('Reset', style: TextStyle(fontSize: 11)),
+          ),
+        ],
+      ),
+    );
+  }
+
+
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
@@ -154,26 +724,27 @@ class _AuditTrailScreenState extends ConsumerState<AuditTrailScreen> {
     final usrQuery = ref.watch(userHistoryQueryProvider);
     final sesQuery = ref.watch(loginSessionsQueryProvider);
 
-    final currentActionFilter = _selectedTab == AuditTab.activities
-        ? (actQuery.action.isEmpty ? 'All' : actQuery.action)
+    final currentSearch = _selectedTab == AuditTab.activities
+        ? actQuery.search
         : _selectedTab == AuditTab.users
-            ? (usrQuery.action.isEmpty ? 'All' : usrQuery.action)
-            : 'All';
+            ? usrQuery.search
+            : sesQuery.search;
 
-    final hasActiveFilters = (_selectedTab == AuditTab.activities
-            ? (actQuery.action.isNotEmpty ||
-                actQuery.entityTypes.isNotEmpty ||
-                actQuery.search.isNotEmpty ||
-                actQuery.dateFrom.isNotEmpty)
-            : _selectedTab == AuditTab.users
-                ? (usrQuery.action.isNotEmpty ||
-                    usrQuery.role.isNotEmpty ||
-                    usrQuery.search.isNotEmpty ||
-                    usrQuery.dateFrom.isNotEmpty)
-                : (sesQuery.search.isNotEmpty ||
-                    sesQuery.dateFrom.isNotEmpty)) ||
-        _fromDate != null ||
-        _toDate != null;
+    final currentAction = _selectedTab == AuditTab.activities
+        ? actQuery.action
+        : _selectedTab == AuditTab.users
+            ? usrQuery.action
+            : '';
+
+    final currentRole = _selectedTab == AuditTab.users ? usrQuery.role : '';
+
+    int activeFilterCount = 0;
+    if (_fromDate != null || _toDate != null) activeFilterCount++;
+    if (currentAction.isNotEmpty && currentAction != 'All') activeFilterCount++;
+    if (currentRole.isNotEmpty && currentRole != 'All') activeFilterCount++;
+    if (currentSearch.isNotEmpty) activeFilterCount++;
+
+    final hasActiveFilters = activeFilterCount > 0;
 
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
@@ -181,13 +752,11 @@ class _AuditTrailScreenState extends ConsumerState<AuditTrailScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // ── Top App Header & Controls ─────────────────────────────
+            // ── Compact Header & Controls ─────────────────────────────
             Container(
-              padding: EdgeInsets.fromLTRB(
-                isMobile ? 12 : 24,
-                isMobile ? 10 : 20,
-                isMobile ? 12 : 24,
-                isMobile ? 8 : 12,
+              padding: EdgeInsets.symmetric(
+                horizontal: isMobile ? 12 : 20,
+                vertical: isMobile ? 8 : 10,
               ),
               decoration: BoxDecoration(
                 color: Theme.of(context).colorScheme.surface,
@@ -199,412 +768,228 @@ class _AuditTrailScreenState extends ConsumerState<AuditTrailScreen> {
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
                 children: [
-                  // Row: Title and Refresh / Date Range Buttons
-                  if (isMobile)
-                    Row(
-                      children: [
-                        Container(
-                          padding: const EdgeInsets.all(6),
-                          decoration: BoxDecoration(
-                            color: AppColors.primaryGreen.withValues(alpha: 0.12),
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          child: const Icon(
-                            Icons.manage_history_rounded,
-                            color: AppColors.primaryGreen,
-                            size: 18,
-                          ),
+                  if (isMobile) ...[
+                    // Mobile Layout: Full-width segmented tab switcher
+                    if (isAdmin)
+                      Container(
+                        width: double.infinity,
+                        height: 38,
+                        decoration: BoxDecoration(
+                          color: isDark
+                              ? Colors.black.withValues(alpha: 0.25)
+                              : Colors.grey.withValues(alpha: 0.12),
+                          borderRadius: BorderRadius.circular(10),
                         ),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: Text(
-                            'History',
-                            style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
-                              color: Theme.of(context).colorScheme.onSurface,
-                            ),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ),
-                        OutlinedButton.icon(
-                          onPressed: () => _pickDateRange(context),
-                          icon: Icon(
-                            Icons.calendar_today_rounded,
-                            size: 13,
-                            color: (_fromDate != null || _toDate != null)
-                                ? AppColors.primaryGreen
-                                : null,
-                          ),
-                          label: Text(
-                            _fromDate != null && _toDate != null
-                                ? '${_fromDate!.month}/${_fromDate!.day}-${_toDate!.month}/${_toDate!.day}'
-                                : (_fromDate != null
-                                    ? 'From ${_fromDate!.month}/${_fromDate!.day}'
-                                    : 'Date'),
-                            style: TextStyle(
-                              fontSize: 11,
-                              fontWeight: (_fromDate != null || _toDate != null)
-                                  ? FontWeight.bold
-                                  : FontWeight.normal,
-                              color: (_fromDate != null || _toDate != null)
-                                  ? AppColors.primaryGreen
-                                  : null,
-                            ),
-                          ),
-                          style: OutlinedButton.styleFrom(
-                            side: BorderSide(
-                              color: (_fromDate != null || _toDate != null)
-                                  ? AppColors.primaryGreen
-                                  : Theme.of(context).dividerColor.withValues(alpha: 0.4),
-                            ),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 8,
-                              vertical: 6,
-                            ),
-                            visualDensity: VisualDensity.compact,
-                          ),
-                        ),
-                        const SizedBox(width: 4),
-                        IconButton(
-                          visualDensity: VisualDensity.compact,
-                          padding: EdgeInsets.zero,
-                          constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
-                          tooltip: 'Refresh',
-                          icon: const Icon(Icons.refresh_rounded, size: 20),
-                          onPressed: () {
-                            if (_selectedTab == AuditTab.activities) {
-                              ref.invalidate(recentActivitiesPageProvider);
-                            } else if (_selectedTab == AuditTab.users) {
-                              ref.invalidate(userHistoryPageProvider);
-                            } else {
-                              ref.invalidate(loginSessionsPageProvider);
-                            }
-                          },
-                        ),
-                      ],
-                    )
-                  else
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
+                        padding: const EdgeInsets.all(3),
+                        child: Row(
                           children: [
-                            Row(
-                              children: [
-                                Container(
-                                  padding: const EdgeInsets.all(8),
-                                  decoration: BoxDecoration(
-                                    color: AppColors.primaryGreen.withValues(alpha: 0.12),
-                                    borderRadius: BorderRadius.circular(10),
-                                  ),
-                                  child: const Icon(
-                                    Icons.manage_history_rounded,
-                                    color: AppColors.primaryGreen,
-                                    size: 24,
-                                  ),
-                                ),
-                                const SizedBox(width: 12),
-                                Text(
-                                  'Audit Trail & History',
-                                  style: TextStyle(
-                                    fontSize: 24,
-                                    fontWeight: FontWeight.bold,
-                                    color: Theme.of(context).colorScheme.onSurface,
-                                  ),
-                                ),
-                              ],
+                            Expanded(
+                              child: _buildTabItem(
+                                label: 'Activities',
+                                icon: Icons.list_alt_rounded,
+                                tab: AuditTab.activities,
+                                isMobile: true,
+                              ),
                             ),
-                            const SizedBox(height: 4),
-                            Text(
-                              'Track detailed operation history, student/document activities, and user events.',
-                              style: TextStyle(
-                                fontSize: 13,
-                                color: Theme.of(context)
-                                    .colorScheme
-                                    .onSurface
-                                    .withValues(alpha: 0.6),
+                            Expanded(
+                              child: _buildTabItem(
+                                label: 'Users',
+                                icon: Icons.account_circle_outlined,
+                                tab: AuditTab.users,
+                                isMobile: true,
+                              ),
+                            ),
+                            Expanded(
+                              child: _buildTabItem(
+                                label: 'Sessions',
+                                icon: Icons.devices_rounded,
+                                tab: AuditTab.sessions,
+                                isMobile: true,
                               ),
                             ),
                           ],
                         ),
-                        Row(
-                          children: [
-                            // Date Range Filter Button
-                            OutlinedButton.icon(
-                              onPressed: () => _pickDateRange(context),
-                              icon: Icon(
-                                Icons.calendar_today_rounded,
-                                size: 16,
-                                color: (_fromDate != null || _toDate != null)
-                                    ? AppColors.primaryGreen
-                                    : null,
-                              ),
-                              label: Text(
-                                _fromDate != null && _toDate != null
-                                    ? '${_fromDate!.month}/${_fromDate!.day} - ${_toDate!.month}/${_toDate!.day}'
-                                    : (_fromDate != null
-                                        ? 'From ${_fromDate!.month}/${_fromDate!.day}'
-                                        : 'Date Range'),
-                                style: TextStyle(
-                                  fontSize: 13,
-                                  fontWeight: (_fromDate != null || _toDate != null)
-                                      ? FontWeight.bold
-                                      : FontWeight.normal,
-                                  color: (_fromDate != null || _toDate != null)
-                                      ? AppColors.primaryGreen
-                                      : null,
-                                ),
-                              ),
-                              style: OutlinedButton.styleFrom(
-                                side: BorderSide(
-                                  color: (_fromDate != null || _toDate != null)
-                                      ? AppColors.primaryGreen
-                                      : Theme.of(context).dividerColor,
-                                ),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(10),
-                                ),
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 14,
-                                  vertical: 10,
-                                ),
-                              ),
-                            ),
-                            const SizedBox(width: 8),
-                            // Refresh Button
-                            IconButton(
-                              tooltip: 'Refresh',
-                              icon: const Icon(Icons.refresh_rounded),
-                              onPressed: () {
-                                if (_selectedTab == AuditTab.activities) {
-                                  ref.invalidate(recentActivitiesPageProvider);
-                                } else if (_selectedTab == AuditTab.users) {
-                                  ref.invalidate(userHistoryPageProvider);
-                                } else {
-                                  ref.invalidate(loginSessionsPageProvider);
-                                }
-                              },
-                            ),
-                          ],
+                      )
+                    else
+                      Text(
+                        'Activities',
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                          color: Theme.of(context).colorScheme.onSurface,
                         ),
-                      ],
-                    ),
-                  const SizedBox(height: 16),
-
-                  // Tab switcher (Activities, Users, Sessions)
-                  if (isAdmin)
-                    Container(
-                      height: 40,
-                      decoration: BoxDecoration(
-                        color: isDark
-                            ? Colors.black.withValues(alpha: 0.25)
-                            : Colors.grey.withValues(alpha: 0.12),
-                        borderRadius: BorderRadius.circular(12),
                       ),
-                      padding: const EdgeInsets.all(4),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          _buildTabItem(
-                            label: 'Activities',
-                            icon: Icons.list_alt_rounded,
-                            tab: AuditTab.activities,
-                          ),
-                          _buildTabItem(
-                            label: 'Users',
-                            icon: Icons.account_circle_outlined,
-                            tab: AuditTab.users,
-                          ),
-                          _buildTabItem(
-                            label: 'Sessions',
-                            icon: Icons.devices_rounded,
-                            tab: AuditTab.sessions,
-                          ),
-                        ],
-                      ),
-                    ),
+                    const SizedBox(height: 6),
 
-                  const SizedBox(height: 14),
-
-                  // Row: Search field and Action Filter Chips
-                  Wrap(
-                    crossAxisAlignment: WrapCrossAlignment.center,
-                    spacing: 12,
-                    runSpacing: 10,
-                    children: [
-                      // Search box
-                      SizedBox(
-                        width: isMobile ? double.infinity : 280,
-                        height: 40,
-                        child: TextField(
-                          controller: _searchController,
-                          style: const TextStyle(fontSize: 13),
-                          decoration: InputDecoration(
-                            hintText: _selectedTab == AuditTab.activities
-                                ? 'Search description or user...'
+                    // Sub-row: Section title or filter chips on left, Search/Filter/Refresh on right
+                    Row(
+                      children: [
+                        if (hasActiveFilters)
+                          Expanded(
+                            child: _buildActiveFiltersStrip(context, isDark),
+                          )
+                        else ...[
+                          Text(
+                            _selectedTab == AuditTab.activities
+                                ? 'Recent Activity Logs'
                                 : _selectedTab == AuditTab.users
-                                    ? 'Search user or admin...'
-                                    : 'Search username or name...',
-                            hintStyle: TextStyle(
-                              fontSize: 13,
+                                    ? 'User Event Logs'
+                                    : 'Login & Session Logs',
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
                               color: Theme.of(context)
                                   .colorScheme
                                   .onSurface
-                                  .withValues(alpha: 0.45),
-                            ),
-                            prefixIcon: const Icon(Icons.search_rounded, size: 18),
-                            suffixIcon: _searchController.text.isNotEmpty
-                                ? IconButton(
-                                    icon: const Icon(Icons.clear_rounded, size: 16),
-                                    onPressed: () {
-                                      _searchController.clear();
-                                      if (_selectedTab == AuditTab.activities) {
-                                        ref
-                                            .read(activityQueryProvider.notifier)
-                                            .setSearch('');
-                                      } else if (_selectedTab == AuditTab.users) {
-                                        ref
-                                            .read(userHistoryQueryProvider.notifier)
-                                            .setSearch('');
-                                      } else {
-                                        ref
-                                            .read(loginSessionsQueryProvider.notifier)
-                                            .setSearch('');
-                                      }
-                                    },
-                                  )
-                                : null,
-                            contentPadding: const EdgeInsets.symmetric(horizontal: 12),
-                            filled: true,
-                            fillColor: isDark
-                                ? AppColors.darkSurfaceCard
-                                : Colors.grey.withValues(alpha: 0.08),
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(10),
-                              borderSide: BorderSide(
-                                color: Theme.of(context).dividerColor.withValues(alpha: 0.2),
-                              ),
-                            ),
-                            enabledBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(10),
-                              borderSide: BorderSide(
-                                color: Theme.of(context).dividerColor.withValues(alpha: 0.2),
-                              ),
-                            ),
-                            focusedBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(10),
-                              borderSide: const BorderSide(
-                                color: AppColors.primaryGreen,
-                                width: 1.5,
-                              ),
+                                  .withValues(alpha: 0.5),
                             ),
                           ),
-                          onSubmitted: (value) {
-                            if (_selectedTab == AuditTab.activities) {
-                              ref
-                                  .read(activityQueryProvider.notifier)
-                                  .setSearch(value);
-                            } else if (_selectedTab == AuditTab.users) {
-                              ref
-                                  .read(userHistoryQueryProvider.notifier)
-                                  .setSearch(value);
-                            } else {
-                              ref
-                                  .read(loginSessionsQueryProvider.notifier)
-                                  .setSearch(value);
-                            }
-                          },
-                        ),
-                      ),
+                          const Spacer(),
+                        ],
 
-                      // Action filter chips: All, Add, Update, Archive, Delete (Only for Activities & Users)
-                      if (_selectedTab != AuditTab.sessions)
-                        SingleChildScrollView(
-                          scrollDirection: Axis.horizontal,
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: _actionFilters.map((actionName) {
-                              final isSelected = currentActionFilter.toLowerCase() ==
-                                      actionName.toLowerCase() ||
-                                  (actionName == 'All' &&
-                                      (currentActionFilter == 'All' ||
-                                          currentActionFilter.isEmpty));
-
-                              Color chipColor = AppColors.primaryGreen;
-                              if (actionName == 'Add') {
-                                chipColor = const Color(0xFF10B981);
-                              } else if (actionName == 'Update') {
-                                chipColor = const Color(0xFF3B82F6);
-                              } else if (actionName == 'Archive') {
-                                chipColor = const Color(0xFFF59E0B);
-                              } else if (actionName == 'Delete') {
-                                chipColor = const Color(0xFFEF4444);
+                        // Search Icon
+                        Tooltip(
+                          message: currentSearch.isNotEmpty ? 'Clear Search' : 'Search',
+                          child: IconButton(
+                            icon: Icon(
+                              currentSearch.isNotEmpty ? Icons.close : Icons.search,
+                              size: 20,
+                              color: isDark ? AppColors.darkTextPrimary : Colors.black87,
+                            ),
+                            visualDensity: VisualDensity.compact,
+                            padding: const EdgeInsets.all(6),
+                            constraints: const BoxConstraints(),
+                            onPressed: () {
+                              if (currentSearch.isNotEmpty) {
+                                _searchController.clear();
+                                _applySearch('');
+                              } else {
+                                _showSearchDialog(context);
                               }
+                            },
+                          ),
+                        ),
+                        const SizedBox(width: 8),
 
-                              return Padding(
-                                padding: const EdgeInsets.only(right: 6),
-                                child: FilterChip(
-                                  label: Text(actionName),
-                                  selected: isSelected,
-                                  showCheckmark: false,
-                                  selectedColor: chipColor.withValues(alpha: 0.18),
-                                  backgroundColor: isDark
-                                      ? AppColors.darkSurfaceCard
-                                      : Colors.grey.withValues(alpha: 0.08),
-                                  side: BorderSide(
-                                    color: isSelected
-                                        ? chipColor
-                                        : Theme.of(context)
-                                            .dividerColor
-                                            .withValues(alpha: 0.2),
-                                    width: isSelected ? 1.5 : 1,
-                                  ),
-                                  labelStyle: TextStyle(
-                                    fontSize: 12,
-                                    fontWeight: isSelected
-                                        ? FontWeight.bold
-                                        : FontWeight.w500,
-                                    color: isSelected
-                                        ? chipColor
-                                        : Theme.of(context).colorScheme.onSurface,
-                                  ),
-                                  onSelected: (_) {
-                                    final target = actionName == 'All' ? '' : actionName;
-                                    if (_selectedTab == AuditTab.activities) {
-                                      ref
-                                          .read(activityQueryProvider.notifier)
-                                          .setAction(target);
-                                    } else {
-                                      ref
-                                          .read(userHistoryQueryProvider.notifier)
-                                          .setAction(target);
-                                    }
-                                  },
-                                ),
-                              );
-                            }).toList(),
+                        // Filter Icon
+                        Tooltip(
+                          message: 'Filter History',
+                          child: IconButton(
+                            onPressed: () => _showFilterDialog(context),
+                            visualDensity: VisualDensity.compact,
+                            padding: const EdgeInsets.all(6),
+                            constraints: const BoxConstraints(),
+                            icon: Badge(
+                              isLabelVisible: activeFilterCount > 0,
+                              label: Text(activeFilterCount.toString()),
+                              child: Icon(
+                                Icons.tune_rounded,
+                                size: 20,
+                                color: activeFilterCount > 0
+                                    ? AppColors.primaryGreen
+                                    : (isDark ? AppColors.darkTextPrimary : Colors.black87),
+                              ),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+
+                        // Refresh Icon
+                        Tooltip(
+                          message: 'Refresh',
+                          child: IconButton(
+                            icon: const Icon(Icons.refresh_rounded, size: 20),
+                            visualDensity: VisualDensity.compact,
+                            padding: const EdgeInsets.all(6),
+                            constraints: const BoxConstraints(),
+                            onPressed: _refreshCurrentTab,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ] else ...[
+                    // Desktop Layout: Single row with tabs on left and controls on right
+                    Row(
+                      children: [
+                        if (isAdmin)
+                          _buildTabSwitcher(isDark, isMobile: false)
+                        else
+                          Text(
+                            'Activities',
+                            style: TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                              color: Theme.of(context).colorScheme.onSurface,
+                            ),
+                          ),
+                        const Spacer(),
+
+                        // Search Icon (same as other screens)
+                        Tooltip(
+                          message: currentSearch.isNotEmpty
+                              ? 'Clear Search'
+                              : 'Search (Ctrl+F)',
+                          child: IconButton(
+                            icon: Icon(
+                              currentSearch.isNotEmpty
+                                  ? Icons.close
+                                  : Icons.search,
+                              size: 22,
+                              color: isDark
+                                  ? AppColors.darkTextPrimary
+                                  : Colors.black87,
+                            ),
+                            onPressed: () {
+                              if (currentSearch.isNotEmpty) {
+                                _searchController.clear();
+                                _applySearch('');
+                              } else {
+                                _showSearchDialog(context);
+                              }
+                            },
                           ),
                         ),
 
-                      // Clear filters button
-                      if (hasActiveFilters)
-                        TextButton.icon(
-                          onPressed: _clearFilters,
-                          icon: const Icon(Icons.clear_all_rounded, size: 18),
-                          label: const Text('Reset', style: TextStyle(fontSize: 12)),
-                          style: TextButton.styleFrom(
-                            foregroundColor: Colors.redAccent,
+                        // Filter Icon (same as other screens)
+                        Tooltip(
+                          message: 'Filter History',
+                          child: IconButton(
+                            onPressed: () => _showFilterDialog(context),
+                            icon: Badge(
+                              isLabelVisible: activeFilterCount > 0,
+                              label: Text(activeFilterCount.toString()),
+                              child: Icon(
+                                Icons.tune_rounded,
+                                size: 21,
+                                color: activeFilterCount > 0
+                                    ? AppColors.primaryGreen
+                                    : (isDark
+                                        ? AppColors.darkTextPrimary
+                                        : Colors.black87),
+                              ),
+                            ),
                           ),
                         ),
+
+                        // Refresh Icon
+                        Tooltip(
+                          message: 'Refresh',
+                          child: IconButton(
+                            icon: const Icon(Icons.refresh_rounded, size: 21),
+                            onPressed: _refreshCurrentTab,
+                          ),
+                        ),
+                      ],
+                    ),
+
+                    // Active Filter Chips Strip (compact)
+                    if (hasActiveFilters) ...[
+                      const SizedBox(height: 6),
+                      _buildActiveFiltersStrip(context, isDark),
                     ],
-                  ),
+                  ],
                 ],
               ),
             ),
@@ -627,6 +1012,7 @@ class _AuditTrailScreenState extends ConsumerState<AuditTrailScreen> {
     required String label,
     required IconData icon,
     required AuditTab tab,
+    bool isMobile = false,
   }) {
     final isSelected = _selectedTab == tab;
     return GestureDetector(
@@ -640,7 +1026,10 @@ class _AuditTrailScreenState extends ConsumerState<AuditTrailScreen> {
       },
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+        padding: EdgeInsets.symmetric(
+          horizontal: isMobile ? 10 : 16,
+          vertical: isMobile ? 4 : 6,
+        ),
         decoration: BoxDecoration(
           color: isSelected ? AppColors.primaryGreen : Colors.transparent,
           borderRadius: BorderRadius.circular(9),
@@ -655,19 +1044,21 @@ class _AuditTrailScreenState extends ConsumerState<AuditTrailScreen> {
               : null,
         ),
         child: Row(
+          mainAxisSize: isMobile ? MainAxisSize.max : MainAxisSize.min,
+          mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Icon(
               icon,
-              size: 16,
+              size: isMobile ? 15 : 16,
               color: isSelected
                   ? Colors.white
                   : Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7),
             ),
-            const SizedBox(width: 8),
+            SizedBox(width: isMobile ? 5 : 8),
             Text(
               label,
               style: TextStyle(
-                fontSize: 13,
+                fontSize: isMobile ? 12.5 : 13,
                 fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
                 color: isSelected
                     ? Colors.white
@@ -783,7 +1174,7 @@ class _AuditTrailScreenState extends ConsumerState<AuditTrailScreen> {
                           context: context,
                           title: '${item.entityType.toUpperCase()} - ${item.action}',
                           description: item.description,
-                          date: pht.formatDateTime(item.createdAt),
+                          date: pht.formatDateTime12H(item.createdAt),
                           performedBy: item.performedBy ?? item.username ?? 'System',
                           action: item.action,
                           actionColor: actionColor,
@@ -867,7 +1258,7 @@ class _AuditTrailScreenState extends ConsumerState<AuditTrailScreen> {
                                       const Spacer(),
                                       // Timestamp
                                       Text(
-                                        pht.formatDateTime(item.createdAt),
+                                        pht.formatDateTime12H(item.createdAt),
                                         style: TextStyle(
                                           fontSize: 11,
                                           color: Theme.of(context)
@@ -926,6 +1317,7 @@ class _AuditTrailScreenState extends ConsumerState<AuditTrailScreen> {
             ),
             // Pagination Footer
             Container(
+              width: double.infinity,
               padding: EdgeInsets.symmetric(
                 horizontal: isMobile ? 12 : 20,
                 vertical: isMobile ? 8 : 12,
@@ -1103,10 +1495,10 @@ class _AuditTrailScreenState extends ConsumerState<AuditTrailScreen> {
                       onTap: () {
                         ViewActivityModal.show(
                           context: context,
-                          title: 'User ${item.action.toUpperCase()}',
+                          title: _getBasicActionTitle(item.action),
                           description:
                               'User @${item.username} (${item.fullName.isNotEmpty ? item.fullName : 'No Name'}) with role "${item.role}" was ${item.action}.',
-                          date: pht.formatDateTime(item.createdAt),
+                          date: pht.formatDateTime12H(item.createdAt),
                           performedBy: item.performedByName ??
                               item.performedByUsername ??
                               'System',
@@ -1192,7 +1584,7 @@ class _AuditTrailScreenState extends ConsumerState<AuditTrailScreen> {
                                       const Spacer(),
                                       // Timestamp
                                       Text(
-                                        pht.formatDateTime(item.createdAt),
+                                        pht.formatDateTime12H(item.createdAt),
                                         style: TextStyle(
                                           fontSize: 11,
                                           color: Theme.of(context)
@@ -1204,19 +1596,32 @@ class _AuditTrailScreenState extends ConsumerState<AuditTrailScreen> {
                                     ],
                                   ),
                                   const SizedBox(height: 8),
-                                  // User info
+                                  // Action Title in basic words
                                   Text(
-                                    item.fullName.isNotEmpty
-                                        ? '${item.fullName} (@${item.username})'
-                                        : '@${item.username}',
+                                    _getBasicActionTitle(item.action),
                                     style: TextStyle(
                                       fontSize: 14,
                                       fontWeight: FontWeight.bold,
                                       color: Theme.of(context).colorScheme.onSurface,
                                     ),
                                   ),
-                                  const SizedBox(height: 6),
-                                  // Performed By
+                                  const SizedBox(height: 3),
+                                  // Target user info (sub-description)
+                                  Text(
+                                    item.fullName.isNotEmpty
+                                        ? '${item.fullName} (@${item.username})'
+                                        : '@${item.username}',
+                                    style: TextStyle(
+                                      fontSize: 13,
+                                      fontWeight: FontWeight.w500,
+                                      color: Theme.of(context)
+                                          .colorScheme
+                                          .onSurface
+                                          .withValues(alpha: 0.8),
+                                    ),
+                                  ),
+                                  const SizedBox(height: 5),
+                                  // Action by (sub-sub-description)
                                   Row(
                                     children: [
                                       Icon(
@@ -1229,7 +1634,7 @@ class _AuditTrailScreenState extends ConsumerState<AuditTrailScreen> {
                                       ),
                                       const SizedBox(width: 4),
                                       Text(
-                                        'Performed by: ${item.performedByName ?? item.performedByUsername ?? 'System'}',
+                                        'Action by: ${item.performedByName ?? item.performedByUsername ?? 'System'}',
                                         style: TextStyle(
                                           fontSize: 12,
                                           color: Theme.of(context)
@@ -1253,6 +1658,7 @@ class _AuditTrailScreenState extends ConsumerState<AuditTrailScreen> {
             ),
             // Pagination Footer
             Container(
+              width: double.infinity,
               padding: EdgeInsets.symmetric(
                 horizontal: isMobile ? 12 : 20,
                 vertical: isMobile ? 8 : 12,
@@ -1448,9 +1854,9 @@ class _AuditTrailScreenState extends ConsumerState<AuditTrailScreen> {
                           title: isActive ? 'Active Session' : 'Completed Session',
                           description:
                               'User @${log.username} (${log.fullName.isNotEmpty ? log.fullName : 'No Name'}) logged in via $platformDisplay (${log.ipAddress ?? 'Unknown IP'}).\n\n'
-                              'Login: ${pht.formatDateTime(log.loginAt)}\n'
-                              '${log.logoutAt != null ? 'Logout: ${pht.formatDateTime(log.logoutAt!)}' : 'Session is currently active.'}',
-                          date: pht.formatDateTime(log.loginAt),
+                              'Login: ${pht.formatDateTime12H(log.loginAt)}\n'
+                              '${log.logoutAt != null ? 'Logout: ${pht.formatDateTime12H(log.logoutAt!)}' : 'Session is currently active.'}',
+                          date: pht.formatDateTime12H(log.loginAt),
                           performedBy: log.fullName.isNotEmpty ? log.fullName : log.username,
                           action: isActive ? 'ACTIVE' : 'LOGGED OUT',
                           actionColor: isActive ? const Color(0xFF10B981) : Colors.grey,
@@ -1566,7 +1972,7 @@ class _AuditTrailScreenState extends ConsumerState<AuditTrailScreen> {
                                       const Spacer(),
                                       // Login Timestamp
                                       Text(
-                                        pht.formatDateTime(log.loginAt),
+                                        pht.formatDateTime12H(log.loginAt),
                                         style: TextStyle(
                                           fontSize: 11,
                                           color: Theme.of(context)
@@ -1656,7 +2062,7 @@ class _AuditTrailScreenState extends ConsumerState<AuditTrailScreen> {
                                             ),
                                             const SizedBox(width: 4),
                                             Text(
-                                              'Left: ${pht.formatDateTime(log.logoutAt!)}',
+                                              'Left: ${pht.formatDateTime12H(log.logoutAt!)}',
                                               style: TextStyle(
                                                 fontSize: 12,
                                                 color: Theme.of(context)
@@ -1682,6 +2088,7 @@ class _AuditTrailScreenState extends ConsumerState<AuditTrailScreen> {
             ),
             // Pagination Footer
             Container(
+              width: double.infinity,
               padding: EdgeInsets.symmetric(
                 horizontal: isMobile ? 12 : 20,
                 vertical: isMobile ? 8 : 12,

@@ -1,7 +1,6 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
-import 'package:path_provider/path_provider.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/utils/download_service.dart';
 import '../../../../core/utils/file_icon_helper.dart';
@@ -88,7 +87,7 @@ class _VersionHistorySheetState extends State<_VersionHistorySheet> {
     if (_loading.contains(version.id)) return;
     setState(() => _loading.add(version.id));
     try {
-      final tempDir = await getTemporaryDirectory();
+      final tempDir = await DownloadService.getDocumentTempDirectory();
       final tempPath = '${tempDir.path}${Platform.pathSeparator}v${version.versionNumber}_${version.fileName}';
       final tempFile = File(tempPath);
       if (!await tempFile.exists()) {
@@ -233,7 +232,7 @@ class _VersionHistorySheetState extends State<_VersionHistorySheet> {
       controller: scrollController,
       padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
       itemCount: _versions!.length,
-      separatorBuilder: (_, __) =>
+      separatorBuilder: (_, _) =>
           Divider(height: 1, color: isDark ? AppColors.darkBorder : Colors.grey.shade100),
       itemBuilder: (ctx, i) {
         final version = _versions![i];

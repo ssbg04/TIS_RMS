@@ -181,7 +181,7 @@ class ViewActivityModal extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'Performed By',
+                        'Action by',
                         style: TextStyle(
                           fontSize: 12,
                           color: isDark ? AppColors.darkTextSecondary : Colors.grey,

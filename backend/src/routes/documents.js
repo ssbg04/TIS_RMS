@@ -36,7 +36,6 @@ router.get('/:id/versions', authenticateToken, documentController.getDocumentVer
 router.post('/:id/upload-version', authenticateToken, authorizeRoles('admin', 'teacher'), documentController.uploadMiddleware, documentController.uploadDocumentVersion);
 router.get('/:id/download', authenticateToken, documentController.downloadDocumentVersion);
 router.get('/:id/thumbnail', authenticateToken, documentController.getThumbnail);
-router.post('/:id/convert-to-pdf', authenticateToken, documentController.convertToPdf);
 router.post('/:id/copy', authenticateToken, authorizeRoles('admin', 'teacher'), documentController.copyDocument);
 router.patch('/:id/status', authenticateToken, authorizeRoles('admin', 'teacher'), documentController.updateStatus);
 router.post('/:id/restore', authenticateToken, authorizeRoles('admin', 'teacher'), documentController.restoreDocument);

@@ -143,19 +143,28 @@ class _PrintQueueModalState extends ConsumerState<PrintQueueModal> {
     }).toList();
 
     if (excelItems.isNotEmpty) {
-      final shouldConvert = await showDialog<bool>(
+      if (excelItems.length == currentItems.length) {
+        showErrorDialog(
+          context,
+          'Cannot Print Spreadsheets',
+          'The print list only contains spreadsheet files (.xlsx, .xls, .csv). Spreadsheets cannot be printed directly. Please convert them to PDF or print PDF/image documents.',
+        );
+        return;
+      }
+
+      final shouldProceed = await showDialog<bool>(
         context: context,
         builder: (ctx) => AlertDialog(
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
           title: const Row(
             children: [
-              Icon(Icons.picture_as_pdf_rounded, color: Colors.deepOrangeAccent),
+              Icon(Icons.info_outline_rounded, color: Colors.orange),
               SizedBox(width: 10),
-              Text('Convert Excel to PDF?'),
+              Text('Spreadsheet Files Skipped'),
             ],
           ),
           content: Text(
-            'The print list contains ${excelItems.length} spreadsheet file(s) (.xlsx/.xls/.csv) which cannot be printed directly.\n\nWould you like to automatically convert them to PDF and proceed to print?',
+            'The print list contains ${excelItems.length} spreadsheet file(s) (.xlsx/.xls/.csv) which cannot be printed directly.\n\nOnly PDF and image files will be printed. Would you like to proceed with printing the remaining files?',
           ),
           actions: [
             TextButton(
@@ -168,34 +177,14 @@ class _PrintQueueModalState extends ConsumerState<PrintQueueModal> {
                 foregroundColor: Colors.white,
               ),
               onPressed: () => Navigator.of(ctx).pop(true),
-              child: const Text('Convert & Print'),
+              child: const Text('Proceed'),
             ),
           ],
         ),
       );
 
-      if (shouldConvert != true) return;
-
-      setState(() => _isPrinting = true);
-      try {
-        final docRepo = ref.read(documentRepositoryProvider);
-        for (final exItem in excelItems) {
-          final convertedDoc = await docRepo.convertExcelToPdf(exItem.documentId);
-          await docRepo.removeFromPrintQueue(exItem.queueId);
-          await docRepo.addToPrintQueue(convertedDoc.id);
-        }
-        ref.invalidate(printQueueProvider);
-        currentItems = await ref.read(printQueueProvider.future);
-      } catch (e) {
-        if (!mounted) return;
-        setState(() => _isPrinting = false);
-        showErrorDialog(
-          context,
-          'Conversion Failed',
-          e.toString().replaceFirst('Exception: ', ''),
-        );
-        return;
-      }
+      if (shouldProceed != true) return;
+      currentItems = currentItems.where((item) => !excelItems.contains(item)).toList();
     }
 
     setState(() => _isPrinting = true);

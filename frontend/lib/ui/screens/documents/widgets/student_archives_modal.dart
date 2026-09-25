@@ -9,7 +9,6 @@ import '../../../../core/utils/file_icon_helper.dart';
 import '../../../../core/utils/theme_extension.dart';
 import '../../../../domain/entities/document_model.dart';
 import '../../../providers/archives_provider.dart';
-import '../../../providers/conversion_provider.dart';
 import '../../../providers/document_provider.dart';
 import '../../../shared/dialogs/document_properties_dialog.dart';
 import '../../../shared/dialogs/error_dialog.dart';
@@ -631,10 +630,7 @@ class _StudentArchivesModalState extends ConsumerState<StudentArchivesModal> {
                                           context,
                                           document: item,
                                         );
-                                      } else if (val == 'convert_pdf') {
-                                        ref
-                                            .read(conversionProvider.notifier)
-                                            .convertToPdf(item.id);
+                                     
                                       } else if (val == 'restore') {
                                         _handleRestoreSingle(item);
                                       } else if (val == 'delete') {

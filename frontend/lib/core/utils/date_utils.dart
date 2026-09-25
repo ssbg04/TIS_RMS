@@ -61,6 +61,18 @@ String formatDateTime(String raw) {
   }
 }
 
+/// Returns a formatted date-time string in 12-hour format: `MMM d, yyyy  h:mm a`
+/// adjusted to Philippine Standard Time. Example: `Sep 25, 2026, 10:45 AM`
+String formatDateTime12H(String raw) {
+  if (raw.isEmpty) return '';
+  try {
+    final dt = parseToPht(raw);
+    return intl.DateFormat('MMM d, yyyy, h:mm a').format(dt);
+  } catch (_) {
+    return raw.split('T').first;
+  }
+}
+
 /// Returns a formatted date-time string explicitly for Modals in `MMM d, yyyy, hh:mm a` format
 /// adjusted to Philippine Standard Time. Example: `Mar 4, 2005, 12:30 PM`
 String formatModalDate(String raw) {

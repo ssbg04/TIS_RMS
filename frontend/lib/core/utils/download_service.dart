@@ -41,6 +41,32 @@ class DownloadService {
     return path;
   }
 
+  /// Returns the platform-specific directory used for temporary documents.
+  /// On Windows, returns a private app folder in AppData (not in %TEMP%),
+  /// preventing Windows Storage Sense and Disk Cleanup from deleting cached files.
+  static Future<Directory> getDocumentTempDirectory() async {
+    if (Platform.isWindows) {
+      try {
+        final supportDir = await getApplicationSupportDirectory();
+        final privateTemp = Directory('${supportDir.path}\\temp_documents');
+        if (!await privateTemp.exists()) {
+          await privateTemp.create(recursive: true);
+        }
+        return privateTemp;
+      } catch (_) {
+        final localAppData = Platform.environment['LOCALAPPDATA'];
+        if (localAppData != null && localAppData.isNotEmpty) {
+          final privateTemp = Directory('$localAppData\\TIS_RMS\\temp_documents');
+          if (!await privateTemp.exists()) {
+            await privateTemp.create(recursive: true);
+          }
+          return privateTemp;
+        }
+      }
+    }
+    return getTemporaryDirectory();
+  }
+
   static Future<bool> requestPermissions() async {
     if (Platform.isAndroid) {
       var status = await Permission.storage.status;

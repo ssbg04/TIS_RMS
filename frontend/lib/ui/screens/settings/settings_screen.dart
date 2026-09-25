@@ -25,7 +25,7 @@ import '../../providers/system_settings_provider.dart';
 import '../../providers/theme_provider.dart';
 import '../../providers/preferences_provider.dart';
 import '../../../core/services/haptic_service.dart';
-import 'widgets/security_section.dart';
+import 'security_screen.dart';
 class TitleCaseTextInputFormatter extends TextInputFormatter {
   @override
   TextEditingValue formatEditUpdate(TextEditingValue oldValue, TextEditingValue newValue) {
@@ -96,14 +96,12 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   bool _isAcademicYearExpanded = false;
   bool _isAutoEnrollExpanded = false;
   bool _isAppearanceExpanded = false;
-  bool _isSecurityExpanded = false;
 
   void _collapseAllSections() {
     _isProfileExpanded = false;
     _isAcademicYearExpanded = false;
     _isAutoEnrollExpanded = false;
     _isAppearanceExpanded = false;
-    _isSecurityExpanded = false;
   }
 
   void _refreshAllSettingsData() {
@@ -475,141 +473,24 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       },
     );
 
-    if (step1 != true || !context.mounted) return;
+    if (step1 != true) return;
 
-    // Step 2: Type-to-confirm
-    final confirmController = TextEditingController();
-    final step2 = await showDialog<bool>(
+    // Brief delay to allow Step 1 dialog transition to complete
+    await Future.delayed(const Duration(milliseconds: 150));
+    if (!context.mounted) return;
+
+    // Step 2: Type DEACTIVATE confirmation dialog
+    final confirmed = await showDialog<bool>(
       context: context,
       barrierDismissible: false,
-      builder: (ctx) {
-        return StatefulBuilder(
-          builder: (ctx, setState) {
-            final isNarrow =
-                MediaQuery.of(ctx).size.width < 600 ||
-                Theme.of(ctx).platform == TargetPlatform.android;
-            return AlertDialog(
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-              title: const Row(
-                children: [
-                  Icon(Icons.lock_outline, color: AppColors.error, size: 26),
-                  SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      'Final Confirmation',
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                        color: AppColors.error,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-              content: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text(
-                    'To confirm, type DEACTIVATE in the field below:',
-                    style: TextStyle(fontWeight: FontWeight.w500),
-                  ),
-                  const SizedBox(height: 12),
-                  TextField(
-                    controller: confirmController,
-                    autofocus: true,
-                    decoration: const InputDecoration(
-                      hintText: 'Type DEACTIVATE',
-                      border: OutlineInputBorder(),
-                      isDense: true,
-                    ),
-                    onChanged: (_) => setState(() {}),
-                  ),
-                ],
-              ),
-              actions: [
-                if (isNarrow)
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      ElevatedButton(
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: AppColors.error,
-                          foregroundColor: Colors.white,
-                        ),
-                        onPressed: confirmController.text.trim() == 'DEACTIVATE'
-                            ? () => Navigator.pop(ctx, true)
-                            : null,
-                        child: const Text('DEACTIVATE MY ACCOUNT'),
-                      ),
-                      const SizedBox(height: 8),
-                      OutlinedButton(
-                        onPressed: () => Navigator.pop(ctx, false),
-                        child: const Text('CANCEL'),
-                      ),
-                    ],
-                  )
-                else
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.end,
-                    children: [
-                      TextButton(
-                        onPressed: () => Navigator.pop(ctx, false),
-                        child: const Text('CANCEL', style: TextStyle(color: Colors.grey)),
-                      ),
-                      const SizedBox(width: 8),
-                      ElevatedButton(
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: AppColors.error,
-                          foregroundColor: Colors.white,
-                        ),
-                        onPressed: confirmController.text.trim() == 'DEACTIVATE'
-                            ? () => Navigator.pop(ctx, true)
-                            : null,
-                        child: const Text('DEACTIVATE'),
-                      ),
-                    ],
-                  ),
-              ],
-            );
-          },
-        );
-      },
-    );
-    confirmController.dispose();
-
-    if (step2 != true || !context.mounted) return;
-
-    // Step 3: Final Email Notification Warning
-    final step3 = await showDialog<bool>(
-      context: context,
-      builder: (ctx) {
-        return AlertDialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-          title: const Text('Confirm Deactivation'),
-          content: const Text(
-            'Are you absolutely sure?\n\n'
-            'An email notification will be sent to confirm that your account has been deactivated. You will be logged out immediately.',
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(ctx, false),
-              child: const Text('CANCEL', style: TextStyle(color: Colors.grey)),
-            ),
-            ElevatedButton(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.error,
-                foregroundColor: Colors.white,
-              ),
-              onPressed: () => Navigator.pop(ctx, true),
-              child: const Text('YES, DEACTIVATE'),
-            ),
-          ],
-        );
-      },
+      builder: (ctx) => const _DeactivateConfirmationDialog(),
     );
 
-    if (step3 != true || !context.mounted) return;
+    if (confirmed != true) return;
+
+    // Brief delay to allow dialog pop animation to finish before logout invalidates tree
+    await Future.delayed(const Duration(milliseconds: 200));
+    if (!context.mounted) return;
 
     try {
       await ref.read(authProvider.notifier).requestSelfDeactivation();
@@ -1323,7 +1204,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                                                               AppColors
                                                                   .primaryGreen,
                                                           foregroundColor:
-                                                              isDark ? Colors.white : Colors.black,
+                                                              isDark ? Colors.white : Colors.white,
                                                           padding:
                                                               const EdgeInsets.symmetric(
                                                             vertical: 14,
@@ -1889,17 +1770,69 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                       ),
                       const SizedBox(height: AppSizes.p24),
 
-                      // ── Security Card (Collapsible) ───────────
-                      _buildCollapsibleCard(
-                        title: 'Security',
-                        isExpanded: _isSecurityExpanded,
-                        onToggle: () => setState(() => _isSecurityExpanded = !_isSecurityExpanded),
-                        child: SecuritySection(
-                          user: user,
-                          onDeactivateAccount: _handleDeactivateAccount,
-                          buildCard: _buildCard,
-                          buildDangerCard: _buildDangerCard,
-                          isDark: isDark,
+                      // ── Security Screen Navigation Card ─────────────────────
+                      _buildCard(
+                        child: InkWell(
+                          borderRadius: BorderRadius.circular(AppSizes.radiusLarge),
+                          onTap: () {
+                            HapticService.light();
+                            Navigator.of(context).push(
+                              MaterialPageRoute(
+                                builder: (_) => SecurityScreen(
+                                  user: user,
+                                  onDeactivateAccount: _handleDeactivateAccount,
+                                ),
+                              ),
+                            );
+                          },
+                          child: Row(
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.all(10),
+                                decoration: BoxDecoration(
+                                  color: AppColors.primaryGreen.withValues(alpha: 0.12),
+                                  borderRadius: BorderRadius.circular(10),
+                                ),
+                                child: const Icon(
+                                  Icons.security_rounded,
+                                  color: AppColors.primaryGreen,
+                                  size: 24,
+                                ),
+                              ),
+                              const SizedBox(width: AppSizes.p16),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    const Text(
+                                      'Security',
+                                      style: TextStyle(
+                                        fontSize: 18,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 2),
+                                    Text(
+                                      'Manage password, active login sessions, and account status',
+                                      style: TextStyle(
+                                        fontSize: 13,
+                                        color: isDark
+                                            ? AppColors.darkTextSecondary
+                                            : Colors.grey.shade600,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              Icon(
+                                Icons.arrow_forward_ios_rounded,
+                                size: 16,
+                                color: isDark
+                                    ? AppColors.darkTextSecondary
+                                    : Colors.grey.shade400,
+                              ),
+                            ],
+                          ),
                         ),
                       ),
 
@@ -2030,33 +1963,6 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     );
   }
 
-  Widget _buildDangerCard({required Widget child}) {
-    final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
-
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(AppSizes.p24),
-      decoration: BoxDecoration(
-        color: isDark ? AppColors.darkSurfaceCard : AppColors.surfaceWhite,
-        borderRadius: BorderRadius.circular(AppSizes.radiusLarge),
-        boxShadow: [
-          BoxShadow(
-            color: isDark
-                ? Colors.black.withValues(alpha: 0.25)
-                : Colors.black.withValues(alpha: 0.03),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
-        ],
-        border: Border.all(
-          color: AppColors.error.withValues(alpha: isDark ? 0.45 : 0.35),
-          width: 1.5,
-        ),
-      ),
-      child: child,
-    );
-  }
 
   Widget _buildCollapsibleCard({
     required String title,
@@ -2709,6 +2615,123 @@ class _EditScheduleDatesDialogState
           ],
         ),
       ),
+    );
+  }
+}
+
+class _DeactivateConfirmationDialog extends StatefulWidget {
+  const _DeactivateConfirmationDialog();
+
+  @override
+  State<_DeactivateConfirmationDialog> createState() =>
+      _DeactivateConfirmationDialogState();
+}
+
+class _DeactivateConfirmationDialogState
+    extends State<_DeactivateConfirmationDialog> {
+  late final TextEditingController _confirmController;
+
+  @override
+  void initState() {
+    super.initState();
+    _confirmController = TextEditingController();
+  }
+
+  @override
+  void dispose() {
+    _confirmController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final isNarrow = MediaQuery.of(context).size.width < 600 ||
+        Theme.of(context).platform == TargetPlatform.android;
+
+    return AlertDialog(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      title: const Row(
+        children: [
+          Icon(Icons.lock_outline, color: AppColors.error, size: 26),
+          SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              'Final Confirmation',
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: AppColors.error,
+              ),
+            ),
+          ),
+        ],
+      ),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Deactivating your account will immediately revoke your access and log you out. An email notification will be sent.\n\n'
+            'To confirm, type DEACTIVATE in the field below:',
+            style: TextStyle(fontWeight: FontWeight.w500),
+          ),
+          const SizedBox(height: 12),
+          TextField(
+            controller: _confirmController,
+            autofocus: true,
+            decoration: const InputDecoration(
+              hintText: 'Type DEACTIVATE',
+              border: OutlineInputBorder(),
+              isDense: true,
+            ),
+            onChanged: (_) => setState(() {}),
+          ),
+        ],
+      ),
+      actions: [
+        if (isNarrow)
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.error,
+                  foregroundColor: Colors.white,
+                ),
+                onPressed: _confirmController.text.trim() == 'DEACTIVATE'
+                    ? () => Navigator.pop(context, true)
+                    : null,
+                child: const Text('DEACTIVATE MY ACCOUNT'),
+              ),
+              const SizedBox(height: 8),
+              OutlinedButton(
+                onPressed: () => Navigator.pop(context, false),
+                child: const Text('CANCEL'),
+              ),
+            ],
+          )
+        else
+          Row(
+            mainAxisAlignment: MainAxisAlignment.end,
+            children: [
+              TextButton(
+                onPressed: () => Navigator.pop(context, false),
+                child: const Text('CANCEL', style: TextStyle(color: Colors.grey)),
+              ),
+              const SizedBox(width: 8),
+              ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.error,
+                  foregroundColor: Colors.white,
+                ),
+                onPressed: _confirmController.text.trim() == 'DEACTIVATE'
+                    ? () => Navigator.pop(context, true)
+                    : null,
+                child: const Text('DEACTIVATE'),
+              ),
+            ],
+          ),
+      ],
     );
   }
 }

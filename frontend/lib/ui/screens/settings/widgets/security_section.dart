@@ -28,134 +28,108 @@ class SecuritySection extends ConsumerStatefulWidget {
 }
 
 class _SecuritySectionState extends ConsumerState<SecuritySection> {
-  bool _isDevicesExpanded = false;
-
   @override
   Widget build(BuildContext context) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // ── Logged-in Devices Card (Collapsible) ───────────
-        widget.buildCard(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Material(
-                color: Colors.transparent,
-                child: InkWell(
-                  borderRadius: BorderRadius.circular(10),
-                  onTap: () {
-                    setState(() => _isDevicesExpanded = !_isDevicesExpanded);
-                  },
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 2),
-                    child: Row(
+        // ── Logged-in Devices Section ───────────
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                const Icon(
+                  Icons.devices_outlined,
+                  color: AppColors.primaryGreen,
+                  size: 22,
+                ),
+                const SizedBox(width: AppSizes.p12),
+                Expanded(
+                  child: Row(
+                    children: [
+                      const Text(
+                        'Logged-in Devices',
+                        style: TextStyle(
+                          fontSize: 17,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      _buildDeviceCountBadge(),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 4),
+            Text(
+              'Manage devices where your account is currently active.',
+              style: TextStyle(
+                fontSize: 13,
+                color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7),
+              ),
+            ),
+            const SizedBox(height: 14),
+            _buildSessionsList(context, ref),
+          ],
+        ),
+        const SizedBox(height: AppSizes.p24),
+        Divider(
+          color: Theme.of(context).dividerColor.withValues(alpha: 0.15),
+        ),
+        const SizedBox(height: AppSizes.p20),
+
+        // ── Change Password Card ───────────
+        Material(
+          color: Colors.transparent,
+          child: InkWell(
+            borderRadius: BorderRadius.circular(12),
+            onTap: () => ChangePasswordModal.show(context),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+              decoration: BoxDecoration(
+                color: widget.isDark
+                    ? Colors.white.withValues(alpha: 0.04)
+                    : Colors.grey.withValues(alpha: 0.05),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                  color: widget.isDark ? AppColors.darkBorder : Colors.grey.shade200,
+                ),
+              ),
+              child: Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: AppColors.primaryGreen.withValues(alpha: 0.12),
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(Icons.lock_outline, color: AppColors.primaryGreen, size: 20),
+                  ),
+                  const SizedBox(width: AppSizes.p12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Icon(
-                          Icons.devices_outlined,
-                          color: AppColors.primaryGreen,
-                          size: 24,
+                        const Text(
+                          'Change Password',
+                          style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
                         ),
-                        const SizedBox(width: AppSizes.p12),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Row(
-                                children: [
-                                  const Text(
-                                    'Logged-in Devices',
-                                    style: TextStyle(
-                                      fontSize: 18,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
-                                  const SizedBox(width: 8),
-                                  _buildDeviceCountBadge(),
-                                ],
-                              ),
-                              const SizedBox(height: 2),
-                              Text(
-                                'Manage devices where your account is currently active.',
-                                style: TextStyle(
-                                  fontSize: 13,
-                                  color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        AnimatedRotation(
-                          turns: _isDevicesExpanded ? 0.5 : 0.0,
-                          duration: const Duration(milliseconds: 250),
-                          curve: Curves.easeInOut,
-                          child: Icon(
-                            Icons.keyboard_arrow_down_rounded,
-                            color: widget.isDark
-                                ? AppColors.darkTextSecondary
-                                : Colors.grey.shade600,
-                            size: 24,
+                        const SizedBox(height: 2),
+                        Text(
+                          'Set a new password for your account',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7),
                           ),
                         ),
                       ],
                     ),
                   ),
-                ),
+                  Icon(Icons.chevron_right_rounded, color: widget.isDark ? AppColors.darkTextSecondary : Colors.grey),
+                ],
               ),
-              AnimatedCrossFade(
-                firstChild: const SizedBox(width: double.infinity, height: 0),
-                secondChild: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const SizedBox(height: 14),
-                    Divider(
-                      color: Theme.of(context).dividerColor.withValues(alpha: 0.15),
-                    ),
-                    const SizedBox(height: 10),
-                    _buildSessionsList(context, ref),
-                  ],
-                ),
-                crossFadeState: _isDevicesExpanded
-                    ? CrossFadeState.showSecond
-                    : CrossFadeState.showFirst,
-                duration: const Duration(milliseconds: 250),
-                sizeCurve: Curves.easeInOut,
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(height: AppSizes.p24),
-
-        // ── Change Password Card ───────────
-        widget.buildCard(
-          child: InkWell(
-            borderRadius: BorderRadius.circular(AppSizes.radiusLarge),
-            onTap: () => ChangePasswordModal.show(context),
-            child: Row(
-              children: [
-                const Icon(Icons.lock_outline, color: AppColors.primaryGreen, size: 24),
-                const SizedBox(width: AppSizes.p12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text(
-                        'Change Password',
-                        style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                      ),
-                      const SizedBox(height: 2),
-                      Text(
-                        'Set a new password for your account',
-                        style: TextStyle(
-                          fontSize: 13,
-                          color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                Icon(Icons.chevron_right_rounded, color: widget.isDark ? AppColors.darkTextSecondary : Colors.grey),
-              ],
             ),
           ),
         ),
@@ -258,6 +232,7 @@ class _SecuritySectionState extends ConsumerState<SecuritySection> {
 
   Widget _buildSessionsList(BuildContext context, WidgetRef ref) {
     final sessionsAsync = ref.watch(sessionsProvider);
+    final isNarrow = MediaQuery.of(context).size.width < 500;
 
     return sessionsAsync.when(
       data: (sessions) {
@@ -272,14 +247,23 @@ class _SecuritySectionState extends ConsumerState<SecuritySection> {
           children: [
             ...sessions.map((session) => _buildSessionItem(context, ref, session)),
             if (sessions.length > 1) ...[
-              const SizedBox(height: 16),
+              const SizedBox(height: 12),
               Align(
-                alignment: Alignment.centerRight,
-                child: TextButton.icon(
-                  style: TextButton.styleFrom(foregroundColor: AppColors.error),
+                alignment: isNarrow ? Alignment.centerLeft : Alignment.centerRight,
+                child: OutlinedButton.icon(
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: AppColors.error,
+                    side: BorderSide(color: AppColors.error.withValues(alpha: 0.35)),
+                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                    visualDensity: VisualDensity.compact,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                  ),
                   onPressed: () => _handleRevokeAllOther(context, ref),
-                  icon: const Icon(Icons.logout_rounded, size: 18),
-                  label: const Text('Sign out of all other devices'),
+                  icon: const Icon(Icons.logout_rounded, size: 16),
+                  label: const Text(
+                    'Sign out of all other devices',
+                    style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
+                  ),
                 ),
               ),
             ]
@@ -317,7 +301,9 @@ class _SecuritySectionState extends ConsumerState<SecuritySection> {
                         : 'Windows';
 
     final rawDevice = (session['device_name']?.toString() ?? '').trim();
-    final deviceName = (rawDevice.isEmpty || rawDevice.toLowerCase() == 'unknown device' || rawDevice.toLowerCase() == 'device')
+    final deviceName = (rawDevice.isEmpty ||
+            rawDevice.toLowerCase() == 'unknown device' ||
+            rawDevice.toLowerCase() == 'device')
         ? (platformName == 'Windows'
             ? 'Windows PC'
             : platformName == 'Android'
@@ -325,7 +311,7 @@ class _SecuritySectionState extends ConsumerState<SecuritySection> {
                 : '$platformName Device')
         : rawDevice;
 
-    final ipAddress = session['ip_address'] ?? '';
+    final ipAddress = (session['ip_address'] ?? '').toString().trim();
     final lastSeen = session['last_seen_at'] != null 
         ? DateFormat('MMM d, y, h:mm a').format(DateTime.parse(session['last_seen_at']).toLocal()) 
         : 'Recently';
@@ -341,78 +327,134 @@ class _SecuritySectionState extends ConsumerState<SecuritySection> {
       platformIcon = Icons.laptop_mac_rounded;
     }
 
-    return ListTile(
-      contentPadding: EdgeInsets.zero,
-      leading: Container(
-        padding: const EdgeInsets.all(8),
-        decoration: BoxDecoration(
+    return Container(
+      margin: const EdgeInsets.only(bottom: 10),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      decoration: BoxDecoration(
+        color: widget.isDark
+            ? Colors.white.withValues(alpha: 0.04)
+            : Colors.grey.withValues(alpha: 0.05),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(
           color: isCurrent
-              ? AppColors.primaryGreen.withValues(alpha: 0.12)
-              : Colors.grey.withValues(alpha: 0.12),
-          shape: BoxShape.circle,
-        ),
-        child: Icon(
-          platformIcon,
-          color: isCurrent ? AppColors.primaryGreen : Colors.grey.shade600,
-          size: 20,
+              ? AppColors.primaryGreen.withValues(alpha: 0.35)
+              : (widget.isDark ? AppColors.darkBorder : Colors.grey.shade200),
         ),
       ),
-      title: Row(
-        children: [
-          Expanded(
-            child: Text(
-              deviceName,
-              style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-            ),
-          ),
-          if (isCurrent)
-            Container(
-              margin: const EdgeInsets.only(left: 8),
-              padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
-              decoration: BoxDecoration(
-                color: AppColors.primaryGreen.withValues(alpha: 0.12),
-                borderRadius: BorderRadius.circular(6),
-              ),
-              child: const Text(
-                'Current',
-                style: TextStyle(
-                  color: AppColors.primaryGreen,
-                  fontSize: 10,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ),
-        ],
-      ),
-      subtitle: Column(
+      child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const SizedBox(height: 2),
-          Text(
-            '$platformName ${ipAddress.isNotEmpty ? "• $ipAddress" : ""}',
-            style: TextStyle(
-              fontSize: 12,
-              color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
-            ),
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(7),
+                decoration: BoxDecoration(
+                  color: isCurrent
+                      ? AppColors.primaryGreen.withValues(alpha: 0.12)
+                      : Colors.grey.withValues(alpha: 0.12),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(
+                  platformIcon,
+                  color: isCurrent ? AppColors.primaryGreen : Colors.grey.shade600,
+                  size: 18,
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Row(
+                  children: [
+                    Flexible(
+                      child: Text(
+                        deviceName,
+                        style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                    if (isCurrent) ...[
+                      const SizedBox(width: 8),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: AppColors.primaryGreen.withValues(alpha: 0.12),
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                        child: const Text(
+                          'Current',
+                          style: TextStyle(
+                            color: AppColors.primaryGreen,
+                            fontSize: 10,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+              if (!isCurrent)
+                IconButton(
+                  visualDensity: VisualDensity.compact,
+                  padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+                  icon: const Icon(Icons.logout_rounded, color: AppColors.error, size: 18),
+                  tooltip: 'Sign out of this device',
+                  onPressed: () => _handleRevokeSession(context, ref, session['id'].toString()),
+                ),
+            ],
           ),
-          Text(
-            'Last seen: $lastSeen',
-            style: TextStyle(
-              fontSize: 11,
-              color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.45),
+          const SizedBox(height: 6),
+          Padding(
+            padding: const EdgeInsets.only(left: 35),
+            child: Wrap(
+              spacing: 8,
+              runSpacing: 4,
+              crossAxisAlignment: WrapCrossAlignment.center,
+              children: [
+                Text(
+                  platformName,
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w500,
+                    color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7),
+                  ),
+                ),
+                if (ipAddress.isNotEmpty) ...[
+                  Text(
+                    '•',
+                    style: TextStyle(
+                      fontSize: 10,
+                      color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.35),
+                    ),
+                  ),
+                  Text(
+                    ipAddress,
+                    style: TextStyle(
+                      fontSize: 11,
+                      color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
+                    ),
+                  ),
+                ],
+                Text(
+                  '•',
+                  style: TextStyle(
+                    fontSize: 10,
+                    color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.35),
+                  ),
+                ),
+                Text(
+                  'Active: $lastSeen',
+                  style: TextStyle(
+                    fontSize: 11,
+                    color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5),
+                  ),
+                ),
+              ],
             ),
           ),
         ],
       ),
-      trailing: !isCurrent
-          ? IconButton(
-              icon: const Icon(Icons.logout_rounded, color: AppColors.error, size: 20),
-              tooltip: 'Sign out of this device',
-              onPressed: () => _handleRevokeSession(context, ref, session['id'].toString()),
-            )
-          : null,
     );
   }
 

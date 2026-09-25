@@ -7,11 +7,9 @@ import 'package:flutter/services.dart';
 class SoundService {
   static AudioPlayer? _player;
   static bool _initialized = false;
-  static bool _muted = false;
 
-  /// Whether sound effects are globally muted.
-  static bool get isMuted => _muted;
-  static set isMuted(bool value) => _muted = value;
+  /// Whether sound effects are globally muted (default true / disabled).
+  static bool isMuted = true;
 
   static bool get _isDesktop =>
       !kIsWeb && (Platform.isWindows || Platform.isLinux || Platform.isMacOS);
@@ -29,7 +27,7 @@ class SoundService {
   }
 
   static Future<void> _playSound(String assetFileName, {bool isErrorOrAlert = false}) async {
-    if (_muted) return;
+    if (isMuted) return;
     try {
       if (_isDesktop) {
         if (isErrorOrAlert) {

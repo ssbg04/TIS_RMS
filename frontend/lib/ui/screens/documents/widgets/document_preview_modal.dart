@@ -4,7 +4,6 @@ import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
-import 'package:path_provider/path_provider.dart';
 import 'package:open_filex/open_filex.dart';
 import 'package:syncfusion_flutter_pdfviewer/pdfviewer.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -15,7 +14,6 @@ import '../../../../core/utils/download_service.dart';
 import '../../../../domain/entities/document_model.dart';
 import '../../../../domain/repositories/document_repository.dart';
 import '../../../providers/document_provider.dart';
-import '../../../providers/conversion_provider.dart';
 import '../../../providers/auth_provider.dart';
 import '../../../shared/dialogs/error_dialog.dart';
 import '../../../shared/dialogs/success_dialog.dart';
@@ -298,7 +296,7 @@ class _DocumentPreviewDialogState
         filePath = widget.localFile!.path;
       } else {
         if (_token == null || widget.document == null) return;
-        final tempDir = await getTemporaryDirectory();
+        final tempDir = await DownloadService.getDocumentTempDirectory();
         filePath = '${tempDir.path}${Platform.pathSeparator}$_fileName';
         final file = File(filePath);
         if (!await file.exists()) {
@@ -357,7 +355,7 @@ class _DocumentPreviewDialogState
     if (widget.document == null || _isOpeningExternal) return;
     setState(() => _isOpeningExternal = true);
     try {
-      final tempDir = await getTemporaryDirectory();
+      final tempDir = await DownloadService.getDocumentTempDirectory();
       final tempPath = '${tempDir.path}${Platform.pathSeparator}$_fileName';
       _editTempFile = File(tempPath);
       if (!await _editTempFile!.exists()) {
@@ -368,8 +366,16 @@ class _DocumentPreviewDialogState
       if (Platform.isWindows) {
         await Process.run('cmd', ['/c', 'start', '""', tempPath], runInShell: true);
       } else {
-        final uri = Uri.file(tempPath);
-        await launchUrl(uri, mode: LaunchMode.externalApplication);
+        final result = await OpenFilex.open(tempPath);
+        if (result.type == ResultType.noAppToOpen) {
+          throw Exception('No application installed on your device to edit this file.');
+        } else if (result.type == ResultType.fileNotFound) {
+          throw Exception('File not found: $tempPath');
+        } else if (result.type == ResultType.permissionDenied) {
+          throw Exception('Permission denied to open file.');
+        } else if (result.type == ResultType.error) {
+          throw Exception(result.message);
+        }
       }
 
       // Prompt user to upload the edited file as a new version
@@ -478,32 +484,6 @@ class _DocumentPreviewDialogState
     }
   }
 
-  bool _isConverting = false;
-
-  Future<void> _convertToPdf() async {
-    if (widget.document == null || _isConverting) return;
-    setState(() => _isConverting = true);
-    try {
-      final converted = await ref
-          .read(conversionProvider.notifier)
-          .convertToPdf(widget.document!.id);
-      if (!mounted) return;
-      showSuccessDialog(
-        context,
-        message: 'Excel converted to PDF successfully as "${converted.fileName}".',
-      );
-    } catch (e) {
-      if (!mounted) return;
-      showErrorDialog(
-        context,
-        'Conversion Failed',
-        e.toString().replaceFirst('Exception: ', ''),
-      );
-    } finally {
-      if (mounted) setState(() => _isConverting = false);
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     final screenW = MediaQuery.of(context).size.width;
@@ -513,16 +493,6 @@ class _DocumentPreviewDialogState
 
     final List<_PreviewActionItem> directActions = [];
     final List<_PreviewActionItem> menuActions = [];
-
-    if (_isExcel && widget.document != null) {
-      directActions.add(_PreviewActionItem(
-        id: 'convert_pdf',
-        label: 'Convert to PDF',
-        iconData: Icons.picture_as_pdf_outlined,
-        onTap: _isConverting ? null : _convertToPdf,
-        isLoading: _isConverting,
-      ));
-    }
     if (_isExcel || _isPdf || _isOffice || _isImage) {
       // Open in default app
       directActions.add(_PreviewActionItem(
