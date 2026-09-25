@@ -547,8 +547,10 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                         const SizedBox(height: AppSizes.p20),
 
                         // 1. Filter Panel (collapsible)
-                        _buildFilterPanel(context),
-                        const SizedBox(height: AppSizes.p20),
+                        if (!Platform.isAndroid) ...[
+                          _buildFilterPanel(context),
+                          const SizedBox(height: AppSizes.p20),
+                        ],
 
                         // 2. Focused Compliance KPI Cards (4 cards)
                         _buildMetricsGrid(data),
@@ -843,12 +845,11 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                 child: OutlinedButton.icon(
                   onPressed: () => _showComplianceFilterModal(context),
                   icon: const Icon(Icons.filter_list_rounded, size: 16),
-                  label: Flexible(
+                  label: FittedBox(
+                    fit: BoxFit.scaleDown,
                     child: Text(
                       activeFilterCount > 0 ? 'Filter ($activeFilterCount)' : 'Filter',
                       style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
-                      overflow: TextOverflow.ellipsis,
-                      maxLines: 1,
                     ),
                   ),
                   style: OutlinedButton.styleFrom(

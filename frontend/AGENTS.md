@@ -748,18 +748,47 @@ Files backup/restore - mirror mode or zip -->
 
 # HISTORY SCREEN
 - "F:\SumbrerongBato\tis_rms_server\screenshots\Screenshot 2026-09-19 164307.png" fix this windows app cant list the widgets because and fix too overflow and cant list the widgets in android app F:\SumbrerongBato\tis_rms_server\screenshots\history.png -->
-
-# SETTINGS SCREEN
-- Delete account -> update to self deactivates, remove email function for deletion, use email for deactivation add client side 2 times confirmation dialog
-
-- report screen -> compliance -> fix fliter button label is in half
+<!-- - report screen -> compliance -> fix fliter button label is in half
 - settings screen -> acadmeic year and auto graduation -> edit schedule date modal -> fix button labels is in half
 
 # DOCUMENT SCREEN
 - file preview screen -> open with is not working
 
 # WINDOWS SIDE NAV BAR
-- windows app -> side bar nav move the archive tab to overview group
+- windows app -> side bar nav move the archive tab to overview group -->
+
+# SETTINGS SCREEN
+- Delete account -> update to self deactivates, remove email function for deletion, use email for deactivation add client side 2 times confirmation dialog -> add 3rd modal for final confirmation -> logout after 
+
+# REPORTS SCREEN
+- android app, hide the collapsable filter, keep the filter button and fix the filter button label is at half
+
+# SETTINGS SCREEN -> SECURITY TAB
+- settings screen -> "academic & auto graduation" label of save dates and cancel buttons label at half, label of
+check button make theme responsive 
+- logged in devices collapsible accordion with count badge & chevron, platform tracking fixed for history screen & settings screen
+
+
+# USER SCREEN
+- email validation api quickemailverification.com for adding users before sending the all email transactions
+  - example code 
+```
+// Replace API_KEY with your API Key
+var quickemailverification = require('quickemailverification').client('QEV_API_KEY').quickemailverification(); 
+
+// Email address which need to be verified
+ quickemailverification.verify("asdasdas@email.com", function (err, response) { 
+// Print response object
+console.log(response.body);
+});
+```
+
+# DOCUMENTS SCREEN
+- android app: open with not working
+
+# HISTORY SCREEN
+- make the header of body compact
+- add a new tab for login/logout time date of the users
 
 ---
 

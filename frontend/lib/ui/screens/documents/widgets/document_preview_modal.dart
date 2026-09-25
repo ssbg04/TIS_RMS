@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:path_provider/path_provider.dart';
+import 'package:open_filex/open_filex.dart';
 import 'package:syncfusion_flutter_pdfviewer/pdfviewer.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -330,10 +331,16 @@ class _DocumentPreviewDialogState
           );
         }
       } else {
-        // Android / iOS — launchUrl with externalApplication shows OS app chooser
-        final uri = Uri.file(filePath);
-        if (!await launchUrl(uri, mode: LaunchMode.externalApplication)) {
-          throw Exception('Could not launch external application for this file.');
+        // Android / iOS — OpenFilex opens the OS native app chooser / default viewer with FileProvider
+        final result = await OpenFilex.open(filePath);
+        if (result.type == ResultType.noAppToOpen) {
+          throw Exception('No application installed on your device to open this file.');
+        } else if (result.type == ResultType.fileNotFound) {
+          throw Exception('File not found: $filePath');
+        } else if (result.type == ResultType.permissionDenied) {
+          throw Exception('Permission denied to open file.');
+        } else if (result.type == ResultType.error) {
+          throw Exception(result.message);
         }
       }
     } catch (e) {
@@ -432,7 +439,7 @@ class _DocumentPreviewDialogState
     try {
       final nextVersion = await _docRepo.uploadDocumentVersion(
         widget.document!.id,
-        filePath!,
+        filePath,
       );
       // Invalidate provider so the documents list refreshes
       ref.invalidate(documentPageProvider);

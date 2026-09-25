@@ -72,7 +72,7 @@ class AuthNotifier extends AsyncNotifier<UserModel?> {
     ForegroundSyncService.stop();
     await FcmService.unregisterToken();
     final repository = ref.read(authRepositoryProvider);
-    await repository.logout();
+    await repository.logoutWithServer();
     state = const AsyncData(null);
 
     // Invalidate all persistent providers so the next login starts clean.

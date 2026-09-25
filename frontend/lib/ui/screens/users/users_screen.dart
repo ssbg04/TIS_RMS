@@ -988,6 +988,23 @@ class _UserDetailAndEditModalContentState
     setState(() => _isLoading = true);
 
     try {
+      final email = _emailCtrl.text.trim();
+      if (email.isNotEmpty && email != _currentUser.email) {
+        final validation =
+            await ref.read(usersProvider.notifier).validateEmail(email);
+        if (validation['valid'] == false) {
+          final reason = validation['reason']?.toString() ??
+              'Invalid or undeliverable email address';
+          if (!mounted) return;
+          showErrorDialog(
+            context,
+            'Invalid Email Address',
+            'The email address "$email" failed verification: $reason.\nPlease enter a valid, active email address.',
+          );
+          return;
+        }
+      }
+
       final notifier = ref.read(usersProvider.notifier);
       await notifier.updateUser(
         id: _currentUser.id,
@@ -1788,6 +1805,23 @@ class _AddUserModalContentState extends ConsumerState<_AddUserModalContent> {
     setState(() => _isLoading = true);
 
     try {
+      final email = _emailCtrl.text.trim();
+      if (email.isNotEmpty) {
+        final validation =
+            await ref.read(usersProvider.notifier).validateEmail(email);
+        if (validation['valid'] == false) {
+          final reason = validation['reason']?.toString() ??
+              'Invalid or undeliverable email address';
+          if (!mounted) return;
+          showErrorDialog(
+            context,
+            'Invalid Email Address',
+            'The email address "$email" failed verification: $reason.\nPlease enter a valid, active email address.',
+          );
+          return;
+        }
+      }
+
       final username = _usernameCtrl.text.trim();
       await ref.read(usersProvider.notifier).createUser(
             username: username,

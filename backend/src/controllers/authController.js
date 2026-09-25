@@ -7,6 +7,100 @@ const { createNotification } = require('./notificationController');
 const { sendPasswordResetOtp, sendAccountDeletionEmail } = require('../services/emailService');
 const { getBestServerBaseUrl } = require('./userController');
 
+// ── QEV Email Validator ───────────────────────────────────────────────────────
+// Returns { valid: bool, reason: string } — never throws.
+const validateEmailQEV = async (email) => {
+    if (!email || !email.trim()) return { valid: false, reason: 'Email is empty' };
+    const apiKey = process.env.QEV_API_KEY;
+    if (!apiKey) return { valid: true, reason: 'QEV key not configured – skipping' };
+    try {
+        const qev = require('quickemailverification').client(apiKey).quickemailverification();
+        const result = await new Promise((resolve, reject) => {
+            qev.verify(email.trim(), (err, response) => {
+                if (err) return reject(err);
+                resolve(response.body);
+            });
+        });
+        // result.result: 'valid' | 'invalid' | 'unknown'
+        const isValid = result.result === 'valid';
+        const reason = isValid ? 'valid' : (result.reason || result.result || 'invalid');
+        return { valid: isValid, reason };
+    } catch (err) {
+        console.warn('[QEV] Email validation error (skipping):', err.message);
+        // Fail-open: if QEV is unreachable, allow the email
+        return { valid: true, reason: 'QEV unreachable – skipping' };
+    }
+};
+exports.validateEmailQEV = validateEmailQEV;
+
+// ── Session Helpers ───────────────────────────────────────────────────────────
+const hashToken = (token) => crypto.createHash('sha256').update(token).digest('hex');
+
+// Helper to detect platform from request headers, body, or User-Agent
+const detectPlatform = (req) => {
+    const headerPlatform = req.headers['x-platform'] || req.headers['x-client-platform'];
+    if (headerPlatform && typeof headerPlatform === 'string' && headerPlatform.trim().length > 0) {
+        return headerPlatform.trim().toLowerCase();
+    }
+    if (req.body && req.body.platform && typeof req.body.platform === 'string' && req.body.platform.trim().length > 0) {
+        return req.body.platform.trim().toLowerCase();
+    }
+    const ua = (req.headers['user-agent'] || '').toLowerCase();
+    if (ua.includes('android')) return 'android';
+    if (ua.includes('windows') || ua.includes('win32') || ua.includes('win64')) return 'windows';
+    if (ua.includes('iphone') || ua.includes('ipad') || ua.includes('ios')) return 'ios';
+    if (ua.includes('macintosh') || ua.includes('mac os')) return 'macos';
+    if (ua.includes('linux')) return 'linux';
+    return 'windows';
+};
+
+// Helper to detect device name from request headers, body, or platform
+const detectDeviceName = (req, platform) => {
+    const headerDevice = req.headers['x-device-name'];
+    if (headerDevice && typeof headerDevice === 'string' && headerDevice.trim().length > 0) {
+        return headerDevice.trim();
+    }
+    if (req.body && req.body.device_name && typeof req.body.device_name === 'string' && req.body.device_name.trim().length > 0) {
+        return req.body.device_name.trim();
+    }
+    const platLower = (platform || '').toLowerCase();
+    if (platLower.includes('win')) return 'Windows PC';
+    if (platLower.includes('android')) return 'Android Device';
+    if (platLower.includes('ios') || platLower.includes('iphone')) return 'iPhone';
+    if (platLower.includes('mac')) return 'Mac';
+    if (platLower.includes('web')) return 'Web Browser';
+    return 'Windows PC';
+};
+
+const upsertSession = (userId, token, platform, ipAddress, deviceName) => {
+    try {
+        const tokenHash = hashToken(token);
+        const now = strftime_now();
+        const effectivePlatform = platform || 'windows';
+        const effectiveDevice = deviceName || (effectivePlatform === 'windows' ? 'Windows PC' : 'Device');
+
+        // If same token re-used (rare), update last_seen
+        const existing = db.prepare('SELECT id FROM user_sessions WHERE token_hash = ?').get(tokenHash);
+        if (existing) {
+            db.prepare(`
+                UPDATE user_sessions
+                SET last_seen_at = ?,
+                    platform = COALESCE(?, platform),
+                    ip_address = COALESCE(?, ip_address),
+                    device_name = COALESCE(?, device_name)
+                WHERE token_hash = ?
+            `).run(now, effectivePlatform, ipAddress || null, effectiveDevice, tokenHash);
+        } else {
+            db.prepare(`
+                INSERT INTO user_sessions (user_id, token_hash, platform, ip_address, device_name)
+                VALUES (?, ?, ?, ?, ?)
+            `).run(userId, tokenHash, effectivePlatform, ipAddress || null, effectiveDevice);
+        }
+    } catch (err) { console.warn('[Sessions] upsertSession error:', err.message); }
+};
+
+const strftime_now = () => new Date().toISOString().replace('T', 'T').slice(0, 19) + 'Z';
+
 // Helper to mask email (e.g. j***e@gmail.com)
 const maskEmail = (email) => {
     if (!email || !email.includes('@')) return null;
@@ -36,6 +130,21 @@ exports.login = (req, res) => {
             process.env.JWT_SECRET,
             { expiresIn: '75d' } // Extended for Remember Me support
         );
+
+        // Record session (device tracking)
+        const clientPlatform = detectPlatform(req);
+        const clientDeviceName = detectDeviceName(req, clientPlatform);
+        const clientIp = req.headers['x-forwarded-for']?.split(',')[0]?.trim() || req.socket?.remoteAddress || null;
+        upsertSession(user.id, token, clientPlatform, clientIp, clientDeviceName);
+
+        // Append login log entry
+        try {
+            const fullName = [user.first_name, user.last_name].filter(Boolean).join(' ');
+            db.prepare(`
+                INSERT INTO user_login_logs (user_id, username, full_name, role, platform, ip_address)
+                VALUES (?, ?, ?, ?, ?, ?)
+            `).run(user.id, user.username, fullName, user.role, clientPlatform, clientIp);
+        } catch (_) {}
 
         res.json({
             token,
@@ -863,6 +972,15 @@ exports.selfDeactivateAccount = async (req, res) => {
         // Revoke all FCM push tokens
         db.prepare('DELETE FROM fcm_tokens WHERE user_id = ?').run(userId);
 
+        // Revoke all sessions and stamp logout on open login logs
+        db.prepare('DELETE FROM user_sessions WHERE user_id = ?').run(userId);
+        try {
+            db.prepare(`
+                UPDATE user_login_logs SET logout_at = (strftime('%Y-%m-%dT%H:%M:%SZ', 'now'))
+                WHERE user_id = ? AND logout_at IS NULL
+            `).run(userId);
+        } catch (_) {}
+
         // Log activity
         try {
             db.prepare('INSERT INTO activity_log (user_id, action, entity_type, entity_id, description) VALUES (?, ?, ?, ?, ?)')
@@ -872,12 +990,16 @@ exports.selfDeactivateAccount = async (req, res) => {
         // Send email notification if available (async, fire-and-forget)
         const { sendAccountStatusEmail } = require('../services/emailService');
         if (user.email && user.email.trim()) {
-            sendAccountStatusEmail({
-                to: user.email.trim(),
-                username: user.username,
-                fullName: [user.first_name, user.last_name].filter(Boolean).join(' '),
-                isActivated: false,
-            }).catch(() => {});
+            (async () => {
+                const qevResult = await validateEmailQEV(user.email.trim());
+                if (!qevResult.valid) return;
+                sendAccountStatusEmail({
+                    to: user.email.trim(),
+                    username: user.username,
+                    fullName: [user.first_name, user.last_name].filter(Boolean).join(' '),
+                    isActivated: false,
+                }).catch(() => {});
+            })();
         }
 
         res.json({
@@ -912,6 +1034,13 @@ exports.requestAccountDeletion = async (req, res) => {
 
         if (!user.email || !user.email.includes('@')) {
             return res.status(400).json({ message: 'An email address is required to verify account deletion. Please add an email address to your profile first.' });
+        }
+
+        const qevResult = await validateEmailQEV(user.email.trim());
+        if (!qevResult.valid) {
+            return res.status(422).json({
+                message: `Cannot send deletion email: the registered address "${user.email}" appears to be invalid or undeliverable (${qevResult.reason}).`
+            });
         }
 
         // Generate secure random token
@@ -1250,3 +1379,155 @@ exports.confirmDeleteAccount = (req, res) => {
     }
 };
 
+// ── GET /api/auth/sessions — list active sessions for current user ─────────────
+exports.getSessions = (req, res) => {
+    try {
+        const authHeader = req.headers.authorization || '';
+        const currentToken = authHeader.startsWith('Bearer ') ? authHeader.slice(7) : '';
+        const currentHash = currentToken ? hashToken(currentToken) : null;
+        const reqPlatform = detectPlatform(req);
+        const reqDevice = detectDeviceName(req, reqPlatform);
+        const reqIp = req.headers['x-forwarded-for']?.split(',')[0]?.trim() || req.socket?.remoteAddress || null;
+
+        // Auto backfill current active session if platform/device_name is missing
+        if (currentHash && reqPlatform) {
+            try {
+                db.prepare(`
+                    UPDATE user_sessions
+                    SET platform = COALESCE(NULLIF(platform, ''), NULLIF(platform, 'unknown'), ?),
+                        device_name = COALESCE(NULLIF(device_name, ''), NULLIF(device_name, 'Unknown Device'), ?),
+                        ip_address = COALESCE(ip_address, ?),
+                        last_seen_at = (strftime('%Y-%m-%dT%H:%M:%SZ', 'now'))
+                    WHERE token_hash = ?
+                `).run(reqPlatform, reqDevice, reqIp, currentHash);
+            } catch (_) {}
+        }
+
+        const sessions = db.prepare(`
+            SELECT id, device_name, platform, ip_address, created_at, last_seen_at, token_hash
+            FROM user_sessions
+            WHERE user_id = ?
+            ORDER BY last_seen_at DESC
+        `).all(req.user.id);
+
+        const mapped = sessions.map(s => {
+            const rawPlat = (s.platform || '').trim().toLowerCase();
+            const plat = (rawPlat && rawPlat !== 'unknown') ? rawPlat : 'windows';
+            const devName = (s.device_name && s.device_name !== 'Unknown Device' && s.device_name !== 'Device')
+                ? s.device_name
+                : (plat === 'windows' ? 'Windows PC' : plat === 'android' ? 'Android Device' : `${plat.charAt(0).toUpperCase() + plat.slice(1)} Device`);
+
+            return {
+                id: s.id,
+                platform: plat,
+                device_name: devName,
+                ip_address: s.ip_address,
+                created_at: s.created_at,
+                last_seen_at: s.last_seen_at,
+                is_current: currentHash ? s.token_hash === currentHash : false
+            };
+        });
+
+        res.json(mapped);
+    } catch (error) {
+        res.status(500).json({ message: 'Failed to fetch sessions', error: error.message });
+    }
+};
+
+// ── DELETE /api/auth/sessions/:id — revoke a specific session ─────────────────
+exports.revokeSession = (req, res) => {
+    try {
+        const session = db.prepare('SELECT id, user_id FROM user_sessions WHERE id = ?').get(req.params.id);
+        if (!session) return res.status(404).json({ message: 'Session not found' });
+        if (session.user_id !== req.user.id) return res.status(403).json({ message: 'Not your session' });
+        db.prepare('DELETE FROM user_sessions WHERE id = ?').run(req.params.id);
+        res.json({ message: 'Session revoked' });
+    } catch (error) {
+        res.status(500).json({ message: 'Failed to revoke session', error: error.message });
+    }
+};
+
+// ── DELETE /api/auth/sessions — revoke all OTHER sessions (keep current) ──────
+exports.revokeAllOtherSessions = (req, res) => {
+    try {
+        const authHeader = req.headers.authorization || '';
+        const currentToken = authHeader.startsWith('Bearer ') ? authHeader.slice(7) : '';
+        const currentHash = currentToken ? hashToken(currentToken) : null;
+        if (currentHash) {
+            db.prepare('DELETE FROM user_sessions WHERE user_id = ? AND token_hash != ?').run(req.user.id, currentHash);
+        } else {
+            db.prepare('DELETE FROM user_sessions WHERE user_id = ?').run(req.user.id);
+        }
+        res.json({ message: 'All other sessions revoked' });
+    } catch (error) {
+        res.status(500).json({ message: 'Failed to revoke sessions', error: error.message });
+    }
+};
+
+// ── POST /api/auth/logout — stamp logout_at + remove current session ──────────
+exports.logout = (req, res) => {
+    try {
+        const authHeader = req.headers.authorization || '';
+        const token = authHeader.startsWith('Bearer ') ? authHeader.slice(7) : '';
+        if (token) {
+            const tokenHash = hashToken(token);
+            db.prepare('DELETE FROM user_sessions WHERE token_hash = ?').run(tokenHash);
+        }
+        // Stamp logout_at on the most recent open login log for this user
+        try {
+            db.prepare(`
+                UPDATE user_login_logs SET logout_at = (strftime('%Y-%m-%dT%H:%M:%SZ', 'now'))
+                WHERE id = (
+                    SELECT id FROM user_login_logs
+                    WHERE user_id = ? AND logout_at IS NULL
+                    ORDER BY login_at DESC LIMIT 1
+                )
+            `).run(req.user.id);
+        } catch (_) {}
+        res.json({ message: 'Logged out successfully' });
+    } catch (error) {
+        res.status(500).json({ message: 'Logout failed', error: error.message });
+    }
+};
+
+// ── GET /api/auth/login-logs — paginated login/logout log (admin: all users; self: own) ──
+exports.getLoginLogs = (req, res) => {
+    try {
+        const page = Math.max(1, parseInt(req.query.page) || 1);
+        const limit = Math.min(100, Math.max(1, parseInt(req.query.limit) || 20));
+        const offset = (page - 1) * limit;
+        const userId = req.query.user_id ? parseInt(req.query.user_id) : null;
+        const search = req.query.search ? `%${req.query.search}%` : null;
+        const dateFrom = req.query.date_from || null;
+        const dateTo = req.query.date_to || null;
+
+        let where = 'WHERE 1=1';
+        const params = [];
+
+        if (userId) { where += ' AND l.user_id = ?'; params.push(userId); }
+        if (search) { where += ' AND (l.username LIKE ? OR l.full_name LIKE ?)'; params.push(search, search); }
+        if (dateFrom) { where += ' AND l.login_at >= ?'; params.push(dateFrom); }
+        if (dateTo) { where += ' AND l.login_at <= ?'; params.push(dateTo + 'T23:59:59Z'); }
+
+        const total = db.prepare(`SELECT COUNT(*) as count FROM user_login_logs l ${where}`).get(...params).count;
+        const rows = db.prepare(`
+            SELECT l.id, l.user_id, l.username, l.full_name, l.role,
+                   COALESCE(NULLIF(l.platform, ''), NULLIF(l.platform, 'unknown'), 'windows') as platform,
+                   l.ip_address, l.login_at, l.logout_at
+            FROM user_login_logs l
+            ${where}
+            ORDER BY l.login_at DESC
+            LIMIT ? OFFSET ?
+        `).all(...params, limit, offset);
+
+        res.json({ total, page, limit, logs: rows });
+    } catch (error) {
+        res.status(500).json({ message: 'Failed to fetch login logs', error: error.message });
+    }
+};
+
+// Export helpers for use in middleware / other controllers
+exports.hashToken = hashToken;
+exports.upsertSession = upsertSession;
+exports.detectPlatform = detectPlatform;
+exports.detectDeviceName = detectDeviceName;

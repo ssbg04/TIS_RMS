@@ -722,6 +722,75 @@ const initSchema = () => {
             )
         `).run();
 
+        // ── User Sessions (active logged-in device tracking) ──────────────────
+        // Populated on login, cleaned on logout / password-change / deactivation.
+        // token_hash is SHA-256 of the JWT so we never store the raw token.
+        db.prepare(`
+            CREATE TABLE IF NOT EXISTS user_sessions (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id INTEGER NOT NULL,
+                token_hash TEXT NOT NULL UNIQUE,
+                device_name TEXT DEFAULT NULL,
+                platform TEXT DEFAULT NULL,
+                ip_address TEXT DEFAULT NULL,
+                created_at DATETIME DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ', 'now')),
+                last_seen_at DATETIME DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ', 'now')),
+                FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+            )
+        `).run();
+
+        // Safe additive column migrations for user_sessions (if table pre-exists without some columns)
+        const sessionCols = db.prepare('PRAGMA table_info(user_sessions)').all();
+        if (!sessionCols.some(c => c.name === 'device_name')) {
+            db.prepare('ALTER TABLE user_sessions ADD COLUMN device_name TEXT DEFAULT NULL').run();
+        }
+        if (!sessionCols.some(c => c.name === 'platform')) {
+            db.prepare('ALTER TABLE user_sessions ADD COLUMN platform TEXT DEFAULT NULL').run();
+        }
+        if (!sessionCols.some(c => c.name === 'ip_address')) {
+            db.prepare('ALTER TABLE user_sessions ADD COLUMN ip_address TEXT DEFAULT NULL').run();
+        }
+        if (!sessionCols.some(c => c.name === 'last_seen_at')) {
+            db.prepare("ALTER TABLE user_sessions ADD COLUMN last_seen_at DATETIME DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ', 'now'))").run();
+        }
+
+        // ── User Login Logs (login/logout timestamp history) ──────────────────
+        // Append-only log: login_at always set, logout_at filled on explicit logout
+        // or null for sessions terminated by token expiry / deactivation.
+        db.prepare(`
+            CREATE TABLE IF NOT EXISTS user_login_logs (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id INTEGER NOT NULL,
+                username TEXT NOT NULL,
+                full_name TEXT NOT NULL,
+                role TEXT NOT NULL,
+                platform TEXT DEFAULT NULL,
+                ip_address TEXT DEFAULT NULL,
+                login_at DATETIME DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ', 'now')),
+                logout_at DATETIME DEFAULT NULL,
+                FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+            )
+        `).run();
+
+        // Safe additive column migrations for user_login_logs
+        const loginLogCols = db.prepare('PRAGMA table_info(user_login_logs)').all();
+        if (!loginLogCols.some(c => c.name === 'platform')) {
+            db.prepare('ALTER TABLE user_login_logs ADD COLUMN platform TEXT DEFAULT NULL').run();
+        }
+        if (!loginLogCols.some(c => c.name === 'ip_address')) {
+            db.prepare('ALTER TABLE user_login_logs ADD COLUMN ip_address TEXT DEFAULT NULL').run();
+        }
+        if (!loginLogCols.some(c => c.name === 'logout_at')) {
+            db.prepare('ALTER TABLE user_login_logs ADD COLUMN logout_at DATETIME DEFAULT NULL').run();
+        }
+
+        // Backfill legacy NULL / empty / unknown platform values to default 'windows'
+        try {
+            db.prepare("UPDATE user_sessions SET platform = 'windows' WHERE platform IS NULL OR platform = '' OR platform = 'unknown'").run();
+            db.prepare("UPDATE user_login_logs SET platform = 'windows' WHERE platform IS NULL OR platform = '' OR platform = 'unknown'").run();
+            db.prepare("UPDATE user_sessions SET device_name = 'Windows PC' WHERE device_name IS NULL OR device_name = '' OR device_name = 'Unknown Device'").run();
+        } catch (_) {}
+
         // Migration: add category, entity_type, entity_id column to notifications if missing
         const notifCols = db.prepare("PRAGMA table_info(notifications)").all();
         if (!notifCols.some(c => c.name === 'category')) {

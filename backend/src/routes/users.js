@@ -19,5 +19,7 @@ router.post('/:teacherId/sections',authenticateToken, authorizeRoles('admin'), u
 // User History (admin only — dashboard access)
 router.get('/history', authenticateToken, authorizeRoles('admin'), userController.getUserHistory);
 
-module.exports = router;
+// Email validation via QEV (admin only)
+router.post('/validate-email', authenticateToken, authorizeRoles('admin'), userController.validateEmail);
 
+module.exports = router;

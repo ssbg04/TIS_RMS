@@ -5,10 +5,11 @@ import '../../../core/constants/app_colors.dart';
 import '../../../core/utils/date_utils.dart' as pht;
 import '../../providers/dashboard_provider.dart';
 import '../../providers/activity_provider.dart';
+import '../../providers/login_sessions_provider.dart';
 import '../../shared/modals/view_activity_modal.dart';
 import '../../shared/widgets/app_pagination.dart';
 
-enum AuditTab { recentActivities, userHistory }
+enum AuditTab { activities, users, sessions }
 
 class AuditTrailScreen extends ConsumerStatefulWidget {
   final String userRole;
@@ -17,7 +18,7 @@ class AuditTrailScreen extends ConsumerStatefulWidget {
   const AuditTrailScreen({
     super.key,
     required this.userRole,
-    this.initialTab = AuditTab.recentActivities,
+    this.initialTab = AuditTab.activities,
   });
 
   @override
@@ -44,7 +45,7 @@ class _AuditTrailScreenState extends ConsumerState<AuditTrailScreen> {
   void initState() {
     super.initState();
     _selectedTab = widget.userRole == 'teacher'
-        ? AuditTab.recentActivities
+        ? AuditTab.activities
         : widget.initialTab;
   }
 
@@ -60,10 +61,12 @@ class _AuditTrailScreenState extends ConsumerState<AuditTrailScreen> {
       _toDate = null;
       _searchController.clear();
     });
-    if (_selectedTab == AuditTab.recentActivities) {
+    if (_selectedTab == AuditTab.activities) {
       ref.read(activityQueryProvider.notifier).reset();
-    } else {
+    } else if (_selectedTab == AuditTab.users) {
       ref.read(userHistoryQueryProvider.notifier).reset();
+    } else {
+      ref.read(loginSessionsQueryProvider.notifier).reset();
     }
   }
 
@@ -94,12 +97,15 @@ class _AuditTrailScreenState extends ConsumerState<AuditTrailScreen> {
           ? "${_toDate!.year}-${_toDate!.month.toString().padLeft(2, '0')}-${_toDate!.day.toString().padLeft(2, '0')}"
           : '';
 
-      if (_selectedTab == AuditTab.recentActivities) {
+      if (_selectedTab == AuditTab.activities) {
         ref.read(activityQueryProvider.notifier).setDateFrom(fromStr);
         ref.read(activityQueryProvider.notifier).setDateTo(toStr);
-      } else {
+      } else if (_selectedTab == AuditTab.users) {
         ref.read(userHistoryQueryProvider.notifier).setDateFrom(fromStr);
         ref.read(userHistoryQueryProvider.notifier).setDateTo(toStr);
+      } else {
+        ref.read(loginSessionsQueryProvider.notifier).setDateFrom(fromStr);
+        ref.read(loginSessionsQueryProvider.notifier).setDateTo(toStr);
       }
     }
   }
@@ -146,20 +152,26 @@ class _AuditTrailScreenState extends ConsumerState<AuditTrailScreen> {
 
     final actQuery = ref.watch(activityQueryProvider);
     final usrQuery = ref.watch(userHistoryQueryProvider);
+    final sesQuery = ref.watch(loginSessionsQueryProvider);
 
-    final currentActionFilter = _selectedTab == AuditTab.recentActivities
+    final currentActionFilter = _selectedTab == AuditTab.activities
         ? (actQuery.action.isEmpty ? 'All' : actQuery.action)
-        : (usrQuery.action.isEmpty ? 'All' : usrQuery.action);
+        : _selectedTab == AuditTab.users
+            ? (usrQuery.action.isEmpty ? 'All' : usrQuery.action)
+            : 'All';
 
-    final hasActiveFilters = (_selectedTab == AuditTab.recentActivities
+    final hasActiveFilters = (_selectedTab == AuditTab.activities
             ? (actQuery.action.isNotEmpty ||
                 actQuery.entityTypes.isNotEmpty ||
                 actQuery.search.isNotEmpty ||
                 actQuery.dateFrom.isNotEmpty)
-            : (usrQuery.action.isNotEmpty ||
-                usrQuery.role.isNotEmpty ||
-                usrQuery.search.isNotEmpty ||
-                usrQuery.dateFrom.isNotEmpty)) ||
+            : _selectedTab == AuditTab.users
+                ? (usrQuery.action.isNotEmpty ||
+                    usrQuery.role.isNotEmpty ||
+                    usrQuery.search.isNotEmpty ||
+                    usrQuery.dateFrom.isNotEmpty)
+                : (sesQuery.search.isNotEmpty ||
+                    sesQuery.dateFrom.isNotEmpty)) ||
         _fromDate != null ||
         _toDate != null;
 
@@ -172,10 +184,10 @@ class _AuditTrailScreenState extends ConsumerState<AuditTrailScreen> {
             // ── Top App Header & Controls ─────────────────────────────
             Container(
               padding: EdgeInsets.fromLTRB(
-                isMobile ? 16 : 24,
-                isMobile ? 16 : 20,
-                isMobile ? 16 : 24,
-                12,
+                isMobile ? 12 : 24,
+                isMobile ? 10 : 20,
+                isMobile ? 12 : 24,
+                isMobile ? 8 : 12,
               ),
               decoration: BoxDecoration(
                 color: Theme.of(context).colorScheme.surface,
@@ -190,92 +202,90 @@ class _AuditTrailScreenState extends ConsumerState<AuditTrailScreen> {
                 children: [
                   // Row: Title and Refresh / Date Range Buttons
                   if (isMobile)
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+                    Row(
                       children: [
-                        Row(
-                          children: [
-                            Container(
-                              padding: const EdgeInsets.all(8),
-                              decoration: BoxDecoration(
-                                color: AppColors.primaryGreen.withValues(alpha: 0.12),
-                                borderRadius: BorderRadius.circular(10),
-                              ),
-                              child: const Icon(
-                                Icons.manage_history_rounded,
-                                color: AppColors.primaryGreen,
-                                size: 22,
-                              ),
-                            ),
-                            const SizedBox(width: 10),
-                            Expanded(
-                              child: Text(
-                                'Audit Trail & History',
-                                style: TextStyle(
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.bold,
-                                  color: Theme.of(context).colorScheme.onSurface,
-                                ),
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                            ),
-                            IconButton(
-                              tooltip: 'Refresh',
-                              icon: const Icon(Icons.refresh_rounded),
-                              onPressed: () {
-                                if (_selectedTab == AuditTab.recentActivities) {
-                                  ref.invalidate(recentActivitiesPageProvider);
-                                } else {
-                                  ref.invalidate(userHistoryPageProvider);
-                                }
-                              },
-                            ),
-                          ],
+                        Container(
+                          padding: const EdgeInsets.all(6),
+                          decoration: BoxDecoration(
+                            color: AppColors.primaryGreen.withValues(alpha: 0.12),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: const Icon(
+                            Icons.manage_history_rounded,
+                            color: AppColors.primaryGreen,
+                            size: 18,
+                          ),
                         ),
-                        const SizedBox(height: 8),
-                        SizedBox(
-                          width: double.infinity,
-                          child: OutlinedButton.icon(
-                            onPressed: () => _pickDateRange(context),
-                            icon: Icon(
-                              Icons.calendar_today_rounded,
-                              size: 16,
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            'History',
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                              color: Theme.of(context).colorScheme.onSurface,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                        OutlinedButton.icon(
+                          onPressed: () => _pickDateRange(context),
+                          icon: Icon(
+                            Icons.calendar_today_rounded,
+                            size: 13,
+                            color: (_fromDate != null || _toDate != null)
+                                ? AppColors.primaryGreen
+                                : null,
+                          ),
+                          label: Text(
+                            _fromDate != null && _toDate != null
+                                ? '${_fromDate!.month}/${_fromDate!.day}-${_toDate!.month}/${_toDate!.day}'
+                                : (_fromDate != null
+                                    ? 'From ${_fromDate!.month}/${_fromDate!.day}'
+                                    : 'Date'),
+                            style: TextStyle(
+                              fontSize: 11,
+                              fontWeight: (_fromDate != null || _toDate != null)
+                                  ? FontWeight.bold
+                                  : FontWeight.normal,
                               color: (_fromDate != null || _toDate != null)
                                   ? AppColors.primaryGreen
                                   : null,
                             ),
-                            label: Text(
-                              _fromDate != null && _toDate != null
-                                  ? '${_fromDate!.month}/${_fromDate!.day} - ${_toDate!.month}/${_toDate!.day}'
-                                  : (_fromDate != null
-                                      ? 'From ${_fromDate!.month}/${_fromDate!.day}'
-                                      : 'Date Range'),
-                              style: TextStyle(
-                                fontSize: 13,
-                                fontWeight: (_fromDate != null || _toDate != null)
-                                    ? FontWeight.bold
-                                    : FontWeight.normal,
-                                color: (_fromDate != null || _toDate != null)
-                                    ? AppColors.primaryGreen
-                                    : null,
-                              ),
-                            ),
-                            style: OutlinedButton.styleFrom(
-                              side: BorderSide(
-                                color: (_fromDate != null || _toDate != null)
-                                    ? AppColors.primaryGreen
-                                    : Theme.of(context).dividerColor,
-                              ),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(10),
-                              ),
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 14,
-                                vertical: 10,
-                              ),
-                            ),
                           ),
+                          style: OutlinedButton.styleFrom(
+                            side: BorderSide(
+                              color: (_fromDate != null || _toDate != null)
+                                  ? AppColors.primaryGreen
+                                  : Theme.of(context).dividerColor.withValues(alpha: 0.4),
+                            ),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 6,
+                            ),
+                            visualDensity: VisualDensity.compact,
+                          ),
+                        ),
+                        const SizedBox(width: 4),
+                        IconButton(
+                          visualDensity: VisualDensity.compact,
+                          padding: EdgeInsets.zero,
+                          constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+                          tooltip: 'Refresh',
+                          icon: const Icon(Icons.refresh_rounded, size: 20),
+                          onPressed: () {
+                            if (_selectedTab == AuditTab.activities) {
+                              ref.invalidate(recentActivitiesPageProvider);
+                            } else if (_selectedTab == AuditTab.users) {
+                              ref.invalidate(userHistoryPageProvider);
+                            } else {
+                              ref.invalidate(loginSessionsPageProvider);
+                            }
+                          },
                         ),
                       ],
                     )
@@ -373,10 +383,12 @@ class _AuditTrailScreenState extends ConsumerState<AuditTrailScreen> {
                               tooltip: 'Refresh',
                               icon: const Icon(Icons.refresh_rounded),
                               onPressed: () {
-                                if (_selectedTab == AuditTab.recentActivities) {
+                                if (_selectedTab == AuditTab.activities) {
                                   ref.invalidate(recentActivitiesPageProvider);
-                                } else {
+                                } else if (_selectedTab == AuditTab.users) {
                                   ref.invalidate(userHistoryPageProvider);
+                                } else {
+                                  ref.invalidate(loginSessionsPageProvider);
                                 }
                               },
                             ),
@@ -386,10 +398,10 @@ class _AuditTrailScreenState extends ConsumerState<AuditTrailScreen> {
                     ),
                   const SizedBox(height: 16),
 
-                  // Tab switcher (Recent Activities vs User History)
+                  // Tab switcher (Activities, Users, Sessions)
                   if (isAdmin)
                     Container(
-                      height: 42,
+                      height: 40,
                       decoration: BoxDecoration(
                         color: isDark
                             ? Colors.black.withValues(alpha: 0.25)
@@ -401,14 +413,19 @@ class _AuditTrailScreenState extends ConsumerState<AuditTrailScreen> {
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           _buildTabItem(
-                            label: 'Recent Activities',
+                            label: 'Activities',
                             icon: Icons.list_alt_rounded,
-                            tab: AuditTab.recentActivities,
+                            tab: AuditTab.activities,
                           ),
                           _buildTabItem(
-                            label: 'User History',
+                            label: 'Users',
                             icon: Icons.account_circle_outlined,
-                            tab: AuditTab.userHistory,
+                            tab: AuditTab.users,
+                          ),
+                          _buildTabItem(
+                            label: 'Sessions',
+                            icon: Icons.devices_rounded,
+                            tab: AuditTab.sessions,
                           ),
                         ],
                       ),
@@ -430,9 +447,11 @@ class _AuditTrailScreenState extends ConsumerState<AuditTrailScreen> {
                           controller: _searchController,
                           style: const TextStyle(fontSize: 13),
                           decoration: InputDecoration(
-                            hintText: _selectedTab == AuditTab.recentActivities
+                            hintText: _selectedTab == AuditTab.activities
                                 ? 'Search description or user...'
-                                : 'Search user or admin...',
+                                : _selectedTab == AuditTab.users
+                                    ? 'Search user or admin...'
+                                    : 'Search username or name...',
                             hintStyle: TextStyle(
                               fontSize: 13,
                               color: Theme.of(context)
@@ -446,13 +465,17 @@ class _AuditTrailScreenState extends ConsumerState<AuditTrailScreen> {
                                     icon: const Icon(Icons.clear_rounded, size: 16),
                                     onPressed: () {
                                       _searchController.clear();
-                                      if (_selectedTab == AuditTab.recentActivities) {
+                                      if (_selectedTab == AuditTab.activities) {
                                         ref
                                             .read(activityQueryProvider.notifier)
                                             .setSearch('');
-                                      } else {
+                                      } else if (_selectedTab == AuditTab.users) {
                                         ref
                                             .read(userHistoryQueryProvider.notifier)
+                                            .setSearch('');
+                                      } else {
+                                        ref
+                                            .read(loginSessionsQueryProvider.notifier)
                                             .setSearch('');
                                       }
                                     },
@@ -484,86 +507,91 @@ class _AuditTrailScreenState extends ConsumerState<AuditTrailScreen> {
                             ),
                           ),
                           onSubmitted: (value) {
-                            if (_selectedTab == AuditTab.recentActivities) {
+                            if (_selectedTab == AuditTab.activities) {
                               ref
                                   .read(activityQueryProvider.notifier)
                                   .setSearch(value);
-                            } else {
+                            } else if (_selectedTab == AuditTab.users) {
                               ref
                                   .read(userHistoryQueryProvider.notifier)
+                                  .setSearch(value);
+                            } else {
+                              ref
+                                  .read(loginSessionsQueryProvider.notifier)
                                   .setSearch(value);
                             }
                           },
                         ),
                       ),
 
-                      // Action filter chips: All, Add, Update, Archive, Delete
-                      SingleChildScrollView(
-                        scrollDirection: Axis.horizontal,
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                        children: _actionFilters.map((actionName) {
-                          final isSelected = currentActionFilter.toLowerCase() ==
-                                  actionName.toLowerCase() ||
-                              (actionName == 'All' &&
-                                  (currentActionFilter == 'All' ||
-                                      currentActionFilter.isEmpty));
+                      // Action filter chips: All, Add, Update, Archive, Delete (Only for Activities & Users)
+                      if (_selectedTab != AuditTab.sessions)
+                        SingleChildScrollView(
+                          scrollDirection: Axis.horizontal,
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: _actionFilters.map((actionName) {
+                              final isSelected = currentActionFilter.toLowerCase() ==
+                                      actionName.toLowerCase() ||
+                                  (actionName == 'All' &&
+                                      (currentActionFilter == 'All' ||
+                                          currentActionFilter.isEmpty));
 
-                          Color chipColor = AppColors.primaryGreen;
-                          if (actionName == 'Add') {
-                            chipColor = const Color(0xFF10B981);
-                          } else if (actionName == 'Update') {
-                            chipColor = const Color(0xFF3B82F6);
-                          } else if (actionName == 'Archive') {
-                            chipColor = const Color(0xFFF59E0B);
-                          } else if (actionName == 'Delete') {
-                            chipColor = const Color(0xFFEF4444);
-                          }
+                              Color chipColor = AppColors.primaryGreen;
+                              if (actionName == 'Add') {
+                                chipColor = const Color(0xFF10B981);
+                              } else if (actionName == 'Update') {
+                                chipColor = const Color(0xFF3B82F6);
+                              } else if (actionName == 'Archive') {
+                                chipColor = const Color(0xFFF59E0B);
+                              } else if (actionName == 'Delete') {
+                                chipColor = const Color(0xFFEF4444);
+                              }
 
-                          return Padding(
-                            padding: const EdgeInsets.only(right: 6),
-                            child: FilterChip(
-                              label: Text(actionName),
-                              selected: isSelected,
-                              showCheckmark: false,
-                              selectedColor: chipColor.withValues(alpha: 0.18),
-                              backgroundColor: isDark
-                                  ? AppColors.darkSurfaceCard
-                                  : Colors.grey.withValues(alpha: 0.08),
-                              side: BorderSide(
-                                color: isSelected
-                                    ? chipColor
-                                    : Theme.of(context)
-                                        .dividerColor
-                                        .withValues(alpha: 0.2),
-                                width: isSelected ? 1.5 : 1,
-                              ),
-                              labelStyle: TextStyle(
-                                fontSize: 12,
-                                fontWeight: isSelected
-                                    ? FontWeight.bold
-                                    : FontWeight.w500,
-                                color: isSelected
-                                    ? chipColor
-                                    : Theme.of(context).colorScheme.onSurface,
-                              ),
-                              onSelected: (_) {
-                                final target = actionName == 'All' ? '' : actionName;
-                                if (_selectedTab == AuditTab.recentActivities) {
-                                  ref
-                                      .read(activityQueryProvider.notifier)
-                                      .setAction(target);
-                                } else {
-                                  ref
-                                      .read(userHistoryQueryProvider.notifier)
-                                      .setAction(target);
-                                }
-                              },
-                            ),
-                          );
-                        }).toList(),
-                      ),
-                    ),
+                              return Padding(
+                                padding: const EdgeInsets.only(right: 6),
+                                child: FilterChip(
+                                  label: Text(actionName),
+                                  selected: isSelected,
+                                  showCheckmark: false,
+                                  selectedColor: chipColor.withValues(alpha: 0.18),
+                                  backgroundColor: isDark
+                                      ? AppColors.darkSurfaceCard
+                                      : Colors.grey.withValues(alpha: 0.08),
+                                  side: BorderSide(
+                                    color: isSelected
+                                        ? chipColor
+                                        : Theme.of(context)
+                                            .dividerColor
+                                            .withValues(alpha: 0.2),
+                                    width: isSelected ? 1.5 : 1,
+                                  ),
+                                  labelStyle: TextStyle(
+                                    fontSize: 12,
+                                    fontWeight: isSelected
+                                        ? FontWeight.bold
+                                        : FontWeight.w500,
+                                    color: isSelected
+                                        ? chipColor
+                                        : Theme.of(context).colorScheme.onSurface,
+                                  ),
+                                  onSelected: (_) {
+                                    final target = actionName == 'All' ? '' : actionName;
+                                    if (_selectedTab == AuditTab.activities) {
+                                      ref
+                                          .read(activityQueryProvider.notifier)
+                                          .setAction(target);
+                                    } else {
+                                      ref
+                                          .read(userHistoryQueryProvider.notifier)
+                                          .setAction(target);
+                                    }
+                                  },
+                                ),
+                              );
+                            }).toList(),
+                          ),
+                        ),
 
                       // Clear filters button
                       if (hasActiveFilters)
@@ -583,9 +611,11 @@ class _AuditTrailScreenState extends ConsumerState<AuditTrailScreen> {
 
             // ── Main Content Area ─────────────────────────────────────
             Expanded(
-              child: _selectedTab == AuditTab.recentActivities
+              child: _selectedTab == AuditTab.activities
                   ? _buildRecentActivitiesTab(isDark, isMobile)
-                  : _buildUserHistoryTab(isDark, isMobile),
+                  : _selectedTab == AuditTab.users
+                      ? _buildUserHistoryTab(isDark, isMobile)
+                      : _buildSessionsTab(isDark, isMobile),
             ),
           ],
         ),
@@ -1285,6 +1315,435 @@ class _AuditTrailScreenState extends ConsumerState<AuditTrailScreen> {
                                 onPageChanged: (newPage) {
                                   ref
                                       .read(userHistoryQueryProvider.notifier)
+                                      .setPage(newPage);
+                                },
+                              ),
+                            ),
+                          ),
+                      ],
+                    ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  // ══════════════════════════════════════════════════════════════════
+  // TAB 3: SESSIONS (LOGIN / LOGOUT LOGS)
+  // ══════════════════════════════════════════════════════════════════
+  Widget _buildSessionsTab(bool isDark, bool isMobile) {
+    final sessionsAsync = ref.watch(loginSessionsPageProvider);
+
+    return sessionsAsync.when(
+      loading: () => const Center(
+        child: CircularProgressIndicator(color: AppColors.primaryGreen),
+      ),
+      error: (err, stack) => Center(
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(Icons.error_outline_rounded, color: Colors.redAccent, size: 48),
+              const SizedBox(height: 12),
+              Text(
+                'Failed to load sessions',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                  color: Theme.of(context).colorScheme.onSurface,
+                ),
+              ),
+              const SizedBox(height: 6),
+              Text(
+                err.toString(),
+                textAlign: TextAlign.center,
+                style: const TextStyle(fontSize: 13, color: Colors.grey),
+              ),
+              const SizedBox(height: 16),
+              ElevatedButton.icon(
+                onPressed: () => ref.invalidate(loginSessionsPageProvider),
+                icon: const Icon(Icons.refresh),
+                label: const Text('Try Again'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.primaryGreen,
+                  foregroundColor: Colors.white,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+      data: (data) {
+        if (data.logs.isEmpty) {
+          return Center(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  Icons.devices_other_rounded,
+                  size: 64,
+                  color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.3),
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  'No matching session logs found',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                    color: Theme.of(context).colorScheme.onSurface,
+                  ),
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  'Try adjusting your search or date range filters.',
+                  style: TextStyle(
+                    fontSize: 13,
+                    color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5),
+                  ),
+                ),
+              ],
+            ),
+          );
+        }
+
+        return Column(
+          children: [
+            Expanded(
+              child: ListView.separated(
+                padding: EdgeInsets.symmetric(
+                  horizontal: isMobile ? 16 : 24,
+                  vertical: 16,
+                ),
+                itemCount: data.logs.length,
+                separatorBuilder: (_, _) => const SizedBox(height: 10),
+                itemBuilder: (context, index) {
+                  final log = data.logs[index];
+                  final isActive = log.isActive;
+                  final rawPlatform = log.platform.trim();
+                  final platformLower = (rawPlatform.isEmpty || rawPlatform.toLowerCase() == 'unknown')
+                      ? 'windows'
+                      : rawPlatform.toLowerCase();
+                  final String platformDisplay = platformLower.toUpperCase();
+                  final IconData platformIcon = platformLower.contains('android')
+                      ? Icons.android_rounded
+                      : platformLower.contains('ios') || platformLower.contains('iphone')
+                          ? Icons.phone_iphone_rounded
+                          : platformLower.contains('win')
+                              ? Icons.laptop_windows_rounded
+                              : platformLower.contains('mac')
+                                  ? Icons.laptop_mac_rounded
+                                  : platformLower.contains('web')
+                                      ? Icons.web_rounded
+                                      : Icons.laptop_windows_rounded;
+
+                  return Material(
+                    color: Colors.transparent,
+                    child: InkWell(
+                      borderRadius: BorderRadius.circular(12),
+                      onTap: () {
+                        ViewActivityModal.show(
+                          context: context,
+                          title: isActive ? 'Active Session' : 'Completed Session',
+                          description:
+                              'User @${log.username} (${log.fullName.isNotEmpty ? log.fullName : 'No Name'}) logged in via $platformDisplay (${log.ipAddress ?? 'Unknown IP'}).\n\n'
+                              'Login: ${pht.formatDateTime(log.loginAt)}\n'
+                              '${log.logoutAt != null ? 'Logout: ${pht.formatDateTime(log.logoutAt!)}' : 'Session is currently active.'}',
+                          date: pht.formatDateTime(log.loginAt),
+                          performedBy: log.fullName.isNotEmpty ? log.fullName : log.username,
+                          action: isActive ? 'ACTIVE' : 'LOGGED OUT',
+                          actionColor: isActive ? const Color(0xFF10B981) : Colors.grey,
+                          icon: platformIcon,
+                        );
+                      },
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                        decoration: BoxDecoration(
+                          color: isDark ? AppColors.darkSurfaceCard : Colors.white,
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(
+                            color: Theme.of(context).dividerColor.withValues(alpha: 0.12),
+                          ),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withValues(alpha: 0.02),
+                              blurRadius: 4,
+                              offset: const Offset(0, 1),
+                            ),
+                          ],
+                        ),
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            // Platform Avatar
+                            Container(
+                              padding: const EdgeInsets.all(10),
+                              decoration: BoxDecoration(
+                                color: (isActive
+                                        ? const Color(0xFF10B981)
+                                        : Colors.grey)
+                                    .withValues(alpha: 0.12),
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                              child: Icon(
+                                platformIcon,
+                                color: isActive
+                                    ? const Color(0xFF10B981)
+                                    : Colors.grey.shade600,
+                                size: 20,
+                              ),
+                            ),
+                            const SizedBox(width: 14),
+                            // Content
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Row(
+                                    children: [
+                                      // Status Badge (Active Now vs Logged Out)
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(
+                                            horizontal: 8, vertical: 2),
+                                        decoration: BoxDecoration(
+                                          color: (isActive
+                                                  ? const Color(0xFF10B981)
+                                                  : Colors.grey)
+                                              .withValues(alpha: 0.14),
+                                          borderRadius: BorderRadius.circular(6),
+                                        ),
+                                        child: Row(
+                                          mainAxisSize: MainAxisSize.min,
+                                          children: [
+                                            if (isActive) ...[
+                                              Container(
+                                                width: 6,
+                                                height: 6,
+                                                decoration: const BoxDecoration(
+                                                  color: Color(0xFF10B981),
+                                                  shape: BoxShape.circle,
+                                                ),
+                                              ),
+                                              const SizedBox(width: 4),
+                                            ],
+                                            Text(
+                                              isActive ? 'ACTIVE NOW' : 'LOGGED OUT',
+                                              style: TextStyle(
+                                                fontSize: 11,
+                                                fontWeight: FontWeight.bold,
+                                                color: isActive
+                                                    ? const Color(0xFF10B981)
+                                                    : Colors.grey.shade600,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                      const SizedBox(width: 8),
+                                      // Role Badge
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(
+                                            horizontal: 8, vertical: 2),
+                                        decoration: BoxDecoration(
+                                          color: isDark
+                                              ? Colors.white.withValues(alpha: 0.08)
+                                              : Colors.grey.withValues(alpha: 0.15),
+                                          borderRadius: BorderRadius.circular(6),
+                                        ),
+                                        child: Text(
+                                          log.role.toUpperCase(),
+                                          style: TextStyle(
+                                            fontSize: 11,
+                                            fontWeight: FontWeight.w600,
+                                            color: Theme.of(context)
+                                                .colorScheme
+                                                .onSurface
+                                                .withValues(alpha: 0.7),
+                                          ),
+                                        ),
+                                      ),
+                                      const Spacer(),
+                                      // Login Timestamp
+                                      Text(
+                                        pht.formatDateTime(log.loginAt),
+                                        style: TextStyle(
+                                          fontSize: 11,
+                                          color: Theme.of(context)
+                                              .colorScheme
+                                              .onSurface
+                                              .withValues(alpha: 0.5),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  const SizedBox(height: 8),
+                                  // User name & username
+                                  Text(
+                                    log.fullName.isNotEmpty
+                                        ? '${log.fullName} (@${log.username})'
+                                        : '@${log.username}',
+                                    style: TextStyle(
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.bold,
+                                      color: Theme.of(context).colorScheme.onSurface,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 6),
+                                  // Platform & IP & Logout info
+                                  Wrap(
+                                    crossAxisAlignment: WrapCrossAlignment.center,
+                                    spacing: 12,
+                                    runSpacing: 4,
+                                    children: [
+                                      Row(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          Icon(
+                                            platformIcon,
+                                            size: 13,
+                                            color: Theme.of(context)
+                                                .colorScheme
+                                                .onSurface
+                                                .withValues(alpha: 0.5),
+                                          ),
+                                          const SizedBox(width: 4),
+                                          Text(
+                                            platformDisplay,
+                                            style: TextStyle(
+                                              fontSize: 12,
+                                              color: Theme.of(context)
+                                                  .colorScheme
+                                                  .onSurface
+                                                  .withValues(alpha: 0.6),
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                      if (log.ipAddress != null && log.ipAddress!.isNotEmpty)
+                                        Row(
+                                          mainAxisSize: MainAxisSize.min,
+                                          children: [
+                                            Icon(
+                                              Icons.lan_outlined,
+                                              size: 13,
+                                              color: Theme.of(context)
+                                                  .colorScheme
+                                                  .onSurface
+                                                  .withValues(alpha: 0.5),
+                                            ),
+                                            const SizedBox(width: 4),
+                                            Text(
+                                              log.ipAddress!,
+                                              style: TextStyle(
+                                                fontSize: 12,
+                                                color: Theme.of(context)
+                                                  .colorScheme
+                                                  .onSurface
+                                                  .withValues(alpha: 0.6),
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      if (log.logoutAt != null)
+                                        Row(
+                                          mainAxisSize: MainAxisSize.min,
+                                          children: [
+                                            Icon(
+                                              Icons.logout_rounded,
+                                              size: 13,
+                                              color: Colors.grey.shade500,
+                                            ),
+                                            const SizedBox(width: 4),
+                                            Text(
+                                              'Left: ${pht.formatDateTime(log.logoutAt!)}',
+                                              style: TextStyle(
+                                                fontSize: 12,
+                                                color: Theme.of(context)
+                                                    .colorScheme
+                                                    .onSurface
+                                                    .withValues(alpha: 0.55),
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                    ],
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  );
+                },
+              ),
+            ),
+            // Pagination Footer
+            Container(
+              padding: EdgeInsets.symmetric(
+                horizontal: isMobile ? 12 : 20,
+                vertical: isMobile ? 8 : 12,
+              ),
+              decoration: BoxDecoration(
+                color: Theme.of(context).colorScheme.surface,
+                border: Border(
+                  top: BorderSide(
+                    color: Theme.of(context).dividerColor.withValues(alpha: 0.1),
+                  ),
+                ),
+              ),
+              child: isMobile
+                  ? Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        if (data.totalPages > 1)
+                          AppPagination(
+                            currentPage: data.page,
+                            totalPages: data.totalPages,
+                            onPageChanged: (newPage) {
+                              ref
+                                  .read(loginSessionsQueryProvider.notifier)
+                                  .setPage(newPage);
+                            },
+                          ),
+                        const SizedBox(height: 4),
+                        Text(
+                          'Total: ${data.total} sessions',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: Theme.of(context)
+                                .colorScheme
+                                .onSurface
+                                .withValues(alpha: 0.6),
+                          ),
+                        ),
+                      ],
+                    )
+                  : Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          'Total: ${data.total} sessions',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: Theme.of(context)
+                                .colorScheme
+                                .onSurface
+                                .withValues(alpha: 0.6),
+                          ),
+                        ),
+                        if (data.totalPages > 1)
+                          Expanded(
+                            child: Align(
+                              alignment: Alignment.centerRight,
+                              child: AppPagination(
+                                currentPage: data.page,
+                                totalPages: data.totalPages,
+                                onPageChanged: (newPage) {
+                                  ref
+                                      .read(loginSessionsQueryProvider.notifier)
                                       .setPage(newPage);
                                 },
                               ),

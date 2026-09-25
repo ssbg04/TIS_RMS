@@ -10,6 +10,9 @@ const {
     sendAccountStatusEmail,
 } = require('../services/emailService');
 const { getDetectedTunnelUrl } = require('../services/tunnelService');
+// validateEmailQEV is lazy-required to avoid circular dependency (authController → userController → authController)
+const getQEV = () => require('./authController').validateEmailQEV;
+
 
 // ── Base URL Helper (Auto-detects Tunnel vs LAN IP vs Domain) ────────────────
 const getBestServerBaseUrl = (req) => {
@@ -159,15 +162,25 @@ exports.createUser = (req, res) => {
 
         // Asynchronously send welcome email with credentials if email is provided
         if (email && email.trim()) {
-            sendAccountCreatedEmail({
-                to: email.trim(),
-                username,
-                fullName,
-                role,
-                temporaryPassword,
-            }).catch(emailErr => {
-                console.error(`[UserController] Failed to send account created email to ${email}:`, emailErr.message);
-            });
+            // QEV: validate email before sending (fire-and-forget with validation)
+            (async () => {
+                try {
+                    const qevResult = await getQEV()(email.trim());
+                    if (!qevResult.valid) {
+                        console.warn(`[UserController] Skipping welcome email to ${email}: QEV says ${qevResult.reason}`);
+                        return;
+                    }
+                    await sendAccountCreatedEmail({
+                        to: email.trim(),
+                        username,
+                        fullName,
+                        role,
+                        temporaryPassword,
+                    });
+                } catch (emailErr) {
+                    console.error(`[UserController] Failed to send account created email to ${email}:`, emailErr.message);
+                }
+            })();
         }
 
         res.status(201).json({
@@ -263,6 +276,14 @@ exports.resetPassword = async (req, res) => {
         if (!user.email || !user.email.trim()) {
             return res.status(400).json({
                 message: `User @${user.username} does not have a registered email address. Please edit the user profile and add an email address first.`
+            });
+        }
+
+        // QEV: validate recipient email before sending reset link
+        const qevCheck = await getQEV()(user.email.trim());
+        if (!qevCheck.valid) {
+            return res.status(422).json({
+                message: `Cannot send password reset email: the registered address "${user.email}" appears to be invalid or undeliverable (${qevCheck.reason}). Please update the user's email address first.`
             });
         }
 
@@ -662,6 +683,20 @@ exports.remindTeachers = async (req, res) => {
 
             if (sectionsWithAttentionStudents.length > 0) {
                 try {
+                    // QEV: validate teacher email before sending reminder
+                    const qevResult = await getQEV()(teacher.email);
+                    if (!qevResult.valid) {
+                        console.warn(`[RemindTeachers] Skipping ${teacher.email}: QEV says ${qevResult.reason}`);
+                        results.push({
+                            teacherId: teacher.id,
+                            teacherName,
+                            email: teacher.email,
+                            status: 'skipped',
+                            error: `Invalid email: ${qevResult.reason}`
+                        });
+                        skippedCount++;
+                        continue;
+                    }
                     await sendTeacherAttentionReminder({
                         to: teacher.email,
                         teacherName,
@@ -719,3 +754,17 @@ exports.remindTeachers = async (req, res) => {
 };
 
 exports.getBestServerBaseUrl = getBestServerBaseUrl;
+
+// POST /api/users/validate-email — validate a single email via QEV (admin only)
+exports.validateEmail = async (req, res) => {
+    const { email } = req.body;
+    if (!email || !email.trim()) {
+        return res.status(400).json({ valid: false, reason: 'Email is required' });
+    }
+    try {
+        const result = await getQEV()(email.trim());
+        res.json(result);
+    } catch (error) {
+        res.status(500).json({ valid: false, reason: 'Validation service error', error: error.message });
+    }
+};

@@ -36,10 +36,12 @@ exports.heartbeat = (req, res) => {
     const now = new Date().toISOString();
     const existing = connectedUsers.get(username);
 
+    const effectivePlatform = platform || req.headers['x-platform'] || req.headers['x-client-platform'] || existing?.platform || 'windows';
+
     connectedUsers.set(username, {
         username,
         role: role || existing?.role || 'unknown',
-        platform: platform || existing?.platform || 'unknown',
+        platform: effectivePlatform,
         ip: ip || existing?.ip || null,
         loginTime: existing?.loginTime || now,
         lastSeen: now,

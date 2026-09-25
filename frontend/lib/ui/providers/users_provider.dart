@@ -118,6 +118,15 @@ class UsersNotifier extends AsyncNotifier<List<SystemUser>> {
     }
   }
 
+  Future<Map<String, dynamic>> validateEmail(String email) async {
+    try {
+      final res = await ref.read(userRepositoryProvider).validateEmail(email);
+      return res;
+    } catch (e) {
+      rethrow;
+    }
+  }
+
   Future<bool> deleteUser(
     int id, {
     required String reason,

@@ -1,4 +1,6 @@
+import 'dart:io' show Platform;
 import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -13,6 +15,33 @@ class ApiConstants {
   static String _baseUrl = tunnelUrl;
 
   static String get baseUrl => _baseUrl;
+
+  static String get clientPlatform {
+    if (kIsWeb) return 'web';
+    try {
+      if (Platform.isWindows) return 'windows';
+      if (Platform.isAndroid) return 'android';
+      if (Platform.isIOS) return 'ios';
+      if (Platform.isMacOS) return 'macos';
+      if (Platform.isLinux) return 'linux';
+    } catch (_) {}
+    return 'windows';
+  }
+
+  static String get clientDeviceName {
+    if (kIsWeb) return 'Web Browser';
+    try {
+      if (Platform.isWindows) {
+        final hostname = Platform.localHostname;
+        return hostname.isNotEmpty ? hostname : 'Windows PC';
+      }
+      if (Platform.isAndroid) return 'Android Device';
+      if (Platform.isIOS) return 'iPhone';
+      if (Platform.isMacOS) return 'Mac';
+      if (Platform.isLinux) return 'Linux Device';
+    } catch (_) {}
+    return 'Windows PC';
+  }
 
   static void setBaseUrl(String url, {bool clearAuth = false}) {
     // Strip trailing slash then append /api
@@ -39,6 +68,8 @@ class ApiConstants {
       InterceptorsWrapper(
         onRequest: (options, handler) {
           options.baseUrl = _baseUrl;
+          options.headers['X-Platform'] ??= clientPlatform;
+          options.headers['X-Device-Name'] ??= clientDeviceName;
 
           // Prevent unauthenticated or malformed token requests from hitting the server
           final authHeader = options.headers['Authorization']?.toString() ?? '';

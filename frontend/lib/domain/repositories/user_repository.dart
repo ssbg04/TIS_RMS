@@ -128,6 +128,24 @@ class UserRepository {
     }
   }
 
+  Future<Map<String, dynamic>> validateEmail(String email) async {
+    try {
+      final options = await _getAuthOptions();
+      final res = await _dio.post(
+        '/users/validate-email',
+        options: options,
+        data: {'email': email},
+      );
+      return (res.data as Map).cast<String, dynamic>();
+    } on DioException catch (e) {
+      throw Exception(
+        e.response?.data?['message'] ??
+            e.response?.data?['reason'] ??
+            'Failed to validate email address.',
+      );
+    }
+  }
+
   Future<void> deleteUser(
     int id, {
     required String reason,

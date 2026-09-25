@@ -27,5 +27,16 @@ router.post('/confirm-delete-account', authController.confirmDeleteAccount);
 // Self-Service Account Deactivation (immediate, 2-step client confirmation)
 router.post('/self-deactivate', authenticateToken, authController.selfDeactivateAccount);
 
+// Session management (logged-in devices)
+router.get('/sessions', authenticateToken, authController.getSessions);
+router.delete('/sessions', authenticateToken, authController.revokeAllOtherSessions);
+router.delete('/sessions/:id', authenticateToken, authController.revokeSession);
+
+// Logout (stamps logout_at + removes session)
+router.post('/logout', authenticateToken, authController.logout);
+
+// Login/logout history (admin only)
+router.get('/login-logs', authenticateToken, authorizeRoles('admin'), authController.getLoginLogs);
+
 module.exports = router;
 

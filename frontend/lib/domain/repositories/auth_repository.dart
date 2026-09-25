@@ -19,7 +19,12 @@ class AuthRepository {
     try {
       final response = await _dio.post(
         '/auth/login',
-        data: {'username': username, 'password': password},
+        data: {
+          'username': username,
+          'password': password,
+          'platform': ApiConstants.clientPlatform,
+          'device_name': ApiConstants.clientDeviceName,
+        },
       );
 
       final token = response.data['token'] as String;
@@ -288,5 +293,78 @@ class AuthRepository {
       throw Exception(errorMessage);
     }
   }
-}
 
+  /// Notify server of logout (stamps logout_at + removes session), then clears local token.
+  Future<void> logoutWithServer() async {
+    try {
+      final options = await _getAuthOptions();
+      await _dio.post('/auth/logout', options: options);
+    } catch (_) {
+      // Fire-and-forget: always clear local token regardless
+    }
+    await logout();
+  }
+
+  // ── Session Management ──────────────────────────────────────────────────────
+
+  /// List all active sessions for the current user (logged-in devices).
+  Future<List<Map<String, dynamic>>> getSessions() async {
+    try {
+      final options = await _getAuthOptions();
+      final response = await _dio.get('/auth/sessions', options: options);
+      return List<Map<String, dynamic>>.from(response.data as List);
+    } on DioException catch (e) {
+      throw Exception(e.response?.data['message'] ?? 'Failed to fetch sessions.');
+    }
+  }
+
+  /// Revoke a specific session by ID.
+  Future<void> revokeSession(int sessionId) async {
+    try {
+      final options = await _getAuthOptions();
+      await _dio.delete('/auth/sessions/$sessionId', options: options);
+    } on DioException catch (e) {
+      throw Exception(e.response?.data['message'] ?? 'Failed to revoke session.');
+    }
+  }
+
+  /// Revoke all other sessions (keep current).
+  Future<void> revokeAllOtherSessions() async {
+    try {
+      final options = await _getAuthOptions();
+      await _dio.delete('/auth/sessions', options: options);
+    } on DioException catch (e) {
+      throw Exception(e.response?.data['message'] ?? 'Failed to revoke sessions.');
+    }
+  }
+
+  // ── Login / Logout Log ──────────────────────────────────────────────────────
+
+  Future<Map<String, dynamic>> getLoginLogs({
+    int page = 1,
+    int limit = 20,
+    String? search,
+    String? dateFrom,
+    String? dateTo,
+    int? userId,
+  }) async {
+    try {
+      final options = await _getAuthOptions();
+      final response = await _dio.get(
+        '/auth/login-logs',
+        queryParameters: {
+          'page': page,
+          'limit': limit,
+          if (search != null && search.isNotEmpty) 'search': search,
+          if (dateFrom != null && dateFrom.isNotEmpty) 'date_from': dateFrom,
+          if (dateTo != null && dateTo.isNotEmpty) 'date_to': dateTo,
+          'user_id': ?userId,
+        },
+        options: options,
+      );
+      return Map<String, dynamic>.from(response.data);
+    } on DioException catch (e) {
+      throw Exception(e.response?.data['message'] ?? 'Failed to fetch login logs.');
+    }
+  }
+}

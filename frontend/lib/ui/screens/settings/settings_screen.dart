@@ -24,8 +24,8 @@ import '../../../domain/entities/setup_models.dart';
 import '../../providers/system_settings_provider.dart';
 import '../../providers/theme_provider.dart';
 import '../../providers/preferences_provider.dart';
-import 'widgets/change_password_modal.dart';
 import '../../../core/services/haptic_service.dart';
+import 'widgets/security_section.dart';
 class TitleCaseTextInputFormatter extends TextInputFormatter {
   @override
   TextEditingValue formatEditUpdate(TextEditingValue oldValue, TextEditingValue newValue) {
@@ -96,12 +96,14 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   bool _isAcademicYearExpanded = false;
   bool _isAutoEnrollExpanded = false;
   bool _isAppearanceExpanded = false;
+  bool _isSecurityExpanded = false;
 
   void _collapseAllSections() {
     _isProfileExpanded = false;
     _isAcademicYearExpanded = false;
     _isAutoEnrollExpanded = false;
     _isAppearanceExpanded = false;
+    _isSecurityExpanded = false;
   }
 
   void _refreshAllSettingsData() {
@@ -577,6 +579,37 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     confirmController.dispose();
 
     if (step2 != true || !context.mounted) return;
+
+    // Step 3: Final Email Notification Warning
+    final step3 = await showDialog<bool>(
+      context: context,
+      builder: (ctx) {
+        return AlertDialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          title: const Text('Confirm Deactivation'),
+          content: const Text(
+            'Are you absolutely sure?\n\n'
+            'An email notification will be sent to confirm that your account has been deactivated. You will be logged out immediately.',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: const Text('CANCEL', style: TextStyle(color: Colors.grey)),
+            ),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.error,
+                foregroundColor: Colors.white,
+              ),
+              onPressed: () => Navigator.pop(ctx, true),
+              child: const Text('YES, DEACTIVATE'),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (step3 != true || !context.mounted) return;
 
     try {
       await ref.read(authProvider.notifier).requestSelfDeactivation();
@@ -1280,8 +1313,9 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                                                         icon: const Icon(
                                                           Icons.school,
                                                         ),
-                                                        label: const Text(
-                                                          'Check / Run Auto-Graduation Now',
+                                                        label: const FittedBox(
+                                                          fit: BoxFit.scaleDown,
+                                                          child: Text('Check / Run Auto-Graduation Now'),
                                                         ),
                                                         style:
                                                             FilledButton.styleFrom(
@@ -1340,8 +1374,9 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                                                         icon: const Icon(
                                                           Icons.school,
                                                         ),
-                                                        label: const Text(
-                                                          'Check / Run Auto-Graduation Now',
+                                                        label: const FittedBox(
+                                                          fit: BoxFit.scaleDown,
+                                                          child: Text('Check / Run Auto-Graduation Now'),
                                                         ),
                                                         style:
                                                             FilledButton.styleFrom(
@@ -1854,137 +1889,19 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                       ),
                       const SizedBox(height: AppSizes.p24),
 
-                      // ── Change Password Card ──────────────────────────────
-                      _buildCard(
-                        child: InkWell(
-                          borderRadius: BorderRadius.circular(
-                            AppSizes.radiusLarge,
-                          ),
-                          onTap: () => ChangePasswordModal.show(context),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Row(
-                                children: [
-                                  const Icon(
-                                    Icons.lock_outline,
-                                    color: AppColors.primaryGreen,
-                                  ),
-                                  const SizedBox(width: AppSizes.p8),
-                                  Expanded(
-                                    child: Column(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
-                                      children: [
-                                        const Text(
-                                          'Change Password',
-                                          style: TextStyle(
-                                            fontSize: 18,
-                                            fontWeight: FontWeight.bold,
-                                          ),
-                                        ),
-                                        Text(
-                                          'Set a new password for your account',
-                                          style: TextStyle(
-                                            fontSize: 13,
-                                            color: Theme.of(context)
-                                                .colorScheme
-                                                .onSurface
-                                                .withValues(alpha: 0.7),
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                  const Icon(
-                                    Icons.chevron_right,
-                                    color: Colors.grey,
-                                  ),
-                                ],
-                              ),
-                            ],
-                          ),
+                      // ── Security Card (Collapsible) ───────────
+                      _buildCollapsibleCard(
+                        title: 'Security',
+                        isExpanded: _isSecurityExpanded,
+                        onToggle: () => setState(() => _isSecurityExpanded = !_isSecurityExpanded),
+                        child: SecuritySection(
+                          user: user,
+                          onDeactivateAccount: _handleDeactivateAccount,
+                          buildCard: _buildCard,
+                          buildDangerCard: _buildDangerCard,
+                          isDark: isDark,
                         ),
                       ),
-
-                      if (user.username.toLowerCase() != 'developer') ...[
-                        const SizedBox(height: AppSizes.p24),
-                        // ── Danger Zone / Delete Account Card ──────────────────────
-                        _buildDangerCard(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Row(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Container(
-                                    padding: const EdgeInsets.all(8),
-                                    decoration: BoxDecoration(
-                                      color: AppColors.error.withValues(alpha: 0.1),
-                                      borderRadius: BorderRadius.circular(8),
-                                    ),
-                                    child: const Icon(
-                                      Icons.person_off_outlined,
-                                      color: AppColors.error,
-                                      size: 22,
-                                    ),
-                                  ),
-                                  const SizedBox(width: AppSizes.p12),
-                                  Expanded(
-                                    child: Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
-                                      children: [
-                                        const Text(
-                                          'Danger Zone: Deactivate Account',
-                                          style: TextStyle(
-                                            fontSize: 16,
-                                            fontWeight: FontWeight.bold,
-                                            color: AppColors.error,
-                                          ),
-                                        ),
-                                        const SizedBox(height: 4),
-                                        Text(
-                                          'Temporarily deactivate your account. Your data is preserved and an administrator can reactivate it later.',
-                                          style: TextStyle(
-                                            fontSize: 13,
-                                            color: Theme.of(context)
-                                                .colorScheme
-                                                .onSurface
-                                                .withValues(alpha: 0.7),
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                ],
-                              ),
-                              const SizedBox(height: 16),
-                              Align(
-                                alignment: Alignment.centerRight,
-                                child: OutlinedButton.icon(
-                                  style: OutlinedButton.styleFrom(
-                                    foregroundColor: AppColors.error,
-                                    side: const BorderSide(color: AppColors.error),
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 16,
-                                      vertical: 10,
-                                    ),
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(8),
-                                    ),
-                                  ),
-                                  icon: const Icon(Icons.person_off_outlined, size: 18),
-                                  label: const Text(
-                                    'Deactivate Account',
-                                    style: TextStyle(fontWeight: FontWeight.w600),
-                                  ),
-                                  onPressed: () => _handleDeactivateAccount(context, ref),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
 
                       const SizedBox(height: AppSizes.p48),
                     ],
@@ -2723,7 +2640,7 @@ class _EditScheduleDatesDialogState
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   SizedBox(
-                    height: 44,
+                    height: 48,
                     child: ElevatedButton(
                       onPressed: _isLoading ? null : _handleSave,
                       style: ElevatedButton.styleFrom(
@@ -2739,15 +2656,15 @@ class _EditScheduleDatesDialogState
                                 color: Colors.white,
                               ),
                             )
-                          : const Text('Save Dates'),
+                          : const FittedBox(fit: BoxFit.scaleDown, child: Text('Save Dates')),
                     ),
                   ),
                   const SizedBox(height: 10),
                   SizedBox(
-                    height: 44,
+                    height: 48,
                     child: OutlinedButton(
                       onPressed: () => Navigator.pop(context),
-                      child: const Text('Cancel'),
+                      child: const FittedBox(fit: BoxFit.scaleDown, child: Text('Cancel')),
                     ),
                   ),
                 ],
@@ -2757,17 +2674,17 @@ class _EditScheduleDatesDialogState
                 children: [
                   Expanded(
                     child: SizedBox(
-                      height: 44,
+                      height: 48,
                       child: OutlinedButton(
                         onPressed: () => Navigator.pop(context),
-                        child: const Text('Cancel'),
+                        child: const FittedBox(fit: BoxFit.scaleDown, child: Text('Cancel')),
                       ),
                     ),
                   ),
                   const SizedBox(width: 12),
                   Expanded(
                     child: SizedBox(
-                      height: 44,
+                      height: 48,
                       child: ElevatedButton(
                         onPressed: _isLoading ? null : _handleSave,
                         style: ElevatedButton.styleFrom(
@@ -2782,8 +2699,8 @@ class _EditScheduleDatesDialogState
                                   strokeWidth: 2,
                                   color: Colors.white,
                                 ),
-                              )
-                            : const Text('Save Dates'),
+                            )
+                          : const FittedBox(fit: BoxFit.scaleDown, child: Text('Save Dates')),
                       ),
                     ),
                   ),

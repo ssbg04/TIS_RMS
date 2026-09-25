@@ -141,17 +141,16 @@ class _FileFolderCardState extends State<FileFolderCard> {
           ],
         ),
       ),
-      if (!_isMobileOrAndroid)
-        const PopupMenuItem(
-          value: 'open_with',
-          child: Row(
-            children: [
-              Icon(Icons.apps_rounded, size: 18),
-              SizedBox(width: 12),
-              Text('Open With', style: TextStyle(fontSize: 14)),
-            ],
-          ),
+      const PopupMenuItem(
+        value: 'open_with',
+        child: Row(
+          children: [
+            Icon(Icons.apps_rounded, size: 18),
+            SizedBox(width: 12),
+            Text('Open With', style: TextStyle(fontSize: 14)),
+          ],
         ),
+      ),
       if (_isExcel)
         const PopupMenuItem(
           value: 'edit',
