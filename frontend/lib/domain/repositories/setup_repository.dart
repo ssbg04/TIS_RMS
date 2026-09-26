@@ -184,6 +184,24 @@ class SetupRepository {
     }
   }
 
+  Future<Map<String, dynamic>> bulkCreateAcademicStructure(
+    List<Map<String, dynamic>> rows,
+  ) async {
+    try {
+      final options = await _getAuthOptions();
+      final response = await _dio.post(
+        '/setup/bulk-academic-structure',
+        options: options,
+        data: {'rows': rows},
+      );
+      return Map<String, dynamic>.from(response.data as Map);
+    } on DioException catch (e) {
+      throw Exception(
+        e.response?.data?['message'] ?? 'Failed to import academic structure.',
+      );
+    }
+  }
+
   Future<void> updateSection({
     required int id,
     required String name,

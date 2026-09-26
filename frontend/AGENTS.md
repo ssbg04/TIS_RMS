@@ -865,26 +865,12 @@ Files backup/restore - mirror mode or zip -->
   - add on-screen CSV format example / reference & sample rows
   - add live type / paste CSV input area with instant parse, validation preview, and bulk submit
 
+
 ---
 
 
 # DONT DO
 <!-- - documents screen -> add how many files can be uploaded into a document requirement, the current limitation is only 1, so we can dynamically choose number files that can be uploaded into that document, update both frontend and backend, but first give me suggestion where will put the setting of this, ask me first   -->
-
-- print list history, print email to the student make it optional, add date of print, add status (done, not done, in progress, picked up), add message to email can be manual message typed by registrar/staff, 
-
-- teacher no assigned section theme color
-- bug in bulk add student enrollment
-
-- recycle bin -> search history not delete history
-
-- add missing students by document type kpi
-
-
-- notification separate admin and teacher
-- bug in bulk add student enrollment
-
-- report all filter and export 
 ---
 
 # TIS_RMS Server Manager (dont do)

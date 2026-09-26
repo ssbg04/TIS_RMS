@@ -151,6 +151,24 @@ class SetupMutationNotifier extends AsyncNotifier<void> {
     }
   }
 
+  Future<Map<String, dynamic>> bulkCreateAcademicStructure(
+    List<Map<String, dynamic>> rows,
+  ) async {
+    state = const AsyncLoading();
+    try {
+      final repo = ref.read(setupRepositoryProvider);
+      final res = await repo.bulkCreateAcademicStructure(rows);
+      state = const AsyncData(null);
+      ref.invalidate(academicYearsListProvider);
+      ref.invalidate(gradeLevelsListProvider);
+      ref.invalidate(sectionsListProvider);
+      return res;
+    } catch (e, st) {
+      state = AsyncError(e, st);
+      rethrow;
+    }
+  }
+
   Future<void> updateSection({
     required int id,
     required String name,

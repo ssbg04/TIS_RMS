@@ -327,3 +327,138 @@ exports.deleteGradeLevel = (req, res) => {
         res.status(500).json({ message: 'Failed to delete grade level', error: error.message });
     }
 };
+
+// POST /api/setup/bulk-academic-structure (admin only)
+exports.bulkCreateAcademicStructure = (req, res) => {
+    const { rows } = req.body;
+    if (!rows || !Array.isArray(rows) || rows.length === 0) {
+        return res.status(400).json({ message: 'rows array is required and must not be empty' });
+    }
+
+    const currentYear = new Date().getFullYear();
+    const regex = /^(\d{4})\s*-\s*(\d{4})$/;
+
+    const results = {
+        totalRows: rows.length,
+        createdYears: [],
+        createdSections: [],
+        existingSections: [],
+        errors: []
+    };
+
+    const processTransaction = db.transaction(() => {
+        for (let i = 0; i < rows.length; i++) {
+            const row = rows[i];
+            const rawYear = (row.academicYear || row.yearRange || '').toString().trim();
+            const rawGrade = parseInt(row.gradeLevel, 10);
+            const rawSection = (row.sectionName || row.section || '').toString().trim();
+
+            if (!rawYear || isNaN(rawGrade) || !rawSection) {
+                results.errors.push({
+                    row: i + 1,
+                    data: row,
+                    error: 'Academic Year, Grade Level (numeric), and Section Name are required'
+                });
+                continue;
+            }
+
+            // Validate year format YYYY-YYYY
+            const match = rawYear.match(regex);
+            if (!match) {
+                results.errors.push({
+                    row: i + 1,
+                    data: row,
+                    error: `Invalid academic year format "${rawYear}". Must be YYYY-YYYY (e.g. 2024-2025)`
+                });
+                continue;
+            }
+
+            const startYear = parseInt(match[1], 10);
+            const endYear = parseInt(match[2], 10);
+            if (endYear !== startYear + 1) {
+                results.errors.push({
+                    row: i + 1,
+                    data: row,
+                    error: `Invalid academic year range "${rawYear}". End year must be start year + 1`
+                });
+                continue;
+            }
+
+            if (startYear > currentYear) {
+                results.errors.push({
+                    row: i + 1,
+                    data: row,
+                    error: `Cannot add future academic year "${rawYear}" beyond ${currentYear}-${currentYear + 1}`
+                });
+                continue;
+            }
+
+            if (rawGrade < 7 || rawGrade > 12) {
+                results.errors.push({
+                    row: i + 1,
+                    data: row,
+                    error: `Grade level ${rawGrade} must be between 7 and 12`
+                });
+                continue;
+            }
+
+            const normalizedRange = `${startYear}-${endYear}`;
+
+            // 1. Find or create academic year
+            let yearRecord = db.prepare('SELECT id, year_range, status FROM academic_years WHERE year_range = ?').get(normalizedRange);
+            if (!yearRecord) {
+                const newYear = db.prepare('INSERT INTO academic_years (year_range, status) VALUES (?, ?)')
+                    .run(normalizedRange, 'inactive');
+                yearRecord = { id: newYear.lastInsertRowid, year_range: normalizedRange, status: 'inactive' };
+                if (!results.createdYears.includes(normalizedRange)) {
+                    results.createdYears.push(normalizedRange);
+                }
+            }
+
+            // 2. Ensure grade level exists in grade_levels table
+            const gradeExists = db.prepare('SELECT id FROM grade_levels WHERE level = ?').get(rawGrade);
+            if (!gradeExists) {
+                db.prepare('INSERT OR IGNORE INTO grade_levels (level, name) VALUES (?, ?)')
+                    .run(rawGrade, `Grade ${rawGrade}`);
+            }
+
+            // 3. Find or create section
+            const existingSection = db.prepare(
+                'SELECT id FROM sections WHERE LOWER(name) = LOWER(?) AND grade_level = ? AND academic_year_id = ?'
+            ).get(rawSection, rawGrade, yearRecord.id);
+
+            if (existingSection) {
+                results.existingSections.push({
+                    academicYear: normalizedRange,
+                    gradeLevel: rawGrade,
+                    sectionName: rawSection
+                });
+            } else {
+                const newSec = db.prepare('INSERT INTO sections (name, grade_level, academic_year_id) VALUES (?, ?, ?)')
+                    .run(rawSection, rawGrade, yearRecord.id);
+                results.createdSections.push({
+                    id: newSec.lastInsertRowid,
+                    academicYear: normalizedRange,
+                    gradeLevel: rawGrade,
+                    sectionName: rawSection
+                });
+            }
+        }
+    });
+
+    try {
+        processTransaction();
+        res.json({
+            success: true,
+            message: `Processed ${results.totalRows} rows. Created ${results.createdSections.length} section(s) across ${results.createdYears.length} new academic year(s).`,
+            data: results
+        });
+    } catch (error) {
+        console.error('bulkCreateAcademicStructure error:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Failed to process bulk academic structure import',
+            error: error.message
+        });
+    }
+};

@@ -19,6 +19,7 @@ router.delete('/academic-years/:id', authenticateToken, authorizeRoles('admin'),
 router.get('/sections', authenticateToken, setupController.getAllSections);
 router.get('/academic-years/:yearId/sections', authenticateToken, setupController.getSectionsByYear);
 router.post('/sections', authenticateToken, authorizeRoles('admin'), setupController.createSection);
+router.post('/bulk-academic-structure', authenticateToken, authorizeRoles('admin'), setupController.bulkCreateAcademicStructure);
 router.put('/sections/:id', authenticateToken, authorizeRoles('admin'), setupController.updateSection);
 router.delete('/sections/:id', authenticateToken, authorizeRoles('admin'), setupController.deleteSection);
 

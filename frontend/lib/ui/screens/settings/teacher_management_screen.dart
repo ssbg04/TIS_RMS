@@ -15,6 +15,7 @@ import '../../../domain/entities/system_user.dart';
 import '../../shared/dialogs/error_dialog.dart';
 import '../../shared/dialogs/success_dialog.dart';
 import '../../shared/modals/custom_modal.dart';
+import 'widgets/bulk_academic_import_modal.dart';
 
 // Fixed grade levels 7-12 — no backend management needed
 const List<int> kGradeLevels = [7, 8, 9, 10, 11, 12];
@@ -614,6 +615,24 @@ class _AcademicYearsTab extends ConsumerWidget {
                 ),
               ),
               const SizedBox(width: 8),
+              OutlinedButton.icon(
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: AppColors.primaryGreen,
+                  side: const BorderSide(color: AppColors.primaryGreen),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 10,
+                  ),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  textStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
+                ),
+                onPressed: () => BulkAcademicImportModal.show(context),
+                icon: const Icon(Icons.upload_file, size: 16),
+                label: const Text('BULK CSV'),
+              ),
+              const SizedBox(width: 8),
               ElevatedButton.icon(
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppColors.primaryGreen,
@@ -919,6 +938,29 @@ class _SectionsTabState extends ConsumerState<_SectionsTab>
                       onChanged: (v) => setState(() => _filterYearId = v),
                       showClear: _filterYearId != null,
                       onClear: () => setState(() => _filterYearId = null),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  SizedBox(
+                    height: 42,
+                    child: OutlinedButton.icon(
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: AppColors.primaryGreen,
+                        side: const BorderSide(color: AppColors.primaryGreen),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 0,
+                        ),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                      ),
+                      onPressed: () => BulkAcademicImportModal.show(context),
+                      icon: const Icon(Icons.upload_file, size: 16),
+                      label: const Text(
+                        'BULK CSV',
+                        style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
+                      ),
                     ),
                   ),
                   const SizedBox(width: 8),

@@ -1243,20 +1243,24 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
                   ),
                 ),
               ],
-              // "Bulk Add" button for Windows
+              // "Bulk Import" button for Windows / Desktop
               if (defaultTargetPlatform == TargetPlatform.windows &&
                   widget.userRole != 'teacher') ...[
                 const SizedBox(width: 6),
-                SizedBox(
-                  height: 36,
-                  child: ElevatedButton.icon(
-                    onPressed: _openBulkOcrImport,
-                    icon: const Icon(Icons.document_scanner_outlined, size: 18),
-                    label: const Text('Bulk Add', style: TextStyle(fontSize: 13)),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.darkGreen,
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(horizontal: 12),
+                Tooltip(
+                  message: 'Bulk Import Students (OCR & CSV)',
+                  child: SizedBox(
+                    height: 36,
+                    child: ElevatedButton.icon(
+                      onPressed: _openBulkOcrImport,
+                      icon: const Icon(Icons.group_add_outlined, size: 18),
+                      label: const Text('Bulk Import',
+                          style: TextStyle(fontSize: 13)),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.darkGreen,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(horizontal: 12),
+                      ),
                     ),
                   ),
                 ),
