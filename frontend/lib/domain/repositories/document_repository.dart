@@ -748,6 +748,25 @@ class DocumentRepository {
     }
   }
 
+  Future<Uint8List> mergePrintQueuePdf({List<int>? documentIds}) async {
+    try {
+      final options = await _getAuthOptions();
+      options.responseType = ResponseType.bytes;
+      final res = await _dio.post<List<int>>(
+        '/documents/print-queue/merge-pdf',
+        data: documentIds != null && documentIds.isNotEmpty
+            ? {'documentIds': documentIds}
+            : null,
+        options: options,
+      );
+      return Uint8List.fromList(res.data!);
+    } on DioException catch (e) {
+      final msg =
+          e.response?.data?['message'] ?? 'Failed to merge print queue PDF.';
+      throw Exception(msg);
+    }
+  }
+
   // Recycle Bin / Trash
   Future<List<TrashDocumentModel>> getTrashDocuments() async {
     try {

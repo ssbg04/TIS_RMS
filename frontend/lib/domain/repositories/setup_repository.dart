@@ -100,6 +100,21 @@ class SetupRepository {
     }
   }
 
+  Future<Map<String, dynamic>> checkAutoArchive() async {
+    try {
+      final options = await _getAuthOptions();
+      final res = await _dio.post(
+        '/setup/academic-years/check-auto-archive',
+        options: options,
+      );
+      return res.data as Map<String, dynamic>;
+    } on DioException catch (e) {
+      throw Exception(
+        e.response?.data?['message'] ?? 'Failed to check auto-archive.',
+      );
+    }
+  }
+
   Future<void> deleteAcademicYear(int id) async {
     try {
       final options = await _getAuthOptions();

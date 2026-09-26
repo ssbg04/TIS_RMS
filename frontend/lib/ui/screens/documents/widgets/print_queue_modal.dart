@@ -2,7 +2,6 @@ import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:printing/printing.dart';
-import 'package:syncfusion_flutter_pdf/pdf.dart';
 
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_sizes.dart';
@@ -192,58 +191,9 @@ class _PrintQueueModalState extends ConsumerState<PrintQueueModal> {
     try {
       final docRepo = ref.read(documentRepositoryProvider);
 
-      // Merge all documents into a single PDF
-      final combinedPdf = PdfDocument();
-      
-      for (var item in currentItems) {
-
-        final bytes = await docRepo.downloadDocumentBytes(item.documentId);
-        final isPdf = item.fileName.toLowerCase().endsWith('.pdf');
-        
-        if (isPdf) {
-          final loadedPdf = PdfDocument(inputBytes: bytes);
-          for (int i = 0; i < loadedPdf.pages.count; i++) {
-            final template = loadedPdf.pages[i].createTemplate();
-            final page = combinedPdf.pages.add();
-            page.graphics.drawPdfTemplate(template, const Offset(0, 0));
-          }
-          loadedPdf.dispose();
-        } else {
-          // Assume image
-          final page = combinedPdf.pages.add();
-          final pdfImage = PdfBitmap(bytes);
-          
-          // Calculate scale to fit page while maintaining aspect ratio
-          final clientSize = page.getClientSize();
-          final imgWidth = pdfImage.width.toDouble();
-          final imgHeight = pdfImage.height.toDouble();
-          
-          final ratio = imgWidth / imgHeight;
-          final clientRatio = clientSize.width / clientSize.height;
-          
-          double drawWidth = clientSize.width;
-          double drawHeight = clientSize.height;
-          
-          if (ratio > clientRatio) {
-            drawHeight = drawWidth / ratio;
-          } else {
-            drawWidth = drawHeight * ratio;
-          }
-          
-          page.graphics.drawImage(
-            pdfImage, 
-            Rect.fromLTWH(
-              (clientSize.width - drawWidth) / 2, 
-              (clientSize.height - drawHeight) / 2, 
-              drawWidth, 
-              drawHeight
-            )
-          );
-        }
-      }
-
-      final List<int> combinedBytes = await combinedPdf.save();
-      combinedPdf.dispose();
+      // Merge all documents into a single PDF via backend (Short bond size, 0 margins, 0 padding)
+      final docIds = currentItems.map((item) => item.documentId).toList();
+      final combinedBytes = await docRepo.mergePrintQueuePdf(documentIds: docIds);
 
       // Send to printer
       final result = await Printing.layoutPdf(

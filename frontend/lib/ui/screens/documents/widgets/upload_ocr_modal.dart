@@ -149,7 +149,7 @@ class _UploadOcrModalState extends ConsumerState<UploadOcrModal> {
   Timer? _dragResetTimer;
 
   // Requirements strip expand/collapse state
-  bool _requirementsExpanded = true;
+  bool _requirementsExpanded = false;
 
   int _safeFileSize(File file) {
     try {
@@ -1612,16 +1612,8 @@ class _UploadOcrModalState extends ConsumerState<UploadOcrModal> {
 
         if (totalAll == 0) return const SizedBox.shrink();
 
-        return Container(
-          width: double.infinity,
-          margin: const EdgeInsets.only(bottom: 16),
-          decoration: BoxDecoration(
-            color: isDark ? AppColors.darkSurface2 : AppColors.pageBackground,
-            borderRadius: BorderRadius.circular(10),
-            border: Border.all(
-              color: isDark ? AppColors.darkBorder : Colors.grey.shade300,
-            ),
-          ),
+        return _PulsingBorderContainer(
+          isDark: isDark,
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -1649,25 +1641,6 @@ class _UploadOcrModalState extends ConsumerState<UploadOcrModal> {
                           ),
                         ),
                       ),
-                      // Mandatory missing badge
-                      if (needList.any((r) => r.isMandatory)) ...[
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                          decoration: BoxDecoration(
-                            color: Colors.orange.withValues(alpha: 0.15),
-                            borderRadius: BorderRadius.circular(4),
-                          ),
-                          child: Text(
-                            '${needList.where((r) => r.isMandatory).length} needed',
-                            style: TextStyle(
-                              fontSize: 10,
-                              fontWeight: FontWeight.w700,
-                              color: isDark ? Colors.orange.shade300 : Colors.orange.shade800,
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 6),
-                      ],
                       Icon(
                         _requirementsExpanded
                             ? Icons.keyboard_arrow_up_rounded
@@ -1966,3 +1939,72 @@ class _UploadOcrModalState extends ConsumerState<UploadOcrModal> {
   }
 
 }
+
+
+class _PulsingBorderContainer extends StatefulWidget {
+  final Widget child;
+  final bool isDark;
+  const _PulsingBorderContainer({
+    required this.child,
+    required this.isDark,
+  });
+
+  @override
+  State<_PulsingBorderContainer> createState() => _PulsingBorderContainerState();
+}
+
+class _PulsingBorderContainerState extends State<_PulsingBorderContainer>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _animCtrl;
+  late Animation<double> _pulseAnim;
+
+  @override
+  void initState() {
+    super.initState();
+    _animCtrl = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1400),
+    )..repeat(reverse: true);
+    _pulseAnim = Tween<double>(begin: 0.25, end: 0.85).animate(
+      CurvedAnimation(parent: _animCtrl, curve: Curves.easeInOut),
+    );
+  }
+
+  @override
+  void dispose() {
+    _animCtrl.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: _pulseAnim,
+      builder: (context, child) {
+        final alpha = _pulseAnim.value;
+        return Container(
+          width: double.infinity,
+          margin: const EdgeInsets.only(bottom: 16),
+          decoration: BoxDecoration(
+            color: widget.isDark ? AppColors.darkSurface2 : AppColors.pageBackground,
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(
+              color: AppColors.primaryGreen.withValues(alpha: alpha),
+              width: 1.5,
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: AppColors.primaryGreen.withValues(alpha: alpha * 0.25),
+                blurRadius: 6,
+                spreadRadius: 0.5,
+              ),
+            ],
+          ),
+          child: child,
+        );
+      },
+      child: widget.child,
+    );
+  }
+}
+

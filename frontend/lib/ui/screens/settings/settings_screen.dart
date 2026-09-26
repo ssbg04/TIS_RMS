@@ -15,7 +15,6 @@ import '../../../core/utils/validators.dart';
 import 'requirements_settings_screen.dart';
 import '../../shared/widgets/app_error_state.dart';
 import 'package:dio/dio.dart';
-import 'package:calendar_date_picker2/calendar_date_picker2.dart';
 import '../../providers/setup_provider.dart';
 import '../../shared/dialogs/info_dialog.dart';
 import '../../shared/modals/custom_modal.dart';
@@ -83,7 +82,6 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   final _extCtrl = TextEditingController();
   final _phoneCtrl = TextEditingController();
   final _emailCtrl = TextEditingController();
-  final _gracePeriodCtrl = TextEditingController();
 
   final _profileFormKey = GlobalKey<FormState>();
 
@@ -157,7 +155,6 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     _extCtrl.dispose();
     _phoneCtrl.dispose();
     _emailCtrl.dispose();
-    _gracePeriodCtrl.dispose();
     super.dispose();
   }
 
@@ -1281,141 +1278,10 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                                     error: (err, _) => Text('Error loading academic years: $err', style: const TextStyle(color: Colors.red)),
                                   ),
                                   const Divider(height: 32),
-                                  // Auto-Archiving Grace Period
-                                  Row(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      const Icon(
-                                        Icons.archive_outlined,
-                                        color: AppColors.primaryGreen,
-                                        size: 24,
-                                      ),
-                                      const SizedBox(width: AppSizes.p12),
-                                      Expanded(
-                                        child: Column(
-                                          crossAxisAlignment: CrossAxisAlignment.start,
-                                          children: [
-                                            Text(
-                                              'Automatic Archiving Grace Period',
-                                              style: TextStyle(
-                                                fontSize: 14,
-                                                fontWeight: FontWeight.w600,
-                                                color: Theme.of(context).colorScheme.onSurface,
-                                              ),
-                                            ),
-                                            const SizedBox(height: 2),
-                                            Text(
-                                              'Enrolled students with no active enrollment past this number of days from the active school year start date are automatically marked Inactive and archived.',
-                                              style: TextStyle(
-                                                fontSize: 12,
-                                                color: isDark ? AppColors.darkTextSecondary : Colors.grey.shade600,
-                                              ),
-                                            ),
-                                          ],
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                  const SizedBox(height: AppSizes.p12),
-                                  Wrap(
-                                    spacing: 8,
-                                    runSpacing: 8,
-                                    children: ['15', '30', '45', '60', '90'].map((days) {
-                                      final currentGrace = settingsMap['enrollment_grace_period_days'] ?? '30';
-                                      final isSelected = currentGrace == days;
-                                      return ChoiceChip(
-                                        label: Text('$days Days'),
-                                        selected: isSelected,
-                                        selectedColor: AppColors.primaryGreen.withValues(alpha: 0.18),
-                                        backgroundColor: isDark ? AppColors.darkSurfaceCard : Colors.grey.shade100,
-                                        side: BorderSide(
-                                          color: isSelected
-                                              ? AppColors.primaryGreen
-                                              : Theme.of(context).dividerColor.withValues(alpha: 0.3),
-                                          width: isSelected ? 1.5 : 1,
-                                        ),
-                                        labelStyle: TextStyle(
-                                          fontSize: 13,
-                                          fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
-                                          color: isSelected ? AppColors.primaryGreen : Theme.of(context).colorScheme.onSurface,
-                                        ),
-                                        onSelected: (_) {
-                                          _gracePeriodCtrl.text = days;
-                                          ref.read(systemSettingsProvider.notifier).updateSetting('enrollment_grace_period_days', days);
-                                        },
-                                      );
-                                    }).toList(),
-                                  ),
-                                  const SizedBox(height: AppSizes.p12),
-                                  Builder(
-                                    builder: (context) {
-                                      final currentGrace = settingsMap['enrollment_grace_period_days'] ?? '30';
-                                      if (_gracePeriodCtrl.text.isEmpty) {
-                                        _gracePeriodCtrl.text = currentGrace;
-                                      }
-                                      return Row(
-                                        children: [
-                                          SizedBox(
-                                            width: 140,
-                                            height: 40,
-                                            child: TextFormField(
-                                              controller: _gracePeriodCtrl,
-                                              keyboardType: TextInputType.number,
-                                              inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                                              style: const TextStyle(fontSize: 13),
-                                              decoration: InputDecoration(
-                                                labelText: 'Custom Days',
-                                                labelStyle: const TextStyle(fontSize: 12),
-                                                suffixText: 'days',
-                                                suffixStyle: const TextStyle(fontSize: 12),
-                                                isDense: true,
-                                                contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-                                                border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-                                              ),
-                                              onFieldSubmitted: (val) {
-                                                final trimmed = val.trim();
-                                                if (trimmed.isNotEmpty && int.tryParse(trimmed) != null && int.parse(trimmed) > 0) {
-                                                  ref.read(systemSettingsProvider.notifier).updateSetting('enrollment_grace_period_days', trimmed);
-                                                  ScaffoldMessenger.of(context).showSnackBar(
-                                                    SnackBar(
-                                                      content: Text('Grace period updated to $trimmed days'),
-                                                      duration: const Duration(seconds: 2),
-                                                    ),
-                                                  );
-                                                }
-                                              },
-                                            ),
-                                          ),
-                                          const SizedBox(width: 8),
-                                          SizedBox(
-                                            height: 40,
-                                            child: ElevatedButton(
-                                              onPressed: () {
-                                                final trimmed = _gracePeriodCtrl.text.trim();
-                                                if (trimmed.isNotEmpty && int.tryParse(trimmed) != null && int.parse(trimmed) > 0) {
-                                                  ref.read(systemSettingsProvider.notifier).updateSetting('enrollment_grace_period_days', trimmed);
-                                                  ScaffoldMessenger.of(context).showSnackBar(
-                                                    SnackBar(
-                                                      content: Text('Grace period updated to $trimmed days'),
-                                                      duration: const Duration(seconds: 2),
-                                                    ),
-                                                  );
-                                                }
-                                              },
-                                              style: ElevatedButton.styleFrom(
-                                                backgroundColor: AppColors.primaryGreen,
-                                                foregroundColor: Colors.white,
-                                                padding: const EdgeInsets.symmetric(horizontal: 16),
-                                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                                                elevation: 0,
-                                              ),
-                                              child: const Text('Save', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
-                                            ),
-                                          ),
-                                        ],
-                                      );
-                                    },
-                                  ),
+                                   // Auto-Archiving Grace Period
+                                   _GracePeriodSettingsSection(
+                                     settingsMap: settingsMap,
+                                   ),
                                  ],
                                ),
                              );
@@ -2437,104 +2303,126 @@ class _EditScheduleDatesDialogState
               ),
             ),
             const SizedBox(height: 16),
-            Container(
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(
-                  color: isDark ? AppColors.darkBorder : Colors.grey.shade300,
-                ),
-                color: isDark ? AppColors.darkSurface2 : Colors.grey.shade50,
-              ),
-              child: InkWell(
-                borderRadius: BorderRadius.circular(8),
-                onTap: () async {
-                  final initialDates = <DateTime>[];
-                  if (_startDate != null) initialDates.add(_startDate!);
-                  if (_endDate != null) initialDates.add(_endDate!);
-
-                  final results = await showCalendarDatePicker2Dialog(
-                    context: context,
-                    config: CalendarDatePicker2WithActionButtonsConfig(
-                      calendarType: CalendarDatePicker2Type.range,
-                      firstDate: DateTime(1990),
-                      lastDate: DateTime(2100),
-                      selectedDayHighlightColor: AppColors.primaryGreen,
-                      okButton: const Text(
-                        'APPLY',
-                        style: TextStyle(
-                          color: AppColors.primaryGreen,
-                          fontWeight: FontWeight.bold,
-                        ),
+            Row(
+              children: [
+                Expanded(
+                  child: Container(
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(
+                        color: isDark ? AppColors.darkBorder : Colors.grey.shade300,
                       ),
-                      cancelButton: const Text(
-                        'CANCEL',
-                        style: TextStyle(color: AppColors.textSecondary),
+                      color: isDark ? AppColors.darkSurface2 : Colors.grey.shade50,
+                    ),
+                    child: InkWell(
+                      borderRadius: BorderRadius.circular(8),
+                      onTap: () async {
+                        final picked = await showDatePicker(
+                          context: context,
+                          initialDate: _startDate ?? DateTime.now(),
+                          firstDate: DateTime(1990),
+                          lastDate: DateTime(2100),
+                        );
+                        if (picked != null) {
+                          setState(() => _startDate = picked);
+                        }
+                      },
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              "Start Date",
+                              style: TextStyle(
+                                fontSize: 11,
+                                fontWeight: FontWeight.w600,
+                                color: isDark ? AppColors.darkTextSecondary : Colors.grey.shade600,
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            Row(
+                              children: [
+                                const Icon(Icons.calendar_today, size: 16, color: AppColors.primaryGreen),
+                                const SizedBox(width: 6),
+                                Expanded(
+                                  child: Text(
+                                    _startDate != null ? _formatYmd(_startDate)! : "Select Start",
+                                    style: TextStyle(
+                                      fontSize: 13,
+                                      fontWeight: FontWeight.w500,
+                                      color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
                       ),
                     ),
-                    dialogSize: const Size(325, 400),
-                    value: initialDates,
-                    borderRadius: BorderRadius.circular(16),
-                  );
-
-                  if (results != null && results.isNotEmpty) {
-                    setState(() {
-                      _startDate = results.first;
-                      _endDate =
-                          results.length > 1 ? results.last : results.first;
-                    });
-                  }
-                },
-                child: Padding(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-                  child: Row(
-                    children: [
-                      const Icon(
-                        Icons.date_range_outlined,
-                        size: 20,
-                        color: AppColors.primaryGreen,
-                      ),
-                      const SizedBox(width: 10),
-                      Expanded(
-                        child: Text(
-                          (_startDate != null && _endDate != null)
-                              ? '${_formatYmd(_startDate)}  to  ${_formatYmd(_endDate)}'
-                              : _startDate != null
-                                  ? 'Start: ${_formatYmd(_startDate)} (Select End Date)'
-                                  : 'Select Schedule Dates (Optional)',
-                          style: TextStyle(
-                            fontSize: 13,
-                            color: (_startDate != null || _endDate != null)
-                                ? (isDark
-                                    ? AppColors.darkTextPrimary
-                                    : AppColors.textPrimary)
-                                : (isDark
-                                    ? AppColors.darkTextMuted
-                                    : AppColors.textMuted),
-                            fontWeight: (_startDate != null || _endDate != null)
-                                ? FontWeight.w600
-                                : FontWeight.normal,
-                          ),
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ),
-                      if (_startDate != null || _endDate != null)
-                        IconButton(
-                          icon: const Icon(Icons.clear, size: 18),
-                          padding: EdgeInsets.zero,
-                          constraints: const BoxConstraints(),
-                          tooltip: 'Clear dates',
-                          onPressed: () {
-                            setState(() {
-                              _startDate = null;
-                              _endDate = null;
-                            });
-                          },
-                        ),
-                    ],
                   ),
                 ),
-              ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Container(
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(
+                        color: isDark ? AppColors.darkBorder : Colors.grey.shade300,
+                      ),
+                      color: isDark ? AppColors.darkSurface2 : Colors.grey.shade50,
+                    ),
+                    child: InkWell(
+                      borderRadius: BorderRadius.circular(8),
+                      onTap: () async {
+                        final picked = await showDatePicker(
+                          context: context,
+                          initialDate: _endDate ?? _startDate ?? DateTime.now(),
+                          firstDate: DateTime(1990),
+                          lastDate: DateTime(2100),
+                        );
+                        if (picked != null) {
+                          setState(() => _endDate = picked);
+                        }
+                      },
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              "End Date",
+                              style: TextStyle(
+                                fontSize: 11,
+                                fontWeight: FontWeight.w600,
+                                color: isDark ? AppColors.darkTextSecondary : Colors.grey.shade600,
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            Row(
+                              children: [
+                                const Icon(Icons.event, size: 16, color: AppColors.primaryGreen),
+                                const SizedBox(width: 6),
+                                Expanded(
+                                  child: Text(
+                                    _endDate != null ? _formatYmd(_endDate)! : "Select End",
+                                    style: TextStyle(
+                                      fontSize: 13,
+                                      fontWeight: FontWeight.w500,
+                                      color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
             ),
             const SizedBox(height: 24),
             if (isNarrow)
@@ -2732,3 +2620,418 @@ class _DeactivateConfirmationDialogState
   }
 }
 
+
+
+class _GracePeriodSettingsSection extends ConsumerStatefulWidget {
+  final Map<String, String> settingsMap;
+
+  const _GracePeriodSettingsSection({required this.settingsMap});
+
+  @override
+  ConsumerState<_GracePeriodSettingsSection> createState() => _GracePeriodSettingsSectionState();
+}
+
+class _GracePeriodSettingsSectionState extends ConsumerState<_GracePeriodSettingsSection> {
+  DateTime? _selectedCutoffDate;
+  bool _isSaving = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _initCutoffDate();
+  }
+
+  @override
+  void didUpdateWidget(covariant _GracePeriodSettingsSection oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.settingsMap['auto_archive_datetime'] != widget.settingsMap['auto_archive_datetime'] ||
+        oldWidget.settingsMap['enrollment_grace_period_days'] != widget.settingsMap['enrollment_grace_period_days']) {
+      _initCutoffDate();
+    }
+  }
+
+  void _initCutoffDate() {
+    final dtStr = widget.settingsMap['auto_archive_datetime'];
+    if (dtStr != null && dtStr.trim().isNotEmpty) {
+      final parsed = DateTime.tryParse(dtStr);
+      if (parsed != null) {
+        _selectedCutoffDate = parsed;
+        return;
+      }
+    }
+
+    // Fallback: start_date of active year + grace period days
+    final graceDays = int.tryParse(widget.settingsMap['enrollment_grace_period_days'] ?? '30') ?? 30;
+    final years = ref.read(academicYearsListProvider).asData?.value ?? [];
+    final active = years.cast<AcademicYearModel?>().firstWhere(
+      (y) => y?.status == 'active',
+      orElse: () => null,
+    );
+    if (active?.startDate != null) {
+      final start = DateTime.tryParse(active!.startDate!);
+      if (start != null) {
+        _selectedCutoffDate = start.add(Duration(days: graceDays));
+        return;
+      }
+    }
+    _selectedCutoffDate = DateTime.now().add(Duration(days: graceDays));
+  }
+
+  String _formatDisplayDate(DateTime? dt) {
+    if (dt == null) return 'No cutoff date selected';
+    const months = [
+      'January', 'February', 'March', 'April', 'May', 'June',
+      'July', 'August', 'September', 'October', 'November', 'December'
+    ];
+    return '${months[dt.month - 1]} ${dt.day}, ${dt.year}';
+  }
+
+  Future<void> _pickCutoffDate(BuildContext context) async {
+    final initial = _selectedCutoffDate ?? DateTime.now();
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: initial,
+      firstDate: DateTime(2020),
+      lastDate: DateTime(2040),
+      builder: (context, child) {
+        return Theme(
+          data: Theme.of(context).copyWith(
+            colorScheme: Theme.of(context).colorScheme.copyWith(
+                  primary: AppColors.primaryGreen,
+                  onPrimary: Colors.white,
+                ),
+          ),
+          child: child!,
+        );
+      },
+    );
+
+    if (picked != null) {
+      setState(() {
+        _selectedCutoffDate = DateTime(picked.year, picked.month, picked.day, 23, 59, 59);
+      });
+    }
+  }
+
+  Future<void> _saveCutoffDate(AcademicYearModel? activeYear) async {
+    if (_selectedCutoffDate == null) return;
+    setState(() => _isSaving = true);
+
+    try {
+      final isoString = _selectedCutoffDate!.toIso8601String();
+      int calculatedDays = 30;
+
+      if (activeYear?.startDate != null) {
+        final start = DateTime.tryParse(activeYear!.startDate!);
+        if (start != null) {
+          calculatedDays = _selectedCutoffDate!.difference(start).inDays;
+        }
+      } else {
+        calculatedDays = _selectedCutoffDate!.difference(DateTime.now()).inDays;
+      }
+
+      final safeDays = calculatedDays > 0 ? calculatedDays.toString() : '0';
+
+      await ref.read(systemSettingsProvider.notifier).updateSetting(
+        'auto_archive_datetime',
+        isoString,
+      );
+      await ref.read(systemSettingsProvider.notifier).updateSetting(
+        'enrollment_grace_period_days',
+        safeDays,
+      );
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'Archiving cutoff date saved: ${_formatDisplayDate(_selectedCutoffDate)} ($safeDays days grace period)',
+            ),
+            backgroundColor: AppColors.primaryGreen,
+            duration: const Duration(seconds: 3),
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to save cutoff date: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isSaving = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final isEnabled = (widget.settingsMap['auto_archive_enabled'] ?? 'true') != 'false';
+
+    final academicYearsAsync = ref.watch(academicYearsListProvider);
+    final activeYear = academicYearsAsync.asData?.value.cast<AcademicYearModel?>().firstWhere(
+      (y) => y?.status == 'active',
+      orElse: () => null,
+    );
+
+    int diffDays = 0;
+    if (_selectedCutoffDate != null) {
+      if (activeYear?.startDate != null) {
+        final start = DateTime.tryParse(activeYear!.startDate!);
+        if (start != null) {
+          diffDays = _selectedCutoffDate!.difference(start).inDays;
+        }
+      } else {
+        diffDays = _selectedCutoffDate!.difference(DateTime.now()).inDays;
+      }
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Header Row with Toggle
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Icon(
+              Icons.archive_outlined,
+              color: AppColors.primaryGreen,
+              size: 24,
+            ),
+            const SizedBox(width: AppSizes.p12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Automatic Archiving Grace Period',
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                      color: Theme.of(context).colorScheme.onSurface,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    'Set a cutoff date for auto-archiving. Students with status "Enrolled" who have no enrollment in the active academic year will be marked Inactive and archived once this cutoff date is reached.',
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: isDark ? AppColors.darkTextSecondary : Colors.grey.shade600,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Switch(
+              value: isEnabled,
+              activeThumbColor: AppColors.primaryGreen,
+              onChanged: (val) {
+                ref.read(systemSettingsProvider.notifier).updateSetting(
+                  'auto_archive_enabled',
+                  val.toString(),
+                );
+              },
+            ),
+          ],
+        ),
+        const SizedBox(height: AppSizes.p12),
+
+        if (!isEnabled) ...[
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: Colors.amber.withValues(alpha: isDark ? 0.12 : 0.08),
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(
+                color: Colors.amber.withValues(alpha: isDark ? 0.3 : 0.5),
+              ),
+            ),
+            child: Row(
+              children: [
+                Icon(
+                  Icons.pause_circle_outline,
+                  color: isDark ? Colors.amber.shade300 : Colors.amber.shade800,
+                  size: 20,
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    'Automatic archiving is currently turned OFF. Enrolled students will not be automatically archived.',
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: isDark ? AppColors.darkTextSecondary : Colors.grey.shade700,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ] else ...[
+          // Cutoff Date Picker Card
+          Container(
+            width: double.infinity,
+            decoration: BoxDecoration(
+              color: isDark ? AppColors.darkSurface2 : Colors.grey.shade50,
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(
+                color: isDark ? AppColors.darkBorder : Colors.grey.shade300,
+              ),
+            ),
+            child: InkWell(
+              borderRadius: BorderRadius.circular(10),
+              onTap: () => _pickCutoffDate(context),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                child: Row(
+                  children: [
+                    const Icon(
+                      Icons.event_available_rounded,
+                      color: AppColors.primaryGreen,
+                      size: 24,
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Cutoff Date (Grace Period Deadline)',
+                            style: TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w500,
+                              color: isDark ? AppColors.darkTextSecondary : Colors.grey.shade600,
+                            ),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            _formatDisplayDate(_selectedCutoffDate),
+                            style: TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.bold,
+                              color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    OutlinedButton.icon(
+                      onPressed: () => _pickCutoffDate(context),
+                      icon: const Icon(Icons.edit_calendar_outlined, size: 15),
+                      label: const Text('Change Date', style: TextStyle(fontSize: 12)),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: AppColors.primaryGreen,
+                        side: const BorderSide(color: AppColors.primaryGreen),
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(height: 10),
+
+          // Calculated Days Helper Preview
+          Builder(
+            builder: (_) {
+              Color bgColor;
+              Color borderColor;
+              Color textColor;
+              IconData iconData;
+              String helperText;
+
+              if (activeYear?.startDate != null) {
+                if (diffDays > 0) {
+                  bgColor = AppColors.primaryGreen.withValues(alpha: isDark ? 0.15 : 0.08);
+                  borderColor = AppColors.primaryGreen.withValues(alpha: 0.3);
+                  textColor = isDark ? Colors.green.shade300 : AppColors.primaryGreen;
+                  iconData = Icons.schedule_rounded;
+                  helperText = 'Grace Period: $diffDays days after active school year start (${activeYear!.startDate})';
+                } else if (diffDays == 0) {
+                  bgColor = Colors.amber.withValues(alpha: isDark ? 0.15 : 0.08);
+                  borderColor = Colors.amber.withValues(alpha: 0.4);
+                  textColor = isDark ? Colors.amber.shade300 : Colors.amber.shade900;
+                  iconData = Icons.warning_amber_rounded;
+                  helperText = 'Cutoff matches first day of classes (${activeYear!.startDate}) — 0 days grace period.';
+                } else {
+                  bgColor = Colors.red.withValues(alpha: isDark ? 0.15 : 0.08);
+                  borderColor = Colors.red.withValues(alpha: 0.4);
+                  textColor = isDark ? Colors.red.shade300 : Colors.red.shade800;
+                  iconData = Icons.error_outline_rounded;
+                  helperText = 'Cutoff is ${diffDays.abs()} days before school year start (${activeYear!.startDate}). Please select a date after opening.';
+                }
+              } else {
+                bgColor = isDark ? AppColors.darkSurfaceCard : Colors.grey.shade100;
+                borderColor = isDark ? AppColors.darkBorder : Colors.grey.shade300;
+                textColor = isDark ? AppColors.darkTextSecondary : Colors.grey.shade700;
+                iconData = Icons.info_outline_rounded;
+                helperText = 'Calculated: $diffDays days from today (No active school year start date configured).';
+              }
+
+              return Container(
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                decoration: BoxDecoration(
+                  color: bgColor,
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: borderColor),
+                ),
+                child: Row(
+                  children: [
+                    Icon(iconData, size: 16, color: textColor),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        helperText,
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w500,
+                          color: textColor,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            },
+          ),
+          const SizedBox(height: 12),
+
+          // Save Button
+          Align(
+            alignment: Alignment.centerLeft,
+            child: ElevatedButton.icon(
+              onPressed: _isSaving ? null : () => _saveCutoffDate(activeYear),
+              icon: _isSaving
+                  ? const SizedBox(
+                      width: 14,
+                      height: 14,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: Colors.white,
+                      ),
+                    )
+                  : const Icon(Icons.save_outlined, size: 16),
+              label: Text(
+                _isSaving ? 'Saving...' : 'Save Cutoff Date',
+                style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
+              ),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.primaryGreen,
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                elevation: 0,
+              ),
+            ),
+          ),
+        ],
+      ],
+    );
+  }
+}

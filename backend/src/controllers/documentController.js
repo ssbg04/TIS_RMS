@@ -8,6 +8,7 @@ const execFileAsync = util.promisify(execFile);
 const { createNotification } = require('./notificationController');
 const sharp = require('sharp');
 const emailService = require('../services/emailService');
+const pdfService = require('../services/pdfService');
 
 // ── Helper: insert one row into activity_log ─────────────────────────────────
 const logActivity = (userId, action, entityType, entityId, description) => {
@@ -1352,6 +1353,22 @@ exports.executePrintQueue = (req, res) => {
     } catch (error) {
         console.error('executePrintQueue error:', error);
         res.status(500).json({ message: 'Failed to execute print queue', error: error.message });
+    }
+};
+
+// POST /api/documents/print-queue/merge-pdf
+exports.mergePrintQueuePdf = async (req, res) => {
+    try {
+        const userId = req.user.id;
+        const { documentIds } = req.body || {};
+        const pdfBuffer = await pdfService.mergeDocumentsToPdf({ documentIds, userId });
+
+        res.setHeader('Content-Type', 'application/pdf');
+        res.setHeader('Content-Disposition', 'inline; filename="merged_documents.pdf"');
+        res.send(pdfBuffer);
+    } catch (error) {
+        console.error('mergePrintQueuePdf error:', error);
+        res.status(500).json({ message: 'Failed to merge documents into PDF', error: error.message });
     }
 };
 

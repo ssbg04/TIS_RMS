@@ -78,11 +78,12 @@ app.listen(PORT, '0.0.0.0', () => {
         console.error('Failed to start auto-graduation schedule:', err.message);
     }
 
-    // Run auto-archiving check on startup and daily (for Enrolled students without active enrollment past grace period)
+    // Run auto-archiving check on startup, set precision timer, and check every 30 seconds
     try {
-        const { checkAndRunAutoArchive } = require('./src/services/autoArchiveService');
+        const { checkAndRunAutoArchive, scheduleAutoArchiveTimer } = require('./src/services/autoArchiveService');
         checkAndRunAutoArchive(1);
-        setInterval(() => checkAndRunAutoArchive(1), 24 * 60 * 60 * 1000);
+        scheduleAutoArchiveTimer();
+        setInterval(() => checkAndRunAutoArchive(1), 30 * 1000);
     } catch (err) {
         console.error('Failed to start auto-archiving schedule:', err.message);
     }

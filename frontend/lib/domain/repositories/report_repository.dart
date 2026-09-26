@@ -1,3 +1,4 @@
+import 'dart:typed_data';
 import 'package:dio/dio.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import '../../core/network/api_constants.dart';
@@ -119,6 +120,44 @@ class ReportRepository {
       throw Exception(
         e.response?.data['message'] ??
             'Failed to fetch transparency board data.',
+      );
+    }
+  }
+
+  Future<Uint8List> downloadTransparencyBoardPdf({
+    int? academicYearId,
+    List<int>? yearIds,
+    String? schoolName,
+    String? divisionName,
+    String? regionName,
+    String? category,
+  }) async {
+    try {
+      final queryParams = <String, dynamic>{};
+      if (academicYearId != null) queryParams['academicYearId'] = academicYearId;
+      if (yearIds != null && yearIds.isNotEmpty) {
+        queryParams['yearIds'] = yearIds.join(',');
+      }
+      if (schoolName != null) queryParams['schoolName'] = schoolName;
+      if (divisionName != null) queryParams['divisionName'] = divisionName;
+      if (regionName != null) queryParams['regionName'] = regionName;
+      if (category != null && category.isNotEmpty && category != 'all') {
+        queryParams['category'] = category;
+      }
+
+      final options = await _authOptions();
+      options.responseType = ResponseType.bytes;
+
+      final res = await _dio.get<List<int>>(
+        '/reports/transparency-board/pdf',
+        queryParameters: queryParams.isNotEmpty ? queryParams : null,
+        options: options,
+      );
+      return Uint8List.fromList(res.data!);
+    } on DioException catch (e) {
+      throw Exception(
+        e.response?.data?['message'] ??
+            'Failed to generate transparency board PDF.',
       );
     }
   }

@@ -13,6 +13,7 @@ router.get('/print-history', authenticateToken, authorizeRoles('admin', 'teacher
 router.delete('/print-history/clear', authenticateToken, authorizeRoles('admin'), documentController.clearPrintHistory);
 router.post('/print-queue', authenticateToken, authorizeRoles('admin', 'teacher'), documentController.addToPrintQueue);
 router.post('/print-queue/print', authenticateToken, authorizeRoles('admin', 'teacher'), documentController.executePrintQueue);
+router.post('/print-queue/merge-pdf', authenticateToken, authorizeRoles('admin', 'teacher'), documentController.mergePrintQueuePdf);
 router.delete('/print-queue/clear', authenticateToken, authorizeRoles('admin', 'teacher'), documentController.clearPrintQueue);
 router.delete('/print-queue/:queueId', authenticateToken, authorizeRoles('admin', 'teacher'), documentController.removeFromPrintQueue);
 router.post('/print-notify-email', authenticateToken, authorizeRoles('admin', 'teacher'), documentController.sendPrintPickupNotification);

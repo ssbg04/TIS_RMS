@@ -5,7 +5,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_sizes.dart';
 import '../../../../core/utils/download_service.dart';
-import '../../../../core/utils/transparency_board_pdf_service.dart';
 import '../../../../domain/entities/report_models.dart';
 import '../../../providers/reports_provider.dart';
 import '../../../shared/dialogs/error_dialog.dart';
@@ -65,10 +64,8 @@ class _TransparencyBoardContentState extends ConsumerState<_TransparencyBoardCon
   final ScrollController _equity4PsChartScrollController = ScrollController();
   final ScrollController _tabBarScrollController = ScrollController();
   bool _isExportingPdf = false;
+  String? _exportingCategory;
   _TransparencyTab _activeTab = _TransparencyTab.all;
-  bool _isEnrollmentInfoExpanded = false;
-  bool _isDropoutInfoExpanded = false;
-  bool _isEquity4PsInfoExpanded = false;
 
   @override
   void dispose() {
@@ -80,27 +77,52 @@ class _TransparencyBoardContentState extends ConsumerState<_TransparencyBoardCon
   }
 
   Future<void> _handleExportPdf(
-    TransparencyBoardData data,
-  ) async {
+    TransparencyBoardData data, {
+    String category = 'all',
+  }) async {
     if (_isExportingPdf) return;
-    setState(() => _isExportingPdf = true);
+    setState(() {
+      _isExportingPdf = true;
+      _exportingCategory = category;
+    });
 
     try {
       final latestYear = data.years.isNotEmpty ? data.years.last : null;
       final yearLabel = latestYear != null
           ? latestYear.yearRange.replaceAll('-', '_')
           : 'All';
-      final defaultFileName = 'DepEd_Transparency_Board_SY_$yearLabel.pdf';
 
-      final pdfBytes = await TransparencyBoardPdfService.generatePdf(
-        data: data,
+      String defaultFileName;
+      String sectionLabel;
+      if (category == 'enrollment') {
+        defaultFileName = 'DepEd_Enrollment_Report_SY_$yearLabel.pdf';
+        sectionLabel = 'Data on Enrollment';
+      } else if (category == 'dropouts_transferees' || category == 'dropouts') {
+        defaultFileName = 'DepEd_Dropouts_Transferees_SY_$yearLabel.pdf';
+        sectionLabel = 'Dropouts & Transferees';
+      } else if (category == '4ps' || category == 'four_ps' || category == 'equity4ps') {
+        defaultFileName = 'DepEd_4Ps_Beneficiaries_SY_$yearLabel.pdf';
+        sectionLabel = '4Ps Beneficiaries';
+      } else {
+        defaultFileName = 'DepEd_Transparency_Board_SY_$yearLabel.pdf';
+        sectionLabel = 'Full Transparency Board';
+      }
+
+      final selectedYearId = ref.read(transparencyBoardYearProvider);
+      final reportRepo = ref.read(reportRepositoryProvider);
+      final pdfBytes = await reportRepo.downloadTransparencyBoardPdf(
+        academicYearId: selectedYearId,
         schoolName: 'TALISAY INTEGRATED SCHOOL',
         divisionName: 'Schools Division of Quezon Province',
         regionName: 'Region IV-A CALABARZON',
+        category: category,
       );
 
       if (!mounted) return;
-      setState(() => _isExportingPdf = false);
+      setState(() {
+        _isExportingPdf = false;
+        _exportingCategory = null;
+      });
 
       String? savedPath;
       final saved = await showFileSavePreviewDialog(
@@ -113,8 +135,8 @@ class _TransparencyBoardContentState extends ConsumerState<_TransparencyBoardCon
             'School Year',
             latestYear != null ? 'SY ${latestYear.yearRange}' : 'N/A',
           ),
-          const FilePreviewRow('Sections', '3 Key Sections'),
-          const FilePreviewRow('Format', 'Official DepEd PDF'),
+          FilePreviewRow('Report Scope', sectionLabel),
+          const FilePreviewRow('Format', 'Official DepEd A4 PDF'),
         ],
         onSave: (resolvedName) async {
           await DownloadService.requestPermissions();
@@ -132,13 +154,16 @@ class _TransparencyBoardContentState extends ConsumerState<_TransparencyBoardCon
         showSuccessDialog(
           context,
           title: 'Export Successful',
-          message: 'Transparency Board PDF has been saved successfully.',
+          message: '$sectionLabel PDF has been saved successfully.',
           filePath: savedPath,
         );
       }
     } catch (e) {
       if (!mounted) return;
-      setState(() => _isExportingPdf = false);
+      setState(() {
+        _isExportingPdf = false;
+        _exportingCategory = null;
+      });
       showErrorDialog(
         context,
         'Export Failed',
@@ -147,43 +172,90 @@ class _TransparencyBoardContentState extends ConsumerState<_TransparencyBoardCon
     }
   }
 
-  Widget _buildExportPdfButton(
-    TransparencyBoardData data,
-  ) {
-    return ElevatedButton.icon(
-      onPressed: _isExportingPdf
-          ? null
-          : () => _handleExportPdf(data),
-      icon: _isExportingPdf
-          ? const SizedBox(
-              width: 14,
-              height: 14,
-              child: CircularProgressIndicator(
-                strokeWidth: 2,
-                color: Colors.white,
-              ),
-            )
-          : const Icon(
-              Icons.picture_as_pdf_outlined,
-              size: 16,
-              color: Colors.white,
-            ),
-      label: Text(
-        _isExportingPdf ? 'Exporting...' : 'Export PDF',
-        style: const TextStyle(
-          color: Colors.white,
-          fontSize: 12,
-          fontWeight: FontWeight.bold,
+  Widget _buildExportPdfButton(TransparencyBoardData data) {
+    final activeCat = _activeTab == _TransparencyTab.enrollment
+        ? 'enrollment'
+        : _activeTab == _TransparencyTab.dropoutsTransferees
+            ? 'dropouts_transferees'
+            : _activeTab == _TransparencyTab.equity4Ps
+                ? '4ps'
+                : 'all';
+
+    final isCurrentExporting = _isExportingPdf && (_exportingCategory == activeCat || _exportingCategory == 'all');
+
+    return MouseRegion(
+      cursor: _isExportingPdf ? SystemMouseCursors.basic : SystemMouseCursors.click,
+      child: ElevatedButton.icon(
+        onPressed: _isExportingPdf ? null : () => _handleExportPdf(data, category: activeCat),
+        icon: isCurrentExporting
+            ? const SizedBox(
+                width: 14,
+                height: 14,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  color: Colors.white,
+                ),
+              )
+            : const Icon(Icons.picture_as_pdf_rounded, size: 16),
+        label: Text(
+          isCurrentExporting ? 'Exporting PDF...' : 'Export PDF',
+          style: const TextStyle(
+            color: Colors.white,
+            fontSize: 12.5,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        style: ElevatedButton.styleFrom(
+          backgroundColor: Colors.red.shade700,
+          foregroundColor: Colors.white,
+          disabledBackgroundColor: Colors.red.shade300,
+          disabledForegroundColor: Colors.white70,
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+          elevation: 1,
         ),
       ),
-      style: ElevatedButton.styleFrom(
-        backgroundColor: Colors.red.shade700,
-        foregroundColor: Colors.white,
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(8),
+    );
+  }
+
+  Widget _buildCategoryExportButton(
+    TransparencyBoardData data, {
+    required String category,
+    String label = 'Export PDF',
+  }) {
+    final isCurrentExporting = _exportingCategory == category;
+    return MouseRegion(
+      cursor: _isExportingPdf ? SystemMouseCursors.basic : SystemMouseCursors.click,
+      child: ElevatedButton.icon(
+        onPressed: _isExportingPdf ? null : () => _handleExportPdf(data, category: category),
+        icon: isCurrentExporting
+            ? const SizedBox(
+                width: 13,
+                height: 13,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  color: Colors.white,
+                ),
+              )
+            : const Icon(Icons.picture_as_pdf_rounded, size: 14),
+        label: Text(
+          isCurrentExporting ? 'Exporting...' : label,
+          style: const TextStyle(
+            fontSize: 11.5,
+            fontWeight: FontWeight.bold,
+            color: Colors.white,
+          ),
         ),
-        elevation: 0,
+        style: ElevatedButton.styleFrom(
+          backgroundColor: Colors.red.shade700,
+          foregroundColor: Colors.white,
+          disabledBackgroundColor: Colors.red.shade300,
+          disabledForegroundColor: Colors.white70,
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+          minimumSize: const Size(100, 34),
+          elevation: 1,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
+        ),
       ),
     );
   }
@@ -215,7 +287,7 @@ class _TransparencyBoardContentState extends ConsumerState<_TransparencyBoardCon
         // ── Section 1: Data on Enrollment ─────────────────────────────────
         if (_activeTab == _TransparencyTab.all ||
             _activeTab == _TransparencyTab.enrollment) ...[
-          _buildEnrollmentCard(context, data.years, isDark),
+          _buildEnrollmentCard(context, data, isDark),
           if (_activeTab == _TransparencyTab.all)
             const SizedBox(height: AppSizes.p20),
         ],
@@ -223,7 +295,7 @@ class _TransparencyBoardContentState extends ConsumerState<_TransparencyBoardCon
         // ── Section 2: Dropouts & Transferees ─────────────────────────────
         if (_activeTab == _TransparencyTab.all ||
             _activeTab == _TransparencyTab.dropoutsTransferees) ...[
-          _buildDropoutTransfereeCard(context, data.years, isDark),
+          _buildDropoutTransfereeCard(context, data, isDark),
           if (_activeTab == _TransparencyTab.all)
             const SizedBox(height: AppSizes.p20),
         ],
@@ -231,7 +303,7 @@ class _TransparencyBoardContentState extends ConsumerState<_TransparencyBoardCon
         // ── Section 3: 4Ps Beneficiaries ──────────────────────────────────
         if (_activeTab == _TransparencyTab.all ||
             _activeTab == _TransparencyTab.equity4Ps) ...[
-          _buildEquity4PsCard(context, data.years, isDark),
+          _buildEquity4PsCard(context, data, isDark),
         ],
       ],
     );
@@ -327,86 +399,6 @@ class _TransparencyBoardContentState extends ConsumerState<_TransparencyBoardCon
       ),
     );
   }
-
-  Widget _buildCollapsibleInfoCard({
-    required BuildContext context,
-    required bool isDark,
-    required String title,
-    required String description,
-    required bool isExpanded,
-    required VoidCallback onToggle,
-    Color accentColor = AppColors.primaryGreen,
-  }) {
-    return Container(
-      decoration: BoxDecoration(
-        color: accentColor.withValues(alpha: isDark ? 0.08 : 0.04),
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(
-          color: accentColor.withValues(alpha: isDark ? 0.25 : 0.2),
-        ),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          InkWell(
-            onTap: onToggle,
-            borderRadius: BorderRadius.circular(10),
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
-              child: Row(
-                children: [
-                  Icon(
-                    Icons.info_outline_rounded,
-                    size: 16,
-                    color: accentColor,
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      title,
-                      style: TextStyle(
-                        fontSize: 12.5,
-                        fontWeight: FontWeight.w600,
-                        color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
-                      ),
-                    ),
-                  ),
-                  Icon(
-                    isExpanded
-                        ? Icons.keyboard_arrow_up_rounded
-                        : Icons.keyboard_arrow_down_rounded,
-                    size: 18,
-                    color: accentColor,
-                  ),
-                ],
-              ),
-            ),
-          ),
-          if (isExpanded) ...[
-            Divider(
-              height: 1,
-              color: accentColor.withValues(alpha: 0.15),
-            ),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(12, 8, 12, 10),
-              child: Text(
-                description,
-                style: TextStyle(
-                  fontSize: 12,
-                  height: 1.4,
-                  color: isDark
-                      ? AppColors.darkTextSecondary
-                      : AppColors.textSecondary,
-                ),
-              ),
-            ),
-          ],
-        ],
-      ),
-    );
-  }
-
-  // ── Clean Header Banner ───────────────────────────────────────────────────
 
   Widget _buildCleanHeader(
     BuildContext context, {
@@ -517,7 +509,6 @@ class _TransparencyBoardContentState extends ConsumerState<_TransparencyBoardCon
     required Color iconColor,
     required String title,
     Widget? trailing,
-    Widget? infoWidget,
     required Widget content,
   }) {
     return Container(
@@ -566,10 +557,6 @@ class _TransparencyBoardContentState extends ConsumerState<_TransparencyBoardCon
               ?trailing,
             ],
           ),
-          if (infoWidget != null) ...[
-            const SizedBox(height: AppSizes.p12),
-            infoWidget,
-          ],
           const SizedBox(height: AppSizes.p16),
           content,
         ],
@@ -581,9 +568,10 @@ class _TransparencyBoardContentState extends ConsumerState<_TransparencyBoardCon
 
   Widget _buildEnrollmentCard(
     BuildContext context,
-    List<YearlyTransparencyItem> years,
+    TransparencyBoardData data,
     bool isDark,
   ) {
+    final years = data.years;
     final latestYear = years.isNotEmpty ? years.last : null;
     return _buildSectionCardContainer(
       context: context,
@@ -591,8 +579,12 @@ class _TransparencyBoardContentState extends ConsumerState<_TransparencyBoardCon
       icon: Icons.bar_chart_rounded,
       iconColor: AppColors.primaryGreen,
       title: 'Data on Enrollment',
-      trailing: latestYear != null
-          ? Container(
+      trailing: Wrap(
+        spacing: 8,
+        crossAxisAlignment: WrapCrossAlignment.center,
+        children: [
+          if (latestYear != null)
+            Container(
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
               decoration: BoxDecoration(
                 color: AppColors.primaryGreen.withValues(alpha: 0.12),
@@ -609,18 +601,9 @@ class _TransparencyBoardContentState extends ConsumerState<_TransparencyBoardCon
                   color: AppColors.primaryGreen,
                 ),
               ),
-            )
-          : null,
-      infoWidget: _buildCollapsibleInfoCard(
-        context: context,
-        isDark: isDark,
-        accentColor: AppColors.primaryGreen,
-        title: 'About Enrollment Data',
-        description:
-            'Displays official student enrollment counts categorized by grade level and gender (Male/Female) for the active academic year(s), allowing school administrators to analyze grade-by-grade capacity and gender distribution.',
-        isExpanded: _isEnrollmentInfoExpanded,
-        onToggle: () => setState(
-            () => _isEnrollmentInfoExpanded = !_isEnrollmentInfoExpanded),
+            ),
+          _buildCategoryExportButton(data, category: 'enrollment'),
+        ],
       ),
       content: _buildEnrollmentSection(context, years),
     );
@@ -630,26 +613,17 @@ class _TransparencyBoardContentState extends ConsumerState<_TransparencyBoardCon
 
   Widget _buildDropoutTransfereeCard(
     BuildContext context,
-    List<YearlyTransparencyItem> years,
+    TransparencyBoardData data,
     bool isDark,
   ) {
+    final years = data.years;
     return _buildSectionCardContainer(
       context: context,
       isDark: isDark,
       icon: Icons.trending_down_rounded,
       iconColor: Colors.redAccent,
       title: 'Dropouts & Transferees',
-      infoWidget: _buildCollapsibleInfoCard(
-        context: context,
-        isDark: isDark,
-        accentColor: Colors.redAccent,
-        title: 'About Dropout & Transfer Statistics',
-        description:
-            'Tracks student retention and mobility indicators across grade levels, including confirmed dropouts, incoming transferred-in students, and outgoing transferred-out learners to support student retention programs.',
-        isExpanded: _isDropoutInfoExpanded,
-        onToggle: () => setState(
-            () => _isDropoutInfoExpanded = !_isDropoutInfoExpanded),
-      ),
+      trailing: _buildCategoryExportButton(data, category: 'dropouts_transferees'),
       content: _buildDropoutTransfereeSection(context, years),
     );
   }
@@ -658,9 +632,10 @@ class _TransparencyBoardContentState extends ConsumerState<_TransparencyBoardCon
 
   Widget _buildEquity4PsCard(
     BuildContext context,
-    List<YearlyTransparencyItem> years,
+    TransparencyBoardData data,
     bool isDark,
   ) {
+    final years = data.years;
     final latestYear = years.isNotEmpty ? years.last : null;
     return _buildSectionCardContainer(
       context: context,
@@ -668,8 +643,12 @@ class _TransparencyBoardContentState extends ConsumerState<_TransparencyBoardCon
       icon: Icons.family_restroom_rounded,
       iconColor: Colors.deepPurple,
       title: '4Ps Beneficiaries',
-      trailing: latestYear != null
-          ? Container(
+      trailing: Wrap(
+        spacing: 8,
+        crossAxisAlignment: WrapCrossAlignment.center,
+        children: [
+          if (latestYear != null)
+            Container(
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
               decoration: BoxDecoration(
                 color: Colors.deepPurple.withValues(alpha: 0.12),
@@ -686,18 +665,9 @@ class _TransparencyBoardContentState extends ConsumerState<_TransparencyBoardCon
                   color: Colors.deepPurple,
                 ),
               ),
-            )
-          : null,
-      infoWidget: _buildCollapsibleInfoCard(
-        context: context,
-        isDark: isDark,
-        accentColor: Colors.deepPurple,
-        title: 'About 4Ps Program Beneficiaries',
-        description:
-            'Monitors the count and percentage of Pantawid Pamilyang Pilipino Program (4Ps) household beneficiaries enrolled across each grade level to evaluate equity and targeted student welfare assistance.',
-        isExpanded: _isEquity4PsInfoExpanded,
-        onToggle: () => setState(
-            () => _isEquity4PsInfoExpanded = !_isEquity4PsInfoExpanded),
+            ),
+          _buildCategoryExportButton(data, category: '4ps'),
+        ],
       ),
       content: _buildEquity4PsSection(context, years),
     );

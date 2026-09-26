@@ -1,4 +1,5 @@
 const db = require('../config/db');
+const pdfService = require('../services/pdfService');
 
 // GET /api/reports/academic-years
 exports.getAcademicYears = (req, res) => {
@@ -368,9 +369,8 @@ exports.getStorageUsed = async (req, res) => {
 };
 
 // GET /api/reports/transparency-board
-exports.getTransparencyBoardData = (req, res) => {
-    try {
-        const { academicYearId, yearIds } = req.query;
+function fetchTransparencyBoardPayload(query = {}) {
+    const { academicYearId, yearIds } = query;
         let academicYears = [];
 
         if (yearIds) {
@@ -600,12 +600,54 @@ exports.getTransparencyBoardData = (req, res) => {
                 overallPercentage: 0
             };
 
-        res.json({
+        return {
             years: yearsData,
             equity4Ps
-        });
+        };
+}
+
+// GET /api/reports/transparency-board
+exports.getTransparencyBoardData = (req, res) => {
+    try {
+        const data = fetchTransparencyBoardPayload(req.query);
+        res.json(data);
     } catch (error) {
         res.status(500).json({ message: 'Failed to fetch transparency board data', error: error.message });
+    }
+};
+
+// GET /api/reports/transparency-board/pdf
+exports.generateTransparencyBoardPdf = async (req, res) => {
+    try {
+        const data = fetchTransparencyBoardPayload(req.query);
+        const { schoolName, divisionName, regionName, category } = req.query;
+        const normalizedCategory = (category || 'all').toLowerCase();
+
+        const pdfBuffer = await pdfService.generateTransparencyBoardPdf(data, {
+            schoolName,
+            divisionName,
+            regionName,
+            category: normalizedCategory,
+        });
+
+        const latestYear = data.years && data.years.length > 0 ? data.years[data.years.length - 1] : null;
+        const yearLabel = latestYear ? latestYear.yearRange.replace(/-/g, '_') : 'All';
+
+        let filename = `DepEd_Transparency_Board_SY_${yearLabel}.pdf`;
+        if (normalizedCategory === 'enrollment') {
+            filename = `DepEd_Enrollment_Report_SY_${yearLabel}.pdf`;
+        } else if (normalizedCategory === 'dropouts_transferees' || normalizedCategory === 'dropouts') {
+            filename = `DepEd_Dropouts_Transferees_SY_${yearLabel}.pdf`;
+        } else if (normalizedCategory === '4ps' || normalizedCategory === 'four_ps' || normalizedCategory === 'equity4ps') {
+            filename = `DepEd_4Ps_Beneficiaries_SY_${yearLabel}.pdf`;
+        }
+
+        res.setHeader('Content-Type', 'application/pdf');
+        res.setHeader('Content-Disposition', `inline; filename="${filename}"`);
+        res.send(pdfBuffer);
+    } catch (error) {
+        console.error('generateTransparencyBoardPdf error:', error);
+        res.status(500).json({ message: 'Failed to generate transparency board PDF', error: error.message });
     }
 };
 

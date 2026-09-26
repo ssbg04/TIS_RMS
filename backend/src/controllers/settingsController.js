@@ -51,8 +51,9 @@ exports.updateSettings = (req, res) => {
 
         insertOrUpdate(updates);
 
-        if (updates.enrollment_grace_period_days !== undefined) {
+        if (updates.enrollment_grace_period_days !== undefined || updates.auto_archive_datetime !== undefined || updates.auto_archive_enabled !== undefined) {
             autoArchiveService.checkAndRunAutoArchive(req.user?.id);
+            autoArchiveService.scheduleAutoArchiveTimer();
         }
 
         const rows = db.prepare('SELECT key, value FROM system_settings').all();

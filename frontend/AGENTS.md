@@ -806,14 +806,14 @@ Files backup/restore - mirror mode or zip -->
 
 # SETTINGS SCREEN
 - move the automatic archiving grace period under the academic & auto graduation collapse -> rename the collapse use basic word -> remove picking academic year, make it automatic choose the active year, dont make it dropdown just choose or pick the active year  -->
-# ANDROID / DOCUMENT SCANNER
+<!-- # ANDROID / DOCUMENT SCANNER
 - reduce android app size: configure google mlkit document scanner to unbundled mode (Google Play Services) while keeping automatic edge detection and enhance
 
 # PDF GENERATION & MANIPULATION
 - remove PDF manipulation and generation from frontend, keep PDF viewing
 - move PDF manipulation and generation to backend
 - move the image assets from this frontend to backend needed for generation
-- for PDF manipulation settings for merging pdf and image 0 padding 0 margins, and use short bond paper size
+- for PDF manipulation settings for merging pdf and image 0 padding 0 margins, and use short bond paper size -->
 
 <!-- # CAPSTONE MEMBERS SCREEN
 - optimize the assets image before using convert into webp, remove the old
@@ -830,6 +830,20 @@ Files backup/restore - mirror mode or zip -->
 - add horizontal scrollable list of pictures, slide preview, only one then add cooldown to next pic in 2 seconds, add previous and next buttons, when the last pic next goes back to the first image
 - use the group pictures for horizontal scrollable list
 - use the solo for individual member profile picture -->
+<!-- # STUDENT SCREEN
+- add new student scan has no preview of uploaded/scanned document and scan another in android app
+- add new student uploading/scanning loading hide the manual input button when loading
+- add new student modal the x button from left move to the right -->
+
+# SETTINGS SCREEN
+- auto archiving grace period -> set cutoff date via date picker with calculated days helper preview instead of dynamic days input
+
+# REPORTS SCREEN
+- deped tab -> export pdf button per sections on windows app is not responsive
+
+# DOCUMENTS SCREEN
+- upload document default requirements section closed/collapsed (manually expandable/collapsible)
+
 
 ---
 

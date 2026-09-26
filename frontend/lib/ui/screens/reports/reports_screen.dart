@@ -483,25 +483,6 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
   @override
   Widget build(BuildContext context) {
     final statsAsync = ref.watch(reportStatsProvider);
-    final yearsAsync = ref.watch(academicYearsProvider);
-    final selectedYearId = ref.watch(selectedAcademicYearIdProvider);
-    final selectedYearNotifier = ref.read(selectedAcademicYearIdProvider.notifier);
-
-    // Auto-select active academic year on initial load if not explicitly chosen
-    if (!selectedYearNotifier.hasExplicitSelection && selectedYearId == null && yearsAsync.hasValue) {
-      final yearsList = yearsAsync.value ?? [];
-      if (yearsList.isNotEmpty) {
-        final activeYear = yearsList.firstWhere(
-          (y) => y.status.toLowerCase() == 'active',
-          orElse: () => yearsList.last,
-        );
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          if (mounted) {
-            selectedYearNotifier.setDefaultIfUnset(activeYear.id);
-          }
-        });
-      }
-    }
 
     final isAndroid = Theme.of(context).platform == TargetPlatform.android || (!kIsWeb && Platform.isAndroid);
 

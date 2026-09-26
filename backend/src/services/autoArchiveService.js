@@ -30,38 +30,62 @@ const logActivity = (userId, action, entityType, entityId, description) => {
  */
 const checkAndRunAutoArchive = (userId = 1) => {
     try {
+        const enabledRow = db.prepare("SELECT value FROM system_settings WHERE key = 'auto_archive_enabled'").get();
+        if (enabledRow?.value === 'false') {
+            return { executed: false, reason: 'Automatic archiving is disabled in system settings.' };
+        }
+
         const activeYear = db.prepare("SELECT * FROM academic_years WHERE status = 'active' LIMIT 1").get();
         if (!activeYear) {
             return { executed: false, reason: 'No active academic year found.' };
         }
 
-        if (!activeYear.start_date) {
-            return {
-                executed: false,
-                reason: 'Active academic year has no start_date configured.'
-            };
+        let scheduleDesc = '';
+        // Check if an explicit auto_archive_datetime is set in system_settings
+        const dtRow = db.prepare("SELECT value FROM system_settings WHERE key = 'auto_archive_datetime'").get();
+        if (dtRow?.value && dtRow.value.trim().length > 0) {
+            const scheduledDt = new Date(dtRow.value);
+            if (!isNaN(scheduledDt.getTime())) {
+                const now = new Date();
+                if (now < scheduledDt) {
+                    return {
+                        executed: false,
+                        reason: `Auto-archive scheduled date and time (${dtRow.value}) has not been reached yet.`
+                    };
+                }
+                scheduleDesc = `scheduled cutoff (${dtRow.value})`;
+            }
         }
 
-        // Fetch grace period days from system_settings (defaults to 30 days)
-        const graceRow = db.prepare("SELECT value FROM system_settings WHERE key = 'enrollment_grace_period_days'").get();
-        const graceDays = Math.max(1, parseInt(graceRow?.value || '30', 10));
+        if (!scheduleDesc) {
+            if (!activeYear.start_date) {
+                return {
+                    executed: false,
+                    reason: 'Active academic year has no start_date configured.'
+                };
+            }
+            // Fetch grace period days from system_settings (defaults to 30 days)
+            const graceRow = db.prepare("SELECT value FROM system_settings WHERE key = 'enrollment_grace_period_days'").get();
+            const graceDays = Math.max(1, parseInt(graceRow?.value || '30', 10));
 
-        // Calculate cutoff date: start_date + graceDays
-        const startDate = new Date(activeYear.start_date + 'T00:00:00');
-        if (isNaN(startDate.getTime())) {
-            return { executed: false, reason: 'Invalid start_date format in active academic year.' };
-        }
+            // Calculate cutoff date: start_date + graceDays
+            const startDate = new Date(activeYear.start_date + 'T00:00:00');
+            if (isNaN(startDate.getTime())) {
+                return { executed: false, reason: 'Invalid start_date format in active academic year.' };
+            }
 
-        const cutoffDate = new Date(startDate);
-        cutoffDate.setDate(cutoffDate.getDate() + graceDays);
-        const cutoffDateStr = cutoffDate.toISOString().slice(0, 10);
+            const cutoffDate = new Date(startDate);
+            cutoffDate.setDate(cutoffDate.getDate() + graceDays);
+            const cutoffDateStr = cutoffDate.toISOString().slice(0, 10);
 
-        const todayStr = new Date().toISOString().slice(0, 10);
-        if (todayStr < cutoffDateStr) {
-            return {
-                executed: false,
-                reason: `Enrollment grace period (${graceDays} days) from academic year start (${activeYear.start_date}) has not been reached yet. Cutoff date is ${cutoffDateStr} (today: ${todayStr}).`
-            };
+            const todayStr = new Date().toISOString().slice(0, 10);
+            if (todayStr < cutoffDateStr) {
+                return {
+                    executed: false,
+                    reason: `Enrollment grace period (${graceDays} days) from academic year start (${activeYear.start_date}) has not been reached yet. Cutoff date is ${cutoffDateStr} (today: ${todayStr}).`
+                };
+            }
+            scheduleDesc = `${graceDays}-day grace period`;
         }
 
         // STRICT REQUIREMENT: ONLY TARGET STUDENTS WITH status = 'Enrolled'
@@ -106,7 +130,7 @@ const checkAndRunAutoArchive = (userId = 1) => {
             'ARCHIVE',
             'student',
             null,
-            `Auto-archived ${unEnrolledStudents.length} student(s) to 'Inactive' (no enrollment in AY ${activeYear.year_range} after ${graceDays}-day grace period): ${studentSummary}${extraText}`
+            `Auto-archived ${unEnrolledStudents.length} student(s) to 'Inactive' (no enrollment in AY ${activeYear.year_range} after ${scheduleDesc}): ${studentSummary}${extraText}`
         );
 
         return {
@@ -120,6 +144,45 @@ const checkAndRunAutoArchive = (userId = 1) => {
     }
 };
 
+let archiveTimer = null;
+
+const scheduleAutoArchiveTimer = () => {
+    try {
+        if (archiveTimer) {
+            clearTimeout(archiveTimer);
+            archiveTimer = null;
+        }
+
+        const enabledRow = db.prepare("SELECT value FROM system_settings WHERE key = 'auto_archive_enabled'").get();
+        if (enabledRow?.value === 'false') {
+            console.log('[autoArchiveService] Auto-archiving is disabled in system settings. Timer not scheduled.');
+            return;
+        }
+
+        const dtRow = db.prepare("SELECT value FROM system_settings WHERE key = 'auto_archive_datetime'").get();
+        if (dtRow?.value && dtRow.value.trim().length > 0) {
+            const scheduledDt = new Date(dtRow.value);
+            if (!isNaN(scheduledDt.getTime())) {
+                const now = Date.now();
+                const diff = scheduledDt.getTime() - now;
+                if (diff > 0 && diff < 2147483647) {
+                    console.log(`[autoArchiveService] Precision timer set: auto-archiving will execute in ${Math.round(diff / 1000)}s (${scheduledDt.toLocaleString()})`);
+                    archiveTimer = setTimeout(() => {
+                        console.log('[autoArchiveService] Scheduled time arrived! Executing auto-archive check...');
+                        checkAndRunAutoArchive(1);
+                    }, diff);
+                } else if (diff <= 0) {
+                    console.log(`[autoArchiveService] Scheduled cutoff (${scheduledDt.toLocaleString()}) is now or in past, checking auto-archive immediately.`);
+                    checkAndRunAutoArchive(1);
+                }
+            }
+        }
+    } catch (err) {
+        console.error('[autoArchiveService] scheduleAutoArchiveTimer error:', err.message);
+    }
+};
+
 module.exports = {
-    checkAndRunAutoArchive
+    checkAndRunAutoArchive,
+    scheduleAutoArchiveTimer
 };
