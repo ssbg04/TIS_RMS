@@ -835,14 +835,14 @@ Files backup/restore - mirror mode or zip -->
 - add new student uploading/scanning loading hide the manual input button when loading
 - add new student modal the x button from left move to the right -->
 
-# SETTINGS SCREEN
+<!-- # SETTINGS SCREEN
 - auto archiving grace period -> set cutoff date via date picker with calculated days helper preview instead of dynamic days input
 
 # REPORTS SCREEN
 - deped tab -> export pdf button per sections on windows app is not responsive
 
 # DOCUMENTS SCREEN
-- upload document default requirements section closed/collapsed (manually expandable/collapsible)
+- upload document default requirements section closed/collapsed (manually expandable/collapsible) -->
 
 
 ---
