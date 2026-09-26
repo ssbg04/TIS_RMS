@@ -935,6 +935,14 @@ const initSchema = () => {
             INSERT OR IGNORE INTO system_settings (key, value)
             VALUES ('auto_update_enrollment_from_sf', 'false')
         `).run();
+        db.prepare(`
+            INSERT OR IGNORE INTO system_settings (key, value)
+            VALUES ('remind_teachers_due_date_enabled', 'false')
+        `).run();
+        db.prepare(`
+            INSERT OR IGNORE INTO system_settings (key, value)
+            VALUES ('remind_teachers_due_date_days', '3')
+        `).run();
 
         // Seed Admin if not exists
         const adminUser = db.prepare("SELECT * FROM users WHERE username = 'admin' OR role = 'admin'").get();

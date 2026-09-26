@@ -22,6 +22,7 @@ import '../../../domain/entities/setup_models.dart';
 import '../../providers/system_settings_provider.dart';
 import '../../providers/theme_provider.dart';
 import '../../providers/preferences_provider.dart';
+import '../../providers/users_provider.dart';
 import '../../../core/services/haptic_service.dart';
 import 'security_screen.dart';
 class TitleCaseTextInputFormatter extends TextInputFormatter {
@@ -120,12 +121,14 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   bool _isProfileExpanded = false;
   bool _isAcademicYearExpanded = false;
   bool _isAutoEnrollExpanded = false;
+  bool _isTeacherRemindersExpanded = false;
   bool _isAppearanceExpanded = false;
 
   void _collapseAllSections() {
     _isProfileExpanded = false;
     _isAcademicYearExpanded = false;
     _isAutoEnrollExpanded = false;
+    _isTeacherRemindersExpanded = false;
     _isAppearanceExpanded = false;
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) _onScroll();
@@ -514,6 +517,63 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         'Deactivation Failed',
         e.toString().replaceAll('Exception: ', ''),
       );
+    }
+  }
+
+  bool _isSendingManualReminder = false;
+
+  Future<void> _handleManualRemindTeachers() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Row(
+          children: [
+            Icon(Icons.mark_email_read_outlined, color: AppColors.primaryGreen, size: 24),
+            SizedBox(width: 8),
+            Expanded(child: Text('Send Teacher Reminders')),
+          ],
+        ),
+        content: const Text(
+          'Send reminder emails to all active advisory teachers with the list of students in their assigned sections who currently have missing document requirements?',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('CANCEL'),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.primaryGreen,
+              foregroundColor: Colors.white,
+            ),
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('SEND REMINDERS'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true || !mounted) return;
+
+    setState(() => _isSendingManualReminder = true);
+    try {
+      final res = await ref.read(usersProvider.notifier).remindTeachers();
+      if (!mounted) return;
+      showSuccessDialog(
+        context,
+        title: 'Reminders Sent',
+        message: res['message']?.toString() ?? 'Teacher reminders sent successfully.',
+      );
+    } catch (e) {
+      if (!mounted) return;
+      showErrorDialog(
+        context,
+        'Reminder Failed',
+        e.toString().replaceAll('Exception: ', ''),
+      );
+    } finally {
+      if (mounted) setState(() => _isSendingManualReminder = false);
     }
   }
 
@@ -1490,6 +1550,196 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                                       ),
                                     ],
                                   ],
+                                ],
+                              ),
+                            );
+                          },
+                        ),
+                        const SizedBox(height: AppSizes.p24),
+
+                        // ── Remind Teachers (Admin Only) ──────────────────────
+                        Consumer(
+                          builder: (context, ref, _) {
+                            final sysSettingsAsync = ref.watch(systemSettingsProvider);
+                            final settingsMap = sysSettingsAsync.asData?.value ?? {};
+                            final isRemindEnabled =
+                                (settingsMap['remind_teachers_due_date_enabled'] ?? 'false') == 'true';
+                            final reminderDays =
+                                int.tryParse(settingsMap['remind_teachers_due_date_days'] ?? '3') ?? 3;
+                            final isDark = Theme.of(context).brightness == Brightness.dark;
+
+                            return _buildCollapsibleCard(
+                              title: 'Remind Teachers',
+                              isExpanded: _isTeacherRemindersExpanded,
+                              onToggle: () => _toggleSection(
+                                () => _isTeacherRemindersExpanded = !_isTeacherRemindersExpanded,
+                              ),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Row(
+                                    crossAxisAlignment: CrossAxisAlignment.center,
+                                    children: [
+                                      const Icon(
+                                        Icons.mark_email_read_outlined,
+                                        color: AppColors.primaryGreen,
+                                        size: 24,
+                                      ),
+                                      const SizedBox(width: AppSizes.p12),
+                                      Expanded(
+                                        child: Column(
+                                          crossAxisAlignment: CrossAxisAlignment.start,
+                                          children: [
+                                            Text(
+                                              'Automated Due Date Reminders',
+                                              style: TextStyle(
+                                                fontSize: 14,
+                                                fontWeight: FontWeight.w600,
+                                                color: Theme.of(context).colorScheme.onSurface,
+                                              ),
+                                            ),
+                                            const SizedBox(height: 2),
+                                            Text(
+                                              'Notify teachers via email before document requirement due dates arrive',
+                                              style: TextStyle(
+                                                fontSize: 12,
+                                                color: isDark ? AppColors.darkTextSecondary : Colors.grey.shade600,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                      Switch(
+                                        value: isRemindEnabled,
+                                        activeThumbColor: AppColors.primaryGreen,
+                                        onChanged: (val) {
+                                          ref
+                                              .read(systemSettingsProvider.notifier)
+                                              .updateSetting(
+                                                'remind_teachers_due_date_enabled',
+                                                val ? 'true' : 'false',
+                                              );
+                                        },
+                                      ),
+                                    ],
+                                  ),
+                                  const SizedBox(height: AppSizes.p16),
+                                  Container(
+                                    width: double.infinity,
+                                    padding: const EdgeInsets.all(12),
+                                    decoration: BoxDecoration(
+                                      color: AppColors.primaryGreen.withValues(alpha: 0.06),
+                                      borderRadius: BorderRadius.circular(8),
+                                      border: Border.all(
+                                        color: AppColors.primaryGreen.withValues(alpha: 0.2),
+                                      ),
+                                    ),
+                                    child: Row(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        const Icon(
+                                          Icons.info_outline,
+                                          size: 16,
+                                          color: AppColors.primaryGreen,
+                                        ),
+                                        const SizedBox(width: 8),
+                                        Expanded(
+                                          child: Text(
+                                            'When enabled, advisory teachers will automatically receive an email listing the students in their assigned section(s) who currently have missing document requirements before the due date.',
+                                            style: TextStyle(
+                                              fontSize: 12,
+                                              color: isDark ? AppColors.darkTextPrimary : AppColors.primaryGreen,
+                                              height: 1.4,
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                  const SizedBox(height: AppSizes.p16),
+                                  Text(
+                                    'Reminder Schedule',
+                                    style: TextStyle(
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.w600,
+                                      color: Theme.of(context).colorScheme.onSurface,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    'Number of days before the requirement due date to send reminder emails:',
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      color: isDark ? AppColors.darkTextSecondary : Colors.grey.shade600,
+                                    ),
+                                  ),
+                                  const SizedBox(height: AppSizes.p12),
+                                  Wrap(
+                                    spacing: 8,
+                                    runSpacing: 8,
+                                    children: [1, 2, 3, 5, 7].map((days) {
+                                      final isSelected = reminderDays == days;
+                                      return ChoiceChip(
+                                        label: Text(
+                                          days == 3 ? '$days Days (Default)' : '$days Day${days > 1 ? 's' : ''}',
+                                          style: TextStyle(
+                                            fontSize: 12,
+                                            fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+                                            color: isSelected
+                                                ? Colors.white
+                                                : (isDark ? AppColors.darkTextPrimary : AppColors.textPrimary),
+                                          ),
+                                        ),
+                                        selected: isSelected,
+                                        selectedColor: AppColors.primaryGreen,
+                                        backgroundColor: isDark ? AppColors.darkSurface2 : Colors.grey.shade100,
+                                        showCheckmark: false,
+                                        onSelected: (_) {
+                                          ref
+                                              .read(systemSettingsProvider.notifier)
+                                              .updateSetting(
+                                                'remind_teachers_due_date_days',
+                                                days.toString(),
+                                              );
+                                        },
+                                      );
+                                    }).toList(),
+                                  ),
+                                  const SizedBox(height: AppSizes.p16),
+                                  Divider(color: isDark ? AppColors.darkBorder : Colors.grey.shade200),
+                                  const SizedBox(height: AppSizes.p12),
+                                  Row(
+                                    children: [
+                                      Expanded(
+                                        child: Text(
+                                          'Need to remind teachers right away? You can trigger a manual reminder dispatch at any time.',
+                                          style: TextStyle(
+                                            fontSize: 12,
+                                            color: isDark ? AppColors.darkTextSecondary : Colors.grey.shade600,
+                                          ),
+                                        ),
+                                      ),
+                                      const SizedBox(width: 12),
+                                      ElevatedButton.icon(
+                                        onPressed: _isSendingManualReminder ? null : _handleManualRemindTeachers,
+                                        icon: _isSendingManualReminder
+                                            ? const SizedBox(
+                                                width: 14,
+                                                height: 14,
+                                                child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                                              )
+                                            : const Icon(Icons.send_rounded, size: 15),
+                                        label: Text(_isSendingManualReminder ? 'Sending...' : 'Send Reminders Now'),
+                                        style: ElevatedButton.styleFrom(
+                                          backgroundColor: AppColors.primaryGreen,
+                                          foregroundColor: Colors.white,
+                                          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                                          textStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
+                                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
                                 ],
                               ),
                             );

@@ -1,12 +1,15 @@
 const db = require('../config/db');
 const autoArchiveService = require('../services/autoArchiveService');
+const { checkAndRunTeacherDueDateReminders } = require('../services/teacherReminderService');
 
 exports.getSettings = (req, res) => {
     try {
         const rows = db.prepare('SELECT key, value FROM system_settings').all();
         const settings = {
             auto_update_enrollment_from_sf: 'false',
-            enrollment_grace_period_days: '30'
+            enrollment_grace_period_days: '30',
+            remind_teachers_due_date_enabled: 'false',
+            remind_teachers_due_date_days: '3'
         };
         for (const row of rows) {
             settings[row.key] = row.value;
@@ -54,6 +57,10 @@ exports.updateSettings = (req, res) => {
         if (updates.enrollment_grace_period_days !== undefined || updates.auto_archive_datetime !== undefined || updates.auto_archive_enabled !== undefined) {
             autoArchiveService.checkAndRunAutoArchive(req.user?.id);
             autoArchiveService.scheduleAutoArchiveTimer();
+        }
+
+        if (updates.remind_teachers_due_date_enabled !== undefined || updates.remind_teachers_due_date_days !== undefined) {
+            checkAndRunTeacherDueDateReminders();
         }
 
         const rows = db.prepare('SELECT key, value FROM system_settings').all();

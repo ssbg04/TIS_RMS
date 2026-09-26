@@ -88,6 +88,15 @@ app.listen(PORT, '0.0.0.0', () => {
         console.error('Failed to start auto-archiving schedule:', err.message);
     }
 
+    // Run teacher document requirement due date reminders check on startup and hourly
+    try {
+        const { checkAndRunTeacherDueDateReminders } = require('./src/services/teacherReminderService');
+        checkAndRunTeacherDueDateReminders();
+        setInterval(() => checkAndRunTeacherDueDateReminders(), 60 * 60 * 1000);
+    } catch (err) {
+        console.error('Failed to start teacher reminder service:', err.message);
+    }
+
     // Initialize Auto Cloudflare Tunnel activation when internet is connected
     try {
         const { startAutoTunnel } = require('./src/services/tunnelService');

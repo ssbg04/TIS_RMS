@@ -847,12 +847,29 @@ Files backup/restore - mirror mode or zip -->
 # SETTINGS SCREEN
 - make the fade at top and bottom fade show when it has item under it if not dont show -->
 
+<!-- # SETTINGS / TEACHER REMINDERS
+- settings screen -> add new collapsible card "Remind Teachers" for document requirements due date:
+  - settings toggle to enable/disable automated email notifications to teachers before due date
+  - configurable days input/selector (default: 3 days before due date, can manually change)
+  - sends email notification to advisory teachers with list of missing students per section
+- teachers & academic setup screen -> remove "Remind All Teachers" button -->
+
+# CSV BULK IMPORT ENHANCEMENTS
+- bulk student import (add bulk student modal / screen):
+  - add on-screen CSV format example & template guide (headers: LRN, First Name, Middle Name, Last Name, Extension, Sex, Birth Date, 4Ps)
+  - add live type / paste CSV input area with "Parse & Preview" to submit directly without needing a separate file
+  - validation table / live preview showing valid rows and detected errors before confirming bulk import
+- academic & sections setup (teachers & academic setup screen):
+  - add bulk CSV import for academic structure:
+    - format: Academic Year, Grade Level, Section Name (e.g., `2024-2025, 10, Diamond`)
+  - add on-screen CSV format example / reference & sample rows
+  - add live type / paste CSV input area with instant parse, validation preview, and bulk submit
+
 ---
+
 
 # DONT DO
 <!-- - documents screen -> add how many files can be uploaded into a document requirement, the current limitation is only 1, so we can dynamically choose number files that can be uploaded into that document, update both frontend and backend, but first give me suggestion where will put the setting of this, ask me first   -->
-
-- CSV bulk add student, academic and section [acad year, grade level, sections]
 
 - print list history, print email to the student make it optional, add date of print, add status (done, not done, in progress, picked up), add message to email can be manual message typed by registrar/staff, 
 
