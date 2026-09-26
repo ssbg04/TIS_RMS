@@ -1258,7 +1258,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                                                               AppColors
                                                                   .primaryGreen,
                                                           foregroundColor:
-                                                              isDark ? Colors.white : Colors.black,
+                                                              Colors.white ,
                                                           padding:
                                                               const EdgeInsets.symmetric(
                                                             vertical: 14,
