@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'dart:io' show Platform;
 import 'package:flutter/foundation.dart' show kIsWeb;
-import 'dart:ui';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/constants/app_colors.dart';
@@ -89,6 +88,34 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   bool _isProfileLoading = false;
   ProviderSubscription<String>? _tabListener;
 
+  final ScrollController _scrollController = ScrollController();
+  bool _showTopFade = false;
+  bool _showBottomFade = true;
+
+  void _onScroll() {
+    if (!_scrollController.hasClients) return;
+    final offset = _scrollController.offset;
+    final maxExtent = _scrollController.position.maxScrollExtent;
+    final showTop = offset > 4;
+    final showBottom = maxExtent > 0 && offset < (maxExtent - 8);
+    if (showTop != _showTopFade || showBottom != _showBottomFade) {
+      setState(() {
+        _showTopFade = showTop;
+        _showBottomFade = showBottom;
+      });
+    }
+  }
+
+  void _toggleSection(VoidCallback toggle) {
+    setState(toggle);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) _onScroll();
+    });
+    Future.delayed(const Duration(milliseconds: 270), () {
+      if (mounted) _onScroll();
+    });
+  }
+
   // Collapsible sections state
   bool _isProfileExpanded = false;
   bool _isAcademicYearExpanded = false;
@@ -100,6 +127,12 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     _isAcademicYearExpanded = false;
     _isAutoEnrollExpanded = false;
     _isAppearanceExpanded = false;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) _onScroll();
+    });
+    Future.delayed(const Duration(milliseconds: 270), () {
+      if (mounted) _onScroll();
+    });
   }
 
   void _refreshAllSettingsData() {
@@ -113,8 +146,10 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   @override
   void initState() {
     super.initState();
+    _scrollController.addListener(_onScroll);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
+      _onScroll();
       _refreshAllSettingsData();
       _tabListener = ref.listenManual<String>(activeTabProvider, (
         previous,
@@ -141,6 +176,9 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             _profileFormKey.currentState?.reset();
             _lastUserId = null;
           }
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (mounted) _onScroll();
+          });
         }
       });
     });
@@ -148,6 +186,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
 
   @override
   void dispose() {
+    _scrollController.removeListener(_onScroll);
+    _scrollController.dispose();
     _tabListener?.close();
     _firstNameCtrl.dispose();
     _middleNameCtrl.dispose();
@@ -513,16 +553,34 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                   _phoneCtrl.text = user.phone ?? '';
                   _emailCtrl.text = user.email ?? '';
                   setState(() => _lastUserId = user.id);
+                  WidgetsBinding.instance.addPostFrameCallback((_) {
+                    if (mounted) _onScroll();
+                  });
                 }
               });
             }
 
             final isDark = Theme.of(context).brightness == Brightness.dark;
+            final isMobileOrAndroid =
+                MediaQuery.of(context).size.width < 600 ||
+                Theme.of(context).platform == TargetPlatform.android;
+
             return Stack(
               children: [
                 Positioned.fill(
-                  child: SingleChildScrollView(
-                    padding: const EdgeInsets.fromLTRB(AppSizes.p24, AppSizes.p32, AppSizes.p24, AppSizes.p32),
+                  child: NotificationListener<ScrollMetricsNotification>(
+                    onNotification: (notification) {
+                      if (notification.metrics.axis == Axis.vertical) {
+                        WidgetsBinding.instance.addPostFrameCallback((_) {
+                          if (mounted) _onScroll();
+                        });
+                      }
+                      return false;
+                    },
+                    child: SingleChildScrollView(
+                      controller: _scrollController,
+                      physics: const AlwaysScrollableScrollPhysics(),
+                      padding: const EdgeInsets.fromLTRB(AppSizes.p24, AppSizes.p32, AppSizes.p24, AppSizes.p32),
               child: Center(
                 child: ConstrainedBox(
                   constraints: const BoxConstraints(maxWidth: 700),
@@ -555,7 +613,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                       _buildCollapsibleCard(
                         title: 'Profile Details',
                         isExpanded: _isProfileExpanded,
-                        onToggle: () => setState(() => _isProfileExpanded = !_isProfileExpanded),
+                        onToggle: () => _toggleSection(() => _isProfileExpanded = !_isProfileExpanded),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
@@ -955,7 +1013,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                             return _buildCollapsibleCard(
                               title: 'Academic & Graduation',
                               isExpanded: _isAcademicYearExpanded,
-                              onToggle: () => setState(() => _isAcademicYearExpanded = !_isAcademicYearExpanded),
+                              onToggle: () => _toggleSection(() => _isAcademicYearExpanded = !_isAcademicYearExpanded),
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
@@ -1303,7 +1361,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                             return _buildCollapsibleCard(
                               title: 'Student Enrollment Auto-Update',
                               isExpanded: _isAutoEnrollExpanded,
-                              onToggle: () => setState(() => _isAutoEnrollExpanded = !_isAutoEnrollExpanded),
+                              onToggle: () => _toggleSection(() => _isAutoEnrollExpanded = !_isAutoEnrollExpanded),
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
@@ -1444,7 +1502,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                       _buildCollapsibleCard(
                         title: 'Appearance & Feedback',
                         isExpanded: _isAppearanceExpanded,
-                        onToggle: () => setState(() => _isAppearanceExpanded = !_isAppearanceExpanded),
+                        onToggle: () => _toggleSection(() => _isAppearanceExpanded = !_isAppearanceExpanded),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
@@ -1704,85 +1762,62 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 ),
               ),
             ),
+                  ),
                 ),
-                // Top Blur Overlay
+                // Top Fade Overlay (revealed when content scrolls underneath)
                 Positioned(
                   top: 0,
                   left: 0,
                   right: 0,
-                  height: 60,
+                  height: isMobileOrAndroid ? 24 : 40,
                   child: IgnorePointer(
-                    child: ShaderMask(
-                      shaderCallback: (rect) {
-                        return const LinearGradient(
-                          begin: Alignment.topCenter,
-                          end: Alignment.bottomCenter,
-                          colors: [Colors.black, Colors.transparent],
-                          stops: [0.6, 1.0],
-                        ).createShader(rect);
-                      },
-                      blendMode: BlendMode.dstIn,
-                      child: ClipRect(
-                        child: BackdropFilter(
-                          filter: ImageFilter.blur(sigmaX: 5.0, sigmaY: 5.0),
-                          child: Container(
-                            decoration: BoxDecoration(
-                              gradient: LinearGradient(
-                                begin: Alignment.topCenter,
-                                end: Alignment.bottomCenter,
-                                colors: isDark
-                                    ? [
-                                        AppColors.darkPageBackground.withValues(alpha: 0.85),
-                                        AppColors.darkPageBackground.withValues(alpha: 0.15),
-                                      ]
-                                    : [
-                                        Colors.white.withValues(alpha: 0.85),
-                                        Colors.white.withValues(alpha: 0.15),
-                                      ],
-                              ),
-                            ),
+                    child: AnimatedOpacity(
+                      opacity: _showTopFade ? 1.0 : 0.0,
+                      duration: const Duration(milliseconds: 200),
+                      child: Container(
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            begin: Alignment.topCenter,
+                            end: Alignment.bottomCenter,
+                            colors: isDark
+                                ? [
+                                    AppColors.darkPageBackground.withValues(alpha: 0.9),
+                                    AppColors.darkPageBackground.withValues(alpha: 0.0),
+                                  ]
+                                : [
+                                    Colors.white.withValues(alpha: 0.9),
+                                    Colors.white.withValues(alpha: 0.0),
+                                  ],
                           ),
                         ),
                       ),
                     ),
                   ),
                 ),
-                // Bottom Blur Overlay
+                // Bottom Bar Fade Overlay (revealed when more content is scrollable below)
                 Positioned(
                   bottom: 0,
                   left: 0,
                   right: 0,
-                  height: 60,
+                  height: isMobileOrAndroid ? 30 : 60,
                   child: IgnorePointer(
-                    child: ShaderMask(
-                      shaderCallback: (rect) {
-                        return const LinearGradient(
-                          begin: Alignment.topCenter,
-                          end: Alignment.bottomCenter,
-                          colors: [Colors.transparent, Colors.black],
-                          stops: [0.0, 0.4],
-                        ).createShader(rect);
-                      },
-                      blendMode: BlendMode.dstIn,
-                      child: ClipRect(
-                        child: BackdropFilter(
-                          filter: ImageFilter.blur(sigmaX: 5.0, sigmaY: 5.0),
-                          child: Container(
-                            decoration: BoxDecoration(
-                              gradient: LinearGradient(
-                                begin: Alignment.topCenter,
-                                end: Alignment.bottomCenter,
-                                colors: isDark
-                                    ? [
-                                        AppColors.darkPageBackground.withValues(alpha: 0.0),
-                                        AppColors.darkPageBackground.withValues(alpha: 0.85),
-                                      ]
-                                    : [
-                                        Colors.white.withValues(alpha: 0.0),
-                                        Colors.white.withValues(alpha: 0.85),
-                                      ],
-                              ),
-                            ),
+                    child: AnimatedOpacity(
+                      opacity: _showBottomFade ? 1.0 : 0.0,
+                      duration: const Duration(milliseconds: 200),
+                      child: Container(
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            begin: Alignment.topCenter,
+                            end: Alignment.bottomCenter,
+                            colors: isDark
+                                ? [
+                                    AppColors.darkPageBackground.withValues(alpha: 0.0),
+                                    AppColors.darkPageBackground.withValues(alpha: 0.85),
+                                  ]
+                                : [
+                                    Colors.white.withValues(alpha: 0.0),
+                                    Colors.white.withValues(alpha: 0.85),
+                                  ],
                           ),
                         ),
                       ),

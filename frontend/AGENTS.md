@@ -842,8 +842,10 @@ Files backup/restore - mirror mode or zip -->
 - deped tab -> export pdf button per sections on windows app is not responsive
 
 # DOCUMENTS SCREEN
-- upload document default requirements section closed/collapsed (manually expandable/collapsible) -->
+- upload document default requirements section closed/collapsed (manually expandable/collapsible)
 
+# SETTINGS SCREEN
+- make the fade at top and bottom fade show when it has item under it if not dont show -->
 
 ---
 
