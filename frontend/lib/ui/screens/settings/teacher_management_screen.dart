@@ -52,8 +52,8 @@ class _TeacherManagementModalState extends ConsumerState<TeacherManagementModal>
   late TabController _tabController;
   Timer? _pollingTimer;
 
-  // Tab indices: 0=Teachers, 1=Academic Years, 2=Sections
-  static const int _tabCount = 3;
+  // Tab indices: 0=Academic Structure, 1=Teacher Advisers
+  static const int _tabCount = 2;
 
   @override
   void initState() {
@@ -99,7 +99,10 @@ class _TeacherManagementModalState extends ConsumerState<TeacherManagementModal>
         Expanded(
           child: TabBarView(
             controller: _tabController,
-            children: [_TeachersTab(), _AcademicYearsTab(), _SectionsTab()],
+            children: const [
+              _AcademicStructureTab(),
+              _TeacherAdvisersTab(),
+            ],
           ),
         ),
       ],
@@ -113,7 +116,7 @@ class _TeacherManagementModalState extends ConsumerState<TeacherManagementModal>
           foregroundColor: Colors.white,
           iconTheme: const IconThemeData(color: Colors.white),
           title: const Text(
-            'Teachers & Academic Setup',
+            'Academic & Class Management',
             style: TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.w600,
@@ -126,8 +129,8 @@ class _TeacherManagementModalState extends ConsumerState<TeacherManagementModal>
     }
 
     return CustomModal(
-      title: 'Teachers & Academic Setup',
-      maxWidth: 900,
+      title: 'Academic & Class Management',
+      maxWidth: 920,
       content: SizedBox(height: screenSize.height * 0.8, child: content),
     );
   }
@@ -145,14 +148,24 @@ class _TeacherManagementModalState extends ConsumerState<TeacherManagementModal>
         labelStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
         tabs: isNarrow
             ? const [
-                Tab(text: 'Teachers'),
-                Tab(text: 'Years'),
-                Tab(text: 'Sections'),
+                Tab(
+                  icon: Icon(Icons.account_tree_outlined, size: 18),
+                  text: 'Academic',
+                ),
+                Tab(
+                  icon: Icon(Icons.people_alt_outlined, size: 18),
+                  text: 'Advisers',
+                ),
               ]
             : const [
-                Tab(text: 'Teachers'),
-                Tab(text: 'Academic Years'),
-                Tab(text: 'Sections'),
+                Tab(
+                  icon: Icon(Icons.account_tree_outlined, size: 18),
+                  text: 'Academic Structure',
+                ),
+                Tab(
+                  icon: Icon(Icons.people_alt_outlined, size: 18),
+                  text: 'Teacher Advisers',
+                ),
               ],
       ),
     );
@@ -160,17 +173,29 @@ class _TeacherManagementModalState extends ConsumerState<TeacherManagementModal>
 }
 
 // ============================================================
-// TEACHERS TAB
+// TEACHER ADVISERS TAB
 // ============================================================
-class _TeachersTab extends ConsumerStatefulWidget {
+class _TeacherAdvisersTab extends ConsumerStatefulWidget {
+  const _TeacherAdvisersTab();
+
   @override
-  ConsumerState<_TeachersTab> createState() => _TeachersTabState();
+  ConsumerState<_TeacherAdvisersTab> createState() => _TeacherAdvisersTabState();
 }
 
-class _TeachersTabState extends ConsumerState<_TeachersTab> {
+class _TeacherAdvisersTabState extends ConsumerState<_TeacherAdvisersTab> {
+  final TextEditingController _searchController = TextEditingController();
+  String _searchQuery = '';
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
   @override
   Widget build(BuildContext context) {
     final usersAsync = ref.watch(usersProvider);
+    final sectionsAsync = ref.watch(sectionsListProvider);
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return usersAsync.when(
@@ -188,7 +213,7 @@ class _TeachersTabState extends ConsumerState<_TeachersTab> {
                 ),
                 const SizedBox(height: 16),
                 Text(
-                  'No teachers found.',
+                  'No active teachers found.',
                   style: TextStyle(
                     color: isDark ? AppColors.darkTextSecondary : Colors.grey.shade500,
                     fontSize: 16,
@@ -204,31 +229,143 @@ class _TeachersTabState extends ConsumerState<_TeachersTab> {
             ),
           );
         }
+
+        final allSections = sectionsAsync.value ?? [];
+        final assignedTeacherIds = allSections.map((s) => s.teacherId).whereType<int>().toSet();
+        final assignedCount = teachers.where((t) => assignedTeacherIds.contains(t.id)).length;
+        final unassignedCount = teachers.length - assignedCount;
+
+        final filteredTeachers = teachers.where((t) {
+          if (_searchQuery.isEmpty) return true;
+          final q = _searchQuery.toLowerCase();
+          final text = '${t.firstName} ${t.lastName} ${t.username}'.toLowerCase();
+          return text.contains(q);
+        }).toList();
+
         return Column(
           children: [
+            // Search & Stats Header
             Padding(
-              padding: const EdgeInsets.fromLTRB(AppSizes.p16, AppSizes.p12, AppSizes.p16, 0),
-              child: Row(
+              padding: const EdgeInsets.fromLTRB(AppSizes.p16, AppSizes.p12, AppSizes.p16, AppSizes.p8),
+              child: Column(
                 children: [
-                  Text(
-                    '${teachers.length} Active Teachers',
-                    style: TextStyle(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w600,
-                      color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
+                  TextField(
+                    controller: _searchController,
+                    onChanged: (val) => setState(() => _searchQuery = val.trim()),
+                    decoration: InputDecoration(
+                      hintText: 'Search teacher name or @username...',
+                      hintStyle: TextStyle(
+                        fontSize: 13,
+                        color: isDark ? AppColors.darkTextMuted : Colors.grey.shade400,
+                      ),
+                      prefixIcon: const Icon(Icons.search, size: 20),
+                      suffixIcon: _searchQuery.isNotEmpty
+                          ? IconButton(
+                              icon: const Icon(Icons.clear, size: 18),
+                              onPressed: () {
+                                _searchController.clear();
+                                setState(() => _searchQuery = '');
+                              },
+                            )
+                          : null,
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8),
+                        borderSide: BorderSide(color: isDark ? AppColors.darkBorder : Colors.grey.shade300),
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8),
+                        borderSide: BorderSide(color: isDark ? AppColors.darkBorder : Colors.grey.shade300),
+                      ),
                     ),
+                  ),
+                  const SizedBox(height: 10),
+                  Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: isDark ? AppColors.darkSurface2 : Colors.grey.shade100,
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Text(
+                          '${teachers.length} Active Teachers',
+                          style: TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w600,
+                            color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: AppColors.primaryGreen.withValues(alpha: isDark ? 0.2 : 0.1),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(
+                            color: AppColors.primaryGreen.withValues(alpha: isDark ? 0.35 : 0.2),
+                          ),
+                        ),
+                        child: Text(
+                          '$assignedCount Advisers Assigned',
+                          style: const TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w600,
+                            color: AppColors.primaryGreen,
+                          ),
+                        ),
+                      ),
+                      if (unassignedCount > 0) ...[
+                        const SizedBox(width: 8),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: Colors.amber.withValues(alpha: isDark ? 0.15 : 0.1),
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(
+                              color: Colors.amber.withValues(alpha: isDark ? 0.35 : 0.25),
+                            ),
+                          ),
+                          child: Text(
+                            '$unassignedCount Unassigned',
+                            style: TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w600,
+                              color: Colors.amber.shade700,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ],
                   ),
                 ],
               ),
             ),
+            const Divider(height: 1),
+            // Teachers List
             Expanded(
-              child: ListView.builder(
-                padding: const EdgeInsets.all(AppSizes.p16),
-                itemCount: teachers.length,
-                itemBuilder: (context, index) {
-                  return _TeacherCard(teacher: teachers[index]);
-                },
-              ),
+              child: filteredTeachers.isEmpty
+                  ? Center(
+                      child: Text(
+                        'No teachers match "$_searchQuery"',
+                        style: TextStyle(
+                          color: isDark ? AppColors.darkTextSecondary : Colors.grey.shade500,
+                        ),
+                      ),
+                    )
+                  : ListView.builder(
+                      padding: const EdgeInsets.all(AppSizes.p16),
+                      itemCount: filteredTeachers.length,
+                      itemBuilder: (context, index) {
+                        final teacher = filteredTeachers[index];
+                        final teacherSections = allSections.where((s) => s.teacherId == teacher.id).toList();
+                        return _TeacherCard(
+                          teacher: teacher,
+                          assignedSections: teacherSections,
+                        );
+                      },
+                    ),
             ),
           ],
         );
@@ -241,7 +378,8 @@ class _TeachersTabState extends ConsumerState<_TeachersTab> {
 
 class _TeacherCard extends ConsumerWidget {
   final SystemUser teacher;
-  const _TeacherCard({required this.teacher});
+  final List<SectionModel> assignedSections;
+  const _TeacherCard({required this.teacher, required this.assignedSections});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -264,20 +402,17 @@ class _TeacherCard extends ConsumerWidget {
               border: Border.all(color: isDark ? AppColors.darkBorder : Colors.grey.shade200),
             ),
             child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 CircleAvatar(
-                  radius: 22,
-                  backgroundColor: AppColors.primaryGreen.withValues(
-                    alpha: 0.12,
-                  ),
+                  radius: 20,
+                  backgroundColor: AppColors.primaryGreen.withValues(alpha: 0.12),
                   child: Text(
-                    teacher.firstName.isNotEmpty
-                        ? teacher.firstName[0].toUpperCase()
-                        : 'T',
+                    teacher.firstName.isNotEmpty ? teacher.firstName[0].toUpperCase() : 'T',
                     style: const TextStyle(
                       color: AppColors.primaryGreen,
                       fontWeight: FontWeight.bold,
-                      fontSize: 16,
+                      fontSize: 15,
                     ),
                   ),
                 ),
@@ -286,26 +421,89 @@ class _TeacherCard extends ConsumerWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
-                        '${teacher.lastName}, ${teacher.firstName}',
-                        style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 15,
-                          color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
-                        ),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Text(
+                              '${teacher.lastName}, ${teacher.firstName}',
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 14,
+                                color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
+                              ),
+                            ),
+                          ),
+                          Text(
+                            '@${teacher.username}',
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: isDark ? AppColors.darkTextSecondary : Colors.grey.shade500,
+                            ),
+                          ),
+                        ],
                       ),
-                      const SizedBox(height: 2),
-                      Text(
-                        '@${teacher.username}',
-                        style: TextStyle(
-                          fontSize: 13,
-                          color: isDark ? AppColors.darkTextSecondary : Colors.grey.shade500,
+                      const SizedBox(height: 6),
+                      // Assigned Sections Chips
+                      if (assignedSections.isNotEmpty)
+                        Wrap(
+                          spacing: 6,
+                          runSpacing: 4,
+                          children: assignedSections.map((s) {
+                            return Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                              decoration: BoxDecoration(
+                                color: AppColors.primaryGreen.withValues(alpha: isDark ? 0.18 : 0.08),
+                                borderRadius: BorderRadius.circular(10),
+                                border: Border.all(
+                                  color: AppColors.primaryGreen.withValues(alpha: isDark ? 0.35 : 0.2),
+                                ),
+                              ),
+                              child: Text(
+                                'G${s.gradeLevel} - ${s.name}${s.academicYearRange != null ? ' (${s.academicYearRange})' : ''}',
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w600,
+                                  color: isDark ? AppColors.darkTextPrimary : AppColors.primaryGreen,
+                                ),
+                              ),
+                            );
+                          }).toList(),
+                        )
+                      else
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: isDark ? AppColors.darkSurface2 : Colors.grey.shade100,
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: Text(
+                            'No sections assigned',
+                            style: TextStyle(
+                              fontSize: 11,
+                              color: isDark ? AppColors.darkTextMuted : Colors.grey.shade400,
+                            ),
+                          ),
                         ),
-                      ),
                     ],
                   ),
                 ),
-                Icon(Icons.chevron_right, color: isDark ? AppColors.darkTextMuted : Colors.grey.shade400),
+                const SizedBox(width: 8),
+                OutlinedButton.icon(
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: AppColors.primaryGreen,
+                    side: BorderSide(
+                      color: AppColors.primaryGreen.withValues(alpha: isDark ? 0.4 : 0.25),
+                    ),
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                  ),
+                  onPressed: () => showDialog(
+                    context: context,
+                    builder: (_) => TeacherSectionsModal(teacher: teacher),
+                  ),
+                  icon: const Icon(Icons.edit_note, size: 16),
+                  label: const Text('Sections', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600)),
+                ),
               ],
             ),
           ),
@@ -589,211 +787,237 @@ class _DetailRow extends StatelessWidget {
 }
 
 // ============================================================
-// ACADEMIC YEARS TAB
+// ACADEMIC YEARS OVERVIEW MODAL (Manage all years, dates & activation)
 // ============================================================
-class _AcademicYearsTab extends ConsumerWidget {
+class AcademicYearsOverviewModal extends ConsumerWidget {
+  const AcademicYearsOverviewModal({super.key});
+
+  static Future<void> show(BuildContext context) {
+    return showDialog(
+      context: context,
+      barrierColor: Colors.black54,
+      builder: (_) => const AcademicYearsOverviewModal(),
+    );
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final yearsAsync = ref.watch(academicYearsListProvider);
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
-    return Column(
-      children: [
-        Padding(
-          padding: const EdgeInsets.fromLTRB(
-            AppSizes.p16,
-            AppSizes.p12,
-            AppSizes.p16,
-            0,
-          ),
-          child: Row(
-            children: [
-              Expanded(
-                child: Text(
-                  'Old/manual academic years are added as Inactive. Activating one deactivates all others.',
-                  style: TextStyle(fontSize: 11, color: isDark ? AppColors.darkTextSecondary : Colors.grey.shade500),
-                ),
-              ),
-              const SizedBox(width: 8),
-              OutlinedButton.icon(
-                style: OutlinedButton.styleFrom(
-                  foregroundColor: AppColors.primaryGreen,
-                  side: const BorderSide(color: AppColors.primaryGreen),
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 12,
-                    vertical: 10,
-                  ),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  textStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
-                ),
-                onPressed: () => BulkAcademicImportModal.show(context),
-                icon: const Icon(Icons.upload_file, size: 16),
-                label: const Text('BULK CSV'),
-              ),
-              const SizedBox(width: 8),
-              ElevatedButton.icon(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.primaryGreen,
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 14,
-                    vertical: 10,
-                  ),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  textStyle: const TextStyle(fontSize: 13),
-                ),
-                onPressed: () => showDialog(
-                  context: context,
-                  builder: (_) => const AcademicYearFormModal(),
-                ),
-                icon: const Icon(Icons.add, size: 16),
-                label: const Text('ADD'),
-              ),
-            ],
-          ),
+    return CustomModal(
+      title: 'Manage Academic Years',
+      icon: Icons.calendar_month,
+      maxWidth: 620,
+      content: Container(
+        constraints: BoxConstraints(
+          maxHeight: MediaQuery.of(context).size.height * 0.75,
         ),
-        const SizedBox(height: 8),
-        Expanded(
-          child: yearsAsync.when(
-            data: (years) {
-              if (years.isEmpty) {
-                return const Center(child: Text('No academic years created.'));
-              }
-              return ListView.builder(
-                padding: const EdgeInsets.symmetric(horizontal: AppSizes.p16),
-                itemCount: years.length,
-                itemBuilder: (context, index) {
-                  final year = years[index];
-                  final isActive = year.status == 'active';
-                  return Container(
-                    margin: const EdgeInsets.only(bottom: AppSizes.p8),
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: AppSizes.p12,
-                      vertical: AppSizes.p12,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(AppSizes.p16, AppSizes.p12, AppSizes.p16, AppSizes.p8),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Old/manual academic years are added as Inactive. Activating one deactivates all others.',
+                    style: TextStyle(
+                      fontSize: 11,
+                      color: isDark ? AppColors.darkTextSecondary : Colors.grey.shade500,
                     ),
-                    decoration: BoxDecoration(
-                      color: isActive
-                          ? AppColors.primaryGreen.withValues(alpha: isDark ? 0.08 : 0.04)
-                          : (isDark ? AppColors.darkSurfaceCard : AppColors.surfaceWhite),
-                      borderRadius: BorderRadius.circular(
-                        AppSizes.radiusMedium,
-                      ),
-                      border: Border.all(
-                        color: isActive
-                            ? AppColors.primaryGreen.withValues(alpha: 0.35)
-                            : (isDark ? AppColors.darkBorder : Colors.grey.shade200),
-                      ),
-                    ),
-                    child: Row(
-                      children: [
-                        Icon(
-                          Icons.calendar_today,
-                          color: isActive
-                              ? AppColors.primaryGreen
-                              : (isDark ? AppColors.darkTextSecondary : Colors.grey.shade400),
-                          size: 18,
-                        ),
-                        const SizedBox(width: AppSizes.p12),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                year.yearRange,
-                                style: TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 15,
-                                  color: isActive
-                                      ? AppColors.primaryGreen
-                                      : (isDark ? AppColors.darkTextPrimary : AppColors.textPrimary),
-                                ),
-                              ),
-                              const SizedBox(height: 2),
-                              Container(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 8,
-                                  vertical: 2,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: isActive
-                                      ? AppColors.success.withValues(
-                                          alpha: 0.12,
-                                        )
-                                      : (isDark ? AppColors.darkSurface2 : Colors.grey.withValues(alpha: 0.1)),
-                                  borderRadius: BorderRadius.circular(20),
-                                ),
-                                child: Text(
-                                  isActive ? 'ACTIVE' : 'INACTIVE',
-                                  style: TextStyle(
-                                    fontSize: 10,
-                                    fontWeight: FontWeight.bold,
-                                    color: isActive
-                                        ? AppColors.success
-                                        : (isDark ? AppColors.darkTextSecondary : Colors.grey.shade500),
-                                  ),
-                                ),
-                              ),
-                            ],
+                  ),
+                  const SizedBox(height: 10),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: OutlinedButton.icon(
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: AppColors.primaryGreen,
+                            side: const BorderSide(color: AppColors.primaryGreen),
+                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                           ),
+                          onPressed: () => BulkAcademicImportModal.show(context),
+                          icon: const Icon(Icons.upload_file, size: 16),
+                          label: const Text('Bulk Import', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
                         ),
-                        IconButton(
-                          icon: Icon(
-                            Icons.edit,
-                            color: Colors.blue.shade400,
-                            size: 18,
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: ElevatedButton.icon(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: AppColors.primaryGreen,
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                           ),
                           onPressed: () => showDialog(
                             context: context,
-                            builder: (_) => AcademicYearFormModal(year: year),
+                            builder: (_) => const AcademicYearFormModal(),
                           ),
-                          tooltip: 'Edit',
+                          icon: const Icon(Icons.add, size: 16),
+                          label: const Text('Add Year', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
                         ),
-                        Consumer(
-                          builder: (context, ref, _) {
-                            return IconButton(
-                              icon: Icon(
-                                Icons.delete,
-                                color: AppColors.error.withValues(alpha: 0.7),
-                                size: 18,
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+            const Divider(height: 1),
+            Expanded(
+              child: yearsAsync.when(
+                data: (years) {
+                  if (years.isEmpty) {
+                    return const Center(child: Text('No academic years created.'));
+                  }
+                  return ListView.builder(
+                    padding: const EdgeInsets.all(AppSizes.p16),
+                    itemCount: years.length,
+                    itemBuilder: (context, index) {
+                      final year = years[index];
+                      final isActive = year.status == 'active';
+                      return Container(
+                        margin: const EdgeInsets.only(bottom: AppSizes.p8),
+                        padding: const EdgeInsets.symmetric(horizontal: AppSizes.p12, vertical: 10),
+                        decoration: BoxDecoration(
+                          color: isActive
+                              ? AppColors.primaryGreen.withValues(alpha: isDark ? 0.08 : 0.04)
+                              : (isDark ? AppColors.darkSurfaceCard : AppColors.surfaceWhite),
+                          borderRadius: BorderRadius.circular(AppSizes.radiusMedium),
+                          border: Border.all(
+                            color: isActive
+                                ? AppColors.primaryGreen.withValues(alpha: 0.35)
+                                : (isDark ? AppColors.darkBorder : Colors.grey.shade200),
+                          ),
+                        ),
+                        child: Row(
+                          children: [
+                            Icon(
+                              Icons.calendar_today,
+                              color: isActive
+                                  ? AppColors.primaryGreen
+                                  : (isDark ? AppColors.darkTextSecondary : Colors.grey.shade400),
+                              size: 18,
+                            ),
+                            const SizedBox(width: AppSizes.p12),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    year.yearRange,
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 15,
+                                      color: isActive
+                                          ? AppColors.primaryGreen
+                                          : (isDark ? AppColors.darkTextPrimary : AppColors.textPrimary),
+                                    ),
+                                  ),
+                                  if (year.startDate != null || year.endDate != null)
+                                    Text(
+                                      '${year.startDate ?? ""} to ${year.endDate ?? ""}',
+                                      style: TextStyle(
+                                        fontSize: 11,
+                                        color: isDark ? AppColors.darkTextMuted : Colors.grey.shade500,
+                                      ),
+                                    ),
+                                  const SizedBox(height: 2),
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                    decoration: BoxDecoration(
+                                      color: isActive
+                                          ? AppColors.success.withValues(alpha: 0.12)
+                                          : (isDark ? AppColors.darkSurface2 : Colors.grey.withValues(alpha: 0.1)),
+                                      borderRadius: BorderRadius.circular(20),
+                                    ),
+                                    child: Text(
+                                      isActive ? 'ACTIVE' : 'INACTIVE',
+                                      style: TextStyle(
+                                        fontSize: 10,
+                                        fontWeight: FontWeight.bold,
+                                        color: isActive
+                                            ? AppColors.success
+                                            : (isDark ? AppColors.darkTextSecondary : Colors.grey.shade500),
+                                      ),
+                                    ),
+                                  ),
+                                ],
                               ),
-                              onPressed: () =>
-                                  _confirmDelete(context, ref, year),
+                            ),
+                            if (!isActive)
+                              TextButton(
+                                onPressed: () async {
+                                  try {
+                                    await ref.read(setupMutationProvider.notifier).updateAcademicYear(
+                                          id: year.id,
+                                          yearRange: year.yearRange,
+                                          status: 'active',
+                                          startDate: year.startDate,
+                                          endDate: year.endDate,
+                                        );
+                                    if (context.mounted) {
+                                      showSuccessDialog(
+                                        context,
+                                        title: 'Activated',
+                                        message: '"${year.yearRange}" is now the active academic year.',
+                                      );
+                                    }
+                                  } catch (e) {
+                                    if (context.mounted) {
+                                      showErrorDialog(
+                                        context,
+                                        'Activation Failed',
+                                        e.toString().replaceAll('Exception: ', ''),
+                                      );
+                                    }
+                                  }
+                                },
+                                style: TextButton.styleFrom(
+                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                ),
+                                child: const Text('Set Active', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600)),
+                              ),
+                            IconButton(
+                              icon: Icon(Icons.edit, color: Colors.blue.shade400, size: 18),
+                              onPressed: () => showDialog(
+                                context: context,
+                                builder: (_) => AcademicYearFormModal(year: year),
+                              ),
+                              tooltip: 'Edit',
+                            ),
+                            IconButton(
+                              icon: Icon(Icons.delete, color: AppColors.error.withValues(alpha: 0.7), size: 18),
+                              onPressed: () => _confirmDeleteYear(context, ref, year),
                               tooltip: 'Delete',
-                            );
-                          },
+                            ),
+                          ],
                         ),
-                      ],
-                    ),
+                      );
+                    },
                   );
                 },
-              );
-            },
-            loading: () => const Center(child: CircularProgressIndicator()),
-            error: (e, _) => Center(child: Text('Error: $e')),
-          ),
+                loading: () => const Center(child: CircularProgressIndicator()),
+                error: (e, _) => Center(child: Text('Error: $e')),
+              ),
+            ),
+          ],
         ),
-      ],
+      ),
     );
   }
 
-  void _confirmDelete(
-    BuildContext context,
-    WidgetRef ref,
-    AcademicYearModel year,
-  ) {
+  void _confirmDeleteYear(BuildContext context, WidgetRef ref, AcademicYearModel year) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
         backgroundColor: isDark ? AppColors.darkSurfaceCard : Colors.white,
-        title: const Text(
-          'Delete Academic Year',
-          style: TextStyle(color: AppColors.error),
-        ),
+        title: const Text('Delete Academic Year', style: TextStyle(color: AppColors.error)),
         content: Text(
           'Delete "${year.yearRange}"? This will also delete all sections in it.',
           style: TextStyle(color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary),
@@ -801,35 +1025,19 @@ class _AcademicYearsTab extends ConsumerWidget {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: Text(
-              'CANCEL',
-              style: TextStyle(color: isDark ? AppColors.darkTextSecondary : Colors.grey.shade600),
-            ),
+            child: Text('CANCEL', style: TextStyle(color: isDark ? AppColors.darkTextSecondary : Colors.grey.shade600)),
           ),
           ElevatedButton(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.error,
-              foregroundColor: Colors.white,
-            ),
+            style: ElevatedButton.styleFrom(backgroundColor: AppColors.error, foregroundColor: Colors.white),
             onPressed: () async {
               Navigator.pop(ctx);
               try {
-                await ref
-                    .read(setupMutationProvider.notifier)
-                    .deleteAcademicYear(year.id);
+                await ref.read(setupMutationProvider.notifier).deleteAcademicYear(year.id);
                 if (!context.mounted) return;
-                showSuccessDialog(
-                  context,
-                  title: 'Deleted',
-                  message: '"${year.yearRange}" has been deleted.',
-                );
+                showSuccessDialog(context, title: 'Deleted', message: '"${year.yearRange}" has been deleted.');
               } catch (e) {
                 if (!context.mounted) return;
-                showErrorDialog(
-                  context,
-                  'Deletion Failed',
-                  e.toString().replaceAll('Exception: ', ''),
-                );
+                showErrorDialog(context, 'Deletion Failed', e.toString().replaceAll('Exception: ', ''));
               }
             },
             child: const Text('DELETE'),
@@ -841,14 +1049,16 @@ class _AcademicYearsTab extends ConsumerWidget {
 }
 
 // ============================================================
-// SECTIONS TAB (with Academic Year filter + Grade Level tabs)
+// ACADEMIC STRUCTURE TAB (Years + Sections + Grade 7-12 + Advisers)
 // ============================================================
-class _SectionsTab extends ConsumerStatefulWidget {
+class _AcademicStructureTab extends ConsumerStatefulWidget {
+  const _AcademicStructureTab();
+
   @override
-  ConsumerState<_SectionsTab> createState() => _SectionsTabState();
+  ConsumerState<_AcademicStructureTab> createState() => _AcademicStructureTabState();
 }
 
-class _SectionsTabState extends ConsumerState<_SectionsTab>
+class _AcademicStructureTabState extends ConsumerState<_AcademicStructureTab>
     with SingleTickerProviderStateMixin {
   int? _filterYearId;
   int? _filterGradeLevel;
@@ -882,15 +1092,23 @@ class _SectionsTabState extends ConsumerState<_SectionsTab>
     super.dispose();
   }
 
+  void _openAdviserSelector(BuildContext context, SectionModel section) {
+    showDialog(
+      context: context,
+      builder: (_) => _SectionAdviserSelectorModal(section: section),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final sectionsAsync = ref.watch(sectionsListProvider);
     final yearsAsync = ref.watch(academicYearsListProvider);
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final isNarrow = MediaQuery.of(context).size.width < 700 ||
+        Theme.of(context).platform == TargetPlatform.android;
 
     return yearsAsync.when(
       data: (years) {
-        // Auto-select the active (or highest) year on first load
         if (!_filtersInitialized && years.isNotEmpty) {
           final active = years.firstWhere(
             (y) => y.status == 'active',
@@ -908,7 +1126,7 @@ class _SectionsTabState extends ConsumerState<_SectionsTab>
 
         return Column(
           children: [
-            // Top Controls Row: Academic Year Dropdown + Add Section Button
+            // Controls toolbar
             Padding(
               padding: const EdgeInsets.fromLTRB(
                 AppSizes.p16,
@@ -916,84 +1134,172 @@ class _SectionsTabState extends ConsumerState<_SectionsTab>
                 AppSizes.p16,
                 AppSizes.p8,
               ),
-              child: Row(
-                children: [
-                  // Academic year filter
-                  Expanded(
-                    child: _FilterDropdown<int>(
-                      hint: 'All Years',
-                      icon: Icons.calendar_today,
-                      value: _filterYearId,
-                      items: years
-                          .map(
-                            (y) => DropdownMenuItem<int>(
-                              value: y.id,
-                              child: Text(
-                                y.yearRange + (y.status == 'active' ? ' (Active)' : ''),
-                                overflow: TextOverflow.ellipsis,
+              child: isNarrow
+                  ? Column(
+                      children: [
+                        Row(
+                          children: [
+                            Expanded(
+                              child: _FilterDropdown<int>(
+                                hint: 'All Years',
+                                icon: Icons.calendar_today,
+                                value: _filterYearId,
+                                items: years
+                                    .map(
+                                      (y) => DropdownMenuItem<int>(
+                                        value: y.id,
+                                        child: Text(
+                                          y.yearRange + (y.status == 'active' ? ' (Active)' : ''),
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                      ),
+                                    )
+                                    .toList(),
+                                onChanged: (v) => setState(() => _filterYearId = v),
+                                showClear: _filterYearId != null,
+                                onClear: () => setState(() => _filterYearId = null),
                               ),
                             ),
-                          )
-                          .toList(),
-                      onChanged: (v) => setState(() => _filterYearId = v),
-                      showClear: _filterYearId != null,
-                      onClear: () => setState(() => _filterYearId = null),
+                            const SizedBox(width: 8),
+                            SizedBox(
+                              height: 42,
+                              child: OutlinedButton.icon(
+                                style: OutlinedButton.styleFrom(
+                                  foregroundColor: AppColors.primaryGreen,
+                                  side: const BorderSide(color: AppColors.primaryGreen),
+                                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 0),
+                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                                ),
+                                onPressed: () => AcademicYearsOverviewModal.show(context),
+                                icon: const Icon(Icons.date_range, size: 16),
+                                label: const Text('Manage Years', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600)),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 8),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: SizedBox(
+                                height: 38,
+                                child: OutlinedButton.icon(
+                                  style: OutlinedButton.styleFrom(
+                                    foregroundColor: AppColors.primaryGreen,
+                                    side: const BorderSide(color: AppColors.primaryGreen),
+                                    padding: EdgeInsets.zero,
+                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                                  ),
+                                  onPressed: () => BulkAcademicImportModal.show(context),
+                                  icon: const Icon(Icons.upload_file, size: 16),
+                                  label: const Text('Bulk Import', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600)),
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: SizedBox(
+                                height: 38,
+                                child: ElevatedButton.icon(
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: AppColors.primaryGreen,
+                                    foregroundColor: Colors.white,
+                                    padding: EdgeInsets.zero,
+                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                                  ),
+                                  onPressed: () => showDialog(
+                                    context: context,
+                                    builder: (_) => SectionFormModal(
+                                      defaultAcademicYearId: _filterYearId,
+                                      defaultGradeLevel: _filterGradeLevel,
+                                    ),
+                                  ),
+                                  icon: const Icon(Icons.add, size: 16),
+                                  label: const Text('Add Section', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600)),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    )
+                  : Row(
+                      children: [
+                        Expanded(
+                          flex: 3,
+                          child: _FilterDropdown<int>(
+                            hint: 'All Years',
+                            icon: Icons.calendar_today,
+                            value: _filterYearId,
+                            items: years
+                                .map(
+                                  (y) => DropdownMenuItem<int>(
+                                    value: y.id,
+                                    child: Text(
+                                      y.yearRange + (y.status == 'active' ? ' (Active)' : ''),
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                  ),
+                                )
+                                .toList(),
+                            onChanged: (v) => setState(() => _filterYearId = v),
+                            showClear: _filterYearId != null,
+                            onClear: () => setState(() => _filterYearId = null),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        SizedBox(
+                          height: 42,
+                          child: OutlinedButton.icon(
+                            style: OutlinedButton.styleFrom(
+                              foregroundColor: AppColors.primaryGreen,
+                              side: const BorderSide(color: AppColors.primaryGreen),
+                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 0),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                            ),
+                            onPressed: () => AcademicYearsOverviewModal.show(context),
+                            icon: const Icon(Icons.date_range, size: 16),
+                            label: const Text('Manage Years', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
+                          ),
+                        ),
+                        const Spacer(),
+                        SizedBox(
+                          height: 42,
+                          child: OutlinedButton.icon(
+                            style: OutlinedButton.styleFrom(
+                              foregroundColor: AppColors.primaryGreen,
+                              side: const BorderSide(color: AppColors.primaryGreen),
+                              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 0),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                            ),
+                            onPressed: () => BulkAcademicImportModal.show(context),
+                            icon: const Icon(Icons.upload_file, size: 16),
+                            label: const Text('Bulk Import', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        SizedBox(
+                          height: 42,
+                          child: ElevatedButton.icon(
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: AppColors.primaryGreen,
+                              foregroundColor: Colors.white,
+                              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 0),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                            ),
+                            onPressed: () => showDialog(
+                              context: context,
+                              builder: (_) => SectionFormModal(
+                                defaultAcademicYearId: _filterYearId,
+                                defaultGradeLevel: _filterGradeLevel,
+                              ),
+                            ),
+                            icon: const Icon(Icons.add, size: 18),
+                            label: const Text('Add Section', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
+                          ),
+                        ),
+                      ],
                     ),
-                  ),
-                  const SizedBox(width: 8),
-                  SizedBox(
-                    height: 42,
-                    child: OutlinedButton.icon(
-                      style: OutlinedButton.styleFrom(
-                        foregroundColor: AppColors.primaryGreen,
-                        side: const BorderSide(color: AppColors.primaryGreen),
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 12,
-                          vertical: 0,
-                        ),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                      ),
-                      onPressed: () => BulkAcademicImportModal.show(context),
-                      icon: const Icon(Icons.upload_file, size: 16),
-                      label: const Text(
-                        'BULK CSV',
-                        style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  SizedBox(
-                    height: 42,
-                    child: ElevatedButton.icon(
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColors.primaryGreen,
-                        foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 14,
-                          vertical: 0,
-                        ),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                      ),
-                      onPressed: () => showDialog(
-                        context: context,
-                        builder: (_) => SectionFormModal(
-                          defaultAcademicYearId: _filterYearId,
-                          defaultGradeLevel: _filterGradeLevel,
-                        ),
-                      ),
-                      icon: const Icon(Icons.add, size: 18),
-                      label: const Text(
-                        'ADD SECTION',
-                        style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
             ),
 
             // Grade Tabs Filtering
@@ -1002,12 +1308,8 @@ class _SectionsTabState extends ConsumerState<_SectionsTab>
               decoration: BoxDecoration(
                 color: isDark ? AppColors.darkSurfaceCard : Colors.grey.shade50,
                 border: Border(
-                  top: BorderSide(
-                    color: isDark ? AppColors.darkBorder : Colors.grey.shade200,
-                  ),
-                  bottom: BorderSide(
-                    color: isDark ? AppColors.darkBorder : Colors.grey.shade200,
-                  ),
+                  top: BorderSide(color: isDark ? AppColors.darkBorder : Colors.grey.shade200),
+                  bottom: BorderSide(color: isDark ? AppColors.darkBorder : Colors.grey.shade200),
                 ),
               ),
               child: TabBar(
@@ -1015,19 +1317,11 @@ class _SectionsTabState extends ConsumerState<_SectionsTab>
                 isScrollable: true,
                 tabAlignment: TabAlignment.start,
                 labelColor: AppColors.primaryGreen,
-                unselectedLabelColor: isDark
-                    ? AppColors.darkTextSecondary
-                    : AppColors.textSecondary,
+                unselectedLabelColor: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
                 indicatorColor: AppColors.primaryGreen,
                 indicatorWeight: 2.5,
-                labelStyle: const TextStyle(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w600,
-                ),
-                unselectedLabelStyle: const TextStyle(
-                  fontSize: 13,
-                  fontWeight: FontWeight.normal,
-                ),
+                labelStyle: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+                unselectedLabelStyle: const TextStyle(fontSize: 13, fontWeight: FontWeight.normal),
                 tabs: [
                   const Tab(text: 'All Grades'),
                   ...kGradeLevels.map((g) => Tab(text: 'Grade $g')),
@@ -1043,15 +1337,12 @@ class _SectionsTabState extends ConsumerState<_SectionsTab>
                 data: (sections) {
                   var filtered = sections;
                   if (_filterYearId != null) {
-                    filtered = filtered
-                        .where((s) => s.academicYearId == _filterYearId)
-                        .toList();
+                    filtered = filtered.where((s) => s.academicYearId == _filterYearId).toList();
                   }
                   if (_filterGradeLevel != null) {
-                    filtered = filtered
-                        .where((s) => s.gradeLevel == _filterGradeLevel)
-                        .toList();
+                    filtered = filtered.where((s) => s.gradeLevel == _filterGradeLevel).toList();
                   }
+
                   if (filtered.isEmpty) {
                     return Center(
                       child: Column(
@@ -1074,7 +1365,7 @@ class _SectionsTabState extends ConsumerState<_SectionsTab>
                           ),
                           const SizedBox(height: 6),
                           Text(
-                            'Try adjusting the academic year or add a new section.',
+                            'Try adjusting the academic year or click "+ Section" to add one.',
                             style: TextStyle(
                               color: isDark ? AppColors.darkTextMuted : Colors.grey.shade400,
                               fontSize: 12,
@@ -1084,6 +1375,7 @@ class _SectionsTabState extends ConsumerState<_SectionsTab>
                       ),
                     );
                   }
+
                   return ListView.builder(
                     padding: const EdgeInsets.symmetric(
                       horizontal: AppSizes.p16,
@@ -1094,97 +1386,84 @@ class _SectionsTabState extends ConsumerState<_SectionsTab>
                       final section = filtered[index];
                       return Container(
                         margin: const EdgeInsets.only(bottom: AppSizes.p8),
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: AppSizes.p12,
-                          vertical: AppSizes.p12,
-                        ),
+                        padding: const EdgeInsets.all(AppSizes.p12),
                         decoration: BoxDecoration(
                           color: isDark ? AppColors.darkSurfaceCard : AppColors.surfaceWhite,
-                          borderRadius: BorderRadius.circular(
-                            AppSizes.radiusMedium,
-                          ),
+                          borderRadius: BorderRadius.circular(AppSizes.radiusMedium),
                           border: Border.all(color: isDark ? AppColors.darkBorder : Colors.grey.shade200),
                         ),
                         child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.center,
                           children: [
+                            // Grade level avatar
                             Container(
-                              width: 36,
-                              height: 36,
+                              width: 38,
+                              height: 38,
                               decoration: BoxDecoration(
-                                color: AppColors.primaryGreen.withValues(
-                                  alpha: isDark ? 0.18 : 0.1,
-                                ),
+                                color: AppColors.primaryGreen.withValues(alpha: isDark ? 0.18 : 0.1),
                                 borderRadius: BorderRadius.circular(8),
                               ),
                               child: Center(
                                 child: Text(
-                                  '${section.gradeLevel}',
+                                  'G${section.gradeLevel}',
                                   style: const TextStyle(
                                     color: AppColors.primaryGreen,
                                     fontWeight: FontWeight.bold,
+                                    fontSize: 13,
                                   ),
                                 ),
                               ),
                             ),
                             const SizedBox(width: AppSizes.p12),
+                            // Section info & Adviser chip
                             Expanded(
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  Text(
-                                    section.name,
-                                    style: TextStyle(
-                                      fontWeight: FontWeight.bold,
-                                      fontSize: 14,
-                                      color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
-                                    ),
+                                  Row(
+                                    children: [
+                                      Text(
+                                        section.name,
+                                        style: TextStyle(
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: 15,
+                                          color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
+                                        ),
+                                      ),
+                                      const SizedBox(width: 8),
+                                      Text(
+                                        section.academicYearRange ?? '',
+                                        style: TextStyle(
+                                          color: isDark ? AppColors.darkTextMuted : Colors.grey.shade500,
+                                          fontSize: 12,
+                                        ),
+                                      ),
+                                    ],
                                   ),
-                                  Text(
-                                    'Grade ${section.gradeLevel} • ${section.academicYearRange ?? ""}',
-                                    style: TextStyle(
-                                      color: isDark ? AppColors.darkTextSecondary : Colors.grey.shade500,
-                                      fontSize: 12,
-                                    ),
-                                  ),
+                                  const SizedBox(height: 6),
+                                  // Interactive Adviser Chip
+                                  _buildAdviserChip(context, section, isDark),
                                 ],
                               ),
                             ),
-                            Consumer(
-                              builder: (context, ref, _) {
-                                return Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    IconButton(
-                                      icon: Icon(
-                                        Icons.edit,
-                                        color: Colors.blue.shade400,
-                                        size: 18,
-                                      ),
-                                      onPressed: () => showDialog(
-                                        context: context,
-                                        builder: (_) =>
-                                            SectionFormModal(section: section),
-                                      ),
-                                      tooltip: 'Edit',
-                                    ),
-                                    IconButton(
-                                      icon: Icon(
-                                        Icons.delete,
-                                        color: AppColors.error.withValues(
-                                          alpha: 0.7,
-                                        ),
-                                        size: 18,
-                                      ),
-                                      onPressed: () => _confirmDeleteSection(
-                                        context,
-                                        ref,
-                                        section,
-                                      ),
-                                      tooltip: 'Delete',
-                                    ),
-                                  ],
-                                );
-                              },
+                            // Actions
+                            Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                IconButton(
+                                  icon: Icon(Icons.edit_outlined, color: Colors.blue.shade400, size: 18),
+                                  tooltip: 'Edit Section',
+                                  onPressed: () => showDialog(
+                                    context: context,
+                                    builder: (_) => SectionFormModal(section: section),
+                                  ),
+                                ),
+                                IconButton(
+                                  icon: Icon(Icons.delete_outline, color: AppColors.error.withValues(alpha: 0.7), size: 18),
+                                  tooltip: 'Delete Section',
+                                  onPressed: () => _confirmDeleteSection(context, ref, section),
+                                ),
+                              ],
                             ),
                           ],
                         ),
@@ -1204,6 +1483,76 @@ class _SectionsTabState extends ConsumerState<_SectionsTab>
     );
   }
 
+  Widget _buildAdviserChip(BuildContext context, SectionModel section, bool isDark) {
+    if (section.teacherFullName != null) {
+      return InkWell(
+        onTap: () => _openAdviserSelector(context, section),
+        borderRadius: BorderRadius.circular(16),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 3),
+          decoration: BoxDecoration(
+            color: AppColors.primaryGreen.withValues(alpha: isDark ? 0.16 : 0.08),
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(
+              color: AppColors.primaryGreen.withValues(alpha: isDark ? 0.35 : 0.25),
+            ),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(Icons.person, size: 13, color: AppColors.primaryGreen),
+              const SizedBox(width: 5),
+              Text(
+                'Adviser: ${section.teacherFullName}',
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                  color: isDark ? AppColors.darkTextPrimary : AppColors.primaryGreen,
+                ),
+              ),
+              const SizedBox(width: 4),
+              Icon(
+                Icons.edit_outlined,
+                size: 12,
+                color: isDark ? AppColors.darkTextSecondary : AppColors.primaryGreen.withValues(alpha: 0.7),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    return InkWell(
+      onTap: () => _openAdviserSelector(context, section),
+      borderRadius: BorderRadius.circular(16),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 3),
+        decoration: BoxDecoration(
+          color: Colors.amber.withValues(alpha: isDark ? 0.15 : 0.08),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: Colors.amber.withValues(alpha: isDark ? 0.35 : 0.28),
+          ),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.person_add_outlined, size: 13, color: Colors.amber.shade700),
+            const SizedBox(width: 5),
+            Text(
+              'No Adviser Assigned • Click to assign',
+              style: TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.w600,
+                color: Colors.amber.shade800,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   void _confirmDeleteSection(
     BuildContext context,
     WidgetRef ref,
@@ -1214,10 +1563,7 @@ class _SectionsTabState extends ConsumerState<_SectionsTab>
       context: context,
       builder: (ctx) => AlertDialog(
         backgroundColor: isDark ? AppColors.darkSurfaceCard : Colors.white,
-        title: const Text(
-          'Delete Section',
-          style: TextStyle(color: AppColors.error),
-        ),
+        title: const Text('Delete Section', style: TextStyle(color: AppColors.error)),
         content: Text(
           'Are you sure you want to delete section "${section.name}"?',
           style: TextStyle(color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary),
@@ -1225,22 +1571,14 @@ class _SectionsTabState extends ConsumerState<_SectionsTab>
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: Text(
-              'CANCEL',
-              style: TextStyle(color: isDark ? AppColors.darkTextSecondary : Colors.grey.shade600),
-            ),
+            child: Text('CANCEL', style: TextStyle(color: isDark ? AppColors.darkTextSecondary : Colors.grey.shade600)),
           ),
           ElevatedButton(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.error,
-              foregroundColor: Colors.white,
-            ),
+            style: ElevatedButton.styleFrom(backgroundColor: AppColors.error, foregroundColor: Colors.white),
             onPressed: () async {
               Navigator.pop(ctx);
               try {
-                await ref
-                    .read(setupMutationProvider.notifier)
-                    .deleteSection(section.id);
+                await ref.read(setupMutationProvider.notifier).deleteSection(section.id);
                 if (!context.mounted) return;
                 showSuccessDialog(
                   context,
@@ -1259,6 +1597,289 @@ class _SectionsTabState extends ConsumerState<_SectionsTab>
             child: const Text('DELETE'),
           ),
         ],
+      ),
+    );
+  }
+}
+
+// ============================================================
+// SECTION ADVISER SELECTOR MODAL (1-click quick adviser assignment)
+// ============================================================
+class _SectionAdviserSelectorModal extends ConsumerStatefulWidget {
+  final SectionModel section;
+  const _SectionAdviserSelectorModal({required this.section});
+
+  @override
+  ConsumerState<_SectionAdviserSelectorModal> createState() =>
+      _SectionAdviserSelectorModalState();
+}
+
+class _SectionAdviserSelectorModalState
+    extends ConsumerState<_SectionAdviserSelectorModal> {
+  final TextEditingController _searchController = TextEditingController();
+  String _searchQuery = '';
+  bool _isLoading = false;
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _assignAdviser(int? teacherId, String teacherName) async {
+    setState(() => _isLoading = true);
+    try {
+      await ref.read(setupMutationProvider.notifier).setSectionAdviser(
+            sectionId: widget.section.id,
+            teacherId: teacherId,
+          );
+      if (!mounted) return;
+      Navigator.pop(context);
+      showSuccessDialog(
+        context,
+        title: 'Adviser Updated',
+        message: teacherId != null
+            ? '$teacherName assigned as adviser for section "${widget.section.name}".'
+            : 'Adviser removed from section "${widget.section.name}".',
+      );
+    } catch (e) {
+      if (!mounted) return;
+      showErrorDialog(
+        context,
+        'Failed to Assign Adviser',
+        e.toString().replaceAll('Exception: ', ''),
+      );
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final usersAsync = ref.watch(usersProvider);
+    final sectionsAsync = ref.watch(sectionsListProvider);
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    return CustomModal(
+      title: 'Assign Class Adviser',
+      icon: Icons.person_pin_outlined,
+      maxWidth: 480,
+      content: Container(
+        constraints: BoxConstraints(
+          maxHeight: MediaQuery.of(context).size.height * 0.75,
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            // Section Info Card
+            Container(
+              padding: const EdgeInsets.all(AppSizes.p12),
+              margin: const EdgeInsets.fromLTRB(AppSizes.p16, AppSizes.p12, AppSizes.p16, AppSizes.p8),
+              decoration: BoxDecoration(
+                color: isDark ? AppColors.darkSurface2 : Colors.grey.shade50,
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: isDark ? AppColors.darkBorder : Colors.grey.shade200),
+              ),
+              child: Row(
+                children: [
+                  Container(
+                    width: 32,
+                    height: 32,
+                    decoration: BoxDecoration(
+                      color: AppColors.primaryGreen.withValues(alpha: 0.15),
+                      borderRadius: BorderRadius.circular(6),
+                    ),
+                    child: Center(
+                      child: Text(
+                        'G${widget.section.gradeLevel}',
+                        style: const TextStyle(
+                          color: AppColors.primaryGreen,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 12,
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          widget.section.name,
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 14,
+                            color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
+                          ),
+                        ),
+                        Text(
+                          'Academic Year: ${widget.section.academicYearRange ?? "Unknown"}',
+                          style: TextStyle(
+                            fontSize: 11,
+                            color: isDark ? AppColors.darkTextSecondary : Colors.grey.shade600,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  if (widget.section.teacherFullName != null)
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                      decoration: BoxDecoration(
+                        color: AppColors.primaryGreen.withValues(alpha: 0.12),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: Text(
+                        'Current: ${widget.section.teacherFullName}',
+                        style: const TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.primaryGreen,
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+            ),
+
+            // Search Bar
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: AppSizes.p16, vertical: AppSizes.p4),
+              child: TextField(
+                controller: _searchController,
+                onChanged: (val) => setState(() => _searchQuery = val.trim().toLowerCase()),
+                decoration: InputDecoration(
+                  hintText: 'Search teacher name or username...',
+                  prefixIcon: const Icon(Icons.search, size: 20),
+                  suffixIcon: _searchQuery.isNotEmpty
+                      ? IconButton(
+                          icon: const Icon(Icons.clear, size: 18),
+                          onPressed: () {
+                            _searchController.clear();
+                            setState(() => _searchQuery = '');
+                          },
+                        )
+                      : null,
+                  contentPadding: const EdgeInsets.symmetric(vertical: 10),
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                ),
+              ),
+            ),
+
+            // Options List
+            Expanded(
+              child: usersAsync.when(
+                data: (users) {
+                  final teachers = users.where((u) => u.role == 'teacher' && u.isActive).toList();
+                  final allSections = sectionsAsync.value ?? [];
+
+                  final filteredTeachers = teachers.where((t) {
+                    if (_searchQuery.isEmpty) return true;
+                    final text = '${t.firstName} ${t.lastName} ${t.username}'.toLowerCase();
+                    return text.contains(_searchQuery);
+                  }).toList();
+
+                  return ListView(
+                    padding: const EdgeInsets.all(AppSizes.p16),
+                    children: [
+                      // "Unassign / Clear Adviser" Tile
+                      ListTile(
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
+                          side: BorderSide(
+                            color: widget.section.teacherId == null
+                                ? AppColors.primaryGreen
+                                : (isDark ? AppColors.darkBorder : Colors.grey.shade200),
+                          ),
+                        ),
+                        tileColor: widget.section.teacherId == null
+                            ? AppColors.primaryGreen.withValues(alpha: 0.08)
+                            : (isDark ? AppColors.darkSurfaceCard : Colors.white),
+                        leading: CircleAvatar(
+                          radius: 16,
+                          backgroundColor: Colors.grey.withValues(alpha: 0.2),
+                          child: const Icon(Icons.person_off_outlined, size: 16, color: Colors.grey),
+                        ),
+                        title: const Text('None (Unassigned)', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
+                        subtitle: const Text('Leave this section without an adviser', style: TextStyle(fontSize: 11)),
+                        trailing: widget.section.teacherId == null
+                            ? const Icon(Icons.check_circle, color: AppColors.primaryGreen, size: 20)
+                            : null,
+                        onTap: _isLoading ? null : () => _assignAdviser(null, 'No Adviser'),
+                      ),
+                      const SizedBox(height: 8),
+                      const Divider(height: 16),
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: 6),
+                        child: Text(
+                          'Teachers (${filteredTeachers.length})',
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                            color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
+                          ),
+                        ),
+                      ),
+                      ...filteredTeachers.map((teacher) {
+                        final isCurrent = widget.section.teacherId == teacher.id;
+                        final advisingCount = allSections.where((s) => s.teacherId == teacher.id).length;
+                        return Container(
+                          margin: const EdgeInsets.only(bottom: 6),
+                          decoration: BoxDecoration(
+                            color: isCurrent
+                                ? AppColors.primaryGreen.withValues(alpha: 0.08)
+                                : (isDark ? AppColors.darkSurfaceCard : Colors.white),
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(
+                              color: isCurrent
+                                  ? AppColors.primaryGreen
+                                  : (isDark ? AppColors.darkBorder : Colors.grey.shade200),
+                            ),
+                          ),
+                          child: ListTile(
+                            leading: CircleAvatar(
+                              radius: 18,
+                              backgroundColor: AppColors.primaryGreen.withValues(alpha: 0.15),
+                              child: Text(
+                                teacher.firstName.isNotEmpty ? teacher.firstName[0].toUpperCase() : 'T',
+                                style: const TextStyle(
+                                  color: AppColors.primaryGreen,
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 13,
+                                ),
+                              ),
+                            ),
+                            title: Text(
+                              '${teacher.lastName}, ${teacher.firstName}',
+                              style: TextStyle(
+                                fontWeight: isCurrent ? FontWeight.bold : FontWeight.w600,
+                                fontSize: 13,
+                              ),
+                            ),
+                            subtitle: Text(
+                              '@${teacher.username} • Advises $advisingCount ${advisingCount == 1 ? "section" : "sections"}',
+                              style: const TextStyle(fontSize: 11),
+                            ),
+                            trailing: isCurrent
+                                ? const Icon(Icons.check_circle, color: AppColors.primaryGreen, size: 20)
+                                : const Icon(Icons.arrow_forward_ios, size: 14),
+                            onTap: _isLoading
+                                ? null
+                                : () => _assignAdviser(teacher.id, '${teacher.lastName}, ${teacher.firstName}'),
+                          ),
+                        );
+                      }),
+                    ],
+                  );
+                },
+                loading: () => const Center(child: CircularProgressIndicator()),
+                error: (e, _) => Center(child: Text('Error loading teachers: $e')),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -1770,6 +2391,7 @@ class _SectionFormModalState extends ConsumerState<SectionFormModal> {
   late TextEditingController _nameController;
   int? _selectedGradeLevel;
   int? _selectedAcademicYearId;
+  int? _selectedTeacherId;
   bool _isLoading = false;
 
   @override
@@ -1780,6 +2402,7 @@ class _SectionFormModalState extends ConsumerState<SectionFormModal> {
         widget.section?.gradeLevel ?? widget.defaultGradeLevel;
     _selectedAcademicYearId =
         widget.section?.academicYearId ?? widget.defaultAcademicYearId;
+    _selectedTeacherId = widget.section?.teacherId;
   }
 
   @override
@@ -1793,6 +2416,7 @@ class _SectionFormModalState extends ConsumerState<SectionFormModal> {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final isEditing = widget.section != null;
     final yearsAsync = ref.watch(academicYearsListProvider);
+    final usersAsync = ref.watch(usersProvider);
     final isNarrow =
         MediaQuery.of(context).size.width < 600 ||
         Theme.of(context).platform == TargetPlatform.android;
@@ -1904,6 +2528,40 @@ class _SectionFormModalState extends ConsumerState<SectionFormModal> {
                     loading: () => const Center(child: CircularProgressIndicator()),
                     error: (e, _) => Text('Error loading academic years: $e'),
                   ),
+                  const SizedBox(height: AppSizes.p16),
+                  // Class Adviser (Optional)
+                  usersAsync.when(
+                    data: (users) {
+                      final teachers = users.where((u) => u.role == 'teacher' && u.isActive).toList();
+                      final validTeacherIds = teachers.map((t) => t.id).toList();
+                      final safeTeacherId = validTeacherIds.contains(_selectedTeacherId)
+                          ? _selectedTeacherId
+                          : null;
+                      return DropdownButtonFormField<int?>(
+                        initialValue: safeTeacherId,
+                        decoration: const InputDecoration(
+                          labelText: 'Class Adviser (Optional)',
+                          prefixIcon: Icon(Icons.person_outline),
+                          border: OutlineInputBorder(),
+                        ),
+                        items: [
+                          const DropdownMenuItem<int?>(
+                            value: null,
+                            child: Text('None (Unassigned)'),
+                          ),
+                          ...teachers.map((t) {
+                            return DropdownMenuItem<int?>(
+                              value: t.id,
+                              child: Text('${t.lastName}, ${t.firstName} (@${t.username})'),
+                            );
+                          }),
+                        ],
+                        onChanged: (v) => setState(() => _selectedTeacherId = v),
+                      );
+                    },
+                    loading: () => const SizedBox.shrink(),
+                    error: (_, _) => const SizedBox.shrink(),
+                  ),
                   const SizedBox(height: 24),
                   Row(
                     children: [
@@ -1968,6 +2626,7 @@ class _SectionFormModalState extends ConsumerState<SectionFormModal> {
               name: _nameController.text.trim(),
               gradeLevel: _selectedGradeLevel!,
               academicYearId: _selectedAcademicYearId!,
+              teacherId: _selectedTeacherId,
             );
       } else {
         await ref
@@ -1976,6 +2635,7 @@ class _SectionFormModalState extends ConsumerState<SectionFormModal> {
               name: _nameController.text.trim(),
               gradeLevel: _selectedGradeLevel!,
               academicYearId: _selectedAcademicYearId!,
+              teacherId: _selectedTeacherId,
             );
       }
       if (!mounted) return;

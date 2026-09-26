@@ -30,6 +30,16 @@ class SectionModel {
   final int gradeLevel;
   final int? academicYearId;
   final String? academicYearRange;
+  final int? teacherId;
+  final String? teacherFirstName;
+  final String? teacherLastName;
+
+  String? get teacherFullName {
+    if (teacherLastName != null && teacherFirstName != null) {
+      return '$teacherLastName, $teacherFirstName';
+    }
+    return teacherFirstName ?? teacherLastName;
+  }
 
   SectionModel({
     required this.id,
@@ -37,6 +47,9 @@ class SectionModel {
     required this.gradeLevel,
     this.academicYearId,
     this.academicYearRange,
+    this.teacherId,
+    this.teacherFirstName,
+    this.teacherLastName,
   });
 
   factory SectionModel.fromJson(Map<String, dynamic> json) {
@@ -48,6 +61,11 @@ class SectionModel {
           ? (json['academic_year_id'] as num).toInt()
           : null,
       academicYearRange: json['academic_year_range'] as String?,
+      teacherId: json['teacher_id'] != null
+          ? (json['teacher_id'] as num).toInt()
+          : null,
+      teacherFirstName: json['teacher_first_name'] as String?,
+      teacherLastName: json['teacher_last_name'] as String?,
     );
   }
 }

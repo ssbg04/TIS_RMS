@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../domain/entities/setup_models.dart';
 import '../../domain/repositories/setup_repository.dart';
 import 'auth_provider.dart';
+import 'users_provider.dart';
 
 final setupRepositoryProvider = Provider<SetupRepository>((ref) {
   return SetupRepository();
@@ -134,6 +135,7 @@ class SetupMutationNotifier extends AsyncNotifier<void> {
     required String name,
     required int gradeLevel,
     required int academicYearId,
+    int? teacherId,
   }) async {
     state = const AsyncLoading();
     try {
@@ -142,9 +144,11 @@ class SetupMutationNotifier extends AsyncNotifier<void> {
         name: name,
         gradeLevel: gradeLevel,
         academicYearId: academicYearId,
+        teacherId: teacherId,
       );
       state = const AsyncData(null);
       ref.invalidate(sectionsListProvider);
+      ref.invalidate(usersProvider);
     } catch (e, st) {
       state = AsyncError(e, st);
       rethrow;
@@ -162,6 +166,7 @@ class SetupMutationNotifier extends AsyncNotifier<void> {
       ref.invalidate(academicYearsListProvider);
       ref.invalidate(gradeLevelsListProvider);
       ref.invalidate(sectionsListProvider);
+      ref.invalidate(usersProvider);
       return res;
     } catch (e, st) {
       state = AsyncError(e, st);
@@ -174,6 +179,7 @@ class SetupMutationNotifier extends AsyncNotifier<void> {
     required String name,
     required int gradeLevel,
     required int academicYearId,
+    int? teacherId,
   }) async {
     state = const AsyncLoading();
     try {
@@ -183,9 +189,28 @@ class SetupMutationNotifier extends AsyncNotifier<void> {
         name: name,
         gradeLevel: gradeLevel,
         academicYearId: academicYearId,
+        teacherId: teacherId,
       );
       state = const AsyncData(null);
       ref.invalidate(sectionsListProvider);
+      ref.invalidate(usersProvider);
+    } catch (e, st) {
+      state = AsyncError(e, st);
+      rethrow;
+    }
+  }
+
+  Future<void> setSectionAdviser({
+    required int sectionId,
+    int? teacherId,
+  }) async {
+    state = const AsyncLoading();
+    try {
+      final repo = ref.read(setupRepositoryProvider);
+      await repo.setSectionAdviser(sectionId: sectionId, teacherId: teacherId);
+      state = const AsyncData(null);
+      ref.invalidate(sectionsListProvider);
+      ref.invalidate(usersProvider);
     } catch (e, st) {
       state = AsyncError(e, st);
       rethrow;

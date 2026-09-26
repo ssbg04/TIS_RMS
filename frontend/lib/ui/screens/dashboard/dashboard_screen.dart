@@ -571,8 +571,8 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                         children: [
                           _setupNavButton(
                             context,
-                            icon: Icons.people_outline,
-                            label: 'Teachers & Academic Setup',
+                            icon: Icons.school_outlined,
+                            label: 'Academic & Class Management',
                             isMobile: true,
                             onTap: () => TeacherManagementModal.open(context),
                           ),
@@ -626,8 +626,8 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                               children: [
                                 _setupNavButton(
                                   context,
-                                  icon: Icons.people_outline,
-                                  label: 'Teachers & Academic Setup',
+                                  icon: Icons.school_outlined,
+                                  label: 'Academic & Class Management',
                                   onTap: () =>
                                       TeacherManagementModal.open(context),
                                 ),

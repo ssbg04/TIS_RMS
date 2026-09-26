@@ -990,7 +990,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                                 const Row(
                                   children: [
                                     Icon(
-                                      Icons.people_alt,
+                                      Icons.school_outlined,
                                       color: AppColors.primaryGreen,
                                     ),
                                     SizedBox(width: AppSizes.p8),
@@ -1000,14 +1000,14 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                                             CrossAxisAlignment.start,
                                         children: [
                                           Text(
-                                            'Teachers & Academic Setup',
+                                            'Academic & Class Management',
                                             style: TextStyle(
                                               fontSize: 18,
                                               fontWeight: FontWeight.bold,
                                             ),
                                           ),
                                           Text(
-                                            'Manage teachers, academic years, grade levels, and sections',
+                                            'Manage academic years, sections, and class advisers',
                                             style: TextStyle(
                                               fontSize: 13,
                                               color: Colors.grey,
@@ -1112,7 +1112,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                                       );
                                       if (years.isEmpty) {
                                         return const Text(
-                                          'No academic years found. Configure an academic year in Teachers & Academic Setup first.',
+                                          'No academic years found. Configure an academic year in Academic & Class Management first.',
                                           style: TextStyle(color: AppColors.warning, fontSize: 13),
                                         );
                                       }
@@ -1129,7 +1129,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                                                 border: Border.all(color: AppColors.warning.withValues(alpha: 0.3)),
                                               ),
                                               child: const Text(
-                                                'No active academic year found. An administrator must activate a school year in Teachers & Academic Setup.',
+                                                'No active academic year found. An administrator must activate a school year in Academic & Class Management.',
                                                 style: TextStyle(color: AppColors.warning, fontSize: 13),
                                               ),
                                             ),

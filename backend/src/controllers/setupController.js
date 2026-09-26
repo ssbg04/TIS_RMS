@@ -193,9 +193,14 @@ exports.deleteAcademicYear = (req, res) => {
 exports.getAllSections = (req, res) => {
     try {
         const sections = db.prepare(`
-            SELECT s.*, ay.year_range as academic_year_range
+            SELECT s.*, ay.year_range as academic_year_range,
+                   ts.teacher_id,
+                   u.first_name as teacher_first_name,
+                   u.last_name as teacher_last_name
             FROM sections s
             LEFT JOIN academic_years ay ON s.academic_year_id = ay.id
+            LEFT JOIN teacher_sections ts ON s.id = ts.section_id
+            LEFT JOIN users u ON ts.teacher_id = u.id
             ORDER BY ay.year_range DESC, s.grade_level ASC, s.name ASC
         `).all();
         res.json(sections);
@@ -206,7 +211,18 @@ exports.getAllSections = (req, res) => {
 
 exports.getSectionsByYear = (req, res) => {
     try {
-        const sections = db.prepare('SELECT * FROM sections WHERE academic_year_id = ? ORDER BY grade_level ASC, name ASC').all(req.params.yearId);
+        const sections = db.prepare(`
+            SELECT s.*, ay.year_range as academic_year_range,
+                   ts.teacher_id,
+                   u.first_name as teacher_first_name,
+                   u.last_name as teacher_last_name
+            FROM sections s
+            LEFT JOIN academic_years ay ON s.academic_year_id = ay.id
+            LEFT JOIN teacher_sections ts ON s.id = ts.section_id
+            LEFT JOIN users u ON ts.teacher_id = u.id
+            WHERE s.academic_year_id = ?
+            ORDER BY s.grade_level ASC, s.name ASC
+        `).all(req.params.yearId);
         res.json(sections);
     } catch (error) {
         res.status(500).json({ message: 'Failed to fetch sections', error: error.message });
@@ -214,14 +230,21 @@ exports.getSectionsByYear = (req, res) => {
 };
 
 exports.createSection = (req, res) => {
-    const { name, gradeLevel, academicYearId } = req.body;
+    const { name, gradeLevel, academicYearId, teacherId } = req.body;
     if (!name || !name.trim() || !gradeLevel || !academicYearId) {
         return res.status(400).json({ message: 'name, gradeLevel, and academicYearId are required' });
     }
     try {
-        const result = db.prepare('INSERT INTO sections (name, grade_level, academic_year_id) VALUES (?, ?, ?)')
-            .run(name.trim(), gradeLevel, academicYearId);
-        res.status(201).json({ id: result.lastInsertRowid, message: 'Section created successfully' });
+        let sectionId;
+        db.transaction(() => {
+            const result = db.prepare('INSERT INTO sections (name, grade_level, academic_year_id) VALUES (?, ?, ?)')
+                .run(name.trim(), gradeLevel, academicYearId);
+            sectionId = result.lastInsertRowid;
+            if (teacherId) {
+                db.prepare('INSERT INTO teacher_sections (teacher_id, section_id) VALUES (?, ?)').run(teacherId, sectionId);
+            }
+        })();
+        res.status(201).json({ id: sectionId, message: 'Section created successfully' });
     } catch (error) {
         res.status(500).json({ message: 'Failed to create section', error: error.message });
     }
@@ -229,7 +252,7 @@ exports.createSection = (req, res) => {
 
 exports.updateSection = (req, res) => {
     const { id } = req.params;
-    const { name, gradeLevel, academicYearId } = req.body;
+    const { name, gradeLevel, academicYearId, teacherId } = req.body;
 
     if (!name || !name.trim() || !gradeLevel || !academicYearId) {
         return res.status(400).json({ message: 'name, gradeLevel, and academicYearId are required' });
@@ -239,11 +262,38 @@ exports.updateSection = (req, res) => {
         const section = db.prepare('SELECT id FROM sections WHERE id = ?').get(id);
         if (!section) return res.status(404).json({ message: 'Section not found' });
 
-        db.prepare('UPDATE sections SET name = ?, grade_level = ?, academic_year_id = ? WHERE id = ?')
-            .run(name.trim(), gradeLevel, academicYearId, id);
+        db.transaction(() => {
+            db.prepare('UPDATE sections SET name = ?, grade_level = ?, academic_year_id = ? WHERE id = ?')
+                .run(name.trim(), gradeLevel, academicYearId, id);
+            if (teacherId !== undefined) {
+                db.prepare('DELETE FROM teacher_sections WHERE section_id = ?').run(id);
+                if (teacherId) {
+                    db.prepare('INSERT INTO teacher_sections (teacher_id, section_id) VALUES (?, ?)').run(teacherId, id);
+                }
+            }
+        })();
         res.json({ message: 'Section updated successfully' });
     } catch (error) {
         res.status(500).json({ message: 'Failed to update section', error: error.message });
+    }
+};
+
+exports.setSectionAdviser = (req, res) => {
+    const { id } = req.params;
+    const { teacherId } = req.body;
+    try {
+        const section = db.prepare('SELECT id FROM sections WHERE id = ?').get(id);
+        if (!section) return res.status(404).json({ message: 'Section not found' });
+
+        db.transaction(() => {
+            db.prepare('DELETE FROM teacher_sections WHERE section_id = ?').run(id);
+            if (teacherId) {
+                db.prepare('INSERT INTO teacher_sections (teacher_id, section_id) VALUES (?, ?)').run(teacherId, id);
+            }
+        })();
+        res.json({ message: 'Section adviser updated successfully' });
+    } catch (error) {
+        res.status(500).json({ message: 'Failed to update section adviser', error: error.message });
     }
 };
 

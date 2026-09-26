@@ -167,6 +167,7 @@ class SetupRepository {
     required String name,
     required int gradeLevel,
     required int academicYearId,
+    int? teacherId,
   }) async {
     try {
       final options = await _getAuthOptions();
@@ -177,6 +178,7 @@ class SetupRepository {
           'name': name,
           'gradeLevel': gradeLevel,
           'academicYearId': academicYearId,
+          if (teacherId != null) 'teacherId': teacherId,
         },
       );
     } on DioException catch (e) {
@@ -208,6 +210,7 @@ class SetupRepository {
     required String name,
     required int gradeLevel,
     required int academicYearId,
+    int? teacherId,
   }) async {
     try {
       final options = await _getAuthOptions();
@@ -218,10 +221,27 @@ class SetupRepository {
           'name': name,
           'gradeLevel': gradeLevel,
           'academicYearId': academicYearId,
+          'teacherId': teacherId,
         },
       );
     } on DioException catch (e) {
       throw Exception(_extractErrorMessage(e, 'Failed to update section.'));
+    }
+  }
+
+  Future<void> setSectionAdviser({
+    required int sectionId,
+    int? teacherId,
+  }) async {
+    try {
+      final options = await _getAuthOptions();
+      await _dio.put(
+        '/setup/sections/$sectionId/adviser',
+        options: options,
+        data: {'teacherId': teacherId},
+      );
+    } on DioException catch (e) {
+      throw Exception(_extractErrorMessage(e, 'Failed to update section adviser.'));
     }
   }
 
