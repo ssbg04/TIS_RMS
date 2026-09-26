@@ -310,414 +310,687 @@ class _BulkAcademicImportModalState
     return CustomModal(
       title: 'Bulk Setup: Academic Years & Sections',
       icon: Icons.table_chart_rounded,
-      maxWidth: 820,
-      content: SingleChildScrollView(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Template guide
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.all(14),
-                decoration: BoxDecoration(
-                  color: isDark
-                      ? AppColors.primaryGreen.withValues(alpha: 0.1)
-                      : const Color(0xFFF0FAF4),
-                  borderRadius: BorderRadius.circular(10),
-                  border: Border.all(
-                    color: AppColors.primaryGreen.withValues(alpha: 0.25),
+      maxWidth: 860,
+      content: LayoutBuilder(
+        builder: (context, constraints) {
+          final isCompact = constraints.maxWidth < 620;
+          final isUltraNarrow = constraints.maxWidth < 430;
+
+          return SingleChildScrollView(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Template guide
+                  Container(
+                    width: double.infinity,
+                    padding: EdgeInsets.all(isCompact ? 10 : 14),
+                    decoration: BoxDecoration(
+                      color: isDark
+                          ? AppColors.primaryGreen.withValues(alpha: 0.1)
+                          : const Color(0xFFF0FAF4),
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(
+                        color: AppColors.primaryGreen.withValues(alpha: 0.25),
+                      ),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            const Icon(
+                              Icons.lightbulb_outline_rounded,
+                              size: 18,
+                              color: AppColors.primaryGreen,
+                            ),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Text(
+                                isCompact
+                                    ? 'CSV: Year, Grade, Section'
+                                    : 'CSV Format: Academic Year, Grade Level, Section Name',
+                                style: TextStyle(
+                                  fontSize: isCompact ? 12 : 13,
+                                  fontWeight: FontWeight.bold,
+                                  color: isDark
+                                      ? AppColors.darkTextPrimary
+                                      : AppColors.primaryGreen,
+                                ),
+                              ),
+                            ),
+                            TextButton.icon(
+                              onPressed: _copyTemplate,
+                              icon: const Icon(Icons.copy_rounded, size: 14),
+                              label: Text(
+                                isCompact ? 'Copy' : 'Copy Template',
+                                style: TextStyle(fontSize: isCompact ? 11 : 12),
+                              ),
+                              style: TextButton.styleFrom(
+                                foregroundColor: AppColors.primaryGreen,
+                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                visualDensity: VisualDensity.compact,
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 6),
+                        Text(
+                          'Provide 3 columns per row (comma, tab, or semicolon separated):\n'
+                          '• Academic Year: YYYY-YYYY format (e.g. 2024-2025)\n'
+                          '• Grade Level: 7, 8, 9, 10, 11, or 12\n'
+                          '• Section Name: e.g. Rizal, Diamond, STEM 1\n'
+                          '*Note: New academic years will be safely created as inactive.',
+                          style: TextStyle(
+                            fontSize: isCompact ? 11 : 12,
+                            height: 1.4,
+                            color: isDark
+                                ? AppColors.darkTextSecondary
+                                : Colors.grey.shade700,
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
+                  const SizedBox(height: 16),
+
+                  // Controls row
+                  Wrap(
+                    alignment: WrapAlignment.spaceBetween,
+                    crossAxisAlignment: WrapCrossAlignment.center,
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: [
+                      Text(
+                        'Input or Paste CSV Text:',
+                        style: TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                          color: isDark
+                              ? AppColors.darkTextPrimary
+                              : AppColors.textPrimary,
+                        ),
+                      ),
+                      Wrap(
+                        spacing: 6,
+                        runSpacing: 4,
+                        crossAxisAlignment: WrapCrossAlignment.center,
+                        children: [
+                          OutlinedButton.icon(
+                            onPressed: _pickCsvFile,
+                            icon: const Icon(Icons.file_upload_outlined, size: 14),
+                            label: const Text('Browse File', style: TextStyle(fontSize: 11)),
+                            style: OutlinedButton.styleFrom(
+                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                              visualDensity: VisualDensity.compact,
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
+                            ),
+                          ),
+                          TextButton.icon(
+                            onPressed: () async {
+                              final data = await Clipboard.getData(Clipboard.kTextPlain);
+                              if (data?.text != null && data!.text!.isNotEmpty) {
+                                setState(() {
+                                  _textController.text = data.text!;
+                                });
+                                _parseInput();
+                              }
+                            },
+                            icon: const Icon(Icons.paste_rounded, size: 14),
+                            label: const Text('Paste', style: TextStyle(fontSize: 11)),
+                            style: TextButton.styleFrom(
+                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+                              visualDensity: VisualDensity.compact,
+                            ),
+                          ),
+                          TextButton.icon(
+                            onPressed: () {
+                              _textController.clear();
+                              setState(() {
+                                _parsedRows = [];
+                                _hasParsed = false;
+                              });
+                            },
+                            icon: const Icon(Icons.clear, size: 14),
+                            label: const Text('Clear', style: TextStyle(fontSize: 11)),
+                            style: TextButton.styleFrom(
+                              foregroundColor: AppColors.error,
+                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+                              visualDensity: VisualDensity.compact,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+
+                  // Text Area
+                  TextField(
+                    controller: _textController,
+                    minLines: 4,
+                    maxLines: 7,
+                    style: const TextStyle(
+                      fontFamily: 'Courier',
+                      fontSize: 12.5,
+                    ),
+                    decoration: InputDecoration(
+                      hintText: 'Paste or type CSV rows here...\n2024-2025, 7, Rizal\n2024-2025, 10, Diamond',
+                      hintStyle: TextStyle(
+                        fontFamily: 'Courier',
+                        fontSize: 12,
+                        color: isDark ? AppColors.darkTextMuted : Colors.grey.shade400,
+                      ),
+                      filled: true,
+                      fillColor: isDark ? AppColors.darkSurfaceCard : Colors.grey.shade50,
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8),
+                        borderSide: BorderSide(
+                          color: isDark ? AppColors.darkBorder : Colors.grey.shade300,
+                        ),
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8),
+                        borderSide: BorderSide(
+                          color: isDark ? AppColors.darkBorder : Colors.grey.shade300,
+                        ),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8),
+                        borderSide: const BorderSide(
+                          color: AppColors.primaryGreen,
+                          width: 1.5,
+                        ),
+                      ),
+                    ),
+                    onChanged: (_) => _parseInput(),
+                  ),
+                  const SizedBox(height: 12),
+
+                  // Parse & Status Bar
+                  Wrap(
+                    alignment: WrapAlignment.spaceBetween,
+                    crossAxisAlignment: WrapCrossAlignment.center,
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: [
+                      ElevatedButton.icon(
+                        onPressed: _parseInput,
+                        icon: const Icon(Icons.refresh_rounded, size: 16),
+                        label: const Text('Parse & Preview', style: TextStyle(fontSize: 12)),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppColors.primaryGreen,
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
+                        ),
+                      ),
+                      if (_hasParsed)
+                        Wrap(
+                          spacing: 6,
+                          runSpacing: 6,
+                          children: [
+                            _buildStatusBadge(
+                              label: '$validCount Valid',
+                              color: AppColors.primaryGreen,
+                            ),
+                            if (newYearCount > 0)
+                              _buildStatusBadge(
+                                label: '$newYearCount New Year${newYearCount > 1 ? 's' : ''}',
+                                color: Colors.blue,
+                              ),
+                            if (dupCount > 0)
+                              _buildStatusBadge(
+                                label: '$dupCount Duplicate${dupCount > 1 ? 's' : ''}',
+                                color: Colors.orange,
+                              ),
+                            if (errorCount > 0)
+                              _buildStatusBadge(
+                                label: '$errorCount Error${errorCount > 1 ? 's' : ''}',
+                                color: AppColors.error,
+                              ),
+                          ],
+                        ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+
+                  // Live Preview / Validation Table
+                  if (_hasParsed) ...[
                     Row(
                       children: [
-                        const Icon(
-                          Icons.lightbulb_outline_rounded,
-                          size: 18,
-                          color: AppColors.primaryGreen,
-                        ),
-                        const SizedBox(width: 8),
                         Text(
-                          'CSV Format: Academic Year, Grade Level, Section Name',
+                          'Live Validation Preview (${_parsedRows.length} rows):',
                           style: TextStyle(
                             fontSize: 13,
                             fontWeight: FontWeight.bold,
                             color: isDark
                                 ? AppColors.darkTextPrimary
-                                : AppColors.primaryGreen,
+                                : AppColors.textPrimary,
                           ),
                         ),
                         const Spacer(),
-                        TextButton.icon(
-                          onPressed: _copyTemplate,
-                          icon: const Icon(Icons.copy_rounded, size: 14),
-                          label: const Text('Copy Template', style: TextStyle(fontSize: 12)),
-                          style: TextButton.styleFrom(
-                            foregroundColor: AppColors.primaryGreen,
-                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                            visualDensity: VisualDensity.compact,
+                        if (!isCompact && _parsedRows.isNotEmpty)
+                          Text(
+                            'Scroll to view all',
+                            style: TextStyle(
+                              fontSize: 11,
+                              color: isDark ? AppColors.darkTextMuted : Colors.grey.shade500,
+                            ),
+                          ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    Container(
+                      constraints: const BoxConstraints(maxHeight: 280),
+                      decoration: BoxDecoration(
+                        color: isDark ? AppColors.darkSurfaceCard : Colors.white,
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(
+                          color: isDark ? AppColors.darkBorder : Colors.grey.shade300,
+                        ),
+                      ),
+                      child: _parsedRows.isEmpty
+                          ? const Center(
+                              child: Padding(
+                                padding: EdgeInsets.all(24),
+                                child: Text(
+                                  'No rows detected. Paste CSV rows above to view live preview.',
+                                  style: TextStyle(color: Colors.grey, fontSize: 13),
+                                ),
+                              ),
+                            )
+                          : isCompact
+                              ? _buildMobilePreviewList(isDark)
+                              : _buildDesktopPreviewTable(isDark),
+                    ),
+                    const SizedBox(height: 16),
+                  ],
+
+                  // Footer Actions
+                  Wrap(
+                    alignment: WrapAlignment.end,
+                    crossAxisAlignment: WrapCrossAlignment.center,
+                    spacing: 10,
+                    runSpacing: 8,
+                    children: [
+                      if (isUltraNarrow) ...[
+                        SizedBox(
+                          width: double.infinity,
+                          child: ElevatedButton.icon(
+                            onPressed: _isSubmitting || validCount == 0
+                                ? null
+                                : _handleImport,
+                            icon: _isSubmitting
+                                ? const SizedBox(
+                                    width: 14,
+                                    height: 14,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                      color: Colors.white,
+                                    ),
+                                  )
+                                : const Icon(Icons.check, size: 16),
+                            label: Text(
+                              _isSubmitting
+                                  ? 'Importing...'
+                                  : 'Import $validCount Section${validCount == 1 ? '' : 's'}',
+                              style: const TextStyle(fontWeight: FontWeight.bold),
+                            ),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: AppColors.primaryGreen,
+                              foregroundColor: Colors.white,
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 18,
+                                vertical: 12,
+                              ),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                            ),
+                          ),
+                        ),
+                        SizedBox(
+                          width: double.infinity,
+                          child: OutlinedButton(
+                            onPressed: _isSubmitting
+                                ? null
+                                : () => Navigator.of(context).pop(),
+                            style: OutlinedButton.styleFrom(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 16,
+                                vertical: 11,
+                              ),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                            ),
+                            child: const Text('Cancel'),
+                          ),
+                        ),
+                      ] else ...[
+                        OutlinedButton(
+                          onPressed: _isSubmitting
+                              ? null
+                              : () => Navigator.of(context).pop(),
+                          style: OutlinedButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 16,
+                              vertical: 10,
+                            ),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                          ),
+                          child: const Text('Cancel'),
+                        ),
+                        ElevatedButton.icon(
+                          onPressed: _isSubmitting || validCount == 0
+                              ? null
+                              : _handleImport,
+                          icon: _isSubmitting
+                              ? const SizedBox(
+                                  width: 14,
+                                  height: 14,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                    color: Colors.white,
+                                  ),
+                                )
+                              : const Icon(Icons.check, size: 16),
+                          label: Text(
+                            _isSubmitting
+                                ? 'Importing...'
+                                : 'Import $validCount Section${validCount == 1 ? '' : 's'}',
+                            style: const TextStyle(fontWeight: FontWeight.bold),
+                          ),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: AppColors.primaryGreen,
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 18,
+                              vertical: 11,
+                            ),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(8),
+                            ),
                           ),
                         ),
                       ],
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _buildDesktopPreviewTable(bool isDark) {
+    return Column(
+      children: [
+        // Table Header
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          decoration: BoxDecoration(
+            color: isDark
+                ? Colors.white.withValues(alpha: 0.04)
+                : Colors.grey.shade100,
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(8)),
+            border: Border(
+              bottom: BorderSide(
+                color: isDark ? AppColors.darkBorder : Colors.grey.shade200,
+              ),
+            ),
+          ),
+          child: const Row(
+            children: [
+              SizedBox(
+                width: 44,
+                child: Text('#', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
+              ),
+              SizedBox(
+                width: 110,
+                child: Text('Academic Year', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
+              ),
+              SizedBox(
+                width: 85,
+                child: Text('Grade', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
+              ),
+              Expanded(
+                flex: 2,
+                child: Text('Section Name', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
+              ),
+              Expanded(
+                flex: 3,
+                child: Text('Status & Validation', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
+              ),
+            ],
+          ),
+        ),
+        // Rows
+        Expanded(
+          child: ListView.separated(
+            itemCount: _parsedRows.length,
+            separatorBuilder: (_, unused) => Divider(
+              height: 1,
+              color: isDark ? AppColors.darkBorder : Colors.grey.shade200,
+            ),
+            itemBuilder: (context, idx) {
+              final row = _parsedRows[idx];
+              Color statusColor;
+              IconData statusIcon;
+              String statusText;
+
+              if (row.errors.isNotEmpty) {
+                statusColor = AppColors.error;
+                statusIcon = Icons.cancel_outlined;
+                statusText = row.errors.join('; ');
+              } else if (row.isDuplicate) {
+                statusColor = Colors.orange;
+                statusIcon = Icons.warning_amber_rounded;
+                statusText = 'Already exists in database (skipped)';
+              } else if (row.isNewYear) {
+                statusColor = Colors.blue;
+                statusIcon = Icons.add_circle_outline_rounded;
+                statusText = 'Valid (will create new Academic Year)';
+              } else {
+                statusColor = AppColors.primaryGreen;
+                statusIcon = Icons.check_circle_outline_rounded;
+                statusText = 'Valid';
+              }
+
+              return Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                child: Row(
+                  children: [
+                    SizedBox(
+                      width: 44,
+                      child: Row(
+                        children: [
+                          Icon(statusIcon, color: statusColor, size: 16),
+                          const SizedBox(width: 4),
+                          Text(
+                            '${row.rowIndex}',
+                            style: TextStyle(
+                              fontSize: 11,
+                              color: isDark ? AppColors.darkTextMuted : Colors.grey.shade600,
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
-                    const SizedBox(height: 6),
-                    Text(
-                      'Provide 3 columns per row (comma, tab, or semicolon separated):\n'
-                      '• Academic Year: YYYY-YYYY format (e.g. 2024-2025)\n'
-                      '• Grade Level: 7, 8, 9, 10, 11, or 12\n'
-                      '• Section Name: e.g. Rizal, Diamond, STEM 1\n'
-                      '*Note: New academic years will be safely created as inactive.',
-                      style: TextStyle(
-                        fontSize: 12,
-                        height: 1.4,
-                        color: isDark
-                            ? AppColors.darkTextSecondary
-                            : Colors.grey.shade700,
+                    SizedBox(
+                      width: 110,
+                      child: Text(
+                        row.academicYear,
+                        style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
+                      ),
+                    ),
+                    SizedBox(
+                      width: 85,
+                      child: Text(
+                        row.gradeLevel > 0 ? 'Grade ${row.gradeLevel}' : '—',
+                        style: const TextStyle(fontSize: 12),
+                      ),
+                    ),
+                    Expanded(
+                      flex: 2,
+                      child: Text(
+                        row.sectionName.isNotEmpty ? row.sectionName : '—',
+                        style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
+                      ),
+                    ),
+                    Expanded(
+                      flex: 3,
+                      child: Text(
+                        statusText,
+                        style: TextStyle(
+                          fontSize: 11,
+                          color: statusColor,
+                          fontWeight: FontWeight.w500,
+                        ),
+                        overflow: TextOverflow.ellipsis,
                       ),
                     ),
                   ],
                 ),
-              ),
-              const SizedBox(height: 16),
+              );
+            },
+          ),
+        ),
+      ],
+    );
+  }
 
-              // Controls row
+  Widget _buildMobilePreviewList(bool isDark) {
+    return ListView.separated(
+      padding: const EdgeInsets.all(8),
+      itemCount: _parsedRows.length,
+      separatorBuilder: (_, unused) => const SizedBox(height: 8),
+      itemBuilder: (context, idx) {
+        final row = _parsedRows[idx];
+        Color statusColor;
+        IconData statusIcon;
+        String statusText;
+
+        if (row.errors.isNotEmpty) {
+          statusColor = AppColors.error;
+          statusIcon = Icons.cancel_outlined;
+          statusText = row.errors.join('; ');
+        } else if (row.isDuplicate) {
+          statusColor = Colors.orange;
+          statusIcon = Icons.warning_amber_rounded;
+          statusText = 'Already exists in database (skipped)';
+        } else if (row.isNewYear) {
+          statusColor = Colors.blue;
+          statusIcon = Icons.add_circle_outline_rounded;
+          statusText = 'Valid (will create new Academic Year)';
+        } else {
+          statusColor = AppColors.primaryGreen;
+          statusIcon = Icons.check_circle_outline_rounded;
+          statusText = 'Valid';
+        }
+
+        return Container(
+          padding: const EdgeInsets.all(10),
+          decoration: BoxDecoration(
+            color: isDark
+                ? Colors.white.withValues(alpha: 0.03)
+                : Colors.grey.shade50,
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(
+              color: row.errors.isNotEmpty
+                  ? AppColors.error.withValues(alpha: 0.3)
+                  : (isDark ? AppColors.darkBorder : Colors.grey.shade300),
+            ),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                    decoration: BoxDecoration(
+                      color: isDark ? Colors.white12 : Colors.grey.shade200,
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                    child: Text(
+                      '#${row.rowIndex}',
+                      style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold),
+                    ),
+                  ),
+                  const SizedBox(width: 6),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                    decoration: BoxDecoration(
+                      color: AppColors.primaryGreen.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                    child: Text(
+                      row.academicYear,
+                      style: const TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.bold,
+                        color: AppColors.primaryGreen,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 6),
+                  if (row.gradeLevel > 0)
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: Colors.blue.withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                      child: Text(
+                        'Grade ${row.gradeLevel}',
+                        style: const TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.blue,
+                        ),
+                      ),
+                    ),
+                  const Spacer(),
+                  Icon(statusIcon, color: statusColor, size: 16),
+                ],
+              ),
+              const SizedBox(height: 6),
               Row(
                 children: [
                   Text(
-                    'Input or Paste CSV Text:',
+                    'Section: ',
                     style: TextStyle(
+                      fontSize: 12,
+                      color: isDark ? AppColors.darkTextMuted : Colors.grey.shade600,
+                    ),
+                  ),
+                  Text(
+                    row.sectionName.isNotEmpty ? row.sectionName : '—',
+                    style: const TextStyle(
                       fontSize: 13,
-                      fontWeight: FontWeight.w600,
-                      color: isDark
-                          ? AppColors.darkTextPrimary
-                          : AppColors.textPrimary,
-                    ),
-                  ),
-                  const Spacer(),
-                  OutlinedButton.icon(
-                    onPressed: _pickCsvFile,
-                    icon: const Icon(Icons.file_upload_outlined, size: 15),
-                    label: const Text('Browse File', style: TextStyle(fontSize: 12)),
-                    style: OutlinedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                      visualDensity: VisualDensity.compact,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  TextButton.icon(
-                    onPressed: () async {
-                      final data = await Clipboard.getData(Clipboard.kTextPlain);
-                      if (data?.text != null && data!.text!.isNotEmpty) {
-                        setState(() {
-                          _textController.text = data.text!;
-                        });
-                        _parseInput();
-                      }
-                    },
-                    icon: const Icon(Icons.paste_rounded, size: 15),
-                    label: const Text('Paste', style: TextStyle(fontSize: 12)),
-                    style: TextButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-                      visualDensity: VisualDensity.compact,
-                    ),
-                  ),
-                  TextButton.icon(
-                    onPressed: () {
-                      _textController.clear();
-                      setState(() {
-                        _parsedRows = [];
-                        _hasParsed = false;
-                      });
-                    },
-                    icon: const Icon(Icons.clear, size: 15),
-                    label: const Text('Clear', style: TextStyle(fontSize: 12)),
-                    style: TextButton.styleFrom(
-                      foregroundColor: AppColors.error,
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-                      visualDensity: VisualDensity.compact,
+                      fontWeight: FontWeight.bold,
                     ),
                   ),
                 ],
               ),
-              const SizedBox(height: 8),
-
-              // Text Area
-              TextField(
-                controller: _textController,
-                minLines: 4,
-                maxLines: 7,
-                style: const TextStyle(
-                  fontFamily: 'Courier',
-                  fontSize: 12.5,
-                ),
-                decoration: InputDecoration(
-                  hintText: 'Paste or type CSV rows here...\n2024-2025, 7, Rizal\n2024-2025, 10, Diamond',
-                  hintStyle: TextStyle(
-                    fontFamily: 'Courier',
-                    fontSize: 12,
-                    color: isDark ? AppColors.darkTextMuted : Colors.grey.shade400,
-                  ),
-                  filled: true,
-                  fillColor: isDark ? AppColors.darkSurfaceCard : Colors.grey.shade50,
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(8),
-                    borderSide: BorderSide(
-                      color: isDark ? AppColors.darkBorder : Colors.grey.shade300,
-                    ),
-                  ),
-                  enabledBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(8),
-                    borderSide: BorderSide(
-                      color: isDark ? AppColors.darkBorder : Colors.grey.shade300,
-                    ),
-                  ),
-                  focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(8),
-                    borderSide: const BorderSide(
-                      color: AppColors.primaryGreen,
-                      width: 1.5,
-                    ),
-                  ),
-                ),
-                onChanged: (_) => _parseInput(),
-              ),
-              const SizedBox(height: 12),
-
+              const SizedBox(height: 4),
               Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  ElevatedButton.icon(
-                    onPressed: _parseInput,
-                    icon: const Icon(Icons.refresh_rounded, size: 16),
-                    label: const Text('Parse & Preview', style: TextStyle(fontSize: 12)),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.primaryGreen,
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
-                    ),
-                  ),
-                  if (_hasParsed)
-                    Wrap(
-                      spacing: 8,
-                      children: [
-                        _buildStatusBadge(
-                          label: '$validCount Valid',
-                          color: AppColors.primaryGreen,
-                        ),
-                        if (newYearCount > 0)
-                          _buildStatusBadge(
-                            label: '$newYearCount New Year${newYearCount > 1 ? 's' : ''}',
-                            color: Colors.blue,
-                          ),
-                        if (dupCount > 0)
-                          _buildStatusBadge(
-                            label: '$dupCount Duplicate${dupCount > 1 ? 's' : ''}',
-                            color: Colors.orange,
-                          ),
-                        if (errorCount > 0)
-                          _buildStatusBadge(
-                            label: '$errorCount Error${errorCount > 1 ? 's' : ''}',
-                            color: AppColors.error,
-                          ),
-                      ],
-                    ),
-                ],
-              ),
-              const SizedBox(height: 16),
-
-              // Live Preview / Validation Table
-              if (_hasParsed) ...[
-                Text(
-                  'Live Validation Preview (${_parsedRows.length} rows):',
-                  style: TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.bold,
-                    color: isDark
-                        ? AppColors.darkTextPrimary
-                        : AppColors.textPrimary,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Container(
-                  constraints: const BoxConstraints(maxHeight: 240),
-                  decoration: BoxDecoration(
-                    color: isDark ? AppColors.darkSurfaceCard : Colors.white,
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(
-                      color: isDark ? AppColors.darkBorder : Colors.grey.shade300,
-                    ),
-                  ),
-                  child: _parsedRows.isEmpty
-                      ? const Center(
-                          child: Padding(
-                            padding: EdgeInsets.all(24),
-                            child: Text(
-                              'No rows detected. Paste CSV rows above to view live preview.',
-                              style: TextStyle(color: Colors.grey, fontSize: 13),
-                            ),
-                          ),
-                        )
-                      : ListView.separated(
-                          shrinkWrap: true,
-                          itemCount: _parsedRows.length,
-                          separatorBuilder: (_, unused) => Divider(
-                            height: 1,
-                            color: isDark
-                                ? AppColors.darkBorder
-                                : Colors.grey.shade200,
-                          ),
-                          itemBuilder: (context, idx) {
-                            final row = _parsedRows[idx];
-                            Color statusColor;
-                            IconData statusIcon;
-                            String statusText;
-
-                            if (row.errors.isNotEmpty) {
-                              statusColor = AppColors.error;
-                              statusIcon = Icons.cancel_outlined;
-                              statusText = row.errors.join('; ');
-                            } else if (row.isDuplicate) {
-                              statusColor = Colors.orange;
-                              statusIcon = Icons.warning_amber_rounded;
-                              statusText = 'Already exists in database (skipped)';
-                            } else if (row.isNewYear) {
-                              statusColor = Colors.blue;
-                              statusIcon = Icons.add_circle_outline_rounded;
-                              statusText = 'Valid (will create new Academic Year)';
-                            } else {
-                              statusColor = AppColors.primaryGreen;
-                              statusIcon = Icons.check_circle_outline_rounded;
-                              statusText = 'Valid';
-                            }
-
-                            return Padding(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 12,
-                                vertical: 8,
-                              ),
-                              child: Row(
-                                children: [
-                                  Icon(statusIcon, color: statusColor, size: 18),
-                                  const SizedBox(width: 8),
-                                  SizedBox(
-                                    width: 32,
-                                    child: Text(
-                                      '#${row.rowIndex}',
-                                      style: TextStyle(
-                                        fontSize: 11,
-                                        color: isDark
-                                            ? AppColors.darkTextMuted
-                                            : Colors.grey.shade600,
-                                      ),
-                                    ),
-                                  ),
-                                  SizedBox(
-                                    width: 100,
-                                    child: Text(
-                                      row.academicYear,
-                                      style: const TextStyle(
-                                        fontSize: 12,
-                                        fontWeight: FontWeight.w600,
-                                      ),
-                                    ),
-                                  ),
-                                  SizedBox(
-                                    width: 80,
-                                    child: Text(
-                                      row.gradeLevel > 0
-                                          ? 'Grade ${row.gradeLevel}'
-                                          : '—',
-                                      style: const TextStyle(fontSize: 12),
-                                    ),
-                                  ),
-                                  Expanded(
-                                    flex: 2,
-                                    child: Text(
-                                      row.sectionName.isNotEmpty
-                                          ? row.sectionName
-                                          : '—',
-                                      style: const TextStyle(
-                                        fontSize: 12,
-                                        fontWeight: FontWeight.w600,
-                                      ),
-                                    ),
-                                  ),
-                                  Expanded(
-                                    flex: 3,
-                                    child: Text(
-                                      statusText,
-                                      style: TextStyle(
-                                        fontSize: 11,
-                                        color: statusColor,
-                                        fontWeight: FontWeight.w500,
-                                      ),
-                                      overflow: TextOverflow.ellipsis,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            );
-                          },
-                        ),
-                ),
-                const SizedBox(height: 16),
-              ],
-
-              // Footer Actions
-              Row(
-                mainAxisAlignment: MainAxisAlignment.end,
-                children: [
-                  OutlinedButton(
-                    onPressed: _isSubmitting
-                        ? null
-                        : () => Navigator.of(context).pop(),
-                    style: OutlinedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 16,
-                        vertical: 10,
-                      ),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                    ),
-                    child: const Text('Cancel'),
-                  ),
-                  const SizedBox(width: 10),
-                  ElevatedButton.icon(
-                    onPressed: _isSubmitting || validCount == 0
-                        ? null
-                        : _handleImport,
-                    icon: _isSubmitting
-                        ? const SizedBox(
-                            width: 14,
-                            height: 14,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2,
-                              color: Colors.white,
-                            ),
-                          )
-                        : const Icon(Icons.check, size: 16),
-                    label: Text(
-                      _isSubmitting
-                          ? 'Importing...'
-                          : 'Import $validCount Section${validCount == 1 ? '' : 's'}',
-                      style: const TextStyle(fontWeight: FontWeight.bold),
-                    ),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.primaryGreen,
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 18,
-                        vertical: 11,
-                      ),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8),
+                  Expanded(
+                    child: Text(
+                      statusText,
+                      style: TextStyle(
+                        fontSize: 11,
+                        color: statusColor,
+                        fontWeight: FontWeight.w500,
                       ),
                     ),
                   ),
@@ -725,8 +998,8 @@ class _BulkAcademicImportModalState
               ),
             ],
           ),
-        ),
-      ),
+        );
+      },
     );
   }
 

@@ -854,7 +854,7 @@ Files backup/restore - mirror mode or zip -->
   - sends email notification to advisory teachers with list of missing students per section
 - teachers & academic setup screen -> remove "Remind All Teachers" button -->
 
-# CSV BULK IMPORT ENHANCEMENTS
+<!-- # CSV BULK IMPORT ENHANCEMENTS
 - bulk student import (add bulk student modal / screen):
   - add on-screen CSV format example & template guide (headers: LRN, First Name, Middle Name, Last Name, Extension, Sex, Birth Date, 4Ps)
   - add live type / paste CSV input area with "Parse & Preview" to submit directly without needing a separate file
@@ -863,7 +863,7 @@ Files backup/restore - mirror mode or zip -->
   - add bulk CSV import for academic structure:
     - format: Academic Year, Grade Level, Section Name (e.g., `2024-2025, 10, Diamond`)
   - add on-screen CSV format example / reference & sample rows
-  - add live type / paste CSV input area with instant parse, validation preview, and bulk submit
+  - add live type / paste CSV input area with instant parse, validation preview, and bulk submit -->
 
 
 ---

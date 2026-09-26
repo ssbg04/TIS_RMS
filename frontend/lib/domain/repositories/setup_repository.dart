@@ -12,6 +12,23 @@ class SetupRepository {
     return Options(headers: {'Authorization': 'Bearer $token'});
   }
 
+  String _extractErrorMessage(DioException e, String fallback) {
+    final data = e.response?.data;
+    if (data is Map && data['message'] != null) {
+      return data['message'].toString();
+    }
+    if (data is String && data.trim().isNotEmpty) {
+      final cleaned = data
+          .replaceAll(RegExp(r'<[^>]*>'), ' ')
+          .replaceAll(RegExp(r'\s+'), ' ')
+          .trim();
+      if (cleaned.isNotEmpty && cleaned.length < 200) {
+        return cleaned;
+      }
+    }
+    return fallback;
+  }
+
   // ==========================================
   // ACADEMIC YEARS
   // ==========================================
@@ -28,9 +45,7 @@ class SetupRepository {
           )
           .toList();
     } on DioException catch (e) {
-      throw Exception(
-        e.response?.data?['message'] ?? 'Failed to fetch academic years.',
-      );
+      throw Exception(_extractErrorMessage(e, 'Failed to fetch academic years.'));
     }
   }
 
@@ -53,9 +68,7 @@ class SetupRepository {
         },
       );
     } on DioException catch (e) {
-      throw Exception(
-        e.response?.data?['message'] ?? 'Failed to create academic year.',
-      );
+      throw Exception(_extractErrorMessage(e, 'Failed to create academic year.'));
     }
   }
 
@@ -79,9 +92,7 @@ class SetupRepository {
         },
       );
     } on DioException catch (e) {
-      throw Exception(
-        e.response?.data?['message'] ?? 'Failed to update academic year.',
-      );
+      throw Exception(_extractErrorMessage(e, 'Failed to update academic year.'));
     }
   }
 
@@ -94,9 +105,7 @@ class SetupRepository {
       );
       return res.data as Map<String, dynamic>;
     } on DioException catch (e) {
-      throw Exception(
-        e.response?.data?['message'] ?? 'Failed to check auto-graduation.',
-      );
+      throw Exception(_extractErrorMessage(e, 'Failed to check auto-graduation.'));
     }
   }
 
@@ -109,9 +118,7 @@ class SetupRepository {
       );
       return res.data as Map<String, dynamic>;
     } on DioException catch (e) {
-      throw Exception(
-        e.response?.data?['message'] ?? 'Failed to check auto-archive.',
-      );
+      throw Exception(_extractErrorMessage(e, 'Failed to check auto-archive.'));
     }
   }
 
@@ -120,9 +127,7 @@ class SetupRepository {
       final options = await _getAuthOptions();
       await _dio.delete('/setup/academic-years/$id', options: options);
     } on DioException catch (e) {
-      throw Exception(
-        e.response?.data?['message'] ?? 'Failed to delete academic year.',
-      );
+      throw Exception(_extractErrorMessage(e, 'Failed to delete academic year.'));
     }
   }
 
@@ -137,9 +142,7 @@ class SetupRepository {
           .map((item) => SectionModel.fromJson(item as Map<String, dynamic>))
           .toList();
     } on DioException catch (e) {
-      throw Exception(
-        e.response?.data?['message'] ?? 'Failed to fetch sections.',
-      );
+      throw Exception(_extractErrorMessage(e, 'Failed to fetch sections.'));
     }
   }
 
@@ -155,8 +158,7 @@ class SetupRepository {
           .toList();
     } on DioException catch (e) {
       throw Exception(
-        e.response?.data?['message'] ??
-            'Failed to fetch sections for academic year.',
+        _extractErrorMessage(e, 'Failed to fetch sections for academic year.'),
       );
     }
   }
@@ -178,9 +180,7 @@ class SetupRepository {
         },
       );
     } on DioException catch (e) {
-      throw Exception(
-        e.response?.data?['message'] ?? 'Failed to create section.',
-      );
+      throw Exception(_extractErrorMessage(e, 'Failed to create section.'));
     }
   }
 
@@ -194,11 +194,12 @@ class SetupRepository {
         options: options,
         data: {'rows': rows},
       );
-      return Map<String, dynamic>.from(response.data as Map);
+      if (response.data is Map) {
+        return Map<String, dynamic>.from(response.data as Map);
+      }
+      return {'message': response.data?.toString() ?? 'Bulk setup completed.'};
     } on DioException catch (e) {
-      throw Exception(
-        e.response?.data?['message'] ?? 'Failed to import academic structure.',
-      );
+      throw Exception(_extractErrorMessage(e, 'Failed to import academic structure.'));
     }
   }
 
@@ -220,9 +221,7 @@ class SetupRepository {
         },
       );
     } on DioException catch (e) {
-      throw Exception(
-        e.response?.data?['message'] ?? 'Failed to update section.',
-      );
+      throw Exception(_extractErrorMessage(e, 'Failed to update section.'));
     }
   }
 
@@ -231,9 +230,7 @@ class SetupRepository {
       final options = await _getAuthOptions();
       await _dio.delete('/setup/sections/$id', options: options);
     } on DioException catch (e) {
-      throw Exception(
-        e.response?.data?['message'] ?? 'Failed to delete section.',
-      );
+      throw Exception(_extractErrorMessage(e, 'Failed to delete section.'));
     }
   }
 
@@ -248,9 +245,7 @@ class SetupRepository {
           .map((item) => GradeLevelModel.fromJson(item as Map<String, dynamic>))
           .toList();
     } on DioException catch (e) {
-      throw Exception(
-        e.response?.data?['message'] ?? 'Failed to fetch grade levels.',
-      );
+      throw Exception(_extractErrorMessage(e, 'Failed to fetch grade levels.'));
     }
   }
 
@@ -266,9 +261,7 @@ class SetupRepository {
         data: {'level': level, 'name': name},
       );
     } on DioException catch (e) {
-      throw Exception(
-        e.response?.data?['message'] ?? 'Failed to create grade level.',
-      );
+      throw Exception(_extractErrorMessage(e, 'Failed to create grade level.'));
     }
   }
 
@@ -285,9 +278,7 @@ class SetupRepository {
         data: {'level': level, 'name': name},
       );
     } on DioException catch (e) {
-      throw Exception(
-        e.response?.data?['message'] ?? 'Failed to update grade level.',
-      );
+      throw Exception(_extractErrorMessage(e, 'Failed to update grade level.'));
     }
   }
 
@@ -296,9 +287,7 @@ class SetupRepository {
       final options = await _getAuthOptions();
       await _dio.delete('/setup/grade-levels/$id', options: options);
     } on DioException catch (e) {
-      throw Exception(
-        e.response?.data?['message'] ?? 'Failed to delete grade level.',
-      );
+      throw Exception(_extractErrorMessage(e, 'Failed to delete grade level.'));
     }
   }
 
@@ -316,9 +305,7 @@ class SetupRepository {
           .map((item) => SectionModel.fromJson(item as Map<String, dynamic>))
           .toList();
     } on DioException catch (e) {
-      throw Exception(
-        e.response?.data?['message'] ?? 'Failed to fetch teacher sections.',
-      );
+      throw Exception(_extractErrorMessage(e, 'Failed to fetch teacher sections.'));
     }
   }
 
@@ -334,9 +321,7 @@ class SetupRepository {
         data: {'sectionIds': sectionIds},
       );
     } on DioException catch (e) {
-      throw Exception(
-        e.response?.data?['message'] ?? 'Failed to update teacher sections.',
-      );
+      throw Exception(_extractErrorMessage(e, 'Failed to update teacher sections.'));
     }
   }
 }
