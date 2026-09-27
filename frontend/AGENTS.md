@@ -865,7 +865,41 @@ Files backup/restore - mirror mode or zip -->
   - add on-screen CSV format example / reference & sample rows
   - add live type / paste CSV input area with instant parse, validation preview, and bulk submit -->
 
+<!-- # ACADEMIC & CLASS MANAGEMENT
+- make the list reponsive in academic tab for android app
 
+# STUDENTS SCREEN -> ADD NEW STUDENT & BULK IMPORT (ANDROID & DESKTOP)
+- UI / Entry Point & Android Accessibility:
+  - Expose "Bulk Import" on Android (currently restricted to Windows only in `students_screen.dart:1247`)
+  - Provide a responsive action choice on Android: "Add Single Student" (Stepper Form) vs "Bulk Student Import" (CSV/OCR)
+  - Ensure single student modal form is fully responsive on Android (handles virtual keyboard, scrollable views, full-width touch targets)
+- Target Class / Enrollment Context (Required by Backend):
+  - Add section selector header: Academic Year, Grade Level, and Section dropdowns (auto-populates current active school year)
+  - All valid imported students will be enrolled directly into this target section (matching DepEd SF1 masterlist workflow)
+- Dual Input Methods (Android-Friendly):
+  - Method 1: Live Type / Paste CSV area with "Paste from Clipboard" button (zero file-permission friction on mobile)
+  - Method 2: Compatible CSV file upload via `file_picker` with proper MIME types (`text/csv`, `text/plain`, `*/*`)
+- CSV Specifications & Smart Normalization:
+  - Expected headers: `LRN, First Name, Middle Name, Last Name, Extension, Sex, Birth Date, 4Ps`
+  - On-screen quick guide & copyable sample template button (`Copy Sample CSV`)
+  - Auto-normalizations:
+    - Sex: accepts `M`, `F`, `Male`, `Female` (case-insensitive)
+    - Birth Date: flexible parsing (`YYYY-MM-DD`, `MM/DD/YYYY`, `MM-DD-YYYY`)
+    - 4Ps: accepts `Yes`/`No`, `Y`/`N`, `True`/`False`, `1`/`0`
+    - Names & Extension: auto-trims whitespace and uppercase formatting
+- Live Validation & Error Preview:
+  - Client-side validation before sending to backend:
+    - LRN: exactly 12 digits, numeric only, check for duplicate LRNs within the batch
+    - First Name & Last Name: mandatory non-empty strings
+    - Birth Date: valid calendar date, cannot be in the future
+  - Live summary stats badge: `Total Parsed`, `Valid (Ready to Import)`, `Errors (Needs Attention)`
+  - Responsive Mobile Preview:
+    - On mobile Android: Display list of validation cards (green check for valid, red badge with exact error message for invalid)
+    - On desktop/tablet: Data table with inline row status indicators
+  - Action Controls:
+    - "Parse & Validate", "Clear", and "Import [X] Valid Students" (disabled if 0 valid records or section unselected)
+    - Post-import summary dialog showing successfully created count vs skipped duplicates
+- Auto uploads OCR file scanned after adding -> rename the scanned file of what type is the document -->
 ---
 
 

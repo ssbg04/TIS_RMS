@@ -79,11 +79,12 @@ class _TransparencyBoardContentState extends ConsumerState<_TransparencyBoardCon
   Future<void> _handleExportPdf(
     TransparencyBoardData data, {
     String category = 'all',
+    bool isHeader = false,
   }) async {
     if (_isExportingPdf) return;
     setState(() {
       _isExportingPdf = true;
-      _exportingCategory = category;
+      _exportingCategory = isHeader ? 'header_$category' : 'card_$category';
     });
 
     try {
@@ -135,8 +136,7 @@ class _TransparencyBoardContentState extends ConsumerState<_TransparencyBoardCon
             'School Year',
             latestYear != null ? 'SY ${latestYear.yearRange}' : 'N/A',
           ),
-          FilePreviewRow('Report Scope', sectionLabel),
-          const FilePreviewRow('Format', 'Official DepEd A4 PDF'),
+          FilePreviewRow('Scope', sectionLabel),
         ],
         onSave: (resolvedName) async {
           await DownloadService.requestPermissions();
@@ -181,54 +181,13 @@ class _TransparencyBoardContentState extends ConsumerState<_TransparencyBoardCon
                 ? '4ps'
                 : 'all';
 
-    final isCurrentExporting = _isExportingPdf && (_exportingCategory == activeCat || _exportingCategory == 'all');
+    final isThisButtonExporting = _isExportingPdf && _exportingCategory == 'header_$activeCat';
 
     return MouseRegion(
       cursor: _isExportingPdf ? SystemMouseCursors.basic : SystemMouseCursors.click,
       child: ElevatedButton.icon(
-        onPressed: _isExportingPdf ? null : () => _handleExportPdf(data, category: activeCat),
-        icon: isCurrentExporting
-            ? const SizedBox(
-                width: 14,
-                height: 14,
-                child: CircularProgressIndicator(
-                  strokeWidth: 2,
-                  color: Colors.white,
-                ),
-              )
-            : const Icon(Icons.picture_as_pdf_rounded, size: 16),
-        label: Text(
-          isCurrentExporting ? 'Exporting PDF...' : 'Export PDF',
-          style: const TextStyle(
-            color: Colors.white,
-            fontSize: 12.5,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-        style: ElevatedButton.styleFrom(
-          backgroundColor: Colors.red.shade700,
-          foregroundColor: Colors.white,
-          disabledBackgroundColor: Colors.red.shade300,
-          disabledForegroundColor: Colors.white70,
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-          elevation: 1,
-        ),
-      ),
-    );
-  }
-
-  Widget _buildCategoryExportButton(
-    TransparencyBoardData data, {
-    required String category,
-    String label = 'Export PDF',
-  }) {
-    final isCurrentExporting = _exportingCategory == category;
-    return MouseRegion(
-      cursor: _isExportingPdf ? SystemMouseCursors.basic : SystemMouseCursors.click,
-      child: ElevatedButton.icon(
-        onPressed: _isExportingPdf ? null : () => _handleExportPdf(data, category: category),
-        icon: isCurrentExporting
+        onPressed: _isExportingPdf ? null : () => _handleExportPdf(data, category: activeCat, isHeader: true),
+        icon: isThisButtonExporting
             ? const SizedBox(
                 width: 13,
                 height: 13,
@@ -239,7 +198,7 @@ class _TransparencyBoardContentState extends ConsumerState<_TransparencyBoardCon
               )
             : const Icon(Icons.picture_as_pdf_rounded, size: 14),
         label: Text(
-          isCurrentExporting ? 'Exporting...' : label,
+          isThisButtonExporting ? 'Exporting...' : 'Export PDF',
           style: const TextStyle(
             fontSize: 11.5,
             fontWeight: FontWeight.bold,
@@ -249,7 +208,49 @@ class _TransparencyBoardContentState extends ConsumerState<_TransparencyBoardCon
         style: ElevatedButton.styleFrom(
           backgroundColor: Colors.red.shade700,
           foregroundColor: Colors.white,
-          disabledBackgroundColor: Colors.red.shade300,
+          disabledBackgroundColor: isThisButtonExporting ? Colors.red.shade300 : Colors.red.shade700.withValues(alpha: 0.6),
+          disabledForegroundColor: Colors.white70,
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+          minimumSize: const Size(100, 34),
+          elevation: 1,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildCategoryExportButton(
+    TransparencyBoardData data, {
+    required String category,
+    String label = 'Export PDF',
+  }) {
+    final isThisButtonExporting = _isExportingPdf && _exportingCategory == 'card_$category';
+    return MouseRegion(
+      cursor: _isExportingPdf ? SystemMouseCursors.basic : SystemMouseCursors.click,
+      child: ElevatedButton.icon(
+        onPressed: _isExportingPdf ? null : () => _handleExportPdf(data, category: category, isHeader: false),
+        icon: isThisButtonExporting
+            ? const SizedBox(
+                width: 13,
+                height: 13,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  color: Colors.white,
+                ),
+              )
+            : const Icon(Icons.picture_as_pdf_rounded, size: 14),
+        label: Text(
+          isThisButtonExporting ? 'Exporting...' : label,
+          style: const TextStyle(
+            fontSize: 11.5,
+            fontWeight: FontWeight.bold,
+            color: Colors.white,
+          ),
+        ),
+        style: ElevatedButton.styleFrom(
+          backgroundColor: Colors.red.shade700,
+          foregroundColor: Colors.white,
+          disabledBackgroundColor: isThisButtonExporting ? Colors.red.shade300 : Colors.red.shade700.withValues(alpha: 0.6),
           disabledForegroundColor: Colors.white70,
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
           minimumSize: const Size(100, 34),
@@ -532,30 +533,54 @@ class _TransparencyBoardContentState extends ConsumerState<_TransparencyBoardCon
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(7),
-                decoration: BoxDecoration(
-                  color: iconColor.withValues(alpha: 0.12),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Icon(icon, size: 20, color: iconColor),
-              ),
-              const SizedBox(width: AppSizes.p12),
-              Expanded(
-                child: Text(
-                  title,
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                    letterSpacing: 0.3,
-                    color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
+          LayoutBuilder(
+            builder: (context, constraints) {
+              final isNarrow = constraints.maxWidth < 560;
+
+              final titleWidget = Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(7),
+                    decoration: BoxDecoration(
+                      color: iconColor.withValues(alpha: 0.12),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Icon(icon, size: 20, color: iconColor),
                   ),
-                ),
-              ),
-              ?trailing,
-            ],
+                  const SizedBox(width: AppSizes.p12),
+                  Flexible(
+                    child: Text(
+                      title,
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                        letterSpacing: 0.3,
+                        color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
+                      ),
+                    ),
+                  ),
+                ],
+              );
+
+              if (isNarrow && trailing != null) {
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    titleWidget,
+                    const SizedBox(height: 10),
+                    trailing,
+                  ],
+                );
+              }
+
+              return Row(
+                children: [
+                  Expanded(child: titleWidget),
+                  ?trailing,
+                ],
+              );
+            },
           ),
           const SizedBox(height: AppSizes.p16),
           content,

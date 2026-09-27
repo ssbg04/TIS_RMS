@@ -15,6 +15,7 @@ import '../../documents/widgets/document_preview_modal.dart';
 import '../../../shared/inputs/document_source_picker.dart';
 import 'ocr_enrollment_validation_modal.dart';
 import 'student_form_helpers.dart';
+import 'bulk_ocr_import_dialog.dart';
 import '../../../shared/widgets/app_button_loader.dart';
 
 class AddStudentModal extends ConsumerStatefulWidget {
@@ -449,12 +450,20 @@ class _AddStudentModalState extends ConsumerState<AddStudentModal> {
       if (_ocrScannedFile != null) {
         try {
           final bytes = await _ocrScannedFile!.readAsBytes();
+          final docType = _selectedOcrDocType ?? 'SF9';
+          final originalName = _ocrScannedFileName.isEmpty
+              ? _ocrScannedFile!.path.split(RegExp(r'[\\/]')).last
+              : _ocrScannedFileName;
+          final ext = originalName.contains('.')
+              ? originalName.split('.').last
+              : 'pdf';
+          final lrn = _lrnController.text.trim();
+          final renamedFileName = '${docType}_$lrn.$ext';
+
           await ref.read(documentRepositoryProvider).uploadDocumentBytes(
             studentId: studentId,
-            documentType: _selectedOcrDocType ?? 'SF9',
-            fileName: _ocrScannedFileName.isEmpty
-                ? _ocrScannedFile!.path.split(RegExp(r'[\\/]')).last
-                : _ocrScannedFileName,
+            documentType: docType,
+            fileName: renamedFileName,
             bytes: bytes,
           );
         } catch (e) {
@@ -579,6 +588,157 @@ class _AddStudentModalState extends ConsumerState<AddStudentModal> {
           onFileSelected: _handleOcrScan,
           onError: (err) => setState(() => _errorMessage = err),
         ),
+        const SizedBox(height: AppSizes.p20),
+
+        // Divider with "OR"
+        Row(
+          children: [
+            Expanded(
+              child: Divider(
+                color: isDark ? AppColors.darkBorder : Colors.grey.shade300,
+                thickness: 1,
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 14),
+              child: Text(
+                'OR',
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.bold,
+                  letterSpacing: 1.0,
+                  color: isDark ? AppColors.darkTextMuted : Colors.grey.shade500,
+                ),
+              ),
+            ),
+            Expanded(
+              child: Divider(
+                color: isDark ? AppColors.darkBorder : Colors.grey.shade300,
+                thickness: 1,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: AppSizes.p20),
+
+        // Bulk Add Using CSV card
+        Container(
+          width: double.infinity,
+          decoration: BoxDecoration(
+            color: isDark ? AppColors.darkSurfaceCard : Colors.white,
+            borderRadius: BorderRadius.circular(AppSizes.radiusLarge),
+            border: Border.all(
+              color: isDark ? AppColors.darkBorder : AppColors.primaryGreen.withValues(alpha: 0.35),
+              width: 1.2,
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.04),
+                blurRadius: 10,
+                offset: const Offset(0, 3),
+              ),
+            ],
+          ),
+          padding: const EdgeInsets.all(AppSizes.p20),
+          child: Column(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: AppColors.primaryGreen.withValues(alpha: 0.12),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(
+                  Icons.group_add_outlined,
+                  size: 32,
+                  color: AppColors.primaryGreen,
+                ),
+              ),
+              const SizedBox(height: AppSizes.p12),
+              Text(
+                'Bulk Student Import (CSV / OCR)',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                  color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
+                ),
+              ),
+              const SizedBox(height: 6),
+              Text(
+                'Import multiple students at once by typing or pasting CSV lines, or uploading a DepEd masterlist file with instant live validation.',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 12.5,
+                  height: 1.4,
+                  color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
+                ),
+              ),
+              const SizedBox(height: AppSizes.p16),
+              SizedBox(
+                width: double.infinity,
+                child: Wrap(
+                  alignment: WrapAlignment.center,
+                  spacing: 12,
+                  runSpacing: 10,
+                  children: [
+                    ElevatedButton.icon(
+                      onPressed: () async {
+                        Navigator.of(context).pop();
+                        await Navigator.of(context).push<void>(
+                          MaterialPageRoute(
+                            builder: (_) => const BulkOcrImportDialog(
+                              initialInputTab: 1, // Open directly on CSV tab
+                            ),
+                          ),
+                        );
+                      },
+                      icon: const Icon(Icons.paste_rounded, size: 18),
+                      label: const Text(
+                        'Type / Paste CSV',
+                        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                      ),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.primaryGreen,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(AppSizes.radiusMedium),
+                        ),
+                        elevation: 0,
+                      ),
+                    ),
+                    OutlinedButton.icon(
+                      onPressed: () async {
+                        Navigator.of(context).pop();
+                        await Navigator.of(context).push<void>(
+                          MaterialPageRoute(
+                            builder: (_) => const BulkOcrImportDialog(
+                              initialInputTab: 0, // Open file batch import
+                            ),
+                          ),
+                        );
+                      },
+                      icon: const Icon(Icons.file_upload_outlined, size: 18),
+                      label: const Text(
+                        'Browse Bulk Files',
+                        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                      ),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: isDark ? Colors.white : AppColors.primaryGreen,
+                        side: const BorderSide(color: AppColors.primaryGreen, width: 1.2),
+                        padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(AppSizes.radiusMedium),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
         const SizedBox(height: AppSizes.p24),
       ],
     );
@@ -648,6 +808,11 @@ class _AddStudentModalState extends ConsumerState<AddStudentModal> {
                                     padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                                   ),
                                   onPressed: () => setState(() {
+                                    _errorMessage = null;
+                                    _ocrScannedFile = null;
+                                    _ocrScannedFileName = '';
+                                    _selectedOcrDocType = null;
+                                    _ocrSavedEnrollments.clear();
                                     _lrnController.text = '308035';
                                     _firstNameController.clear();
                                     _middleNameController.clear();
@@ -1291,170 +1456,100 @@ class _AddStudentModalState extends ConsumerState<AddStudentModal> {
                         final isSmallScreen = constraints.maxWidth < 480;
 
                         if (isSmallScreen && !isOcrStep) {
-                          return Column(
-                            mainAxisSize: MainAxisSize.min,
+                          return Row(
                             children: [
-                              if (_ocrScannedFile != null) ...[
-                                Row(
-                                  children: [
-                                    Expanded(
-                                      child: SizedBox(
-                                        height: 38,
-                                        child: TextButton.icon(
-                                          onPressed: () => setState(() {
-                                            _lrnController.text = '308035';
-                                            _firstNameController.clear();
-                                            _middleNameController.clear();
-                                            _lastNameController.clear();
-                                            _extController.clear();
-                                            _currentStep = 0;
-                                          }),
-                                          icon: const Icon(
-                                            Icons.refresh,
-                                            size: 16,
-                                            color: AppColors.primaryGreen,
-                                          ),
-                                          label: const Text(
-                                            'Scan Another',
-                                            style: TextStyle(
-                                              color: AppColors.primaryGreen,
-                                              fontWeight: FontWeight.w600,
-                                              fontSize: 13,
-                                            ),
+                              if (_currentStep > 0) ...[
+                                Expanded(
+                                  child: SizedBox(
+                                    height: 48,
+                                    child: OutlinedButton.icon(
+                                      onPressed: () => setState(() {
+                                        _errorMessage = null;
+                                        _currentStep -= 1;
+                                      }),
+                                      style: OutlinedButton.styleFrom(
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 16,
+                                          vertical: 12,
+                                        ),
+                                        side: BorderSide(color: isDark ? Colors.white : Colors.black),
+                                        shape: RoundedRectangleBorder(
+                                          borderRadius: BorderRadius.circular(
+                                            AppSizes.radiusMedium,
                                           ),
                                         ),
                                       ),
-                                    ),
-                                    const SizedBox(width: 8),
-                                    Expanded(
-                                      child: SizedBox(
-                                        height: 38,
-                                        child: OutlinedButton.icon(
-                                          onPressed: () {
-                                            if (_ocrScannedFile != null) {
-                                              showDocumentPreview(
-                                                context: context,
-                                                localFile: _ocrScannedFile!,
-                                                localFileName: _ocrScannedFile!.path.split('/').last,
-                                              );
-                                            }
-                                          },
-                                          icon: Icon(
-                                            Icons.visibility_outlined,
-                                            size: 16,
-                                            color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
-                                          ),
-                                          label: Text(
-                                            'Preview Document',
-                                            style: TextStyle(
-                                              color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
-                                              fontWeight: FontWeight.w600,
-                                              fontSize: 13,
-                                            ),
-                                          ),
-                                        ),
+                                      icon: Icon(
+                                        Icons.arrow_back,
+                                        size: 16,
+                                        color: isDark ? Colors.white : Colors.black,
                                       ),
-                                    ),
-                                  ],
-                                ),
-                                const SizedBox(height: 10),
-                              ],
-                              Row(
-                                children: [
-                                  if (_currentStep > 0) ...[
-                                    Expanded(
-                                      child: SizedBox(
-                                        height: 48,
-                                        child: OutlinedButton.icon(
-                                          onPressed: () => setState(() {
-                                            _errorMessage = null;
-                                            _currentStep -= 1;
-                                          }),
-                                          style: OutlinedButton.styleFrom(
-                                            padding: const EdgeInsets.symmetric(
-                                              horizontal: 16,
-                                              vertical: 12,
-                                            ),
-                                            side: BorderSide(color: isDark ? Colors.white : Colors.black),
-                                            shape: RoundedRectangleBorder(
-                                              borderRadius: BorderRadius.circular(
-                                                AppSizes.radiusMedium,
-                                              ),
-                                            ),
-                                          ),
-                                          icon: Icon(
-                                            Icons.arrow_back,
-                                            size: 16,
-                                            color: isDark ? Colors.white : Colors.black,
-                                          ),
-                                          label: Text(
-                                            'BACK',
-                                            style: TextStyle(
-                                              color: isDark ? Colors.white : Colors.black,
-                                              fontWeight: FontWeight.w600,
-                                            ),
-                                          ),
+                                      label: Text(
+                                        'BACK',
+                                        style: TextStyle(
+                                          color: isDark ? Colors.white : Colors.black,
+                                          fontWeight: FontWeight.w600,
                                         ),
-                                      ),
-                                    ),
-                                    const SizedBox(width: 12),
-                                  ],
-                                  Expanded(
-                                    child: SizedBox(
-                                      height: 48,
-                                      child: ElevatedButton(
-                                        onPressed: () {
-                                          if (_currentStep == 1) {
-                                            final isValid = _studentFormKey.currentState?.validate() ?? false;
-                                            if (!isValid) {
-                                              setState(() {
-                                                _errorMessage =
-                                                    'Please complete all required fields in red before proceeding to Enrollment.';
-                                              });
-                                              return;
-                                            }
-                                            ref.invalidate(academicYearsListProvider);
-                                            ref.invalidate(gradeLevelsListProvider);
-                                            ref.invalidate(sectionsListProvider);
-                                          }
-                                          if (isLastStep) {
-                                            _handleSave();
-                                          } else {
-                                            setState(() {
-                                              _errorMessage = null;
-                                              _currentStep += 1;
-                                            });
-                                          }
-                                        },
-                                        style: ElevatedButton.styleFrom(
-                                          backgroundColor: const Color(0xFF1C8248),
-                                          foregroundColor: Colors.white,
-                                          padding: EdgeInsets.zero,
-                                          shape: RoundedRectangleBorder(
-                                            borderRadius: BorderRadius.circular(
-                                              AppSizes.radiusMedium,
-                                            ),
-                                          ),
-                                          elevation: 0,
-                                        ),
-                                        child: _isLoading && isLastStep
-                                            ? const AppButtonLoader(
-                                                color: Colors.white,
-                                                size: 18,
-                                                strokeWidth: 2,
-                                              )
-                                            : Text(
-                                                isLastStep ? 'ADD' : 'NEXT',
-                                                style: const TextStyle(
-                                                  fontSize: 14,
-                                                  fontWeight: FontWeight.bold,
-                                                  letterSpacing: 0.5,
-                                                ),
-                                              ),
                                       ),
                                     ),
                                   ),
-                                ],
+                                ),
+                                const SizedBox(width: 12),
+                              ],
+                              Expanded(
+                                child: SizedBox(
+                                  height: 48,
+                                  child: ElevatedButton(
+                                    onPressed: () {
+                                      if (_currentStep == 1) {
+                                        final isValid = _studentFormKey.currentState?.validate() ?? false;
+                                        if (!isValid) {
+                                          setState(() {
+                                            _errorMessage =
+                                                'Please complete all required fields in red before proceeding to Enrollment.';
+                                          });
+                                          return;
+                                        }
+                                        ref.invalidate(academicYearsListProvider);
+                                        ref.invalidate(gradeLevelsListProvider);
+                                        ref.invalidate(sectionsListProvider);
+                                      }
+                                      if (isLastStep) {
+                                        _handleSave();
+                                      } else {
+                                        setState(() {
+                                          _errorMessage = null;
+                                          _currentStep += 1;
+                                        });
+                                      }
+                                    },
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: const Color(0xFF1C8248),
+                                      foregroundColor: Colors.white,
+                                      padding: EdgeInsets.zero,
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(
+                                          AppSizes.radiusMedium,
+                                        ),
+                                      ),
+                                      elevation: 0,
+                                    ),
+                                    child: _isLoading && isLastStep
+                                        ? const AppButtonLoader(
+                                            color: Colors.white,
+                                            size: 18,
+                                            strokeWidth: 2,
+                                          )
+                                        : Text(
+                                            isLastStep ? 'ADD' : 'NEXT',
+                                            style: const TextStyle(
+                                              fontSize: 14,
+                                              fontWeight: FontWeight.bold,
+                                              letterSpacing: 0.5,
+                                            ),
+                                          ),
+                                  ),
+                                ),
                               ),
                             ],
                           );
@@ -1466,61 +1561,7 @@ class _AddStudentModalState extends ConsumerState<AddStudentModal> {
                           spacing: 12,
                           runSpacing: 12,
                           children: [
-                            // Left side items
-                            if (!isOcrStep && _ocrScannedFile != null)
-                              Wrap(
-                                spacing: 12,
-                                runSpacing: 12,
-                                children: [
-                                  TextButton.icon(
-                                    onPressed: () => setState(() {
-                                      _lrnController.text = '308035';
-                                      _firstNameController.clear();
-                                      _middleNameController.clear();
-                                      _lastNameController.clear();
-                                      _extController.clear();
-                                      _currentStep = 0;
-                                    }),
-                                    icon: const Icon(
-                                      Icons.refresh,
-                                      size: 16,
-                                      color: AppColors.primaryGreen,
-                                    ),
-                                    label: const Text(
-                                      'Scan Another',
-                                      style: TextStyle(
-                                        color: AppColors.primaryGreen,
-                                        fontWeight: FontWeight.w600,
-                                      ),
-                                    ),
-                                  ),
-                                  OutlinedButton.icon(
-                                    onPressed: () {
-                                      if (_ocrScannedFile != null) {
-                                        showDocumentPreview(
-                                          context: context,
-                                          localFile: _ocrScannedFile!,
-                                          localFileName: _ocrScannedFile!.path.split('/').last,
-                                        );
-                                      }
-                                    },
-                                    icon: Icon(
-                                      Icons.visibility_outlined,
-                                      size: 16,
-                                      color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
-                                    ),
-                                    label: Text(
-                                      'Preview Document',
-                                      style: TextStyle(
-                                        color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
-                                        fontWeight: FontWeight.w600,
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              )
-                            else
-                              const SizedBox.shrink(),
+                            const SizedBox.shrink(),
 
                             // Right side items
                             Wrap(

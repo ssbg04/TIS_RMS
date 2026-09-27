@@ -1420,7 +1420,10 @@ class _AcademicStructureTabState extends ConsumerState<_AcademicStructureTab>
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  Row(
+                                  Wrap(
+                                    crossAxisAlignment: WrapCrossAlignment.center,
+                                    spacing: 6,
+                                    runSpacing: 2,
                                     children: [
                                       Text(
                                         section.name,
@@ -1429,15 +1432,17 @@ class _AcademicStructureTabState extends ConsumerState<_AcademicStructureTab>
                                           fontSize: 15,
                                           color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
                                         ),
+                                        overflow: TextOverflow.ellipsis,
                                       ),
-                                      const SizedBox(width: 8),
-                                      Text(
-                                        section.academicYearRange ?? '',
-                                        style: TextStyle(
-                                          color: isDark ? AppColors.darkTextMuted : Colors.grey.shade500,
-                                          fontSize: 12,
+                                      if ((section.academicYearRange ?? '').isNotEmpty)
+                                        Text(
+                                          section.academicYearRange!,
+                                          style: TextStyle(
+                                            color: isDark ? AppColors.darkTextMuted : Colors.grey.shade500,
+                                            fontSize: 12,
+                                          ),
+                                          overflow: TextOverflow.ellipsis,
                                         ),
-                                      ),
                                     ],
                                   ),
                                   const SizedBox(height: 6),
@@ -1446,11 +1451,14 @@ class _AcademicStructureTabState extends ConsumerState<_AcademicStructureTab>
                                 ],
                               ),
                             ),
+                            const SizedBox(width: 4),
                             // Actions
                             Row(
                               mainAxisSize: MainAxisSize.min,
                               children: [
                                 IconButton(
+                                  padding: const EdgeInsets.all(6),
+                                  constraints: const BoxConstraints(),
                                   icon: Icon(Icons.edit_outlined, color: Colors.blue.shade400, size: 18),
                                   tooltip: 'Edit Section',
                                   onPressed: () => showDialog(
@@ -1458,7 +1466,10 @@ class _AcademicStructureTabState extends ConsumerState<_AcademicStructureTab>
                                     builder: (_) => SectionFormModal(section: section),
                                   ),
                                 ),
+                                const SizedBox(width: 4),
                                 IconButton(
+                                  padding: const EdgeInsets.all(6),
+                                  constraints: const BoxConstraints(),
                                   icon: Icon(Icons.delete_outline, color: AppColors.error.withValues(alpha: 0.7), size: 18),
                                   tooltip: 'Delete Section',
                                   onPressed: () => _confirmDeleteSection(context, ref, section),
@@ -1502,12 +1513,16 @@ class _AcademicStructureTabState extends ConsumerState<_AcademicStructureTab>
             children: [
               const Icon(Icons.person, size: 13, color: AppColors.primaryGreen),
               const SizedBox(width: 5),
-              Text(
-                'Adviser: ${section.teacherFullName}',
-                style: TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w600,
-                  color: isDark ? AppColors.darkTextPrimary : AppColors.primaryGreen,
+              Flexible(
+                child: Text(
+                  'Adviser: ${section.teacherFullName}',
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    color: isDark ? AppColors.darkTextPrimary : AppColors.primaryGreen,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                 ),
               ),
               const SizedBox(width: 4),
@@ -1539,12 +1554,16 @@ class _AcademicStructureTabState extends ConsumerState<_AcademicStructureTab>
           children: [
             Icon(Icons.person_add_outlined, size: 13, color: Colors.amber.shade700),
             const SizedBox(width: 5),
-            Text(
-              'No Adviser Assigned • Click to assign',
-              style: TextStyle(
-                fontSize: 11,
-                fontWeight: FontWeight.w600,
-                color: Colors.amber.shade800,
+            Flexible(
+              child: Text(
+                'No Adviser Assigned • Click to assign',
+                style: TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.amber.shade800,
+                ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
               ),
             ),
           ],

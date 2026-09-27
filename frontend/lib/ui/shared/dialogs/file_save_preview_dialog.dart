@@ -242,8 +242,8 @@ class _FileSavePreviewDialogState extends State<_FileSavePreviewDialog> {
   Widget _buildTopBar(Color accent, bool isDark) {
     return Container(
       padding: const EdgeInsets.symmetric(
-        horizontal: AppSizes.p20,
-        vertical: AppSizes.p12,
+        horizontal: AppSizes.p16,
+        vertical: 10,
       ),
       decoration: BoxDecoration(
         color: accent.withValues(alpha: isDark ? 0.12 : 0.06),
@@ -253,29 +253,24 @@ class _FileSavePreviewDialogState extends State<_FileSavePreviewDialog> {
       ),
       child: Row(
         children: [
-          Container(
-            padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(
-              color: accent.withValues(alpha: isDark ? 0.20 : 0.12),
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: Icon(widget.fileType.icon, color: accent, size: 22),
-          ),
-          const SizedBox(width: AppSizes.p12),
+          Icon(widget.fileType.icon, color: accent, size: 20),
+          const SizedBox(width: 8),
           Expanded(
             child: Text(
-              'Preview — ${widget.fileType.label}',
+              '${widget.fileType.label} Preview',
               style: TextStyle(
-                fontSize: 16,
+                fontSize: 15,
                 fontWeight: FontWeight.bold,
                 color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
               ),
+              overflow: TextOverflow.ellipsis,
             ),
           ),
           IconButton(
+            visualDensity: VisualDensity.compact,
             icon: Icon(
               Icons.close,
-              size: 20,
+              size: 18,
               color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
             ),
             onPressed: _isSaving
@@ -287,56 +282,37 @@ class _FileSavePreviewDialogState extends State<_FileSavePreviewDialog> {
     );
   }
 
-  // ── BREADCRUMBS ───────────────────────────────────────────────────────────
+  // ── METADATA BAR ──────────────────────────────────────────────────────────
 
   Widget _buildBreadcrumbs(Color accent, bool isDark) {
-    // Build all chips: user-supplied rows + auto size
     final allRows = [...widget.previewRows, FilePreviewRow('Size', _sizeLabel)];
 
     return Container(
-      height: 42,
+      height: 36,
       padding: const EdgeInsets.symmetric(horizontal: AppSizes.p16),
       color: isDark ? AppColors.darkPageBackground : AppColors.pageBackground,
       child: ListView.separated(
         scrollDirection: Axis.horizontal,
         itemCount: allRows.length,
-        separatorBuilder: (_, _) => Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 4),
-          child: Icon(
-            Icons.chevron_right,
-            size: 14,
-            color: isDark ? AppColors.darkTextMuted : AppColors.textMuted,
-          ),
-        ),
+        separatorBuilder: (_, _) => const SizedBox(width: 6),
         itemBuilder: (_, i) {
           final row = allRows[i];
           return Center(
             child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
               decoration: BoxDecoration(
-                color: accent.withValues(alpha: isDark ? 0.15 : 0.08),
-                borderRadius: BorderRadius.circular(20),
-                border: Border.all(color: accent.withValues(alpha: isDark ? 0.32 : 0.18)),
+                color: isDark ? AppColors.darkSurfaceCard : Colors.white,
+                borderRadius: BorderRadius.circular(6),
+                border: Border.all(
+                  color: isDark ? AppColors.darkBorder : Colors.grey.shade300,
+                ),
               ),
-              child: RichText(
-                text: TextSpan(
-                  children: [
-                    TextSpan(
-                      text: '${row.label}: ',
-                      style: TextStyle(
-                        fontSize: 11,
-                        color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
-                      ),
-                    ),
-                    TextSpan(
-                      text: row.value,
-                      style: TextStyle(
-                        fontSize: 11,
-                        fontWeight: FontWeight.bold,
-                        color: accent,
-                      ),
-                    ),
-                  ],
+              child: Text(
+                '${row.label}: ${row.value}',
+                style: TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w500,
+                  color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
                 ),
               ),
             ),

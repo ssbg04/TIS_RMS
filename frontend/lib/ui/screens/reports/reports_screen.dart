@@ -6,9 +6,9 @@ import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:path_provider/path_provider.dart';
-import 'package:permission_handler/permission_handler.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_sizes.dart';
+import '../../../core/utils/download_service.dart';
 import '../../../domain/entities/report_models.dart';
 import '../../shared/buttons/primary_button.dart';
 import '../../providers/reports_provider.dart';
@@ -130,7 +130,6 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
       final bytes = _buildExcel(data, yearLabel);
       final defaultFileName =
           'TIS_RMS_Report_${yearLabel.replaceAll('-', '_')}_${DateTime.now().millisecondsSinceEpoch}.xlsx';
-      final generatedAt = DateTime.now().toString().substring(0, 19);
 
       if (!mounted) return;
       setState(() => _isExporting = false);
@@ -162,27 +161,25 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
           '#',
           'LRN',
           'Name',
-          'Sex',
-          'Grade Level',
-          'Section',
+          'Grade & Section',
           'Status',
           'Missing Count',
-          'Missing Documents',
         ],
-        maxPreviewRows: 100,
+        maxPreviewRows: 30,
         rows: data.students.asMap().entries.map((e) {
           final i = e.key;
           final s = e.value;
+          final grSec = [
+            if (s.gradeLevel != null) 'Grade ${s.gradeLevel}',
+            if (s.sectionName != null && s.sectionName!.isNotEmpty) s.sectionName!,
+          ].join(' - ');
           return [
             '${i + 1}',
             s.lrn,
             s.fullName,
-            s.sex,
-            s.gradeLevel != null ? 'Grade ${s.gradeLevel}' : 'N/A',
-            s.sectionName ?? 'N/A',
+            grSec.isNotEmpty ? grSec : 'N/A',
             s.status,
             s.missingCount.toString(),
-            s.missingRequirements ?? 'None',
           ];
         }).toList(),
       );
@@ -197,8 +194,6 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
         previewRows: [
           FilePreviewRow('School Year', yearLabel),
           FilePreviewRow('Students', data.students.length.toString()),
-          FilePreviewRow('Sheets', '2'),
-          FilePreviewRow('Generated', generatedAt),
         ],
         sheets: [summarySheet, masterlistSheet],
         onSave: (resolvedName) async {
@@ -229,61 +224,9 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
     String? savePath;
 
     if (Platform.isAndroid) {
-      var storageStatus = await Permission.storage.status;
-      var manageStatus = await Permission.manageExternalStorage.status;
-
-      if (!storageStatus.isGranted && !manageStatus.isGranted) {
-        await [Permission.storage, Permission.manageExternalStorage].request();
-        storageStatus = await Permission.storage.status;
-        manageStatus = await Permission.manageExternalStorage.status;
-      }
-
-      if (!storageStatus.isGranted && !manageStatus.isGranted) {
-        if (!mounted) return null;
-        final retry = await _showPermissionDeniedDialog();
-        if (retry == true) {
-          await openAppSettings();
-          if (!mounted) return null;
-          final confirmed = await showDialog<bool>(
-            context: context,
-            builder: (ctx) => AlertDialog(
-              title: const Text('Confirm Permission'),
-              content: const Text(
-                'Did you grant the storage permission in settings?',
-              ),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.pop(ctx, false),
-                  child: const Text('No'),
-                 ),
-                ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.primaryGreen,
-                    foregroundColor: Colors.white,
-                  ),
-                  onPressed: () => Navigator.pop(ctx, true),
-                  child: const Text('Yes'),
-                 ),
-              ],
-            ),
-          );
-          if (confirmed == true) {
-            storageStatus = await Permission.storage.status;
-            manageStatus = await Permission.manageExternalStorage.status;
-          }
-          if (!storageStatus.isGranted && !manageStatus.isGranted) {
-            throw Exception('Storage permission denied. Cannot save file.');
-          }
-        } else {
-          return null;
-        }
-      }
-
-      final selectedDirectory = await FilePicker.getDirectoryPath(
-        dialogTitle: 'Select folder to save report',
-      );
-      if (selectedDirectory == null) return null;
-      savePath = '$selectedDirectory/$fileName';
+      await DownloadService.requestPermissions();
+      final dirPath = await DownloadService.getDownloadDirectoryPath();
+      savePath = '$dirPath/$fileName';
     } else if (Platform.isWindows) {
       savePath = await FilePicker.saveFile(
         dialogTitle: 'Save Report As...',
@@ -302,38 +245,12 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
     return file.path;
   }
 
-  Future<bool?> _showPermissionDeniedDialog() {
-    return showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Permission Denied'),
-        content: const Text(
-          'Storage permission is required to save the exported Excel file. Would you like to open app settings to grant the permission?',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(false),
-            child: const Text('Cancel'),
-          ),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.primaryGreen,
-              foregroundColor: Colors.white,
-            ),
-            onPressed: () => Navigator.of(context).pop(true),
-            child: const Text('Open Settings'),
-          ),
-        ],
-      ),
-    );
-  }
-
   List<int> _buildExcel(ReportStats data, String yearLabel) {
     final excel = Excel.createExcel();
 
-    // â”€â”€ Sheet 1: Summary â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ── Sheet 1: Summary ──────────────────────────────────────────────
     final summary = excel['Summary'];
-    _excelTitle(summary, 'A1', 'TIAONG INTEGRATED SCHOOL â€” TIS RMS', 7);
+    _excelTitle(summary, 'A1', 'TIAONG INTEGRATED SCHOOL - TIS RMS', 7);
     _excelTitle(summary, 'A2', 'Annual Report Summary: $yearLabel', 7);
     _excelTitle(
       summary,
@@ -382,9 +299,9 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
     summary.setColumnWidth(0, 36);
     summary.setColumnWidth(1, 20);
 
-    // â”€â”€ Sheet 2: Student Compliance List â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ── Sheet 2: Student Compliance List ───────────────────────────────
     final students = excel['Student Compliance List'];
-    _excelTitle(students, 'A1', 'STUDENT COMPLIANCE REPORT â€” $yearLabel', 7);
+    _excelTitle(students, 'A1', 'STUDENT COMPLIANCE REPORT - $yearLabel', 7);
     final headers = [
       '#',
       'LRN',
@@ -505,7 +422,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                _buildSegmentedPillNav(),
+                _buildViewModeToggle(),
                 const SizedBox(height: AppSizes.p20),
 
                 if (_selectedViewMode == 0 || _selectedViewMode == 2) ...[
@@ -636,107 +553,208 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
     );
   }
 
-  Widget _buildSegmentedPillNav() {
+  Widget _buildViewModeToggle() {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final items = [
-      (index: 0, icon: Icons.account_balance_outlined, label: 'DepEd Transparency Board'),
-      (index: 1, icon: Icons.fact_check_outlined, label: 'Compliance & Analytics'),
-      (index: 2, icon: Icons.view_agenda_outlined, label: 'Combined View'),
-    ];
+
+    // View mode metadata:
+    // 0: DepEd Transparency Board
+    // 1: Compliance & Analytics
+    // 2: Combined View (DepEd + Compliance)
+    final (String currentLabel, String nextLabel, IconData currentIcon, Color badgeColor) =
+        switch (_selectedViewMode) {
+      0 => (
+          'DepEd Transparency Board',
+          'Compliance & Analytics',
+          Icons.account_balance_rounded,
+          AppColors.primaryGreen,
+        ),
+      1 => (
+          'Compliance & Analytics',
+          'Combined View',
+          Icons.fact_check_rounded,
+          const Color(0xFF0284C7), // Sky/blue
+        ),
+      _ => (
+          'Combined View (All Reports)',
+          'DepEd Transparency Board',
+          Icons.view_agenda_rounded,
+          const Color(0xFF7C3AED), // Purple/indigo
+        ),
+    };
+
+    void cycleViewMode() {
+      setState(() {
+        // Cycle: 0 (DepEd) -> 1 (Compliance) -> 2 (Combined) -> 0
+        _selectedViewMode = (_selectedViewMode + 1) % 3;
+        _rowsPerPage = 10;
+        _currentPage = 0;
+      });
+    }
 
     return LayoutBuilder(
       builder: (context, constraints) {
-        final isNarrow = constraints.maxWidth < 700;
+        final isCompact = constraints.maxWidth < 600;
 
-        Widget pillRow = Container(
-          padding: const EdgeInsets.all(4),
+        return Container(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
           decoration: BoxDecoration(
-            color: isDark
-                ? AppColors.darkSurfaceCard
-                : const Color(0xFFF1F3F5),
-            borderRadius: BorderRadius.circular(30),
+            color: isDark ? AppColors.darkSurfaceCard : Colors.white,
+            borderRadius: BorderRadius.circular(AppSizes.radiusLarge),
             border: Border.all(
-              color: isDark
-                  ? AppColors.darkBorder
-                  : Colors.grey.withValues(alpha: 0.18),
+              color: isDark ? AppColors.darkBorder : Colors.grey.shade200,
             ),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: isDark ? 0.25 : 0.04),
+                blurRadius: 10,
+                offset: const Offset(0, 3),
+              ),
+            ],
           ),
           child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: items.map((item) {
-              final isSelected = _selectedViewMode == item.index;
-              return InkWell(
-                onTap: () => setState(() {
-                  _selectedViewMode = item.index;
-                  _rowsPerPage = 10;
-                  _currentPage = 0;
-                }),
-                borderRadius: BorderRadius.circular(24),
-                child: AnimatedContainer(
-                  duration: const Duration(milliseconds: 220),
-                  curve: Curves.easeInOut,
-                  padding: EdgeInsets.symmetric(
-                    horizontal: isNarrow ? 14 : 18,
-                    vertical: 9,
-                  ),
-                  decoration: BoxDecoration(
-                    color: isSelected
-                        ? AppColors.primaryGreen
-                        : Colors.transparent,
-                    borderRadius: BorderRadius.circular(24),
-                    boxShadow: isSelected
-                        ? [
-                            BoxShadow(
-                              color: AppColors.primaryGreen.withValues(alpha: 0.35),
-                              blurRadius: 8,
-                              offset: const Offset(0, 2),
-                            ),
-                          ]
-                        : null,
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(
-                        item.icon,
-                        size: 16,
-                        color: isSelected
-                            ? Colors.white
-                            : (isDark
-                                ? AppColors.darkTextSecondary
-                                : AppColors.textSecondary),
-                      ),
-                      const SizedBox(width: 7),
-                      Text(
-                        item.label,
-                        style: TextStyle(
-                          fontSize: isNarrow ? 12 : 13.5,
-                          fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
-                          color: isSelected
-                              ? Colors.white
-                              : (isDark
+            children: [
+              // Current Active View Icon with Colored Background
+              Container(
+                width: 36,
+                height: 36,
+                decoration: BoxDecoration(
+                  color: badgeColor.withValues(alpha: isDark ? 0.22 : 0.12),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Icon(
+                  currentIcon,
+                  size: 20,
+                  color: badgeColor,
+                ),
+              ),
+              const SizedBox(width: 12),
+
+              // Title and Mode indicator
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Row(
+                      children: [
+                        Flexible(
+                          child: Text(
+                            currentLabel,
+                            style: TextStyle(
+                              fontSize: isCompact ? 13.5 : 15,
+                              fontWeight: FontWeight.bold,
+                              color: isDark
                                   ? AppColors.darkTextPrimary
-                                  : AppColors.textPrimary),
+                                  : AppColors.textPrimary,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
                         ),
+                        const SizedBox(width: 6),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 6,
+                            vertical: 1.5,
+                          ),
+                          decoration: BoxDecoration(
+                            color: badgeColor.withValues(alpha: 0.15),
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                          child: Text(
+                            _selectedViewMode == 0
+                                ? '1/3'
+                                : _selectedViewMode == 1
+                                    ? '2/3'
+                                    : '3/3 COMBINED',
+                            style: TextStyle(
+                              fontSize: 10,
+                              fontWeight: FontWeight.bold,
+                              color: badgeColor,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      isCompact
+                          ? 'Tap toggle to switch'
+                          : 'Click toggle icon button to swap views (3rd click shows combined)',
+                      style: TextStyle(
+                        fontSize: 11.5,
+                        color: isDark
+                            ? AppColors.darkTextSecondary
+                            : AppColors.textSecondary,
                       ),
-                    ],
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
+                ),
+              ),
+
+              const SizedBox(width: 8),
+
+              // Toggle Button that Swaps Views
+              Tooltip(
+                message: 'Switch to $nextLabel',
+                child: Material(
+                  color: Colors.transparent,
+                  child: InkWell(
+                    onTap: cycleViewMode,
+                    borderRadius: BorderRadius.circular(10),
+                    child: Container(
+                      padding: EdgeInsets.symmetric(
+                        horizontal: isCompact ? 10 : 14,
+                        vertical: 8,
+                      ),
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          colors: [
+                            badgeColor,
+                            badgeColor.withValues(alpha: 0.82),
+                          ],
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                        ),
+                        borderRadius: BorderRadius.circular(10),
+                        boxShadow: [
+                          BoxShadow(
+                            color: badgeColor.withValues(alpha: 0.35),
+                            blurRadius: 6,
+                            offset: const Offset(0, 2),
+                          ),
+                        ],
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Icon(
+                            Icons.swap_horiz_rounded,
+                            color: Colors.white,
+                            size: 19,
+                          ),
+                          if (!isCompact) ...[
+                            const SizedBox(width: 6),
+                            const Text(
+                              'Swap View',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 12.5,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ],
+                        ],
+                      ),
+                    ),
                   ),
                 ),
-              );
-            }).toList(),
+              ),
+            ],
           ),
         );
-
-        if (isNarrow) {
-          return SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            physics: const BouncingScrollPhysics(),
-            child: pillRow,
-          );
-        }
-
-        return pillRow;
       },
     );
   }
@@ -1368,7 +1386,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                 icon: Icons.warning_amber_rounded,
                 color: withIssuesCount == 0
                     ? AppColors.primaryGreen
-                    : Colors.orange.shade700,
+                    : (isDark ? const Color(0xFFE5A663) : Colors.orange.shade800),
               ),
             ),
             const SizedBox(width: 14),
@@ -1381,7 +1399,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                 icon: Icons.description_outlined,
                 color: totalMissing == 0
                     ? AppColors.primaryGreen
-                    : Colors.redAccent,
+                    : (isDark ? const Color(0xFF90A4AE) : Colors.blueGrey.shade700),
               ),
             ),
           ],
@@ -1408,8 +1426,8 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                 color: complianceRate >= 80
                     ? AppColors.primaryGreen
                     : complianceRate >= 50
-                        ? Colors.orange
-                        : Colors.red,
+                        ? Colors.orange.shade700
+                        : (isDark ? const Color(0xFFD67878) : Colors.red.shade700),
                 progress: complianceRate / 100,
                 isMobile: true,
               ),
@@ -1428,7 +1446,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                 icon: Icons.warning_amber_rounded,
                 color: withIssuesCount == 0
                     ? AppColors.primaryGreen
-                    : Colors.orange.shade700,
+                    : (isDark ? const Color(0xFFE5A663) : Colors.orange.shade800),
                 isMobile: true,
               ),
               _buildPrimaryKpiCard(
@@ -1438,7 +1456,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                 icon: Icons.description_outlined,
                 color: totalMissing == 0
                     ? AppColors.primaryGreen
-                    : Colors.redAccent,
+                    : (isDark ? const Color(0xFF90A4AE) : Colors.blueGrey.shade700),
                 isMobile: true,
               ),
             ],
@@ -1472,10 +1490,12 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
       decoration: BoxDecoration(
         color: isDark ? AppColors.darkSurfaceCard : Colors.white,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: effectiveColor.withValues(alpha: 0.3)),
+        border: Border.all(
+          color: isDark ? AppColors.darkBorder : Colors.grey.shade200,
+        ),
         boxShadow: [
           BoxShadow(
-            color: effectiveColor.withValues(alpha: 0.08),
+            color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.03),
             blurRadius: 10,
             offset: const Offset(0, 3),
           ),
@@ -1490,7 +1510,9 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
               Container(
                 padding: const EdgeInsets.all(6),
                 decoration: BoxDecoration(
-                  color: effectiveColor.withValues(alpha: 0.12),
+                  color: isDark
+                      ? AppColors.darkSurface2
+                      : AppColors.primaryGreen.withValues(alpha: 0.08),
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Icon(
@@ -1518,10 +1540,10 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
                 decoration: BoxDecoration(
-                  color: effectiveColor.withValues(alpha: 0.12),
+                  color: isDark ? AppColors.darkSurface2 : Colors.grey.shade100,
                   borderRadius: BorderRadius.circular(6),
                   border: Border.all(
-                    color: effectiveColor.withValues(alpha: 0.3),
+                    color: isDark ? AppColors.darkBorder : Colors.grey.shade300,
                     width: 0.8,
                   ),
                 ),
@@ -1529,7 +1551,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                   statusLabel,
                   style: TextStyle(
                     fontSize: 10.5,
-                    fontWeight: FontWeight.bold,
+                    fontWeight: FontWeight.w600,
                     color: effectiveColor,
                   ),
                 ),
@@ -1586,7 +1608,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
     );
   }
 
-  /// Primary KPI card with colored accent border and optional progress.
+  /// Primary KPI card with neutral border and restrained accent color.
   Widget _buildPrimaryKpiCard({
     required String title,
     required String value,
@@ -1597,7 +1619,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
     bool isMobile = false,
   }) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    // In dark mode, slightly desaturate bright accents for a softer, eye-friendly look
+    // Softer tones for dark mode
     final effectiveColor = isDark
         ? (color == AppColors.primaryGreen
             ? const Color(0xFF76BA8A)
@@ -1618,10 +1640,12 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
       decoration: BoxDecoration(
         color: isDark ? AppColors.darkSurfaceCard : Colors.white,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: effectiveColor.withValues(alpha: 0.25)),
+        border: Border.all(
+          color: isDark ? AppColors.darkBorder : Colors.grey.shade200,
+        ),
         boxShadow: [
           BoxShadow(
-            color: effectiveColor.withValues(alpha: 0.07),
+            color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.03),
             blurRadius: 10,
             offset: const Offset(0, 3),
           ),
@@ -1767,17 +1791,17 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                     ? levelBadge(
                         'SHS',
                         isDark
-                            ? const Color(0xFFB39DDB).withValues(alpha: 0.14)
-                            : Colors.purple.shade50,
-                        isDark ? const Color(0xFFB39DDB) : Colors.purple.shade700,
+                            ? AppColors.darkSurface2
+                            : Colors.grey.shade100,
+                        isDark ? AppColors.darkTextPrimary : Colors.grey.shade800,
                       )
                     : level == 'JHS'
                     ? levelBadge(
                         'JHS',
                         isDark
-                            ? const Color(0xFF80CBC4).withValues(alpha: 0.14)
-                            : Colors.teal.shade50,
-                        isDark ? const Color(0xFF80CBC4) : Colors.teal.shade700,
+                            ? AppColors.darkSurface2
+                            : Colors.grey.shade100,
+                        isDark ? AppColors.darkTextPrimary : Colors.grey.shade800,
                       )
                     : levelBadge(
                         'ALL',
@@ -1810,13 +1834,13 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                 ),
                 decoration: BoxDecoration(
                   color: isDark
-                      ? const Color(0xFFD67878).withValues(alpha: 0.14)
-                      : Colors.red.shade50,
+                      ? AppColors.darkSurface2
+                      : Colors.grey.shade100,
                   borderRadius: BorderRadius.circular(6),
                   border: Border.all(
                     color: isDark
-                        ? const Color(0xFFD67878).withValues(alpha: 0.3)
-                        : Colors.red.shade200,
+                        ? AppColors.darkBorder
+                        : Colors.grey.shade300,
                     width: 0.8,
                   ),
                 ),
@@ -1824,9 +1848,9 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                   '${item.count} / $totalMissingAll',
                   style: TextStyle(
                     color: isDark
-                        ? const Color(0xFFD67878)
-                        : Colors.red.shade700,
-                    fontWeight: FontWeight.bold,
+                        ? AppColors.darkTextSecondary
+                        : AppColors.textSecondary,
+                    fontWeight: FontWeight.w600,
                     fontSize: 11,
                   ),
                 ),
@@ -1852,11 +1876,9 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                   height: 3.5,
                   width: bc.maxWidth * pct,
                   decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      colors: isDark
-                          ? const [Color(0xFFE5A663), Color(0xFFD67878)]
-                          : const [Colors.orange, Colors.redAccent],
-                    ),
+                    color: isDark
+                        ? const Color(0xFF76BA8A)
+                        : AppColors.primaryGreen,
                     borderRadius: BorderRadius.circular(2),
                   ),
                 ),
@@ -3038,20 +3060,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                           ),
                         ]
                       : paginatedStudents.map((student) {
-                        Color? rowBg;
-                        if (student.missingCount == 0) {
-                          rowBg = isDark
-                              ? const Color(0xFF76BA8A).withValues(alpha: 0.08)
-                              : Colors.green.shade50;
-                        } else if (student.missingCount >= 3) {
-                          rowBg = isDark
-                              ? const Color(0xFFD67878).withValues(alpha: 0.08)
-                              : Colors.red.shade50;
-                        }
                         return DataRow(
-                          color: rowBg != null
-                              ? WidgetStateProperty.all(rowBg)
-                              : null,
                           onSelectChanged: (_) {
                             showStudentProfileModal(
                               context,
@@ -3089,18 +3098,12 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                                   vertical: 3,
                                 ),
                                 decoration: BoxDecoration(
-                                  color: student.status == 'Enrolled'
-                                      ? (isDark
-                                          ? const Color(0xFF76BA8A).withValues(alpha: 0.14)
-                                          : Colors.green.shade50)
-                                      : student.status == 'Graduated'
-                                      ? (isDark
-                                          ? const Color(0xFF7EAAD8).withValues(alpha: 0.14)
-                                          : Colors.blue.shade50)
-                                      : (isDark
-                                          ? const Color(0xFFE5A663).withValues(alpha: 0.14)
-                                          : Colors.orange.shade50),
+                                  color: isDark ? AppColors.darkSurface2 : Colors.grey.shade100,
                                   borderRadius: BorderRadius.circular(12),
+                                  border: Border.all(
+                                    color: isDark ? AppColors.darkBorder : Colors.grey.shade300,
+                                    width: 0.8,
+                                  ),
                                 ),
                                 child: Text(
                                   student.status == 'Enrolled'
@@ -3108,17 +3111,11 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                                       : student.status,
                                   style: TextStyle(
                                     color: student.status == 'Enrolled'
-                                        ? (isDark
-                                            ? const Color(0xFF76BA8A)
-                                            : Colors.green.shade700)
+                                        ? (isDark ? const Color(0xFF76BA8A) : AppColors.primaryGreen)
                                         : student.status == 'Graduated'
-                                        ? (isDark
-                                            ? const Color(0xFF7EAAD8)
-                                            : Colors.blue.shade700)
-                                        : (isDark
-                                            ? const Color(0xFFE5A663)
-                                            : Colors.orange.shade700),
-                                    fontWeight: FontWeight.bold,
+                                        ? (isDark ? const Color(0xFF7EAAD8) : Colors.blue.shade700)
+                                        : (isDark ? const Color(0xFFE5A663) : Colors.orange.shade800),
+                                    fontWeight: FontWeight.w600,
                                     fontSize: 11,
                                   ),
                                 ),
@@ -3144,22 +3141,10 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                                       vertical: 3,
                                     ),
                                     decoration: BoxDecoration(
-                                      color: student.missingCount > 0
-                                          ? (isDark
-                                              ? const Color(0xFFD67878).withValues(alpha: 0.14)
-                                              : Colors.red.shade50)
-                                          : (isDark
-                                              ? const Color(0xFF76BA8A).withValues(alpha: 0.14)
-                                              : Colors.green.shade50),
+                                      color: isDark ? AppColors.darkSurface2 : Colors.grey.shade100,
                                       borderRadius: BorderRadius.circular(12),
                                       border: Border.all(
-                                        color: student.missingCount > 0
-                                            ? (isDark
-                                                ? const Color(0xFFD67878).withValues(alpha: 0.3)
-                                                : Colors.red.shade200)
-                                            : (isDark
-                                                ? const Color(0xFF76BA8A).withValues(alpha: 0.3)
-                                                : Colors.green.shade200),
+                                        color: isDark ? AppColors.darkBorder : Colors.grey.shade300,
                                         width: 0.8,
                                       ),
                                     ),
@@ -3173,11 +3158,11 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                                           size: 13,
                                           color: student.missingCount > 0
                                               ? (isDark
-                                                  ? const Color(0xFFD67878)
-                                                  : Colors.red.shade700)
+                                                  ? AppColors.darkTextSecondary
+                                                  : Colors.grey.shade700)
                                               : (isDark
                                                   ? const Color(0xFF76BA8A)
-                                                  : Colors.green.shade700),
+                                                  : AppColors.primaryGreen),
                                         ),
                                         const SizedBox(width: 4),
                                         Text(
@@ -3185,12 +3170,12 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                                           style: TextStyle(
                                             color: student.missingCount > 0
                                                 ? (isDark
-                                                    ? const Color(0xFFD67878)
-                                                    : Colors.red.shade700)
+                                                    ? AppColors.darkTextPrimary
+                                                    : AppColors.textPrimary)
                                                 : (isDark
                                                     ? const Color(0xFF76BA8A)
-                                                    : Colors.green.shade700),
-                                            fontWeight: FontWeight.bold,
+                                                    : AppColors.primaryGreen),
+                                            fontWeight: FontWeight.w600,
                                             fontSize: 12,
                                           ),
                                         ),
@@ -3198,13 +3183,9 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                                         Icon(
                                           Icons.arrow_drop_down_rounded,
                                           size: 18,
-                                          color: student.missingCount > 0
-                                              ? (isDark
-                                                  ? const Color(0xFFD67878)
-                                                  : Colors.red.shade700)
-                                              : (isDark
-                                                  ? const Color(0xFF76BA8A)
-                                                  : Colors.green.shade700),
+                                          color: isDark
+                                              ? AppColors.darkTextSecondary
+                                              : Colors.grey.shade600,
                                         ),
                                       ],
                                     ),
@@ -3422,7 +3403,6 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
     return pages;
   }
 
-
   // ── Status Donut Chart ───────────────────────────────────────────────────
   Widget _buildStatusDonutChart(StudentCounts counts, {required bool isDesktop}) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
@@ -3472,7 +3452,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                       sections: [
                         if (counts.active > 0)
                           PieChartSectionData(
-                            color: AppColors.primaryGreen,
+                            color: isDark ? const Color(0xFF76BA8A) : AppColors.primaryGreen,
                             value: counts.active.toDouble(),
                             title:
                                 '${(counts.active / total * 100).toStringAsFixed(0)}%',
@@ -3485,7 +3465,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                           ),
                         if (counts.inactive > 0)
                           PieChartSectionData(
-                            color: Colors.blueGrey,
+                            color: isDark ? const Color(0xFF78909C) : Colors.blueGrey.shade400,
                             value: counts.inactive.toDouble(),
                             title:
                                 '${(counts.inactive / total * 100).toStringAsFixed(0)}%',
@@ -3498,11 +3478,11 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                           ),
                         if (counts.dropped > 0)
                           PieChartSectionData(
-                            color: Colors.red,
+                            color: isDark ? const Color(0xFFD67878) : Colors.red.shade400,
                             value: counts.dropped.toDouble(),
                             title:
                                 '${(counts.dropped / total * 100).toStringAsFixed(0)}%',
-                            radius: 55,
+                            radius: 52,
                             titleStyle: const TextStyle(
                               fontSize: 11,
                               fontWeight: FontWeight.bold,
@@ -3511,11 +3491,11 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                           ),
                         if (counts.graduated > 0)
                           PieChartSectionData(
-                            color: Colors.blue,
+                            color: isDark ? const Color(0xFF7EAAD8) : const Color(0xFF1E88E5),
                             value: counts.graduated.toDouble(),
                             title:
                                 '${(counts.graduated / total * 100).toStringAsFixed(0)}%',
-                            radius: 55,
+                            radius: 52,
                             titleStyle: const TextStyle(
                               fontSize: 11,
                               fontWeight: FontWeight.bold,
@@ -3524,11 +3504,11 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                           ),
                         if (counts.transferee > 0)
                           PieChartSectionData(
-                            color: Colors.orange,
+                            color: isDark ? const Color(0xFFE5A663) : Colors.amber.shade700,
                             value: counts.transferee.toDouble(),
                             title:
                                 '${(counts.transferee / total * 100).toStringAsFixed(0)}%',
-                            radius: 55,
+                            radius: 52,
                             titleStyle: const TextStyle(
                               fontSize: 11,
                               fontWeight: FontWeight.bold,
@@ -3570,15 +3550,15 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
               runSpacing: 8,
               children: [
                 _buildLegendItem(
-                    AppColors.primaryGreen, 'Active (${counts.active})'),
+                    isDark ? const Color(0xFF76BA8A) : AppColors.primaryGreen, 'Active (${counts.active})'),
                 if (counts.inactive > 0)
                   _buildLegendItem(
-                      Colors.blueGrey, 'Inactive (${counts.inactive})'),
-                _buildLegendItem(Colors.red, 'Dropped (${counts.dropped})'),
+                      isDark ? const Color(0xFF78909C) : Colors.blueGrey.shade400, 'Inactive (${counts.inactive})'),
+                _buildLegendItem(isDark ? const Color(0xFFD67878) : Colors.red.shade400, 'Dropped (${counts.dropped})'),
                 _buildLegendItem(
-                    Colors.blue, 'Graduated (${counts.graduated})'),
+                    isDark ? const Color(0xFF7EAAD8) : const Color(0xFF1E88E5), 'Graduated (${counts.graduated})'),
                 _buildLegendItem(
-                    Colors.orange, 'Transferred (${counts.transferee})'),
+                    isDark ? const Color(0xFFE5A663) : Colors.amber.shade700, 'Transferred (${counts.transferee})'),
               ],
             ),
           ],
@@ -3618,11 +3598,17 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                 final pct = g.total > 0
                     ? g.compliant / g.total * 100
                     : 0.0;
-                final barColor = pct >= 80
-                    ? AppColors.primaryGreen
-                    : pct >= 50
-                    ? Colors.orange
-                    : Colors.red;
+                final barColor = isDark
+                    ? (pct >= 80
+                        ? const Color(0xFF76BA8A)
+                        : pct >= 50
+                            ? const Color(0xFF81C784)
+                            : const Color(0xFFA5D6A7))
+                    : (pct >= 80
+                        ? AppColors.primaryGreen
+                        : pct >= 50
+                            ? const Color(0xFF2E7D32)
+                            : const Color(0xFF43A047));
                 return BarChartGroupData(
                   x: entry.key,
                   barRods: [
@@ -3790,13 +3776,12 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                 ),
               ],
               const SizedBox(height: 16),
-              Wrap(
-                spacing: 16,
-                runSpacing: 6,
+              Row(
                 children: [
-                  _buildLegendItem(AppColors.primaryGreen, '≥ 80% Good'),
-                  _buildLegendItem(Colors.orange, '50–79% Moderate'),
-                  _buildLegendItem(Colors.red, '< 50% Critical'),
+                  _buildLegendItem(
+                    isDark ? const Color(0xFF76BA8A) : AppColors.primaryGreen,
+                    'Compliance Rate (%)',
+                  ),
                 ],
               ),
             ],
@@ -3806,7 +3791,6 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
     );
   }
 
-  // â”€â”€ Helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   Widget _errorWidget(String msg) {
     final isDark = Theme.of(context).brightness == Brightness.dark;

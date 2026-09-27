@@ -236,6 +236,98 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
     );
   }
 
+  void _showAddStudentOptionsBottomSheet(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: isDark ? AppColors.darkSurfaceCard : Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) {
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Center(
+                  child: Container(
+                    width: 40,
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: isDark ? Colors.grey.shade700 : Colors.grey.shade300,
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  'Add Student Record',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  'Select how you would like to register students into the system:',
+                  style: TextStyle(
+                    fontSize: 13,
+                    color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
+                  ),
+                ),
+                const SizedBox(height: 20),
+                ListTile(
+                  leading: Container(
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: AppColors.primaryGreen.withValues(alpha: 0.12),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: const Icon(Icons.person_add_rounded, color: AppColors.primaryGreen),
+                  ),
+                  title: const Text('Add Single Student',
+                      style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
+                  subtitle: const Text('Fill out step-by-step form or scan single document'),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  tileColor: isDark ? AppColors.darkSurface2 : const Color(0xFFF8F9FA),
+                  onTap: () {
+                    Navigator.of(ctx).pop();
+                    _openModal();
+                  },
+                ),
+                const SizedBox(height: 12),
+                ListTile(
+                  leading: Container(
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: AppColors.darkGreen.withValues(alpha: 0.15),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: const Icon(Icons.group_add_outlined, color: AppColors.darkGreen),
+                  ),
+                  title: const Text('Bulk Student Import',
+                      style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
+                  subtitle: const Text('Import multiple students via CSV paste or file upload'),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  tileColor: isDark ? AppColors.darkSurface2 : const Color(0xFFF8F9FA),
+                  onTap: () {
+                    Navigator.of(ctx).pop();
+                    _openBulkOcrImport();
+                  },
+                ),
+                const SizedBox(height: 10),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
   // ── DRAG AND DROP WRAPPER (Windows only) ──────────────────────────────────
   Widget _buildDragDropWrapper(BuildContext context, {required Widget child}) {
     final isWindows = defaultTargetPlatform == TargetPlatform.windows;
@@ -1209,7 +1301,13 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
                     child: Material(
                       color: Colors.transparent,
                       child: InkWell(
-                        onTap: () => _openModal(),
+                        onTap: () {
+                          if (!isDesktop && widget.userRole != 'teacher') {
+                            _showAddStudentOptionsBottomSheet(context);
+                          } else {
+                            _openModal();
+                          }
+                        },
                         borderRadius: BorderRadius.circular(10),
                         child: Padding(
                           padding: EdgeInsets.symmetric(
@@ -1243,9 +1341,8 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
                   ),
                 ),
               ],
-              // "Bulk Import" button for Windows / Desktop
-              if (defaultTargetPlatform == TargetPlatform.windows &&
-                  widget.userRole != 'teacher') ...[
+              // "Bulk Import" button for Desktop / Tablet or when role allows
+              if (widget.userRole != 'teacher') ...[
                 const SizedBox(width: 6),
                 Tooltip(
                   message: 'Bulk Import Students (OCR & CSV)',
@@ -1254,12 +1351,16 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
                     child: ElevatedButton.icon(
                       onPressed: _openBulkOcrImport,
                       icon: const Icon(Icons.group_add_outlined, size: 18),
-                      label: const Text('Bulk Import',
-                          style: TextStyle(fontSize: 13)),
+                      label: Text(
+                        isDesktop ? 'Bulk Import' : 'Import',
+                        style: const TextStyle(fontSize: 13),
+                      ),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: AppColors.darkGreen,
                         foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(horizontal: 12),
+                        padding: EdgeInsets.symmetric(
+                          horizontal: isDesktop ? 12 : 8,
+                        ),
                       ),
                     ),
                   ),

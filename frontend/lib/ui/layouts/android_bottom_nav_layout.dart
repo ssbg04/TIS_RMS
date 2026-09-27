@@ -940,12 +940,45 @@ class _AndroidBottomNavLayoutState extends ConsumerState<AndroidBottomNavLayout>
                                 );
                               },
                             ),
-                            // 2. Add User Button
+                            // 2. Add User Button (High-Attraction Elevated Primary CTA)
                             Tooltip(
                               message: 'Add User',
-                              child: IconButton(
-                                icon: const Icon(Icons.person_add_rounded, size: 22),
-                                onPressed: () => AddEditUserModal.show(context),
+                              child: Container(
+                                width: 36,
+                                height: 36,
+                                margin: const EdgeInsets.only(left: 4, right: 8),
+                                decoration: BoxDecoration(
+                                  gradient: const LinearGradient(
+                                    colors: [
+                                      Color(0xFF00B074),
+                                      AppColors.primaryGreen,
+                                    ],
+                                    begin: Alignment.topLeft,
+                                    end: Alignment.bottomRight,
+                                  ),
+                                  borderRadius: BorderRadius.circular(10),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: AppColors.primaryGreen.withValues(alpha: 0.4),
+                                      blurRadius: 6,
+                                      offset: const Offset(0, 2),
+                                    ),
+                                  ],
+                                ),
+                                child: Material(
+                                  color: Colors.transparent,
+                                  child: InkWell(
+                                    borderRadius: BorderRadius.circular(10),
+                                    onTap: () => AddEditUserModal.show(context),
+                                    child: const Center(
+                                      child: Icon(
+                                        Icons.person_add_rounded,
+                                        size: 20,
+                                        color: Colors.white,
+                                      ),
+                                    ),
+                                  ),
+                                ),
                               ),
                             ),
                             const SizedBox(width: 4),

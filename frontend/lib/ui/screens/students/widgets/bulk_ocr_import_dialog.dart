@@ -9,6 +9,7 @@ import 'package:desktop_drop/desktop_drop.dart';
 
 import '../../../../core/constants/app_colors.dart';
 import '../../../../domain/entities/setup_models.dart';
+import '../../../providers/document_provider.dart';
 import '../../../providers/ocr_provider.dart';
 import '../../../providers/student_provider.dart';
 import '../../../providers/setup_provider.dart';
@@ -57,6 +58,7 @@ class _OcrItem {
   int? sectionId;
   int? gradeLevel;
   String? trackStrand;
+  String? docType;
 
   _OcrItem({
     required this.filePath,
@@ -127,9 +129,14 @@ class _ParsedStudentRow {
 // Dialog
 // ---------------------------------------------------------------------------
 class BulkOcrImportDialog extends ConsumerStatefulWidget {
-  const BulkOcrImportDialog({super.key, this.preloadedFiles});
+  const BulkOcrImportDialog({
+    super.key,
+    this.preloadedFiles,
+    this.initialInputTab = 0,
+  });
 
   final List<File>? preloadedFiles;
+  final int initialInputTab;
 
   @override
   ConsumerState<BulkOcrImportDialog> createState() =>
@@ -138,7 +145,7 @@ class BulkOcrImportDialog extends ConsumerStatefulWidget {
 
 class _BulkOcrImportDialogState extends ConsumerState<BulkOcrImportDialog> {
   int _step = 0; // 0=Upload  1=Review  2=Summary
-  int _activeInputTab = 0; // 0=Document Files/Scan, 1=Live Type/Paste CSV
+  late int _activeInputTab; // 0=Document Files/Scan, 1=Live Type/Paste CSV
 
   final List<_OcrItem> _items = [];
   bool _isDragOver = false;
@@ -168,6 +175,7 @@ class _BulkOcrImportDialogState extends ConsumerState<BulkOcrImportDialog> {
   @override
   void initState() {
     super.initState();
+    _activeInputTab = widget.initialInputTab;
     final preloaded = widget.preloadedFiles;
     if (preloaded != null) {
       File? preloadedCsv;
@@ -282,9 +290,22 @@ class _BulkOcrImportDialogState extends ConsumerState<BulkOcrImportDialog> {
       final result = await FilePicker.pickFiles(
         type: FileType.custom,
         allowedExtensions: ['csv', 'txt'],
+        withData: true,
       );
-      if (result != null && result.files.single.path != null) {
-        await _loadCsvFromFile(File(result.files.single.path!));
+      if (result != null && result.files.isNotEmpty) {
+        final picked = result.files.single;
+        if (picked.path != null && picked.path!.isNotEmpty) {
+          await _loadCsvFromFile(File(picked.path!));
+        } else if (picked.bytes != null) {
+          final content = utf8.decode(picked.bytes!);
+          if (mounted) {
+            setState(() {
+              _activeInputTab = 1;
+              _csvTextController.text = content;
+            });
+            _parseCsvInput();
+          }
+        }
       }
     } catch (e) {
       if (mounted) {
@@ -671,6 +692,7 @@ class _BulkOcrImportDialogState extends ConsumerState<BulkOcrImportDialog> {
             item.sectionId ??= _sharedSectionId;
             item.gradeLevel ??= _sharedGradeLevel;
             item.trackStrand ??= _sharedTrackStrand;
+            item.docType = docType;
             item.status = _FileStatus.done;
           });
         }
@@ -750,6 +772,51 @@ class _BulkOcrImportDialogState extends ConsumerState<BulkOcrImportDialog> {
       final result = await ref
           .read(studentMutationProvider.notifier)
           .bulkCreateStudents(payload);
+
+      // Auto-upload scanned documents for newly created students
+      final rawResults = result['results'];
+      if (rawResults is List) {
+        for (final r in rawResults) {
+          if (r is Map && r['status'] == 'created' && r['id'] != null) {
+            final studentId = r['id'] as int;
+            final studentLrn = (r['lrn'] ?? '').toString();
+            // Find corresponding _OcrItem with local scanned file
+            final matchingItem = validItems.cast<_OcrItem?>().firstWhere(
+              (item) =>
+                  item != null &&
+                  item.lrn.trim() == studentLrn.trim() &&
+                  !item.filePath.startsWith('csv_row_'),
+              orElse: () => null,
+            );
+
+            if (matchingItem != null) {
+              final localFile = File(matchingItem.filePath);
+              if (await localFile.exists()) {
+                try {
+                  final bytes = await localFile.readAsBytes();
+                  final docType = matchingItem.docType ?? 'SF9';
+                  final originalName = matchingItem.fileName;
+                  final ext = originalName.contains('.')
+                      ? originalName.split('.').last
+                      : 'pdf';
+                  // Renaming convention according to docType: e.g. SF9_308035123456.pdf or SF10_308035123456.pdf
+                  final renamedFileName = '${docType}_${matchingItem.lrn}.$ext';
+
+                  await ref.read(documentRepositoryProvider).uploadDocumentBytes(
+                    studentId: studentId,
+                    documentType: docType,
+                    fileName: renamedFileName,
+                    bytes: bytes,
+                  );
+                } catch (upErr) {
+                  debugPrint('Failed to auto-upload OCR doc for student $studentId: $upErr');
+                }
+              }
+            }
+          }
+        }
+      }
+
       setState(() {
         _importResult = result;
         _isImporting = false;
@@ -778,12 +845,16 @@ class _BulkOcrImportDialogState extends ConsumerState<BulkOcrImportDialog> {
           children: [
             Icon(Icons.group_add_outlined, color: Colors.white, size: 22),
             SizedBox(width: 10),
-            Text(
-              'Bulk Student Import (OCR & CSV)',
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
+            Expanded(
+              child: Text(
+                'Bulk Student Import (OCR & CSV)',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 17,
+                  fontWeight: FontWeight.bold,
+                ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
               ),
             ),
           ],
@@ -811,13 +882,25 @@ class _BulkOcrImportDialogState extends ConsumerState<BulkOcrImportDialog> {
   Widget _buildStepper() {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     const stepLabels = [
-      '1. Select / Input Students',
-      '2. Review & Assign Section',
-      '3. Import Results',
+      '1. Input',
+      '2. Review',
+      '3. Results',
+    ];
+    const fullStepLabels = [
+      '1. Select / Input',
+      '2. Review & Assign',
+      '3. Results',
     ];
     const totalSteps = 3;
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isCompact = screenWidth < 500;
+    final labels = isCompact ? stepLabels : fullStepLabels;
+
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 10),
+      padding: EdgeInsets.symmetric(
+        horizontal: isCompact ? 16 : 24,
+        vertical: 10,
+      ),
       color: isDark ? AppColors.darkPageBackground : const Color(0xFFF8F9FA),
       child: Column(
         children: [
@@ -840,26 +923,32 @@ class _BulkOcrImportDialogState extends ConsumerState<BulkOcrImportDialog> {
           ),
           const SizedBox(height: 6),
           Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: List.generate(totalSteps, (idx) {
               final isCurrent = _step == idx;
               final isDone = _step > idx;
-              return Text(
-                stepLabels[idx],
-                style: TextStyle(
-                  fontSize: 11,
-                  fontWeight: isCurrent || isDone
-                      ? FontWeight.bold
-                      : FontWeight.normal,
-                  color: isCurrent
-                      ? AppColors.primaryGreen
-                      : (isDone
-                          ? (isDark
-                              ? AppColors.darkTextPrimary
-                              : AppColors.textPrimary)
-                          : (isDark
-                              ? AppColors.darkTextMuted
-                              : AppColors.textMuted)),
+              return Expanded(
+                child: Text(
+                  labels[idx],
+                  textAlign: idx == 0
+                      ? TextAlign.start
+                      : (idx == totalSteps - 1 ? TextAlign.end : TextAlign.center),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontSize: isCompact ? 10.5 : 11,
+                    fontWeight: isCurrent || isDone
+                        ? FontWeight.bold
+                        : FontWeight.normal,
+                    color: isCurrent
+                        ? AppColors.primaryGreen
+                        : (isDone
+                            ? (isDark
+                                ? AppColors.darkTextPrimary
+                                : AppColors.textPrimary)
+                            : (isDark
+                                ? AppColors.darkTextMuted
+                                : AppColors.textMuted)),
+                  ),
                 ),
               );
             }),
@@ -887,9 +976,11 @@ class _BulkOcrImportDialogState extends ConsumerState<BulkOcrImportDialog> {
   Widget _buildUploadStep() {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final isWindows = defaultTargetPlatform == TargetPlatform.windows;
+    final screenWidth = MediaQuery.of(context).size.width;
+    final horizontalPadding = screenWidth < 500 ? 14.0 : 24.0;
 
     return SingleChildScrollView(
-      padding: const EdgeInsets.all(24),
+      padding: EdgeInsets.symmetric(horizontal: horizontalPadding, vertical: 16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -907,6 +998,7 @@ class _BulkOcrImportDialogState extends ConsumerState<BulkOcrImportDialog> {
     final fileCount =
         _items.where((i) => !i.filePath.startsWith('csv_row_')).length;
     final csvValidCount = _parsedStudentRows.where((r) => r.isValid).length;
+    final isCompact = MediaQuery.of(context).size.width < 500;
 
     return Container(
       margin: const EdgeInsets.only(bottom: 24),
@@ -924,7 +1016,7 @@ class _BulkOcrImportDialogState extends ConsumerState<BulkOcrImportDialog> {
             child: _buildModeTabButton(
               index: 0,
               icon: Icons.document_scanner_outlined,
-              label: 'Document Files & Scan (OCR)',
+              label: isCompact ? 'Files & OCR' : 'Document Files & Scan (OCR)',
               badgeCount: fileCount,
               badgeColor: AppColors.primaryGreen,
               isDark: isDark,
@@ -935,7 +1027,7 @@ class _BulkOcrImportDialogState extends ConsumerState<BulkOcrImportDialog> {
             child: _buildModeTabButton(
               index: 1,
               icon: Icons.table_chart_outlined,
-              label: 'Live Type / Paste CSV',
+              label: isCompact ? 'Type / CSV' : 'Live Type / Paste CSV',
               badgeCount: csvValidCount,
               badgeColor: Colors.blue.shade600,
               isDark: isDark,
@@ -1198,9 +1290,20 @@ class _BulkOcrImportDialogState extends ConsumerState<BulkOcrImportDialog> {
 
   // ── Tab 1: Live Type / Paste CSV ──
   Widget _buildLiveCsvStep(bool isDark) {
+    final academicYearsAsync = ref.watch(academicYearsListProvider);
+    final gradeLevelsAsync = ref.watch(gradeLevelsListProvider);
+    final sectionsAsync = ref.watch(sectionsListProvider);
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
+        _buildSharedEnrollmentPicker(
+          academicYearsAsync,
+          gradeLevelsAsync,
+          sectionsAsync,
+          title: 'Target Section / Enrollment (SF1 Masterlist)',
+        ),
+        const SizedBox(height: 20),
         _buildCsvFormatGuide(isDark),
         const SizedBox(height: 20),
         _buildCsvInputArea(isDark),
@@ -1249,43 +1352,50 @@ class _BulkOcrImportDialogState extends ConsumerState<BulkOcrImportDialog> {
                 ),
               ),
             ),
-            child: Row(
-              children: [
-                const Icon(
-                  Icons.menu_book_outlined,
-                  size: 20,
-                  color: AppColors.primaryGreen,
-                ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'CSV Format Reference & Sample Template',
-                        style: TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.bold,
-                          color: isDark
-                              ? AppColors.darkTextPrimary
-                              : AppColors.textPrimary,
-                        ),
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                final isNarrow = constraints.maxWidth < 500;
+                final titleCol = Row(
+                  children: [
+                    const Icon(
+                      Icons.menu_book_outlined,
+                      size: 20,
+                      color: AppColors.primaryGreen,
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'CSV Format Reference & Sample Template',
+                            style: TextStyle(
+                              fontSize: 13.5,
+                              fontWeight: FontWeight.bold,
+                              color: isDark
+                                  ? AppColors.darkTextPrimary
+                                  : AppColors.textPrimary,
+                            ),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            '8 Columns: LRN, First Name, Middle Name, Last Name, Extension, Sex, Birth Date, 4Ps',
+                            style: TextStyle(
+                              fontSize: 11.5,
+                              color: isDark
+                                  ? AppColors.darkTextSecondary
+                                  : AppColors.textSecondary,
+                            ),
+                          ),
+                        ],
                       ),
-                      const SizedBox(height: 2),
-                      Text(
-                        '8 Columns: LRN, First Name, Middle Name, Last Name, Extension, Sex, Birth Date, 4Ps',
-                        style: TextStyle(
-                          fontSize: 11.5,
-                          color: isDark
-                              ? AppColors.darkTextSecondary
-                              : AppColors.textSecondary,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                Wrap(
+                    ),
+                  ],
+                );
+
+                final actionButtons = Wrap(
                   spacing: 8,
+                  runSpacing: 6,
                   children: [
                     OutlinedButton.icon(
                       onPressed: _loadSampleData,
@@ -1316,8 +1426,27 @@ class _BulkOcrImportDialogState extends ConsumerState<BulkOcrImportDialog> {
                       ),
                     ),
                   ],
-                ),
-              ],
+                );
+
+                if (isNarrow) {
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      titleCol,
+                      const SizedBox(height: 10),
+                      actionButtons,
+                    ],
+                  );
+                }
+
+                return Row(
+                  children: [
+                    Expanded(child: titleCol),
+                    const SizedBox(width: 12),
+                    actionButtons,
+                  ],
+                );
+              },
             ),
           ),
 
@@ -1450,90 +1579,122 @@ class _BulkOcrImportDialogState extends ConsumerState<BulkOcrImportDialog> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Row(
-              children: [
-                const Icon(
-                  Icons.edit_note_rounded,
-                  size: 22,
-                  color: AppColors.primaryGreen,
-                ),
-                const SizedBox(width: 8),
-                Text(
-                  'Live Type / Paste CSV Input',
-                  style: TextStyle(
-                    fontSize: 15,
-                    fontWeight: FontWeight.bold,
-                    color: isDark
-                        ? AppColors.darkTextPrimary
-                        : AppColors.textPrimary,
-                  ),
-                ),
-                if (lineCount > 0) ...[
-                  const SizedBox(width: 8),
-                  Container(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                    decoration: BoxDecoration(
-                      color: AppColors.primaryGreen.withValues(alpha: 0.12),
-                      borderRadius: BorderRadius.circular(10),
+            LayoutBuilder(
+              builder: (context, constraints) {
+                final isNarrow = constraints.maxWidth < 480;
+                final titleRow = Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(
+                      Icons.edit_note_rounded,
+                      size: 22,
+                      color: AppColors.primaryGreen,
                     ),
-                    child: Text(
-                      '$lineCount line${lineCount == 1 ? '' : 's'}',
-                      style: const TextStyle(
-                        fontSize: 11,
-                        fontWeight: FontWeight.bold,
-                        color: AppColors.primaryGreen,
+                    const SizedBox(width: 8),
+                    Flexible(
+                      child: Text(
+                        'Live Type / Paste CSV Input',
+                        style: TextStyle(
+                          fontSize: 14.5,
+                          fontWeight: FontWeight.bold,
+                          color: isDark
+                              ? AppColors.darkTextPrimary
+                              : AppColors.textPrimary,
+                        ),
+                        overflow: TextOverflow.ellipsis,
                       ),
                     ),
-                  ),
-                ],
-                const Spacer(),
-                OutlinedButton.icon(
-                  onPressed: _pickCsvFile,
-                  icon: const Icon(Icons.file_upload_outlined, size: 16),
-                  label: const Text('Browse File',
-                      style: TextStyle(fontSize: 12)),
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor:
-                        isDark ? Colors.white : AppColors.textPrimary,
-                    side: BorderSide(color: borderColor),
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 10, vertical: 6),
-                    visualDensity: VisualDensity.compact,
-                  ),
-                ),
-                const SizedBox(width: 8),
-                OutlinedButton.icon(
-                  onPressed: _pasteFromClipboard,
-                  icon: const Icon(Icons.content_paste_rounded, size: 16),
-                  label: const Text('Paste', style: TextStyle(fontSize: 12)),
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor:
-                        isDark ? Colors.white : AppColors.textPrimary,
-                    side: BorderSide(color: borderColor),
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 10, vertical: 6),
-                    visualDensity: VisualDensity.compact,
-                  ),
-                ),
-                if (_csvTextController.text.isNotEmpty) ...[
-                  const SizedBox(width: 8),
-                  OutlinedButton.icon(
-                    onPressed: _clearCsvInput,
-                    icon: const Icon(Icons.clear_rounded, size: 16),
-                    label: const Text('Clear', style: TextStyle(fontSize: 12)),
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: AppColors.error,
-                      side: BorderSide(
-                        color: AppColors.error.withValues(alpha: 0.4),
+                    if (lineCount > 0) ...[
+                      const SizedBox(width: 8),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 8, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: AppColors.primaryGreen.withValues(alpha: 0.12),
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: Text(
+                          '$lineCount line${lineCount == 1 ? '' : 's'}',
+                          style: const TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.bold,
+                            color: AppColors.primaryGreen,
+                          ),
+                        ),
                       ),
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 10, vertical: 6),
-                      visualDensity: VisualDensity.compact,
+                    ],
+                  ],
+                );
+
+                final actionButtons = Wrap(
+                  spacing: 8,
+                  runSpacing: 6,
+                  children: [
+                    OutlinedButton.icon(
+                      onPressed: _pickCsvFile,
+                      icon: const Icon(Icons.file_upload_outlined, size: 16),
+                      label: const Text('Browse File',
+                          style: TextStyle(fontSize: 12)),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor:
+                            isDark ? Colors.white : AppColors.textPrimary,
+                        side: BorderSide(color: borderColor),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 10, vertical: 6),
+                        visualDensity: VisualDensity.compact,
+                      ),
                     ),
-                  ),
-                ],
-              ],
+                    OutlinedButton.icon(
+                      onPressed: _pasteFromClipboard,
+                      icon: const Icon(Icons.content_paste_rounded, size: 16),
+                      label:
+                          const Text('Paste', style: TextStyle(fontSize: 12)),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor:
+                            isDark ? Colors.white : AppColors.textPrimary,
+                        side: BorderSide(color: borderColor),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 10, vertical: 6),
+                        visualDensity: VisualDensity.compact,
+                      ),
+                    ),
+                    if (_csvTextController.text.isNotEmpty)
+                      OutlinedButton.icon(
+                        onPressed: _clearCsvInput,
+                        icon: const Icon(Icons.clear_rounded, size: 16),
+                        label:
+                            const Text('Clear', style: TextStyle(fontSize: 12)),
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: AppColors.error,
+                          side: BorderSide(
+                            color: AppColors.error.withValues(alpha: 0.4),
+                          ),
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 10, vertical: 6),
+                          visualDensity: VisualDensity.compact,
+                        ),
+                      ),
+                  ],
+                );
+
+                if (isNarrow) {
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      titleRow,
+                      const SizedBox(height: 8),
+                      actionButtons,
+                    ],
+                  );
+                }
+
+                return Row(
+                  children: [
+                    Expanded(child: titleRow),
+                    actionButtons,
+                  ],
+                );
+              },
             ),
             const SizedBox(height: 12),
             TextField(
@@ -1586,7 +1747,10 @@ class _BulkOcrImportDialogState extends ConsumerState<BulkOcrImportDialog> {
               },
             ),
             const SizedBox(height: 14),
-            Row(
+            Wrap(
+              spacing: 12,
+              runSpacing: 8,
+              crossAxisAlignment: WrapCrossAlignment.center,
               children: [
                 ElevatedButton.icon(
                   onPressed: _csvTextController.text.trim().isEmpty
@@ -1604,26 +1768,29 @@ class _BulkOcrImportDialogState extends ConsumerState<BulkOcrImportDialog> {
                         ? AppColors.darkSurface2
                         : Colors.grey.shade300,
                     padding: const EdgeInsets.symmetric(
-                        horizontal: 22, vertical: 13),
+                        horizontal: 18, vertical: 12),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(10),
                     ),
                   ),
                 ),
-                const SizedBox(width: 14),
-                if (_hasParsedCsv) ...[
-                  const Icon(Icons.check_circle_outline,
-                      size: 18, color: AppColors.primaryGreen),
-                  const SizedBox(width: 6),
-                  Text(
-                    'Parsed ${_parsedStudentRows.length} row(s)',
-                    style: const TextStyle(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w600,
-                      color: AppColors.primaryGreen,
-                    ),
+                if (_hasParsedCsv)
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(Icons.check_circle_outline,
+                          size: 18, color: AppColors.primaryGreen),
+                      const SizedBox(width: 6),
+                      Text(
+                        'Parsed ${_parsedStudentRows.length} row(s)',
+                        style: const TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.primaryGreen,
+                        ),
+                      ),
+                    ],
                   ),
-                ],
               ],
             ),
           ],
@@ -1667,47 +1834,59 @@ class _BulkOcrImportDialogState extends ConsumerState<BulkOcrImportDialog> {
                   const BorderRadius.vertical(top: Radius.circular(13)),
               border: Border(bottom: BorderSide(color: borderColor)),
             ),
-            child: Row(
-              children: [
-                const Icon(
-                  Icons.fact_check_outlined,
-                  size: 20,
-                  color: AppColors.primaryGreen,
-                ),
-                const SizedBox(width: 10),
-                Text(
-                  'Validation Table & Live Preview',
-                  style: TextStyle(
-                    fontSize: 15,
-                    fontWeight: FontWeight.bold,
-                    color: isDark
-                        ? AppColors.darkTextPrimary
-                        : AppColors.textPrimary,
-                  ),
-                ),
-                const SizedBox(width: 14),
-                // Pill badges
-                _buildSummaryPill(
-                  label: 'Total: ${_parsedStudentRows.length}',
-                  color: Colors.blueGrey,
-                  isDark: isDark,
-                ),
-                const SizedBox(width: 6),
-                _buildSummaryPill(
-                  label: 'Valid: $validCount',
-                  color: AppColors.primaryGreen,
-                  isDark: isDark,
-                ),
-                if (errorCount > 0) ...[
-                  const SizedBox(width: 6),
-                  _buildSummaryPill(
-                    label: 'Errors: $errorCount',
-                    color: AppColors.error,
-                    isDark: isDark,
-                  ),
-                ],
-                const Spacer(),
-                IconButton(
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                final isMobile = constraints.maxWidth < 550;
+                final titleWidget = Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(
+                      Icons.fact_check_outlined,
+                      size: 20,
+                      color: AppColors.primaryGreen,
+                    ),
+                    const SizedBox(width: 8),
+                    Flexible(
+                      child: Text(
+                        'Validation Table & Live Preview',
+                        style: TextStyle(
+                          fontSize: 14.5,
+                          fontWeight: FontWeight.bold,
+                          color: isDark
+                              ? AppColors.darkTextPrimary
+                              : AppColors.textPrimary,
+                        ),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                  ],
+                );
+
+                final pills = Wrap(
+                  spacing: 6,
+                  runSpacing: 6,
+                  crossAxisAlignment: WrapCrossAlignment.center,
+                  children: [
+                    _buildSummaryPill(
+                      label: 'Total: ${_parsedStudentRows.length}',
+                      color: Colors.blueGrey,
+                      isDark: isDark,
+                    ),
+                    _buildSummaryPill(
+                      label: 'Valid: $validCount',
+                      color: AppColors.primaryGreen,
+                      isDark: isDark,
+                    ),
+                    if (errorCount > 0)
+                      _buildSummaryPill(
+                        label: 'Errors: $errorCount',
+                        color: AppColors.error,
+                        isDark: isDark,
+                      ),
+                  ],
+                );
+
+                final closeButton = IconButton(
                   onPressed: () {
                     setState(() {
                       _parsedStudentRows.clear();
@@ -1716,11 +1895,37 @@ class _BulkOcrImportDialogState extends ConsumerState<BulkOcrImportDialog> {
                   },
                   icon: const Icon(Icons.close, size: 18),
                   tooltip: 'Dismiss Preview',
+                  visualDensity: VisualDensity.compact,
                   color: isDark
                       ? AppColors.darkTextSecondary
                       : AppColors.textSecondary,
-                ),
-              ],
+                );
+
+                if (isMobile) {
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Expanded(child: titleWidget),
+                          closeButton,
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      pills,
+                    ],
+                  );
+                }
+
+                return Row(
+                  children: [
+                    titleWidget,
+                    const SizedBox(width: 14),
+                    Expanded(child: pills),
+                    closeButton,
+                  ],
+                );
+              },
             ),
           ),
 
@@ -1770,9 +1975,148 @@ class _BulkOcrImportDialogState extends ConsumerState<BulkOcrImportDialog> {
               ),
             )
           else
-            SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              child: DataTable(
+            LayoutBuilder(
+              builder: (ctx, constraints) {
+                final isMobile = constraints.maxWidth < 650;
+                if (isMobile) {
+                  return ListView.separated(
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    padding: const EdgeInsets.all(12),
+                    itemCount: _parsedStudentRows.length,
+                    separatorBuilder: (_, unused) => const SizedBox(height: 8),
+                    itemBuilder: (_, i) {
+                      final row = _parsedStudentRows[i];
+                      final isValid = row.isValid;
+                      return Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: isDark ? AppColors.darkSurface2 : Colors.white,
+                          borderRadius: BorderRadius.circular(10),
+                          border: Border.all(
+                            color: isValid
+                                ? AppColors.primaryGreen.withValues(alpha: 0.35)
+                                : AppColors.error.withValues(alpha: 0.45),
+                            width: isValid ? 1 : 1.5,
+                          ),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                Container(
+                                  padding: const EdgeInsets.all(4),
+                                  decoration: BoxDecoration(
+                                    color: (isValid ? AppColors.primaryGreen : AppColors.error)
+                                        .withValues(alpha: 0.15),
+                                    shape: BoxShape.circle,
+                                  ),
+                                  child: Icon(
+                                    isValid ? Icons.check_circle_rounded : Icons.cancel_rounded,
+                                    size: 16,
+                                    color: isValid ? AppColors.primaryGreen : AppColors.error,
+                                  ),
+                                ),
+                                const SizedBox(width: 8),
+                                Expanded(
+                                  child: Text(
+                                    '#${row.rowIndex} • ${row.fullName}',
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 13.5,
+                                      color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
+                                    ),
+                                  ),
+                                ),
+                                IconButton(
+                                  onPressed: () {
+                                    setState(() {
+                                      _parsedStudentRows.removeAt(i);
+                                    });
+                                  },
+                                  icon: const Icon(Icons.delete_outline, size: 18),
+                                  color: AppColors.error,
+                                  tooltip: 'Remove',
+                                  visualDensity: VisualDensity.compact,
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 6),
+                            Wrap(
+                              spacing: 8,
+                              runSpacing: 4,
+                              children: [
+                                Text(
+                                  'LRN: ${row.lrn.isNotEmpty ? row.lrn : "—"}',
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    fontFamily: 'monospace',
+                                    color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
+                                  ),
+                                ),
+                                Text(
+                                  '• Sex: ${row.sex}',
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
+                                  ),
+                                ),
+                                if (row.dob.isNotEmpty)
+                                  Text(
+                                    '• DOB: ${row.dob}',
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
+                                    ),
+                                  ),
+                                if (row.is4ps)
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
+                                    decoration: BoxDecoration(
+                                      color: AppColors.primaryGreen.withValues(alpha: 0.15),
+                                      borderRadius: BorderRadius.circular(4),
+                                    ),
+                                    child: const Text(
+                                      '4Ps',
+                                      style: TextStyle(
+                                        fontSize: 10.5,
+                                        fontWeight: FontWeight.bold,
+                                        color: AppColors.primaryGreen,
+                                      ),
+                                    ),
+                                  ),
+                              ],
+                            ),
+                            if (!isValid) ...[
+                              const SizedBox(height: 6),
+                              Container(
+                                width: double.infinity,
+                                padding: const EdgeInsets.all(8),
+                                decoration: BoxDecoration(
+                                  color: AppColors.error.withValues(alpha: 0.08),
+                                  borderRadius: BorderRadius.circular(6),
+                                ),
+                                child: Text(
+                                  row.errors.join(' • '),
+                                  style: const TextStyle(
+                                    fontSize: 11.5,
+                                    color: AppColors.error,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ],
+                        ),
+                      );
+                    },
+                  );
+                }
+
+                return SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  child: DataTable(
                 headingRowHeight: 42,
                 dataRowMinHeight: 48,
                 dataRowMaxHeight: 58,
@@ -1986,7 +2330,9 @@ class _BulkOcrImportDialogState extends ConsumerState<BulkOcrImportDialog> {
                   );
                 }),
               ),
-            ),
+            );
+          },
+        ),
 
           // Bottom action banner inside table
           if (validCount > 0)
@@ -2025,8 +2371,9 @@ class _BulkOcrImportDialogState extends ConsumerState<BulkOcrImportDialog> {
                                 : AppColors.textPrimary,
                           ),
                         ),
+                        const SizedBox(height: 2),
                         Text(
-                          'Proceed to Step 2 to configure Academic Year, Grade, Section, and finalize import.',
+                          'Click "Review" below to configure Academic Year, Grade, Section, and finalize import.',
                           style: TextStyle(
                             fontSize: 11.5,
                             color: isDark
@@ -2035,23 +2382,6 @@ class _BulkOcrImportDialogState extends ConsumerState<BulkOcrImportDialog> {
                           ),
                         ),
                       ],
-                    ),
-                  ),
-                  ElevatedButton.icon(
-                    onPressed: _applyValidCsvRowsToQueue,
-                    icon: const Icon(Icons.arrow_forward_rounded, size: 18),
-                    label: Text(
-                      'Proceed to Review ($validCount Students)',
-                      style: const TextStyle(fontWeight: FontWeight.bold),
-                    ),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.primaryGreen,
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 20, vertical: 12),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(10),
-                      ),
                     ),
                   ),
                 ],
@@ -2191,8 +2521,9 @@ class _BulkOcrImportDialogState extends ConsumerState<BulkOcrImportDialog> {
   Widget _buildSharedEnrollmentPicker(
     AsyncValue<List<AcademicYearModel>> academicYearsAsync,
     AsyncValue<List<GradeLevelModel>> gradeLevelsAsync,
-    AsyncValue<List<SectionModel>> sectionsAsync,
-  ) {
+    AsyncValue<List<SectionModel>> sectionsAsync, {
+    String? title,
+  }) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     if (academicYearsAsync.isLoading ||
@@ -2296,17 +2627,26 @@ class _BulkOcrImportDialogState extends ConsumerState<BulkOcrImportDialog> {
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      color: isDark ? AppColors.primaryGreen.withValues(alpha: 0.12) : const Color(0xFFF0FAF4),
+      decoration: BoxDecoration(
+        color: isDark ? AppColors.primaryGreen.withValues(alpha: 0.12) : const Color(0xFFF0FAF4),
+        borderRadius: BorderRadius.circular(10),
+      ),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Row(children: [
-          const Icon(Icons.info_outline_rounded, size: 16, color: AppColors.primaryGreen),
-          const SizedBox(width: 6),
-          const Text('Apply enrollment to all rows:',
-              style: TextStyle(
-                  fontWeight: FontWeight.bold,
-                  fontSize: 13,
-                  color: AppColors.primaryGreen)),
-          const Spacer(),
+          const Icon(Icons.class_outlined, size: 18, color: AppColors.primaryGreen),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              title ?? 'Target Class / Direct Enrollment:',
+              style: const TextStyle(
+                fontWeight: FontWeight.bold,
+                fontSize: 13.5,
+                color: AppColors.primaryGreen,
+              ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
           IconButton(
             icon: const Icon(Icons.refresh, size: 16, color: AppColors.primaryGreen),
             tooltip: 'Refresh Sections & Academic Years',
@@ -2319,127 +2659,137 @@ class _BulkOcrImportDialogState extends ConsumerState<BulkOcrImportDialog> {
           ),
         ]),
         const SizedBox(height: 10),
-        Wrap(spacing: 10, runSpacing: 8, crossAxisAlignment: WrapCrossAlignment.center, children: [
-          // Academic Year
-          SizedBox(
-            width: 200,
-            child: DropdownButtonFormField<int>(
-              key: ValueKey('bulk_academic_year_$effectiveYearId'),
-              initialValue: effectiveYearId,
-              isExpanded: true,
-              decoration: _compactDeco(context, 'Academic Year'),
-              items: years
-                  .map((y) => DropdownMenuItem<int>(
-                      value: y.id, child: Text(y.yearRange)))
-                  .toList(),
-              onChanged: (val) {
-                ref.invalidate(academicYearsListProvider);
-                ref.invalidate(sectionsListProvider);
-                ref.invalidate(gradeLevelsListProvider);
-                setState(() {
-                  _sharedAcademicYearId = val;
-                  final yearSecs = val != null
-                      ? allSections.where((s) => s.academicYearId == val).toList()
-                      : <SectionModel>[];
-                  final validGrades = yearSecs.isNotEmpty
-                      ? allGrades
-                          .where((g) => yearSecs.any((s) => s.gradeLevel == g.level))
-                          .toList()
-                      : allGrades;
-                  if (!validGrades.any((g) => g.level == _sharedGradeLevel)) {
-                    _sharedGradeLevel = validGrades.any((g) => g.level == 7)
-                        ? 7
-                        : (validGrades.isNotEmpty ? validGrades.first.level : null);
-                  }
-                  _sharedSectionId = null;
-                  if (_sharedGradeLevel != null && _sharedGradeLevel! < 11) {
-                    _sharedTrackStrand = null;
-                  }
-                  for (final item in _items) {
-                    item.academicYearId = val;
-                    item.gradeLevel = _sharedGradeLevel;
-                    item.sectionId = null;
-                    item.trackStrand = _sharedTrackStrand;
-                  }
-                });
-              },
-            ),
-          ),
+        LayoutBuilder(
+          builder: (context, constraints) {
+            final isMobile = constraints.maxWidth < 450;
+            return Wrap(
+              spacing: 10,
+              runSpacing: 10,
+              crossAxisAlignment: WrapCrossAlignment.center,
+              children: [
+                // Academic Year
+                SizedBox(
+                  width: isMobile ? double.infinity : 200,
+                  child: DropdownButtonFormField<int>(
+                    key: ValueKey('bulk_academic_year_$effectiveYearId'),
+                    initialValue: effectiveYearId,
+                    isExpanded: true,
+                    decoration: _compactDeco(context, 'Academic Year'),
+                    items: years
+                        .map((y) => DropdownMenuItem<int>(
+                            value: y.id, child: Text(y.yearRange)))
+                        .toList(),
+                    onChanged: (val) {
+                      ref.invalidate(academicYearsListProvider);
+                      ref.invalidate(sectionsListProvider);
+                      ref.invalidate(gradeLevelsListProvider);
+                      setState(() {
+                        _sharedAcademicYearId = val;
+                        final yearSecs = val != null
+                            ? allSections.where((s) => s.academicYearId == val).toList()
+                            : <SectionModel>[];
+                        final validGrades = yearSecs.isNotEmpty
+                            ? allGrades
+                                .where((g) => yearSecs.any((s) => s.gradeLevel == g.level))
+                                .toList()
+                            : allGrades;
+                        if (!validGrades.any((g) => g.level == _sharedGradeLevel)) {
+                          _sharedGradeLevel = validGrades.any((g) => g.level == 7)
+                              ? 7
+                              : (validGrades.isNotEmpty ? validGrades.first.level : null);
+                        }
+                        _sharedSectionId = null;
+                        if (_sharedGradeLevel != null && _sharedGradeLevel! < 11) {
+                          _sharedTrackStrand = null;
+                        }
+                        for (final item in _items) {
+                          item.academicYearId = val;
+                          item.gradeLevel = _sharedGradeLevel;
+                          item.sectionId = null;
+                          item.trackStrand = _sharedTrackStrand;
+                        }
+                      });
+                    },
+                  ),
+                ),
 
-          // Grade Level
-          SizedBox(
-            width: 150,
-            child: DropdownButtonFormField<int>(
-              key: ValueKey('bulk_grade_level_${effectiveYearId}_$effectiveGradeLevel'),
-              initialValue: effectiveGradeLevel,
-              isExpanded: true,
-              decoration: _compactDeco(context, 'Grade Level'),
-              items: availableGrades
-                  .map((g) => DropdownMenuItem<int>(
-                      value: g.level, child: Text(g.name)))
-                  .toList(),
-              onChanged: (val) => setState(() {
-                _sharedGradeLevel = val;
-                _sharedSectionId = null;
-                if (val != null && val < 11) {
-                  _sharedTrackStrand = null;
-                }
-                for (final item in _items) {
-                  item.gradeLevel = val;
-                  item.sectionId = null;
-                  item.trackStrand = _sharedTrackStrand;
-                }
-              }),
-            ),
-          ),
-
-          // Section
-          SizedBox(
-            width: 200,
-            child: DropdownButtonFormField<int>(
-              key: ValueKey('bulk_section_${effectiveYearId}_${effectiveGradeLevel}_$effectiveSectionId'),
-              initialValue: effectiveSectionId,
-              isExpanded: true,
-              decoration: _compactDeco(
-                context,
-                filteredSections.isEmpty ? 'No sections available' : 'Section',
-              ),
-              items: filteredSections
-                  .map((s) =>
-                      DropdownMenuItem<int>(value: s.id, child: Text(s.name)))
-                  .toList(),
-              onChanged: filteredSections.isEmpty
-                  ? null
-                  : (val) => setState(() {
-                      _sharedSectionId = val;
+                // Grade Level
+                SizedBox(
+                  width: isMobile ? double.infinity : 150,
+                  child: DropdownButtonFormField<int>(
+                    key: ValueKey('bulk_grade_level_${effectiveYearId}_$effectiveGradeLevel'),
+                    initialValue: effectiveGradeLevel,
+                    isExpanded: true,
+                    decoration: _compactDeco(context, 'Grade Level'),
+                    items: availableGrades
+                        .map((g) => DropdownMenuItem<int>(
+                            value: g.level, child: Text(g.name)))
+                        .toList(),
+                    onChanged: (val) => setState(() {
+                      _sharedGradeLevel = val;
+                      _sharedSectionId = null;
+                      if (val != null && val < 11) {
+                        _sharedTrackStrand = null;
+                      }
                       for (final item in _items) {
-                        item.sectionId = val;
+                        item.gradeLevel = val;
+                        item.sectionId = null;
+                        item.trackStrand = _sharedTrackStrand;
                       }
                     }),
-            ),
-          ),
-
-          // Track & Strand for Senior High School (Grade 11 & 12)
-          if (effectiveGradeLevel != null && effectiveGradeLevel >= 11)
-            SizedBox(
-              width: 220,
-              child: TextFormField(
-                key: ValueKey('bulk_track_strand_$effectiveGradeLevel'),
-                initialValue: _sharedTrackStrand,
-                decoration: _compactDeco(context, 'Track & Strand (SHS)'),
-                style: TextStyle(
-                  fontSize: 13,
-                  color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
+                  ),
                 ),
-                onChanged: (val) => setState(() {
-                  _sharedTrackStrand = val.trim().isEmpty ? null : val.trim();
-                  for (final item in _items) {
-                    item.trackStrand = _sharedTrackStrand;
-                  }
-                }),
-              ),
-            ),
-        ]),
+
+                // Section
+                SizedBox(
+                  width: isMobile ? double.infinity : 200,
+                  child: DropdownButtonFormField<int>(
+                    key: ValueKey('bulk_section_${effectiveYearId}_${effectiveGradeLevel}_$effectiveSectionId'),
+                    initialValue: effectiveSectionId,
+                    isExpanded: true,
+                    decoration: _compactDeco(
+                      context,
+                      filteredSections.isEmpty ? 'No sections available' : 'Section',
+                    ),
+                    items: filteredSections
+                        .map((s) =>
+                            DropdownMenuItem<int>(value: s.id, child: Text(s.name)))
+                        .toList(),
+                    onChanged: filteredSections.isEmpty
+                        ? null
+                        : (val) => setState(() {
+                            _sharedSectionId = val;
+                            for (final item in _items) {
+                              item.sectionId = val;
+                            }
+                          }),
+                  ),
+                ),
+
+                // Track & Strand for Senior High School (Grade 11 & 12)
+                if (effectiveGradeLevel != null && effectiveGradeLevel >= 11)
+                  SizedBox(
+                    width: isMobile ? double.infinity : 220,
+                    child: TextFormField(
+                      key: ValueKey('bulk_track_strand_$effectiveGradeLevel'),
+                      initialValue: _sharedTrackStrand,
+                      decoration: _compactDeco(context, 'Track & Strand (SHS)'),
+                      style: TextStyle(
+                        fontSize: 13,
+                        color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
+                      ),
+                      onChanged: (val) => setState(() {
+                        _sharedTrackStrand = val.trim().isEmpty ? null : val.trim();
+                        for (final item in _items) {
+                          item.trackStrand = _sharedTrackStrand;
+                        }
+                      }),
+                    ),
+                  ),
+              ],
+            );
+          },
+        ),
       ]),
     );
   }
@@ -2915,11 +3265,10 @@ class _BulkOcrImportDialogState extends ConsumerState<BulkOcrImportDialog> {
             ElevatedButton.icon(
               onPressed: _applyValidCsvRowsToQueue,
               icon: const Icon(Icons.arrow_forward_rounded, size: 20),
-              label: Text(
-                  'Proceed to Review (${_parsedStudentRows.where((r) => r.isValid).length})'),
+              label: const Text('Review'),
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppColors.primaryGreen,
-                foregroundColor: isDark ? Colors.white : Colors.black,
+                foregroundColor: Colors.white,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(8),
                 ),
@@ -2953,12 +3302,10 @@ class _BulkOcrImportDialogState extends ConsumerState<BulkOcrImportDialog> {
                     color: isDark ? Colors.white : Colors.black,
                   )
                 : const Icon(Icons.upload_rounded, size: 20),
-            label: Text(_isImporting
-                ? 'Importing…'
-                : 'Import All (${_items.where((i) => i.status == _FileStatus.done && i.hasRequiredFields).length})'),
+            label: Text(_isImporting ? 'Importing…' : 'Import'),
             style: ElevatedButton.styleFrom(
               backgroundColor: AppColors.primaryGreen,
-              foregroundColor: isDark ? Colors.white : Colors.black,
+              foregroundColor: Colors.white,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(8),
               ),
@@ -2976,7 +3323,7 @@ class _BulkOcrImportDialogState extends ConsumerState<BulkOcrImportDialog> {
             label: const Text('Done'),
             style: ElevatedButton.styleFrom(
               backgroundColor: AppColors.primaryGreen,
-              foregroundColor: isDark ? Colors.white : Colors.black,
+              foregroundColor: Colors.white,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(8),
               ),
