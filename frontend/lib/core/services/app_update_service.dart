@@ -1,4 +1,6 @@
+import 'dart:ffi' show Abi;
 import 'dart:io' show Platform;
+import 'package:device_info_plus/device_info_plus.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart' show debugPrint, kIsWeb;
 import 'package:package_info_plus/package_info_plus.dart';
@@ -13,6 +15,7 @@ class AppUpdateInfo {
   final String htmlUrl;
   final String? downloadUrl;
   final String? assetName;
+  final String? architecture;
   final DateTime? publishedAt;
 
   const AppUpdateInfo({
@@ -24,6 +27,7 @@ class AppUpdateInfo {
     required this.htmlUrl,
     this.downloadUrl,
     this.assetName,
+    this.architecture,
     this.publishedAt,
   });
 }
@@ -34,6 +38,53 @@ class AppUpdateService {
 
   /// Fallback version if PackageInfo fails to resolve on platform.
   static const String defaultFallbackVersion = '1.0.22';
+
+  /// Detects the target CPU architecture on Android devices.
+  /// Returns 'arm64', 'arm32', 'x86_64', or 'x86'.
+  static Future<String?> getAndroidArchitecture() async {
+    if (kIsWeb || !Platform.isAndroid) return null;
+
+    try {
+      final androidInfo = await DeviceInfoPlugin().androidInfo;
+      final supportedAbis = androidInfo.supportedAbis.map((a) => a.toLowerCase()).toList();
+      final supported64BitAbis = androidInfo.supported64BitAbis.map((a) => a.toLowerCase()).toList();
+
+      // Check 64-bit ARM first (arm64-v8a)
+      if (supported64BitAbis.any((abi) => abi.contains('arm64') || abi.contains('aarch64')) ||
+          supportedAbis.any((abi) => abi.contains('arm64') || abi.contains('aarch64'))) {
+        return 'arm64';
+      }
+
+      // Check 64-bit x86 (x86_64)
+      if (supported64BitAbis.any((abi) => abi.contains('x86_64')) ||
+          supportedAbis.any((abi) => abi.contains('x86_64'))) {
+        return 'x86_64';
+      }
+
+      // Check 32-bit ARM (armeabi-v7a / armeabi)
+      if (supportedAbis.any((abi) => abi.contains('armeabi') || abi.contains('armv7') || abi.contains('armv8l'))) {
+        return 'arm32';
+      }
+
+      // Check 32-bit x86
+      if (supportedAbis.any((abi) => abi.contains('x86'))) {
+        return 'x86';
+      }
+    } catch (e) {
+      debugPrint('[AppUpdateService] DeviceInfoPlugin architecture query failed: $e');
+    }
+
+    // Fallback to dart:ffi Abi.current()
+    try {
+      final currentAbi = Abi.current();
+      if (currentAbi == Abi.androidArm64) return 'arm64';
+      if (currentAbi == Abi.androidArm) return 'arm32';
+      if (currentAbi == Abi.androidX64) return 'x86_64';
+      if (currentAbi == Abi.androidIA32) return 'x86';
+    } catch (_) {}
+
+    return null;
+  }
 
   /// Checks GitHub repository for the latest release tag and compares with installed version.
   static Future<AppUpdateInfo?> checkForUpdate({
@@ -85,33 +136,100 @@ class AppUpdateService {
         publishedAt = DateTime.tryParse(data['published_at'].toString());
       }
 
-      // 3. Resolve platform-specific download asset
+      // 3. Resolve platform- and architecture-specific download asset
       String? downloadUrl;
       String? assetName;
+      String? detectedArch;
 
       final assets = data['assets'] as List<dynamic>? ?? [];
       final isWindows = !kIsWeb && Platform.isWindows;
       final isAndroid = !kIsWeb && Platform.isAndroid;
 
-      for (final asset in assets) {
-        if (asset is Map<String, dynamic>) {
-          final name = (asset['name'] as String? ?? '').toLowerCase();
-          final browserUrl = asset['browser_download_url'] as String?;
+      if (isWindows) {
+        detectedArch = 'x64';
+        for (final asset in assets) {
+          if (asset is Map<String, dynamic>) {
+            final name = (asset['name'] as String? ?? '').toLowerCase();
+            final browserUrl = asset['browser_download_url'] as String?;
 
-          if (isWindows && name.endsWith('.exe')) {
-            downloadUrl = browserUrl;
-            assetName = asset['name'] as String?;
-            break;
-          } else if (isAndroid && name.endsWith('.apk')) {
-            if (name.contains('universal')) {
+            if (name.endsWith('.exe')) {
               downloadUrl = browserUrl;
               assetName = asset['name'] as String?;
               break;
-            } else if (downloadUrl == null) {
-              downloadUrl = browserUrl;
-              assetName = asset['name'] as String?;
             }
           }
+        }
+      } else if (isAndroid) {
+        detectedArch = await getAndroidArchitecture();
+        debugPrint('[AppUpdateService] Detected Android architecture: $detectedArch');
+
+        final apkAssets = <Map<String, dynamic>>[];
+        for (final asset in assets) {
+          if (asset is Map<String, dynamic>) {
+            final name = (asset['name'] as String? ?? '').toLowerCase();
+            if (name.endsWith('.apk')) {
+              apkAssets.add(asset);
+            }
+          }
+        }
+
+        Map<String, dynamic>? selectedAsset;
+
+        if (detectedArch == 'arm64') {
+          // Look for 64-bit APK (e.g. TIS_RMS_64_*.apk, app-arm64-v8a-release.apk)
+          selectedAsset = apkAssets.firstWhere(
+            (a) {
+              final n = (a['name'] as String? ?? '').toLowerCase();
+              return n.contains('arm64') ||
+                  n.contains('aarch64') ||
+                  n.contains('tis_rms_64') ||
+                  RegExp(r'(^|[^0-9])64([^0-9]|$)').hasMatch(n);
+            },
+            orElse: () => <String, dynamic>{},
+          );
+        } else if (detectedArch == 'arm32') {
+          // Look for 32-bit APK (e.g. TIS_RMS_32bit_*.apk, app-armeabi-v7a-release.apk)
+          selectedAsset = apkAssets.firstWhere(
+            (a) {
+              final n = (a['name'] as String? ?? '').toLowerCase();
+              return n.contains('32bit') ||
+                  n.contains('armeabi') ||
+                  n.contains('v7a') ||
+                  n.contains('armv7') ||
+                  n.contains('tis_rms_32') ||
+                  RegExp(r'(^|[^0-9])32([^0-9]|$)').hasMatch(n);
+            },
+            orElse: () => <String, dynamic>{},
+          );
+        } else if (detectedArch == 'x86_64') {
+          selectedAsset = apkAssets.firstWhere(
+            (a) {
+              final n = (a['name'] as String? ?? '').toLowerCase();
+              return n.contains('x86_64') || n.contains('x64');
+            },
+            orElse: () => <String, dynamic>{},
+          );
+        }
+
+        // If no architecture-specific APK found, fallback to universal APK
+        if (selectedAsset == null || selectedAsset.isEmpty) {
+          selectedAsset = apkAssets.firstWhere(
+            (a) {
+              final n = (a['name'] as String? ?? '').toLowerCase();
+              return n.contains('universal');
+            },
+            orElse: () => <String, dynamic>{},
+          );
+        }
+
+        // If still not found, fallback to first available APK
+        if (selectedAsset.isEmpty && apkAssets.isNotEmpty) {
+          selectedAsset = apkAssets.first;
+        }
+
+        if (selectedAsset.isNotEmpty) {
+          downloadUrl = selectedAsset['browser_download_url'] as String?;
+          assetName = selectedAsset['name'] as String?;
         }
       }
 
@@ -134,6 +252,7 @@ class AppUpdateService {
         htmlUrl: htmlUrl,
         downloadUrl: downloadUrl,
         assetName: assetName,
+        architecture: detectedArch,
         publishedAt: publishedAt,
       );
     } catch (e) {

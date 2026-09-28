@@ -131,6 +131,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   AppUpdateInfo? _updateInfo;
   String? _updateStatusMessage;
   PackageInfo? _packageInfo;
+  String? _architectureLabel;
 
   void _collapseAllSections() {
     _isProfileExpanded = false;
@@ -2065,7 +2066,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                             const SizedBox(height: AppSizes.p16),
                             _buildAboutInfoRow(
                               'Application',
-                              'Talipan Integrated School - RMS',
+                              'Talisay Integrated School - RMS',
                               isDark,
                             ),
                             _buildAboutInfoRow(
@@ -2084,9 +2085,15 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                                       : (Platform.isWindows ? 'Windows' : Platform.operatingSystem.toUpperCase())),
                               isDark,
                             ),
+                            if (_architectureLabel != null)
+                              _buildAboutInfoRow(
+                                'Architecture',
+                                _architectureLabel!,
+                                isDark,
+                              ),
                             _buildAboutInfoRow(
                               'Institution',
-                              'Talipan National High School',
+                              'Talisay Integrated School',
                               isDark,
                             ),
                             _buildAboutInfoRow(
@@ -2440,9 +2447,26 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   Future<void> _loadPackageInfo() async {
     try {
       final info = await PackageInfo.fromPlatform();
+      String? archLabel;
+      if (!kIsWeb && Platform.isAndroid) {
+        final arch = await AppUpdateService.getAndroidArchitecture();
+        if (arch == 'arm64') {
+          archLabel = 'ARM64 (64-bit)';
+        } else if (arch == 'arm32') {
+          archLabel = 'ARM32 (32-bit)';
+        } else if (arch == 'x86_64') {
+          archLabel = 'x86_64 (64-bit)';
+        } else if (arch != null) {
+          archLabel = arch.toUpperCase();
+        }
+      } else if (!kIsWeb && Platform.isWindows) {
+        archLabel = 'x64 (64-bit)';
+      }
+
       if (mounted) {
         setState(() {
           _packageInfo = info;
+          _architectureLabel = archLabel;
         });
       }
     } catch (_) {}
@@ -2465,7 +2489,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         if (updateInfo == null) {
           _updateStatusMessage = 'Could not check for updates. Please check your internet connection.';
         } else if (updateInfo.hasUpdate) {
-          _updateStatusMessage = 'New update available (v${updateInfo.latestVersion})! Opening download link in browser...';
+          final assetLabel = updateInfo.assetName != null ? ' [${updateInfo.assetName}]' : '';
+          _updateStatusMessage = 'New update available (v${updateInfo.latestVersion})$assetLabel! Opening download link in browser...';
         } else {
           _updateStatusMessage = 'Your application is up to date (v${updateInfo.currentVersion}).';
         }
