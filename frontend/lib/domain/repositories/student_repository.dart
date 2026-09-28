@@ -72,6 +72,10 @@ class StudentRepository {
 
   Stream<void> get onStudentChanged => _studentUpdateController.stream;
 
+  StudentRepository() {
+    _initRealTimeSocket();
+  }
+
   Future<Options> _getAuthOptions() async {
     final token = await _storage.read(key: 'jwt_token');
     return Options(headers: {'Authorization': 'Bearer $token'});
