@@ -61,13 +61,30 @@ function setupNavigation() {
     });
   });
 
-  // Mobile Bottom Nav
-  document.querySelectorAll('.phone-nav-tab').forEach(item => {
+  // Mobile Drawer items
+  document.querySelectorAll('.mobile-drawer-item').forEach(item => {
     item.addEventListener('click', () => {
       const scr = item.getAttribute('data-screen');
-      if (scr) setScreen(scr);
+      if (scr) {
+        setScreen(scr);
+        closeMobileDrawer();
+      }
     });
   });
+}
+
+function openMobileDrawer() {
+  const drawer = document.getElementById('mobile-drawer');
+  const backdrop = document.getElementById('mobile-drawer-backdrop');
+  if (drawer) drawer.classList.add('active');
+  if (backdrop) backdrop.classList.add('active');
+}
+
+function closeMobileDrawer() {
+  const drawer = document.getElementById('mobile-drawer');
+  const backdrop = document.getElementById('mobile-drawer-backdrop');
+  if (drawer) drawer.classList.remove('active');
+  if (backdrop) backdrop.classList.remove('active');
 }
 
 function setScreen(screenId) {
@@ -81,13 +98,13 @@ function syncScreenView() {
     el.classList.toggle('active', el.getAttribute('data-screen') === currentScreen);
   });
 
-  // 2. Update active bottom nav on Android
-  document.querySelectorAll('.phone-nav-tab').forEach(el => {
+  // 2. Update active drawer item on Android
+  document.querySelectorAll('.mobile-drawer-item').forEach(el => {
     el.classList.toggle('active', el.getAttribute('data-screen') === currentScreen);
   });
 
   // 3. Update titles
-  const titles = {
+  const desktopTitles = {
     dashboard: 'Dashboard Overview',
     students: 'Students Directory',
     documents: 'Document Folders',
@@ -98,23 +115,90 @@ function syncScreenView() {
     settings: 'Account Settings'
   };
 
+  const mobileTitles = {
+    dashboard: 'Dashboard',
+    students: 'Students',
+    documents: 'Documents',
+    archives: 'Archives',
+    reports: 'Reports',
+    users: 'Users',
+    history: 'History',
+    settings: 'Settings'
+  };
+
   const desktopTitle = document.getElementById('stage-screen-title');
-  if (desktopTitle) desktopTitle.textContent = titles[currentScreen] || 'Dashboard Overview';
+  if (desktopTitle) desktopTitle.textContent = desktopTitles[currentScreen] || 'Dashboard Overview';
 
   const mobileTitle = document.getElementById('phone-screen-title');
-  if (mobileTitle) mobileTitle.textContent = titles[currentScreen] || 'TIS RMS';
+  if (mobileTitle) mobileTitle.textContent = mobileTitles[currentScreen] || 'TIS RMS';
 
-  // 4. Show/hide desktop screens
+  // 4. Update mobile header action buttons (matching screenshots)
+  const mobileActions = document.getElementById('phone-header-actions');
+  if (mobileActions) {
+    switch (currentScreen) {
+      case 'dashboard':
+        mobileActions.innerHTML = `
+          <button class="phone-action-icon" title="Search">🔍</button>
+          <button class="phone-action-icon" title="Notifications">🔔</button>
+          <div class="avatar-badge" style="width: 28px; height: 28px; font-size: 10px;">AT</div>
+        `;
+        break;
+      case 'students':
+        mobileActions.innerHTML = `
+          <button class="phone-action-icon" title="Search">🔍</button>
+          <button class="phone-action-icon" title="Filters">🎛️</button>
+          <button class="phone-action-btn-green" onclick="openAddStudentModal()" title="Add Student">+ 👤</button>
+        `;
+        break;
+      case 'documents':
+        mobileActions.innerHTML = `
+          <button class="phone-action-icon" title="Search">🔍</button>
+          <button class="phone-action-icon" title="Print">🖨️</button>
+          <button class="phone-action-btn-green" title="Upload">☁️</button>
+        `;
+        break;
+      case 'archives':
+        mobileActions.innerHTML = `
+          <button class="phone-action-icon" title="Search">🔍</button>
+          <button class="phone-action-icon" title="Print">🖨️</button>
+        `;
+        break;
+      case 'reports':
+        mobileActions.innerHTML = `
+          <button class="phone-action-btn-green" style="padding: 4px 8px; font-size: 12px;" title="Swap View">⇄</button>
+        `;
+        break;
+      case 'users':
+        mobileActions.innerHTML = `
+          <button class="phone-action-icon" title="Search">🔍</button>
+          <button class="phone-action-btn-green" title="Add User">+ 👤</button>
+        `;
+        break;
+      case 'history':
+        mobileActions.innerHTML = `
+          <button class="phone-action-icon" title="Search">🔍</button>
+          <button class="phone-action-icon" title="Filter">🎛️</button>
+          <button class="phone-action-icon" title="Refresh">🔄</button>
+        `;
+        break;
+      case 'settings':
+      default:
+        mobileActions.innerHTML = ``;
+        break;
+    }
+  }
+
+  // 5. Show/hide desktop screens
   document.querySelectorAll('.desktop-screen-content').forEach(view => {
     view.style.display = view.id === `win-screen-${currentScreen}` ? 'flex' : 'none';
   });
 
-  // 5. Show/hide mobile screens
+  // 6. Show/hide mobile screens
   document.querySelectorAll('.mobile-screen-content').forEach(view => {
     view.style.display = view.id === `phone-screen-${currentScreen}` ? 'flex' : 'none';
   });
 
-  // 6. Show "+ Add Student" button on Students screen
+  // 7. Show "+ Add Student" button on Students screen (Desktop)
   const addBtn = document.getElementById('btn-add-student-header');
   if (addBtn) {
     addBtn.style.display = currentScreen === 'students' ? 'flex' : 'none';

@@ -693,151 +693,843 @@
          2. ANDROID MOBILE APP (Pixel-Perfect Smartphone Mockup)
     ============================================================== -->
     <div id="phone-frame" class="phone-frame" style="display: none;">
-      <!-- Mobile Status Bar -->
-      <div class="phone-status-bar">
-        <span id="phone-clock">10:05</span>
-        <div style="display: flex; align-items: center; gap: 6px;">
-          <span>5G</span>
-          <span>&#x1F4F6;</span>
-          <span>&#x1F50B; 45%</span>
-        </div>
-      </div>
+      <!-- Punch-hole Camera -->
+      <div class="phone-punch-hole"></div>
 
-      <!-- Mobile Top App Header -->
-      <div class="phone-app-header">
-        <div style="display: flex; align-items: center; gap: 10px;">
-          <span style="font-size: 18px; cursor: pointer;">&#9776;</span>
-          <span id="phone-screen-title" class="phone-header-title">Dashboard</span>
-        </div>
-        <div style="display: flex; align-items: center; gap: 10px;">
-          <span style="font-size: 16px; cursor: pointer;">&#x1F50D;</span>
-          <span style="font-size: 16px; cursor: pointer;">&#x1F514;</span>
-          <div class="avatar-badge" style="width: 28px; height: 28px; font-size: 10px;">AT</div>
-        </div>
-      </div>
-
-      <!-- Mobile Scrollable Content -->
-      <div class="phone-scroll-content">
-
-        <!-- Mobile Dashboard -->
-        <div id="phone-screen-dashboard" class="mobile-screen-content" style="display: flex; flex-direction: column; gap: 12px;">
-          <div class="setup-banner" style="padding: 10px 14px;">
-            <div class="setup-banner-left">
-              <span class="setup-banner-icon">&#x2699;</span>
-              <span>Setup Required</span>
+      <!-- Inner Phone Screen -->
+      <div class="phone-screen-inner">
+        <!-- Android 14 Status Bar -->
+        <div class="phone-status-bar">
+          <div class="phone-status-left">
+            <span id="phone-clock">10:05</span>
+            <div class="phone-app-icons">
+              <!-- Discord / App Icons -->
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M20.317 4.37a19.791 19.791 0 0 0-4.885-1.515.074.074 0 0 0-.079.037c-.21.375-.444.864-.608 1.25a18.27 18.27 0 0 0-5.487 0 12.64 12.64 0 0 0-.617-1.25.077.077 0 0 0-.079-.037A19.736 19.736 0 0 0 3.677 4.37a.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.057a.082.082 0 0 0 .031.057 19.9 19.9 0 0 0 5.993 3.03.078.078 0 0 0 .084-.028c.462-.63.874-1.295 1.226-1.994.021-.041.001-.09-.041-.106a13.107 13.107 0 0 1-1.872-.892.077.077 0 0 1-.008-.128 10.2 10.2 0 0 0 .372-.292.074.074 0 0 1 .077-.01c3.929 1.793 8.18 1.793 12.061 0a.074.074 0 0 1 .078.01c.12.098.246.198.373.292a.077.077 0 0 1-.006.127 12.299 12.299 0 0 1-1.873.894.077.077 0 0 0-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 0 0 .084.028 19.839 19.839 0 0 0 6.002-3.03.077.077 0 0 0 .032-.054c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 0 0-.031-.028zM8.02 15.33c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.956-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.956 2.418-2.157 2.418zm7.975 0c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.955-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.946 2.418-2.157 2.418z"/></svg>
+              <!-- Messenger -->
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.373 0 0 4.974 0 11.111c0 3.498 1.745 6.616 4.472 8.652v4.237l4.086-2.242c1.093.303 2.253.464 3.442.464 6.627 0 12-4.974 12-11.111C24 4.974 18.627 0 12 0zm1.191 14.963l-3.056-3.26-5.963 3.26 6.559-6.963 3.13 3.259 5.89-3.259-6.56 6.963z"/></svg>
+              <!-- YouTube Play -->
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor"><path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/></svg>
             </div>
-            <span>&#x25BC;</span>
           </div>
-
-          <div class="stat-cards-grid">
-            <div class="app-stat-card" onclick="setScreen('students')">
-              <div class="app-stat-number" style="font-size: 20px;">91</div>
-              <div class="app-stat-label">Total Students</div>
-            </div>
-            <div class="app-stat-card" onclick="setScreen('users')">
-              <div class="app-stat-number" style="font-size: 20px;">18</div>
-              <div class="app-stat-label">Active Users</div>
-            </div>
-            <div class="app-stat-card">
-              <div class="app-stat-number" style="font-size: 20px;">0</div>
-              <div class="app-stat-label">Complete Docs</div>
-            </div>
-            <div class="app-stat-card">
-              <div class="app-stat-number" style="font-size: 20px;">91</div>
-              <div class="app-stat-label">Missing Docs</div>
-            </div>
+          <div class="phone-status-right">
+            <span style="font-size: 10px; color: #cbd5e1;">8.68 KB/s</span>
+            <span>⏰</span>
+            <span>ᛒ</span>
+            <span>📶</span>
+            <span>📶</span>
+            <span>🔋 45%⚡</span>
           </div>
         </div>
 
-        <!-- Mobile Students -->
-        <div id="phone-screen-students" class="mobile-screen-content" style="display: none; flex-direction: column; gap: 10px;">
-          <div class="student-card-row" onclick="openStudentDetail('ADAMS, JENNIE', '108297100191', 'Grade 12 - STEM', 'Inactive')">
-            <div class="student-left">
-              <div class="student-avatar">JA</div>
-              <div class="student-names">
-                <h4>ADAMS, JENNIE</h4>
-                <span>LRN: 108297100191</span>
+        <!-- Android App Header (Changes Title and Actions Dynamically) -->
+        <div class="phone-app-header">
+          <div class="phone-header-left">
+            <button class="phone-drawer-btn" onclick="openMobileDrawer()" title="Open Navigation Menu">☰</button>
+            <span id="phone-screen-title" class="phone-header-title">Dashboard</span>
+          </div>
+          <div id="phone-header-actions" class="phone-header-actions">
+            <!-- Rendered dynamically by syncScreenView() -->
+          </div>
+        </div>
+
+        <!-- Slide-out Android Navigation Drawer -->
+        <div id="mobile-drawer-backdrop" class="mobile-drawer-backdrop" onclick="closeMobileDrawer()"></div>
+        <div id="mobile-drawer" class="mobile-drawer">
+          <div class="mobile-drawer-header">
+            <img src="assets/logo.png" alt="School Logo" class="mobile-drawer-logo">
+            <div class="mobile-drawer-user">
+              <h4>TIS RMS</h4>
+              <span>Admin Registrar Talisay</span>
+              <p>admin@tis.edu.ph</p>
+            </div>
+          </div>
+          <div class="mobile-drawer-body">
+            <div class="mobile-drawer-group-title">OVERVIEW</div>
+            <div class="mobile-drawer-item active" data-screen="dashboard" onclick="setScreen('dashboard'); closeMobileDrawer();">
+              <span class="icon">📊</span>
+              <span>Dashboard</span>
+            </div>
+            <div class="mobile-drawer-item" data-screen="students" onclick="setScreen('students'); closeMobileDrawer();">
+              <span class="icon">🎓</span>
+              <span>Students</span>
+            </div>
+            <div class="mobile-drawer-item" data-screen="documents" onclick="setScreen('documents'); closeMobileDrawer();">
+              <span class="icon">📁</span>
+              <span>Documents</span>
+            </div>
+            <div class="mobile-drawer-item" data-screen="archives" onclick="setScreen('archives'); closeMobileDrawer();">
+              <span class="icon">🗄️</span>
+              <span>Archives</span>
+            </div>
+
+            <div class="mobile-drawer-group-title">ACCOUNT</div>
+            <div class="mobile-drawer-item" data-screen="reports" onclick="setScreen('reports'); closeMobileDrawer();">
+              <span class="icon">📈</span>
+              <span>Reports</span>
+            </div>
+            <div class="mobile-drawer-item" data-screen="users" onclick="setScreen('users'); closeMobileDrawer();">
+              <span class="icon">👥</span>
+              <span>Users</span>
+            </div>
+            <div class="mobile-drawer-item" data-screen="history" onclick="setScreen('history'); closeMobileDrawer();">
+              <span class="icon">🕒</span>
+              <span>History</span>
+            </div>
+            <div class="mobile-drawer-item" data-screen="settings" onclick="setScreen('settings'); closeMobileDrawer();">
+              <span class="icon">⚙️</span>
+              <span>Settings</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Mobile Scrollable Screen Content -->
+        <div class="phone-scroll-content">
+
+          <!-- 1. ANDROID DASHBOARD (from dashboard.webp) -->
+          <div id="phone-screen-dashboard" class="mobile-screen-content" style="display: flex; flex-direction: column; gap: 14px;">
+            <div class="android-page-title">Dashboard Overview</div>
+
+            <!-- Setup Required Banner -->
+            <div class="setup-banner">
+              <div class="setup-banner-left">
+                <span class="setup-banner-icon">⚙️</span>
+                <span>Setup Required</span>
+              </div>
+              <div style="display: flex; gap: 12px; color: var(--text-muted); cursor: pointer;">
+                <span>⌄</span>
+                <span>✕</span>
               </div>
             </div>
-            <span class="badge-inactive">Inactive</span>
-          </div>
 
-          <div class="student-card-row" onclick="openStudentDetail('ASD, MARACENA', '412341241234', 'Grade 10', 'Inactive')">
-            <div class="student-left">
-              <div class="student-avatar">MA</div>
-              <div class="student-names">
-                <h4>ASD, MARACENA</h4>
-                <span>LRN: 412341241234</span>
+            <div class="android-page-subtitle">Welcome back, Admin Registrar. Here is what is happening today.</div>
+
+            <!-- 2x2 Stat Cards -->
+            <div class="android-stat-grid">
+              <div class="android-stat-card" onclick="setScreen('students')">
+                <div class="android-stat-top">
+                  <span style="font-size: 18px; color: var(--accent-emerald);">🎓</span>
+                  <span style="color: var(--text-muted);">&rsaquo;</span>
+                </div>
+                <div class="android-stat-title">Total Students</div>
+                <div class="android-stat-val">91</div>
+              </div>
+
+              <div class="android-stat-card" onclick="setScreen('users')">
+                <div class="android-stat-top">
+                  <span style="font-size: 18px; color: #38bdf8;">👥</span>
+                  <span style="color: var(--text-muted);">&rsaquo;</span>
+                </div>
+                <div class="android-stat-title">Active Users</div>
+                <div class="android-stat-val">18</div>
+              </div>
+
+              <div class="android-stat-card" onclick="setScreen('documents')">
+                <div class="android-stat-top">
+                  <span style="font-size: 18px; color: var(--accent-emerald);">📁</span>
+                  <span style="color: var(--text-muted);">&rsaquo;</span>
+                </div>
+                <div class="android-stat-title">Complete Docs</div>
+                <div class="android-stat-val">0</div>
+              </div>
+
+              <div class="android-stat-card" onclick="setScreen('documents')">
+                <div class="android-stat-top">
+                  <span style="font-size: 18px; color: #f59e0b;">🧰</span>
+                  <span style="color: var(--text-muted);">&rsaquo;</span>
+                </div>
+                <div class="android-stat-title">Missing Docs</div>
+                <div class="android-stat-val">91</div>
               </div>
             </div>
-            <span class="badge-inactive">Inactive</span>
-          </div>
-        </div>
 
-        <!-- Mobile Documents -->
-        <div id="phone-screen-documents" class="mobile-screen-content" style="display: none; flex-direction: column; gap: 10px;">
-          <div class="doc-folder-card">
-            <div class="doc-folder-left">
-              <div class="doc-folder-icon">&#x1F4C1;</div>
+            <!-- Analytics & KPIs -->
+            <div style="display: flex; align-items: center; justify-content: space-between; margin-top: 6px;">
+              <div style="display: flex; align-items: center; gap: 8px; font-weight: 700; color: #fff; font-size: 16px;">
+                <span style="color: var(--accent-emerald);">📈</span>
+                <span>Analytics &amp; KPIs</span>
+              </div>
+              <span class="badge" style="background: rgba(25,135,84,0.15); border-color: rgba(25,135,84,0.3); color: #a7f3d0; font-size: 11px;">
+                📅 S.Y. 2026-2027
+              </span>
+            </div>
+
+            <!-- Digitalization Progress -->
+            <div class="kpi-card" style="padding: 16px;">
+              <div style="display: flex; align-items: flex-start; gap: 10px;">
+                <span style="color: var(--accent-emerald); font-size: 18px;">🔄</span>
+                <div>
+                  <h4 style="font-size: 14px; color: #fff;">Digitalization Progress</h4>
+                  <p style="font-size: 11px; color: #8e9e95; margin-top: 2px;">Enrolled students with all mandatory requirements completed</p>
+                </div>
+              </div>
+
+              <div class="rings-container" style="margin-top: 16px;">
+                <div class="ring-item">
+                  <div class="circular-ring" style="border-color: #10b981; color: #10b981; width: 68px; height: 68px; font-size: 14px;">0%</div>
+                  <span class="ring-label" style="font-size: 11px; margin-top: 6px;">JHS</span>
+                  <span class="ring-sub" style="font-size: 10px;">0 / 5</span>
+                </div>
+                <div class="ring-item">
+                  <div class="circular-ring" style="border-color: #38bdf8; color: #38bdf8; width: 68px; height: 68px; font-size: 14px;">0%</div>
+                  <span class="ring-label" style="font-size: 11px; margin-top: 6px;">SHS</span>
+                  <span class="ring-sub" style="font-size: 10px;">0 / 0</span>
+                </div>
+                <div class="ring-item">
+                  <div class="circular-ring" style="border-color: #a855f7; color: #a855f7; width: 68px; height: 68px; font-size: 14px;">0%</div>
+                  <span class="ring-label" style="font-size: 11px; margin-top: 6px;">Overall</span>
+                  <span class="ring-sub" style="font-size: 10px;">0 / 5</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Document Status Distribution -->
+            <div class="kpi-card" style="padding: 16px;">
+              <div style="display: flex; align-items: flex-start; gap: 10px; margin-bottom: 12px;">
+                <span style="color: #f59e0b; font-size: 18px;">🥧</span>
+                <div>
+                  <h4 style="font-size: 14px; color: #fff;">Document Status Distribution</h4>
+                  <p style="font-size: 11px; color: #8e9e95; margin-top: 2px;">By unique document types uploaded</p>
+                </div>
+              </div>
+
+              <div class="kpi-progress-bar">
+                <div class="kpi-bar-meta">
+                  <span style="font-size: 11px;">Completed</span>
+                  <span style="font-size: 11px; color: #94a3b8;">1/15 (6.7%)</span>
+                </div>
+                <div class="bar-track-custom"><div class="bar-fill-green"></div></div>
+              </div>
+
+              <div class="kpi-progress-bar">
+                <div class="kpi-bar-meta">
+                  <span style="font-size: 11px;">Archived</span>
+                  <span style="font-size: 11px; color: #94a3b8;">8/15 (53.3%)</span>
+                </div>
+                <div class="bar-track-custom"><div class="bar-fill-amber"></div></div>
+              </div>
+            </div>
+          </div>
+
+
+          <!-- 2. ANDROID STUDENTS (from students.webp) -->
+          <div id="phone-screen-students" class="mobile-screen-content" style="display: none; flex-direction: column; gap: 10px;">
+            <!-- Student 1: ADAMS, JENNIE -->
+            <div class="android-student-card" onclick="openStudentDetail('ADAMS, JENNIE', '108297100191', 'Grade 12 - STEM - Quisumbing', 'Inactive')">
+              <div class="android-student-top">
+                <div class="android-student-avatar">JA</div>
+                <div class="android-student-info">
+                  <div class="android-student-header-row">
+                    <span class="android-student-name">ADAMS, JENNIE</span>
+                    <div class="android-badges-wrap">
+                      <span class="badge-4ps">4Ps</span>
+                      <span class="badge-inactive">Inactive</span>
+                    </div>
+                  </div>
+                  <div class="android-student-sub">LRN: 108297100191 &bull; Grade 12 - STEM - Quisu...</div>
+                </div>
+              </div>
+              <div class="android-student-bottom">
+                <div class="android-doc-prog">
+                  <span style="font-size: 12px; color: #94a3b8;">📁</span>
+                  <span class="android-doc-text">5 / 7 Docs <span style="font-size: 10px; color: #64748b;">Archived ▾</span></span>
+                  <div class="android-doc-bar"><div class="android-doc-fill" style="width: 71%;"></div></div>
+                </div>
+                <span class="android-folder-icon">📁</span>
+              </div>
+            </div>
+
+            <!-- Student 2: ASD, MARACENA -->
+            <div class="android-student-card" onclick="openStudentDetail('ASD, MARACENA', '412341241234', 'Grade 10 - Pocahontas', 'Inactive')">
+              <div class="android-student-top">
+                <div class="android-student-avatar">MA</div>
+                <div class="android-student-info">
+                  <div class="android-student-header-row">
+                    <span class="android-student-name">ASD, MARACENA</span>
+                    <div class="android-badges-wrap">
+                      <span class="badge-inactive">Inactive</span>
+                    </div>
+                  </div>
+                  <div class="android-student-sub">LRN: 412341241234 &bull; Grade 10 - Pocahontas</div>
+                </div>
+              </div>
+              <div class="android-student-bottom">
+                <div class="android-doc-prog">
+                  <span style="font-size: 12px; color: #94a3b8;">📁</span>
+                  <span class="android-doc-text">3 / 3 Docs <span style="font-size: 10px; color: #64748b;">Archived ▾</span></span>
+                  <div class="android-doc-bar"><div class="android-doc-fill" style="width: 100%;"></div></div>
+                </div>
+                <span class="android-folder-icon">📁</span>
+              </div>
+            </div>
+
+            <!-- Student 3: ASDF, ASDF -->
+            <div class="android-student-card" onclick="openStudentDetail('ASDF, ASDF', '342142141234', 'Grade 12 - Euphoria', 'Inactive')">
+              <div class="android-student-top">
+                <div class="android-student-avatar">AA</div>
+                <div class="android-student-info">
+                  <div class="android-student-header-row">
+                    <span class="android-student-name">ASDF, ASDF</span>
+                    <div class="android-badges-wrap">
+                      <span class="badge-inactive">Inactive</span>
+                    </div>
+                  </div>
+                  <div class="android-student-sub">LRN: 342142141234 &bull; Grade 12 - Euphoria</div>
+                </div>
+              </div>
+              <div class="android-student-bottom">
+                <div class="android-doc-prog">
+                  <span style="font-size: 12px; color: #94a3b8;">📁</span>
+                  <span class="android-doc-text">4 / 4 Docs <span style="font-size: 10px; color: #64748b;">Archived ▾</span></span>
+                  <div class="android-doc-bar"><div class="android-doc-fill" style="width: 100%;"></div></div>
+                </div>
+                <span class="android-folder-icon">📁</span>
+              </div>
+            </div>
+
+            <!-- Student 4: Arroyo, Gemma -->
+            <div class="android-student-card" onclick="openStudentDetail('Arroyo, Gemma', '108297100198', 'Grade 7 - Moonstar', 'Dropped')">
+              <div class="android-student-top">
+                <div class="android-student-avatar">GA</div>
+                <div class="android-student-info">
+                  <div class="android-student-header-row">
+                    <span class="android-student-name">Arroyo, Gemma</span>
+                    <div class="android-badges-wrap">
+                      <span class="badge-4ps">4Ps</span>
+                      <span class="badge-dropped">Dropped</span>
+                    </div>
+                  </div>
+                  <div class="android-student-sub">LRN: 108297100198 &bull; Grade 7 - Moonstar</div>
+                </div>
+              </div>
+              <div class="android-student-bottom">
+                <div class="android-doc-prog">
+                  <span style="font-size: 12px; color: #94a3b8;">📁</span>
+                  <span class="android-doc-text">2 / 3 Docs <span style="font-size: 10px; color: #64748b;">Archived ▾</span></span>
+                  <div class="android-doc-bar"><div class="android-doc-fill" style="width: 66%;"></div></div>
+                </div>
+                <span class="android-folder-icon">📁</span>
+              </div>
+            </div>
+
+            <!-- Student 5: BAKA, ASTA -->
+            <div class="android-student-card" onclick="openStudentDetail('BAKA, ASTA', '108371216161', 'Grade 12 - Euphoria', 'Inactive')">
+              <div class="android-student-top">
+                <div class="android-student-avatar">AB</div>
+                <div class="android-student-info">
+                  <div class="android-student-header-row">
+                    <span class="android-student-name">BAKA, ASTA</span>
+                    <div class="android-badges-wrap">
+                      <span class="badge-4ps">4Ps</span>
+                      <span class="badge-inactive">Inactive</span>
+                    </div>
+                  </div>
+                  <div class="android-student-sub">LRN: 108371216161 &bull; Grade 12 - Euphoria</div>
+                </div>
+              </div>
+              <div class="android-student-bottom">
+                <div class="android-doc-prog">
+                  <span style="font-size: 12px; color: #94a3b8;">📁</span>
+                  <span class="android-doc-text">1 / 7 Docs <span style="font-size: 10px; color: #64748b;">Archived ▾</span></span>
+                  <div class="android-doc-bar"><div class="android-doc-fill" style="width: 14%;"></div></div>
+                </div>
+                <span class="android-folder-icon">📁</span>
+              </div>
+            </div>
+
+            <!-- Android Pagination (Exact from Screenshot) -->
+            <div class="android-pagination">
+              <span class="android-page-btn">&laquo;</span>
+              <span class="android-page-btn">&lsaquo;</span>
+              <span class="android-page-btn active">1</span>
+              <span class="android-page-btn">2</span>
+              <span class="android-page-btn">&rsaquo;</span>
+              <span class="android-page-btn">&raquo;</span>
+              <span class="android-page-btn">1 ▾</span>
+            </div>
+          </div>
+
+
+          <!-- 3. ANDROID DOCUMENTS (from documents.webp) -->
+          <div id="phone-screen-documents" class="mobile-screen-content" style="display: none; flex-direction: column; gap: 10px;">
+            <!-- Segmented bar -->
+            <div class="android-segmented-row">
+              <div class="android-pill-group">
+                <div class="android-pill active">📁 Folders</div>
+                <div class="android-pill">📄 Documents</div>
+              </div>
+              <button class="phone-action-icon" style="font-size: 18px;">⋮</button>
+            </div>
+
+            <!-- Folder card RIZAL_JUAN -->
+            <div class="android-student-card" style="padding: 16px;">
+              <div style="display: flex; align-items: center; justify-content: space-between;">
+                <div style="display: flex; align-items: center; gap: 14px;">
+                  <div style="width: 44px; height: 44px; background: rgba(245,158,11,0.15); border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 22px;">📁</div>
+                  <div>
+                    <h4 style="font-size: 14px; font-weight: 700; color: #fff;">RIZAL_JUAN_308035123456</h4>
+                    <span style="font-size: 11px; color: #8e9e95;">1 item</span>
+                    <div style="display: flex; gap: 6px; margin-top: 6px;">
+                      <span class="badge-jhs">JHS 0/3</span>
+                      <span class="badge-shs">SHS 0/4</span>
+                    </div>
+                  </div>
+                </div>
+                <span style="color: var(--text-muted); font-size: 18px;">&rsaquo;</span>
+              </div>
+            </div>
+          </div>
+
+
+          <!-- 4. ANDROID ARCHIVES (from archives.webp) -->
+          <div id="phone-screen-archives" class="mobile-screen-content" style="display: none; flex-direction: column; gap: 8px;">
+            <!-- Segmented bar -->
+            <div class="android-segmented-row">
+              <div class="android-pill-group">
+                <div class="android-pill active">📁 Folders</div>
+                <div class="android-pill">🗄️ Archived</div>
+              </div>
+              <button class="phone-action-icon" style="font-size: 18px;">⋮</button>
+            </div>
+
+            <!-- Red Star Folders List -->
+            <div class="android-student-card" style="padding: 12px 14px;">
+              <div style="display: flex; align-items: center; justify-content: space-between;">
+                <div style="display: flex; align-items: center; gap: 12px;">
+                  <span style="font-size: 24px; color: #ef4444;">📁</span>
+                  <div>
+                    <h4 style="font-size: 13px; font-weight: 700; color: #fff;">ADAMS, JENNIE</h4>
+                    <div style="display: flex; align-items: center; gap: 6px; margin-top: 2px;">
+                      <span style="font-size: 11px; color: #8e9e95;">16 items</span>
+                      <span class="badge-inactive">Inactive</span>
+                    </div>
+                  </div>
+                </div>
+                <div style="display: flex; align-items: center; gap: 10px; color: var(--text-muted);">
+                  <span>⋮</span>
+                  <span>&rsaquo;</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="android-student-card" style="padding: 12px 14px;">
+              <div style="display: flex; align-items: center; justify-content: space-between;">
+                <div style="display: flex; align-items: center; gap: 12px;">
+                  <span style="font-size: 24px; color: #ef4444;">📁</span>
+                  <div>
+                    <h4 style="font-size: 13px; font-weight: 700; color: #fff;">ASD, MARACENA</h4>
+                    <div style="display: flex; align-items: center; gap: 6px; margin-top: 2px;">
+                      <span style="font-size: 11px; color: #8e9e95;">6 items</span>
+                      <span class="badge-inactive">Inactive</span>
+                    </div>
+                  </div>
+                </div>
+                <div style="display: flex; align-items: center; gap: 10px; color: var(--text-muted);">
+                  <span>⋮</span>
+                  <span>&rsaquo;</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="android-student-card" style="padding: 12px 14px;">
+              <div style="display: flex; align-items: center; justify-content: space-between;">
+                <div style="display: flex; align-items: center; gap: 12px;">
+                  <span style="font-size: 24px; color: #ef4444;">📁</span>
+                  <div>
+                    <h4 style="font-size: 13px; font-weight: 700; color: #fff;">ASDF, ASDF</h4>
+                    <div style="display: flex; align-items: center; gap: 6px; margin-top: 2px;">
+                      <span style="font-size: 11px; color: #8e9e95;">10 items</span>
+                      <span class="badge-inactive">Inactive</span>
+                    </div>
+                  </div>
+                </div>
+                <div style="display: flex; align-items: center; gap: 10px; color: var(--text-muted);">
+                  <span>⋮</span>
+                  <span>&rsaquo;</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="android-student-card" style="padding: 12px 14px;">
+              <div style="display: flex; align-items: center; justify-content: space-between;">
+                <div style="display: flex; align-items: center; gap: 12px;">
+                  <span style="font-size: 24px; color: #ef4444;">📁</span>
+                  <div>
+                    <h4 style="font-size: 13px; font-weight: 700; color: #fff;">Arroyo, Gemma</h4>
+                    <div style="display: flex; align-items: center; gap: 6px; margin-top: 2px;">
+                      <span style="font-size: 11px; color: #8e9e95;">8 items</span>
+                      <span class="badge-dropped">Dropped</span>
+                    </div>
+                  </div>
+                </div>
+                <div style="display: flex; align-items: center; gap: 10px; color: var(--text-muted);">
+                  <span>⋮</span>
+                  <span>&rsaquo;</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="android-student-card" style="padding: 12px 14px;">
+              <div style="display: flex; align-items: center; justify-content: space-between;">
+                <div style="display: flex; align-items: center; gap: 12px;">
+                  <span style="font-size: 24px; color: #ef4444;">📁</span>
+                  <div>
+                    <h4 style="font-size: 13px; font-weight: 700; color: #fff;">BAKA, ASTA</h4>
+                    <div style="display: flex; align-items: center; gap: 6px; margin-top: 2px;">
+                      <span style="font-size: 11px; color: #8e9e95;">2 items</span>
+                      <span class="badge-inactive">Inactive</span>
+                    </div>
+                  </div>
+                </div>
+                <div style="display: flex; align-items: center; gap: 10px; color: var(--text-muted);">
+                  <span>⋮</span>
+                  <span>&rsaquo;</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Pagination -->
+            <div class="android-pagination">
+              <span class="android-page-btn">&laquo;</span>
+              <span class="android-page-btn">&lsaquo;</span>
+              <span class="android-page-btn active">1</span>
+              <span class="android-page-btn">2</span>
+              <span class="android-page-btn">&rsaquo;</span>
+              <span class="android-page-btn">&raquo;</span>
+              <span class="android-page-btn">1 ▾</span>
+            </div>
+          </div>
+
+
+          <!-- 5. ANDROID REPORTS (from reports.webp) -->
+          <div id="phone-screen-reports" class="mobile-screen-content" style="display: none; flex-direction: column; gap: 12px;">
+            <!-- Top Swap Banner -->
+            <div class="setup-banner" style="background: rgba(25,135,84,0.15); border-color: rgba(25,135,84,0.35); padding: 12px 14px;">
               <div>
-                <div class="doc-folder-title">RIZAL_JUAN</div>
-                <div class="doc-folder-sub">1 item &bull; JHS 0/3</div>
+                <div style="font-size: 13px; font-weight: 700; color: #fff;">🏛️ DepEd Transparency Board <span style="font-size: 10px; opacity: 0.7;">1/3</span></div>
+                <span style="font-size: 11px; color: #8e9e95;">Tap toggle to switch</span>
+              </div>
+              <button class="phone-action-btn-green" style="padding: 4px 10px; font-size: 13px;">⇄</button>
+            </div>
+
+            <!-- Green Transparency Card -->
+            <div class="android-transparency-card">
+              <div class="android-transparency-header">
+                <span>⊞</span>
+                <span>DEPED TRANSPARENCY BOARD</span>
+              </div>
+              <div style="background: rgba(0,0,0,0.2); padding: 8px 12px; border-radius: 8px; font-size: 12px; display: flex; justify-content: space-between; align-items: center;">
+                <span>🎯 Academic Year: SY 2026-2027 (Active)</span>
+                <span>▾</span>
+              </div>
+              <button style="background: #ef4444; color: #fff; border: none; border-radius: 8px; padding: 8px 14px; font-size: 12px; font-weight: 700; display: flex; align-items: center; gap: 6px; width: fit-content;">
+                <span>📕 Export PDF</span>
+              </button>
+            </div>
+
+            <!-- Sub-Tabs -->
+            <div style="display: flex; gap: 14px; border-bottom: 2px solid rgba(255,255,255,0.06); padding-bottom: 8px; font-size: 12px; font-weight: 600;">
+              <span style="color: var(--accent-emerald); border-bottom: 2px solid var(--accent-emerald); padding-bottom: 8px; margin-bottom: -10px;">⊞ All Sections</span>
+              <span style="color: #94a3b8;">📊 Data on Enrollment</span>
+              <span style="color: #94a3b8;">📉 Dropouts</span>
+            </div>
+
+            <!-- Enrollment Card with Chart -->
+            <div class="kpi-card" style="padding: 16px;">
+              <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;">
+                <div style="display: flex; align-items: center; gap: 8px;">
+                  <span style="color: var(--accent-emerald);">📊</span>
+                  <h4 style="font-size: 13px; color: #fff;">Data on Enrollment</h4>
+                </div>
+                <div style="display: flex; gap: 6px;">
+                  <span style="background: rgba(25,135,84,0.2); color: #10b981; font-size: 10px; font-weight: 700; padding: 4px 8px; border-radius: 4px;">Active SY Total: 5</span>
+                  <button style="background: #ef4444; color: #fff; border: none; border-radius: 4px; padding: 4px 8px; font-size: 10px; font-weight: 700;">📕 Export PDF</button>
+                </div>
+              </div>
+
+              <div style="font-size: 12px; font-weight: 600; color: #cbd5e1; margin-bottom: 10px;">Enrollment Trends across School Years</div>
+              <div style="display: flex; gap: 12px; font-size: 10px; color: #8e9e95; margin-bottom: 12px;">
+                <span>■ 2024-2025</span>
+                <span style="color: #38bdf8;">■ 2025-2026</span>
+                <span style="color: #10b981;">■ 2026-2027</span>
+              </div>
+
+              <!-- Bar Chart Simulation -->
+              <div style="height: 120px; display: flex; align-items: flex-end; gap: 20px; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 4px; padding-left: 20px; position: relative;">
+                <div style="position: absolute; left: 0; top: 0; bottom: 0; display: flex; flex-direction: column; justify-content: space-between; font-size: 9px; color: #64748b;">
+                  <span>34</span><span>30</span><span>20</span><span>10</span><span>0</span>
+                </div>
+                <div style="width: 14px; height: 25px; background: #64748b; border-radius: 2px;"></div>
+                <div style="width: 14px; height: 35px; background: #38bdf8; border-radius: 2px;"></div>
+                <div style="width: 14px; height: 38px; background: #10b981; border-radius: 2px;"></div>
+                <div style="width: 14px; height: 20px; background: #64748b; border-radius: 2px; margin-left: 10px;"></div>
+                <div style="width: 14px; height: 42px; background: #38bdf8; border-radius: 2px;"></div>
+                <div style="width: 14px; height: 85px; background: #38bdf8; border-radius: 2px; margin-left: 10px;"></div>
               </div>
             </div>
           </div>
-        </div>
 
-        <!-- Mobile Reports -->
-        <div id="phone-screen-reports" class="mobile-screen-content" style="display: none; flex-direction: column; gap: 10px;">
-          <div class="kpi-card">
-            <h4>DepEd Transparency Board</h4>
-            <p>4Ps Beneficiaries across grades</p>
-          </div>
-        </div>
 
-        <!-- Mobile Settings -->
-        <div id="phone-screen-settings" class="mobile-screen-content" style="display: none; flex-direction: column; gap: 10px;">
-          <div class="settings-card-item">
-            <div class="settings-card-header">
-              <h4>About &amp; App Updates</h4>
+          <!-- 6. ANDROID USERS (from users.webp) -->
+          <div id="phone-screen-users" class="mobile-screen-content" style="display: none; flex-direction: column; gap: 10px;">
+            <!-- Horizontal Filter Chips -->
+            <div class="android-filter-chips">
+              <span class="android-chip active">All (18)</span>
+              <span class="android-chip">Admin (6)</span>
+              <span class="android-chip">Teacher (12)</span>
+              <span class="android-chip">Inactive</span>
             </div>
-            <div class="settings-card-body" style="display: flex;">
+
+            <!-- Users List -->
+            <div class="android-user-card">
+              <div class="android-user-left">
+                <div class="android-user-avatar">AA</div>
+                <div class="android-user-details">
+                  <h4>Ana Arandia</h4>
+                  <div class="android-user-handle">@ana</div>
+                  <div class="android-user-contact">anaarandia@gmail.com &bull; 09123456789</div>
+                </div>
+              </div>
+              <div style="display: flex; align-items: center; gap: 8px;">
+                <span class="android-user-badge">ADMIN</span>
+                <span style="color: var(--text-muted);">&rsaquo;</span>
+              </div>
+            </div>
+
+            <div class="android-user-card">
+              <div class="android-user-left">
+                <div class="android-user-avatar" style="background: #143528; color: #10b981;">RB</div>
+                <div class="android-user-details">
+                  <h4>Rene Baterbonia</h4>
+                  <div class="android-user-handle">@rene</div>
+                  <div class="android-user-contact">renebaterbonia@gmail.com &bull; 0912345...</div>
+                </div>
+              </div>
+              <div style="display: flex; align-items: center; gap: 8px;">
+                <span class="android-user-badge">ADMIN</span>
+                <span style="color: var(--text-muted);">&rsaquo;</span>
+              </div>
+            </div>
+
+            <div class="android-user-card">
+              <div class="android-user-left">
+                <div class="android-user-avatar">ED</div>
+                <div class="android-user-details">
+                  <h4>Ermhar A. De Vera</h4>
+                  <div class="android-user-handle">@ermhar</div>
+                  <div class="android-user-contact">ermhardevera11@gmail.com &bull; 094784...</div>
+                </div>
+              </div>
+              <div style="display: flex; align-items: center; gap: 8px;">
+                <span class="android-user-badge">ADMIN</span>
+                <span style="color: var(--text-muted);">&rsaquo;</span>
+              </div>
+            </div>
+
+            <div class="android-user-card">
+              <div class="android-user-left">
+                <div class="android-user-avatar">PL</div>
+                <div class="android-user-details">
+                  <h4>Pao Lul</h4>
+                  <div class="android-user-handle">@paolul</div>
+                  <div class="android-user-contact">paolul@gmail.com &bull; 09123123123</div>
+                </div>
+              </div>
+              <div style="display: flex; align-items: center; gap: 8px;">
+                <span class="android-user-badge">ADMIN</span>
+                <span style="color: var(--text-muted);">&rsaquo;</span>
+              </div>
+            </div>
+
+            <div class="android-user-card">
+              <div class="android-user-left">
+                <div class="android-user-avatar">CP</div>
+                <div class="android-user-details">
+                  <h4>Chinee Pasigan</h4>
+                  <div class="android-user-handle">@chinee</div>
+                </div>
+              </div>
+              <div style="display: flex; align-items: center; gap: 8px;">
+                <span class="android-user-badge">ADMIN</span>
+                <span style="color: var(--text-muted);">&rsaquo;</span>
+              </div>
+            </div>
+
+            <div class="android-user-card">
+              <div class="android-user-left">
+                <div class="android-user-avatar" style="background: #198754; color: #fff;">AT</div>
+                <div class="android-user-details">
+                  <h4>Admin Registrar Talis...</h4>
+                  <div class="android-user-handle">@admin</div>
+                  <div class="android-user-contact">gcrischarles@gmail.com &bull; 093929756...</div>
+                </div>
+              </div>
+              <div style="display: flex; align-items: center; gap: 8px;">
+                <span class="android-user-badge">ADMIN</span>
+                <span style="color: var(--text-muted);">&rsaquo;</span>
+              </div>
+            </div>
+          </div>
+
+
+          <!-- 7. ANDROID HISTORY (from history.webp) -->
+          <div id="phone-screen-history" class="mobile-screen-content" style="display: none; flex-direction: column; gap: 10px;">
+            <!-- Segmented tabs -->
+            <div class="android-segmented-row">
+              <div class="android-pill-group">
+                <div class="android-pill active">📑 Activities</div>
+                <div class="android-pill">👤 Users</div>
+                <div class="android-pill">💻 Sessions</div>
+              </div>
+            </div>
+
+            <div style="display: flex; align-items: center; justify-content: space-between; margin-top: 4px;">
+              <span style="font-size: 13px; font-weight: 700; color: #fff;">Recent Activity Logs</span>
+              <div style="display: flex; gap: 10px; color: #94a3b8; font-size: 14px;">
+                <span>🔍</span>
+                <span>🎛️</span>
+                <span>🔄</span>
+              </div>
+            </div>
+
+            <!-- Activity 1 -->
+            <div class="android-activity-card">
+              <div class="android-activity-icon archive">📥</div>
+              <div class="android-activity-body">
+                <div class="android-activity-top">
+                  <div class="android-activity-tags">
+                    <span class="android-tag-archive">ARCHIVE</span>
+                    <span class="android-tag-student">STUDENT</span>
+                  </div>
+                  <span class="android-activity-date">Sep 28, 2026, 7:34 PM</span>
+                </div>
+                <div class="android-activity-desc">
+                  Auto-archived 1 student(s) to 'Inactive' (no enrollment in AY 2026-2027 after scheduled cutoff (2026-09-26T23:59:59.000)): 108297100191 (JENNIE ADAMS)
+                </div>
+                <div class="android-activity-author">👤 By: Admin Registrar Talisay</div>
+              </div>
+            </div>
+
+            <!-- Activity 2 -->
+            <div class="android-activity-card">
+              <div class="android-activity-icon create">➕</div>
+              <div class="android-activity-body">
+                <div class="android-activity-top">
+                  <div class="android-activity-tags">
+                    <span style="background: rgba(16,185,129,0.2); color: #10b981; font-size: 10px; font-weight: 700; padding: 2px 6px; border-radius: 4px;">CREATE</span>
+                    <span class="android-tag-student">DOCUMENT</span>
+                  </div>
+                  <span class="android-activity-date">Sep 27, 2026, 7:03 PM</span>
+                </div>
+                <div class="android-activity-desc">
+                  Uploaded "JHS - Certificate of Enrollment.jpg" (JHS - Certificate of Enrollment) for JUAN RIZAL
+                </div>
+                <div class="android-activity-author">👤 By: Admin Registrar Talisay</div>
+              </div>
+            </div>
+
+            <!-- Activity 3 -->
+            <div class="android-activity-card">
+              <div class="android-activity-icon update">✏️</div>
+              <div class="android-activity-body">
+                <div class="android-activity-top">
+                  <div class="android-activity-tags">
+                    <span style="background: rgba(56,189,248,0.2); color: #38bdf8; font-size: 10px; font-weight: 700; padding: 2px 6px; border-radius: 4px;">UPDATE</span>
+                    <span class="android-tag-student">STUDENT</span>
+                  </div>
+                  <span class="android-activity-date">Sep 27, 2026, 6:40 PM</span>
+                </div>
+                <div class="android-activity-desc">
+                  Updated student ••••••••3456
+                </div>
+                <div class="android-activity-author">👤 By: Admin Registrar Talisay</div>
+              </div>
+            </div>
+
+            <!-- Pagination & Total -->
+            <div class="android-pagination">
+              <span class="android-page-btn">&laquo;</span>
+              <span class="android-page-btn">&lsaquo;</span>
+              <span class="android-page-btn active">1</span>
+              <span class="android-page-btn">2</span>
+              <span class="android-page-btn">&rsaquo;</span>
+              <span class="android-page-btn">&raquo;</span>
+              <span class="android-page-btn">1 ▾</span>
+            </div>
+            <div style="text-align: center; font-size: 11px; color: #8e9e95;">Total: 1142 activities</div>
+          </div>
+
+
+          <!-- 8. ANDROID SETTINGS (from settings.webp) -->
+          <div id="phone-screen-settings" class="mobile-screen-content" style="display: none; flex-direction: column; gap: 12px;">
+            <div class="android-page-title">Account Settings</div>
+            <div class="android-page-subtitle">Manage your profile information and security settings.</div>
+
+            <!-- Card 1: Profile Details -->
+            <div class="android-student-card" style="padding: 16px;">
+              <div style="display: flex; align-items: center; justify-content: space-between;">
+                <h4 style="font-size: 14px; font-weight: 700; color: #fff;">Profile Details</h4>
+                <span style="color: #94a3b8;">⌄</span>
+              </div>
+            </div>
+
+            <!-- Card 2: Document Requirements -->
+            <div class="android-student-card" style="padding: 16px;">
+              <div style="display: flex; align-items: flex-start; justify-content: space-between;">
+                <div style="display: flex; gap: 12px;">
+                  <span style="font-size: 20px; color: var(--accent-emerald);">📁</span>
+                  <div>
+                    <h4 style="font-size: 14px; font-weight: 700; color: #fff;">Document Requirements</h4>
+                    <p style="font-size: 12px; color: #8e9e95; margin-top: 2px;">Configure required documents for JHS and SHS</p>
+                  </div>
+                </div>
+                <span style="color: #94a3b8; font-size: 16px;">&rsaquo;</span>
+              </div>
+              <div class="android-info-box-green">
+                ℹ️ Define which documents are required for enrollment per grade level (e.g., Form 137, Birth Certificate, Good Moral). Students with missing required documents will appear in the Missing Docs dashboard tile.
+              </div>
+            </div>
+
+            <!-- Card 3: Academic & Class Management -->
+            <div class="android-student-card" style="padding: 16px;">
+              <div style="display: flex; align-items: flex-start; justify-content: space-between;">
+                <div style="display: flex; gap: 12px;">
+                  <span style="font-size: 20px; color: #38bdf8;">🎓</span>
+                  <div>
+                    <h4 style="font-size: 14px; font-weight: 700; color: #fff;">Academic &amp; Class Management</h4>
+                    <p style="font-size: 12px; color: #8e9e95; margin-top: 2px;">Manage academic years, sections, and class advisers</p>
+                  </div>
+                </div>
+                <span style="color: #94a3b8; font-size: 16px;">&rsaquo;</span>
+              </div>
+              <div class="android-info-box-blue">
+                ℹ️ Set up academic years, grade levels, and sections. Assign teachers to their sections so they can view and manage their students' records. Changes here affect enrollment options across the system.
+              </div>
+            </div>
+
+            <!-- Card 4: About & App Updates -->
+            <div class="android-student-card" style="padding: 16px;">
+              <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
+                <div style="display: flex; align-items: center; gap: 8px;">
+                  <span style="font-size: 16px; color: var(--accent-emerald);">ℹ️</span>
+                  <h4 style="font-size: 14px; font-weight: 700; color: #fff;">About &amp; App Updates</h4>
+                </div>
+              </div>
+
               <div class="info-row"><span class="label">App:</span><span class="val">TIS-RMS Mobile</span></div>
               <div class="info-row"><span class="label">Architecture:</span><span class="val">ARM64 (64-bit)</span></div>
               <div class="info-row"><span class="label">Version:</span><span class="val">v1.0.23</span></div>
 
-              <button class="page-btn" style="background: var(--primary-green); color: #fff; margin-top: 8px;" onclick="simulateUpdateCheck()">
-                <span>Check for Updates</span>
+              <button class="page-btn" style="background: var(--primary-green); color: #fff; margin-top: 10px; width: 100%; border: none; padding: 10px; font-weight: 700; border-radius: 8px;" onclick="simulateUpdateCheck()">
+                Check for Updates
               </button>
             </div>
           </div>
+
         </div>
 
+        <!-- Android Home Navigation Gesture Bar (No bottom tabs) -->
+        <div class="android-gesture-pill"></div>
       </div>
-
-      <!-- Android Bottom Nav -->
-      <nav class="phone-bottom-nav">
-        <div class="phone-nav-tab active" data-screen="dashboard">
-          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M3 13h8V3H3v10zm0 8h8v-6H3v6zm10 0h8V11h-8v10zm0-18v6h8V3h-8z"/></svg>
-          <span>Home</span>
-        </div>
-        <div class="phone-nav-tab" data-screen="students">
-          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"/></svg>
-          <span>Students</span>
-        </div>
-        <div class="phone-nav-tab" data-screen="documents">
-          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M10 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2h-8l-2-2z"/></svg>
-          <span>Docs</span>
-        </div>
-        <div class="phone-nav-tab" data-screen="reports">
-          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M5 9.2h3V19H5zM10.6 5h2.8v14h-2.8zm5.6 8H19v6h-2.8z"/><path d="M19 19H5V5h14v14m0-16H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2z"/></svg>
-          <span>Reports</span>
-        </div>
-        <div class="phone-nav-tab" data-screen="settings">
-          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.09.63-.09.94s.02.64.07.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z"/></svg>
-          <span>Settings</span>
-        </div>
-      </nav>
     </div>
 
   </main>
