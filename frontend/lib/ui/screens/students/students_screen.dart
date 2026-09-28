@@ -1217,6 +1217,7 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
     return LayoutBuilder(
       builder: (_, c) {
         final isDesktop = c.maxWidth > 800;
+        final isWindows = defaultTargetPlatform == TargetPlatform.windows;
 
         final isDark = Theme.of(context).brightness == Brightness.dark;
 
@@ -1341,8 +1342,8 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
                   ),
                 ),
               ],
-              // "Bulk Import" button for Desktop / Tablet or when role allows
-              if (widget.userRole != 'teacher') ...[
+              // "Bulk Import" button for non-Windows (hidden on Windows app)
+              if (!isWindows && widget.userRole != 'teacher') ...[
                 const SizedBox(width: 6),
                 Tooltip(
                   message: 'Bulk Import Students (OCR & CSV)',
