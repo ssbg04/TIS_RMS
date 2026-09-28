@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_sizes.dart';
 import '../../../core/utils/theme_extension.dart';
@@ -120,7 +121,7 @@ class _CapstoneMembersScreenState extends State<CapstoneMembersScreen> {
     return Scaffold(
       backgroundColor: isDark ? AppColors.darkPageBackground : Colors.grey.shade50,
       appBar: AppBar(
-        title: const Text('Capstone 1-2'),
+        title: const Text('Capstone Members'),
         backgroundColor: isDark ? AppColors.darkSurfaceCard : Colors.white,
         foregroundColor: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
         elevation: 1,
@@ -129,12 +130,12 @@ class _CapstoneMembersScreenState extends State<CapstoneMembersScreen> {
         padding: const EdgeInsets.all(AppSizes.p24),
         child: Center(
           child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 800),
+            constraints: const BoxConstraints(maxWidth: 860),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
                 const Text(
-                  'PLSP (Pamantasan ng Lungsod ng San Pablo)',
+                  'DLSP (Dalubhasaan ng Lungsod ng San Pablo)',
                   style: TextStyle(
                     fontSize: 24,
                     fontWeight: FontWeight.bold,
@@ -142,12 +143,17 @@ class _CapstoneMembersScreenState extends State<CapstoneMembersScreen> {
                   ),
                   textAlign: TextAlign.center,
                 ),
-                const SizedBox(height: 8),
-                Text(
-                  'Capstone 1-2 Project Team',
-                  style: TextStyle(
-                    fontSize: 18,
-                    color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
+                const SizedBox(height: 10),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  child: Text(
+                    'Talisay Integrated School — Records Management System (TIS-RMS)\nA digital platform for student records management, automated OCR document tracking, and institutional reporting.',
+                    style: TextStyle(
+                      fontSize: 14,
+                      height: 1.5,
+                      color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
+                    ),
+                    textAlign: TextAlign.center,
                   ),
                 ),
                 const SizedBox(height: 24),
@@ -281,12 +287,12 @@ class _CapstoneMembersScreenState extends State<CapstoneMembersScreen> {
                 const SizedBox(height: 32),
                 Row(
                   children: [
-                    const Icon(Icons.groups_rounded, color: AppColors.primaryGreen, size: 32),
+                    const Icon(Icons.groups_rounded, color: AppColors.primaryGreen, size: 30),
                     const SizedBox(width: 12),
                     Text(
                       'Capstone Members',
                       style: TextStyle(
-                        fontSize: 24,
+                        fontSize: 22,
                         fontWeight: FontWeight.bold,
                         color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
                       ),
@@ -295,97 +301,220 @@ class _CapstoneMembersScreenState extends State<CapstoneMembersScreen> {
                 ),
                 const SizedBox(height: 20),
 
-                // ── Members List ──
-                ..._members.map(
-                  (member) => Card(
-                    margin: const EdgeInsets.only(bottom: 12),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(14),
-                    ),
-                    elevation: 1,
-                    color: isDark ? AppColors.darkSurfaceCard : Colors.white,
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                      child: Row(
-                        children: [
-                          // Solo Avatar Picture
-                          Container(
-                            width: 52,
-                            height: 52,
-                            decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              border: Border.all(
-                                color: AppColors.primaryGreen.withValues(alpha: 0.4),
-                                width: 2,
-                              ),
-                            ),
-                            child: ClipOval(
-                              child: Image.asset(
-                                member.avatarAsset,
-                                fit: BoxFit.cover,
-                                errorBuilder: (context, error, stackTrace) => CircleAvatar(
-                                  backgroundColor: AppColors.primaryGreen.withValues(alpha: 0.1),
-                                  child: const Icon(Icons.person, color: AppColors.primaryGreen),
-                                ),
-                              ),
-                            ),
-                          ),
-                          const SizedBox(width: 16),
+                // ── Members Grid of Cards ──
+                LayoutBuilder(
+                  builder: (context, constraints) {
+                    final width = constraints.maxWidth;
+                    final int crossAxisCount = width > 580 ? 3 : (width > 360 ? 2 : 1);
+                    const double spacing = 16.0;
 
-                          // Name, Role & Email
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  member.name,
-                                  style: TextStyle(
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 16,
-                                    color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
-                                  ),
-                                ),
-                                const SizedBox(height: 4),
-                                Text(
-                                  member.role,
-                                  style: TextStyle(
-                                    color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
-                                    fontStyle: FontStyle.italic,
-                                    fontSize: 13,
-                                  ),
-                                ),
-                                if (member.email.isNotEmpty) ...[
-                                  const SizedBox(height: 4),
-                                  Row(
-                                    children: [
-                                      Icon(
-                                        Icons.email_outlined,
-                                        size: 14,
-                                        color: isDark ? AppColors.darkTextMuted : Colors.grey,
-                                      ),
-                                      const SizedBox(width: 6),
-                                      SelectableText(
-                                        member.email,
-                                        style: TextStyle(
-                                          color: isDark ? Colors.blue.shade300 : Colors.blue.shade700,
-                                          fontSize: 13,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ],
-                              ],
-                            ),
-                          ),
+                    return GridView.builder(
+                      shrinkWrap: true,
+                      physics: const NeverScrollableScrollPhysics(),
+                      itemCount: _members.length,
+                      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                        crossAxisCount: crossAxisCount,
+                        crossAxisSpacing: spacing,
+                        mainAxisSpacing: spacing,
+                        childAspectRatio: crossAxisCount == 1 ? 1.15 : 0.72,
+                      ),
+                      itemBuilder: (context, index) {
+                        final member = _members[index];
+                        return _buildMemberCard(context, member, isDark);
+                      },
+                    );
+                  },
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildMemberCard(
+    BuildContext context,
+    _MemberInfo member,
+    bool isDark,
+  ) {
+    return Container(
+      decoration: BoxDecoration(
+        color: isDark ? AppColors.darkSurfaceCard : Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: isDark
+              ? Colors.white.withValues(alpha: 0.08)
+              : Colors.grey.shade200,
+          width: 1,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: isDark ? 0.3 : 0.06),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          // ── Picture Card with Name & Role inside ──
+          Expanded(
+            child: ClipRRect(
+              borderRadius: const BorderRadius.vertical(top: Radius.circular(15)),
+              child: Stack(
+                fit: StackFit.expand,
+                children: [
+                  Image.asset(
+                    member.avatarAsset,
+                    fit: BoxFit.cover,
+                    errorBuilder: (context, error, stackTrace) => Container(
+                      color: isDark ? Colors.grey.shade900 : Colors.grey.shade200,
+                      child: const Center(
+                        child: Icon(
+                          Icons.person,
+                          size: 50,
+                          color: AppColors.primaryGreen,
+                        ),
+                      ),
+                    ),
+                  ),
+
+                  // Bottom Gradient Scrim
+                  DecoratedBox(
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                        stops: const [0.35, 1.0],
+                        colors: [
+                          Colors.transparent,
+                          Colors.black.withValues(alpha: 0.90),
                         ],
                       ),
+                    ),
+                  ),
+
+                  // Name and Position inside the picture
+                  Positioned(
+                    left: 12,
+                    right: 12,
+                    bottom: 12,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          member.name,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 14.5,
+                            shadows: [
+                              Shadow(
+                                color: Colors.black87,
+                                blurRadius: 4,
+                                offset: Offset(0, 1),
+                              ),
+                            ],
+                          ),
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        const SizedBox(height: 5),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 3,
+                          ),
+                          decoration: BoxDecoration(
+                            color: AppColors.primaryGreen.withValues(alpha: 0.92),
+                            borderRadius: BorderRadius.circular(6),
+                          ),
+                          child: Text(
+                            member.role,
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.w600,
+                              fontSize: 11.5,
+                              letterSpacing: 0.3,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+
+          // ── Under the Picture Card: Email ──
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+            decoration: BoxDecoration(
+              color: isDark
+                  ? Colors.white.withValues(alpha: 0.02)
+                  : Colors.grey.shade50,
+              borderRadius: const BorderRadius.vertical(bottom: Radius.circular(15)),
+              border: Border(
+                top: BorderSide(
+                  color: isDark
+                      ? Colors.white.withValues(alpha: 0.06)
+                      : Colors.grey.shade200,
+                  width: 1,
+                ),
+              ),
+            ),
+            child: Row(
+              children: [
+                Icon(
+                  Icons.email_outlined,
+                  size: 15,
+                  color: isDark ? AppColors.darkTextMuted : Colors.grey.shade600,
+                ),
+                const SizedBox(width: 6),
+                Expanded(
+                  child: Tooltip(
+                    message: member.email,
+                    child: SelectableText(
+                      member.email,
+                      style: TextStyle(
+                        fontSize: 11.5,
+                        fontWeight: FontWeight.w500,
+                        color: isDark ? Colors.blue.shade300 : Colors.blue.shade700,
+                      ),
+                      maxLines: 1,
+                    ),
+                  ),
+                ),
+                InkWell(
+                  borderRadius: BorderRadius.circular(4),
+                  onTap: () {
+                    Clipboard.setData(ClipboardData(text: member.email));
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text('Copied ${member.email}'),
+                        duration: const Duration(seconds: 2),
+                        behavior: SnackBarBehavior.floating,
+                        width: 260,
+                      ),
+                    );
+                  },
+                  child: Padding(
+                    padding: const EdgeInsets.all(3),
+                    child: Icon(
+                      Icons.copy_rounded,
+                      size: 13,
+                      color: isDark ? Colors.white54 : Colors.black45,
                     ),
                   ),
                 ),
               ],
             ),
           ),
-        ),
+        ],
       ),
     );
   }
