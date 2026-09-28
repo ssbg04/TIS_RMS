@@ -25,6 +25,9 @@ import '../../providers/preferences_provider.dart';
 import '../../providers/users_provider.dart';
 import '../../../core/services/haptic_service.dart';
 import 'security_screen.dart';
+import 'package:package_info_plus/package_info_plus.dart';
+import 'package:url_launcher/url_launcher.dart';
+import '../../../core/services/app_update_service.dart';
 class TitleCaseTextInputFormatter extends TextInputFormatter {
   @override
   TextEditingValue formatEditUpdate(TextEditingValue oldValue, TextEditingValue newValue) {
@@ -123,6 +126,11 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   bool _isAutoEnrollExpanded = false;
   bool _isTeacherRemindersExpanded = false;
   bool _isAppearanceExpanded = false;
+  bool _isAboutExpanded = false;
+  bool _isCheckingUpdate = false;
+  AppUpdateInfo? _updateInfo;
+  String? _updateStatusMessage;
+  PackageInfo? _packageInfo;
 
   void _collapseAllSections() {
     _isProfileExpanded = false;
@@ -130,6 +138,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     _isAutoEnrollExpanded = false;
     _isTeacherRemindersExpanded = false;
     _isAppearanceExpanded = false;
+    _isAboutExpanded = false;
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) _onScroll();
     });
@@ -150,6 +159,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   void initState() {
     super.initState();
     _scrollController.addListener(_onScroll);
+    _loadPackageInfo();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
       _onScroll();
@@ -2006,6 +2016,234 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                         ),
                       ),
 
+                      const SizedBox(height: AppSizes.p24),
+
+                      // ── About & App Updates Card (Collapsible) ───────────
+                      _buildCollapsibleCard(
+                        title: 'About & App Updates',
+                        isExpanded: _isAboutExpanded,
+                        onToggle: () => _toggleSection(() => _isAboutExpanded = !_isAboutExpanded),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              crossAxisAlignment: CrossAxisAlignment.center,
+                              children: [
+                                const Icon(
+                                  Icons.info_outline_rounded,
+                                  color: AppColors.primaryGreen,
+                                  size: 22,
+                                ),
+                                const SizedBox(width: AppSizes.p12),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      const Text(
+                                        'System Information',
+                                        style: TextStyle(
+                                          fontSize: 15,
+                                          fontWeight: FontWeight.w600,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 2),
+                                      Text(
+                                        'Application details and version checks',
+                                        style: TextStyle(
+                                          fontSize: 13,
+                                          color: Theme.of(context)
+                                              .colorScheme
+                                              .onSurface
+                                              .withValues(alpha: 0.7),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: AppSizes.p16),
+                            _buildAboutInfoRow(
+                              'Application',
+                              'Talipan Integrated School - RMS',
+                              isDark,
+                            ),
+                            _buildAboutInfoRow(
+                              'Current Version',
+                              _packageInfo != null
+                                  ? 'v${_packageInfo!.version} (Build ${_packageInfo!.buildNumber})'
+                                  : 'Loading...',
+                              isDark,
+                            ),
+                            _buildAboutInfoRow(
+                              'Platform',
+                              kIsWeb
+                                  ? 'Web Browser'
+                                  : (Platform.isAndroid
+                                      ? 'Android'
+                                      : (Platform.isWindows ? 'Windows' : Platform.operatingSystem.toUpperCase())),
+                              isDark,
+                            ),
+                            _buildAboutInfoRow(
+                              'Institution',
+                              'Talipan National High School',
+                              isDark,
+                            ),
+                            _buildAboutInfoRow(
+                              'Developed By',
+                              'Dalubhasaan ng Lungsod ng San Pablo (DLSP)',
+                              isDark,
+                            ),
+                            const Divider(height: 32),
+                            // Check for updates section
+                            Row(
+                              children: [
+                                const Icon(
+                                  Icons.system_update_rounded,
+                                  color: AppColors.primaryGreen,
+                                  size: 22,
+                                ),
+                                const SizedBox(width: AppSizes.p12),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      const Text(
+                                        'Software Updates',
+                                        style: TextStyle(
+                                          fontSize: 15,
+                                          fontWeight: FontWeight.w600,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 2),
+                                      Text(
+                                        'Check for new releases and improvements',
+                                        style: TextStyle(
+                                          fontSize: 13,
+                                          color: Theme.of(context)
+                                              .colorScheme
+                                              .onSurface
+                                              .withValues(alpha: 0.7),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: AppSizes.p16),
+                            if (_updateStatusMessage != null) ...[
+                              Container(
+                                width: double.infinity,
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 14,
+                                  vertical: 10,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: (_updateInfo != null && _updateInfo!.hasUpdate)
+                                      ? AppColors.primaryGreen.withValues(alpha: 0.12)
+                                      : (isDark ? Colors.white.withValues(alpha: 0.05) : Colors.grey.shade100),
+                                  borderRadius: BorderRadius.circular(8),
+                                  border: Border.all(
+                                    color: (_updateInfo != null && _updateInfo!.hasUpdate)
+                                        ? AppColors.primaryGreen.withValues(alpha: 0.3)
+                                        : (isDark ? AppColors.darkBorder : Colors.grey.shade300),
+                                  ),
+                                ),
+                                child: Row(
+                                  children: [
+                                    Icon(
+                                      (_updateInfo != null && _updateInfo!.hasUpdate)
+                                          ? Icons.new_releases_rounded
+                                          : Icons.info_outline_rounded,
+                                      size: 18,
+                                      color: (_updateInfo != null && _updateInfo!.hasUpdate)
+                                          ? AppColors.primaryGreen
+                                          : (isDark ? AppColors.darkTextSecondary : Colors.grey.shade700),
+                                    ),
+                                    const SizedBox(width: 10),
+                                    Expanded(
+                                      child: Text(
+                                        _updateStatusMessage!,
+                                        style: TextStyle(
+                                          fontSize: 13,
+                                          color: isDark ? AppColors.darkTextPrimary : Colors.grey.shade800,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              const SizedBox(height: AppSizes.p16),
+                            ],
+                            Wrap(
+                              spacing: 12,
+                              runSpacing: 12,
+                              children: [
+                                ElevatedButton.icon(
+                                  onPressed: _isCheckingUpdate ? null : _checkForUpdates,
+                                  icon: _isCheckingUpdate
+                                      ? const SizedBox(
+                                          width: 14,
+                                          height: 14,
+                                          child: CircularProgressIndicator(
+                                            strokeWidth: 2,
+                                            color: Colors.white,
+                                          ),
+                                        )
+                                      : const Icon(Icons.sync_rounded, size: 16),
+                                  label: Text(_isCheckingUpdate ? 'Checking...' : 'Check for Updates'),
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: AppColors.primaryGreen,
+                                    foregroundColor: Colors.white,
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 16,
+                                      vertical: 12,
+                                    ),
+                                    textStyle: const TextStyle(
+                                      fontSize: 13,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(8),
+                                    ),
+                                  ),
+                                ),
+                                if (_updateInfo != null && _updateInfo!.hasUpdate)
+                                  OutlinedButton.icon(
+                                    onPressed: () async {
+                                      final targetUrl = _updateInfo!.downloadUrl ?? _updateInfo!.htmlUrl;
+                                      if (targetUrl.isNotEmpty) {
+                                        final uri = Uri.parse(targetUrl);
+                                        if (await canLaunchUrl(uri)) {
+                                          await launchUrl(uri, mode: LaunchMode.externalApplication);
+                                        }
+                                      }
+                                    },
+                                    icon: const Icon(Icons.open_in_browser_rounded, size: 16),
+                                    label: const Text('Open in Browser'),
+                                    style: OutlinedButton.styleFrom(
+                                      foregroundColor: AppColors.primaryGreen,
+                                      side: const BorderSide(color: AppColors.primaryGreen),
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 16,
+                                        vertical: 12,
+                                      ),
+                                      textStyle: const TextStyle(
+                                        fontSize: 13,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(8),
+                                      ),
+                                    ),
+                                  ),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ),
+
                       const SizedBox(height: AppSizes.p48),
                     ],
                   ),
@@ -2193,6 +2431,91 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             crossFadeState: isExpanded ? CrossFadeState.showSecond : CrossFadeState.showFirst,
             duration: const Duration(milliseconds: 250),
             sizeCurve: Curves.easeInOut,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _loadPackageInfo() async {
+    try {
+      final info = await PackageInfo.fromPlatform();
+      if (mounted) {
+        setState(() {
+          _packageInfo = info;
+        });
+      }
+    } catch (_) {}
+  }
+
+  Future<void> _checkForUpdates() async {
+    if (_isCheckingUpdate) return;
+    setState(() {
+      _isCheckingUpdate = true;
+      _updateStatusMessage = null;
+    });
+
+    try {
+      final updateInfo = await AppUpdateService.checkForUpdate();
+      if (!mounted) return;
+
+      setState(() {
+        _updateInfo = updateInfo;
+        _isCheckingUpdate = false;
+        if (updateInfo == null) {
+          _updateStatusMessage = 'Could not check for updates. Please check your internet connection.';
+        } else if (updateInfo.hasUpdate) {
+          _updateStatusMessage = 'New update available (v${updateInfo.latestVersion})! Opening download link in browser...';
+        } else {
+          _updateStatusMessage = 'Your application is up to date (v${updateInfo.currentVersion}).';
+        }
+      });
+
+      if (updateInfo != null && updateInfo.hasUpdate) {
+        final targetUrl = updateInfo.downloadUrl ?? updateInfo.htmlUrl;
+        if (targetUrl.isNotEmpty) {
+          final uri = Uri.parse(targetUrl);
+          if (await canLaunchUrl(uri)) {
+            await launchUrl(uri, mode: LaunchMode.externalApplication);
+          }
+        }
+      }
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _isCheckingUpdate = false;
+        _updateStatusMessage = 'Failed to check for updates: $e';
+      });
+    }
+  }
+
+  Widget _buildAboutInfoRow(String label, String value, bool isDark) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            width: 140,
+            child: Text(
+              label,
+              style: TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+                color: isDark ? AppColors.darkTextSecondary : Colors.grey.shade600,
+              ),
+            ),
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              value,
+              style: TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w500,
+                color: isDark ? AppColors.darkTextPrimary : Colors.grey.shade900,
+              ),
+            ),
           ),
         ],
       ),
