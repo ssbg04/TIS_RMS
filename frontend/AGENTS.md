@@ -921,8 +921,14 @@ Files backup/restore - mirror mode or zip -->
   - Tab resets to Enrolled on each navigation away/back to Students screen.
 
 # STUDENT SCREEN
-- loads accurate active year students
-- when searching navigates to all tab
+- [DONE] loads accurate active year students
+  - Fixed backend studentController.js to use LEFT JOIN sections (prevents dropping enrolled students with unassigned sections).
+  - Added academicYearsListProvider listener in students_screen.dart so active academic year is reliably applied to the query as soon as provider data resolves.
+  - Added fallback await on academicYearsListProvider.future in _applyViewTab to avoid empty year range on initial load.
+- [DONE] when searching navigates to all tab
+  - When typing or submitting a search, students_screen automatically switches view tab to "All Students" and clears specific status/year filters.
+  - Clicking the "Enrolled" tab automatically clears the search field and restores the active year enrolled filter.
+  - Also cleared view-tab filters when search is triggered from the mobile search dialog in android_bottom_nav_layout.dart.
 
 
 ---

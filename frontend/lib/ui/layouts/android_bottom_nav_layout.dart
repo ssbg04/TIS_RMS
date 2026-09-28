@@ -126,6 +126,14 @@ class _AndroidBottomNavLayoutState extends ConsumerState<AndroidBottomNavLayout>
                 maxWidth: 600,
                 onSubmitted: (value) {
                   Navigator.of(ctx).pop();
+                  if (value.trim().isNotEmpty) {
+                    ref.read(studentQueryProvider.notifier).setFilters(
+                      status: '',
+                      schoolYear: '',
+                      gradeLevel: '',
+                      section: '',
+                    );
+                  }
                   ref.read(studentQueryProvider.notifier).setSearch(value);
                   if (navigateToStudents) {
                     ref.invalidate(studentPageProvider);

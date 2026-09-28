@@ -253,7 +253,7 @@ exports.getAllStudents = (req, res) => {
                      ${filterYearRange ? 'AND ay_inner.year_range = ?' : ''}
                    ORDER BY e.grade_level DESC, ay_inner.year_range DESC, e.id DESC LIMIT 1
                )
-               JOIN sections sec ON sec.id = e_latest.section_id
+               LEFT JOIN sections sec ON sec.id = e_latest.section_id
                JOIN academic_years ay ON ay.id = e_latest.academic_year_id`;
             if (filterYearRange) {
                 enrollJoinParams.push(filterYearRange);

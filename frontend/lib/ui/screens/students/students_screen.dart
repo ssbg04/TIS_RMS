@@ -95,6 +95,7 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
       final initialQuery = ref.read(studentQueryProvider).search;
       if (initialQuery.isNotEmpty) {
         _searchController.text = initialQuery;
+        if (mounted) setState(() => _viewTab = _StudentViewTab.all);
       } else {
         // Apply the default enrolled-tab filter on first load
         _applyViewTab(_StudentViewTab.enrolled);
@@ -135,8 +136,10 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
             _searchController.text = currentQuery;
             if (mounted) setState(() {});
           }
-          // Re-apply the enrolled filter when returning to this tab
-          if (mounted) {
+          if (currentQuery.isNotEmpty) {
+            if (mounted) setState(() => _viewTab = _StudentViewTab.all);
+          } else if (mounted) {
+            // Re-apply the enrolled filter when returning to this tab
             _applyViewTab(_viewTab);
           }
         }
@@ -163,21 +166,41 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
 
   void _onSearchChanged() {
     _debounce?.cancel();
+    final text = _searchController.text;
+    if (text.trim().isNotEmpty && _viewTab != _StudentViewTab.all) {
+      if (mounted) setState(() => _viewTab = _StudentViewTab.all);
+      ref.read(studentQueryProvider.notifier).setFilters(
+        status: '',
+        schoolYear: '',
+        gradeLevel: '',
+        section: '',
+      );
+    }
     _debounce = Timer(const Duration(milliseconds: 500), () {
-      ref.read(studentQueryProvider.notifier).setSearch(_searchController.text);
+      ref.read(studentQueryProvider.notifier).setSearch(text);
     });
   }
 
   // ----------------------------------------------------------------
   // VIEW TAB: Enrolled (current year) vs All Students
   // ----------------------------------------------------------------
-  void _applyViewTab(_StudentViewTab tab) {
+  Future<void> _applyViewTab(_StudentViewTab tab) async {
     if (!mounted) return;
     setState(() => _viewTab = tab);
 
     if (tab == _StudentViewTab.enrolled) {
-      // Find the currently active academic year
-      final years = ref.read(academicYearsListProvider).asData?.value ?? [];
+      // Clear any search when switching back to the enrolled tab
+      if (_searchController.text.isNotEmpty) {
+        _searchController.clear();
+      }
+      // Ensure we have the loaded list of academic years
+      List<AcademicYearModel> years = ref.read(academicYearsListProvider).asData?.value ?? [];
+      if (years.isEmpty) {
+        try {
+          years = await ref.read(academicYearsListProvider.future);
+        } catch (_) {}
+      }
+      if (!mounted) return;
       final active = years.firstWhere(
         (y) => y.status.toLowerCase() == 'active',
         orElse: () => years.isNotEmpty ? years.first : AcademicYearModel(id: 0, yearRange: '', status: ''),
@@ -189,6 +212,9 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
         gradeLevel: '',
         section: '',
       );
+      if (ref.read(studentQueryProvider).search.isNotEmpty) {
+        ref.read(studentQueryProvider.notifier).setSearch('');
+      }
     } else {
       // All students: clear status and school year filters
       ref.read(studentQueryProvider.notifier).setFilters(
@@ -202,6 +228,15 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
 
   void _onSearchSubmitted(String query) {
     _debounce?.cancel();
+    if (query.trim().isNotEmpty && _viewTab != _StudentViewTab.all) {
+      if (mounted) setState(() => _viewTab = _StudentViewTab.all);
+      ref.read(studentQueryProvider.notifier).setFilters(
+        status: '',
+        schoolYear: '',
+        gradeLevel: '',
+        section: '',
+      );
+    }
     ref.read(studentQueryProvider.notifier).setSearch(query);
   }
 
@@ -1004,6 +1039,26 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
       }
     });
 
+    ref.listen<AsyncValue<List<AcademicYearModel>>>(academicYearsListProvider, (prev, next) {
+      if (!mounted) return;
+      final years = next.asData?.value;
+      if (years != null && years.isNotEmpty && _viewTab == _StudentViewTab.enrolled) {
+        final currentQuery = ref.read(studentQueryProvider);
+        if (currentQuery.search.isEmpty) {
+          final active = years.firstWhere(
+            (y) => y.status.toLowerCase() == 'active',
+            orElse: () => years.first,
+          );
+          if (active.yearRange.isNotEmpty && currentQuery.schoolYear != active.yearRange) {
+            ref.read(studentQueryProvider.notifier).setFilters(
+              status: 'Enrolled',
+              schoolYear: active.yearRange,
+            );
+          }
+        }
+      }
+    });
+
     final isAndroid = defaultTargetPlatform == TargetPlatform.android;
 
     return CallbackShortcuts(
@@ -1059,26 +1114,27 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
                           ),
                         ),
                         const SizedBox(height: AppSizes.p24),
-                      ] else if (!isAndroid) ...[
-                        Padding(
-                          padding: const EdgeInsets.only(
-                            left: AppSizes.p24,
-                            right: AppSizes.p24,
-                            top: AppSizes.p24,
+                      ] else ...[
+                        if (!isAndroid)
+                          Padding(
+                            padding: const EdgeInsets.only(
+                              left: AppSizes.p24,
+                              right: AppSizes.p24,
+                              top: AppSizes.p24,
+                            ),
+                            child: _buildHeaderControls(
+                              context,
+                              query,
+                              ref,
+                              activeCount,
+                            ),
                           ),
-                          child: _buildHeaderControls(
-                            context,
-                            query,
-                            ref,
-                            activeCount,
-                          ),
-                        ),
                         // ── View Tab Switcher ──
                         Padding(
-                          padding: const EdgeInsets.only(
-                            left: AppSizes.p24,
-                            right: AppSizes.p24,
-                            top: AppSizes.p12,
+                          padding: EdgeInsets.only(
+                            left: isAndroid ? 16 : AppSizes.p24,
+                            right: isAndroid ? 16 : AppSizes.p24,
+                            top: isAndroid ? 12 : AppSizes.p12,
                           ),
                           child: _buildViewTabSwitcher(context),
                         ),
