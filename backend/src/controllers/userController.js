@@ -223,9 +223,6 @@ exports.updateUser = async (req, res) => {
     try {
         const user = db.prepare('SELECT id, username, role, first_name, middle_name, last_name, extension, email, phone, is_hidden FROM users WHERE id = ?').get(id);
         if (!user) return res.status(404).json({ message: 'User not found.' });
-        if (user.is_hidden === 1 && req.user.id !== user.id) {
-            return res.status(404).json({ message: 'User not found.' });
-        }
 
         // Validate email with MyEmailVerifier if changed and not empty
         if (email !== undefined && email !== null && email.trim() !== '' && email.trim().toLowerCase() !== (user.email || '').trim().toLowerCase()) {
@@ -296,9 +293,6 @@ exports.resetPassword = async (req, res) => {
 
         const user = db.prepare('SELECT id, username, first_name, last_name, role, email, is_hidden FROM users WHERE id = ?').get(id);
         if (!user) return res.status(404).json({ message: 'User not found.' });
-        if (user.is_hidden === 1 && req.user.id !== user.id) {
-            return res.status(404).json({ message: 'User not found.' });
-        }
 
         if (user.id === req.user.id) {
             return res.status(403).json({ message: 'Cannot reset your own password via this route. Use the Change Password profile setting.' });
@@ -414,7 +408,6 @@ exports.deleteUser = (req, res) => {
         const user = db.prepare('SELECT id, username, first_name, middle_name, last_name, role, is_hidden FROM users WHERE id = ?').get(id);
         
         if (!user) return res.status(404).json({ message: 'User not found.' });
-        if (user.is_hidden === 1) return res.status(403).json({ message: 'Cannot delete developer super administrator account.' });
         if (user.id === adminId) return res.status(403).json({ message: 'Cannot delete your own account.' });
         
         if (user.role === 'admin') {
@@ -456,9 +449,6 @@ exports.toggleUserStatus = (req, res) => {
     try {
         const user = db.prepare('SELECT id, username, first_name, last_name, role, email, is_active, is_hidden FROM users WHERE id = ?').get(id);
         if (!user) return res.status(404).json({ message: 'User not found.' });
-        if (user.is_hidden === 1) {
-            return res.status(403).json({ message: 'Cannot modify developer super administrator account.' });
-        }
 
         const newStatus = user.is_active === 1 ? 0 : 1;
         db.prepare("UPDATE users SET is_active = ?, updated_at = (strftime('%Y-%m-%dT%H:%M:%SZ', 'now')) WHERE id = ?")

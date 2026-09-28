@@ -134,72 +134,70 @@ class _SecuritySectionState extends ConsumerState<SecuritySection> {
           ),
         ),
 
-        if (widget.user.username.toLowerCase() != 'developer') ...[
-          const SizedBox(height: AppSizes.p24),
-          // ── Danger Zone / Deactivate Account Card ───────────
-          widget.buildDangerCard(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.all(8),
-                      decoration: BoxDecoration(
-                        color: AppColors.error.withValues(alpha: 0.1),
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: const Icon(Icons.person_off_outlined, color: AppColors.error, size: 22),
+        const SizedBox(height: AppSizes.p24),
+        // ── Danger Zone / Deactivate Account Card ───────────
+        widget.buildDangerCard(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: AppColors.error.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(8),
                     ),
-                    const SizedBox(width: AppSizes.p12),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Text(
-                            'Danger Zone: Deactivate Account',
-                            style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
-                              color: AppColors.error,
-                            ),
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            'Temporarily deactivate your account. Your data is preserved and an administrator can reactivate it later.',
-                            style: TextStyle(
-                              fontSize: 13,
-                              color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 16),
-                Align(
-                  alignment: Alignment.centerRight,
-                  child: OutlinedButton.icon(
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: AppColors.error,
-                      side: const BorderSide(color: AppColors.error),
-                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                    ),
-                    icon: const Icon(Icons.person_off_outlined, size: 18),
-                    label: const Text(
-                      'Deactivate Account',
-                      style: TextStyle(fontWeight: FontWeight.w600),
-                    ),
-                    onPressed: () => widget.onDeactivateAccount(context, ref),
+                    child: const Icon(Icons.person_off_outlined, color: AppColors.error, size: 22),
                   ),
+                  const SizedBox(width: AppSizes.p12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          'Danger Zone: Deactivate Account',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                            color: AppColors.error,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          'Temporarily deactivate your account. Your data is preserved and an administrator can reactivate it later.',
+                          style: TextStyle(
+                            fontSize: 13,
+                            color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              Align(
+                alignment: Alignment.centerRight,
+                child: OutlinedButton.icon(
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: AppColors.error,
+                    side: const BorderSide(color: AppColors.error),
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                  ),
+                  icon: const Icon(Icons.person_off_outlined, size: 18),
+                  label: const Text(
+                    'Deactivate Account',
+                    style: TextStyle(fontWeight: FontWeight.w600),
+                  ),
+                  onPressed: () => widget.onDeactivateAccount(context, ref),
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
-        ],
+        ),
       ],
     );
   }

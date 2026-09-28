@@ -900,6 +900,31 @@ Files backup/restore - mirror mode or zip -->
     - "Parse & Validate", "Clear", and "Import [X] Valid Students" (disabled if 0 valid records or section unselected)
     - Post-import summary dialog showing successfully created count vs skipped duplicates
 - Auto uploads OCR file scanned after adding -> rename the scanned file of what type is the document -->
+
+# HISTORY SCREEN
+- [DONE] history -> session one ip different account shows active even 1 current login account
+  - Backend fix in authController.js login(): when a new login occurs, any open sessions from the same IP address belonging to a different user are automatically stamped with logout_at. This prevents stale "ACTIVE NOW" entries in the Sessions history tab.
+
+# USERS SCREEN
+- [DONE] remove super admin account
+  - Frontend fix in users_screen.dart _filter(): added a guard to exclude any user whose role is not 'admin' or 'teacher' (e.g. legacy super_admin accounts) from all views. Backend already filters is_hidden users via WHERE COALESCE(u.is_hidden, 0) = 0.
+- [DONE] remove the developer account
+  - Removed developer seeding in schema.js and replaced with auto-migration to delete any existing `developer` user record.
+  - Removed `is_hidden` protection guards blocking deletion/status changes in userController.js and authController.js.
+  - Removed developer exemption in frontend security_section.dart so danger zone card is consistently presented.
+
+# STUDENT SCREEN
+- [DONE] student screen tab current year/enrolled students, and all students
+  - Added _StudentViewTab enum and a segmented tab switcher control below the header.
+  - "Enrolled · <CurrentYear>" tab auto-applies status=Enrolled + active academic year filter.
+  - "All Students" tab clears those filters and shows all student records.
+  - Tab resets to Enrolled on each navigation away/back to Students screen.
+
+# STUDENT SCREEN
+- loads accurate active year students
+- when searching navigates to all tab
+
+
 ---
 
 

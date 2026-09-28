@@ -173,6 +173,19 @@ exports.login = (req, res) => {
             `).run(user.id, user.username, fullName, user.role, clientPlatform, clientIp);
         } catch (_) {}
 
+        // Close any open sessions from the same IP belonging to a different user.
+        // This prevents the History screen from showing stale "ACTIVE NOW" entries
+        // when a different account logs in from the same device / IP address.
+        if (clientIp) {
+            try {
+                db.prepare(`
+                    UPDATE user_login_logs
+                    SET logout_at = (strftime('%Y-%m-%dT%H:%M:%SZ', 'now'))
+                    WHERE ip_address = ? AND user_id != ? AND logout_at IS NULL
+                `).run(clientIp, user.id);
+            } catch (_) {}
+        }
+
         res.json({
             token,
             user: {
@@ -997,10 +1010,6 @@ exports.selfDeactivateAccount = async (req, res) => {
         const user = db.prepare('SELECT id, username, first_name, last_name, email, role, is_active, is_hidden FROM users WHERE id = ?').get(userId);
         if (!user) return res.status(404).json({ message: 'User account not found' });
 
-        if (user.is_hidden === 1) {
-            return res.status(403).json({ message: 'Developer super administrator account cannot be deactivated.' });
-        }
-
         if (user.role === 'admin') {
             const otherActiveAdmins = db.prepare(
                 "SELECT COUNT(*) as count FROM users WHERE role = 'admin' AND is_active = 1 AND (is_hidden = 0 OR is_hidden IS NULL) AND id != ?"
@@ -1065,9 +1074,6 @@ exports.requestAccountDeletion = async (req, res) => {
         const user = db.prepare('SELECT id, username, first_name, last_name, email, role, is_hidden FROM users WHERE id = ?').get(userId);
         if (!user) return res.status(404).json({ message: 'User account not found' });
 
-        if (user.is_hidden === 1) {
-            return res.status(403).json({ message: 'Developer super administrator account cannot be deleted.' });
-        }
 
         if (user.role === 'admin') {
             const otherAdmins = db.prepare("SELECT COUNT(*) as count FROM users WHERE role = 'admin' AND (is_hidden = 0 OR is_hidden IS NULL) AND id != ?").get(user.id);
@@ -1326,15 +1332,6 @@ exports.confirmDeleteAccount = (req, res) => {
             return res.status(410).json({ message: msg });
         }
 
-        if (record.is_hidden === 1) {
-            const msg = 'Developer super administrator account cannot be deleted.';
-            if (isHtml) return res.status(403).send(renderDeletionPage({
-                title: 'Action Prohibited',
-                isError: true,
-                contentHtml: `<div class="danger-badge"><strong>Action Prohibited:</strong> ${msg}</div>`,
-            }));
-            return res.status(403).json({ message: msg });
-        }
 
         const fullName = [record.first_name, record.middle_name, record.last_name].filter(Boolean).join(' ');
 

@@ -29,6 +29,8 @@ import '../../shared/dialogs/success_dialog.dart';
 import '../../shared/widgets/app_pagination.dart';
 import '../../shared/widgets/app_error_state.dart';
 
+enum _StudentViewTab { enrolled, all }
+
 class StudentsScreen extends ConsumerStatefulWidget {
   final String userRole;
   const StudentsScreen({super.key, this.userRole = 'teacher'});
@@ -49,6 +51,9 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
   bool _isDragOver = false;
   Timer? _dragResetTimer;
   ProviderSubscription<String>? _tabListener;
+
+  /// Whether the screen is showing enrolled-only (current year) or all students.
+  _StudentViewTab _viewTab = _StudentViewTab.enrolled;
 
   final ScrollController _scrollController = ScrollController();
   bool _showTopFade = false;
@@ -90,6 +95,9 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
       final initialQuery = ref.read(studentQueryProvider).search;
       if (initialQuery.isNotEmpty) {
         _searchController.text = initialQuery;
+      } else {
+        // Apply the default enrolled-tab filter on first load
+        _applyViewTab(_StudentViewTab.enrolled);
       }
       if (ref.read(activeTabProvider) == 'Students') {
         _shortcutFocusNode.requestFocus();
@@ -102,6 +110,8 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
         if (next != 'Students') {
           if (_searchController.text.isNotEmpty) _searchController.clear();
           ref.read(studentQueryProvider.notifier).reset();
+          // Reset view tab to enrolled for next visit
+          if (mounted) setState(() => _viewTab = _StudentViewTab.enrolled);
           if (_showMultiSelect || _selectedStudentIds.isNotEmpty) {
             _updateSelection(() {
               _showMultiSelect = false;
@@ -124,6 +134,10 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
           if (_searchController.text != currentQuery) {
             _searchController.text = currentQuery;
             if (mounted) setState(() {});
+          }
+          // Re-apply the enrolled filter when returning to this tab
+          if (mounted) {
+            _applyViewTab(_viewTab);
           }
         }
       });
@@ -152,6 +166,38 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
     _debounce = Timer(const Duration(milliseconds: 500), () {
       ref.read(studentQueryProvider.notifier).setSearch(_searchController.text);
     });
+  }
+
+  // ----------------------------------------------------------------
+  // VIEW TAB: Enrolled (current year) vs All Students
+  // ----------------------------------------------------------------
+  void _applyViewTab(_StudentViewTab tab) {
+    if (!mounted) return;
+    setState(() => _viewTab = tab);
+
+    if (tab == _StudentViewTab.enrolled) {
+      // Find the currently active academic year
+      final years = ref.read(academicYearsListProvider).asData?.value ?? [];
+      final active = years.firstWhere(
+        (y) => y.status.toLowerCase() == 'active',
+        orElse: () => years.isNotEmpty ? years.first : AcademicYearModel(id: 0, yearRange: '', status: ''),
+      );
+      // Apply enrolled status + current school year
+      ref.read(studentQueryProvider.notifier).setFilters(
+        status: 'Enrolled',
+        schoolYear: active.yearRange.isNotEmpty ? active.yearRange : '',
+        gradeLevel: '',
+        section: '',
+      );
+    } else {
+      // All students: clear status and school year filters
+      ref.read(studentQueryProvider.notifier).setFilters(
+        status: '',
+        schoolYear: '',
+        gradeLevel: '',
+        section: '',
+      );
+    }
   }
 
   void _onSearchSubmitted(String query) {
@@ -1027,7 +1073,16 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
                             activeCount,
                           ),
                         ),
-                        const SizedBox(height: AppSizes.p24),
+                        // ── View Tab Switcher ──
+                        Padding(
+                          padding: const EdgeInsets.only(
+                            left: AppSizes.p24,
+                            right: AppSizes.p24,
+                            top: AppSizes.p12,
+                          ),
+                          child: _buildViewTabSwitcher(context),
+                        ),
+                        const SizedBox(height: AppSizes.p12),
                       ],
 
                       // ── Data Table / Cards ──
@@ -1372,6 +1427,144 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
           ],
         );
       },
+    );
+  }
+
+
+  // ================================================================
+  // VIEW TAB SWITCHER (Enrolled/Current Year vs All Students)
+  // ================================================================
+  Widget _buildViewTabSwitcher(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final pageTotal = ref.watch(studentPageProvider).asData?.value.total;
+
+    // Resolve academic year label for the enrolled tab
+    final years = ref.watch(academicYearsListProvider).asData?.value ?? [];
+    AcademicYearModel? activeYear;
+    try {
+      activeYear = years.firstWhere((y) => y.status.toLowerCase() == 'active');
+    } catch (_) {
+      activeYear = years.isNotEmpty ? years.first : null;
+    }
+    final yearLabel = activeYear != null ? ' · ${activeYear.yearRange}' : '';
+
+    return LayoutBuilder(
+      builder: (_, c) {
+        final isWide = c.maxWidth > 500;
+        return Container(
+          height: 38,
+          decoration: BoxDecoration(
+            color: isDark ? AppColors.darkSurface2 : Colors.grey.shade100,
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(
+              color: isDark ? AppColors.darkBorder : Colors.grey.shade200,
+            ),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              _buildTabChip(
+                label: isWide
+                    ? 'Enrolled$yearLabel'
+                    : 'Enrolled',
+                icon: Icons.school_rounded,
+                active: _viewTab == _StudentViewTab.enrolled,
+                count: _viewTab == _StudentViewTab.enrolled ? pageTotal : null,
+                isDark: isDark,
+                onTap: () => _applyViewTab(_StudentViewTab.enrolled),
+              ),
+              _buildTabChip(
+                label: 'All Students',
+                icon: Icons.people_alt_rounded,
+                active: _viewTab == _StudentViewTab.all,
+                count: _viewTab == _StudentViewTab.all ? pageTotal : null,
+                isDark: isDark,
+                onTap: () => _applyViewTab(_StudentViewTab.all),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildTabChip({
+    required String label,
+    required IconData icon,
+    required bool active,
+    required bool isDark,
+    required VoidCallback onTap,
+    int? count,
+  }) {
+    return GestureDetector(
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 180),
+        margin: const EdgeInsets.all(3),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 0),
+        decoration: BoxDecoration(
+          color: active
+              ? (isDark ? AppColors.primaryGreen.withValues(alpha: 0.22) : AppColors.primaryGreen)
+              : Colors.transparent,
+          borderRadius: BorderRadius.circular(7),
+          boxShadow: active && !isDark
+              ? [
+                  BoxShadow(
+                    color: AppColors.primaryGreen.withValues(alpha: 0.25),
+                    blurRadius: 4,
+                    offset: const Offset(0, 1),
+                  ),
+                ]
+              : null,
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              icon,
+              size: 14,
+              color: active
+                  ? (isDark ? AppColors.primaryGreen : Colors.white)
+                  : (isDark ? AppColors.darkTextSecondary : AppColors.textSecondary),
+            ),
+            const SizedBox(width: 5),
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 12.5,
+                fontWeight: active ? FontWeight.w700 : FontWeight.w500,
+                color: active
+                    ? (isDark ? AppColors.primaryGreen : Colors.white)
+                    : (isDark ? AppColors.darkTextSecondary : AppColors.textSecondary),
+              ),
+            ),
+            if (count != null) ...[
+              const SizedBox(width: 5),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+                decoration: BoxDecoration(
+                  color: active
+                      ? (isDark
+                          ? AppColors.primaryGreen.withValues(alpha: 0.35)
+                          : Colors.white.withValues(alpha: 0.3))
+                      : (isDark ? AppColors.darkBorder : Colors.grey.shade300),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Text(
+                  '$count',
+                  style: TextStyle(
+                    fontSize: 10,
+                    fontWeight: FontWeight.w700,
+                    color: active
+                        ? (isDark ? AppColors.primaryGreen : Colors.white)
+                        : (isDark ? AppColors.darkTextSecondary : AppColors.textSecondary),
+                  ),
+                ),
+              ),
+            ],
+          ],
+        ),
+      ),
     );
   }
 

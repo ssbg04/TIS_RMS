@@ -125,6 +125,10 @@ class _UsersScreenState extends ConsumerState<UsersScreen> {
 
   List<SystemUser> _filter(List<SystemUser> users, String query) {
     var result = users;
+    // Exclude any non-standard roles (e.g. legacy super_admin accounts) from all views.
+    // The backend already filters is_hidden users, but this guards against stale role values.
+    result = result.where((u) => u.role == 'admin' || u.role == 'teacher').toList();
+
     // Apply status and role filter
     if (_roleFilter == 'inactive') {
       result = result.where((u) => !u.isActive).toList();

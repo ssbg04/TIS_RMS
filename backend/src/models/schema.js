@@ -955,17 +955,49 @@ const initSchema = () => {
             console.log('Default Admin created: admin / admin123');
         }
 
-        // Seed Hidden Developer Super Admin if not exists
-        const devAdminUser = db.prepare("SELECT * FROM users WHERE username = 'developer'").get();
-        if (!devAdminUser) {
-            const hashedDevPassword = bcrypt.hashSync('Developer@2026!', 10);
-            db.prepare(`
-                INSERT INTO users (username, password, first_name, last_name, role, email, is_hidden)
-                VALUES ('developer', ?, 'Developer', 'Super Admin', 'admin', 'dev@tis.edu.ph', 1)
-            `).run(hashedDevPassword);
-            console.log('Hidden Developer Super Admin created: developer / Developer@2026!');
-        } else if (devAdminUser.is_hidden !== 1) {
-            db.prepare("UPDATE users SET is_hidden = 1 WHERE username = 'developer'").run();
+        // Remove legacy hidden developer account if it still exists in the database
+        const devAdminUser = db.prepare("SELECT id FROM users WHERE username = 'developer'").get();
+        if (devAdminUser) {
+            const fallbackAdmin = db.prepare("SELECT id FROM users WHERE role = 'admin' AND username != 'developer' ORDER BY id ASC LIMIT 1").get();
+            const fallbackAdminId = fallbackAdmin ? fallbackAdmin.id : null;
+
+            if (fallbackAdminId) {
+                try { db.prepare("UPDATE documents SET uploaded_by = ? WHERE uploaded_by = ?").run(fallbackAdminId, devAdminUser.id); } catch (_) {}
+                try { db.prepare("UPDATE document_versions SET uploaded_by = ? WHERE uploaded_by = ?").run(fallbackAdminId, devAdminUser.id); } catch (_) {}
+                try { db.prepare("UPDATE template_versions SET uploaded_by = ? WHERE uploaded_by = ?").run(fallbackAdminId, devAdminUser.id); } catch (_) {}
+                try { db.prepare("UPDATE document_templates SET created_by = ? WHERE created_by = ?").run(fallbackAdminId, devAdminUser.id); } catch (_) {}
+                try { db.prepare("UPDATE document_folders SET created_by = ? WHERE created_by = ?").run(fallbackAdminId, devAdminUser.id); } catch (_) {}
+                try { db.prepare("UPDATE activity_log SET user_id = ? WHERE user_id = ?").run(fallbackAdminId, devAdminUser.id); } catch (_) {}
+                try { db.prepare("UPDATE user_history SET performed_by = ? WHERE performed_by = ?").run(fallbackAdminId, devAdminUser.id); } catch (_) {}
+                try { db.prepare("UPDATE printed_document_history SET user_id = ? WHERE user_id = ?").run(fallbackAdminId, devAdminUser.id); } catch (_) {}
+                try { db.prepare("UPDATE recent_deleted SET deleted_by = ? WHERE deleted_by = ?").run(fallbackAdminId, devAdminUser.id); } catch (_) {}
+                try { db.prepare("UPDATE deleted_users_history SET deleted_by = ? WHERE deleted_by = ?").run(fallbackAdminId, devAdminUser.id); } catch (_) {}
+            } else {
+                try { db.prepare("UPDATE documents SET uploaded_by = NULL WHERE uploaded_by = ?").run(devAdminUser.id); } catch (_) {}
+                try { db.prepare("UPDATE document_versions SET uploaded_by = NULL WHERE uploaded_by = ?").run(devAdminUser.id); } catch (_) {}
+                try { db.prepare("UPDATE template_versions SET uploaded_by = NULL WHERE uploaded_by = ?").run(devAdminUser.id); } catch (_) {}
+                try { db.prepare("UPDATE document_templates SET created_by = NULL WHERE created_by = ?").run(devAdminUser.id); } catch (_) {}
+                try { db.prepare("UPDATE document_folders SET created_by = NULL WHERE created_by = ?").run(devAdminUser.id); } catch (_) {}
+                try { db.prepare("UPDATE activity_log SET user_id = NULL WHERE user_id = ?").run(devAdminUser.id); } catch (_) {}
+                try { db.prepare("UPDATE user_history SET performed_by = NULL WHERE performed_by = ?").run(devAdminUser.id); } catch (_) {}
+                try { db.prepare("UPDATE printed_document_history SET user_id = NULL WHERE user_id = ?").run(devAdminUser.id); } catch (_) {}
+                try { db.prepare("UPDATE recent_deleted SET deleted_by = NULL WHERE deleted_by = ?").run(devAdminUser.id); } catch (_) {}
+                try { db.prepare("UPDATE deleted_users_history SET deleted_by = NULL WHERE deleted_by = ?").run(devAdminUser.id); } catch (_) {}
+            }
+
+            try { db.prepare("DELETE FROM user_sessions WHERE user_id = ?").run(devAdminUser.id); } catch (_) {}
+            try { db.prepare("DELETE FROM user_login_logs WHERE user_id = ?").run(devAdminUser.id); } catch (_) {}
+            try { db.prepare("DELETE FROM fcm_tokens WHERE user_id = ?").run(devAdminUser.id); } catch (_) {}
+            try { db.prepare("DELETE FROM notifications WHERE user_id = ?").run(devAdminUser.id); } catch (_) {}
+            try { db.prepare("DELETE FROM password_reset_requests WHERE user_id = ? OR reviewed_by = ?").run(devAdminUser.id, devAdminUser.id); } catch (_) {}
+            try { db.prepare("DELETE FROM password_reset_otps WHERE user_id = ?").run(devAdminUser.id); } catch (_) {}
+            try { db.prepare("DELETE FROM password_reset_links WHERE user_id = ? OR admin_id = ?").run(devAdminUser.id, devAdminUser.id); } catch (_) {}
+            try { db.prepare("DELETE FROM account_deletion_requests WHERE user_id = ?").run(devAdminUser.id); } catch (_) {}
+            try { db.prepare("DELETE FROM print_queue WHERE user_id = ?").run(devAdminUser.id); } catch (_) {}
+            try { db.prepare("DELETE FROM teacher_sections WHERE teacher_id = ?").run(devAdminUser.id); } catch (_) {}
+
+            db.prepare("DELETE FROM users WHERE id = ?").run(devAdminUser.id);
+            console.log('Removed legacy developer account from database.');
         }
 
         // Seed default document requirements if none exist
