@@ -535,6 +535,9 @@ class _AndroidBottomNavLayoutState extends ConsumerState<AndroidBottomNavLayout>
               child: Scaffold(
                 key: _scaffoldKey,
                 drawerEnableOpenDragGesture: !isStudentMultiSelect,
+                drawerEdgeDragWidth: isStudentMultiSelect
+                    ? 0.0
+                    : MediaQuery.of(context).size.width * 0.45,
                 resizeToAvoidBottomInset: false,
                 backgroundColor: Theme.of(context).scaffoldBackgroundColor,
                 appBar: isStudentMultiSelect
@@ -664,6 +667,24 @@ class _AndroidBottomNavLayoutState extends ConsumerState<AndroidBottomNavLayout>
                         backgroundColor: Theme.of(context).appBarTheme.backgroundColor,
                         foregroundColor: Theme.of(context).colorScheme.onSurface,
                         iconTheme: IconThemeData(color: Theme.of(context).colorScheme.onSurface),
+                        leading: Builder(
+                          builder: (context) => GestureDetector(
+                            behavior: HitTestBehavior.opaque,
+                            onHorizontalDragUpdate: (details) {
+                              if (details.primaryDelta != null &&
+                                  details.primaryDelta! > 4) {
+                                _scaffoldKey.currentState?.openDrawer();
+                              }
+                            },
+                            child: IconButton(
+                              icon: const Icon(Icons.menu_rounded),
+                              tooltip: 'Open navigation menu',
+                              onPressed: () {
+                                _scaffoldKey.currentState?.openDrawer();
+                              },
+                            ),
+                          ),
+                        ),
                         title: Text(
                           activeTab,
                           style: TextStyle(
