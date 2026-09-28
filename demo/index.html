@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>TIS-RMS | Interactive App Screens Prototype</title>
+  <title>TIS Record Management System | Web Prototype</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -11,23 +11,22 @@
 </head>
 <body>
 
-  <!-- ── Top Floating Control Bar ──────────────────────────────── -->
+  <!-- ── Top Floating Device Switcher ──────────────────────────── -->
   <header class="top-control-bar">
     <div class="brand-badge">
-      <img src="assets/logo.png" alt="TIS Logo">
-      <span>TIS-RMS Showcase</span>
+      <img src="assets/logo.png" alt="Logo">
+      <span>TIS-RMS Static Web App</span>
     </div>
 
-    <!-- Device Switcher -->
     <div class="device-switcher" role="tablist">
-      <button id="btn-view-windows" class="device-btn active" title="Switch to Windows Desktop app view">
+      <button id="btn-view-windows" class="device-btn active" title="Switch to Windows Desktop View">
         <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor">
           <path d="M0 3.449L9.75 2.1v9.451H0m10.949-9.602L24 0v11.4H10.949M0 12.6h9.75v9.451L0 20.699M10.949 12.6H24V24l-12.9-1.801"/>
         </svg>
         <span>Windows Desktop</span>
       </button>
 
-      <button id="btn-view-android" class="device-btn" title="Switch to Android Mobile app view">
+      <button id="btn-view-android" class="device-btn" title="Switch to Android Mobile View">
         <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor">
           <path d="M17.523 15.3414c-.5511 0-.9993-.4486-.9993-.9997s.4482-.9993.9993-.9993c.551 0 .9993.4482.9993.9993.0001.5511-.4483.9997-.9993.9997m-11.046 0c-.5511 0-.9993-.4486-.9993-.9997s.4482-.9993.9993-.9993c.5511 0 .9993.4482.9993.9993 0 .5511-.4482.9997-.9993.9997m11.4045-6.02l1.9973-3.4592a.416.416 0 00-.1521-.5676.416.416 0 00-.5676.1521l-2.0223 3.503C15.5902 8.411 13.8533 8.081 12 8.081s-3.5902.33-5.1367.8687L4.841 5.4467a.4161.4161 0 00-.5677-.1521.4157.4157 0 00-.1521.5676l1.9973 3.4592C2.6889 11.1867.3432 14.6589 0 18.761h24c-.3432-4.1021-2.6889-7.5743-6.1185-9.4396"/>
         </svg>
@@ -36,20 +35,16 @@
     </div>
   </header>
 
-  <!-- ── Screen Selector Pill Bar ───────────────────────────────── -->
-  <nav id="screen-selector-bar" class="screen-selector-bar">
-    <!-- Injected via app.js -->
-  </nav>
-
-  <!-- ── Viewport Area ─────────────────────────────────────────── -->
+  <!-- ── Main Viewport Container ───────────────────────────────── -->
   <main class="viewport-container">
 
-    <!-- 1. WINDOWS DESKTOP WINDOW FRAME -->
+    <!-- ==============================================================
+         1. WINDOWS DESKTOP APP (Pixel-Perfect Recreation)
+    ============================================================== -->
     <div id="desktop-window" class="desktop-window">
       <!-- Titlebar -->
       <div class="win-titlebar">
         <div class="win-titlebar-left">
-          <img src="assets/logo.png" alt="Logo">
           <span>TIS Record Management System</span>
         </div>
         <div class="win-window-controls">
@@ -59,117 +54,849 @@
         </div>
       </div>
 
-      <!-- Stage with actual screenshot and clickable interactive hotspots -->
-      <div class="win-stage">
-        <img id="win-screen-img" class="win-screen-img" src="screenshots/windows/dashboard.webp" alt="Windows Screen">
+      <div class="win-body">
+        <!-- Sidebar Navigation -->
+        <aside class="win-sidebar">
+          <div class="win-app-brand">
+            <div class="win-brand-info">
+              <img src="assets/logo.png" alt="Logo">
+              <h3>TIS RMS</h3>
+            </div>
+            <div class="win-hamburger">&#9776;</div>
+          </div>
 
-        <!-- Interactive Sidebar Hotspots (Clicking sidebar directly on screenshot navigates!) -->
-        <div class="win-sidebar-hotspots">
-          <div class="hotspot-sidebar-item hotspot-item-dashboard" title="Go to Dashboard" onclick="setScreen('dashboard')"></div>
-          <div class="hotspot-sidebar-item hotspot-item-students" title="Go to Students Directory" onclick="setScreen('students')"></div>
-          <div class="hotspot-sidebar-item hotspot-item-documents" title="Go to Documents" onclick="setScreen('documents')"></div>
-          <div class="hotspot-sidebar-item hotspot-item-archives" title="Go to Archives" onclick="setScreen('archives')"></div>
-          <div class="hotspot-sidebar-item hotspot-item-reports" title="Go to Reports" onclick="setScreen('reports')"></div>
-          <div class="hotspot-sidebar-item hotspot-item-users" title="Go to Users Management" onclick="setScreen('users')"></div>
-          <div class="hotspot-sidebar-item hotspot-item-history" title="Go to Audit History" onclick="setScreen('history')"></div>
-          <div class="hotspot-sidebar-item hotspot-item-settings" title="Go to Settings" onclick="setScreen('settings')"></div>
-        </div>
+          <div class="win-sidebar-group">
+            <div class="win-group-label">OVERVIEW</div>
+            <ul class="win-nav-list">
+              <li class="win-nav-item active" data-screen="dashboard">
+                <svg viewBox="0 0 24 24" fill="currentColor"><path d="M3 13h8V3H3v10zm0 8h8v-6H3v6zm10 0h8V11h-8v10zm0-18v6h8V3h-8z"/></svg>
+                <span>Dashboard</span>
+              </li>
+              <li class="win-nav-item" data-screen="students">
+                <svg viewBox="0 0 24 24" fill="currentColor"><path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"/></svg>
+                <span>Students</span>
+              </li>
+              <li class="win-nav-item" data-screen="documents">
+                <svg viewBox="0 0 24 24" fill="currentColor"><path d="M10 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2h-8l-2-2z"/></svg>
+                <span>Documents</span>
+              </li>
+              <li class="win-nav-item" data-screen="archives">
+                <svg viewBox="0 0 24 24" fill="currentColor"><path d="M20.54 5.23l-1.39-1.68C18.88 3.21 18.47 3 18 3H6c-.47 0-.88.21-1.16.55L3.46 5.23C3.17 5.57 3 6.02 3 6.5V19c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V6.5c0-.48-.17-.93-.46-1.27zM12 17.5L6.5 12H10v-2h4v2h3.5L12 17.5zM5.12 5l.81-1h12l.94 1H5.12z"/></svg>
+                <span>Archives</span>
+              </li>
+            </ul>
+          </div>
 
-        <!-- Hotspot: Add Student on Students Screen -->
-        <div id="hotspot-add-student" class="hotspot-add-student" title="Click to simulate Add Student modal" onclick="openAddStudentModal()" style="display: none;"></div>
+          <div class="win-sidebar-group">
+            <div class="win-group-label">ACCOUNT</div>
+            <ul class="win-nav-list">
+              <li class="win-nav-item" data-screen="reports">
+                <svg viewBox="0 0 24 24" fill="currentColor"><path d="M5 9.2h3V19H5zM10.6 5h2.8v14h-2.8zm5.6 8H19v6h-2.8z"/><path d="M19 19H5V5h14v14m0-16H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2z"/></svg>
+                <span>Reports</span>
+              </li>
+              <li class="win-nav-item" data-screen="users">
+                <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>
+                <span>Users</span>
+              </li>
+              <li class="win-nav-item" data-screen="history">
+                <svg viewBox="0 0 24 24" fill="currentColor"><path d="M13 3a9 9 0 0 0-9 9H1l3.89 3.89.07.14L9 12H6c0-3.87 3.13-7 7-7s7 3.13 7 7-3.13 7-7 7c-1.93 0-3.68-.79-4.94-2.06l-1.42 1.42A8.954 8.954 0 0 0 13 21a9 9 0 0 0 0-18zm-1 5v5l4.28 2.54.72-1.21-3.5-2.08V8H12z"/></svg>
+                <span>History</span>
+              </li>
+              <li class="win-nav-item" data-screen="settings">
+                <svg viewBox="0 0 24 24" fill="currentColor"><path d="M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.09.63-.09.94s.02.64.07.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z"/></svg>
+                <span>Settings</span>
+              </li>
+            </ul>
+          </div>
 
-        <!-- Hotspot: Check Updates on Settings Screen -->
-        <div id="hotspot-settings-update" class="hotspot-settings-update" title="Click to test Check for Updates" onclick="openUpdateCheckModal()" style="display: none;"></div>
+          <div class="win-user-profile">
+            <div class="win-user-left">
+              <div class="avatar-badge">AT</div>
+              <div class="win-user-details">
+                <h4>Admin Registrar ...</h4>
+                <span>ADMIN</span>
+              </div>
+            </div>
+            <span style="color: var(--text-muted); cursor: pointer;" title="Logout">&#x21AA;</span>
+          </div>
+        </aside>
+
+        <!-- Main Screen Stage -->
+        <section class="win-main-stage">
+          <!-- Stage Top Bar -->
+          <div class="win-stage-header">
+            <div id="stage-screen-title" class="stage-title">Dashboard Overview</div>
+            <div class="stage-header-actions">
+              <button class="icon-btn" title="Search"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg></button>
+              <button class="icon-btn" title="Filters"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="4" y1="21" x2="4" y2="14"></line><line x1="4" y1="10" x2="4" y2="3"></line><line x1="12" y1="21" x2="12" y2="12"></line><line x1="12" y1="8" x2="12" y2="3"></line><line x1="20" y1="21" x2="20" y2="16"></line><line x1="20" y1="12" x2="20" y2="3"></line><line x1="1" y1="14" x2="7" y2="14"></line><line x1="9" y1="8" x2="15" y2="8"></line><line x1="17" y1="16" x2="23" y2="16"></line></svg></button>
+              <button class="icon-btn" title="Notifications"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.73 21a2 2 0 0 1-3.46 0"></path></svg></button>
+              <div class="avatar-badge" style="width: 32px; height: 32px; font-size: 11px;">AT</div>
+
+              <!-- Add Student button (visible on Students screen) -->
+              <button id="btn-add-student-header" class="btn-add-student" style="display: none;" onclick="openAddStudentModal()">
+                <span>&#x2B;</span>
+                <span>Add Student</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Stage Scroll Viewport -->
+          <div class="win-scroll-viewport">
+
+            <!-- SCREEN 1: DASHBOARD -->
+            <div id="win-screen-dashboard" class="desktop-screen-content" style="display: flex; flex-direction: column; gap: 18px;">
+              <!-- Setup Required Banner -->
+              <div class="setup-banner">
+                <div class="setup-banner-left">
+                  <span class="setup-banner-icon">&#x2699;</span>
+                  <span>Setup Required</span>
+                </div>
+                <div style="display: flex; gap: 12px; color: var(--text-muted); cursor: pointer;">
+                  <span>&#x25BC;</span>
+                  <span>&times;</span>
+                </div>
+              </div>
+
+              <p style="font-size: 14px; color: var(--text-secondary);">Welcome back, Admin Registrar. Here is what is happening today.</p>
+
+              <!-- 4 Stat Cards -->
+              <div class="stat-cards-grid">
+                <div class="app-stat-card" onclick="setScreen('students')">
+                  <div class="app-stat-header">
+                    <div class="app-stat-icon green">&#x1F393;</div>
+                    <span class="app-stat-chevron">&rsaquo;</span>
+                  </div>
+                  <div class="app-stat-number">91</div>
+                  <div class="app-stat-label">Total Students</div>
+                </div>
+
+                <div class="app-stat-card" onclick="setScreen('users')">
+                  <div class="app-stat-header">
+                    <div class="app-stat-icon blue">&#x1F465;</div>
+                    <span class="app-stat-chevron">&rsaquo;</span>
+                  </div>
+                  <div class="app-stat-number">18</div>
+                  <div class="app-stat-label">Active Users</div>
+                </div>
+
+                <div class="app-stat-card" onclick="setScreen('documents')">
+                  <div class="app-stat-header">
+                    <div class="app-stat-icon green">&#x2714;</div>
+                    <span class="app-stat-chevron">&rsaquo;</span>
+                  </div>
+                  <div class="app-stat-number">0</div>
+                  <div class="app-stat-label">Complete Docs</div>
+                </div>
+
+                <div class="app-stat-card" onclick="setScreen('documents')">
+                  <div class="app-stat-header">
+                    <div class="app-stat-icon amber">&#x26A0;</div>
+                    <span class="app-stat-chevron">&rsaquo;</span>
+                  </div>
+                  <div class="app-stat-number">91</div>
+                  <div class="app-stat-label">Missing Docs</div>
+                </div>
+              </div>
+
+              <!-- Analytics & KPIs Section -->
+              <div class="kpi-section-title">
+                <span style="color: var(--accent-emerald);">&#x1F4C8;</span>
+                <span>Analytics &amp; KPIs</span>
+                <span class="badge">&#x1F4C5; S.Y. 2026-2027</span>
+              </div>
+
+              <div class="kpi-grid">
+                <!-- Digitalization Progress Card -->
+                <div class="kpi-card">
+                  <div class="kpi-card-header">
+                    <h4>Digitalization Progress</h4>
+                    <p>Enrolled students with all mandatory requirements completed</p>
+                  </div>
+                  <div class="rings-container">
+                    <div class="ring-item">
+                      <div class="circular-ring">0%</div>
+                      <span class="ring-label">JHS</span>
+                      <span class="ring-sub">0 / 5</span>
+                    </div>
+                    <div class="ring-item">
+                      <div class="circular-ring">0%</div>
+                      <span class="ring-label">SHS</span>
+                      <span class="ring-sub">0 / 0</span>
+                    </div>
+                    <div class="ring-item">
+                      <div class="circular-ring">0%</div>
+                      <span class="ring-label">Overall</span>
+                      <span class="ring-sub">0 / 5</span>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Document Status Distribution Card -->
+                <div class="kpi-card">
+                  <div class="kpi-card-header">
+                    <h4>Document Status Distribution</h4>
+                    <p>By unique document types uploaded</p>
+                  </div>
+
+                  <div class="kpi-progress-bar">
+                    <div class="kpi-bar-meta">
+                      <span>Completed</span>
+                      <span style="color: var(--text-secondary);">1/15 (6.7%)</span>
+                    </div>
+                    <div class="bar-track-custom">
+                      <div class="bar-fill-green"></div>
+                    </div>
+                  </div>
+
+                  <div class="kpi-progress-bar">
+                    <div class="kpi-bar-meta">
+                      <span>Archived</span>
+                      <span style="color: var(--text-secondary);">8/15 (53.3%)</span>
+                    </div>
+                    <div class="bar-track-custom">
+                      <div class="bar-fill-amber"></div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- SCREEN 2: STUDENTS DIRECTORY -->
+            <div id="win-screen-students" class="desktop-screen-content" style="display: none; flex-direction: column; gap: 14px;">
+              <div class="students-list-view">
+                <!-- Student Card 1 -->
+                <div class="student-card-row" onclick="openStudentDetail('ADAMS, JENNIE', '108297100191', 'Grade 12 - STEM - Quisumbing', 'Inactive')">
+                  <div class="student-left">
+                    <div class="student-avatar">JA</div>
+                    <div class="student-names">
+                      <h4>ADAMS, JENNIE</h4>
+                      <span>LRN: 108297100191</span>
+                    </div>
+                  </div>
+                  <div class="student-middle">
+                    <div class="student-section-info">
+                      <span>&#x1F393;</span>
+                      <span>Grade 12 - STEM - Quisumbing</span>
+                    </div>
+                    <span class="badge-4ps">4Ps</span>
+                    <span class="badge-inactive">Inactive</span>
+                  </div>
+                  <div class="student-right">
+                    <div class="docs-progress-chip">
+                      <div class="docs-progress-text">&#x1F4C1; 5 / 7 Docs Archived</div>
+                      <div class="docs-mini-bar"><div class="docs-mini-fill" style="width: 71%;"></div></div>
+                    </div>
+                    <span class="folder-action-icon">&#x1F4C1;</span>
+                    <span style="color: var(--text-muted);">&#x22EE;</span>
+                  </div>
+                </div>
+
+                <!-- Student Card 2 -->
+                <div class="student-card-row" onclick="openStudentDetail('ASD, MARACENA', '412341241234', 'Grade 10 - Pocahontas', 'Inactive')">
+                  <div class="student-left">
+                    <div class="student-avatar">MA</div>
+                    <div class="student-names">
+                      <h4>ASD, MARACENA</h4>
+                      <span>LRN: 412341241234</span>
+                    </div>
+                  </div>
+                  <div class="student-middle">
+                    <div class="student-section-info">
+                      <span>&#x1F393;</span>
+                      <span>Grade 10 - Pocahontas</span>
+                    </div>
+                    <span class="badge-inactive">Inactive</span>
+                  </div>
+                  <div class="student-right">
+                    <div class="docs-progress-chip">
+                      <div class="docs-progress-text">&#x1F4C1; 3 / 3 Docs Archived</div>
+                      <div class="docs-mini-bar"><div class="docs-mini-fill" style="width: 100%;"></div></div>
+                    </div>
+                    <span class="folder-action-icon">&#x1F4C1;</span>
+                    <span style="color: var(--text-muted);">&#x22EE;</span>
+                  </div>
+                </div>
+
+                <!-- Student Card 3 -->
+                <div class="student-card-row" onclick="openStudentDetail('ASDF, ASDF', '342142141234', 'Grade 12 - Euphoria', 'Inactive')">
+                  <div class="student-left">
+                    <div class="student-avatar">AA</div>
+                    <div class="student-names">
+                      <h4>ASDF, ASDF</h4>
+                      <span>LRN: 342142141234</span>
+                    </div>
+                  </div>
+                  <div class="student-middle">
+                    <div class="student-section-info">
+                      <span>&#x1F393;</span>
+                      <span>Grade 12 - Euphoria</span>
+                    </div>
+                    <span class="badge-inactive">Inactive</span>
+                  </div>
+                  <div class="student-right">
+                    <div class="docs-progress-chip">
+                      <div class="docs-progress-text">&#x1F4C1; 4 / 4 Docs Archived</div>
+                      <div class="docs-mini-bar"><div class="docs-mini-fill" style="width: 100%;"></div></div>
+                    </div>
+                    <span class="folder-action-icon">&#x1F4C1;</span>
+                    <span style="color: var(--text-muted);">&#x22EE;</span>
+                  </div>
+                </div>
+
+                <!-- Student Card 4 -->
+                <div class="student-card-row" onclick="openStudentDetail('Arroyo, Gemma', '108297100198', 'Grade 7 - Moonstar', 'Dropped')">
+                  <div class="student-left">
+                    <div class="student-avatar">GA</div>
+                    <div class="student-names">
+                      <h4>Arroyo, Gemma</h4>
+                      <span>LRN: 108297100198</span>
+                    </div>
+                  </div>
+                  <div class="student-middle">
+                    <div class="student-section-info">
+                      <span>&#x1F393;</span>
+                      <span>Grade 7 - Moonstar</span>
+                    </div>
+                    <span class="badge-4ps">4Ps</span>
+                    <span class="badge-dropped">Dropped</span>
+                  </div>
+                  <div class="student-right">
+                    <div class="docs-progress-chip">
+                      <div class="docs-progress-text">&#x1F4C1; 2 / 3 Docs Archived</div>
+                      <div class="docs-mini-bar"><div class="docs-mini-fill" style="width: 66%;"></div></div>
+                    </div>
+                    <span class="folder-action-icon">&#x1F4C1;</span>
+                    <span style="color: var(--text-muted);">&#x22EE;</span>
+                  </div>
+                </div>
+
+                <!-- Student Card 5 -->
+                <div class="student-card-row" onclick="openStudentDetail('BAKA, ASTA', '108371216161', 'Grade 12 - Euphoria', 'Inactive')">
+                  <div class="student-left">
+                    <div class="student-avatar">AB</div>
+                    <div class="student-names">
+                      <h4>BAKA, ASTA</h4>
+                      <span>LRN: 108371216161</span>
+                    </div>
+                  </div>
+                  <div class="student-middle">
+                    <div class="student-section-info">
+                      <span>&#x1F393;</span>
+                      <span>Grade 12 - Euphoria</span>
+                    </div>
+                    <span class="badge-4ps">4Ps</span>
+                    <span class="badge-inactive">Inactive</span>
+                  </div>
+                  <div class="student-right">
+                    <div class="docs-progress-chip">
+                      <div class="docs-progress-text">&#x1F4C1; 1 / 7 Docs Archived</div>
+                      <div class="docs-mini-bar"><div class="docs-mini-fill" style="width: 14%;"></div></div>
+                    </div>
+                    <span class="folder-action-icon">&#x1F4C1;</span>
+                    <span style="color: var(--text-muted);">&#x22EE;</span>
+                  </div>
+                </div>
+
+                <!-- Student Card 6 -->
+                <div class="student-card-row" onclick="openStudentDetail('BALL, WASABI RICE', '123123123213', 'Grade 7 - Rosal', 'Inactive')">
+                  <div class="student-left">
+                    <div class="student-avatar">WB</div>
+                    <div class="student-names">
+                      <h4>BALL, WASABI RICE</h4>
+                      <span>LRN: 123123123213</span>
+                    </div>
+                  </div>
+                  <div class="student-middle">
+                    <div class="student-section-info">
+                      <span>&#x1F393;</span>
+                      <span>Grade 7 - Rosal</span>
+                    </div>
+                    <span class="badge-inactive">Inactive</span>
+                  </div>
+                  <div class="student-right">
+                    <div class="docs-progress-chip">
+                      <div class="docs-progress-text">&#x1F4C1; 0 / 3 Docs Archived</div>
+                      <div class="docs-mini-bar"><div class="docs-mini-fill" style="width: 0%;"></div></div>
+                    </div>
+                    <span class="folder-action-icon">&#x1F4C1;</span>
+                    <span style="color: var(--text-muted);">&#x22EE;</span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Pagination Controls -->
+              <div class="pagination-bar">
+                <span class="page-btn">Previous</span>
+                <span class="page-btn active">1</span>
+                <span class="page-btn">2</span>
+                <span class="page-btn">3</span>
+                <span class="page-btn">4</span>
+                <span class="page-btn">5</span>
+                <span class="page-btn">Next</span>
+              </div>
+            </div>
+
+            <!-- SCREEN 3: DOCUMENTS -->
+            <div id="win-screen-documents" class="desktop-screen-content" style="display: none; flex-direction: column; gap: 14px;">
+              <div style="display: flex; justify-content: space-between; align-items: center;">
+                <div style="display: flex; gap: 8px;">
+                  <button class="page-btn active">&#x1F4C1; Student Folders</button>
+                  <button class="page-btn">&#x1F4C4; All Documents</button>
+                </div>
+                <div style="display: flex; gap: 8px;">
+                  <button class="page-btn" style="background: var(--primary-green); color: #fff;">&#x2601; Upload</button>
+                  <button class="page-btn">&#x1F5B6; Print List</button>
+                </div>
+              </div>
+
+              <div class="doc-folder-card">
+                <div class="doc-folder-left">
+                  <div class="doc-folder-icon">&#x1F4C1;</div>
+                  <div>
+                    <div class="doc-folder-title">RIZAL_JUAN_308035123456</div>
+                    <div class="doc-folder-sub">1 item</div>
+                    <div class="doc-folder-badges">
+                      <span class="badge-jhs">JHS 0/3</span>
+                      <span class="badge-shs">SHS 0/4</span>
+                    </div>
+                  </div>
+                </div>
+                <span style="color: var(--text-muted); font-size: 16px;">&rsaquo;</span>
+              </div>
+            </div>
+
+            <!-- SCREEN 4: ARCHIVES -->
+            <div id="win-screen-archives" class="desktop-screen-content" style="display: none; flex-direction: column; gap: 14px;">
+              <div style="display: flex; justify-content: space-between; align-items: center;">
+                <div style="display: flex; gap: 8px;">
+                  <button class="page-btn active">&#x1F4C1; Student Folders</button>
+                  <button class="page-btn">&#x1F4C4; All Archived Docs</button>
+                </div>
+                <button class="page-btn">&#x1F5B6; Print List</button>
+              </div>
+
+              <div style="display: flex; flex-direction: column; gap: 10px;">
+                <div class="doc-folder-card">
+                  <div class="doc-folder-left">
+                    <div class="doc-folder-icon" style="color: #ef4444;">&#x1F4C1;</div>
+                    <div>
+                      <div class="doc-folder-title">ADAMS, JENNIE</div>
+                      <div class="doc-folder-sub">16 items &bull; <span class="badge-inactive">Inactive</span></div>
+                    </div>
+                  </div>
+                  <span style="color: var(--text-muted);">&rsaquo;</span>
+                </div>
+
+                <div class="doc-folder-card">
+                  <div class="doc-folder-left">
+                    <div class="doc-folder-icon" style="color: #ef4444;">&#x1F4C1;</div>
+                    <div>
+                      <div class="doc-folder-title">ASD, MARACENA</div>
+                      <div class="doc-folder-sub">6 items &bull; <span class="badge-inactive">Inactive</span></div>
+                    </div>
+                  </div>
+                  <span style="color: var(--text-muted);">&rsaquo;</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- SCREEN 5: REPORTS -->
+            <div id="win-screen-reports" class="desktop-screen-content" style="display: none; flex-direction: column; gap: 14px;">
+              <div class="setup-banner" style="background: rgba(25, 135, 84, 0.15); border-color: rgba(25, 135, 84, 0.3);">
+                <div>
+                  <div style="font-weight: 700; color: #fff;">DepEd Transparency Board <span style="font-size: 11px; opacity: 0.7;">1/3</span></div>
+                  <div style="font-size: 12px; color: var(--text-secondary); margin-top: 2px;">Click toggle button to swap views (3rd click shows combined)</div>
+                </div>
+                <button class="page-btn">&#x21C4; Swap View</button>
+              </div>
+
+              <div class="setup-banner" style="background: var(--card-bg);">
+                <div style="font-weight: 800; font-size: 15px; color: #fff;">DEPED TRANSPARENCY BOARD</div>
+                <div style="display: flex; gap: 8px;">
+                  <button class="page-btn">&#x1F4C5; S.Y. 2026-2027 (Active) &#x25BC;</button>
+                  <button class="page-btn" style="background: #ef4444; color: #fff;">&#x1F4D6; Export PDF</button>
+                </div>
+              </div>
+
+              <div class="kpi-card" style="padding: 24px;">
+                <h4 style="margin-bottom: 4px;">4Ps Beneficiaries Distribution across Grades (SY 2026-2027)</h4>
+                <div style="height: 180px; display: flex; align-items: flex-end; gap: 24px; padding-top: 20px; border-bottom: 1px solid var(--card-border);">
+                  <div style="display: flex; flex-direction: column; align-items: center; gap: 6px;">
+                    <div style="width: 24px; height: 120px; background: #a855f7; border-radius: 4px 4px 0 0;"></div>
+                    <span style="font-size: 11px; color: var(--text-secondary);">Grade 7</span>
+                  </div>
+                  <div style="display: flex; flex-direction: column; align-items: center; gap: 6px;">
+                    <div style="width: 24px; height: 60px; background: #a855f7; border-radius: 4px 4px 0 0;"></div>
+                    <span style="font-size: 11px; color: var(--text-secondary);">Grade 8</span>
+                  </div>
+                  <div style="display: flex; flex-direction: column; align-items: center; gap: 6px;">
+                    <div style="width: 24px; height: 80px; background: #a855f7; border-radius: 4px 4px 0 0;"></div>
+                    <span style="font-size: 11px; color: var(--text-secondary);">Grade 9</span>
+                  </div>
+                  <div style="display: flex; flex-direction: column; align-items: center; gap: 6px;">
+                    <div style="width: 24px; height: 40px; background: #a855f7; border-radius: 4px 4px 0 0;"></div>
+                    <span style="font-size: 11px; color: var(--text-secondary);">Grade 10</span>
+                  </div>
+                  <div style="display: flex; flex-direction: column; align-items: center; gap: 6px;">
+                    <div style="width: 24px; height: 90px; background: #a855f7; border-radius: 4px 4px 0 0;"></div>
+                    <span style="font-size: 11px; color: var(--text-secondary);">SHS</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- SCREEN 6: USERS -->
+            <div id="win-screen-users" class="desktop-screen-content" style="display: none; flex-direction: column; gap: 14px;">
+              <div class="kpi-card">
+                <h4 style="margin-bottom: 12px;">Active Faculty &amp; System Personnel</h4>
+                <div style="display: flex; flex-direction: column; gap: 8px;">
+                  <div class="student-card-row">
+                    <div class="student-left">
+                      <div class="avatar-badge">AD</div>
+                      <div class="student-names">
+                        <h4>Admin Registrar</h4>
+                        <span>admin@tis.edu.ph</span>
+                      </div>
+                    </div>
+                    <span class="badge-jhs">Super Admin</span>
+                  </div>
+                  <div class="student-card-row">
+                    <div class="student-left">
+                      <div class="avatar-badge" style="background: #0284c7;">TC</div>
+                      <div class="student-names">
+                        <h4>Ms. Carmela Diaz</h4>
+                        <span>adviser.g7@tis.edu.ph</span>
+                      </div>
+                    </div>
+                    <span class="badge-shs">Teacher / Adviser</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- SCREEN 7: HISTORY -->
+            <div id="win-screen-history" class="desktop-screen-content" style="display: none; flex-direction: column; gap: 14px;">
+              <div class="kpi-card">
+                <h4 style="margin-bottom: 12px;">System Activity Audit Trail</h4>
+                <div style="display: flex; flex-direction: column; gap: 8px; font-size: 13px;">
+                  <div class="info-row"><span>Student Record Updated (ADAMS, JENNIE)</span><span style="color: var(--text-secondary);">Today, 10:04 AM</span></div>
+                  <div class="info-row"><span>SF10 Document Uploaded via Scanner</span><span style="color: var(--text-secondary);">Today, 09:42 AM</span></div>
+                  <div class="info-row"><span>Admin Login Success</span><span style="color: var(--text-secondary);">Today, 08:30 AM</span></div>
+                </div>
+              </div>
+            </div>
+
+            <!-- SCREEN 8: SETTINGS & ABOUT -->
+            <div id="win-screen-settings" class="desktop-screen-content" style="display: none; flex-direction: column; gap: 14px;">
+              <div class="settings-list-view">
+                <!-- Collapsible 1: Academic & Graduation -->
+                <div class="settings-card-item">
+                  <div class="settings-card-header" onclick="toggleSettingsSection('academic')">
+                    <h4>Academic &amp; Graduation</h4>
+                    <span id="settings-chevron-academic" class="chevron">&#x25BC;</span>
+                  </div>
+                  <div id="settings-body-academic" class="settings-card-body" style="display: none;">
+                    <div class="info-row"><span class="label">Current Active Term:</span><span class="val">S.Y. 2026-2027</span></div>
+                    <div class="info-row"><span class="label">Graduation Checking:</span><span class="val">Automatic Verification</span></div>
+                  </div>
+                </div>
+
+                <!-- Collapsible 2: Student Enrollment Auto-Update -->
+                <div class="settings-card-item">
+                  <div class="settings-card-header" onclick="toggleSettingsSection('enrollment')">
+                    <h4>Student Enrollment Auto-Update</h4>
+                    <span id="settings-chevron-enrollment" class="chevron">&#x25BC;</span>
+                  </div>
+                  <div id="settings-body-enrollment" class="settings-card-body" style="display: none;">
+                    <div class="info-row"><span class="label">Auto-Update from SF Forms:</span><span class="val">Enabled (Daily)</span></div>
+                  </div>
+                </div>
+
+                <!-- Collapsible 3: Remind Teachers -->
+                <div class="settings-card-item">
+                  <div class="settings-card-header" onclick="toggleSettingsSection('teachers')">
+                    <h4>Remind Teachers</h4>
+                    <span id="settings-chevron-teachers" class="chevron">&#x25BC;</span>
+                  </div>
+                  <div id="settings-body-teachers" class="settings-card-body" style="display: none;">
+                    <div class="info-row"><span class="label">Pending Grades Reminder:</span><span class="val">Active (Every Friday)</span></div>
+                  </div>
+                </div>
+
+                <!-- Collapsible 4: Appearance & Feedback -->
+                <div class="settings-card-item">
+                  <div class="settings-card-header" onclick="toggleSettingsSection('appearance')">
+                    <h4>Appearance &amp; Feedback</h4>
+                    <span id="settings-chevron-appearance" class="chevron">&#x25BC;</span>
+                  </div>
+                  <div id="settings-body-appearance" class="settings-card-body" style="display: none;">
+                    <div class="info-row"><span class="label">Theme Mode:</span><span class="val">Dark Mode (Default)</span></div>
+                    <div class="info-row"><span class="label">Sound Effects:</span><span class="val">Enabled</span></div>
+                    <div class="info-row"><span class="label">Haptic Vibration:</span><span class="val">Enabled</span></div>
+                  </div>
+                </div>
+
+                <!-- Collapsible 5: Security -->
+                <div class="settings-card-item">
+                  <div class="settings-card-header" onclick="toggleSettingsSection('security')">
+                    <div style="display: flex; align-items: center; gap: 10px;">
+                      <span style="color: var(--accent-emerald);">&#x1F512;</span>
+                      <div>
+                        <h4>Security</h4>
+                        <p style="font-size: 11px; color: var(--text-secondary); margin-top: 2px;">Manage password, active login sessions, and account status</p>
+                      </div>
+                    </div>
+                    <span class="chevron">&rsaquo;</span>
+                  </div>
+                </div>
+
+                <!-- Collapsible 6: About & App Updates (Feature Just Implemented) -->
+                <div class="settings-card-item">
+                  <div class="settings-card-header" onclick="toggleSettingsSection('about')">
+                    <div style="display: flex; align-items: center; gap: 10px;">
+                      <span style="color: var(--accent-emerald);">&#x2139;</span>
+                      <h4>About &amp; App Updates</h4>
+                    </div>
+                    <span id="settings-chevron-about" class="chevron">&#x25BC;</span>
+                  </div>
+                  <div id="settings-body-about" class="settings-card-body" style="display: flex;">
+                    <div class="info-row"><span class="label">Application:</span><span class="val">Talipan Integrated School - RMS</span></div>
+                    <div class="info-row"><span class="label">Current Version:</span><span class="val">v1.0.23 (Build 24)</span></div>
+                    <div class="info-row"><span class="label">Platform:</span><span class="val">Windows</span></div>
+                    <div class="info-row"><span class="label">Architecture:</span><span class="val">x64 (64-bit)</span></div>
+                    <div class="info-row"><span class="label">Institution:</span><span class="val">Talisay National High School</span></div>
+                    <div class="info-row"><span class="label">Developed By:</span><span class="val">Dalubhasaan ng Lungsod ng San Pablo (DLSP)</span></div>
+
+                    <div style="margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--card-border);">
+                      <h5 style="margin-bottom: 6px;">Software Updates</h5>
+                      <p style="font-size: 11px; color: var(--text-secondary); margin-bottom: 12px;">Check for new releases and improvements.</p>
+                      
+                      <div id="update-result-banner" style="display: none; padding: 12px; background: rgba(25, 135, 84, 0.15); border: 1px solid rgba(25, 135, 84, 0.35); border-radius: 8px; margin-bottom: 12px;"></div>
+
+                      <button id="btn-check-updates" class="page-btn" style="background: var(--primary-green); color: #fff; display: flex; align-items: center; gap: 6px;" onclick="simulateUpdateCheck()">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/></svg>
+                        <span>Check for Updates</span>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+          </div>
+        </section>
       </div>
     </div>
 
-    <!-- 2. ANDROID SMARTPHONE FRAME -->
-    <div id="phone-mockup" class="phone-mockup" style="display: none;">
-      <div class="phone-screen-container">
-        <img id="phone-screen-img" class="phone-screen-img" src="screenshots/android/dashboard.webp" alt="Android Screen">
 
-        <!-- Hotspots for quick testing -->
-        <div style="position: absolute; top: 12%; right: 5%; width: 50px; height: 50px; cursor: pointer;" title="Interactive Action" onclick="openAddStudentModal()"></div>
-        <div style="position: absolute; bottom: 2%; left: 0; right: 0; height: 60px; display: flex;">
-          <div style="flex: 1; cursor: pointer;" title="Dashboard" onclick="setScreen('dashboard')"></div>
-          <div style="flex: 1; cursor: pointer;" title="Students" onclick="setScreen('students')"></div>
-          <div style="flex: 1; cursor: pointer;" title="Documents" onclick="setScreen('documents')"></div>
-          <div style="flex: 1; cursor: pointer;" title="Settings" onclick="setScreen('settings')"></div>
+    <!-- ==============================================================
+         2. ANDROID MOBILE APP (Pixel-Perfect Smartphone Mockup)
+    ============================================================== -->
+    <div id="phone-frame" class="phone-frame" style="display: none;">
+      <!-- Mobile Status Bar -->
+      <div class="phone-status-bar">
+        <span id="phone-clock">10:05</span>
+        <div style="display: flex; align-items: center; gap: 6px;">
+          <span>5G</span>
+          <span>&#x1F4F6;</span>
+          <span>&#x1F50B; 45%</span>
         </div>
       </div>
+
+      <!-- Mobile Top App Header -->
+      <div class="phone-app-header">
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <span style="font-size: 18px; cursor: pointer;">&#9776;</span>
+          <span id="phone-screen-title" class="phone-header-title">Dashboard</span>
+        </div>
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <span style="font-size: 16px; cursor: pointer;">&#x1F50D;</span>
+          <span style="font-size: 16px; cursor: pointer;">&#x1F514;</span>
+          <div class="avatar-badge" style="width: 28px; height: 28px; font-size: 10px;">AT</div>
+        </div>
+      </div>
+
+      <!-- Mobile Scrollable Content -->
+      <div class="phone-scroll-content">
+
+        <!-- Mobile Dashboard -->
+        <div id="phone-screen-dashboard" class="mobile-screen-content" style="display: flex; flex-direction: column; gap: 12px;">
+          <div class="setup-banner" style="padding: 10px 14px;">
+            <div class="setup-banner-left">
+              <span class="setup-banner-icon">&#x2699;</span>
+              <span>Setup Required</span>
+            </div>
+            <span>&#x25BC;</span>
+          </div>
+
+          <div class="stat-cards-grid">
+            <div class="app-stat-card" onclick="setScreen('students')">
+              <div class="app-stat-number" style="font-size: 20px;">91</div>
+              <div class="app-stat-label">Total Students</div>
+            </div>
+            <div class="app-stat-card" onclick="setScreen('users')">
+              <div class="app-stat-number" style="font-size: 20px;">18</div>
+              <div class="app-stat-label">Active Users</div>
+            </div>
+            <div class="app-stat-card">
+              <div class="app-stat-number" style="font-size: 20px;">0</div>
+              <div class="app-stat-label">Complete Docs</div>
+            </div>
+            <div class="app-stat-card">
+              <div class="app-stat-number" style="font-size: 20px;">91</div>
+              <div class="app-stat-label">Missing Docs</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Mobile Students -->
+        <div id="phone-screen-students" class="mobile-screen-content" style="display: none; flex-direction: column; gap: 10px;">
+          <div class="student-card-row" onclick="openStudentDetail('ADAMS, JENNIE', '108297100191', 'Grade 12 - STEM', 'Inactive')">
+            <div class="student-left">
+              <div class="student-avatar">JA</div>
+              <div class="student-names">
+                <h4>ADAMS, JENNIE</h4>
+                <span>LRN: 108297100191</span>
+              </div>
+            </div>
+            <span class="badge-inactive">Inactive</span>
+          </div>
+
+          <div class="student-card-row" onclick="openStudentDetail('ASD, MARACENA', '412341241234', 'Grade 10', 'Inactive')">
+            <div class="student-left">
+              <div class="student-avatar">MA</div>
+              <div class="student-names">
+                <h4>ASD, MARACENA</h4>
+                <span>LRN: 412341241234</span>
+              </div>
+            </div>
+            <span class="badge-inactive">Inactive</span>
+          </div>
+        </div>
+
+        <!-- Mobile Documents -->
+        <div id="phone-screen-documents" class="mobile-screen-content" style="display: none; flex-direction: column; gap: 10px;">
+          <div class="doc-folder-card">
+            <div class="doc-folder-left">
+              <div class="doc-folder-icon">&#x1F4C1;</div>
+              <div>
+                <div class="doc-folder-title">RIZAL_JUAN</div>
+                <div class="doc-folder-sub">1 item &bull; JHS 0/3</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Mobile Reports -->
+        <div id="phone-screen-reports" class="mobile-screen-content" style="display: none; flex-direction: column; gap: 10px;">
+          <div class="kpi-card">
+            <h4>DepEd Transparency Board</h4>
+            <p>4Ps Beneficiaries across grades</p>
+          </div>
+        </div>
+
+        <!-- Mobile Settings -->
+        <div id="phone-screen-settings" class="mobile-screen-content" style="display: none; flex-direction: column; gap: 10px;">
+          <div class="settings-card-item">
+            <div class="settings-card-header">
+              <h4>About &amp; App Updates</h4>
+            </div>
+            <div class="settings-card-body" style="display: flex;">
+              <div class="info-row"><span class="label">App:</span><span class="val">TIS-RMS Mobile</span></div>
+              <div class="info-row"><span class="label">Architecture:</span><span class="val">ARM64 (64-bit)</span></div>
+              <div class="info-row"><span class="label">Version:</span><span class="val">v1.0.23</span></div>
+
+              <button class="page-btn" style="background: var(--primary-green); color: #fff; margin-top: 8px;" onclick="simulateUpdateCheck()">
+                <span>Check for Updates</span>
+              </button>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Android Bottom Nav -->
+      <nav class="phone-bottom-nav">
+        <div class="phone-nav-tab active" data-screen="dashboard">
+          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M3 13h8V3H3v10zm0 8h8v-6H3v6zm10 0h8V11h-8v10zm0-18v6h8V3h-8z"/></svg>
+          <span>Home</span>
+        </div>
+        <div class="phone-nav-tab" data-screen="students">
+          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"/></svg>
+          <span>Students</span>
+        </div>
+        <div class="phone-nav-tab" data-screen="documents">
+          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M10 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2h-8l-2-2z"/></svg>
+          <span>Docs</span>
+        </div>
+        <div class="phone-nav-tab" data-screen="reports">
+          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M5 9.2h3V19H5zM10.6 5h2.8v14h-2.8zm5.6 8H19v6h-2.8z"/><path d="M19 19H5V5h14v14m0-16H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2z"/></svg>
+          <span>Reports</span>
+        </div>
+        <div class="phone-nav-tab" data-screen="settings">
+          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.09.63-.09.94s.02.64.07.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z"/></svg>
+          <span>Settings</span>
+        </div>
+      </nav>
     </div>
 
   </main>
 
   <!-- ── Interactive Modals ────────────────────────────────────── -->
   
-  <!-- 1. Add Student Modal -->
-  <div id="add-student-modal" class="modal-overlay" onclick="if(event.target===this)closeModal('add-student-modal')">
-    <div class="modal-dialog">
-      <div class="modal-header">
-        <h3>Add New Student Record</h3>
-        <button class="modal-close" onclick="closeModal('add-student-modal')">&times;</button>
+  <!-- Student Detail Modal -->
+  <div id="student-detail-modal" class="modal-backdrop" onclick="if(event.target===this)closeModal('student-detail-modal')">
+    <div class="modal-content">
+      <div class="modal-head">
+        <h3>Student Information</h3>
+        <button class="modal-close-btn" onclick="closeModal('student-detail-modal')">&times;</button>
       </div>
       <div class="modal-body">
-        <p style="font-size: 13px; color: var(--text-muted); line-height: 1.5;">
-          Select student registration method:
-        </p>
-
-        <div style="display: flex; flex-direction: column; gap: 10px;">
-          <div style="background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.1); border-radius: 10px; padding: 14px; cursor: pointer;" onclick="alert('Simulation: Launches the multi-step student enrollment form.'); closeModal('add-student-modal');">
-            <h4 style="font-size: 14px; font-weight: 700; color: #fff;">Standard Stepper Form</h4>
-            <p style="font-size: 12px; color: var(--text-muted); margin-top: 3px;">Full student biographical details, parent info, and LRN verification.</p>
-          </div>
-
-          <div style="background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.1); border-radius: 10px; padding: 14px; cursor: pointer;" onclick="alert('Simulation: Launches OCR document scanning for automatic field extraction.'); closeModal('add-student-modal');">
-            <h4 style="font-size: 14px; font-weight: 700; color: #fff;">Scan Document OCR</h4>
-            <p style="font-size: 12px; color: var(--text-muted); margin-top: 3px;">Auto-extract student information directly from Birth Certificate or Form 137.</p>
+        <div style="display: flex; align-items: center; gap: 14px; padding-bottom: 12px; border-bottom: 1px solid var(--card-border);">
+          <div class="avatar-badge" style="width: 44px; height: 44px; font-size: 16px;">AT</div>
+          <div>
+            <h4 id="detail-student-name" style="font-size: 15px; font-weight: 700;">ADAMS, JENNIE</h4>
+            <span id="detail-student-lrn" style="font-size: 12px; color: var(--text-secondary);">LRN: 108297100191</span>
           </div>
         </div>
-      </div>
-      <div style="padding: 14px 20px; border-top: 1px solid rgba(255, 255, 255, 0.1); display: flex; justify-content: flex-end;">
-        <button class="btn-secondary" onclick="closeModal('add-student-modal')">Cancel</button>
+        <div class="info-row"><span class="label">Grade &amp; Section:</span><span id="detail-student-grade" class="val">Grade 12 - STEM</span></div>
+        <div class="info-row"><span class="label">Status:</span><span id="detail-student-status" class="val">Inactive</span></div>
+        <div class="info-row"><span class="label">School:</span><span class="val">Talisay National High School</span></div>
       </div>
     </div>
   </div>
 
-  <!-- 2. Software Update Check Modal -->
-  <div id="update-modal" class="modal-overlay" onclick="if(event.target===this)closeModal('update-modal')">
-    <div class="modal-dialog">
-      <div class="modal-header">
-        <h3>About &amp; App Updates</h3>
-        <button class="modal-close" onclick="closeModal('update-modal')">&times;</button>
+  <!-- Add Student Modal -->
+  <div id="add-student-modal" class="modal-backdrop" onclick="if(event.target===this)closeModal('add-student-modal')">
+    <div class="modal-content">
+      <div class="modal-head">
+        <h3>Add Student Record</h3>
+        <button class="modal-close-btn" onclick="closeModal('add-student-modal')">&times;</button>
       </div>
       <div class="modal-body">
-        <div id="update-modal-status">
-          <!-- Dynamically filled via app.js -->
+        <p style="font-size: 13px; color: var(--text-secondary);">Choose registration mode:</p>
+        <div style="background: rgba(255,255,255,0.05); padding: 12px; border-radius: 8px; cursor: pointer;" onclick="alert('Demo: Opens multi-step student enrollment form.'); closeModal('add-student-modal');">
+          <h5 style="color: #fff;">1. Standard Student Stepper Form</h5>
+          <span style="font-size: 11px; color: var(--text-secondary);">Register student biographical details and LRN manually.</span>
         </div>
-      </div>
-      <div style="padding: 14px 20px; border-top: 1px solid rgba(255, 255, 255, 0.1); display: flex; justify-content: flex-end; gap: 10px;">
-        <button class="btn-secondary" onclick="closeModal('update-modal')">Close</button>
-        <button id="btn-download-action" class="btn-primary" style="display: none;">
-          <span>Download in Browser</span>
-        </button>
+        <div style="background: rgba(255,255,255,0.05); padding: 12px; border-radius: 8px; cursor: pointer;" onclick="alert('Demo: Prompts camera / document scan OCR parser.'); closeModal('add-student-modal');">
+          <h5 style="color: #fff;">2. Scan Document OCR</h5>
+          <span style="font-size: 11px; color: var(--text-secondary);">Auto-populate details from Birth Certificate or SF10.</span>
+        </div>
       </div>
     </div>
   </div>
 
-  <!-- 3. Simulated Browser Download Toast -->
-  <div id="browser-download-toast" class="browser-download-toast">
-    <div class="toast-icon">
-      <svg width="20" height="20" fill="none" stroke="#fff" stroke-width="2.5" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+  <!-- Toast -->
+  <div id="download-toast" class="download-toast">
+    <div style="background: var(--primary-green); width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center;">
+      &#x21E9;
     </div>
     <div>
-      <div style="font-size: 13px; font-weight: 700;">Opening in Default Browser</div>
-      <div id="toast-filename" style="font-size: 11px; opacity: 0.85; font-family: monospace;">TIS_RMS_Setup_v1.0.24.exe</div>
+      <div style="font-size: 12px; font-weight: 700;">Browser Download Triggered</div>
+      <div id="toast-filename" style="font-size: 11px; color: var(--text-secondary); font-family: monospace;">TIS_RMS_Setup_v1.0.24.exe</div>
     </div>
   </div>
-
-  <style>
-    @keyframes spin {
-      to { transform: rotate(360deg); }
-    }
-  </style>
 
   <script src="app.js"></script>
 </body>

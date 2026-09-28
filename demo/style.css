@@ -1,55 +1,66 @@
 /* 
-  TIS-RMS Interactive Prototype Stylesheet
-  Pixel-Perfect Replica from Actual App Screenshots
+  TIS-RMS Static Web Application
+  Faithful recreation of actual Windows & Android app screens
 */
 
 :root {
   --primary-green: #198754;
   --primary-green-dark: #0f5132;
   --accent-emerald: #10b981;
-  --bg-page: #0a1118;
-  --bg-control: rgba(15, 23, 42, 0.88);
-  --border-color: rgba(255, 255, 255, 0.12);
+  --accent-cyan: #06b6d4;
+  --accent-amber: #f59e0b;
+  --accent-rose: #ef4444;
+  --accent-purple: #a855f7;
+
+  /* Real App Exact Dark Palette */
+  --app-bg: #0d1713;
+  --sidebar-bg: #112019;
+  --sidebar-nav-active: #1c382b;
+  --card-bg: #182820;
+  --card-subtle: #14221b;
+  --card-border: rgba(255, 255, 255, 0.08);
+  --card-border-hover: rgba(25, 135, 84, 0.4);
   --text-main: #f1f5f9;
-  --text-muted: #94a3b8;
+  --text-secondary: #94a3b8;
+  --text-muted: #64748b;
+  --titlebar-green: #198754;
 }
 
 * {
   box-sizing: border-box;
   margin: 0;
   padding: 0;
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
   -webkit-font-smoothing: antialiased;
 }
 
 body {
-  background: var(--bg-page);
+  background: #070d0a;
   color: var(--text-main);
   min-height: 100vh;
   display: flex;
   flex-direction: column;
   align-items: center;
   overflow-x: hidden;
-  background-image: 
-    radial-gradient(circle at 15% 15%, rgba(25, 135, 84, 0.18) 0%, transparent 45%),
-    radial-gradient(circle at 85% 85%, rgba(6, 182, 212, 0.15) 0%, transparent 45%);
 }
 
-/* ── Top Control Bar ─────────────────────────────────────────── */
+/* ─────────────────────────────────────────────────────────────
+   TOP FLOATING DEVICE SWITCHER BAR
+───────────────────────────────────────────────────────────── */
 .top-control-bar {
   position: sticky;
-  top: 12px;
+  top: 10px;
   z-index: 1000;
-  background: var(--bg-control);
+  background: rgba(17, 32, 25, 0.92);
   backdrop-filter: blur(16px);
-  border: 1px solid var(--border-color);
+  border: 1px solid rgba(255, 255, 255, 0.12);
   border-radius: 999px;
-  padding: 6px 14px;
+  padding: 6px 16px;
   display: flex;
   align-items: center;
-  gap: 14px;
-  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.45);
-  margin: 12px 0 18px;
+  gap: 16px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6);
+  margin: 10px 0 16px;
 }
 
 .brand-badge {
@@ -64,8 +75,8 @@ body {
 }
 
 .brand-badge img {
-  width: 26px;
-  height: 26px;
+  width: 24px;
+  height: 24px;
   border-radius: 50%;
 }
 
@@ -80,7 +91,7 @@ body {
 .device-btn {
   background: transparent;
   border: none;
-  color: var(--text-muted);
+  color: var(--text-secondary);
   padding: 6px 16px;
   border-radius: 999px;
   font-size: 12px;
@@ -102,97 +113,54 @@ body {
   box-shadow: 0 2px 10px rgba(25, 135, 84, 0.5);
 }
 
-/* ── Screen Navigation Pill Bar ───────────────────────────────── */
-.screen-selector-bar {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  background: rgba(15, 23, 42, 0.7);
-  backdrop-filter: blur(12px);
-  padding: 6px 12px;
-  border-radius: 999px;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  margin-bottom: 20px;
-  overflow-x: auto;
-  max-width: 95vw;
-}
-
-.screen-pill {
-  background: transparent;
-  border: 1px solid transparent;
-  color: var(--text-muted);
-  font-size: 12px;
-  font-weight: 600;
-  padding: 6px 14px;
-  border-radius: 999px;
-  cursor: pointer;
-  white-space: nowrap;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  transition: all 0.2s;
-}
-
-.screen-pill:hover {
-  color: #fff;
-  background: rgba(255, 255, 255, 0.06);
-}
-
-.screen-pill.active {
-  background: rgba(25, 135, 84, 0.2);
-  border-color: var(--primary-green);
-  color: var(--accent-emerald);
-  font-weight: 700;
-}
-
-/* ── Viewport Container ───────────────────────────────────────── */
+/* ─────────────────────────────────────────────────────────────
+   VIEWPORT WRAPPERS
+───────────────────────────────────────────────────────────── */
 .viewport-container {
   width: 100%;
-  max-width: 1440px;
+  max-width: 1360px;
   display: flex;
-  flex-direction: column;
-  align-items: center;
+  justify-content: center;
   padding: 0 16px 40px;
   flex: 1;
 }
 
 /* ─────────────────────────────────────────────────────────────
-   WINDOWS DESKTOP FRAME
+   1. WINDOWS DESKTOP APP LAYOUT
 ───────────────────────────────────────────────────────────── */
 .desktop-window {
   width: 100%;
-  max-width: 1280px;
-  background: #0c1a14;
+  height: 840px;
+  background: var(--app-bg);
   border-radius: 12px;
-  box-shadow: 0 25px 65px -15px rgba(0, 0, 0, 0.8), 0 0 0 1px rgba(255, 255, 255, 0.12);
-  overflow: hidden;
+  box-shadow: 0 25px 65px -15px rgba(0, 0, 0, 0.8), 0 0 0 1px rgba(255, 255, 255, 0.1);
   display: flex;
   flex-direction: column;
+  overflow: hidden;
+  position: relative;
+  background-image: 
+    radial-gradient(circle at 10% 20%, rgba(25, 135, 84, 0.08) 0%, transparent 50%),
+    radial-gradient(circle at 80% 80%, rgba(16, 185, 129, 0.05) 0%, transparent 50%);
 }
 
+/* Green Titlebar */
 .win-titlebar {
   height: 34px;
-  background: #0f5132;
+  background: var(--titlebar-green);
   display: flex;
   align-items: center;
   justify-content: space-between;
   padding: 0 14px;
   user-select: none;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  font-size: 12px;
+  color: #fff;
 }
 
 .win-titlebar-left {
   display: flex;
   align-items: center;
   gap: 8px;
-  font-size: 12px;
   font-weight: 500;
-  color: #fff;
-}
-
-.win-titlebar-left img {
-  width: 16px;
-  height: 16px;
 }
 
 .win-window-controls {
@@ -203,149 +171,847 @@ body {
   font-size: 13px;
 }
 
-.win-stage {
-  position: relative;
-  width: 100%;
-  aspect-ratio: 16 / 9;
-  background: #0c1a14;
+.win-body {
+  display: flex;
+  flex: 1;
   overflow: hidden;
 }
 
-.win-screen-img {
-  width: 100%;
-  height: 100%;
-  object-fit: contain;
-  display: block;
-  transition: opacity 0.25s ease-in-out;
-}
-
-/* Interactive Sidebar Hotspot Overlay for Windows */
-.win-sidebar-hotspots {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 20%;
-  height: 100%;
+/* Left Sidebar */
+.win-sidebar {
+  width: 240px;
+  background: var(--sidebar-bg);
+  border-right: 1px solid var(--card-border);
   display: flex;
   flex-direction: column;
-  pointer-events: auto;
+  padding: 16px 12px;
+  user-select: none;
 }
 
-.hotspot-sidebar-item {
-  position: absolute;
-  left: 5%;
-  width: 90%;
-  height: 4.8%;
+.win-app-brand {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 4px 8px 18px;
+  border-bottom: 1px solid var(--card-border);
+  margin-bottom: 14px;
+}
+
+.win-brand-info {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.win-brand-info img {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+}
+
+.win-brand-info h3 {
+  font-size: 15px;
+  font-weight: 800;
+  color: #fff;
+  letter-spacing: 0.5px;
+}
+
+.win-hamburger {
   cursor: pointer;
-  border-radius: 6px;
-  transition: background 0.15s;
+  color: var(--text-secondary);
 }
 
-.hotspot-sidebar-item:hover {
-  background: rgba(25, 135, 84, 0.2);
-  border: 1px solid rgba(25, 135, 84, 0.4);
+.win-sidebar-group {
+  margin-bottom: 14px;
 }
 
-/* Sidebar Hotspot Positions (%) based on 1080p layout */
-.hotspot-item-dashboard { top: 24.2%; }
-.hotspot-item-students  { top: 32.5%; }
-.hotspot-item-documents { top: 40.5%; }
-.hotspot-item-archives  { top: 48.5%; }
-.hotspot-item-reports   { top: 61.5%; }
-.hotspot-item-users     { top: 69.5%; }
-.hotspot-item-history   { top: 77.5%; }
-.hotspot-item-settings  { top: 85.5%; }
-
-/* Quick Action Hotspot in Students Screen (Add Student) */
-.hotspot-add-student {
-  position: absolute;
-  top: 9.8%;
-  right: 1.8%;
-  width: 10.5%;
-  height: 4.2%;
-  cursor: pointer;
-  border-radius: 999px;
-  transition: background 0.15s;
+.win-group-label {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: #688574;
+  letter-spacing: 0.8px;
+  padding: 0 10px;
+  margin-bottom: 6px;
 }
 
-.hotspot-add-student:hover {
-  background: rgba(255, 255, 255, 0.15);
-  box-shadow: 0 0 12px rgba(25, 135, 84, 0.5);
+.win-nav-list {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
 }
 
-/* Hotspot for Settings Check Updates */
-.hotspot-settings-update {
-  position: absolute;
-  bottom: 8.5%;
-  right: 15%;
-  width: 28%;
-  height: 8.5%;
-  cursor: pointer;
+.win-nav-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 9px 12px;
   border-radius: 8px;
-  transition: background 0.15s;
+  font-size: 13px;
+  font-weight: 500;
+  color: #94a3b8;
+  cursor: pointer;
+  transition: all 0.15s ease;
 }
 
-.hotspot-settings-update:hover {
-  background: rgba(25, 135, 84, 0.25);
-  border: 1px dashed var(--accent-emerald);
+.win-nav-item svg {
+  width: 18px;
+  height: 18px;
+  opacity: 0.85;
+}
+
+.win-nav-item:hover {
+  background: rgba(255, 255, 255, 0.05);
+  color: #fff;
+}
+
+.win-nav-item.active {
+  background: var(--sidebar-nav-active);
+  color: var(--accent-emerald);
+  font-weight: 600;
+}
+
+.win-nav-item.active svg {
+  color: var(--accent-emerald);
+  opacity: 1;
+}
+
+/* User Profile Footer in Sidebar */
+.win-user-profile {
+  margin-top: auto;
+  padding: 10px;
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border: 1px solid var(--card-border);
+}
+
+.win-user-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.avatar-badge {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: var(--primary-green);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.win-user-details h4 {
+  font-size: 12px;
+  font-weight: 600;
+  color: #fff;
+  line-height: 1.2;
+}
+
+.win-user-details span {
+  font-size: 10px;
+  color: var(--accent-emerald);
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+/* Main Screen View Area */
+.win-main-stage {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: var(--app-bg);
+}
+
+/* Header Top Controls Inside App */
+.win-stage-header {
+  height: 68px;
+  padding: 0 28px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid var(--card-border);
+}
+
+.stage-title {
+  font-size: 24px;
+  font-weight: 800;
+  color: #fff;
+  letter-spacing: -0.3px;
+}
+
+.stage-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.icon-btn {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: transparent;
+  border: none;
+  color: #cbd5e1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.icon-btn:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: #fff;
+}
+
+.btn-add-student {
+  background: linear-gradient(135deg, #198754, #10b981);
+  color: #fff;
+  border: none;
+  border-radius: 999px;
+  padding: 8px 18px;
+  font-size: 13px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(25, 135, 84, 0.35);
+  transition: all 0.2s;
+}
+
+.btn-add-student:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(25, 135, 84, 0.5);
+}
+
+.win-scroll-viewport {
+  flex: 1;
+  overflow-y: auto;
+  padding: 24px 28px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
 }
 
 /* ─────────────────────────────────────────────────────────────
-   ANDROID SMARTPHONE FRAME
+   2. ANDROID MOBILE APP LAYOUT (Phone Mockup)
 ───────────────────────────────────────────────────────────── */
-.phone-mockup {
+.phone-frame {
   width: 390px;
   height: 820px;
-  background: #000;
-  border-radius: 48px;
+  background: var(--app-bg);
+  border-radius: 46px;
   box-shadow: 
     0 0 0 12px #1e293b, 
     0 0 0 14px #334155,
-    0 30px 60px -12px rgba(0, 0, 0, 0.85);
+    0 25px 60px -12px rgba(0, 0, 0, 0.85);
   display: flex;
   flex-direction: column;
   overflow: hidden;
   position: relative;
 }
 
-.phone-screen-container {
-  position: relative;
-  width: 100%;
-  height: 100%;
-  background: #000;
+.phone-status-bar {
+  height: 38px;
+  background: #0b140f;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 22px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #fff;
+  user-select: none;
+  z-index: 10;
+}
+
+.phone-app-header {
+  height: 54px;
+  background: #112019;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 16px;
+  border-bottom: 1px solid var(--card-border);
+}
+
+.phone-header-title {
+  font-size: 17px;
+  font-weight: 700;
+  color: #fff;
+}
+
+.phone-scroll-content {
+  flex: 1;
+  overflow-y: auto;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+/* Android Bottom Nav */
+.phone-bottom-nav {
+  height: 60px;
+  background: #112019;
+  border-top: 1px solid var(--card-border);
+  display: flex;
+  align-items: center;
+  justify-content: space-around;
+  padding: 0 8px;
+  user-select: none;
+}
+
+.phone-nav-tab {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--text-muted);
+  cursor: pointer;
+  padding: 6px 12px;
+  border-radius: 8px;
+}
+
+.phone-nav-tab svg {
+  width: 20px;
+  height: 20px;
+}
+
+.phone-nav-tab.active {
+  color: var(--accent-emerald);
+}
+
+/* ─────────────────────────────────────────────────────────────
+   SHARED SCREEN COMPONENTS (Pixel-Perfect to Screenshots)
+───────────────────────────────────────────────────────────── */
+
+/* Banner: Setup Required */
+.setup-banner {
+  background: var(--card-bg);
+  border: 1px solid var(--card-border);
+  border-radius: 12px;
+  padding: 14px 18px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.setup-banner-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-weight: 700;
+  font-size: 14px;
+  color: #fff;
+}
+
+.setup-banner-icon {
+  color: var(--accent-emerald);
+}
+
+/* Stat Cards (from actual screenshot: 91 Total Students, 18 Active Users, etc.) */
+.stat-cards-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 14px;
+}
+
+.phone-frame .stat-cards-grid {
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+}
+
+.app-stat-card {
+  background: var(--card-bg);
+  border: 1px solid var(--card-border);
+  border-radius: 12px;
+  padding: 16px 18px;
+  cursor: pointer;
+  transition: transform 0.2s, border-color 0.2s;
+}
+
+.app-stat-card:hover {
+  transform: translateY(-2px);
+  border-color: var(--card-border-hover);
+}
+
+.app-stat-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 14px;
+}
+
+.app-stat-icon {
+  width: 34px;
+  height: 34px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+}
+
+.app-stat-icon.green { background: rgba(25, 135, 84, 0.18); color: var(--accent-emerald); }
+.app-stat-icon.blue { background: rgba(6, 182, 212, 0.18); color: var(--accent-cyan); }
+.app-stat-icon.amber { background: rgba(245, 158, 11, 0.18); color: var(--accent-amber); }
+
+.app-stat-chevron {
+  color: var(--text-muted);
+  font-size: 14px;
+}
+
+.app-stat-number {
+  font-size: 26px;
+  font-weight: 800;
+  color: #fff;
+  line-height: 1.1;
+}
+
+.app-stat-label {
+  font-size: 12px;
+  color: var(--text-secondary);
+  margin-top: 4px;
+  font-weight: 500;
+}
+
+/* KPI Analytics Section */
+.kpi-section-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 16px;
+  font-weight: 700;
+  color: #fff;
+  margin-top: 10px;
+}
+
+.kpi-section-title span.badge {
+  background: rgba(25, 135, 84, 0.2);
+  color: var(--accent-emerald);
+  font-size: 11px;
+  font-weight: 600;
+  padding: 3px 8px;
+  border-radius: 6px;
+}
+
+.kpi-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+.phone-frame .kpi-grid {
+  grid-template-columns: 1fr;
+}
+
+.kpi-card {
+  background: var(--card-bg);
+  border: 1px solid var(--card-border);
+  border-radius: 12px;
+  padding: 18px;
+}
+
+.kpi-card-header h4 {
+  font-size: 14px;
+  font-weight: 700;
+  color: #fff;
+}
+
+.kpi-card-header p {
+  font-size: 11px;
+  color: var(--text-secondary);
+  margin-top: 2px;
+  margin-bottom: 14px;
+}
+
+/* Circular rings */
+.rings-container {
+  display: flex;
+  align-items: center;
+  justify-content: space-around;
+  padding: 10px 0;
+}
+
+.ring-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}
+
+.circular-ring {
+  width: 54px;
+  height: 54px;
+  border-radius: 50%;
+  border: 3px solid rgba(25, 135, 84, 0.2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--accent-emerald);
+}
+
+.ring-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.ring-sub {
+  font-size: 10px;
+  color: var(--text-muted);
+}
+
+/* Progress bar inside KPI */
+.kpi-progress-bar {
+  margin-bottom: 12px;
+}
+
+.kpi-bar-meta {
+  display: flex;
+  justify-content: space-between;
+  font-size: 12px;
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+
+.bar-track-custom {
+  height: 8px;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 999px;
   overflow: hidden;
 }
 
-.phone-screen-img {
-  width: 100%;
+.bar-fill-green {
   height: 100%;
-  object-fit: cover;
-  display: block;
-  transition: opacity 0.25s ease-in-out;
+  width: 6.7%;
+  background: var(--accent-emerald);
+  border-radius: 999px;
 }
 
-/* Android Bottom Bar Hotspots */
-.phone-nav-hotspots {
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  height: 70px;
+.bar-fill-amber {
+  height: 100%;
+  width: 53.3%;
+  background: var(--accent-amber);
+  border-radius: 999px;
+}
+
+/* ─────────────────────────────────────────────────────────────
+   STUDENTS DIRECTORY CARDS (from actual screenshot)
+───────────────────────────────────────────────────────────── */
+.students-list-view {
   display: flex;
+  flex-direction: column;
+  gap: 10px;
 }
 
-.phone-hotspot-item {
-  flex: 1;
+.student-card-row {
+  background: var(--card-bg);
+  border: 1px solid var(--card-border);
+  border-radius: 12px;
+  padding: 14px 18px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
   cursor: pointer;
-  transition: background 0.15s;
+  transition: all 0.2s;
 }
 
-.phone-hotspot-item:hover {
-  background: rgba(25, 135, 84, 0.15);
+.phone-frame .student-card-row {
+  padding: 12px 14px;
 }
 
-/* ── Modals & Overlays ────────────────────────────────────────── */
-.modal-overlay {
+.student-card-row:hover {
+  background: #1c3026;
+  border-color: var(--card-border-hover);
+}
+
+.student-left {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  min-width: 220px;
+}
+
+.student-avatar {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  background: rgba(25, 135, 84, 0.2);
+  color: var(--accent-emerald);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.student-names h4 {
+  font-size: 13px;
+  font-weight: 700;
+  color: #fff;
+  letter-spacing: 0.2px;
+}
+
+.student-names span {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.student-middle {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex: 1;
+  padding: 0 16px;
+}
+
+.phone-frame .student-middle {
+  display: none;
+}
+
+.student-section-info {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+/* Badges */
+.badge-4ps {
+  background: rgba(168, 85, 247, 0.2);
+  color: #c084fc;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 2px 7px;
+  border-radius: 6px;
+}
+
+.badge-inactive {
+  background: rgba(255, 255, 255, 0.1);
+  color: #cbd5e1;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 2px 7px;
+  border-radius: 6px;
+}
+
+.badge-dropped {
+  background: rgba(239, 68, 68, 0.2);
+  color: #f87171;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 2px 7px;
+  border-radius: 6px;
+}
+
+.student-right {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.docs-progress-chip {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.docs-progress-text {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.docs-mini-bar {
+  width: 70px;
+  height: 4px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.docs-mini-fill {
+  height: 100%;
+  background: var(--accent-cyan);
+  border-radius: 999px;
+}
+
+.folder-action-icon {
+  color: var(--accent-amber);
+}
+
+/* Pagination bar (bottom of students screen) */
+.pagination-bar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 14px;
+  user-select: none;
+}
+
+.page-btn {
+  background: var(--card-bg);
+  border: 1px solid var(--card-border);
+  color: var(--text-secondary);
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.page-btn.active {
+  background: var(--primary-green);
+  color: #fff;
+  border-color: var(--primary-green);
+}
+
+/* ─────────────────────────────────────────────────────────────
+   SETTINGS SCREEN COLLAPSIBLE CARDS (from actual screenshot)
+───────────────────────────────────────────────────────────── */
+.settings-list-view {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.settings-card-item {
+  background: var(--card-bg);
+  border: 1px solid var(--card-border);
+  border-radius: 12px;
+  overflow: hidden;
+  transition: border-color 0.2s;
+}
+
+.settings-card-header {
+  padding: 16px 20px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  cursor: pointer;
+  user-select: none;
+}
+
+.settings-card-header h4 {
+  font-size: 15px;
+  font-weight: 700;
+  color: #fff;
+}
+
+.settings-card-header span.chevron {
+  color: var(--text-secondary);
+  transition: transform 0.2s;
+}
+
+.settings-card-body {
+  padding: 16px 20px 20px;
+  border-top: 1px solid var(--card-border);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  font-size: 13px;
+}
+
+.info-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 6px 0;
+  border-bottom: 1px dashed rgba(255, 255, 255, 0.06);
+}
+
+.info-row .label { color: var(--text-secondary); }
+.info-row .val { color: #fff; font-weight: 600; }
+
+/* ─────────────────────────────────────────────────────────────
+   DOCUMENTS & ARCHIVES CARDS (from actual screenshot)
+───────────────────────────────────────────────────────────── */
+.doc-folder-card {
+  background: var(--card-bg);
+  border: 1px solid var(--card-border);
+  border-radius: 12px;
+  padding: 16px 20px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.doc-folder-card:hover {
+  background: #1c3026;
+  border-color: var(--card-border-hover);
+}
+
+.doc-folder-left {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.doc-folder-icon {
+  font-size: 28px;
+  color: var(--accent-amber);
+}
+
+.doc-folder-title {
+  font-size: 14px;
+  font-weight: 700;
+  color: #fff;
+}
+
+.doc-folder-sub {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-top: 2px;
+}
+
+.doc-folder-badges {
+  display: flex;
+  gap: 6px;
+  margin-top: 6px;
+}
+
+.badge-jhs {
+  background: rgba(245, 158, 11, 0.15);
+  color: #fbbf24;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 2px 7px;
+  border-radius: 6px;
+}
+
+.badge-shs {
+  background: rgba(6, 182, 212, 0.15);
+  color: #38bdf8;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 2px 7px;
+  border-radius: 6px;
+}
+
+/* Modals */
+.modal-backdrop {
   position: fixed;
   inset: 0;
   background: rgba(0, 0, 0, 0.7);
@@ -359,123 +1025,68 @@ body {
   transition: opacity 0.25s ease;
 }
 
-.modal-overlay.active {
+.modal-backdrop.active {
   opacity: 1;
   pointer-events: auto;
 }
 
-.modal-dialog {
-  background: #13241b;
-  color: #fff;
+.modal-content {
+  background: #122119;
+  border: 1px solid rgba(25, 135, 84, 0.4);
+  border-radius: 16px;
   width: 90%;
   max-width: 520px;
-  border-radius: 16px;
-  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7);
-  border: 1px solid rgba(25, 135, 84, 0.3);
-  transform: scale(0.95);
-  transition: transform 0.25s ease;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.8);
   overflow: hidden;
 }
 
-.modal-overlay.active .modal-dialog {
-  transform: scale(1);
-}
-
-.modal-header {
+.modal-head {
   padding: 16px 20px;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  border-bottom: 1px solid var(--card-border);
 }
 
-.modal-header h3 {
+.modal-head h3 {
   font-size: 16px;
   font-weight: 700;
   color: var(--accent-emerald);
 }
 
-.modal-close {
+.modal-close-btn {
   background: transparent;
   border: none;
+  color: var(--text-muted);
   font-size: 20px;
   cursor: pointer;
-  color: var(--text-muted);
 }
 
 .modal-body {
   padding: 20px;
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: 12px;
 }
 
-.btn-primary {
-  background: var(--primary-green);
-  color: #fff;
-  border: none;
-  border-radius: 8px;
-  height: 38px;
-  padding: 0 16px;
-  font-size: 13px;
-  font-weight: 600;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.btn-primary:hover {
-  background: var(--primary-green-dark);
-}
-
-.btn-secondary {
-  background: rgba(255, 255, 255, 0.08);
-  color: #fff;
-  border: 1px solid rgba(255, 255, 255, 0.15);
-  border-radius: 8px;
-  height: 38px;
-  padding: 0 16px;
-  font-size: 13px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.btn-secondary:hover {
-  background: rgba(255, 255, 255, 0.15);
-}
-
-/* Browser Download Toast */
-.browser-download-toast {
+/* Toast */
+.download-toast {
   position: fixed;
   bottom: 24px;
   right: 24px;
-  background: #0f172a;
-  color: #fff;
-  border: 1px solid #10b981;
+  background: #0b140f;
+  border: 1px solid var(--accent-emerald);
   border-radius: 12px;
-  padding: 14px 20px;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+  padding: 14px 18px;
   display: flex;
   align-items: center;
   gap: 12px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6);
   z-index: 3000;
   transform: translateY(140%);
   transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
-.browser-download-toast.active {
+.download-toast.active {
   transform: translateY(0);
-}
-
-.toast-icon {
-  background: var(--primary-green);
-  width: 36px;
-  height: 36px;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
 }
