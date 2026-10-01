@@ -31,35 +31,25 @@ dependencies:
   flutter:
     sdk: flutter
 
-  # The following adds the Cupertino Icons font to your application.
-  # Use with the CupertinoIcons class for iOS style icons.
-  cupertino_icons: ^1.0.8
   flutter_riverpod: ^2.6.1
   dio: ^5.9.2
   flutter_secure_storage: ^10.1.0
   google_fonts: ^8.1.0
-  excel: ^4.0.6
   path_provider: ^2.1.5
   file_picker: ^11.0.2
   permission_handler: ^12.0.1
   socket_io_client: ^3.1.4
-  image_picker: ^1.2.2
   shared_preferences: ^2.5.5
   fl_chart: ^1.2.0
   url_launcher: ^6.3.1
-  syncfusion_flutter_pdfviewer: ^33.2.8
-  flutter_holo_date_picker: ^2.0.0
   calendar_date_picker2: ^3.0.0
-  lottie: ^3.3.0
   window_manager: ^0.5.1
-  flutter_speed_dial: ^7.0.0
   open_filex: ^4.7.0
   android_intent_plus: ^5.3.0
   google_mlkit_document_scanner: ^0.4.1
   data_table_2: ^2.7.2
   printing: ^5.14.3
   intl: ^0.19.0
-  sheetifye: ^1.1.0
   flutter_local_notifications: ^17.2.2
   workmanager: ^0.9.0+3
   flutter_foreground_task: ^8.17.0
@@ -107,7 +97,6 @@ flutter:
     - assets/images/
     - assets/images/group/
     - assets/images/solo/
-    - assets/lottie/
     - assets/sounds/
     - assets/templates/School-Form-10-JHS.xlsx
     - assets/templates/SSHS-SF-10-v2026_corrected.xlsx

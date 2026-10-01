@@ -5,7 +5,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:open_filex/open_filex.dart';
-import 'package:syncfusion_flutter_pdfviewer/pdfviewer.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../../../core/constants/app_colors.dart';
@@ -19,14 +18,13 @@ import '../../../shared/dialogs/error_dialog.dart';
 import '../../../shared/dialogs/success_dialog.dart';
 import '../../../shared/dialogs/document_properties_dialog.dart';
 import 'student_profile_modal.dart';
-import 'excel_viewer_widget.dart';
 import 'document_version_history_sheet.dart';
 
 /// Shows a fullscreen rich preview dialog for any document type:
 /// • Images (jpg/jpeg/png/gif/webp/bmp) → inline image with in-viewer zoom
-/// • PDF                               → inline PDF viewer with in-viewer zoom
-/// • Excel / CSV                       → inline grid viewer + "Open with" external app CTA
-/// • DOCX / others                     → file info + "Open in Browser" CTA
+/// • PDF                               → file card + system PDF viewer via OpenFilex
+/// • Excel / CSV                       → file card + system spreadsheet viewer via OpenFilex
+/// • DOCX / others                     → file info + Open in Browser / System viewer
 void showDocumentPreview({
   required BuildContext context,
   DocumentModel? document,
@@ -74,7 +72,6 @@ class _DocumentPreviewDialogState
 
   final _docRepo = DocumentRepository();
 
-  final PdfViewerController _pdfViewerController = PdfViewerController();
   final TransformationController _imageTransformationController =
       TransformationController();
 
@@ -90,15 +87,6 @@ class _DocumentPreviewDialogState
     _imageTransformationController.value = matrix;
   }
 
-  void _zoomPdfIn() {
-    _pdfViewerController.zoomLevel = _pdfViewerController.zoomLevel + 0.5;
-  }
-
-  void _zoomPdfOut() {
-    final newZoom = _pdfViewerController.zoomLevel - 0.5;
-    _pdfViewerController.zoomLevel = newZoom < 1.0 ? 1.0 : newZoom;
-  }
-
   @override
   void initState() {
     super.initState();
@@ -107,7 +95,6 @@ class _DocumentPreviewDialogState
 
   @override
   void dispose() {
-    _pdfViewerController.dispose();
     _imageTransformationController.dispose();
     super.dispose();
   }
@@ -706,7 +693,7 @@ class _DocumentPreviewDialogState
     } else if (_isPdf) {
       content = _buildPdfInfo(isMobile);
     } else if (_isExcel) {
-      content = _buildExcelViewer(isMobile);
+      content = _buildExcelInfo(isMobile);
     } else if (_isOffice) {
       content = _buildOfficeInfo(isMobile);
     } else {
@@ -768,19 +755,31 @@ class _DocumentPreviewDialogState
     );
   }
 
-  // ── Excel viewer panel ────────────────────────────────────
-  Widget _buildExcelViewer(bool isMobile) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    return Container(
-      width: double.infinity,
-      height: double.infinity,
-      color: isDark ? AppColors.darkSurface2 : Colors.grey.shade100,
-      child: ExcelViewerWidget(
-        localFile: widget.localFile,
-        networkUrl: widget.localFile != null ? null : _fileUrl,
-        fileName: _fileName,
-        isMobile: isMobile,
-      ),
+  // ── Excel info panel ─────────────────────────────────────
+  Widget _buildExcelInfo(bool isMobile) {
+    return _buildDocInfoPanel(
+      icon: _typeIcon,
+      iconColor: _typeColor,
+      title: _typeLabel,
+      subtitle: _fileName,
+      detail: widget.document?.size ??
+          (widget.localFile != null
+              ? '${(widget.localFile!.lengthSync() / 1024).toStringAsFixed(1)} KB'
+              : 'Size unknown'),
+      actions: [
+        _actionButton(
+          icon: Icons.open_in_new_rounded,
+          label: 'OPEN SPREADSHEET',
+          color: _typeColor,
+          onTap: _isOpeningExternal ? () {} : _openExternalExcel,
+        ),
+        _actionButton(
+          icon: Icons.download_rounded,
+          label: 'DOWNLOAD',
+          color: AppColors.primaryGreen,
+          onTap: _downloadFile,
+        ),
+      ],
     );
   }
 
@@ -894,42 +893,29 @@ class _DocumentPreviewDialogState
 
   // ── PDF info panel ────────────────────────────────────────
   Widget _buildPdfInfo(bool isMobile) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    return Container(
-      width: double.infinity,
-      height: double.infinity,
-      color: isDark ? AppColors.darkSurface2 : Colors.grey.shade100,
-      child: Stack(
-        children: [
-          widget.localFile != null
-              ? SfPdfViewer.file(
-                  widget.localFile!,
-                  controller: _pdfViewerController,
-                  canShowScrollHead: false,
-                  canShowScrollStatus: false,
-                  interactionMode: PdfInteractionMode.pan,
-                )
-              : SfPdfViewer.network(
-                  _fileUrl,
-                  controller: _pdfViewerController,
-                  canShowScrollHead: false,
-                  canShowScrollStatus: false,
-                  interactionMode: PdfInteractionMode.pan,
-                ),
-          // Floating Zoom Controls
-          Positioned(
-            bottom: 24,
-            right: 24,
-            child: _buildZoomControls(
-              onZoomIn: _zoomPdfIn,
-              onZoomOut: _zoomPdfOut,
-              onReset: () {
-                _pdfViewerController.zoomLevel = 1.0;
-              },
-            ),
-          ),
-        ],
-      ),
+    return _buildDocInfoPanel(
+      icon: _typeIcon,
+      iconColor: _typeColor,
+      title: _typeLabel,
+      subtitle: _fileName,
+      detail: widget.document?.size ??
+          (widget.localFile != null
+              ? '${(widget.localFile!.lengthSync() / 1024).toStringAsFixed(1)} KB'
+              : 'Size unknown'),
+      actions: [
+        _actionButton(
+          icon: Icons.open_in_new_rounded,
+          label: 'OPEN VIEWER',
+          color: _typeColor,
+          onTap: _isOpeningExternal ? () {} : _openInDefaultApp,
+        ),
+        _actionButton(
+          icon: Icons.download_rounded,
+          label: 'DOWNLOAD',
+          color: AppColors.primaryGreen,
+          onTap: _downloadFile,
+        ),
+      ],
     );
   }
 

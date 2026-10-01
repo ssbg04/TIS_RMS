@@ -1,7 +1,5 @@
 import 'dart:io';
-import 'dart:typed_data';
 import 'package:flutter/material.dart';
-import 'package:syncfusion_flutter_pdfviewer/pdfviewer.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_sizes.dart';
 import '../widgets/app_button_loader.dart';
@@ -364,12 +362,45 @@ class _FileSavePreviewDialogState extends State<_FileSavePreviewDialog> {
           color: isDark ? AppColors.darkBorder : Colors.grey.shade300,
         ),
       ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(AppSizes.radiusMedium),
-        child: SfPdfViewer.memory(
-          Uint8List.fromList(widget.fileBytes!),
-          canShowScrollHead: true,
-          canShowScrollStatus: true,
+      child: Center(
+        child: Padding(
+          padding: const EdgeInsets.all(32),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 80,
+                height: 80,
+                decoration: BoxDecoration(
+                  color: SaveFileType.pdf.color.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: Icon(
+                  Icons.picture_as_pdf_rounded,
+                  size: 44,
+                  color: SaveFileType.pdf.color,
+                ),
+              ),
+              const SizedBox(height: 16),
+              Text(
+                widget.initialFileName,
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w600,
+                  color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                '$_sizeLabel • Ready to save',
+                style: TextStyle(
+                  fontSize: 13,
+                  color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );

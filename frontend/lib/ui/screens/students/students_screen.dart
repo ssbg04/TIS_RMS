@@ -1492,7 +1492,9 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
   // ================================================================
   Widget _buildViewTabSwitcher(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final pageTotal = ref.watch(studentPageProvider).asData?.value.total;
+    final isMobile = MediaQuery.of(context).size.width < 800;
+    final isMobileOrAndroid =
+        isMobile || defaultTargetPlatform == TargetPlatform.android;
 
     // Resolve academic year label for the enrolled tab
     final years = ref.watch(academicYearsListProvider).asData?.value ?? [];
@@ -1504,126 +1506,114 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
     }
     final yearLabel = activeYear != null ? ' · ${activeYear.yearRange}' : '';
 
-    return LayoutBuilder(
-      builder: (_, c) {
-        final isWide = c.maxWidth > 500;
-        return Container(
-          height: 38,
-          decoration: BoxDecoration(
-            color: isDark ? AppColors.darkSurface2 : Colors.grey.shade100,
-            borderRadius: BorderRadius.circular(10),
-            border: Border.all(
-              color: isDark ? AppColors.darkBorder : Colors.grey.shade200,
-            ),
-          ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              _buildTabChip(
-                label: isWide
-                    ? 'Enrolled$yearLabel'
-                    : 'Enrolled',
-                icon: Icons.school_rounded,
-                active: _viewTab == _StudentViewTab.enrolled,
-                count: _viewTab == _StudentViewTab.enrolled ? pageTotal : null,
-                isDark: isDark,
-                onTap: () => _applyViewTab(_StudentViewTab.enrolled),
-              ),
-              _buildTabChip(
-                label: 'All Students',
-                icon: Icons.people_alt_rounded,
-                active: _viewTab == _StudentViewTab.all,
-                count: _viewTab == _StudentViewTab.all ? pageTotal : null,
-                isDark: isDark,
-                onTap: () => _applyViewTab(_StudentViewTab.all),
-              ),
-            ],
-          ),
-        );
-      },
-    );
-  }
+    final isEnrolled = _viewTab == _StudentViewTab.enrolled;
 
-  Widget _buildTabChip({
-    required String label,
-    required IconData icon,
-    required bool active,
-    required bool isDark,
-    required VoidCallback onTap,
-    int? count,
-  }) {
-    return GestureDetector(
-      onTap: onTap,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 180),
-        margin: const EdgeInsets.all(3),
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 0),
-        decoration: BoxDecoration(
-          color: active
-              ? (isDark ? AppColors.primaryGreen.withValues(alpha: 0.22) : AppColors.primaryGreen)
-              : Colors.transparent,
-          borderRadius: BorderRadius.circular(7),
-          boxShadow: active && !isDark
-              ? [
-                  BoxShadow(
-                    color: AppColors.primaryGreen.withValues(alpha: 0.25),
-                    blurRadius: 4,
-                    offset: const Offset(0, 1),
-                  ),
-                ]
-              : null,
+    return Container(
+      height: 36,
+      padding: const EdgeInsets.all(3),
+      decoration: BoxDecoration(
+        color: isDark ? AppColors.darkSurface2 : const Color(0xFFF1F3F5),
+        borderRadius: BorderRadius.circular(9),
+        border: Border.all(
+          color: isDark ? AppColors.darkBorder : const Color(0xFFE9ECEF),
+          width: 1,
         ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(
-              icon,
-              size: 14,
-              color: active
-                  ? (isDark ? AppColors.primaryGreen : Colors.white)
-                  : (isDark ? AppColors.darkTextSecondary : AppColors.textSecondary),
-            ),
-            const SizedBox(width: 5),
-            Text(
-              label,
-              style: TextStyle(
-                fontSize: 12.5,
-                fontWeight: active ? FontWeight.w700 : FontWeight.w500,
-                color: active
-                    ? (isDark ? AppColors.primaryGreen : Colors.white)
-                    : (isDark ? AppColors.darkTextSecondary : AppColors.textSecondary),
-              ),
-            ),
-            if (count != null) ...[
-              const SizedBox(width: 5),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
-                decoration: BoxDecoration(
-                  color: active
-                      ? (isDark
-                          ? AppColors.primaryGreen.withValues(alpha: 0.35)
-                          : Colors.white.withValues(alpha: 0.3))
-                      : (isDark ? AppColors.darkBorder : Colors.grey.shade300),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Text(
-                  '$count',
-                  style: TextStyle(
-                    fontSize: 10,
-                    fontWeight: FontWeight.w700,
-                    color: active
-                        ? (isDark ? AppColors.primaryGreen : Colors.white)
-                        : (isDark ? AppColors.darkTextSecondary : AppColors.textSecondary),
-                  ),
-                ),
-              ),
-            ],
-          ],
-        ),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          _buildSegmentedTabItem(
+            icon: Icons.school_outlined,
+            activeIcon: Icons.school_rounded,
+            label: isMobile ? 'Enrolled' : 'Enrolled$yearLabel',
+            isSelected: isEnrolled,
+            isDark: isDark,
+            isMobile: isMobile,
+            isMobileOrAndroid: isMobileOrAndroid,
+            onTap: () => _applyViewTab(_StudentViewTab.enrolled),
+          ),
+          const SizedBox(width: 2),
+          _buildSegmentedTabItem(
+            icon: Icons.people_outline_rounded,
+            activeIcon: Icons.people_alt_rounded,
+            label: isMobile ? 'All' : 'All Students',
+            isSelected: !isEnrolled,
+            isDark: isDark,
+            isMobile: isMobile,
+            isMobileOrAndroid: isMobileOrAndroid,
+            onTap: () => _applyViewTab(_StudentViewTab.all),
+          ),
+        ],
       ),
     );
   }
 
+  Widget _buildSegmentedTabItem({
+    required IconData icon,
+    required IconData activeIcon,
+    required String label,
+    required bool isSelected,
+    required bool isDark,
+    required bool isMobile,
+    required bool isMobileOrAndroid,
+    required VoidCallback onTap,
+  }) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(7),
+        onTap: onTap,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 180),
+          curve: Curves.easeInOut,
+          padding: EdgeInsets.symmetric(
+            horizontal: isMobile ? 8 : 13,
+            vertical: 4,
+          ),
+          decoration: BoxDecoration(
+            color: isSelected ? AppColors.primaryGreen : Colors.transparent,
+            borderRadius: BorderRadius.circular(7),
+            boxShadow: isSelected && !isDark && !isMobileOrAndroid
+                ? [
+                    BoxShadow(
+                      color: AppColors.primaryGreen.withValues(alpha: 0.25),
+                      blurRadius: 4,
+                      offset: const Offset(0, 1),
+                    ),
+                  ]
+                : null,
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                isSelected ? activeIcon : icon,
+                size: 15,
+                color: isSelected
+                    ? Colors.white
+                    : (isDark
+                        ? AppColors.darkTextSecondary
+                        : AppColors.textSecondary),
+              ),
+              const SizedBox(width: 5),
+              Text(
+                label,
+                style: TextStyle(
+                  fontSize: isMobile ? 12 : 12.5,
+                  fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
+                  color: isSelected
+                      ? Colors.white
+                      : (isDark
+                          ? AppColors.darkTextSecondary
+                          : AppColors.textSecondary),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
 
   List<StudentModel> _sortStudents(
     List<StudentModel> rawStudents,

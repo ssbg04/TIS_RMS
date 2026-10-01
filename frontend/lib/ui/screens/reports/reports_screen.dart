@@ -1,7 +1,7 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/foundation.dart';
-import 'package:excel/excel.dart' hide Border, TextSpan;
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -126,10 +126,10 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                 .yearRange
           : 'All Years';
 
-      // Build Excel bytes using the filtered data
-      final bytes = _buildExcel(data, yearLabel);
+      // Build CSV bytes using the filtered data
+      final bytes = _buildCsv(data, yearLabel);
       final defaultFileName =
-          'TIS_RMS_Report_${yearLabel.replaceAll('-', '_')}_${DateTime.now().millisecondsSinceEpoch}.xlsx';
+          'TIS_RMS_Report_${yearLabel.replaceAll('-', '_')}_${DateTime.now().millisecondsSinceEpoch}.csv';
 
       if (!mounted) return;
       setState(() => _isExporting = false);
@@ -232,7 +232,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
         dialogTitle: 'Save Report As...',
         fileName: fileName,
         type: FileType.custom,
-        allowedExtensions: ['xlsx'],
+        allowedExtensions: ['csv'],
       );
       if (savePath == null) return null;
     } else {
@@ -245,63 +245,42 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
     return file.path;
   }
 
-  List<int> _buildExcel(ReportStats data, String yearLabel) {
-    final excel = Excel.createExcel();
+  List<int> _buildCsv(ReportStats data, String yearLabel) {
+    final buffer = StringBuffer();
+    // UTF-8 BOM so Microsoft Excel correctly parses UTF-8 characters
+    buffer.write('\uFEFF');
 
-    // ── Sheet 1: Summary ──────────────────────────────────────────────
-    final summary = excel['Summary'];
-    _excelTitle(summary, 'A1', 'TIAONG INTEGRATED SCHOOL - TIS RMS', 7);
-    _excelTitle(summary, 'A2', 'Annual Report Summary: $yearLabel', 7);
-    _excelTitle(
-      summary,
-      'A3',
-      'Generated: ${DateTime.now().toString().substring(0, 19)}',
-      7,
-    );
-
-    summary.cell(CellIndex.indexByString('A5')).value = TextCellValue(
-      'STUDENT STATISTICS',
-    );
-    _boldCell(summary, 'A5');
-    _header(summary, 'A6', 'Student Status');
-    _header(summary, 'B6', 'Total Count');
-    final stats = [
-      ['Active (Enrolled)', data.studentCounts.active.toString()],
-      ['Dropouts (Dropped)', data.studentCounts.dropped.toString()],
-      ['Transferees (Transferred)', data.studentCounts.transferee.toString()],
-      ['Graduated', data.studentCounts.graduated.toString()],
-    ];
-    for (int i = 0; i < stats.length; i++) {
-      summary.cell(CellIndex.indexByString('A${7 + i}')).value = TextCellValue(
-        stats[i][0],
-      );
-      summary.cell(CellIndex.indexByString('B${7 + i}')).value = TextCellValue(
-        stats[i][1],
-      );
+    String escape(String value) {
+      if (value.contains(',') || value.contains('"') || value.contains('\n') || value.contains('\r')) {
+        return '"${value.replaceAll('"', '""')}"';
+      }
+      return value;
     }
 
-    summary.cell(CellIndex.indexByString('A13')).value = TextCellValue(
-      'MISSING DOCUMENTS PER REQUIREMENT TYPE',
-    );
-    _boldCell(summary, 'A13');
-    _header(summary, 'A14', 'Document Type');
-    _header(summary, 'B14', 'Missing Count');
-    for (int i = 0; i < data.missingDocsBreakdown.length; i++) {
-      final row = data.missingDocsBreakdown[i];
-      summary.cell(CellIndex.indexByString('A${15 + i}')).value = TextCellValue(
-        row.name,
-      );
-      summary.cell(CellIndex.indexByString('B${15 + i}')).value = IntCellValue(
-        row.count,
-      );
+    // Title Section
+    buffer.writeln(escape('TIAONG INTEGRATED SCHOOL - TIS RMS'));
+    buffer.writeln(escape('Annual Report Summary: $yearLabel'));
+    buffer.writeln(escape('Generated: ${DateTime.now().toString().substring(0, 19)}'));
+    buffer.writeln();
+
+    // Summary Section
+    buffer.writeln(escape('STUDENT STATISTICS'));
+    buffer.writeln('${escape('Student Status')},${escape('Total Count')}');
+    buffer.writeln('${escape('Active (Enrolled)')},${data.studentCounts.active}');
+    buffer.writeln('${escape('Dropouts (Dropped)')},${data.studentCounts.dropped}');
+    buffer.writeln('${escape('Transferees (Transferred)')},${data.studentCounts.transferee}');
+    buffer.writeln('${escape('Graduated')},${data.studentCounts.graduated}');
+    buffer.writeln();
+
+    buffer.writeln(escape('MISSING DOCUMENTS PER REQUIREMENT TYPE'));
+    buffer.writeln('${escape('Document Type')},${escape('Missing Count')}');
+    for (final row in data.missingDocsBreakdown) {
+      buffer.writeln('${escape(row.name)},${row.count}');
     }
+    buffer.writeln();
 
-    summary.setColumnWidth(0, 36);
-    summary.setColumnWidth(1, 20);
-
-    // ── Sheet 2: Student Compliance List ───────────────────────────────
-    final students = excel['Student Compliance List'];
-    _excelTitle(students, 'A1', 'STUDENT COMPLIANCE REPORT - $yearLabel', 7);
+    // Masterlist Section
+    buffer.writeln(escape('STUDENT COMPLIANCE REPORT - $yearLabel'));
     final headers = [
       '#',
       'LRN',
@@ -313,17 +292,8 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
       'Missing Count',
       'Missing Documents',
     ];
-    for (int c = 0; c < headers.length; c++) {
-      final cell = students.cell(
-        CellIndex.indexByColumnRow(columnIndex: c, rowIndex: 2),
-      );
-      cell.value = TextCellValue(headers[c]);
-      cell.cellStyle = CellStyle(
-        bold: true,
-        backgroundColorHex: ExcelColor.fromHexString('#1C8248'),
-        fontColorHex: ExcelColor.fromHexString('#FFFFFF'),
-      );
-    }
+    buffer.writeln(headers.map(escape).join(','));
+
     for (int r = 0; r < data.students.length; r++) {
       final s = data.students[r];
       final row = [
@@ -337,62 +307,10 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
         s.missingCount.toString(),
         s.missingRequirements ?? 'None',
       ];
-      for (int c = 0; c < row.length; c++) {
-        final cell = students.cell(
-          CellIndex.indexByColumnRow(columnIndex: c, rowIndex: r + 3),
-        );
-        cell.value = TextCellValue(row[c]);
-        if (s.missingCount > 0 && c == 7) {
-          cell.cellStyle = CellStyle(
-            fontColorHex: ExcelColor.fromHexString('#C62828'),
-          );
-        } else if (s.missingCount == 0 && c == 7) {
-          cell.cellStyle = CellStyle(
-            fontColorHex: ExcelColor.fromHexString('#1C8248'),
-          );
-        }
-      }
+      buffer.writeln(row.map(escape).join(','));
     }
-    students.setColumnWidth(0, 6);
-    students.setColumnWidth(1, 18);
-    students.setColumnWidth(2, 22);
-    students.setColumnWidth(3, 8);
-    students.setColumnWidth(4, 14);
-    students.setColumnWidth(5, 14);
-    students.setColumnWidth(6, 12);
-    students.setColumnWidth(7, 15);
-    students.setColumnWidth(8, 45);
 
-    // Delete default Sheet1 only after custom sheets have been populated
-    excel.delete('Sheet1');
-
-    return excel.encode()!;
-  }
-
-  void _excelTitle(Sheet sheet, String addr, String text, int span) {
-    final cell = sheet.cell(CellIndex.indexByString(addr));
-    cell.value = TextCellValue(text);
-    cell.cellStyle = CellStyle(
-      bold: true,
-      fontSize: 14,
-      fontColorHex: ExcelColor.fromHexString('#1C8248'),
-    );
-  }
-
-  void _boldCell(Sheet sheet, String addr) {
-    sheet.cell(CellIndex.indexByString(addr)).cellStyle = CellStyle(
-      bold: true,
-      fontSize: 11,
-    );
-  }
-
-  void _header(Sheet sheet, String addr, String text) {
-    final cell = sheet.cell(CellIndex.indexByString(addr));
-    cell.value = TextCellValue(text);
-    cell.cellStyle = CellStyle(
-      bold: true,
-      backgroundColorHex: ExcelColor.fromHexString('#E8F5E9'),
-    );
+    return utf8.encode(buffer.toString());
   }
 
   // â”€â”€ Print Compliance Report Dialog â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
