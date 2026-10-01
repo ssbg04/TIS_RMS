@@ -21,6 +21,7 @@
     <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM"/>
     <application
         android:usesCleartextTraffic="true"
+        android:requestLegacyExternalStorage="true"
         android:label="TIS RMS"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">

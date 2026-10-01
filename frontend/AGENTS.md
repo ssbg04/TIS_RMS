@@ -901,7 +901,7 @@ Files backup/restore - mirror mode or zip -->
     - Post-import summary dialog showing successfully created count vs skipped duplicates
 - Auto uploads OCR file scanned after adding -> rename the scanned file of what type is the document -->
 
-# HISTORY SCREEN
+<!-- # HISTORY SCREEN
 - [DONE] history -> session one ip different account shows active even 1 current login account
   - Backend fix in authController.js login(): when a new login occurs, any open sessions from the same IP address belonging to a different user are automatically stamped with logout_at. This prevents stale "ACTIVE NOW" entries in the Sessions history tab.
 
@@ -928,7 +928,37 @@ Files backup/restore - mirror mode or zip -->
 - [DONE] when searching navigates to all tab
   - When typing or submitting a search, students_screen automatically switches view tab to "All Students" and clears specific status/year filters.
   - Clicking the "Enrolled" tab automatically clears the search field and restores the active year enrolled filter.
-  - Also cleared view-tab filters when search is triggered from the mobile search dialog in android_bottom_nav_layout.dart.
+  - Also cleared view-tab filters when search is triggered from the mobile search dialog in android_bottom_nav_layout.dart. -->
+
+# ANDROID APP
+- [DONE] hamburger nav bar slide too much touch area on the left
+  - In `android_bottom_nav_layout.dart`, reduced `drawerEdgeDragWidth` from `MediaQuery.of(context).size.width * 0.45` down to a strict `28.0` edge touch area to prevent accidental drawer opening when interacting with screen content.
+- [DONE] report screen in deped tab export pdf cannot download the generated pdf, because of permission denied in android app
+  - In `download_service.dart`, added `saveBytes()` with adaptive permission management for Android: requests `Permission.manageExternalStorage` on Android 11+ (API 30+) and standard storage permission on Android 10 and below.
+  - Added multi-tier storage fallback: if public `/Download/TIS_RMS` is restricted by Android OS or denied by the user, gracefully falls back to app-specific external download/document storage directories that never throw permission errors.
+  - In `AndroidManifest.xml`, added `android:requestLegacyExternalStorage="true"` to `<application>` for legacy storage support on Android 10 (API 29).
+  - Updated `transparency_board_section.dart` and `reports_screen.dart` to use `DownloadService.saveBytes()`.
+
+# STUDENT SCREEN
+- [DONE] remove the "Student Directory" and copy the design of top header tab on attached picture 
+  - Removed "Students Directory" page title heading and unified the header into a floating card (`height: 52`, `margin: horizontal 16/24, vertical 8`, rounded 12 with border and subtle shadow).
+  - Left side contains segmented tab switcher (`Enrolled` & `All Students`), right side contains search button, filter button with badge, elevated `Add Student` primary CTA button, and bulk import button.
+
+# USERS SCREEN
+- [DONE] use tabs for filter of all, admin, teacher, inactive -> copy the design on attached picture
+  - Converted the old role filter chips and scrollbar into unified segmented tabs (`All`, `Admin`, `Teacher`, `Inactive`) with matching active/inactive states.
+  - Placed inside a matching top header card (`height: 52`, rounded 12) with Search button and `Add User` CTA on the right.
+
+# SETTINGS SCREEN
+- [DONE] descriptions of the system client, contact developers -> settings screen support
+  - Upgraded the collapsible card in `settings_screen.dart` to "About, Support & System Information".
+  - Added Client/System description header for Talisay Integrated School Records Management System.
+  - Added Developer & Technical Support section for Dalubhasaan ng Lungsod ng San Pablo (DLSP) BSIT Capstone Team with lead developer email (`crischarlesgarcia345@gmail.com`).
+  - Added direct action CTAs: "Contact via Email" (mailto launcher / clipboard fallback), "Report an Issue" (GitHub issues link), "GitHub Repository" (project repository link), and "Meet the Team" (navigates to `CapstoneMembersScreen`).
+- [DONE] make the about, support, system information in settings responsive
+  - System/Client Description Header now adapts using `LayoutBuilder` (<460px): renders icon + title in a row and full-width description below on mobile screens, avoiding horizontal squishing.
+  - System Information items (`_buildAboutInfoRow`) dynamically switch from a 2-column fixed-label layout to stacked label & selectable value on compact viewports (<460px), preventing text compression.
+  - Developer Contact container adapts on viewports <500px: stacks label and email with a clean indentation to prevent horizontal overflows. Action buttons seamlessly wrap with `Wrap`.
 
 
 ---

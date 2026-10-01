@@ -543,9 +543,7 @@ class _AndroidBottomNavLayoutState extends ConsumerState<AndroidBottomNavLayout>
               child: Scaffold(
                 key: _scaffoldKey,
                 drawerEnableOpenDragGesture: !isStudentMultiSelect,
-                drawerEdgeDragWidth: isStudentMultiSelect
-                    ? 0.0
-                    : MediaQuery.of(context).size.width * 0.45,
+                drawerEdgeDragWidth: isStudentMultiSelect ? 0.0 : 64.0,
                 resizeToAvoidBottomInset: false,
                 backgroundColor: Theme.of(context).scaffoldBackgroundColor,
                 appBar: isStudentMultiSelect

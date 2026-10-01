@@ -16,6 +16,7 @@ import '../../shared/widgets/app_error_state.dart';
 import 'package:dio/dio.dart';
 import '../../providers/setup_provider.dart';
 import '../../shared/dialogs/info_dialog.dart';
+import '../../shared/dialogs/update_available_dialog.dart';
 import '../../shared/modals/custom_modal.dart';
 import 'teacher_management_screen.dart';
 import '../../../domain/entities/setup_models.dart';
@@ -28,6 +29,7 @@ import 'security_screen.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../../core/services/app_update_service.dart';
+import '../capstone_members/capstone_members_screen.dart';
 class TitleCaseTextInputFormatter extends TextInputFormatter {
   @override
   TextEditingValue formatEditUpdate(TextEditingValue oldValue, TextEditingValue newValue) {
@@ -2019,49 +2021,104 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
 
                       const SizedBox(height: AppSizes.p24),
 
-                      // ── About & App Updates Card (Collapsible) ───────────
+                      // ── About & Support Card (Collapsible) ───────────
                       _buildCollapsibleCard(
-                        title: 'About & App Updates',
+                        title: 'About, Support & System Information',
                         isExpanded: _isAboutExpanded,
                         onToggle: () => _toggleSection(() => _isAboutExpanded = !_isAboutExpanded),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Row(
-                              crossAxisAlignment: CrossAxisAlignment.center,
-                              children: [
-                                const Icon(
-                                  Icons.info_outline_rounded,
-                                  color: AppColors.primaryGreen,
-                                  size: 22,
-                                ),
-                                const SizedBox(width: AppSizes.p12),
-                                Expanded(
-                                  child: Column(
+                            // ── System & Client Description ──
+                            LayoutBuilder(
+                              builder: (context, constraints) {
+                                final isCompact = constraints.maxWidth < 460;
+                                if (isCompact) {
+                                  return Column(
                                     crossAxisAlignment: CrossAxisAlignment.start,
                                     children: [
-                                      const Text(
-                                        'System Information',
-                                        style: TextStyle(
-                                          fontSize: 15,
-                                          fontWeight: FontWeight.w600,
-                                        ),
+                                      Row(
+                                        children: [
+                                          Container(
+                                            width: 40,
+                                            height: 40,
+                                            decoration: BoxDecoration(
+                                              color: AppColors.primaryGreen.withValues(alpha: 0.12),
+                                              borderRadius: BorderRadius.circular(10),
+                                            ),
+                                            child: const Icon(
+                                              Icons.school_rounded,
+                                              color: AppColors.primaryGreen,
+                                              size: 22,
+                                            ),
+                                          ),
+                                          const SizedBox(width: AppSizes.p12),
+                                          const Expanded(
+                                            child: Text(
+                                              'Talisay Integrated School - RMS',
+                                              style: TextStyle(
+                                                fontSize: 15.5,
+                                                fontWeight: FontWeight.bold,
+                                              ),
+                                            ),
+                                          ),
+                                        ],
                                       ),
-                                      const SizedBox(height: 2),
+                                      const SizedBox(height: 10),
                                       Text(
-                                        'Application details and version checks',
+                                        'A centralized school record management system designed for Talisay Integrated School to efficiently manage, archive, and verify student records (SF10, permanent forms, and scholastic documents) across Junior High School and Senior High School levels with optical character recognition (OCR) and audit tracking.',
                                         style: TextStyle(
                                           fontSize: 13,
-                                          color: Theme.of(context)
-                                              .colorScheme
-                                              .onSurface
-                                              .withValues(alpha: 0.7),
+                                          height: 1.45,
+                                          color: isDark ? AppColors.darkTextSecondary : Colors.grey.shade700,
                                         ),
                                       ),
                                     ],
-                                  ),
-                                ),
-                              ],
+                                  );
+                                }
+                                return Row(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Container(
+                                      width: 44,
+                                      height: 44,
+                                      decoration: BoxDecoration(
+                                        color: AppColors.primaryGreen.withValues(alpha: 0.12),
+                                        borderRadius: BorderRadius.circular(10),
+                                      ),
+                                      child: const Icon(
+                                        Icons.school_rounded,
+                                        color: AppColors.primaryGreen,
+                                        size: 24,
+                                      ),
+                                    ),
+                                    const SizedBox(width: AppSizes.p12),
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          const Text(
+                                            'Talisay Integrated School - RMS',
+                                            style: TextStyle(
+                                              fontSize: 16,
+                                              fontWeight: FontWeight.bold,
+                                            ),
+                                          ),
+                                          const SizedBox(height: 4),
+                                          Text(
+                                            'A centralized school record management system designed for Talisay Integrated School to efficiently manage, archive, and verify student records (SF10, permanent forms, and scholastic documents) across Junior High School and Senior High School levels with optical character recognition (OCR) and audit tracking.',
+                                            style: TextStyle(
+                                              fontSize: 13,
+                                              height: 1.45,
+                                              color: isDark ? AppColors.darkTextSecondary : Colors.grey.shade700,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ],
+                                );
+                              },
                             ),
                             const SizedBox(height: AppSizes.p16),
                             _buildAboutInfoRow(
@@ -2092,7 +2149,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                                 isDark,
                               ),
                             _buildAboutInfoRow(
-                              'Institution',
+                              'Institution (Client)',
                               'Talisay Integrated School',
                               isDark,
                             ),
@@ -2101,6 +2158,219 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                               'Dalubhasaan ng Lungsod ng San Pablo (DLSP)',
                               isDark,
                             ),
+
+                            const Divider(height: 32),
+
+                            // ── Developer & Technical Support ──
+                            Row(
+                              children: [
+                                const Icon(
+                                  Icons.support_agent_rounded,
+                                  color: AppColors.primaryGreen,
+                                  size: 22,
+                                ),
+                                const SizedBox(width: AppSizes.p12),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      const Text(
+                                        'Developer & Technical Support',
+                                        style: TextStyle(
+                                          fontSize: 15,
+                                          fontWeight: FontWeight.w600,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 2),
+                                      Text(
+                                        'Dalubhasaan ng Lungsod ng San Pablo — BSIT Capstone Development Team',
+                                        style: TextStyle(
+                                          fontSize: 13,
+                                          color: Theme.of(context)
+                                              .colorScheme
+                                              .onSurface
+                                              .withValues(alpha: 0.7),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: AppSizes.p12),
+                            Container(
+                              width: double.infinity,
+                              padding: const EdgeInsets.all(14),
+                              decoration: BoxDecoration(
+                                color: isDark ? AppColors.darkSurface2 : const Color(0xFFF8F9FA),
+                                borderRadius: BorderRadius.circular(10),
+                                border: Border.all(
+                                  color: isDark ? AppColors.darkBorder : const Color(0xFFE9ECEF),
+                                ),
+                              ),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  LayoutBuilder(
+                                    builder: (context, constraints) {
+                                      final isCompact = constraints.maxWidth < 500;
+                                      if (isCompact) {
+                                        return Column(
+                                          crossAxisAlignment: CrossAxisAlignment.start,
+                                          children: [
+                                            Row(
+                                              children: [
+                                                Icon(
+                                                  Icons.alternate_email_rounded,
+                                                  size: 16,
+                                                  color: isDark ? AppColors.darkTextSecondary : Colors.grey.shade600,
+                                                ),
+                                                const SizedBox(width: 6),
+                                                Text(
+                                                  'Lead Developer Contact:',
+                                                  style: TextStyle(
+                                                    fontSize: 12.5,
+                                                    fontWeight: FontWeight.w600,
+                                                    color: isDark ? AppColors.darkTextSecondary : Colors.grey.shade700,
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                            const SizedBox(height: 4),
+                                            const Padding(
+                                              padding: EdgeInsets.only(left: 22),
+                                              child: SelectableText(
+                                                'crischarlesgarcia345@gmail.com',
+                                                style: TextStyle(
+                                                  fontSize: 13,
+                                                  fontWeight: FontWeight.w600,
+                                                  color: AppColors.primaryGreen,
+                                                ),
+                                              ),
+                                            ),
+                                          ],
+                                        );
+                                      }
+
+                                      return Row(
+                                        children: [
+                                          Icon(
+                                            Icons.alternate_email_rounded,
+                                            size: 16,
+                                            color: isDark ? AppColors.darkTextSecondary : Colors.grey.shade600,
+                                          ),
+                                          const SizedBox(width: 8),
+                                          Text(
+                                            'Lead Developer Contact:',
+                                            style: TextStyle(
+                                              fontSize: 13,
+                                              fontWeight: FontWeight.w600,
+                                              color: isDark ? AppColors.darkTextSecondary : Colors.grey.shade700,
+                                            ),
+                                          ),
+                                          const SizedBox(width: 6),
+                                          const Expanded(
+                                            child: SelectableText(
+                                              'crischarlesgarcia345@gmail.com',
+                                              style: TextStyle(
+                                                fontSize: 13,
+                                                fontWeight: FontWeight.w600,
+                                                color: AppColors.primaryGreen,
+                                              ),
+                                            ),
+                                          ),
+                                        ],
+                                      );
+                                    },
+                                  ),
+                                  const SizedBox(height: 12),
+                                  Wrap(
+                                    spacing: 8,
+                                    runSpacing: 8,
+                                    children: [
+                                      ElevatedButton.icon(
+                                        onPressed: () async {
+                                          final uri = Uri.parse('mailto:crischarlesgarcia345@gmail.com?subject=TIS%20RMS%20Support%20Request');
+                                          if (await canLaunchUrl(uri)) {
+                                            await launchUrl(uri);
+                                          } else {
+                                            await Clipboard.setData(const ClipboardData(text: 'crischarlesgarcia345@gmail.com'));
+                                            if (context.mounted) {
+                                              ScaffoldMessenger.of(context).showSnackBar(
+                                                const SnackBar(
+                                                  content: Text('Developer email copied to clipboard: crischarlesgarcia345@gmail.com'),
+                                                  backgroundColor: AppColors.primaryGreen,
+                                                ),
+                                              );
+                                            }
+                                          }
+                                        },
+                                        icon: const Icon(Icons.email_outlined, size: 15),
+                                        label: const Text('Contact via Email'),
+                                        style: ElevatedButton.styleFrom(
+                                          backgroundColor: AppColors.primaryGreen,
+                                          foregroundColor: Colors.white,
+                                          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                                          textStyle: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w600),
+                                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                                        ),
+                                      ),
+                                      OutlinedButton.icon(
+                                        onPressed: () async {
+                                          final uri = Uri.parse('https://github.com/ssbg04/TIS_RMS/issues');
+                                          if (await canLaunchUrl(uri)) {
+                                            await launchUrl(uri, mode: LaunchMode.externalApplication);
+                                          }
+                                        },
+                                        icon: const Icon(Icons.bug_report_outlined, size: 15),
+                                        label: const Text('Report an Issue'),
+                                        style: OutlinedButton.styleFrom(
+                                          foregroundColor: isDark ? AppColors.darkTextPrimary : Colors.black87,
+                                          side: BorderSide(color: isDark ? AppColors.darkBorder : Colors.grey.shade300),
+                                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                                          textStyle: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w600),
+                                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                                        ),
+                                      ),
+                                      OutlinedButton.icon(
+                                        onPressed: () async {
+                                          final uri = Uri.parse('https://github.com/ssbg04/TIS_RMS');
+                                          if (await canLaunchUrl(uri)) {
+                                            await launchUrl(uri, mode: LaunchMode.externalApplication);
+                                          }
+                                        },
+                                        icon: const Icon(Icons.code_rounded, size: 15),
+                                        label: const Text('GitHub Repository'),
+                                        style: OutlinedButton.styleFrom(
+                                          foregroundColor: isDark ? AppColors.darkTextPrimary : Colors.black87,
+                                          side: BorderSide(color: isDark ? AppColors.darkBorder : Colors.grey.shade300),
+                                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                                          textStyle: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w600),
+                                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                                        ),
+                                      ),
+                                      OutlinedButton.icon(
+                                        onPressed: () {
+                                          Navigator.of(context).push(
+                                            MaterialPageRoute(builder: (_) => const CapstoneMembersScreen()),
+                                          );
+                                        },
+                                        icon: const Icon(Icons.groups_outlined, size: 15),
+                                        label: const Text('Meet the Team'),
+                                        style: OutlinedButton.styleFrom(
+                                          foregroundColor: isDark ? AppColors.darkTextPrimary : Colors.black87,
+                                          side: BorderSide(color: isDark ? AppColors.darkBorder : Colors.grey.shade300),
+                                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                                          textStyle: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w600),
+                                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ],
+                              ),
+                            ),
+
                             const Divider(height: 32),
                             // Check for updates section
                             Row(
@@ -2218,17 +2488,12 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                                 ),
                                 if (_updateInfo != null && _updateInfo!.hasUpdate)
                                   OutlinedButton.icon(
-                                    onPressed: () async {
-                                      final targetUrl = _updateInfo!.downloadUrl ?? _updateInfo!.htmlUrl;
-                                      if (targetUrl.isNotEmpty) {
-                                        final uri = Uri.parse(targetUrl);
-                                        if (await canLaunchUrl(uri)) {
-                                          await launchUrl(uri, mode: LaunchMode.externalApplication);
-                                        }
-                                      }
-                                    },
-                                    icon: const Icon(Icons.open_in_browser_rounded, size: 16),
-                                    label: const Text('Open in Browser'),
+                                    onPressed: () => showUpdateAvailableDialog(
+                                      context,
+                                      updateInfo: _updateInfo!,
+                                    ),
+                                    icon: const Icon(Icons.download_rounded, size: 16),
+                                    label: const Text('Download Update'),
                                     style: OutlinedButton.styleFrom(
                                       foregroundColor: AppColors.primaryGreen,
                                       side: const BorderSide(color: AppColors.primaryGreen),
@@ -2490,20 +2755,14 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           _updateStatusMessage = 'Could not check for updates. Please check your internet connection.';
         } else if (updateInfo.hasUpdate) {
           final assetLabel = updateInfo.assetName != null ? ' [${updateInfo.assetName}]' : '';
-          _updateStatusMessage = 'New update available (v${updateInfo.latestVersion})$assetLabel! Opening download link in browser...';
+          _updateStatusMessage = 'New update available (${updateInfo.latestVersion})$assetLabel!';
         } else {
           _updateStatusMessage = 'Your application is up to date (v${updateInfo.currentVersion}).';
         }
       });
 
-      if (updateInfo != null && updateInfo.hasUpdate) {
-        final targetUrl = updateInfo.downloadUrl ?? updateInfo.htmlUrl;
-        if (targetUrl.isNotEmpty) {
-          final uri = Uri.parse(targetUrl);
-          if (await canLaunchUrl(uri)) {
-            await launchUrl(uri, mode: LaunchMode.externalApplication);
-          }
-        }
+      if (updateInfo != null && updateInfo.hasUpdate && mounted) {
+        await showUpdateAvailableDialog(context, updateInfo: updateInfo);
       }
     } catch (e) {
       if (!mounted) return;
@@ -2515,35 +2774,68 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   }
 
   Widget _buildAboutInfoRow(String label, String value, bool isDark) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          SizedBox(
-            width: 140,
-            child: Text(
-              label,
-              style: TextStyle(
-                fontSize: 13,
-                fontWeight: FontWeight.w600,
-                color: isDark ? AppColors.darkTextSecondary : Colors.grey.shade600,
-              ),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final isCompact = constraints.maxWidth < 460;
+        if (isCompact) {
+          return Padding(
+            padding: const EdgeInsets.symmetric(vertical: 5),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  label,
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    color: isDark ? AppColors.darkTextSecondary : Colors.grey.shade600,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                SelectableText(
+                  value,
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w500,
+                    color: isDark ? AppColors.darkTextPrimary : Colors.grey.shade900,
+                  ),
+                ),
+              ],
             ),
-          ),
-          const SizedBox(width: 8),
-          Expanded(
-            child: Text(
-              value,
-              style: TextStyle(
-                fontSize: 13,
-                fontWeight: FontWeight.w500,
-                color: isDark ? AppColors.darkTextPrimary : Colors.grey.shade900,
+          );
+        }
+
+        return Padding(
+          padding: const EdgeInsets.symmetric(vertical: 4),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              SizedBox(
+                width: 150,
+                child: Text(
+                  label,
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                    color: isDark ? AppColors.darkTextSecondary : Colors.grey.shade600,
+                  ),
+                ),
               ),
-            ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: SelectableText(
+                  value,
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w500,
+                    color: isDark ? AppColors.darkTextPrimary : Colors.grey.shade900,
+                  ),
+                ),
+              ),
+            ],
           ),
-        ],
-      ),
+        );
+      },
     );
   }
 

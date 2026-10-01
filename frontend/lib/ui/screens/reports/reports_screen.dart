@@ -5,7 +5,6 @@ import 'package:flutter/foundation.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:path_provider/path_provider.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_sizes.dart';
 import '../../../core/utils/download_service.dart';
@@ -221,28 +220,23 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
   }
 
   Future<String?> _saveExcelFile(List<int> bytes, String fileName) async {
-    String? savePath;
-
-    if (Platform.isAndroid) {
-      await DownloadService.requestPermissions();
-      final dirPath = await DownloadService.getDownloadDirectoryPath();
-      savePath = '$dirPath/$fileName';
-    } else if (Platform.isWindows) {
-      savePath = await FilePicker.saveFile(
+    if (Platform.isWindows) {
+      final savePath = await FilePicker.saveFile(
         dialogTitle: 'Save Report As...',
         fileName: fileName,
         type: FileType.custom,
         allowedExtensions: ['csv'],
       );
       if (savePath == null) return null;
+      final file = File(savePath);
+      await file.writeAsBytes(bytes);
+      return file.path;
     } else {
-      final dir = await getApplicationDocumentsDirectory();
-      savePath = '${dir.path}/$fileName';
+      return await DownloadService.saveBytes(
+        bytes: bytes,
+        fileName: fileName,
+      );
     }
-
-    final file = File(savePath);
-    await file.writeAsBytes(bytes);
-    return file.path;
   }
 
   List<int> _buildCsv(ReportStats data, String yearLabel) {

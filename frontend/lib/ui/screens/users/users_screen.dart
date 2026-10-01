@@ -35,7 +35,6 @@ class _UsersScreenState extends ConsumerState<UsersScreen> {
   final TextEditingController _searchController = TextEditingController();
   final FocusNode _searchFocusNode = FocusNode();
   final FocusNode _shortcutFocusNode = FocusNode();
-  final ScrollController _filterScrollController = ScrollController();
   ProviderSubscription<String>? _tabListener;
   ProviderSubscription<String>? _searchListener;
   String _roleFilter = 'all'; // 'all', 'admin', 'teacher'
@@ -115,7 +114,6 @@ class _UsersScreenState extends ConsumerState<UsersScreen> {
     _searchController.dispose();
     _searchFocusNode.dispose();
     _shortcutFocusNode.dispose();
-    _filterScrollController.dispose();
     super.dispose();
   }
 
@@ -298,46 +296,279 @@ class _UsersScreenState extends ConsumerState<UsersScreen> {
     );
   }
 
-  Widget _buildAnimatedFilter(String label, String value, int count) {
-    final isSelected = _roleFilter == value;
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final unselectedBg = Colors.transparent;
-    final unselectedBorder = isDark ? AppColors.darkBorder : Colors.grey.shade300;
-    final unselectedText = isDark ? AppColors.darkTextSecondary : AppColors.textSecondary;
+  Widget _buildTopHeader({
+    required bool isDark,
+    required bool isMobile,
+    required bool isMobileOrAndroid,
+    required bool isAndroid,
+    required String userSearch,
+    required int allCount,
+    required int adminCount,
+    required int teacherCount,
+    required int inactiveCount,
+  }) {
+    final isDesktop = MediaQuery.of(context).size.width > 800;
 
-    return GestureDetector(
-      onTap: () {
-        setState(() {
-          _roleFilter = value;
-          _currentPage = 1;
-        });
-      },
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 300),
-        curve: Curves.easeInOut,
-        margin: const EdgeInsets.only(right: 8),
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+    return RepaintBoundary(
+      child: Container(
+        height: 52,
+        padding: EdgeInsets.symmetric(horizontal: isMobile ? 8 : 12),
         decoration: BoxDecoration(
-          color: isSelected ? AppColors.primaryGreen : unselectedBg,
-          borderRadius: BorderRadius.circular(20),
+          color: isDark ? AppColors.darkSurfaceCard : Colors.white,
+          borderRadius: BorderRadius.circular(12),
           border: Border.all(
-            color: isSelected ? AppColors.primaryGreen : unselectedBorder,
+            color: isDark ? AppColors.darkBorder : AppColors.borderLight,
+            width: 1.0,
           ),
-          boxShadow: isSelected
-              ? [
+          boxShadow: isMobileOrAndroid
+              ? null
+              : [
                   BoxShadow(
-                    color: AppColors.primaryGreen.withValues(alpha: 0.3),
+                    color: Colors.black.withValues(alpha: 0.05),
                     blurRadius: 8,
-                    offset: const Offset(0, 4),
+                    offset: const Offset(0, 2),
                   ),
-                ]
-              : [],
+                ],
         ),
-        child: Text(
-          '$label ($count)',
-          style: TextStyle(
-            color: isSelected ? Colors.white : unselectedText,
-            fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            // Left: Segmented Tabs (All, Admin, Teacher, Inactive)
+            _buildSegmentedTabSwitcher(
+              isDark: isDark,
+              isMobile: isMobile,
+              isMobileOrAndroid: isMobileOrAndroid,
+              allCount: allCount,
+              adminCount: adminCount,
+              teacherCount: teacherCount,
+              inactiveCount: inactiveCount,
+            ),
+
+            const Spacer(),
+
+            // Right: Actions (Desktop / non-Android)
+            if (!isAndroid) ...[
+              // Search IconButton
+              Tooltip(
+                richMessage: userSearch.isNotEmpty
+                    ? const TextSpan(text: 'Clear Search')
+                    : const TextSpan(
+                        text: 'Search Users ',
+                        children: [
+                          TextSpan(
+                            text: '(Ctrl+F)',
+                            style: TextStyle(fontStyle: FontStyle.italic),
+                          ),
+                        ],
+                      ),
+                child: IconButton(
+                  icon: Icon(
+                    userSearch.isNotEmpty ? Icons.close : Icons.search,
+                    size: 20,
+                    color: isDark ? AppColors.darkTextPrimary : Colors.black87,
+                  ),
+                  padding: const EdgeInsets.all(8),
+                  constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
+                  onPressed: () {
+                    if (userSearch.isNotEmpty) {
+                      _searchController.clear();
+                      ref.read(userSearchQueryProvider.notifier).state = '';
+                    } else {
+                      _showSearchDialog(context);
+                    }
+                  },
+                ),
+              ),
+
+              const SizedBox(width: 4),
+
+              // Add User Button
+              SizedBox(
+                height: 36,
+                child: ElevatedButton.icon(
+                  onPressed: () => _openModal(),
+                  icon: const Icon(Icons.person_add_rounded, size: 16),
+                  label: Text(
+                    isDesktop ? 'Add User' : 'Add',
+                    style: const TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.primaryGreen,
+                    foregroundColor: Colors.white,
+                    padding: EdgeInsets.symmetric(
+                      horizontal: isDesktop ? 14 : 10,
+                    ),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8.0),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSegmentedTabSwitcher({
+    required bool isDark,
+    required bool isMobile,
+    required bool isMobileOrAndroid,
+    required int allCount,
+    required int adminCount,
+    required int teacherCount,
+    required int inactiveCount,
+  }) {
+    return Container(
+      height: 36,
+      padding: const EdgeInsets.all(3),
+      decoration: BoxDecoration(
+        color: isDark ? AppColors.darkSurface2 : const Color(0xFFF1F3F5),
+        borderRadius: BorderRadius.circular(9),
+        border: Border.all(
+          color: isDark ? AppColors.darkBorder : const Color(0xFFE9ECEF),
+          width: 1,
+        ),
+      ),
+      child: SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            _buildSegmentedTabItem(
+              icon: Icons.people_outline_rounded,
+              activeIcon: Icons.people_alt_rounded,
+              label: isMobile ? 'All' : 'All ($allCount)',
+              isSelected: _roleFilter == 'all',
+              isDark: isDark,
+              isMobile: isMobile,
+              isMobileOrAndroid: isMobileOrAndroid,
+              onTap: () {
+                setState(() {
+                  _roleFilter = 'all';
+                  _currentPage = 1;
+                });
+              },
+            ),
+            const SizedBox(width: 2),
+            _buildSegmentedTabItem(
+              icon: Icons.admin_panel_settings_outlined,
+              activeIcon: Icons.admin_panel_settings_rounded,
+              label: isMobile ? 'Admin' : 'Admin ($adminCount)',
+              isSelected: _roleFilter == 'admin',
+              isDark: isDark,
+              isMobile: isMobile,
+              isMobileOrAndroid: isMobileOrAndroid,
+              onTap: () {
+                setState(() {
+                  _roleFilter = 'admin';
+                  _currentPage = 1;
+                });
+              },
+            ),
+            const SizedBox(width: 2),
+            _buildSegmentedTabItem(
+              icon: Icons.school_outlined,
+              activeIcon: Icons.school_rounded,
+              label: isMobile ? 'Teacher' : 'Teacher ($teacherCount)',
+              isSelected: _roleFilter == 'teacher',
+              isDark: isDark,
+              isMobile: isMobile,
+              isMobileOrAndroid: isMobileOrAndroid,
+              onTap: () {
+                setState(() {
+                  _roleFilter = 'teacher';
+                  _currentPage = 1;
+                });
+              },
+            ),
+            const SizedBox(width: 2),
+            _buildSegmentedTabItem(
+              icon: Icons.person_off_outlined,
+              activeIcon: Icons.person_off_rounded,
+              label: isMobile ? 'Inactive' : 'Inactive ($inactiveCount)',
+              isSelected: _roleFilter == 'inactive',
+              isDark: isDark,
+              isMobile: isMobile,
+              isMobileOrAndroid: isMobileOrAndroid,
+              onTap: () {
+                setState(() {
+                  _roleFilter = 'inactive';
+                  _currentPage = 1;
+                });
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSegmentedTabItem({
+    required IconData icon,
+    required IconData activeIcon,
+    required String label,
+    required bool isSelected,
+    required bool isDark,
+    required bool isMobile,
+    required bool isMobileOrAndroid,
+    required VoidCallback onTap,
+  }) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(7),
+        onTap: onTap,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 180),
+          curve: Curves.easeInOut,
+          padding: EdgeInsets.symmetric(
+            horizontal: isMobile ? 8 : 12,
+            vertical: 4,
+          ),
+          decoration: BoxDecoration(
+            color: isSelected ? AppColors.primaryGreen : Colors.transparent,
+            borderRadius: BorderRadius.circular(7),
+            boxShadow: isSelected && !isDark && !isMobileOrAndroid
+                ? [
+                    BoxShadow(
+                      color: AppColors.primaryGreen.withValues(alpha: 0.25),
+                      blurRadius: 4,
+                      offset: const Offset(0, 1),
+                    ),
+                  ]
+                : null,
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                isSelected ? activeIcon : icon,
+                size: 15,
+                color: isSelected
+                    ? Colors.white
+                    : (isDark
+                        ? AppColors.darkTextSecondary
+                        : AppColors.textSecondary),
+              ),
+              const SizedBox(width: 5),
+              Text(
+                label,
+                style: TextStyle(
+                  fontSize: 12.5,
+                  fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
+                  color: isSelected
+                      ? Colors.white
+                      : (isDark
+                          ? AppColors.darkTextSecondary
+                          : AppColors.textSecondary),
+                ),
+              ),
+            ],
           ),
         ),
       ),
@@ -363,8 +594,14 @@ class _UsersScreenState extends ConsumerState<UsersScreen> {
           resizeToAvoidBottomInset: false,
           backgroundColor: Colors.transparent,
           body: SafeArea(
+            bottom: !isAndroid,
             child: Padding(
-              padding: const EdgeInsets.all(AppSizes.p24),
+              padding: EdgeInsets.only(
+                left: isAndroid ? 16 : AppSizes.p24,
+                right: isAndroid ? 16 : AppSizes.p24,
+                top: isAndroid ? 16 : AppSizes.p24,
+                bottom: isAndroid ? 0 : AppSizes.p16,
+              ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -390,134 +627,22 @@ class _UsersScreenState extends ConsumerState<UsersScreen> {
                         final inactiveUsers = users.where((u) => !u.isActive).toList();
 
                         final isDark = Theme.of(context).brightness == Brightness.dark;
+                        final isMobile = MediaQuery.of(context).size.width < 800;
+                        final isMobileOrAndroid = isMobile || isAndroid;
+
                         return Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Row(
-                              children: [
-                                Expanded(
-                                  child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      SingleChildScrollView(
-                                        controller: _filterScrollController,
-                                        scrollDirection: Axis.horizontal,
-                                        child: Row(
-                                          children: [
-                                            _buildAnimatedFilter('All', 'all', activeUsers.length),
-                                            _buildAnimatedFilter(
-                                              'Admin',
-                                              'admin',
-                                              activeAdmins.length,
-                                            ),
-                                            _buildAnimatedFilter(
-                                              'Teacher',
-                                              'teacher',
-                                              activeTeachers.length,
-                                            ),
-                                            _buildAnimatedFilter(
-                                              'Inactive',
-                                              'inactive',
-                                              inactiveUsers.length,
-                                            ),
-                                          ],
-                                        ),
-                                      ),
-                                      _CustomHorizontalScrollBar(
-                                        controller: _filterScrollController,
-                                        isDark: isDark,
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                                if (!isAndroid && !_searchFocusNode.hasFocus) ...[
-                                  Tooltip(
-                                    richMessage: userSearch.isNotEmpty
-                                        ? const TextSpan(text: 'Clear Search')
-                                        : const TextSpan(
-                                            text: 'Search Users ',
-                                            children: [
-                                              TextSpan(
-                                                text: '(Ctrl+F)',
-                                                style: TextStyle(fontStyle: FontStyle.italic),
-                                              ),
-                                            ],
-                                          ),
-                                    child: IconButton(
-                                      icon: Icon(
-                                        userSearch.isNotEmpty ? Icons.close : Icons.search,
-                                        size: 28,
-                                        color: isDark
-                                            ? AppColors.darkTextPrimary
-                                            : Colors.black87,
-                                      ),
-                                      onPressed: () {
-                                        if (userSearch.isNotEmpty) {
-                                          _searchController.clear();
-                                          ref.read(userSearchQueryProvider.notifier).state = '';
-                                        } else {
-                                          _showSearchDialog(context);
-                                        }
-                                      },
-                                    ),
-                                  ),
-                                  const SizedBox(width: 8),
-                                  DecoratedBox(
-                                    decoration: BoxDecoration(
-                                      gradient: const LinearGradient(
-                                        colors: [
-                                          Color(0xFF00B074),
-                                          AppColors.primaryGreen,
-                                        ],
-                                        begin: Alignment.topLeft,
-                                        end: Alignment.bottomRight,
-                                      ),
-                                      borderRadius: BorderRadius.circular(10),
-                                      boxShadow: [
-                                        BoxShadow(
-                                          color: AppColors.primaryGreen.withValues(alpha: 0.38),
-                                          blurRadius: 8,
-                                          offset: const Offset(0, 3),
-                                        ),
-                                      ],
-                                    ),
-                                    child: Material(
-                                      color: Colors.transparent,
-                                      child: InkWell(
-                                        borderRadius: BorderRadius.circular(10),
-                                        onTap: () => _openModal(),
-                                        child: const Padding(
-                                          padding: EdgeInsets.symmetric(
-                                            horizontal: 16,
-                                            vertical: 9,
-                                          ),
-                                          child: Row(
-                                            mainAxisSize: MainAxisSize.min,
-                                            children: [
-                                              Icon(
-                                                Icons.person_add_rounded,
-                                                size: 19,
-                                                color: Colors.white,
-                                              ),
-                                              SizedBox(width: 7),
-                                              Text(
-                                                'Add User',
-                                                style: TextStyle(
-                                                  color: Colors.white,
-                                                  fontWeight: FontWeight.bold,
-                                                  fontSize: 13.5,
-                                                  letterSpacing: 0.2,
-                                                ),
-                                              ),
-                                            ],
-                                          ),
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              ],
+                            _buildTopHeader(
+                              isDark: isDark,
+                              isMobile: isMobile,
+                              isMobileOrAndroid: isMobileOrAndroid,
+                              isAndroid: isAndroid,
+                              userSearch: userSearch,
+                              allCount: activeUsers.length,
+                              adminCount: activeAdmins.length,
+                              teacherCount: activeTeachers.length,
+                              inactiveCount: inactiveUsers.length,
                             ),
                             const SizedBox(height: AppSizes.p16),
                          Expanded(
@@ -538,13 +663,10 @@ class _UsersScreenState extends ConsumerState<UsersScreen> {
                            ),
                          ),
                         if (!_searchFocusNode.hasFocus && totalPages > 1)
-                          SafeArea(
-                            top: false,
-                            child: AppPagination(
-                              currentPage: _currentPage,
-                              totalPages: totalPages,
-                              onPageChanged: (p) => setState(() => _currentPage = p),
-                            ),
+                          AppPagination(
+                            currentPage: _currentPage,
+                            totalPages: totalPages,
+                            onPageChanged: (p) => setState(() => _currentPage = p),
                           ),
                       ],
                     );
@@ -776,7 +898,7 @@ class _UsersScreenState extends ConsumerState<UsersScreen> {
       );
     }
     return ListView.separated(
-      padding: const EdgeInsets.only(bottom: 88),
+      padding: EdgeInsets.zero,
       itemCount: users.length,
       separatorBuilder: (_, _) => const SizedBox(height: AppSizes.p12),
       itemBuilder: (context, index) {
@@ -2787,128 +2909,3 @@ class _TitleCaseTextInputFormatter extends TextInputFormatter {
   }
 }
 
-// ── Custom Dedicated Thin Horizontal Scrollbar Under Filters ─────────────────
-class _CustomHorizontalScrollBar extends StatefulWidget {
-  final ScrollController controller;
-  final bool isDark;
-
-  const _CustomHorizontalScrollBar({
-    required this.controller,
-    required this.isDark,
-  });
-
-  @override
-  State<_CustomHorizontalScrollBar> createState() => _CustomHorizontalScrollBarState();
-}
-
-class _CustomHorizontalScrollBarState extends State<_CustomHorizontalScrollBar> {
-  @override
-  void initState() {
-    super.initState();
-    widget.controller.addListener(_onScroll);
-  }
-
-  @override
-  void didUpdateWidget(covariant _CustomHorizontalScrollBar oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    if (oldWidget.controller != widget.controller) {
-      oldWidget.controller.removeListener(_onScroll);
-      widget.controller.addListener(_onScroll);
-    }
-  }
-
-  @override
-  void dispose() {
-    widget.controller.removeListener(_onScroll);
-    super.dispose();
-  }
-
-  void _onScroll() {
-    if (mounted) setState(() {});
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return AnimatedBuilder(
-      animation: widget.controller,
-      builder: (context, _) {
-        if (!widget.controller.hasClients ||
-            !widget.controller.position.hasContentDimensions ||
-            widget.controller.position.maxScrollExtent <= 0) {
-          return const SizedBox.shrink();
-        }
-
-        final pos = widget.controller.position;
-        final maxScroll = pos.maxScrollExtent;
-        final currentScroll = pos.pixels.clamp(0.0, maxScroll);
-        final progress = maxScroll > 0 ? currentScroll / maxScroll : 0.0;
-        final viewportFraction = (pos.viewportDimension /
-                (pos.maxScrollExtent + pos.viewportDimension))
-            .clamp(0.15, 0.85);
-
-        final trackColor = widget.isDark
-            ? AppColors.darkBorder.withValues(alpha: 0.5)
-            : const Color(0xFFE2E8F0);
-        final thumbColor = widget.isDark
-            ? const Color(0xFFE2E8F0)
-            : const Color(0xFF334155);
-
-        return Padding(
-          padding: const EdgeInsets.only(top: 4, bottom: 2),
-          child: LayoutBuilder(
-            builder: (context, constraints) {
-              final trackWidth = constraints.maxWidth;
-              final thumbWidth =
-                  (trackWidth * viewportFraction).clamp(36.0, trackWidth);
-              final maxThumbOffset = trackWidth - thumbWidth;
-              final thumbOffset = maxThumbOffset * progress;
-
-              return GestureDetector(
-                behavior: HitTestBehavior.opaque,
-                onHorizontalDragUpdate: (details) {
-                  if (maxThumbOffset <= 0) return;
-                  final deltaFraction = details.primaryDelta! / maxThumbOffset;
-                  final newScroll = (widget.controller.offset +
-                          deltaFraction * maxScroll)
-                      .clamp(0.0, maxScroll);
-                  widget.controller.jumpTo(newScroll);
-                },
-                child: Container(
-                  height: 10,
-                  width: double.infinity,
-                  alignment: Alignment.centerLeft,
-                  child: Stack(
-                    alignment: Alignment.centerLeft,
-                    children: [
-                      // Thin Track Line
-                      Container(
-                        height: 3,
-                        width: trackWidth,
-                        decoration: BoxDecoration(
-                          color: trackColor,
-                          borderRadius: BorderRadius.circular(1.5),
-                        ),
-                      ),
-                      // Thin Thumb Line
-                      Positioned(
-                        left: thumbOffset,
-                        child: Container(
-                          height: 3,
-                          width: thumbWidth,
-                          decoration: BoxDecoration(
-                            color: thumbColor,
-                            borderRadius: BorderRadius.circular(1.5),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              );
-            },
-          ),
-        );
-      },
-    );
-  }
-}

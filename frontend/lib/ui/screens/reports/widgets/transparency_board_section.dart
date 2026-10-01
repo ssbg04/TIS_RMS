@@ -1,4 +1,3 @@
-import 'dart:io';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -139,13 +138,10 @@ class _TransparencyBoardContentState extends ConsumerState<_TransparencyBoardCon
           FilePreviewRow('Scope', sectionLabel),
         ],
         onSave: (resolvedName) async {
-          await DownloadService.requestPermissions();
-          final dirPath = await DownloadService.getDownloadDirectoryPath();
-          final separator = Platform.isWindows ? '\\' : '/';
-          final targetPath = '$dirPath$separator$resolvedName';
-          final file = File(targetPath);
-          await file.writeAsBytes(pdfBytes);
-          savedPath = file.path;
+          savedPath = await DownloadService.saveBytes(
+            bytes: pdfBytes,
+            fileName: resolvedName,
+          );
         },
       );
 

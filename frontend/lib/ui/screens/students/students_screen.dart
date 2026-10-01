@@ -720,6 +720,10 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
     return RepaintBoundary(
       child: Container(
         height: 52,
+        margin: EdgeInsets.symmetric(
+          horizontal: isMobileOrAndroid ? 16 : AppSizes.p24,
+          vertical: 8,
+        ),
         padding: const EdgeInsets.symmetric(horizontal: 8),
         decoration: BoxDecoration(
           color: isDark ? AppColors.darkSurfaceCard : AppColors.primaryGreen,
@@ -1101,45 +1105,20 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // ── Header + Controls or Inline Multi-Select Header ──
-                      if (_showMultiSelect && !isAndroid) ...[
-                        Padding(
-                          padding: const EdgeInsets.only(
-                            left: AppSizes.p24,
-                            right: AppSizes.p24,
-                            top: AppSizes.p24,
-                          ),
-                          child: _buildInlineMultiSelectHeader(
-                            pageAsync.value?.students ?? [],
-                          ),
+                      // ── Top Header or Inline Multi-Select Header ──
+                      if (_showMultiSelect && !isAndroid)
+                        _buildInlineMultiSelectHeader(
+                          pageAsync.value?.students ?? [],
+                        )
+                      else
+                        _buildTopHeader(
+                          context,
+                          query,
+                          ref,
+                          activeCount,
+                          isAndroid,
                         ),
-                        const SizedBox(height: AppSizes.p24),
-                      ] else ...[
-                        if (!isAndroid)
-                          Padding(
-                            padding: const EdgeInsets.only(
-                              left: AppSizes.p24,
-                              right: AppSizes.p24,
-                              top: AppSizes.p24,
-                            ),
-                            child: _buildHeaderControls(
-                              context,
-                              query,
-                              ref,
-                              activeCount,
-                            ),
-                          ),
-                        // ── View Tab Switcher ──
-                        Padding(
-                          padding: EdgeInsets.only(
-                            left: isAndroid ? 16 : AppSizes.p24,
-                            right: isAndroid ? 16 : AppSizes.p24,
-                            top: isAndroid ? 12 : AppSizes.p12,
-                          ),
-                          child: _buildViewTabSwitcher(context),
-                        ),
-                        const SizedBox(height: AppSizes.p12),
-                      ],
+                      const SizedBox(height: 8),
 
                       // ── Data Table / Cards ──
                       Expanded(
@@ -1147,8 +1126,8 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
                           children: [
                             Positioned.fill(
                               child: Padding(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: AppSizes.p24,
+                                padding: EdgeInsets.symmetric(
+                                  horizontal: isAndroid ? 16 : AppSizes.p24,
                                 ),
                                 child: pageAsync.when(
                                   skipLoadingOnReload: true,
@@ -1317,172 +1296,179 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen> {
   }
 
   // ================================================================
-  // HEADER + CONTROLS
+  // TOP HEADER (Segmented Tabs + Actions)
   // ================================================================
-  Widget _buildHeaderControls(
+  Widget _buildTopHeader(
     BuildContext context,
     StudentQueryParams query,
     WidgetRef ref,
     int activeCount,
+    bool isAndroid,
   ) {
-    return LayoutBuilder(
-      builder: (_, c) {
-        final isDesktop = c.maxWidth > 800;
-        final isWindows = defaultTargetPlatform == TargetPlatform.windows;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final isMobile = MediaQuery.of(context).size.width < 800;
+    final isMobileOrAndroid = isMobile || isAndroid;
+    final isDesktop = MediaQuery.of(context).size.width > 800;
+    final isWindows = defaultTargetPlatform == TargetPlatform.windows;
 
-        final isDark = Theme.of(context).brightness == Brightness.dark;
-
-        return Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+    return RepaintBoundary(
+      child: Container(
+        height: 52,
+        margin: EdgeInsets.symmetric(
+          horizontal: isMobileOrAndroid ? 16 : AppSizes.p24,
+          vertical: 8,
+        ),
+        padding: EdgeInsets.symmetric(horizontal: isMobile ? 8 : 12),
+        decoration: BoxDecoration(
+          color: isDark ? AppColors.darkSurfaceCard : Colors.white,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: isDark ? AppColors.darkBorder : AppColors.borderLight,
+            width: 1.0,
+          ),
+          boxShadow: isMobileOrAndroid
+              ? null
+              : [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.05),
+                    blurRadius: 8,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
+        ),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            Expanded(
-              child: Text(
-                'Students Directory',
-                style: TextStyle(
-                  fontSize: isDesktop ? 28 : 22,
-                  fontWeight: FontWeight.bold,
-                  color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
+            // Left: Segmented Tabs (Enrolled vs All Students)
+            _buildViewTabSwitcher(context),
+
+            const Spacer(),
+
+            // Right: Action buttons (desktop / non-android)
+            if (!isAndroid) ...[
+              // Search IconButton
+              Tooltip(
+                richMessage: query.search.isNotEmpty
+                    ? const TextSpan(text: 'Clear Search')
+                    : const TextSpan(
+                        text: 'Search Students ',
+                        children: [
+                          TextSpan(
+                            text: '(Ctrl+F)',
+                            style: TextStyle(fontStyle: FontStyle.italic),
+                          ),
+                        ],
+                      ),
+                child: IconButton(
+                  icon: Icon(
+                    query.search.isNotEmpty ? Icons.close : Icons.search,
+                    size: 20,
+                    color: isDark ? AppColors.darkTextPrimary : Colors.black87,
+                  ),
+                  padding: const EdgeInsets.all(8),
+                  constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
+                  onPressed: () {
+                    if (query.search.isNotEmpty) {
+                      _searchController.clear();
+                      ref.read(studentQueryProvider.notifier).setSearch('');
+                    } else {
+                      _showSearchDialog(context);
+                    }
+                  },
                 ),
-                overflow: TextOverflow.ellipsis,
               ),
-            ),
-            Tooltip(
-              richMessage: query.search.isNotEmpty
-                  ? const TextSpan(text: 'Clear Search')
-                  : const TextSpan(
-                      text: 'Search Students ',
-                      children: [
-                        TextSpan(
-                          text: '(Ctrl+F)',
-                          style: TextStyle(fontStyle: FontStyle.italic),
-                        ),
-                      ],
-                    ),
-              child: IconButton(
-                icon: Icon(
-                  query.search.isNotEmpty ? Icons.close : Icons.search,
-                  size: 28,
-                  color: isDark ? AppColors.darkTextPrimary : Colors.black87,
-                ),
-                onPressed: () {
-                  if (query.search.isNotEmpty) {
-                    _searchController.clear();
-                    ref.read(studentQueryProvider.notifier).setSearch('');
-                  } else {
-                    _showSearchDialog(context);
-                  }
-                },
-              ),
-            ),
-            ...[
-              // Filter icon (icon only, no background)
+
+              // Filter IconButton with Badge
               IconButton(
                 onPressed: () =>
                     StudentFilterDialog.show(context, query: query),
+                padding: const EdgeInsets.all(8),
+                constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
                 icon: Badge(
                   isLabelVisible: activeCount > 0,
                   label: Text(activeCount.toString()),
                   child: Icon(
                     Icons.tune_rounded,
+                    size: 20,
                     color: activeCount > 0
                         ? AppColors.primaryGreen
                         : (isDark ? AppColors.darkTextPrimary : Colors.black87),
                   ),
                 ),
               ),
+
+              // Add Student Button
               if (widget.userRole != 'teacher') ...[
-                const SizedBox(width: 6),
-                Tooltip(
-                  message: 'Add Student',
-                  child: Container(
-                    decoration: BoxDecoration(
-                      gradient: const LinearGradient(
-                        colors: [AppColors.primaryGreen, AppColors.darkGreen],
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
+                const SizedBox(width: 4),
+                SizedBox(
+                  height: 36,
+                  child: ElevatedButton.icon(
+                    onPressed: () {
+                      if (!isDesktop && widget.userRole != 'teacher') {
+                        _showAddStudentOptionsBottomSheet(context);
+                      } else {
+                        _openModal();
+                      }
+                    },
+                    icon: const Icon(Icons.person_add_rounded, size: 16),
+                    label: Text(
+                      isDesktop ? 'Add Student' : 'Add',
+                      style: const TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
                       ),
-                      borderRadius: BorderRadius.circular(10),
-                      boxShadow: [
-                        BoxShadow(
-                          color: AppColors.primaryGreen.withValues(alpha: 0.35),
-                          blurRadius: 6,
-                          offset: const Offset(0, 2),
-                        ),
-                      ],
                     ),
-                    child: Material(
-                      color: Colors.transparent,
-                      child: InkWell(
-                        onTap: () {
-                          if (!isDesktop && widget.userRole != 'teacher') {
-                            _showAddStudentOptionsBottomSheet(context);
-                          } else {
-                            _openModal();
-                          }
-                        },
-                        borderRadius: BorderRadius.circular(10),
-                        child: Padding(
-                          padding: EdgeInsets.symmetric(
-                            horizontal: isDesktop ? 12 : 8,
-                            vertical: 7,
-                          ),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              const Icon(
-                                Icons.person_add_rounded,
-                                size: 19,
-                                color: Colors.white,
-                              ),
-                              if (isDesktop) ...[
-                                const SizedBox(width: 6),
-                                const Text(
-                                  'Add Student',
-                                  style: TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 13,
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                                ),
-                              ],
-                            ],
-                          ),
-                        ),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.primaryGreen,
+                      foregroundColor: Colors.white,
+                      padding: EdgeInsets.symmetric(
+                        horizontal: isDesktop ? 14 : 10,
+                      ),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8.0),
                       ),
                     ),
                   ),
                 ),
               ],
-              // "Bulk Import" button for non-Windows (hidden on Windows app)
+
+              // Bulk Import button (hidden on Windows)
               if (!isWindows && widget.userRole != 'teacher') ...[
                 const SizedBox(width: 6),
                 Tooltip(
                   message: 'Bulk Import Students (OCR & CSV)',
                   child: SizedBox(
                     height: 36,
-                    child: ElevatedButton.icon(
+                    child: OutlinedButton.icon(
                       onPressed: _openBulkOcrImport,
-                      icon: const Icon(Icons.group_add_outlined, size: 18),
+                      icon: const Icon(Icons.group_add_outlined, size: 16),
                       label: Text(
                         isDesktop ? 'Bulk Import' : 'Import',
-                        style: const TextStyle(fontSize: 13),
+                        style: const TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                        ),
                       ),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColors.darkGreen,
-                        foregroundColor: Colors.white,
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: isDark ? Colors.white : AppColors.darkGreen,
+                        side: BorderSide(
+                          color: isDark ? AppColors.darkBorder : AppColors.borderLight,
+                        ),
                         padding: EdgeInsets.symmetric(
                           horizontal: isDesktop ? 12 : 8,
+                        ),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8.0),
                         ),
                       ),
                     ),
                   ),
                 ),
-                const SizedBox(width: 4),
               ],
             ],
           ],
-        );
-      },
+        ),
+      ),
     );
   }
 
